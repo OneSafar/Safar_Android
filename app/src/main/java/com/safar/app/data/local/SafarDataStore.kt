@@ -80,8 +80,8 @@ class SafarDataStore @Inject constructor(
         context.dataStore.edit { it[Keys.REFRESH_TOKEN] = token }
     }
 
-    suspend fun setUserId(id: String) {
-        context.dataStore.edit { it[Keys.USER_ID] = id }
+    suspend fun setUserId(id: String?) {
+        id?.let { context.dataStore.edit { prefs -> prefs[Keys.USER_ID] = it } }
     }
 
     suspend fun setOnboardingDone(done: Boolean) {

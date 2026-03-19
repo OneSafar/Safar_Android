@@ -13,6 +13,7 @@ import com.safar.app.ui.mehfil.MehfilScreen
 import com.safar.app.ui.nightmode.NightModeScreen
 import com.safar.app.ui.splash.SplashScreen
 import com.safar.app.ui.onboarding.OnboardingScreen
+import com.safar.app.ui.profile.ProfileScreen
 
 @Composable
 fun SafarNavGraph(
@@ -24,16 +25,16 @@ fun SafarNavGraph(
     ) {
         composable(Screen.Splash.route) {
             SplashScreen(
-                onNavigateToOnboarding = { navController.navigate(Screen.Onboarding.route) { popUpTo(Screen.Splash.route) { inclusive = true } } },
-                onNavigateToHome = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Splash.route) { inclusive = true } } }
+                onNavigateToAuth = { navController.navigate(Screen.Auth.route) { popUpTo(0) { inclusive = true } } },
+                onNavigateToHome = { navController.navigate(Screen.Home.route) { popUpTo(0) { inclusive = true } } }
             )
         }
 
-        composable(Screen.Onboarding.route) {
-            OnboardingScreen(
-                onFinish = { navController.navigate(Screen.Auth.route) { popUpTo(Screen.Onboarding.route) { inclusive = true } } }
-            )
-        }
+//        composable(Screen.Onboarding.route) {
+//            OnboardingScreen(
+//                onFinish = { navController.navigate(Screen.Auth.route) { popUpTo(Screen.Onboarding.route) { inclusive = true } } }
+//            )
+//        }
 
         composable(Screen.Auth.route) {
             AuthScreen(
@@ -43,6 +44,17 @@ fun SafarNavGraph(
 
         composable(Screen.Home.route) {
             HomeScreen(navController = navController)
+        }
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                navController = navController,
+                onLogout = {
+                    navController.navigate(Screen.Auth.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(Screen.NightMode.route) {

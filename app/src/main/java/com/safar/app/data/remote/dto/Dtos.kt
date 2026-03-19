@@ -1,5 +1,7 @@
 package com.safar.app.data.remote.dto
 
+import com.google.gson.annotations.SerializedName
+
 data class SignupRequest(
     val name: String,
     val email: String,
@@ -55,9 +57,13 @@ data class LoginHistoryResponse(
 )
 
 data class AuthResponse(
-    val token: String,
-    val refreshToken: String,
-    val user: UserDto
+    @SerializedName("id")               val id: String?,
+    @SerializedName("name")             val name: String?,
+    @SerializedName("email")            val email: String?,
+    @SerializedName("avatar")           val avatar: String?,
+    @SerializedName("examType")         val examType: String?,
+    @SerializedName("preparationStage") val preparationStage: String?,
+    @SerializedName("gender")           val gender: String?
 )
 
 data class MessageResponse(val message: String, val success: Boolean = true)

@@ -1,5 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Safar</string>
-    <string name="app_name_hindi">सफर</string>
+    <string name="app_name">SAFAR</string>
+    <string name="app_tagline">Your emotional well-being &amp; productivity portal</string>
+    <string name="create_account_tagline">Create your account to get started</string>
+
+    <string name="label_email">Email</string>
+    <string name="label_password">Password</string>
+    <string name="label_confirm_password">Confirm Password</string>
+    <string name="label_full_name">Full Name *</string>
+    <string name="label_exam_type">Exam Type</string>
+    <string name="label_prep_stage">Preparation Stage</string>
+    <string name="label_gender">Gender *</string>
+
+    <string name="hint_email">Enter your email</string>
+    <string name="hint_password">Enter your password</string>
+    <string name="hint_confirm_password">Confirm your password</string>
+    <string name="hint_full_name">Enter your full name</string>
+    <string name="hint_password_signup">At least 8 characters</string>
+    <string name="hint_exam_type">Select exam type</string>
+    <string name="hint_prep_stage">Select your stage</string>
+    <string name="hint_gender">Select your gender</string>
+
+    <string name="btn_sign_in">Sign In</string>
+    <string name="btn_signing_in">Signing in…</string>
+    <string name="btn_create_account">Create Account</string>
+    <string name="btn_creating_account">Creating account…</string>
+    <string name="btn_forgot_password">Forgot password?</string>
+    <string name="btn_ok">OK</string>
+
+    <string name="check_remember_me">Remember me</string>
+    <string name="no_account">Don\'t have an account? </string>
+    <string name="sign_up_here">Sign up here</string>
+    <string name="have_account">Already have an account? </string>
+    <string name="sign_in_here">Sign in here</string>
+    <string name="footer">© 2026 SAFAR. All rights reserved.</string>
+
+    <string name="error_email_required">Email and password are required.</string>
+    <string name="error_name_required">Full name is required.</string>
+    <string name="error_invalid_domain">Only gmail.com and outlook.com are allowed.</string>
+    <string name="error_password_length">Password must be at least 8 characters.</string>
+    <string name="error_password_mismatch">Passwords do not match.</string>
+    <string name="error_gender_required">Gender is required.</string>
+    <string name="error_enter_email_first">Enter your email first, then tap Forgot password.</string>
+    <string name="error_reset_email_sent">Password reset email sent to %1$s</string>
+
+    <string-array name="exam_options">
+        <item>UPSC</item>
+        <item>SSC</item>
+        <item>IBPS</item>
+        <item>RRB</item>
+        <item>State PSC</item>
+        <item>Other</item>
+    </string-array>
+    <string-array name="prep_stage_options">
+        <item>Beginner</item>
+        <item>Intermediate</item>
+        <item>Advanced</item>
+        <item>Revision</item>
+    </string-array>
+    <string-array name="gender_options">
+        <item>Male</item>
+        <item>Female</item>
+        <item>Non-binary</item>
+        <item>Prefer not to say</item>
+    </string-array>
 </resources>

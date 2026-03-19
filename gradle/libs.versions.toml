@@ -57,6 +57,7 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 junit = { group = "junit", name = "junit", version = "4.13.2" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version = "1.2.1" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version = "3.6.1" }
+okhttp-urlconnection = { group = "com.squareup.okhttp3", name = "okhttp-urlconnection", version.ref = "okhttp" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

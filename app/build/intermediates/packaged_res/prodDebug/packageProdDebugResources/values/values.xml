@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name" translatable="false">Safar</string>
-    <string name="app_name_hindi">सफर</string>
-    <style name="Theme.Safar" parent="android:Theme.Material.Light.NoActionBar"/>
-</resources>

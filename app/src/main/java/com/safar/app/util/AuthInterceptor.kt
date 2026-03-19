@@ -13,9 +13,9 @@ class AuthInterceptor @Inject constructor(
     private val dataStore: SafarDataStore
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token = runBlocking { dataStore.authToken.first() }
+        //val token = runBlocking { dataStore.authToken.first() }
         val request = chain.request().newBuilder().apply {
-            token?.let { addHeader("Authorization", "Bearer $it") }
+            //token?.let { addHeader("Authorization", "Bearer $it") }
             addHeader("Accept-Language", runBlocking { dataStore.language.first() })
         }.build()
         return chain.proceed(request)

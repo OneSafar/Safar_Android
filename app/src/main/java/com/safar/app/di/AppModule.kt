@@ -11,8 +11,12 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.net.CookieManager
+import java.net.CookiePolicy
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import okhttp3.JavaNetCookieJar
+
 
 
 @Module
@@ -21,8 +25,18 @@ object NetworkModule {
 
     @Singleton
     @Provides
-    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient =
+    fun provideCookieManager(): CookieManager =
+        CookieManager().also { it.setCookiePolicy(CookiePolicy.ACCEPT_ALL) }
+
+
+    @Singleton
+    @Provides
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        cookieManager: CookieManager
+    ): OkHttpClient =
         OkHttpClient.Builder()
+            .cookieJar(JavaNetCookieJar(cookieManager))
             .addInterceptor(authInterceptor)
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY

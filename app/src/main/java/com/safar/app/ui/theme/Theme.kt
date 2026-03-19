@@ -10,45 +10,57 @@ import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val LightColorScheme = lightColorScheme(
-    primary = SafarPrimary,
-    onPrimary = SafarOnPrimary,
-    primaryContainer = SafarSurfaceVariant,
-    secondary = SafarSecondary,
-    tertiary = SafarTertiary,
-    background = SafarBackground,
-    surface = SafarSurface,
-    surfaceVariant = SafarSurfaceVariant,
-    onBackground = SafarOnBackground,
-    onSurface = SafarOnSurface,
-    error = SafarSecondary
+    primary            = PrimaryLight,
+    onPrimary          = SafarOnPrimaryLight,
+    primaryContainer   = BrandMint,
+    onPrimaryContainer = BrandMidnight,
+    secondary          = SafarSecondary,
+    onSecondary        = BrandMidnight,
+    tertiary           = BrandTeal,
+    onTertiary         = BrandMidnight,
+    background         = BgLight,
+    onBackground       = SafarOnBackgroundLight,
+    surface            = SafarSurfaceLight,
+    onSurface          = SafarOnSurfaceLight,
+    surfaceVariant     = SafarSurfaceVariantLight,
+    onSurfaceVariant   = SafarOnSurfaceLight,
+    error              = SafarError
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = SafarPrimary,
-    onPrimary = SafarOnPrimary,
-    primaryContainer = SafarDarkSurfaceVariant,
-    secondary = SafarSecondary,
-    tertiary = SafarTertiary,
-    background = SafarDarkBackground,
-    surface = SafarDarkSurface,
-    surfaceVariant = SafarDarkSurfaceVariant,
-    onBackground = SafarDarkOnBackground,
-    onSurface = SafarDarkOnSurface,
-    error = SafarSecondary
+    primary            = PrimaryDark,
+    onPrimary          = SafarOnPrimaryDark,
+    primaryContainer   = BrandPlumDark,
+    onPrimaryContainer = BrandTeal,
+    secondary          = BrandTeal,
+    onSecondary        = BrandMidnight,
+    tertiary           = BrandMint,
+    onTertiary         = BrandMidnight,
+    background         = BgDark,
+    onBackground       = SafarOnBackgroundDark,
+    surface            = SafarSurfaceDark,
+    onSurface          = SafarOnSurfaceDark,
+    surfaceVariant     = SafarSurfaceVariantDark,
+    onSurfaceVariant   = BrandTeal,
+    error              = SafarError
 )
 
 private val NightColorScheme = darkColorScheme(
-    primary = Color(0xFF9B8FFF),
-    onPrimary = NightModeBackground,
-    primaryContainer = NightModeSurface,
-    secondary = Color(0xFFFF8FAD),
-    tertiary = Color(0xFF5BCCB0),
-    background = NightModeBackground,
-    surface = NightModeSurface,
-    surfaceVariant = Color(0xFF130F25),
-    onBackground = NightModeText,
-    onSurface = NightModeText,
-    error = Color(0xFFFF6B6B)
+    primary            = BrandTeal,
+    onPrimary          = BrandMidnight,
+    primaryContainer   = BrandPurpleDeep,
+    onPrimaryContainer = BrandMint,
+    secondary          = PrimaryDark,
+    onSecondary        = BrandMidnight,
+    tertiary           = BrandMint,
+    onTertiary         = BrandMidnight,
+    background         = NightModeBackground,
+    onBackground       = NightModeText,
+    surface            = NightModeSurface,
+    onSurface          = NightModeText,
+    surfaceVariant     = BrandPlumDark,
+    onSurfaceVariant   = BrandTeal,
+    error              = SafarError
 )
 
 @Composable
@@ -60,7 +72,7 @@ fun SafarTheme(
     val colorScheme = when {
         nightMode -> NightColorScheme
         darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        else      -> LightColorScheme
     }
 
     val systemUiController = rememberSystemUiController()
@@ -73,7 +85,8 @@ fun SafarTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = SafarTypography,
-        content = content
+        typography  = SafarTypography,
+        content     = content
     )
 }
+

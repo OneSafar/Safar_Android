@@ -17,6 +17,7 @@ import androidx.lifecycle.viewModelScope
 import com.safar.app.data.local.SafarDataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,46 +27,40 @@ class SplashViewModel @Inject constructor(
     private val dataStore: SafarDataStore
 ) : ViewModel() {
 
-    sealed class SplashEvent {
-        object GoToOnboarding : SplashEvent()
-        object GoToHome : SplashEvent()
+    sealed class SplashDestination {
+        object Auth : SplashDestination()
+        object Home : SplashDestination()
     }
 
-    private var _event: SplashEvent? = null
-    val event get() = _event
+    val destination = MutableStateFlow<SplashDestination?>(null)
 
     init {
         viewModelScope.launch {
             delay(1500)
-            val isOnboardingDone = dataStore.isOnboardingDone.first()
             val isLoggedIn = dataStore.isLoggedIn.first()
-            _event = when {
-                !isOnboardingDone -> SplashEvent.GoToOnboarding
-                isLoggedIn -> SplashEvent.GoToHome
-                else -> SplashEvent.GoToOnboarding
-            }
+            destination.value = if (isLoggedIn) SplashDestination.Home else SplashDestination.Auth
         }
     }
 }
 
 @Composable
 fun SplashScreen(
-    onNavigateToOnboarding: () -> Unit,
+    onNavigateToAuth: () -> Unit,
     onNavigateToHome: () -> Unit,
     viewModel: SplashViewModel = hiltViewModel()
 ) {
     val scale = remember { Animatable(0f) }
+    val destination by viewModel.destination.collectAsState()
 
     LaunchedEffect(Unit) {
         scale.animateTo(1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy))
     }
 
-    LaunchedEffect(viewModel) {
-        while (viewModel.event == null) delay(100)
-        when (viewModel.event) {
-            is SplashViewModel.SplashEvent.GoToOnboarding -> onNavigateToOnboarding()
-            is SplashViewModel.SplashEvent.GoToHome -> onNavigateToHome()
-            null -> {}
+    LaunchedEffect(destination) {
+        when (destination) {
+            is SplashViewModel.SplashDestination.Home -> onNavigateToHome()
+            is SplashViewModel.SplashDestination.Auth -> onNavigateToAuth()
+            null -> Unit
         }
     }
 

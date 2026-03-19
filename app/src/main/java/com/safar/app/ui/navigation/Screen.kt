@@ -17,4 +17,5 @@ sealed class Screen(val route: String) {
     object Dhyan : Screen("dhyan")
 
     object NightMode : Screen("night_mode")
+    object Profile : Screen("profile")
 }

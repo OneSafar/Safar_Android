@@ -26,12 +26,12 @@ android {
             dimension = "env"
             applicationIdSuffix = ".qa"
             versionNameSuffix = "-qa"
-            buildConfigField("String", "BASE_URL", "\"https://api.safar.app/v1/\"")
+            buildConfigField("String", "BASE_URL", "\"https://safar.parmarssc.in/api/\"")
             resValue("string", "app_name", "Safar QA")
         }
         create("prod") {
             dimension = "env"
-            buildConfigField("String", "BASE_URL", "\"https://api.safar.app/v1/\"")
+            buildConfigField("String", "BASE_URL", "\"https://safar.parmarssc.in/api/\"")
             resValue("string", "app_name", "Safar")
         }
     }
@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.gson)
+    implementation(libs.okhttp.urlconnection)
 
     //coroutine
     implementation(libs.kotlinx.coroutines.android)

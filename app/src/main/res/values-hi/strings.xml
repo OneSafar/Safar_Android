@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_tagline">आपका भावनात्मक स्वास्थ्य और उत्पादकता पोर्टल</string>
+    <string name="create_account_tagline">शुरू करने के लिए अपना खाता बनाएं</string>
+
+    <string name="label_email">ईमेल</string>
+    <string name="label_password">पासवर्ड</string>
+    <string name="label_confirm_password">पासवर्ड की पुष्टि करें</string>
+    <string name="label_full_name">पूरा नाम *</string>
+    <string name="label_exam_type">परीक्षा का प्रकार</string>
+    <string name="label_prep_stage">तैयारी का स्तर</string>
+    <string name="label_gender">लिंग *</string>
+
+    <string name="hint_email">अपना ईमेल दर्ज करें</string>
+    <string name="hint_password">अपना पासवर्ड दर्ज करें</string>
+    <string name="hint_confirm_password">पासवर्ड दोबारा दर्ज करें</string>
+    <string name="hint_full_name">अपना पूरा नाम दर्ज करें</string>
+    <string name="hint_password_signup">कम से कम 8 अक्षर</string>
+    <string name="hint_exam_type">परीक्षा चुनें</string>
+    <string name="hint_prep_stage">अपना स्तर चुनें</string>
+    <string name="hint_gender">अपना लिंग चुनें</string>
+
+    <string name="btn_sign_in">साइन इन करें</string>
+    <string name="btn_signing_in">साइन इन हो रहा है…</string>
+    <string name="btn_create_account">खाता बनाएं</string>
+    <string name="btn_creating_account">खाता बन रहा है…</string>
+    <string name="btn_forgot_password">पासवर्ड भूल गए?</string>
+    <string name="btn_ok">ठीक है</string>
+
+    <string name="check_remember_me">मुझे याद रखें</string>
+    <string name="no_account">खाता नहीं है? </string>
+    <string name="sign_up_here">यहाँ साइन अप करें</string>
+    <string name="have_account">पहले से खाता है? </string>
+    <string name="sign_in_here">यहाँ साइन इन करें</string>
+    <string name="footer">© 2026 SAFAR. सर्वाधिकार सुरक्षित।</string>
+
+    <string name="error_email_required">ईमेल और पासवर्ड आवश्यक हैं।</string>
+    <string name="error_name_required">पूरा नाम आवश्यक है।</string>
+    <string name="error_invalid_domain">केवल gmail.com और outlook.com की अनुमति है।</string>
+    <string name="error_password_length">पासवर्ड कम से कम 8 अक्षरों का होना चाहिए।</string>
+    <string name="error_password_mismatch">पासवर्ड मेल नहीं खाते।</string>
+    <string name="error_gender_required">लिंग चुनना आवश्यक है।</string>
+    <string name="error_enter_email_first">पहले ईमेल दर्ज करें, फिर पासवर्ड भूल गए पर टैप करें।</string>
+    <string name="error_reset_email_sent">पासवर्ड रीसेट ईमेल भेजा गया %1$s</string>
+
+    <string-array name="exam_options">
+        <item>UPSC</item>
+        <item>SSC</item>
+        <item>IBPS</item>
+        <item>RRB</item>
+        <item>राज्य PSC</item>
+        <item>अन्य</item>
+    </string-array>
+    <string-array name="prep_stage_options">
+        <item>शुरुआती</item>
+        <item>मध्यम</item>
+        <item>उन्नत</item>
+        <item>पुनरावृत्ति</item>
+    </string-array>
+    <string-array name="gender_options">
+        <item>पुरुष</item>
+        <item>महिला</item>
+        <item>अन्य</item>
+        <item>बताना नहीं चाहते</item>
+    </string-array>
+</resources>

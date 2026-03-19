@@ -1,5 +1,6 @@
 package com.safar.app.util
 
+import org.json.JSONObject
 import retrofit2.Response
 
 sealed class Resource<T> {
@@ -16,7 +17,13 @@ suspend fun <T> safeApiCall(call: suspend () -> Response<T>): Resource<T> {
                 Resource.Success(it)
             } ?: Resource.Error("Empty response body")
         } else {
-            Resource.Error(response.message() ?: "Unknown error", response.code())
+            val errorMessage = try {
+                val errorBody = response.errorBody()?.string()
+                JSONObject(errorBody ?: "").getString("message")
+            } catch (e: Exception) {
+                "Unknown error"
+            }
+            Resource.Error(errorMessage, response.code())
         }
     } catch (e: Exception) {
         Resource.Error(e.localizedMessage ?: "Network error")

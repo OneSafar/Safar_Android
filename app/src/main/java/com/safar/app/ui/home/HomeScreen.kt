@@ -1,5 +1,6 @@
 package com.safar.app.ui.home
 
+import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -7,8 +8,11 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
@@ -31,6 +35,15 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
 
+    val navBarColor = MaterialTheme.colorScheme.surfaceContainer
+    val view = LocalView.current
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    SideEffect {
+        val window = (view.context as Activity).window
+        window.navigationBarColor = navBarColor.toArgb()
+        WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = true
+    }
 
     val greeting = remember {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
@@ -51,8 +64,31 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate(Screen.NightMode.route) }) {
-                        Icon(Icons.Default.NightlightRound, contentDescription = "Night Mode")
+                    Box {
+                        IconButton(onClick = { navController.navigate(Screen.Profile.route) }) {
+                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Night Mode") },
+                                leadingIcon = { Icon(Icons.Default.NightlightRound, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    navController.navigate(Screen.NightMode.route)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Logout") },
+                                leadingIcon = { Icon(Icons.Default.Logout, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    // handle logout
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -64,8 +100,6 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-
-        }
+        ) {}
     }
 }
