@@ -33,8 +33,8 @@ object NetworkModule {
     @Provides
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
-        cookieManager: CookieManager
-    ): OkHttpClient =
+        cookieManager: CookieManager,
+        ): OkHttpClient =
         OkHttpClient.Builder()
             .cookieJar(JavaNetCookieJar(cookieManager))
             .addInterceptor(authInterceptor)
@@ -57,5 +57,8 @@ object NetworkModule {
 
     @Provides @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
+
+    @Provides @Singleton
+    fun provideHomeApi(retrofit: Retrofit): HomeApi = retrofit.create(HomeApi::class.java)
 
 }

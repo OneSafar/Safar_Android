@@ -26,7 +26,10 @@ class AuthRepositoryImpl @Inject constructor(
         val result = safeApiCall { authApi.login(LoginRequest(email, password)) }
         return when (result) {
             is Resource.Success -> {
-                dataStore.setUserId(result.data.id)
+                val user = result.data.user
+                val token = result.data.accessToken
+                token?.let { dataStore.setAuthToken(it) }
+                dataStore.setUserId(user?.id)
                 dataStore.setLoggedIn(true)
                 Resource.Success(result.data.toDomain())
             }
@@ -59,7 +62,10 @@ class AuthRepositoryImpl @Inject constructor(
         }
         return when (result) {
             is Resource.Success -> {
-                dataStore.setUserId(result.data.id)
+                val user = result.data.user
+                val token = result.data.accessToken
+                token?.let { dataStore.setAuthToken(it) }
+                dataStore.setUserId(user?.id)
                 dataStore.setLoggedIn(true)
                 Resource.Success(result.data.toDomain())
             }
@@ -90,12 +96,12 @@ class AuthRepositoryImpl @Inject constructor(
         get() = dataStore.isLoggedIn
 
     private fun AuthResponse.toDomain() = User(
-        id       = id       ?: "",
-        name     = name     ?: "",
-        email    = email    ?: "",
-        photoUrl = avatar,
-        exam     = examType,
-        stage    = preparationStage,
-        gender   = gender
+        id       = user?.id       ?: "",
+        name     = user?.name     ?: "",
+        email    = user?.email    ?: "",
+        photoUrl = user?.avatar,
+        exam     = user?.examType,
+        stage    = user?.preparationStage,
+        gender   = user?.gender
     )
 }

@@ -5,10 +5,13 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.safar.app.ui.navigation.Screen
+import com.safar.app.ui.theme.BrandMidnightLight
 
 data class BottomNavItem(
     val label: String,
@@ -18,7 +21,7 @@ data class BottomNavItem(
 )
 
 @Composable
-fun SafarBottomNav(navController: NavController) {
+fun SafarBottomNav(navController: NavController, isDark: Boolean) {
     val items = listOf(
         BottomNavItem("Home", Screen.Home.route, Icons.Filled.Home, Icons.Outlined.Home),
         BottomNavItem("Nishtha", Screen.NishthaCheckin.route, Icons.Filled.SelfImprovement, Icons.Outlined.SelfImprovement),
@@ -29,7 +32,10 @@ fun SafarBottomNav(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    NavigationBar {
+    NavigationBar (
+        containerColor = if (isDark) BrandMidnightLight else Color.White,
+        tonalElevation = 0.dp
+    ){
         items.forEach { item ->
             val selected = currentRoute == item.route
             NavigationBarItem(

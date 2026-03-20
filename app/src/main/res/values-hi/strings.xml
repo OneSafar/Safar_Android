@@ -63,4 +63,65 @@
         <item>अन्य</item>
         <item>बताना नहीं चाहते</item>
     </string-array>
+
+    <string name="home_online">ऑनलाइन</string>
+    <string name="home_welcome_back">वापस स्वागत है,</string>
+    <string name="home_tap_achievement">उपलब्धि विवरण देखने के लिए टैप करें</string>
+    <string name="home_daily_inspiration">दैनिक प्रेरणा</string>
+    <string name="home_quote">&#8220;सफलता खुद आपके पास नहीं आती। आपको इसे खुद ढूंढना होता है।&#8221;</string>
+    <string name="home_today_mood">आज का मूड</string>
+    <string name="home_mood_question">अभी आप कैसा महसूस कर रहे हैं?</string>
+    <string name="home_no_checkin">आज अभी तक चेक-इन नहीं हुआ</string>
+    <string name="home_check_in_now">अभी चेक इन करें</string>
+    <string name="home_current_streaks">वर्तमान स्ट्रीक्स</string>
+    <string name="home_streak_checkin">चेक-इन स्ट्रीक</string>
+    <string name="home_streak_login">लॉगिन स्ट्रीक</string>
+    <string name="home_streak_goal">लक्ष्य स्ट्रीक</string>
+    <string name="home_achievements">उपलब्धियां</string>
+    <string name="home_view_all">सभी देखें</string>
+    <string name="home_active_badge">सक्रिय बैज</string>
+    <string name="home_earned">अर्जित</string>
+    <string name="home_today_goals">आज के लक्ष्य</string>
+    <string name="home_goals_subtitle">केंद्रित और सुसंगत रहें।</string>
+    <string name="home_no_goals">आज कोई लक्ष्य नहीं।</string>
+    <string name="home_ready_to_plan">अपना दिन योजना बनाने के लिए तैयार हैं?</string>
+    <string name="home_set_goals">आज के लक्ष्य निर्धारित करें</string>
+    <string name="home_monthly_snapshot">मासिक सारांश</string>
+    <string name="home_monthly_subtitle">इस महीने आपके प्रदर्शन की एक झलक।</string>
+    <string name="home_stat_consistency">निरंतरता</string>
+    <string name="home_stat_completion_rate">पूर्णता दर</string>
+    <string name="home_stat_focus_depth">फोकस गहराई</string>
+    <string name="home_view_full_report">पूरी रिपोर्ट देखें</string>
+    <string name="home_weekly_mood">साप्ताहिक मूड ट्रेंड</string>
+    <string name="home_weekly_subtitle">सोमवार से रविवार तक आपकी भावनात्मक यात्रा।</string>
+    <string name="home_legend_intensity">तीव्रता</string>
+    <string name="home_legend_mood">मूड</string>
+    <string name="home_goal_history">लक्ष्य इतिहास</string>
+    <string name="home_goal_history_subtitle">अपनी पिछली उपलब्धियों की समीक्षा करें।</string>
+    <string name="home_view_full_history">पूरा इतिहास देखें</string>
+    <string name="home_showing_last_5">पिछले 5 पूर्ण लक्ष्य दिखाए जा रहे हैं।</string>
+    <string name="home_completed_on">%1$s को पूरा किया</string>
+    <string name="home_completed">पूर्ण</string>
+    <string name="home_resources">संसाधन</string>
+    <string name="home_resources_subtitle">आपकी भलाई और अध्ययन यात्रा के लिए उपयोगी संसाधन।</string>
+    <string name="home_youtube_title">Safar Parmar</string>
+    <string name="home_youtube_tag">YouTube</string>
+    <string name="home_youtube_subtitle">आपकी यात्रा को प्रेरित करने वाली सामग्री</string>
+    <string name="home_course_title">Parmar Academy</string>
+    <string name="home_course_tag">कोर्स</string>
+    <string name="home_course_subtitle">अपनी वृद्धि के लिए संरचित कोर्स खोजें</string>
+    <string name="home_meditation_title">SAFAR 3.0</string>
+    <string name="home_meditation_tag">ध्यान</string>
+    <string name="home_meditation_subtitle">Parmar Academy पर दैनिक ध्यान में शामिल हों</string>
+    <string name="home_footer_title">SAFAR</string>
+    <string name="home_footer_tagline">जहाँ तैयारी देखभाल से मिलती है।</string>
+    <string name="home_footer_query">किसी भी तकनीकी या ऐप संबंधित प्रश्न के लिए मेल करें</string>
+    <string name="home_footer_write">हमें लिखें</string>
+    <string name="home_footer_instagram">📸  Instagram पर @SAFAR_PARMAR</string>
+    <string name="home_footer_playstore">📱  Play Store पर डाउनलोड करें</string>
+    <string name="home_footer_copyright">© 2026 Safar</string>
+    <string name="home_intensity_label">तीव्रता: %1$d/10</string>
+    <string name="home_achievements_count">%1$d अर्जित · %2$d कुल</string>
+    <string name="home_goals_count">%1$d/%2$d पूर्ण</string>
+
 </resources>

@@ -57,6 +57,11 @@ data class LoginHistoryResponse(
 )
 
 data class AuthResponse(
+    @SerializedName("accessToken")      val accessToken: String?,
+    @SerializedName("user")             val user: UserResponse?
+)
+
+data class UserResponse(
     @SerializedName("id")               val id: String?,
     @SerializedName("name")             val name: String?,
     @SerializedName("email")            val email: String?,

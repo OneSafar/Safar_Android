@@ -30,6 +30,8 @@ class SafarDataStore @Inject constructor(
         val DAILY_REMINDER_TIME = stringPreferencesKey("daily_reminder_time")
         val FCM_TOKEN = stringPreferencesKey("fcm_token")
         val LAST_SYNC = longPreferencesKey("last_sync")
+        val USER_NAME   = stringPreferencesKey("user_name")
+        val USER_AVATAR = stringPreferencesKey("user_avatar")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data
@@ -114,6 +116,22 @@ class SafarDataStore @Inject constructor(
 
     suspend fun setLastSync(time: Long) {
         context.dataStore.edit { it[Keys.LAST_SYNC] = time }
+    }
+
+    val userName: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.USER_NAME] }
+
+    val userAvatar: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.USER_AVATAR] }
+
+    suspend fun setUserName(name: String) {
+        context.dataStore.edit { it[Keys.USER_NAME] = name }
+    }
+
+    suspend fun setUserAvatar(avatar: String) {
+        context.dataStore.edit { it[Keys.USER_AVATAR] = avatar }
     }
 
     suspend fun clearSession() {

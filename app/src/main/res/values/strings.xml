@@ -64,4 +64,65 @@
         <item>Non-binary</item>
         <item>Prefer not to say</item>
     </string-array>
+
+    <string name="home_online">Online</string>
+    <string name="home_welcome_back">Welcome back,</string>
+    <string name="home_tap_achievement">Tap to view achievement details</string>
+    <string name="home_daily_inspiration">Daily Inspiration</string>
+    <string name="home_quote">&#8220;Success doesn\'t just find you. You have to go out and get it.&#8221;</string>
+    <string name="home_today_mood">Today\'s Mood</string>
+    <string name="home_mood_question">How are you feeling right now?</string>
+    <string name="home_no_checkin">No check-in yet today</string>
+    <string name="home_check_in_now">Check In Now</string>
+    <string name="home_current_streaks">Current Streaks</string>
+    <string name="home_streak_checkin">Check-In Streak</string>
+    <string name="home_streak_login">Login Streak</string>
+    <string name="home_streak_goal">Goal Streak</string>
+    <string name="home_achievements">Achievements</string>
+    <string name="home_view_all">View All</string>
+    <string name="home_active_badge">Active Badge</string>
+    <string name="home_earned">Earned</string>
+    <string name="home_today_goals">Today\'s Goals</string>
+    <string name="home_goals_subtitle">Stay focused and consistent.</string>
+    <string name="home_no_goals">No goals set for today.</string>
+    <string name="home_ready_to_plan">Ready to plan your day?</string>
+    <string name="home_set_goals">Set Today\'s Goals</string>
+    <string name="home_monthly_snapshot">Monthly Snapshot</string>
+    <string name="home_monthly_subtitle">A quick look at your performance this month.</string>
+    <string name="home_stat_consistency">Consistency</string>
+    <string name="home_stat_completion_rate">Completion Rate</string>
+    <string name="home_stat_focus_depth">Focus Depth</string>
+    <string name="home_view_full_report">View Full Report</string>
+    <string name="home_weekly_mood">Weekly Mood Trend</string>
+    <string name="home_weekly_subtitle">Your emotional journey from Monday to Sunday.</string>
+    <string name="home_legend_intensity">Intensity</string>
+    <string name="home_legend_mood">Mood</string>
+    <string name="home_goal_history">Goal History</string>
+    <string name="home_goal_history_subtitle">Review your past accomplishments.</string>
+    <string name="home_view_full_history">View Full History</string>
+    <string name="home_showing_last_5">Showing the last 5 completed goals.</string>
+    <string name="home_completed_on">Completed on %1$s</string>
+    <string name="home_completed">Completed</string>
+    <string name="home_resources">Resources</string>
+    <string name="home_resources_subtitle">Helpful resources for your well-being and study journey.</string>
+    <string name="home_youtube_title">Safar Parmar</string>
+    <string name="home_youtube_tag">YouTube</string>
+    <string name="home_youtube_subtitle">Inspiring content to fuel your journey</string>
+    <string name="home_course_title">Parmar Academy</string>
+    <string name="home_course_tag">Course</string>
+    <string name="home_course_subtitle">Explore structured courses for your growth</string>
+    <string name="home_meditation_title">SAFAR 3.0</string>
+    <string name="home_meditation_tag">Meditation</string>
+    <string name="home_meditation_subtitle">Join daily meditation on Parmar Academy</string>
+    <string name="home_footer_title">SAFAR</string>
+    <string name="home_footer_tagline">Where preparation meets care.</string>
+    <string name="home_footer_query">For any technical or app related queries mail at</string>
+    <string name="home_footer_write">Write to us at</string>
+    <string name="home_footer_instagram">📸  @SAFAR_PARMAR on Instagram</string>
+    <string name="home_footer_playstore">📱  Download on Play Store</string>
+    <string name="home_footer_copyright">© 2026 Safar</string>
+    <string name="home_intensity_label">Intensity: %1$d/10</string>
+    <string name="home_achievements_count">%1$d earned · %2$d total</string>
+    <string name="home_goals_count">%1$d/%2$d Completed</string>
+
 </resources>
