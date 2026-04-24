@@ -1,14 +1,10 @@
 package com.safar.app.ui.auth
 
-import android.content.Context
-import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.safar.app.R
 import com.safar.app.domain.repository.AuthRepository
 import com.safar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -17,7 +13,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
@@ -42,12 +37,10 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    private fun str(@StringRes id: Int) = context.getString(id)
-
     private fun handleLogin() {
         val state = _uiState.value
         if (state.email.isBlank() || state.password.isBlank()) {
-            _uiState.update { it.copy(error = str(R.string.error_email_required)) }
+            _uiState.update { it.copy(error = "Email and password are required") }
             return
         }
         viewModelScope.launch {
@@ -63,12 +56,12 @@ class AuthViewModel @Inject constructor(
     private fun handleSignup() {
         val state = _uiState.value
         when {
-            state.name.isBlank()                    -> { _uiState.update { it.copy(error = str(R.string.error_name_required)) }; return }
-            state.email.isBlank()                   -> { _uiState.update { it.copy(error = str(R.string.error_email_required)) }; return }
-            !isValidEmail(state.email)              -> { _uiState.update { it.copy(error = str(R.string.error_invalid_domain)) }; return }
-            state.password.length < 8               -> { _uiState.update { it.copy(error = str(R.string.error_password_length)) }; return }
-            state.password != state.confirmPassword -> { _uiState.update { it.copy(error = str(R.string.error_password_mismatch)) }; return }
-            state.gender.isBlank()                  -> { _uiState.update { it.copy(error = str(R.string.error_gender_required)) }; return }
+            state.name.isBlank()                    -> { _uiState.update { it.copy(error = "Name is required") }; return }
+            state.email.isBlank()                   -> { _uiState.update { it.copy(error = "Email is required") }; return }
+            !isValidEmail(state.email)              -> { _uiState.update { it.copy(error = "Please use a valid email (gmail / outlook)") }; return }
+            state.password.length < 8               -> { _uiState.update { it.copy(error = "Password must be at least 8 characters") }; return }
+            state.password != state.confirmPassword -> { _uiState.update { it.copy(error = "Passwords do not match") }; return }
+            state.gender.isBlank()                  -> { _uiState.update { it.copy(error = "Please select a gender") }; return }
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -91,13 +84,13 @@ class AuthViewModel @Inject constructor(
     private fun handleForgotPassword() {
         val email = _uiState.value.email.trim()
         if (email.isBlank()) {
-            _uiState.update { it.copy(error = str(R.string.error_enter_email_first)) }
+            _uiState.update { it.copy(error = "Please enter your email first") }
             return
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = authRepository.forgotPassword(email)) {
-                is Resource.Success -> _uiState.update { it.copy(isLoading = false, error = context.getString(R.string.error_reset_email_sent, email)) }
+                is Resource.Success -> _uiState.update { it.copy(isLoading = false, error = "Password reset email sent to $email") }
                 is Resource.Error   -> _uiState.update { it.copy(isLoading = false, error = result.message) }
                 is Resource.Loading -> Unit
             }

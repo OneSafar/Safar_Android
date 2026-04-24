@@ -1,127 +1,151 @@
 package com.safar.app.ui.navigation
 
-import android.app.Activity
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
-import androidx.navigation.NavHostController
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import com.safar.app.MainActivity
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.safar.app.data.local.SafarDataStore
+import com.safar.app.ui.achievements.AchievementsScreen
 import com.safar.app.ui.auth.AuthScreen
+import com.safar.app.ui.dashboard.DashboardScreen
 import com.safar.app.ui.dhyan.DhyanScreen
 import com.safar.app.ui.ekagra.EkagraScreen
 import com.safar.app.ui.home.HomeScreen
+import com.safar.app.ui.mehfil.DmChatScreen
 import com.safar.app.ui.mehfil.MehfilScreen
-import com.safar.app.ui.nightmode.NightModeScreen
-import com.safar.app.ui.splash.SplashScreen
-import com.safar.app.ui.onboarding.OnboardingScreen
+import com.safar.app.ui.nishtha.NishthaScreen
+import com.safar.app.ui.ekagra.LocalTimerService
 import com.safar.app.ui.profile.ProfileScreen
-import com.safar.app.ui.theme.BrandMidnightLight
+import com.safar.app.ui.splash.SplashScreen
 
 @Composable
 fun SafarNavGraph(
-    navController: NavHostController = rememberNavController()
+    dataStore: SafarDataStore,
+    isDarkTheme       : Boolean = false,
+    isNightMode       : Boolean = false,
+    onToggleDarkTheme : () -> Unit = {},
+    onToggleNightMode : () -> Unit = {},
+    onLanguageToggle  : () -> Unit = {},
 ) {
+    val navController = rememberNavController()
+    val currentEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentEntry?.destination?.route ?: Routes.SPLASH
+    val isLoggedIn by dataStore.isLoggedIn.collectAsState(initial = null)
 
-    val navBackStackEntry by remember(navController) {
-        navController.currentBackStackEntryFlow
-    }.collectAsState(initial = null)
-
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    val homeRoutes = setOf(
-        Screen.Home.route,
-        Screen.NishthaCheckin.route,
-        Screen.Mehfil.route,
-        Screen.Ekagra.route,
-        Screen.Dhyan.route
-    )
-    val isHomeRoute = homeRoutes.contains(currentRoute)
-
-    val view = LocalView.current
-    val homeNavBarColor = BrandMidnightLight
-    val defaultNavBarColor = MaterialTheme.colorScheme.background
-
-    LaunchedEffect(currentRoute) {
-        val window = (view.context as Activity).window
-        if (isHomeRoute) {
-            window.navigationBarColor = homeNavBarColor.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
-        } else {
-            window.navigationBarColor = defaultNavBarColor.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = true
+    LaunchedEffect(isLoggedIn) {
+        // null = DataStore not yet loaded, don't redirect yet
+        if (isLoggedIn == false && currentRoute != Routes.SPLASH && currentRoute != Routes.AUTH) {
+            navController.navigate(Routes.AUTH) { popUpTo(0) { inclusive = true } }
         }
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = Screen.Splash.route
-    ) {
-        composable(Screen.Splash.route) {
-            SplashScreen(
-                onNavigateToAuth = { navController.navigate(Screen.Auth.route) { popUpTo(0) { inclusive = true } } },
-                onNavigateToHome = { navController.navigate(Screen.Home.route) { popUpTo(0) { inclusive = true } } }
+    // ── PiP restore: navigate to Ekagra when user taps the PiP window ────────
+    val activity = LocalContext.current as? MainActivity
+    val navigateToEkagra = activity?.navigateToEkagra ?: false
+    LaunchedEffect(navigateToEkagra) {
+        if (navigateToEkagra) {
+            // Only navigate to Ekagra if the user is still logged in — prevents
+            // a tap on a stale PiP window from bypassing the AUTH screen after logout
+            if (isLoggedIn != false && currentRoute != Routes.EKAGRA) {
+                navController.navigate(Routes.EKAGRA) { launchSingleTop = true; restoreState = true }
+            }
+            activity?.resetNavigateToEkagra() // always reset, even if we skipped navigation
+        }
+    }
+
+    fun navigate(route: String) {
+        if (route == Routes.DM_CHAT) {
+            navController.navigate(route) {
+                launchSingleTop = true
+                popUpTo(Routes.MEHFIL) { inclusive = false }
+            }
+        } else {
+            navController.navigate(route) { launchSingleTop = true; restoreState = true }
+        }
+    }
+    fun navigateAndClear(route: String) { navController.navigate(route) { popUpTo(0) { inclusive = true } } }
+
+    NavHost(navController = navController, startDestination = Routes.SPLASH) {
+
+        composable(Routes.SPLASH) { SplashScreen(onNavigateToAuth = { navigateAndClear(Routes.AUTH) }, onNavigateToHome = { navigateAndClear(Routes.HOME) }) }
+
+        composable(Routes.AUTH) { AuthScreen(onNavigateToHome = { navigateAndClear(Routes.HOME) }) }
+
+        composable(Routes.HOME) { HomeScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle, onNavigateToAuth = { navigateAndClear(Routes.AUTH) }, dataStore = dataStore) }
+
+        composable(Routes.DASHBOARD) {
+            DashboardScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) })
+        }
+
+        composable(Routes.NISHTHA) {
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) })
+        }
+
+        composable(Routes.NISHTHA_CHECKIN) {
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 0)
+        }
+
+        composable(Routes.NISHTHA_GOALS) {
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 2)
+        }
+
+        composable(Routes.NISHTHA_STREAKS) {
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 3)
+        }
+
+        composable(Routes.NISHTHA_ANALYTICS) {
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 4)
+        }
+
+        composable(Routes.EKAGRA) {
+            EkagraScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle)
+        }
+
+        composable(Routes.MEHFIL) {
+            MehfilScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle)
+        }
+
+        composable(Routes.DM_CHAT) {
+            // Scope ViewModel to MEHFIL so state is shared; single popBackStack goes straight back
+            val parentEntry = remember(it) {
+                navController.getBackStackEntry(Routes.MEHFIL)
+            }
+            val mehfilVm = androidx.hilt.navigation.compose.hiltViewModel<com.safar.app.ui.mehfil.MehfilViewModel>(parentEntry)
+            DmChatScreen(
+                viewModel = mehfilVm,
+                onBack = {
+                    navController.popBackStack(Routes.MEHFIL, inclusive = false)
+                },
             )
         }
 
-//        composable(Screen.Onboarding.route) {
-//            OnboardingScreen(
-//                onFinish = { navController.navigate(Screen.Auth.route) { popUpTo(Screen.Onboarding.route) { inclusive = true } } }
-//            )
-//        }
-
-        composable(Screen.Auth.route) {
-            AuthScreen(
-                onNavigateToHome = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Auth.route) { inclusive = true } } }
-            )
+        composable(Routes.DHYAN) {
+            DhyanScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle)
         }
 
-        composable(Screen.Home.route) {
-            HomeScreen(navController = navController)
+        composable(Routes.ACHIEVEMENTS) {
+            val parentEntry = remember(currentEntry) { navController.getBackStackEntry(Routes.DASHBOARD) }
+            val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safar.app.ui.dashboard.DashboardViewModel>(parentEntry)
+            val uiState by dashVm.uiState.collectAsState()
+            AchievementsScreen(achievements = uiState.allAchievements, onBack = { navController.popBackStack() })
         }
 
-        composable(Screen.Profile.route) {
+        composable(Routes.PROFILE) {
+            val timerService = LocalTimerService.current
             ProfileScreen(
-                navController = navController,
+                isDarkTheme = isDarkTheme,
+                onBack = { navController.popBackStack() },
                 onLogout = {
-                    navController.navigate(Screen.Auth.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
+                    timerService?.reset()      // stop timer + clear SharedPrefs theme
+                    activity?.onLogout()       // dismiss PiP, reset nav flag, disable auto-enter
+                    navigateAndClear(Routes.AUTH)
+                },
+                onHome = { navigate(Routes.HOME) },
+                onToggleDarkTheme = onToggleDarkTheme
             )
-        }
-
-        composable(Screen.NightMode.route) {
-            NightModeScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable(Screen.Mehfil.route) {
-            MehfilScreen(
-                navController = navController,
-            )
-        }
-
-        composable(Screen.Dhyan.route) {
-            DhyanScreen(
-                navController = navController
-            )
-        }
-
-        composable(Screen.Ekagra.route) {
-            EkagraScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable(Screen.NishthaCheckin.route) {
-            EkagraScreen(onBack = { navController.popBackStack() })
         }
     }
 }

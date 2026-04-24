@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="ekagra_video_url_tag" type="id"/>
+    <item name="ekagra_player_tag" type="id"/>
+</resources>

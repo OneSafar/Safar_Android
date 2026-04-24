@@ -1,128 +1,301 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SAFAR</string>
-    <string name="app_tagline">Your emotional well-being &amp; productivity portal</string>
-    <string name="create_account_tagline">Create your account to get started</string>
+    <!-- App -->
+    <string name="app_name">Safar</string>
+    <string name="app_tagline">Your mindful journey begins here.</string>
 
-    <string name="label_email">Email</string>
-    <string name="label_password">Password</string>
-    <string name="label_confirm_password">Confirm Password</string>
-    <string name="label_full_name">Full Name *</string>
-    <string name="label_exam_type">Exam Type</string>
-    <string name="label_prep_stage">Preparation Stage</string>
-    <string name="label_gender">Gender *</string>
+    <!-- Splash -->
+    <string name="splash_title">सफर</string>
+    <string name="splash_start_safar">Start Safar</string>
 
-    <string name="hint_email">Enter your email</string>
-    <string name="hint_password">Enter your password</string>
-    <string name="hint_confirm_password">Confirm your password</string>
-    <string name="hint_full_name">Enter your full name</string>
-    <string name="hint_password_signup">At least 8 characters</string>
-    <string name="hint_exam_type">Select exam type</string>
-    <string name="hint_prep_stage">Select your stage</string>
-    <string name="hint_gender">Select your gender</string>
+    <!-- Auth -->
+    <string name="auth_tagline">Sign in to continue your journey</string>
+    <string name="auth_create_account_tagline">Create your Safar account</string>
+    <string name="auth_sign_in_to_continue">Sign in to continue</string>
+    <string name="auth_create_account">Create your account</string>
+    <string name="auth_label_email">EMAIL</string>
+    <string name="auth_label_password">PASSWORD</string>
+    <string name="auth_label_full_name">FULL NAME</string>
+    <string name="auth_label_confirm_password">CONFIRM PASSWORD</string>
+    <string name="auth_label_exam_type">EXAM TYPE</string>
+    <string name="auth_label_prep_stage">PREPARATION STAGE</string>
+    <string name="auth_label_gender">GENDER</string>
+    <string name="auth_hint_email">you@gmail.com</string>
+    <string name="auth_hint_password">••••••••</string>
+    <string name="auth_hint_password_signup">Min. 8 characters</string>
+    <string name="auth_hint_confirm_password">Re-enter password</string>
+    <string name="auth_hint_full_name">Your full name</string>
+    <string name="auth_hint_exam_type">Select exam</string>
+    <string name="auth_hint_prep_stage">Select stage</string>
+    <string name="auth_hint_gender">Select gender</string>
+    <string name="auth_remember_me">Remember me</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_sign_in">Sign In</string>
+    <string name="auth_signing_in">Signing in…</string>
+    <string name="auth_create_account_btn">Create Account</string>
+    <string name="auth_creating_account">Creating account…</string>
+    <string name="auth_no_account">Don\'t have an account? </string>
+    <string name="auth_sign_up_here">Sign up here</string>
+    <string name="auth_have_account">Already have an account? </string>
+    <string name="auth_sign_in_here">Sign in here</string>
+    <string name="auth_footer">Safar · Wellness for every aspirant</string>
 
-    <string name="btn_sign_in">Sign In</string>
-    <string name="btn_signing_in">Signing in…</string>
-    <string name="btn_create_account">Create Account</string>
-    <string name="btn_creating_account">Creating account…</string>
-    <string name="btn_forgot_password">Forgot password?</string>
-    <string name="btn_ok">OK</string>
+    <!-- Navigation -->
+    <string name="nav_back">Back</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_night_mode">Night Mode</string>
+    <string name="nav_language">Language</string>
+    <string name="nav_toggle_night">Toggle night mode</string>
+    <string name="nav_open_menu">Open menu</string>
+    <string name="nav_previous">Previous</string>
+    <string name="nav_next">Next</string>
 
-    <string name="check_remember_me">Remember me</string>
-    <string name="no_account">Don\'t have an account? </string>
-    <string name="sign_up_here">Sign up here</string>
-    <string name="have_account">Already have an account? </string>
-    <string name="sign_in_here">Sign in here</string>
-    <string name="footer">© 2026 SAFAR. All rights reserved.</string>
+    <!-- Drawer -->
+    <string name="drawer_tagline">Your wellness journey</string>
 
-    <string name="error_email_required">Email and password are required.</string>
-    <string name="error_name_required">Full name is required.</string>
-    <string name="error_invalid_domain">Only gmail.com and outlook.com are allowed.</string>
-    <string name="error_password_length">Password must be at least 8 characters.</string>
-    <string name="error_password_mismatch">Passwords do not match.</string>
-    <string name="error_gender_required">Gender is required.</string>
-    <string name="error_enter_email_first">Enter your email first, then tap Forgot password.</string>
-    <string name="error_reset_email_sent">Password reset email sent to %1$s</string>
+    <!-- Home -->
+    <string name="home_greeting">Good morning</string>
+    <string name="home_subtitle">Where would you like to go today?</string>
 
-    <string-array name="exam_options">
-        <item>UPSC</item>
-        <item>SSC</item>
-        <item>IBPS</item>
-        <item>RRB</item>
-        <item>State PSC</item>
-        <item>Other</item>
-    </string-array>
-    <string-array name="prep_stage_options">
-        <item>Beginner</item>
-        <item>Intermediate</item>
-        <item>Advanced</item>
-        <item>Revision</item>
-    </string-array>
-    <string-array name="gender_options">
-        <item>Male</item>
-        <item>Female</item>
-        <item>Non-binary</item>
-        <item>Prefer not to say</item>
-    </string-array>
+    <!-- Dashboard -->
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_welcome_back">Welcome back,</string>
+    <string name="dashboard_streaks">Current Streaks</string>
+    <string name="dashboard_streak_checkin">Check-In</string>
+    <string name="dashboard_streak_login">Login</string>
+    <string name="dashboard_streak_goal">Goal</string>
+    <string name="dashboard_today_mood">Today\'s Mood</string>
+    <string name="dashboard_no_checkin">No check-in yet today</string>
+    <string name="dashboard_intensity">Intensity: %d/10</string>
+    <string name="dashboard_today_goals">Today\'s Goals</string>
+    <string name="dashboard_goals_count">%d/%d done</string>
+    <string name="dashboard_no_goals">No goals set for today</string>
+    <string name="dashboard_achievements">Achievements</string>
+    <string name="dashboard_achievements_count">%d earned · %d total</string>
+    <string name="dashboard_monthly_snapshot">Monthly Snapshot</string>
+    <string name="dashboard_consistency">Consistency</string>
+    <string name="dashboard_completion">Completion</string>
+    <string name="dashboard_focus">Focus Depth</string>
 
-    <string name="home_online">Online</string>
-    <string name="home_welcome_back">Welcome back,</string>
-    <string name="home_tap_achievement">Tap to view achievement details</string>
-    <string name="home_daily_inspiration">Daily Inspiration</string>
-    <string name="home_quote">&#8220;Success doesn\'t just find you. You have to go out and get it.&#8221;</string>
-    <string name="home_today_mood">Today\'s Mood</string>
-    <string name="home_mood_question">How are you feeling right now?</string>
-    <string name="home_no_checkin">No check-in yet today</string>
-    <string name="home_check_in_now">Check In Now</string>
-    <string name="home_current_streaks">Current Streaks</string>
-    <string name="home_streak_checkin">Check-In Streak</string>
-    <string name="home_streak_login">Login Streak</string>
-    <string name="home_streak_goal">Goal Streak</string>
-    <string name="home_achievements">Achievements</string>
-    <string name="home_view_all">View All</string>
-    <string name="home_active_badge">Active Badge</string>
-    <string name="home_earned">Earned</string>
-    <string name="home_today_goals">Today\'s Goals</string>
-    <string name="home_goals_subtitle">Stay focused and consistent.</string>
-    <string name="home_no_goals">No goals set for today.</string>
-    <string name="home_ready_to_plan">Ready to plan your day?</string>
-    <string name="home_set_goals">Set Today\'s Goals</string>
-    <string name="home_monthly_snapshot">Monthly Snapshot</string>
-    <string name="home_monthly_subtitle">A quick look at your performance this month.</string>
-    <string name="home_stat_consistency">Consistency</string>
-    <string name="home_stat_completion_rate">Completion Rate</string>
-    <string name="home_stat_focus_depth">Focus Depth</string>
-    <string name="home_view_full_report">View Full Report</string>
-    <string name="home_weekly_mood">Weekly Mood Trend</string>
-    <string name="home_weekly_subtitle">Your emotional journey from Monday to Sunday.</string>
-    <string name="home_legend_intensity">Intensity</string>
-    <string name="home_legend_mood">Mood</string>
-    <string name="home_goal_history">Goal History</string>
-    <string name="home_goal_history_subtitle">Review your past accomplishments.</string>
-    <string name="home_view_full_history">View Full History</string>
-    <string name="home_showing_last_5">Showing the last 5 completed goals.</string>
-    <string name="home_completed_on">Completed on %1$s</string>
-    <string name="home_completed">Completed</string>
-    <string name="home_resources">Resources</string>
-    <string name="home_resources_subtitle">Helpful resources for your well-being and study journey.</string>
-    <string name="home_youtube_title">Safar Parmar</string>
-    <string name="home_youtube_tag">YouTube</string>
-    <string name="home_youtube_subtitle">Inspiring content to fuel your journey</string>
-    <string name="home_course_title">Parmar Academy</string>
-    <string name="home_course_tag">Course</string>
-    <string name="home_course_subtitle">Explore structured courses for your growth</string>
-    <string name="home_meditation_title">SAFAR 3.0</string>
-    <string name="home_meditation_tag">Meditation</string>
-    <string name="home_meditation_subtitle">Join daily meditation on Parmar Academy</string>
-    <string name="home_footer_title">SAFAR</string>
-    <string name="home_footer_tagline">Where preparation meets care.</string>
-    <string name="home_footer_query">For any technical or app related queries mail at</string>
-    <string name="home_footer_write">Write to us at</string>
-    <string name="home_footer_instagram">📸  @SAFAR_PARMAR on Instagram</string>
-    <string name="home_footer_playstore">📱  Download on Play Store</string>
-    <string name="home_footer_copyright">© 2026 Safar</string>
-    <string name="home_intensity_label">Intensity: %1$d/10</string>
-    <string name="home_achievements_count">%1$d earned · %2$d total</string>
-    <string name="home_goals_count">%1$d/%2$d Completed</string>
+    <!-- Modules -->
+    <string name="module_nishtha">Nishtha</string>
+    <string name="module_nishtha_sub">Emotional wellness</string>
+    <string name="module_ekagra">Ekagra</string>
+    <string name="module_ekagra_sub">Focus &amp; flow</string>
+    <string name="module_mehfil">Mehfil</string>
+    <string name="module_mehfil_sub">Community</string>
+    <string name="module_dhyan">Dhyan</string>
+    <string name="module_dhyan_sub">Meditation</string>
 
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_guest">Guest</string>
+    <string name="profile_no_email">No email set</string>
+    <string name="profile_section_settings">Settings</string>
+    <string name="profile_section_about">About</string>
+    <string name="profile_night_mode">Night Mode</string>
+    <string name="profile_app_version">App Version</string>
+    <string name="profile_logout">Logout</string>
+    <string name="profile_logout_confirm">Are you sure you want to logout?</string>
+
+    <!-- Nishtha tabs -->
+    <string name="nishtha_tab_checkin">Check-In</string>
+    <string name="nishtha_tab_journal">Journal</string>
+    <string name="nishtha_tab_goals">Goals</string>
+    <string name="nishtha_tab_streaks">Streaks</string>
+    <string name="nishtha_tab_analytics">Analytics</string>
+
+    <!-- Check-In -->
+    <string name="checkin_how_feeling">How are you feeling?</string>
+    <string name="checkin_today">Today</string>
+    <string name="checkin_do_checkin">Check-In</string>
+    <string name="checkin_history">History</string>
+    <string name="checkin_select_mood">Select a mood</string>
+    <string name="checkin_intensity">Intensity</string>
+    <string name="checkin_low">Low</string>
+    <string name="checkin_high">High</string>
+    <string name="checkin_note_hint">What caused this mood? (optional)</string>
+    <string name="checkin_save">Save Check-In</string>
+    <string name="checkin_no_history">No check-ins yet</string>
+    <string name="checkin_history_title">Mood History</string>
+    <string name="checkin_intensity_value">Intensity: %d/10</string>
+
+    <!-- Mood labels -->
+    <string name="mood_happy">Happy</string>
+    <string name="mood_calm">Calm</string>
+    <string name="mood_neutral">Neutral</string>
+    <string name="mood_sad">Sad</string>
+    <string name="mood_angry">Angry</string>
+    <string name="mood_anxious">Anxious</string>
+    <string name="mood_tired">Tired</string>
+    <string name="mood_excited">Excited</string>
+    <string name="mood_motivated">Motivated</string>
+
+    <!-- Check-In context tags -->
+    <string name="checkin_context_tags">Context Tags</string>
+
+    <!-- Journal -->
+    <string name="journal_entry_count">%d entries this week</string>
+    <string name="journal_new_entry">New Entry</string>
+    <string name="journal_placeholder">What\'s on your mind today?</string>
+    <string name="journal_past_entries">Past Entries</string>
+    <string name="journal_word_count">%d words</string>
+    <string name="journal_title_label">Title (required)</string>
+    <string name="journal_title_hint">Give your entry a short title…</string>
+    <string name="journal_body_label">Your Thoughts (required)</string>
+    <string name="journal_write">Write</string>
+    <string name="journal_save_entry">Save Entry</string>
+    <string name="journal_empty_title">No entries yet</string>
+    <string name="journal_empty_subtitle">Start writing your first journal entry</string>
+    <string name="journal_write_first">Write First Entry</string>
+
+    <!-- Goals -->
+    <string name="goals_add_goal">Add a Goal</string>
+    <string name="goals_add_short">Add</string>
+    <string name="goals_title_label">Goal title</string>
+    <string name="goals_category_label">Category (e.g. Sleep, Mindfulness)</string>
+    <string name="goals_set_due_date">Set due date</string>
+    <string name="goals_active_count">%d active goals</string>
+    <string name="goals_percent_complete">%d%% complete</string>
+    <string name="goals_analytics_title">Goal Completion — %s</string>
+    <string name="goals_stat_completed">Completed</string>
+    <string name="goals_stat_in_progress">In Progress</string>
+    <string name="goals_stat_not_started">Not Started</string>
+    <string name="goals_tab_goals">Goals</string>
+    <string name="goals_tab_history">History</string>
+    <string name="goals_tab_analytics">Analytics</string>
+    <string name="goals_command_center">Command Center</string>
+    <string name="goals_subtitle">Manage your goals and track progress efficiently.</string>
+    <string name="goals_pending">Pending</string>
+    <string name="goals_tasks">Tasks</string>
+    <string name="goals_completed_section">Completed</string>
+    <string name="goals_completed_on">Completed %s</string>
+    <string name="goals_due">Due %s</string>
+    <string name="goals_archive">Archive</string>
+    <string name="goals_done">Done</string>
+    <string name="goals_done_suffix">done</string>
+    <string name="goals_empty_title">No goals yet</string>
+    <string name="goals_empty_subtitle">Add your first goal to get started</string>
+    <string name="goals_desc_label">Description (optional)</string>
+    <string name="goals_priority_label">Priority</string>
+    <string name="goals_analytics_completed_7d">Completed (7d)</string>
+    <string name="goals_analytics_focus_time">Total Focus Time</string>
+    <string name="goals_analytics_weekly_pulse">Weekly Pulse</string>
+    <string name="goals_analytics_velocity">Completion Velocity</string>
+    <string name="goals_analytics_daily_breakdown">Daily Breakdown</string>
+    <string name="dashboard_weekly_mood">Weekly Mood Trend</string>
+
+    <!-- Streaks -->
+    <string name="streaks_current_label">Current Streak</string>
+    <string name="streaks_current_value">7 days 🔥</string>
+    <string name="streaks_keep_it_up">Keep it up!</string>
+    <string name="streaks_this_week">This Week</string>
+    <string name="streaks_longest_label">Longest Streak</string>
+    <string name="streaks_longest_value">21 days</string>
+    <string name="streaks_header_title">Keep the fire burning!</string>
+    <string name="streaks_header_subtitle">Consistency is key to building sustainable habits. Monitor your progress below.</string>
+    <string name="streaks_checkin_label">Check-In Streak</string>
+    <string name="streaks_login_label">Login Streak</string>
+    <string name="streaks_start_today">Start your streak today!</string>
+    <string name="streaks_amazing">Amazing! Keep it up!</string>
+    <string name="streaks_monthly_health">Monthly Health</string>
+    <string name="streaks_avg_focus_score">Average Focus Score</string>
+    <string name="streaks_days_unit">days</string>
+    <string name="streaks_consistency_trend">Goal Consistency Trend</string>
+    <string name="streaks_trend_subtitle">Your goal completion over the last 7 days</string>
+
+    <!-- Analytics -->
+    <string name="analytics_filter">Filter</string>
+    <string name="analytics_mood_trend">Mood Trend — %s</string>
+    <string name="analytics_avg_mood">Avg Mood</string>
+    <string name="analytics_checkins">Check-ins</string>
+    <string name="analytics_top_mood">Top Mood</string>
+    <string name="analytics_no_report_hint">No report generated yet for this month.</string>
+    <string name="analytics_generate">Generate</string>
+    <string name="analytics_scorecard_title">Nishtha Scorecard</string>
+    <string name="analytics_consistency_score">Consistency Score</string>
+    <string name="analytics_completion_rate">Completion Rate</string>
+    <string name="analytics_focus_depth">Focus Depth</string>
+    <string name="analytics_skill_radar">Skill Radar</string>
+    <string name="analytics_multidimensional">Multidimensional Performance</string>
+    <string name="analytics_activity_heatmap">Activity Heatmap</string>
+    <string name="analytics_30_day">30 Day Density</string>
+    <string name="analytics_less_active">Less Active</string>
+    <string name="analytics_power_mode">Power Mode</string>
+    <string name="analytics_self_discovery">Self-Discovery Insights</string>
+    <string name="analytics_power_hour_title">Your Power Hour</string>
+    <string name="analytics_mood_connection_title">The Mood Connection</string>
+    <string name="analytics_sunday_scaries_title">The Sunday Scaries</string>
+
+    <!-- Days of week (short) -->
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+    <string name="day_sat">Sat</string>
+    <string name="day_sun">Sun</string>
+
+    <!-- Days of week (full) -->
+    <string name="day_full_mon">Mon</string>
+    <string name="day_full_tue">Tue</string>
+    <string name="day_full_wed">Wed</string>
+    <string name="day_full_thu">Thu</string>
+    <string name="day_full_fri">Fri</string>
+    <string name="day_full_sat">Sat</string>
+    <string name="day_full_sun">Sun</string>
+
+    <!-- Date filters -->
+    <string name="filter_today">Today</string>
+    <string name="filter_this_week">This Week</string>
+    <string name="filter_this_month">This Month</string>
+    <string name="filter_3_months">3 Months</string>
+    <string name="filter_all_time">All Time</string>
+
+    <!-- Ekagra -->
+    <string name="ekagra_tab_timer">Timer</string>
+    <string name="ekagra_tab_break">Break</string>
+    <string name="ekagra_tab_analytics">Analytics</string>
+    <string name="ekagra_theme">Theme</string>
+    <string name="ekagra_song">Song</string>
+    <string name="ekagra_focus">Focus</string>
+    <string name="ekagra_minutes">%d min</string>
+    <string name="ekagra_decrease">Decrease</string>
+    <string name="ekagra_increase">Increase</string>
+    <string name="ekagra_reset">Reset</string>
+    <string name="ekagra_pause">Pause</string>
+    <string name="ekagra_start">Start</string>
+    <string name="ekagra_start_break">Start Break</string>
+    <string name="ekagra_break_time">Break Time ☕</string>
+    <string name="ekagra_break_minutes">%d min break</string>
+    <string name="ekagra_choose_theme">Choose Theme</string>
+    <string name="ekagra_ambient_sound">Ambient Sound</string>
+    <string name="ekagra_theme_forest">Forest</string>
+    <string name="ekagra_theme_ocean">Ocean</string>
+    <string name="ekagra_theme_desert">Desert</string>
+    <string name="ekagra_theme_night">Night Sky</string>
+    <string name="ekagra_theme_minimal">Minimal</string>
+    <string name="ekagra_song_rain">Rain Sounds</string>
+    <string name="ekagra_song_binaural">Binaural Beats</string>
+    <string name="ekagra_song_lofi">Lo-Fi Music</string>
+    <string name="ekagra_song_forest">Forest Ambience</string>
+    <string name="ekagra_song_silence">Silence</string>
+    <string name="ekagra_stat_sessions">Sessions</string>
+    <string name="ekagra_stat_focus_time">Focus Time</string>
+    <string name="ekagra_stat_avg_session">Avg Session</string>
+
+    <!-- Common -->
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+    <string name="common_close">Close</string>
+    <string name="common_ok">OK</string>
+    <string name="common_back">Back</string>
+    <string name="common_error">Something went wrong</string>
+    <string name="common_retry">Retry</string>
+    <string name="common_loading">Loading…</string>
+
+    <string name="profile_dark_mode">Dark Mode</string>
+    <string name="profile_light_mode">Light Mode</string>
 </resources>

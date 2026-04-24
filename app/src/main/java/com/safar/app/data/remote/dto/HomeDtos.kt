@@ -2,91 +2,143 @@ package com.safar.app.data.remote.dto
 
 import com.google.gson.annotations.SerializedName
 
-data class HomeStreaksDto(
-    @SerializedName("loginStreak")          val loginStreak: Int = 0,
-    @SerializedName("checkInStreak")        val checkInStreak: Int = 0,
-    @SerializedName("goalCompletionStreak") val goalCompletionStreak: Int = 0,
-    @SerializedName("lastActiveDate")       val lastActiveDate: String? = null
+// Both camelCase and snake_case variants are present to handle inconsistent API responses
+data class StreaksDto(
+    val loginStreak: Int? = null,
+    @SerializedName("login_streak")              val loginStreakSnake: Int? = null,
+    val checkInStreak: Int? = null,
+    @SerializedName("check_in_streak")           val checkInStreakSnake: Int? = null,
+    val goalCompletionStreak: Int? = null,
+    @SerializedName("goal_completion_streak")    val goalCompletionStreakSnake: Int? = null,
+    val lastActiveDate: String? = null,
+    @SerializedName("last_active_date")          val lastActiveDateSnake: String? = null
 )
 
 data class MoodDto(
-    @SerializedName("id")        val id: String = "",
-    @SerializedName("mood")      val mood: String = "",
-    @SerializedName("intensity") val intensity: Int = 0,
-    @SerializedName("notes")     val notes: String? = null,
-    @SerializedName("timestamp") val timestamp: String = ""
+    val id: String? = null,
+    @SerializedName("user_id") val userId: String? = null,
+    val mood: String? = null,
+    val intensity: Int? = null,
+    val notes: String? = null,
+    val timestamp: String? = null
 )
 
+data class CreateMoodRequest(val mood: String, val intensity: Int, val notes: String?)
+
+// Both id and _id variants handled for MongoDB compatibility
 data class GoalDto(
-    @SerializedName("id")               val id: String = "",
-    @SerializedName("title")            val title: String = "",
-    @SerializedName("description")      val description: String? = null,
-    @SerializedName("category")         val category: String = "",
-    @SerializedName("priority")         val priority: String = "",
-    @SerializedName("completed")        val completed: Boolean = false,
-    @SerializedName("completedAt")      val completedAt: String? = null,
-    @SerializedName("scheduledDate")    val scheduledDate: String? = null,
-    @SerializedName("lifecycleStatus")  val lifecycleStatus: String = ""
+    @SerializedName("_id")              val mongoId: String? = null,
+    val id: String? = null,
+    @SerializedName("user_id")          val userId: String? = null,
+    val text: String? = null,
+    val title: String? = null,
+    val description: String? = null,
+    val category: String? = null,
+    val priority: String? = null,
+    val subtasks: List<Any>? = null,
+    val type: String? = null,
+    val completed: Boolean? = false,
+    @SerializedName("completed_at")      val completedAtSnake: String? = null,
+    @SerializedName("started_at")        val startedAt: String? = null,
+    @SerializedName("expires_at")        val expiresAt: String? = null,
+    @SerializedName("scheduled_date")    val scheduledDateSnake: String? = null,
+    @SerializedName("lifecycle_status")  val lifecycleStatusSnake: String? = null,
+    val completedAt: String? = null,
+    val scheduledDate: String? = null,
+    val lifecycleStatus: String? = null
 )
+
+data class JournalDto(
+    @SerializedName("_id")     val mongoId: String? = null,
+    val id: String? = null,
+    @SerializedName("user_id") val userId: String? = null,
+    val content: String? = null,
+    val timestamp: String? = null
+)
+
+data class CreateJournalRequest(val content: String, val title: String? = null, val moodTag: String? = null)
 
 data class MonthlyReportDto(
-    @SerializedName("month")            val month: String = "",
-    @SerializedName("executiveSummary") val executiveSummary: ExecutiveSummaryDto = ExecutiveSummaryDto(),
-    @SerializedName("insights")         val insights: InsightsDto = InsightsDto(),
-    @SerializedName("radar")            val radar: List<RadarDto> = emptyList()
+    val month: String? = null,
+    val generatedAt: String? = null,
+    val executiveSummary: ExecutiveSummaryDto? = null,
+    val insights: InsightsDto? = null,
+    val radar: List<RadarItemDto>? = null,
+    val heatmap: List<HeatmapDayDto>? = null
 )
 
 data class ExecutiveSummaryDto(
-    @SerializedName("consistencyScore")    val consistencyScore: Double = 0.0,
-    @SerializedName("completionRate")      val completionRate: Double = 0.0,
-    @SerializedName("focusDepth")          val focusDepth: Double = 0.0,
-    @SerializedName("daysLoggedIn")        val daysLoggedIn: Int = 0,
-    @SerializedName("daysInMonth")         val daysInMonth: Int = 0,
-    @SerializedName("goalsCreated")        val goalsCreated: Int = 0,
-    @SerializedName("goalsCompleted")      val goalsCompleted: Int = 0,
-    @SerializedName("consistencyMessage")  val consistencyMessage: String = "",
-    @SerializedName("completionMessage")   val completionMessage: String = "",
-    @SerializedName("focusMessage")        val focusMessage: String = ""
+    val consistencyScore: Double? = 0.0,
+    val completionRate: Double? = 0.0,
+    val focusDepth: Double? = 0.0,
+    val daysLoggedIn: Int? = 0,
+    val daysInMonth: Int? = 31,
+    val goalsCreated: Int? = 0,
+    val goalsCompleted: Int? = 0,
+    val totalFocusMinutes: Int? = 0,
+    val consistencyMessage: String? = "",
+    val completionMessage: String? = "",
+    val focusMessage: String? = ""
 )
 
 data class InsightsDto(
-    @SerializedName("powerHour") val powerHour: PowerHourDto = PowerHourDto()
+    val powerHour: PowerHourDto? = null,
+    val moodConnection: MoodConnectionDto? = null,
+    val sundayScaries: SundayScariesDto? = null
 )
 
-data class PowerHourDto(
-    @SerializedName("startHour") val startHour: Int = 0,
-    @SerializedName("endHour")   val endHour: Int = 0,
-    @SerializedName("message")   val message: String = ""
-)
+data class PowerHourDto(val startHour: Int? = null, val endHour: Int? = null, val message: String? = null)
+data class MoodConnectionDto(val message: String? = null)
+data class SundayScariesDto(val weakestDay: String? = null, val message: String? = null)
 
-data class RadarDto(
-    @SerializedName("subject")  val subject: String = "",
-    @SerializedName("score")    val score: Double = 0.0,
-    @SerializedName("fullMark") val fullMark: Int = 100
-)
+data class RadarItemDto(val subject: String? = null, val score: Double? = 0.0, val fullMark: Int? = 100)
+data class HeatmapDayDto(val date: String? = null, val dayOfWeek: String? = null, val value: Int? = 0, val intensity: Int? = 0)
 
-data class ActiveTitleDto(
-    @SerializedName("title")      val title: String = "",
-    @SerializedName("type")       val type: String = "",
-    @SerializedName("selectedId") val selectedId: String = ""
-)
+data class GenerateReportRequest(val month: String)
+
+data class AchievementsResponse(val achievements: List<AchievementDto>? = null)
 
 data class AchievementDto(
-    @SerializedName("id")           val id: String = "",
-    @SerializedName("name")         val name: String = "",
-    @SerializedName("description")  val description: String? = null,
-    @SerializedName("type")         val type: String = "",
-    @SerializedName("category")     val category: String = "",
-    @SerializedName("tier")         val tier: Int? = null,
-    @SerializedName("rarity")       val rarity: String? = null,
-    @SerializedName("requirement")  val requirement: String = "",
-    @SerializedName("holderCount")  val holderCount: Int = 0,
-    @SerializedName("earned")       val earned: Boolean = false,
-    @SerializedName("progress")     val progress: Int = 0,
-    @SerializedName("currentValue") val currentValue: Int = 0,
-    @SerializedName("targetValue")  val targetValue: Int = 0
+    val id: String? = null,
+    val name: String? = null,
+    val description: String? = null,
+    val type: String? = null,
+    val category: String? = null,
+    val rarity: String? = null,
+    val tier: Int? = null,
+    val requirement: String? = null,
+    val holderCount: Int? = 0,
+    val earned: Boolean? = false,
+    val progress: Int? = 0,
+    val currentValue: Int? = 0,
+    val targetValue: Int? = 0
 )
 
-data class AchievementsResponse(
-    @SerializedName("achievements") val achievements: List<AchievementDto> = emptyList()
+data class ActiveTitleDto(val title: String? = null, val selectedId: String? = null)
+
+data class FocusSessionsByGoalsRequest(val goalIds: List<String>)
+
+data class FocusSessionDto(val id: String? = null, val goalId: String? = null, val duration: Int? = 0, val completedAt: String? = null)
+
+data class AddGoalRequest(
+    val text: String,
+    val title: String,
+    val description: String? = null,
+    val subtasks: List<String> = emptyList(),
+    val type: String = "daily",
+    @SerializedName("scheduled_date") val scheduledDate: String,
+    val source: String = "manual",
+    @SerializedName("started_at") val startedAt: String
+)
+
+data class UpdateGoalRequest(
+    val title: String? = null,
+    val description: String? = null,
+    val priority: String? = null
+)
+
+data class CompleteGoalRequest(
+    val completed: Boolean = true,
+    @SerializedName("completed_at")   val completedAt: String,
+    @SerializedName("studied_minutes") val studiedMinutes: Int
 )

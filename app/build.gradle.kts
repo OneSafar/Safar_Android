@@ -15,7 +15,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -40,6 +40,7 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -71,6 +72,18 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation("androidx.appcompat:appcompat:1.7.0")
+
+    //socket
+    implementation("io.socket:socket.io-client:2.1.0")
+    implementation("org.json:json:20231013")
+
+    //animation
+    implementation("androidx.compose.animation:animation:1.7.0")
+
+    //video
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-ui:1.3.1")
 
     //di
     implementation(libs.hilt.android)
@@ -96,6 +109,8 @@ dependencies {
 
     //image loading
     implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
+    implementation("androidx.compose.ui:ui-text-google-fonts")
 
     //work manager
     implementation(libs.androidx.work.runtime.ktx)

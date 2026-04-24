@@ -1,127 +1,299 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_tagline">आपका भावनात्मक स्वास्थ्य और उत्पादकता पोर्टल</string>
-    <string name="create_account_tagline">शुरू करने के लिए अपना खाता बनाएं</string>
+    <!-- App -->
+    <string name="app_name">सफर</string>
+    <string name="app_tagline">आपकी सचेत यात्रा यहाँ से शुरू होती है।</string>
 
-    <string name="label_email">ईमेल</string>
-    <string name="label_password">पासवर्ड</string>
-    <string name="label_confirm_password">पासवर्ड की पुष्टि करें</string>
-    <string name="label_full_name">पूरा नाम *</string>
-    <string name="label_exam_type">परीक्षा का प्रकार</string>
-    <string name="label_prep_stage">तैयारी का स्तर</string>
-    <string name="label_gender">लिंग *</string>
+    <!-- Splash -->
+    <string name="splash_title">सफर</string>
+    <string name="splash_start_safar">सफर शुरू करें</string>
 
-    <string name="hint_email">अपना ईमेल दर्ज करें</string>
-    <string name="hint_password">अपना पासवर्ड दर्ज करें</string>
-    <string name="hint_confirm_password">पासवर्ड दोबारा दर्ज करें</string>
-    <string name="hint_full_name">अपना पूरा नाम दर्ज करें</string>
-    <string name="hint_password_signup">कम से कम 8 अक्षर</string>
-    <string name="hint_exam_type">परीक्षा चुनें</string>
-    <string name="hint_prep_stage">अपना स्तर चुनें</string>
-    <string name="hint_gender">अपना लिंग चुनें</string>
+    <!-- Auth -->
+    <string name="auth_tagline">अपनी यात्रा जारी रखने के लिए साइन इन करें</string>
+    <string name="auth_create_account_tagline">अपना सफर अकाउंट बनाएं</string>
+    <string name="auth_sign_in_to_continue">जारी रखने के लिए साइन इन करें</string>
+    <string name="auth_create_account">अपना अकाउंट बनाएं</string>
+    <string name="auth_label_email">ईमेल</string>
+    <string name="auth_label_password">पासवर्ड</string>
+    <string name="auth_label_full_name">पूरा नाम</string>
+    <string name="auth_label_confirm_password">पासवर्ड की पुष्टि करें</string>
+    <string name="auth_label_exam_type">परीक्षा का प्रकार</string>
+    <string name="auth_label_prep_stage">तैयारी का स्तर</string>
+    <string name="auth_label_gender">लिंग</string>
+    <string name="auth_hint_email">you@gmail.com</string>
+    <string name="auth_hint_password">••••••••</string>
+    <string name="auth_hint_password_signup">कम से कम 8 अक्षर</string>
+    <string name="auth_hint_confirm_password">पासवर्ड दोबारा डालें</string>
+    <string name="auth_hint_full_name">आपका पूरा नाम</string>
+    <string name="auth_hint_exam_type">परीक्षा चुनें</string>
+    <string name="auth_hint_prep_stage">स्तर चुनें</string>
+    <string name="auth_hint_gender">लिंग चुनें</string>
+    <string name="auth_remember_me">मुझे याद रखें</string>
+    <string name="auth_forgot_password">पासवर्ड भूल गए?</string>
+    <string name="auth_sign_in">साइन इन करें</string>
+    <string name="auth_signing_in">साइन इन हो रहा है…</string>
+    <string name="auth_create_account_btn">अकाउंट बनाएं</string>
+    <string name="auth_creating_account">अकाउंट बन रहा है…</string>
+    <string name="auth_no_account">अकाउंट नहीं है? </string>
+    <string name="auth_sign_up_here">यहाँ साइन अप करें</string>
+    <string name="auth_have_account">पहले से अकाउंट है? </string>
+    <string name="auth_sign_in_here">यहाँ साइन इन करें</string>
+    <string name="auth_footer">सफर · हर aspirant की भलाई के लिए</string>
 
-    <string name="btn_sign_in">साइन इन करें</string>
-    <string name="btn_signing_in">साइन इन हो रहा है…</string>
-    <string name="btn_create_account">खाता बनाएं</string>
-    <string name="btn_creating_account">खाता बन रहा है…</string>
-    <string name="btn_forgot_password">पासवर्ड भूल गए?</string>
-    <string name="btn_ok">ठीक है</string>
+    <!-- Navigation -->
+    <string name="nav_back">वापस</string>
+    <string name="nav_home">होम</string>
+    <string name="nav_dashboard">डैशबोर्ड</string>
+    <string name="nav_profile">प्रोफ़ाइल</string>
+    <string name="nav_night_mode">नाइट मोड</string>
+    <string name="nav_language">भाषा</string>
+    <string name="nav_toggle_night">नाइट मोड बदलें</string>
+    <string name="nav_open_menu">मेनू खोलें</string>
+    <string name="nav_previous">पिछला</string>
+    <string name="nav_next">अगला</string>
 
-    <string name="check_remember_me">मुझे याद रखें</string>
-    <string name="no_account">खाता नहीं है? </string>
-    <string name="sign_up_here">यहाँ साइन अप करें</string>
-    <string name="have_account">पहले से खाता है? </string>
-    <string name="sign_in_here">यहाँ साइन इन करें</string>
-    <string name="footer">© 2026 SAFAR. सर्वाधिकार सुरक्षित।</string>
+    <!-- Drawer -->
+    <string name="drawer_tagline">आपकी स्वास्थ्य यात्रा</string>
 
-    <string name="error_email_required">ईमेल और पासवर्ड आवश्यक हैं।</string>
-    <string name="error_name_required">पूरा नाम आवश्यक है।</string>
-    <string name="error_invalid_domain">केवल gmail.com और outlook.com की अनुमति है।</string>
-    <string name="error_password_length">पासवर्ड कम से कम 8 अक्षरों का होना चाहिए।</string>
-    <string name="error_password_mismatch">पासवर्ड मेल नहीं खाते।</string>
-    <string name="error_gender_required">लिंग चुनना आवश्यक है।</string>
-    <string name="error_enter_email_first">पहले ईमेल दर्ज करें, फिर पासवर्ड भूल गए पर टैप करें।</string>
-    <string name="error_reset_email_sent">पासवर्ड रीसेट ईमेल भेजा गया %1$s</string>
+    <!-- Home -->
+    <string name="home_greeting">शुभ प्रभात 🙏</string>
+    <string name="home_subtitle">आज आप कहाँ जाना चाहेंगे?</string>
 
-    <string-array name="exam_options">
-        <item>UPSC</item>
-        <item>SSC</item>
-        <item>IBPS</item>
-        <item>RRB</item>
-        <item>राज्य PSC</item>
-        <item>अन्य</item>
-    </string-array>
-    <string-array name="prep_stage_options">
-        <item>शुरुआती</item>
-        <item>मध्यम</item>
-        <item>उन्नत</item>
-        <item>पुनरावृत्ति</item>
-    </string-array>
-    <string-array name="gender_options">
-        <item>पुरुष</item>
-        <item>महिला</item>
-        <item>अन्य</item>
-        <item>बताना नहीं चाहते</item>
-    </string-array>
+    <!-- Dashboard -->
+    <string name="dashboard_title">डैशबोर्ड</string>
+    <string name="dashboard_welcome_back">वापस स्वागत है,</string>
+    <string name="dashboard_streaks">वर्तमान स्ट्रीक</string>
+    <string name="dashboard_streak_checkin">चेक-इन</string>
+    <string name="dashboard_streak_login">लॉगिन</string>
+    <string name="dashboard_streak_goal">लक्ष्य</string>
+    <string name="dashboard_today_mood">आज का मूड</string>
+    <string name="dashboard_no_checkin">आज अभी तक चेक-इन नहीं हुआ</string>
+    <string name="dashboard_intensity">तीव्रता: %d/10</string>
+    <string name="dashboard_today_goals">आज के लक्ष्य</string>
+    <string name="dashboard_goals_count">%d/%d पूरे</string>
+    <string name="dashboard_no_goals">आज के लिए कोई लक्ष्य नहीं</string>
+    <string name="dashboard_achievements">उपलब्धियाँ</string>
+    <string name="dashboard_achievements_count">%d अर्जित · %d कुल</string>
+    <string name="dashboard_monthly_snapshot">मासिक सारांश</string>
+    <string name="dashboard_consistency">निरंतरता</string>
+    <string name="dashboard_completion">पूर्णता</string>
+    <string name="dashboard_focus">फोकस गहराई</string>
 
-    <string name="home_online">ऑनलाइन</string>
-    <string name="home_welcome_back">वापस स्वागत है,</string>
-    <string name="home_tap_achievement">उपलब्धि विवरण देखने के लिए टैप करें</string>
-    <string name="home_daily_inspiration">दैनिक प्रेरणा</string>
-    <string name="home_quote">&#8220;सफलता खुद आपके पास नहीं आती। आपको इसे खुद ढूंढना होता है।&#8221;</string>
-    <string name="home_today_mood">आज का मूड</string>
-    <string name="home_mood_question">अभी आप कैसा महसूस कर रहे हैं?</string>
-    <string name="home_no_checkin">आज अभी तक चेक-इन नहीं हुआ</string>
-    <string name="home_check_in_now">अभी चेक इन करें</string>
-    <string name="home_current_streaks">वर्तमान स्ट्रीक्स</string>
-    <string name="home_streak_checkin">चेक-इन स्ट्रीक</string>
-    <string name="home_streak_login">लॉगिन स्ट्रीक</string>
-    <string name="home_streak_goal">लक्ष्य स्ट्रीक</string>
-    <string name="home_achievements">उपलब्धियां</string>
-    <string name="home_view_all">सभी देखें</string>
-    <string name="home_active_badge">सक्रिय बैज</string>
-    <string name="home_earned">अर्जित</string>
-    <string name="home_today_goals">आज के लक्ष्य</string>
-    <string name="home_goals_subtitle">केंद्रित और सुसंगत रहें।</string>
-    <string name="home_no_goals">आज कोई लक्ष्य नहीं।</string>
-    <string name="home_ready_to_plan">अपना दिन योजना बनाने के लिए तैयार हैं?</string>
-    <string name="home_set_goals">आज के लक्ष्य निर्धारित करें</string>
-    <string name="home_monthly_snapshot">मासिक सारांश</string>
-    <string name="home_monthly_subtitle">इस महीने आपके प्रदर्शन की एक झलक।</string>
-    <string name="home_stat_consistency">निरंतरता</string>
-    <string name="home_stat_completion_rate">पूर्णता दर</string>
-    <string name="home_stat_focus_depth">फोकस गहराई</string>
-    <string name="home_view_full_report">पूरी रिपोर्ट देखें</string>
-    <string name="home_weekly_mood">साप्ताहिक मूड ट्रेंड</string>
-    <string name="home_weekly_subtitle">सोमवार से रविवार तक आपकी भावनात्मक यात्रा।</string>
-    <string name="home_legend_intensity">तीव्रता</string>
-    <string name="home_legend_mood">मूड</string>
-    <string name="home_goal_history">लक्ष्य इतिहास</string>
-    <string name="home_goal_history_subtitle">अपनी पिछली उपलब्धियों की समीक्षा करें।</string>
-    <string name="home_view_full_history">पूरा इतिहास देखें</string>
-    <string name="home_showing_last_5">पिछले 5 पूर्ण लक्ष्य दिखाए जा रहे हैं।</string>
-    <string name="home_completed_on">%1$s को पूरा किया</string>
-    <string name="home_completed">पूर्ण</string>
-    <string name="home_resources">संसाधन</string>
-    <string name="home_resources_subtitle">आपकी भलाई और अध्ययन यात्रा के लिए उपयोगी संसाधन।</string>
-    <string name="home_youtube_title">Safar Parmar</string>
-    <string name="home_youtube_tag">YouTube</string>
-    <string name="home_youtube_subtitle">आपकी यात्रा को प्रेरित करने वाली सामग्री</string>
-    <string name="home_course_title">Parmar Academy</string>
-    <string name="home_course_tag">कोर्स</string>
-    <string name="home_course_subtitle">अपनी वृद्धि के लिए संरचित कोर्स खोजें</string>
-    <string name="home_meditation_title">SAFAR 3.0</string>
-    <string name="home_meditation_tag">ध्यान</string>
-    <string name="home_meditation_subtitle">Parmar Academy पर दैनिक ध्यान में शामिल हों</string>
-    <string name="home_footer_title">SAFAR</string>
-    <string name="home_footer_tagline">जहाँ तैयारी देखभाल से मिलती है।</string>
-    <string name="home_footer_query">किसी भी तकनीकी या ऐप संबंधित प्रश्न के लिए मेल करें</string>
-    <string name="home_footer_write">हमें लिखें</string>
-    <string name="home_footer_instagram">📸  Instagram पर @SAFAR_PARMAR</string>
-    <string name="home_footer_playstore">📱  Play Store पर डाउनलोड करें</string>
-    <string name="home_footer_copyright">© 2026 Safar</string>
-    <string name="home_intensity_label">तीव्रता: %1$d/10</string>
-    <string name="home_achievements_count">%1$d अर्जित · %2$d कुल</string>
-    <string name="home_goals_count">%1$d/%2$d पूर्ण</string>
+    <!-- Modules -->
+    <string name="module_nishtha">निष्ठा</string>
+    <string name="module_nishtha_sub">भावनात्मक कल्याण</string>
+    <string name="module_ekagra">एकाग्र</string>
+    <string name="module_ekagra_sub">फोकस और प्रवाह</string>
+    <string name="module_mehfil">महफ़िल</string>
+    <string name="module_mehfil_sub">समुदाय</string>
+    <string name="module_dhyan">ध्यान</string>
+    <string name="module_dhyan_sub">मेडिटेशन</string>
 
+    <!-- Profile -->
+    <string name="profile_title">प्रोफ़ाइल</string>
+    <string name="profile_guest">अतिथि</string>
+    <string name="profile_no_email">कोई ईमेल नहीं</string>
+    <string name="profile_section_settings">सेटिंग्स</string>
+    <string name="profile_section_about">के बारे में</string>
+    <string name="profile_night_mode">नाइट मोड</string>
+    <string name="profile_app_version">ऐप संस्करण</string>
+    <string name="profile_logout">लॉगआउट</string>
+    <string name="profile_logout_confirm">क्या आप वाकई लॉगआउट करना चाहते हैं?</string>
+
+    <!-- Nishtha tabs -->
+    <string name="nishtha_tab_checkin">चेक-इन</string>
+    <string name="nishtha_tab_journal">जर्नल</string>
+    <string name="nishtha_tab_goals">लक्ष्य</string>
+    <string name="nishtha_tab_streaks">स्ट्रीक</string>
+    <string name="nishtha_tab_analytics">विश्लेषण</string>
+
+    <!-- Check-In -->
+    <string name="checkin_how_feeling">आप कैसा महसूस कर रहे हैं?</string>
+    <string name="checkin_today">आज</string>
+    <string name="checkin_do_checkin">चेक-इन</string>
+    <string name="checkin_history">इतिहास</string>
+    <string name="checkin_select_mood">मूड चुनें</string>
+    <string name="checkin_intensity">तीव्रता</string>
+    <string name="checkin_low">कम</string>
+    <string name="checkin_high">अधिक</string>
+    <string name="checkin_note_hint">नोट जोड़ें (वैकल्पिक)</string>
+    <string name="checkin_save">चेक-इन सहेजें</string>
+    <string name="checkin_no_history">अभी तक कोई चेक-इन नहीं</string>
+    <string name="checkin_history_title">मूड इतिहास</string>
+    <string name="checkin_intensity_value">तीव्रता: %d/10</string>
+
+    <!-- Mood labels -->
+    <string name="mood_happy">खुश</string>
+    <string name="mood_calm">शांत</string>
+    <string name="mood_neutral">सामान्य</string>
+    <string name="mood_sad">दुखी</string>
+    <string name="mood_angry">गुस्से में</string>
+    <string name="mood_anxious">चिंतित</string>
+    <string name="mood_tired">थका हुआ</string>
+    <string name="mood_excited">उत्साहित</string>
+    <string name="mood_motivated">प्रेरित</string>
+    <string name="checkin_context_tags">संदर्भ टैग</string>
+
+    <!-- Journal -->
+    <string name="journal_entry_count">इस हफ्ते %d प्रविष्टियाँ</string>
+    <string name="journal_new_entry">नई प्रविष्टि</string>
+    <string name="journal_placeholder">आज आपके मन में क्या है?</string>
+    <string name="journal_past_entries">पिछली प्रविष्टियाँ</string>
+    <string name="journal_word_count">%d शब्द</string>
+    <string name="journal_title_label">शीर्षक (आवश्यक)</string>
+    <string name="journal_title_hint">एक छोटा शीर्षक दें…</string>
+    <string name="journal_body_label">आपके विचार (आवश्यक)</string>
+    <string name="journal_write">लिखें</string>
+    <string name="journal_save_entry">प्रविष्टि सहेजें</string>
+    <string name="journal_empty_title">अभी कोई प्रविष्टि नहीं</string>
+    <string name="journal_empty_subtitle">अपनी पहली जर्नल प्रविष्टि लिखना शुरू करें</string>
+    <string name="journal_write_first">पहली प्रविष्टि लिखें</string>
+
+    <!-- Goals -->
+    <string name="goals_add_goal">लक्ष्य जोड़ें</string>
+    <string name="goals_add_short">जोड़ें</string>
+    <string name="goals_title_label">लक्ष्य का शीर्षक</string>
+    <string name="goals_category_label">श्रेणी (जैसे नींद, माइंडफुलनेस)</string>
+    <string name="goals_set_due_date">समय-सीमा निर्धारित करें</string>
+    <string name="goals_active_count">%d सक्रिय लक्ष्य</string>
+    <string name="goals_percent_complete">%d%% पूर्ण</string>
+    <string name="goals_analytics_title">लक्ष्य पूर्णता — %s</string>
+    <string name="goals_stat_completed">पूर्ण</string>
+    <string name="goals_stat_in_progress">प्रगति में</string>
+    <string name="goals_stat_not_started">शुरू नहीं हुआ</string>
+    <string name="goals_tab_goals">लक्ष्य</string>
+    <string name="goals_tab_history">इतिहास</string>
+    <string name="goals_tab_analytics">विश्लेषण</string>
+    <string name="goals_command_center">कमांड सेंटर</string>
+    <string name="goals_subtitle">अपने लक्ष्यों को प्रबंधित करें और प्रगति ट्रैक करें।</string>
+    <string name="goals_pending">लंबित</string>
+    <string name="goals_tasks">कार्य</string>
+    <string name="goals_completed_section">पूर्ण</string>
+    <string name="goals_completed_on">%s को पूर्ण हुआ</string>
+    <string name="goals_due">समय-सीमा: %s</string>
+    <string name="goals_archive">संग्रह</string>
+    <string name="goals_done">पूर्ण</string>
+    <string name="goals_done_suffix">पूर्ण</string>
+    <string name="goals_empty_title">अभी कोई लक्ष्य नहीं</string>
+    <string name="goals_empty_subtitle">शुरू करने के लिए पहला लक्ष्य जोड़ें</string>
+    <string name="goals_desc_label">विवरण (वैकल्पिक)</string>
+    <string name="goals_priority_label">प्राथमिकता</string>
+    <string name="goals_analytics_completed_7d">पूर्ण (7 दिन)</string>
+    <string name="goals_analytics_focus_time">कुल फोकस समय</string>
+    <string name="goals_analytics_weekly_pulse">साप्ताहिक पल्स</string>
+    <string name="goals_analytics_velocity">पूर्णता वेग</string>
+    <string name="goals_analytics_daily_breakdown">दैनिक विवरण</string>
+    <string name="dashboard_weekly_mood">साप्ताहिक मनोदशा</string>
+
+    <!-- Streaks -->
+    <string name="streaks_current_label">वर्तमान स्ट्रीक</string>
+    <string name="streaks_current_value">7 दिन 🔥</string>
+    <string name="streaks_keep_it_up">इसी तरह जारी रखें!</string>
+    <string name="streaks_this_week">इस हफ्ते</string>
+    <string name="streaks_longest_label">सबसे लंबी स्ट्रीक</string>
+    <string name="streaks_longest_value">21 दिन</string>
+    <string name="streaks_header_title">आग जलाए रखें!</string>
+    <string name="streaks_header_subtitle">निरंतरता टिकाऊ आदतें बनाने की कुंजी है। अपनी प्रगति नीचे देखें।</string>
+    <string name="streaks_checkin_label">चेक-इन स्ट्रीक</string>
+    <string name="streaks_login_label">लॉगिन स्ट्रीक</string>
+    <string name="streaks_start_today">आज अपनी स्ट्रीक शुरू करें!</string>
+    <string name="streaks_amazing">बहुत बढ़िया! जारी रखें!</string>
+    <string name="streaks_monthly_health">मासिक स्वास्थ्य</string>
+    <string name="streaks_avg_focus_score">औसत फोकस स्कोर</string>
+    <string name="streaks_days_unit">दिन</string>
+    <string name="streaks_consistency_trend">लक्ष्य निरंतरता ट्रेंड</string>
+    <string name="streaks_trend_subtitle">पिछले 7 दिनों में आपकी लक्ष्य पूर्णता</string>
+
+    <!-- Analytics -->
+    <string name="analytics_filter">फ़िल्टर</string>
+    <string name="analytics_mood_trend">मूड ट्रेंड — %s</string>
+    <string name="analytics_avg_mood">औसत मूड</string>
+    <string name="analytics_checkins">चेक-इन</string>
+    <string name="analytics_top_mood">शीर्ष मूड</string>
+    <string name="analytics_no_report_hint">इस महीने के लिए अभी कोई रिपोर्ट नहीं है।</string>
+    <string name="analytics_generate">जनरेट करें</string>
+    <string name="analytics_scorecard_title">निष्ठा स्कोरकार्ड</string>
+    <string name="analytics_consistency_score">निरंतरता स्कोर</string>
+    <string name="analytics_completion_rate">पूर्णता दर</string>
+    <string name="analytics_focus_depth">फोकस गहराई</string>
+    <string name="analytics_skill_radar">कौशल रडार</string>
+    <string name="analytics_multidimensional">बहुआयामी प्रदर्शन</string>
+    <string name="analytics_activity_heatmap">गतिविधि हीटमैप</string>
+    <string name="analytics_30_day">30 दिन घनत्व</string>
+    <string name="analytics_less_active">कम सक्रिय</string>
+    <string name="analytics_power_mode">पावर मोड</string>
+    <string name="analytics_self_discovery">आत्म-खोज अंतर्दृष्टि</string>
+    <string name="analytics_power_hour_title">आपका पावर ऑवर</string>
+    <string name="analytics_mood_connection_title">मूड कनेक्शन</string>
+    <string name="analytics_sunday_scaries_title">संडे स्केरीज</string>
+
+    <!-- Days of week (short) -->
+    <string name="day_mon">सोम</string>
+    <string name="day_tue">मंगल</string>
+    <string name="day_wed">बुध</string>
+    <string name="day_thu">गुरु</string>
+    <string name="day_fri">शुक्र</string>
+    <string name="day_sat">शनि</string>
+    <string name="day_sun">रवि</string>
+
+    <!-- Days of week (full) -->
+    <string name="day_full_mon">सोम</string>
+    <string name="day_full_tue">मंगल</string>
+    <string name="day_full_wed">बुध</string>
+    <string name="day_full_thu">गुरु</string>
+    <string name="day_full_fri">शुक्र</string>
+    <string name="day_full_sat">शनि</string>
+    <string name="day_full_sun">रवि</string>
+
+    <!-- Date filters -->
+    <string name="filter_today">आज</string>
+    <string name="filter_this_week">इस हफ्ते</string>
+    <string name="filter_this_month">इस महीने</string>
+    <string name="filter_3_months">3 महीने</string>
+    <string name="filter_all_time">सब समय</string>
+
+    <!-- Ekagra -->
+    <string name="ekagra_tab_timer">टाइमर</string>
+    <string name="ekagra_tab_break">ब्रेक</string>
+    <string name="ekagra_tab_analytics">विश्लेषण</string>
+    <string name="ekagra_theme">थीम</string>
+    <string name="ekagra_song">गाना</string>
+    <string name="ekagra_focus">फोकस</string>
+    <string name="ekagra_minutes">%d मिनट</string>
+    <string name="ekagra_decrease">घटाएं</string>
+    <string name="ekagra_increase">बढ़ाएं</string>
+    <string name="ekagra_reset">रीसेट</string>
+    <string name="ekagra_pause">रुकें</string>
+    <string name="ekagra_start">शुरू करें</string>
+    <string name="ekagra_start_break">ब्रेक शुरू करें</string>
+    <string name="ekagra_break_time">ब्रेक का समय ☕</string>
+    <string name="ekagra_break_minutes">%d मिनट का ब्रेक</string>
+    <string name="ekagra_choose_theme">थीम चुनें</string>
+    <string name="ekagra_ambient_sound">परिवेश ध्वनि</string>
+    <string name="ekagra_theme_forest">जंगल</string>
+    <string name="ekagra_theme_ocean">समुद्र</string>
+    <string name="ekagra_theme_desert">रेगिस्तान</string>
+    <string name="ekagra_theme_night">रात का आकाश</string>
+    <string name="ekagra_theme_minimal">सादा</string>
+    <string name="ekagra_song_rain">बारिश की आवाज़</string>
+    <string name="ekagra_song_binaural">बाइनॉरल बीट्स</string>
+    <string name="ekagra_song_lofi">लो-फाई म्यूज़िक</string>
+    <string name="ekagra_song_forest">जंगल की आवाज़</string>
+    <string name="ekagra_song_silence">मौन</string>
+    <string name="ekagra_stat_sessions">सत्र</string>
+    <string name="ekagra_stat_focus_time">फोकस समय</string>
+    <string name="ekagra_stat_avg_session">औसत सत्र</string>
+
+    <!-- Common -->
+    <string name="common_cancel">रद्द करें</string>
+    <string name="common_save">सहेजें</string>
+    <string name="common_close">बंद करें</string>
+    <string name="common_ok">ठीक है</string>
+    <string name="common_back">वापस</string>
+    <string name="common_error">कुछ गलत हो गया</string>
+    <string name="common_retry">पुनः प्रयास करें</string>
+    <string name="common_loading">लोड हो रहा है…</string>
+
+    <string name="profile_dark_mode">डार्क मोड</string>
+    <string name="profile_light_mode">लाइट मोड</string>
 </resources>

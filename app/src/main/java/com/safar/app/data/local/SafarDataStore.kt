@@ -18,21 +18,25 @@ class SafarDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private object Keys {
-        val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
-        val AUTH_TOKEN = stringPreferencesKey("auth_token")
-        val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
-        val USER_ID = stringPreferencesKey("user_id")
-        val IS_ONBOARDING_DONE = booleanPreferencesKey("is_onboarding_done")
-        val IS_DARK_THEME = booleanPreferencesKey("is_dark_theme")
-        val IS_NIGHT_MODE = booleanPreferencesKey("is_night_mode")
-        val LANGUAGE = stringPreferencesKey("language")
+        val IS_LOGGED_IN          = booleanPreferencesKey("is_logged_in")
+        val AUTH_TOKEN            = stringPreferencesKey("auth_token")
+        val REFRESH_TOKEN         = stringPreferencesKey("refresh_token")
+        val USER_ID               = stringPreferencesKey("user_id")
+        val USER_NAME             = stringPreferencesKey("user_name")
+        val USER_AVATAR           = stringPreferencesKey("user_avatar")
+        val IS_ONBOARDING_DONE    = booleanPreferencesKey("is_onboarding_done")
+        val IS_DARK_THEME         = booleanPreferencesKey("is_dark_theme")
+        val IS_NIGHT_MODE         = booleanPreferencesKey("is_night_mode")
+        val LANGUAGE              = stringPreferencesKey("language")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
-        val DAILY_REMINDER_TIME = stringPreferencesKey("daily_reminder_time")
-        val FCM_TOKEN = stringPreferencesKey("fcm_token")
-        val LAST_SYNC = longPreferencesKey("last_sync")
-        val USER_NAME   = stringPreferencesKey("user_name")
-        val USER_AVATAR = stringPreferencesKey("user_avatar")
+        val DAILY_REMINDER_TIME   = stringPreferencesKey("daily_reminder_time")
+        val FCM_TOKEN             = stringPreferencesKey("fcm_token")
+        val LAST_SYNC             = longPreferencesKey("last_sync")
+        val TOUR_DONE             = booleanPreferencesKey("tour_done")
+        val WELCOME_SEEN          = booleanPreferencesKey("welcome_seen")
     }
+
+    // ── Flows ─────────────────────────────────────────────────────────────────
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -49,6 +53,14 @@ class SafarDataStore @Inject constructor(
     val userId: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.USER_ID] }
+
+    val userName: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.USER_NAME] }
+
+    val userAvatar: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.USER_AVATAR] }
 
     val isOnboardingDone: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -70,68 +82,40 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.NOTIFICATIONS_ENABLED] ?: true }
 
-    suspend fun setLoggedIn(value: Boolean) {
-        context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
-    }
+    val isTourDone: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.TOUR_DONE] ?: false }
 
-    suspend fun setAuthToken(token: String) {
-        context.dataStore.edit { it[Keys.AUTH_TOKEN] = token }
-    }
+    val isWelcomeSeen: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.WELCOME_SEEN] ?: false }
 
-    suspend fun setRefreshToken(token: String) {
-        context.dataStore.edit { it[Keys.REFRESH_TOKEN] = token }
-    }
+    // ── Setters ───────────────────────────────────────────────────────────────
+
+    suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
+    suspend fun setAuthToken(token: String) = context.dataStore.edit { it[Keys.AUTH_TOKEN] = token }
+    suspend fun setRefreshToken(token: String) = context.dataStore.edit { it[Keys.REFRESH_TOKEN] = token }
+    suspend fun setOnboardingDone(done: Boolean) = context.dataStore.edit { it[Keys.IS_ONBOARDING_DONE] = done }
+    suspend fun setDarkTheme(enabled: Boolean) = context.dataStore.edit { it[Keys.IS_DARK_THEME] = enabled }
+    suspend fun setNightMode(enabled: Boolean) = context.dataStore.edit { it[Keys.IS_NIGHT_MODE] = enabled }
+    suspend fun setLanguage(lang: String) = context.dataStore.edit { it[Keys.LANGUAGE] = lang }
+    suspend fun setNotificationsEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.NOTIFICATIONS_ENABLED] = enabled }
+    suspend fun setFcmToken(token: String) = context.dataStore.edit { it[Keys.FCM_TOKEN] = token }
+    suspend fun setDailyReminderTime(time: String) = context.dataStore.edit { it[Keys.DAILY_REMINDER_TIME] = time }
+    suspend fun setLastSync(time: Long) = context.dataStore.edit { it[Keys.LAST_SYNC] = time }
+    suspend fun setTourDone(done: Boolean) = context.dataStore.edit { it[Keys.TOUR_DONE] = done }
+    suspend fun setWelcomeSeen(seen: Boolean) = context.dataStore.edit { it[Keys.WELCOME_SEEN] = seen }
 
     suspend fun setUserId(id: String?) {
         id?.let { context.dataStore.edit { prefs -> prefs[Keys.USER_ID] = it } }
     }
 
-    suspend fun setOnboardingDone(done: Boolean) {
-        context.dataStore.edit { it[Keys.IS_ONBOARDING_DONE] = done }
-    }
+    suspend fun setUserName(name: String) = context.dataStore.edit { it[Keys.USER_NAME] = name }
 
-    suspend fun setDarkTheme(enabled: Boolean) {
-        context.dataStore.edit { it[Keys.IS_DARK_THEME] = enabled }
-    }
-
-    suspend fun setNightMode(enabled: Boolean) {
-        context.dataStore.edit { it[Keys.IS_NIGHT_MODE] = enabled }
-    }
-
-    suspend fun setLanguage(lang: String) {
-        context.dataStore.edit { it[Keys.LANGUAGE] = lang }
-    }
-
-    suspend fun setNotificationsEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[Keys.NOTIFICATIONS_ENABLED] = enabled }
-    }
-
-    suspend fun setFcmToken(token: String) {
-        context.dataStore.edit { it[Keys.FCM_TOKEN] = token }
-    }
-
-    suspend fun setDailyReminderTime(time: String) {
-        context.dataStore.edit { it[Keys.DAILY_REMINDER_TIME] = time }
-    }
-
-    suspend fun setLastSync(time: Long) {
-        context.dataStore.edit { it[Keys.LAST_SYNC] = time }
-    }
-
-    val userName: Flow<String?> = context.dataStore.data
-        .catch { emit(emptyPreferences()) }
-        .map { it[Keys.USER_NAME] }
-
-    val userAvatar: Flow<String?> = context.dataStore.data
-        .catch { emit(emptyPreferences()) }
-        .map { it[Keys.USER_AVATAR] }
-
-    suspend fun setUserName(name: String) {
-        context.dataStore.edit { it[Keys.USER_NAME] = name }
-    }
-
-    suspend fun setUserAvatar(avatar: String) {
-        context.dataStore.edit { it[Keys.USER_AVATAR] = avatar }
+    suspend fun setUserAvatar(avatar: String?) {
+        context.dataStore.edit { prefs ->
+            if (avatar != null) prefs[Keys.USER_AVATAR] = avatar else prefs.remove(Keys.USER_AVATAR)
+        }
     }
 
     suspend fun clearSession() {

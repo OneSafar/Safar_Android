@@ -7,7 +7,7 @@ data class AuthUiState(
     val error: String? = null,
     val email: String = "",
     val password: String = "",
-    val rememberMe: Boolean = false,
+    val rememberMe: Boolean = true,
     val name: String = "",
     val confirmPassword: String = "",
     val examType: String = "",
