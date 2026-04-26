@@ -7,6 +7,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.ui.achievements.AchievementsScreen
 import com.safar.app.ui.auth.AuthScreen
@@ -104,6 +106,26 @@ fun SafarNavGraph(
             EkagraScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle)
         }
 
+        composable(
+            route = Routes.EKAGRA_LINKED,
+            arguments = listOf(
+                navArgument("goalId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("goalTitle") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("view") { type = NavType.StringType; nullable = true; defaultValue = null },
+            )
+        ) { entry ->
+            EkagraScreen(
+                currentRoute = Routes.EKAGRA,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleNightMode = onToggleNightMode,
+                onLanguageClick = onLanguageToggle,
+                linkedGoalId = entry.arguments?.getString("goalId"),
+                linkedGoalTitle = entry.arguments?.getString("goalTitle"),
+                initialView = entry.arguments?.getString("view"),
+            )
+        }
+
         composable(Routes.MEHFIL) {
             MehfilScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle)
         }
@@ -124,6 +146,12 @@ fun SafarNavGraph(
 
         composable(Routes.DHYAN) {
             DhyanScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle)
+        }
+
+        composable(Routes.APP_PICKER) {
+            com.safar.app.ui.ekagra.focusshield.AppPickerScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(Routes.ACHIEVEMENTS) {

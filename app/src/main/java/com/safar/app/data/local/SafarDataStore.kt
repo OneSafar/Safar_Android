@@ -34,6 +34,13 @@ class SafarDataStore @Inject constructor(
         val LAST_SYNC             = longPreferencesKey("last_sync")
         val TOUR_DONE             = booleanPreferencesKey("tour_done")
         val WELCOME_SEEN          = booleanPreferencesKey("welcome_seen")
+
+        // Focus Shield
+        val FOCUS_SHIELD_ENABLED          = booleanPreferencesKey("focus_shield_enabled")
+        val FOCUS_SHIELD_STRICT_MODE      = booleanPreferencesKey("focus_shield_strict_mode")
+        val FOCUS_SHIELD_EMERGENCY_UNLOCK = booleanPreferencesKey("focus_shield_allow_emergency_unlock")
+        val FOCUS_SHIELD_BLOCKED_PACKAGES = stringPreferencesKey("focus_shield_blocked_packages")
+        val FOCUS_SHIELD_LAST_BLOCK_COUNT = intPreferencesKey("focus_shield_last_block_count")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -90,6 +97,27 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.WELCOME_SEEN] ?: false }
 
+    // ── Focus Shield Flows ────────────────────────────────────────────────────
+
+    val focusShieldEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_SHIELD_ENABLED] ?: false }
+
+    val focusShieldStrictMode: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_SHIELD_STRICT_MODE] ?: false }
+
+    val focusShieldEmergencyUnlock: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCK] ?: true }
+
+    val focusShieldBlockedPackages: Flow<Set<String>> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs ->
+            val raw = prefs[Keys.FOCUS_SHIELD_BLOCKED_PACKAGES] ?: ""
+            if (raw.isBlank()) emptySet() else raw.split(",").toSet()
+        }
+
     // ── Setters ───────────────────────────────────────────────────────────────
 
     suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
@@ -105,6 +133,16 @@ class SafarDataStore @Inject constructor(
     suspend fun setLastSync(time: Long) = context.dataStore.edit { it[Keys.LAST_SYNC] = time }
     suspend fun setTourDone(done: Boolean) = context.dataStore.edit { it[Keys.TOUR_DONE] = done }
     suspend fun setWelcomeSeen(seen: Boolean) = context.dataStore.edit { it[Keys.WELCOME_SEEN] = seen }
+
+    // ── Focus Shield Setters ─────────────────────────────────────────────────
+
+    suspend fun setFocusShieldEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_ENABLED] = enabled }
+    suspend fun setFocusShieldStrictMode(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_STRICT_MODE] = enabled }
+    suspend fun setFocusShieldEmergencyUnlock(allow: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCK] = allow }
+    suspend fun setFocusShieldBlockedPackages(packages: Set<String>) = context.dataStore.edit {
+        it[Keys.FOCUS_SHIELD_BLOCKED_PACKAGES] = packages.joinToString(",")
+    }
+    suspend fun setFocusShieldLastBlockCount(count: Int) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_LAST_BLOCK_COUNT] = count }
 
     suspend fun setUserId(id: String?) {
         id?.let { context.dataStore.edit { prefs -> prefs[Keys.USER_ID] = it } }

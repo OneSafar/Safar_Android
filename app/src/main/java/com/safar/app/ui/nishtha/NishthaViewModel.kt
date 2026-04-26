@@ -3,6 +3,7 @@ package com.safar.app.ui.nishtha
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safar.app.data.local.SafarDataStore
+import com.safar.app.domain.model.GoalSubtask
 import com.safar.app.domain.repository.HomeRepository
 import com.safar.app.domain.repository.JournalRepository
 import com.safar.app.domain.repository.NishthaRepository
@@ -25,7 +26,7 @@ class NishthaViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(NishthaUiState())
     val uiState = _uiState.asStateFlow()
 
-    init { loadMoods(); loadJournals(); loadGoals(); loadStreaks(); loadMonthlyReport(); loadLoginHistory(); loadAchievements() }
+    init { loadMoods(); loadJournals(); loadGoals(); loadGoalRolloverPrompts(); loadEkagraAnalytics(); loadStreaks(); loadMonthlyReport(); loadLoginHistory(); loadAchievements() }
 
     fun onEvent(event: NishthaEvent) {
         when (event) {
@@ -36,7 +37,7 @@ class NishthaViewModel @Inject constructor(
             is NishthaEvent.SaveJournal         -> saveJournal(event.content, event.title, event.moodTag)
             is NishthaEvent.ClearJournalSuccess -> _uiState.update { it.copy(journalSaveSuccess = false) }
             is NishthaEvent.LoadGoals           -> loadGoals()
-            is NishthaEvent.AddGoal             -> addGoal(event.title, event.description, event.priority, event.scheduledDate, event.startedAt, event.subtasks)
+            is NishthaEvent.AddGoal             -> addGoal(event.title, event.description, event.priority, event.scheduledDate, event.startedAt, event.subtasks.mapIndexed { i, text -> GoalSubtask(id = "subtask-$i-${text.hashCode()}", text = text) })
             is NishthaEvent.UpdateGoal          -> updateGoal(event.id, event.title, event.description, event.priority)
             is NishthaEvent.CompleteGoal        -> completeGoal(event.id, event.studiedMinutes)
             is NishthaEvent.DeleteGoal          -> deleteGoal(event.id)
@@ -103,10 +104,50 @@ class NishthaViewModel @Inject constructor(
         }
     }
 
-    private fun addGoal(title: String, description: String?, priority: String, scheduledDate: String, startedAt: String, subtasks: List<String>) {
+    fun refreshGoals() {
+        loadGoals()
+        loadGoalRolloverPrompts()
+        loadEkagraAnalytics()
+    }
+
+    private fun loadGoalRolloverPrompts() {
+        viewModelScope.launch {
+            when (val r = homeRepository.getRolloverPrompts()) {
+                is Resource.Success -> _uiState.update { it.copy(rolloverPrompts = r.data) }
+                else -> Unit
+            }
+        }
+    }
+
+    private fun loadEkagraAnalytics() {
+        viewModelScope.launch {
+            when (val r = homeRepository.getEkagraAnalytics()) {
+                is Resource.Success -> _uiState.update { it.copy(ekagraAnalytics = r.data) }
+                else -> Unit
+            }
+        }
+    }
+
+    fun addGoal(
+        title: String,
+        description: String?,
+        priority: String,
+        scheduledDate: String?,
+        startedAt: String?,
+        subtasks: List<GoalSubtask>,
+        goalKind: String = "today",
+        unitType: String = "binary",
+        linkedFocusEnabled: Boolean = false,
+        plannedFocusMinutes: Int? = null,
+        targetValue: Int? = null,
+        achievedValue: Int? = null,
+        status: String = "not_started",
+        carryForwardMode: String = "none",
+        source: String = "manual"
+    ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingGoal = true, goalError = null) }
-            when (val r = homeRepository.addGoal(title, description, priority, scheduledDate, startedAt, subtasks)) {
+            when (val r = homeRepository.addGoal(title, description, priority, scheduledDate, startedAt, subtasks, goalKind, unitType, linkedFocusEnabled, plannedFocusMinutes, targetValue, achievedValue, status, carryForwardMode, source)) {
                 is Resource.Success -> _uiState.update { it.copy(isSavingGoal = false, goalSaveSuccess = true, goals = listOf(r.data) + it.goals) }
                 is Resource.Error   -> _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                 is Resource.Loading -> Unit
@@ -117,10 +158,33 @@ class NishthaViewModel @Inject constructor(
     fun updateGoal(id: String, title: String, description: String?, priority: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingGoal = true, goalError = null) }
-            when (val r = homeRepository.updateGoal(id, title, description, priority)) {
-                is Resource.Success -> _uiState.update { state ->
-                    state.copy(isSavingGoal = false, goalSaveSuccess = true,
-                        goals = state.goals.map { if (it.id == id) r.data else it })
+            val old = _uiState.value.goals.firstOrNull { it.id == id }
+            when (val r = homeRepository.updateGoalDetails(
+                id = id,
+                title = title,
+                description = description,
+                priority = priority,
+                scheduledDate = old?.scheduledDate,
+                startedAt = old?.startedAt,
+                subtasks = old?.subtasks ?: emptyList(),
+                goalKind = old?.goalKind ?: "today",
+                unitType = old?.unitType ?: "binary",
+                linkedFocusEnabled = old?.linkedFocusEnabled ?: false,
+                plannedFocusMinutes = old?.plannedFocusMinutes,
+                targetValue = old?.targetValue,
+                achievedValue = old?.achievedValue,
+                status = old?.status ?: "not_started",
+                carryForwardMode = old?.carryForwardMode ?: "none"
+            )) {
+                is Resource.Success -> {
+                    _uiState.update { state ->
+                        state.copy(
+                            isSavingGoal = false,
+                            goalSaveSuccess = true,
+                            goals = state.goals.map { if (it.id == id) it.copy(title = title, text = title, description = description, priority = priority) else it }
+                        )
+                    }
+                    loadGoals()
                 }
                 is Resource.Error   -> _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
                 is Resource.Loading -> Unit
@@ -128,16 +192,51 @@ class NishthaViewModel @Inject constructor(
         }
     }
 
+    fun updateGoalDetails(
+        id: String,
+        title: String,
+        description: String?,
+        priority: String,
+        scheduledDate: String?,
+        startedAt: String?,
+        subtasks: List<GoalSubtask>,
+        goalKind: String,
+        unitType: String,
+        linkedFocusEnabled: Boolean,
+        plannedFocusMinutes: Int?,
+        targetValue: Int?,
+        achievedValue: Int?,
+        status: String,
+        carryForwardMode: String
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingGoal = true, goalError = null) }
+            when (val r = homeRepository.updateGoalDetails(id, title, description, priority, scheduledDate, startedAt, subtasks, goalKind, unitType, linkedFocusEnabled, plannedFocusMinutes, targetValue, achievedValue, status, carryForwardMode)) {
+                is Resource.Success -> {
+                    _uiState.update { it.copy(isSavingGoal = false, goalSaveSuccess = true) }
+                    loadGoals()
+                }
+                is Resource.Error -> _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
     fun completeGoal(id: String, studiedMinutes: Int) {
         viewModelScope.launch {
-            when (homeRepository.completeGoal(id, studiedMinutes)) {
+            when (val r = homeRepository.completeGoal(id, studiedMinutes)) {
                 is Resource.Success -> {
                     _uiState.update { state ->
-                        state.copy(goals = state.goals.map { if (it.id == id) it.copy(completed = true) else it })
+                        val now = java.time.Instant.now().toString()
+                        state.copy(goals = state.goals.map { if (it.id == id) it.copy(completed = true, completedAt = now, studiedMinutes = studiedMinutes, status = "completed") else it })
                     }
                     loadStreaks()
+                    loadEkagraAnalytics()
                 }
-                is Resource.Error   -> {}
+                is Resource.Error   -> {
+                    _uiState.update { it.copy(goalError = r.message) }
+                    loadGoals()
+                }
                 is Resource.Loading -> Unit
             }
         }
@@ -145,11 +244,40 @@ class NishthaViewModel @Inject constructor(
 
     fun deleteGoal(id: String) {
         viewModelScope.launch {
-            when (homeRepository.deleteGoal(id)) {
+            when (val r = homeRepository.deleteGoal(id)) {
                 is Resource.Success -> _uiState.update { state ->
                     state.copy(goals = state.goals.filter { it.id != id })
                 }
-                is Resource.Error   -> {}
+                is Resource.Error   -> _uiState.update { it.copy(goalError = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun repeatGoal(id: String, scheduledDate: String) {
+        viewModelScope.launch {
+            when (val r = homeRepository.repeatGoal(id, scheduledDate)) {
+                is Resource.Success -> _uiState.update { it.copy(goals = listOf(r.data) + it.goals) }
+                is Resource.Error -> _uiState.update { it.copy(goalError = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun respondToRollover(id: String, action: String) {
+        viewModelScope.launch {
+            when (val r = homeRepository.respondToRollover(id, action)) {
+                is Resource.Success -> {
+                    _uiState.update { state ->
+                        val newGoal = r.data.goal
+                        state.copy(
+                            rolloverPrompts = state.rolloverPrompts.filterNot { it.id == id },
+                            goals = if (newGoal != null) listOf(newGoal) + state.goals else state.goals
+                        )
+                    }
+                    loadGoals()
+                }
+                is Resource.Error -> _uiState.update { it.copy(goalError = r.message) }
                 is Resource.Loading -> Unit
             }
         }

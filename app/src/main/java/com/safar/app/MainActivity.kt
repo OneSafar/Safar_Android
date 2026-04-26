@@ -43,6 +43,8 @@ class MainActivity : ComponentActivity() {
     /** Set to true when PiP is restored — NavGraph observes this to navigate to Ekagra. */
     var navigateToEkagra by mutableStateOf(false)
         private set
+    var isInPipMode by mutableStateOf(false)
+        private set
 
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
@@ -64,6 +66,10 @@ class MainActivity : ComponentActivity() {
         Intent(this, TimerService::class.java).also { intent ->
             startService(intent)
             bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+        }
+
+        if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
+            navigateToEkagra = true
         }
 
         enableEdgeToEdge()
@@ -118,6 +124,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
             navigateToEkagra = true
         }
@@ -137,7 +144,7 @@ class MainActivity : ComponentActivity() {
             if (!service.isRunning.value) return
             try {
                 val params = PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(16, 9))
+                    .setAspectRatio(Rational(1, 1))
                     .apply {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             setAutoEnterEnabled(true)
@@ -155,6 +162,7 @@ class MainActivity : ComponentActivity() {
         newConfig: Configuration
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isInPipMode = isInPictureInPictureMode
         if (isInPictureInPictureMode) {
             // Just entered PiP — navigate to Ekagra so PiP shows it
             navigateToEkagra = true

@@ -17,16 +17,62 @@ data class Mood(
 
 data class Goal(
     val id: String = "",
+    val userId: String = "",
+    val text: String = "",
     val title: String = "",
     val description: String? = null,
+    val source: String = "manual",
+    val importedFromGoal: Boolean = false,
+    val completedViaFocus: Boolean = false,
+    val goalKind: String = "today",
+    val unitType: String = "binary",
+    val executionMode: String = "manual",
+    val linkedFocusEnabled: Boolean = false,
+    val plannedFocusMinutes: Int? = null,
+    val targetValue: Int? = null,
+    val achievedValue: Int = 0,
+    val status: String = "not_started",
+    val carryForwardMode: String = "none",
     val category: String = "other",
     val priority: String = "medium",
     val completed: Boolean = false,
+    val createdAt: String? = null,
     val completedAt: String? = null,
+    val studiedMinutes: Int? = null,
     val scheduledDate: String? = null,
+    val startedAt: String? = null,
+    val expiresAt: String? = null,
     val lifecycleStatus: String? = null,
+    val rolloverPromptPending: Boolean = false,
+    val sourceGoalId: String? = null,
     val type: String? = null,
-    val startedAt: String? = null
+    val subtasks: List<GoalSubtask> = emptyList()
+)
+
+data class GoalSubtask(
+    val id: String = "",
+    val text: String = "",
+    val done: Boolean = false
+)
+
+data class GoalFocusSummary(
+    val allTime: Map<String, GoalFocusStats> = emptyMap(),
+    val forDay: Map<String, GoalFocusStats> = emptyMap()
+)
+
+data class GoalFocusStats(
+    val totalMinutes: Int = 0,
+    val sessionCount: Int = 0
+)
+
+data class GoalRolloverResult(
+    val message: String = "",
+    val goal: Goal? = null
+)
+
+data class RepeatPlanResult(
+    val message: String = "",
+    val goals: List<Goal> = emptyList()
 )
 
 data class JournalEntry(
@@ -77,3 +123,51 @@ data class Achievement(
 )
 
 data class LoginHistoryEntry(val timestamp: String = "")
+
+data class EkagraAnalyticsStats(
+    val totalFocusMinutes: Int = 0,
+    val totalBreakMinutes: Int = 0,
+    val timerUsageCount: Int = 0,
+    val breakSessionsCount: Int = 0,
+    val shortBreakSessionsCount: Int = 0,
+    val longBreakSessionsCount: Int = 0,
+    val longDurationSessionCount: Int = 0,
+    val averageTimerMinutes: Int = 0,
+    val mostUsedTimerDurationMinutes: Int? = null,
+    val totalSessions: Int = 0,
+    val completedSessions: Int = 0,
+    val endedEarlySessions: Int = 0,
+    val abandonedSessions: Int = 0,
+    val weeklyData: List<Int> = List(7) { 0 },
+    val weeklyBreaks: List<Int> = List(7) { 0 },
+    val focusStreak: Int = 0,
+    val hourlyDistribution: List<Int> = List(24) { 0 },
+    val recentSessions: List<EkagraAnalyticsRecentSession> = emptyList(),
+    val focusSessions: List<EkagraAnalyticsFocusSession> = emptyList()
+)
+
+data class EkagraAnalyticsRecentSession(
+    val id: String = "",
+    val startedAt: String? = null,
+    val endedAt: String? = null,
+    val durationMinutes: Int = 0,
+    val actualMinutes: Int = 0,
+    val completed: Boolean = false,
+    val taskText: String? = null,
+    val associatedGoalId: String? = null,
+    val pauseCount: Int = 0,
+    val sessionType: String = "focus"
+)
+
+data class EkagraAnalyticsFocusSession(
+    val id: String = "",
+    val startedAt: String? = null,
+    val endedAt: String? = null,
+    val durationMinutes: Int = 0,
+    val actualMinutes: Int = 0,
+    val status: String = "completed",
+    val rawStatus: String = "completed",
+    val taskText: String? = null,
+    val associatedGoalId: String? = null,
+    val pauseCount: Int = 0
+)

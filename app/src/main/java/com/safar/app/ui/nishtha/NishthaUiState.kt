@@ -15,6 +15,8 @@ data class NishthaUiState(
     val journalError: String? = null,
     val isLoadingGoals: Boolean = false,
     val goals: List<Goal> = emptyList(),
+    val rolloverPrompts: List<Goal> = emptyList(),
+    val ekagraAnalytics: EkagraAnalyticsStats = EkagraAnalyticsStats(),
     val isSavingGoal: Boolean = false,
     val goalSaveSuccess: Boolean = false,
     val goalError: String? = null,

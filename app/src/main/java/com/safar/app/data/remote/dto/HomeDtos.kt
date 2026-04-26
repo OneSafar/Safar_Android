@@ -33,19 +33,56 @@ data class GoalDto(
     val text: String? = null,
     val title: String? = null,
     val description: String? = null,
+    val source: String? = null,
+    val importedFromGoal: Boolean? = null,
+    @SerializedName("imported_from_goal") val importedFromGoalSnake: Boolean? = null,
+    val completedViaFocus: Boolean? = null,
+    @SerializedName("completed_via_focus") val completedViaFocusSnake: Boolean? = null,
+    val goalKind: String? = null,
+    @SerializedName("goal_kind") val goalKindSnake: String? = null,
+    val unitType: String? = null,
+    @SerializedName("unit_type") val unitTypeSnake: String? = null,
+    val executionMode: String? = null,
+    @SerializedName("execution_mode") val executionModeSnake: String? = null,
+    val linkedFocusEnabled: Boolean? = null,
+    @SerializedName("linked_focus_enabled") val linkedFocusEnabledSnake: Boolean? = null,
+    val plannedFocusMinutes: Int? = null,
+    @SerializedName("planned_focus_minutes") val plannedFocusMinutesSnake: Int? = null,
+    val targetValue: Int? = null,
+    @SerializedName("target_value") val targetValueSnake: Int? = null,
+    val achievedValue: Int? = null,
+    @SerializedName("achieved_value") val achievedValueSnake: Int? = null,
+    val status: String? = null,
+    @SerializedName("status_value") val statusSnake: String? = null,
+    val carryForwardMode: String? = null,
+    @SerializedName("carry_forward_mode") val carryForwardModeSnake: String? = null,
     val category: String? = null,
     val priority: String? = null,
     val subtasks: List<Any>? = null,
     val type: String? = null,
     val completed: Boolean? = false,
+    val createdAt: String? = null,
+    @SerializedName("created_at")        val createdAtSnake: String? = null,
     @SerializedName("completed_at")      val completedAtSnake: String? = null,
+    val studiedMinutes: Int? = null,
+    @SerializedName("studied_minutes")   val studiedMinutesSnake: Int? = null,
     @SerializedName("started_at")        val startedAt: String? = null,
+    @SerializedName("startedAt")         val startedAtCamel: String? = null,
     @SerializedName("expires_at")        val expiresAt: String? = null,
+    @SerializedName("expiresAt")         val expiresAtCamel: String? = null,
     @SerializedName("scheduled_date")    val scheduledDateSnake: String? = null,
     @SerializedName("lifecycle_status")  val lifecycleStatusSnake: String? = null,
+    @SerializedName("rollover_prompt_pending") val rolloverPromptPendingSnake: Boolean? = null,
+    @SerializedName("source_goal_id")     val sourceGoalIdSnake: String? = null,
     val completedAt: String? = null,
     val scheduledDate: String? = null,
     val lifecycleStatus: String? = null
+)
+
+data class GoalSubtaskDto(
+    val id: String? = null,
+    val text: String? = null,
+    val done: Boolean? = false
 )
 
 data class JournalDto(
@@ -124,21 +161,111 @@ data class AddGoalRequest(
     val text: String,
     val title: String,
     val description: String? = null,
-    val subtasks: List<String> = emptyList(),
+    val priority: String? = null,
+    val subtasks: List<GoalSubtaskDto> = emptyList(),
     val type: String = "daily",
-    @SerializedName("scheduled_date") val scheduledDate: String,
+    val scheduledDate: String? = null,
     val source: String = "manual",
-    @SerializedName("started_at") val startedAt: String
+    val startedAt: String? = null,
+    val goalKind: String? = null,
+    val unitType: String? = null,
+    val executionMode: String? = null,
+    val linkedFocusEnabled: Boolean? = null,
+    val plannedFocusMinutes: Int? = null,
+    val targetValue: Int? = null,
+    val achievedValue: Int? = null,
+    val status: String? = null,
+    val carryForwardMode: String? = null
 )
 
 data class UpdateGoalRequest(
     val title: String? = null,
     val description: String? = null,
-    val priority: String? = null
+    val priority: String? = null,
+    val text: String? = null,
+    val subtasks: List<GoalSubtaskDto>? = null,
+    val scheduledDate: String? = null,
+    val startedAt: String? = null,
+    val goalKind: String? = null,
+    val unitType: String? = null,
+    val executionMode: String? = null,
+    val linkedFocusEnabled: Boolean? = null,
+    val plannedFocusMinutes: Int? = null,
+    val targetValue: Int? = null,
+    val achievedValue: Int? = null,
+    val status: String? = null,
+    val carryForwardMode: String? = null
 )
 
 data class CompleteGoalRequest(
     val completed: Boolean = true,
-    @SerializedName("completed_at")   val completedAt: String,
-    @SerializedName("studied_minutes") val studiedMinutes: Int
+    val completedAt: String,
+    val studiedMinutes: Int
+)
+
+data class RepeatGoalRequest(val scheduledDate: String)
+data class RepeatPlanRequest(val goalIds: List<String>)
+data class RolloverActionRequest(val action: String)
+data class FocusSummaryRequest(val goalIds: List<String>, val dayKey: String? = null)
+
+data class BasicMessageResponse(
+    val message: String? = null,
+    val completed: Boolean? = null,
+    val completedAt: String? = null
+)
+
+data class RepeatPlanResponse(val message: String? = null, val goals: List<GoalDto>? = null)
+data class RolloverActionResponse(val message: String? = null, val goal: GoalDto? = null)
+data class GoalFocusSummaryResponse(
+    val allTime: Map<String, GoalFocusSummaryItemDto>? = null,
+    val forDay: Map<String, GoalFocusSummaryItemDto>? = null
+)
+data class GoalFocusSummaryItemDto(val totalMinutes: Int? = 0, val sessionCount: Int? = 0)
+
+data class EkagraAnalyticsStatsDto(
+    val totalFocusMinutes: Int? = 0,
+    val totalBreakMinutes: Int? = 0,
+    val timerUsageCount: Int? = 0,
+    val breakSessionsCount: Int? = 0,
+    val shortBreakSessionsCount: Int? = 0,
+    val longBreakSessionsCount: Int? = 0,
+    val longDurationSessionCount: Int? = 0,
+    val averageTimerMinutes: Int? = 0,
+    val mostUsedTimerDurationMinutes: Int? = null,
+    val totalSessions: Int? = 0,
+    val completedSessions: Int? = 0,
+    val endedEarlySessions: Int? = 0,
+    val abandonedSessions: Int? = 0,
+    val weeklyData: List<Int>? = null,
+    val weeklyBreaks: List<Int>? = null,
+    val focusStreak: Int? = 0,
+    val hourlyDistribution: List<Int>? = null,
+    val recentSessions: List<EkagraAnalyticsRecentSessionDto>? = null,
+    val focusSessions: List<EkagraAnalyticsFocusSessionDto>? = null
+)
+
+data class EkagraAnalyticsRecentSessionDto(
+    val id: String? = null,
+    val startedAt: String? = null,
+    val endedAt: String? = null,
+    val durationMinutes: Int? = 0,
+    val actualMinutes: Int? = 0,
+    val completed: Boolean? = false,
+    val taskText: String? = null,
+    val associatedGoalId: String? = null,
+    val pauseCount: Int? = 0,
+    val sessionType: String? = null
+)
+
+data class EkagraAnalyticsFocusSessionDto(
+    val id: String? = null,
+    val startedAt: String? = null,
+    val endedAt: String? = null,
+    val durationMinutes: Int? = 0,
+    val actualMinutes: Int? = 0,
+    val status: String? = null,
+    val rawStatus: String? = null,
+    val taskText: String? = null,
+    val associatedGoalId: String? = null,
+    val pauseCount: Int? = 0
 )

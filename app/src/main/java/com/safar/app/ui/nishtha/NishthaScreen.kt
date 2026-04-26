@@ -106,7 +106,7 @@ fun NishthaScreen(
                     when (selectedTab) {
                         NishthaTab.CHECK_IN  -> CheckInScreen()
                         NishthaTab.JOURNAL   -> JournalScreen(openSheetOnLoad = journalOpenCount > 0)
-                        NishthaTab.GOALS     -> GoalsScreen()
+                        NishthaTab.GOALS     -> GoalsScreen(onNavigate = onNavigate)
                         NishthaTab.STREAKS   -> StreaksScreen()
                         NishthaTab.ANALYTICS -> NishthaAnalyticsScreen(onNavigate = onNavigate)
                     }

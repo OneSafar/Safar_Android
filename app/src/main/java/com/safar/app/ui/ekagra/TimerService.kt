@@ -11,8 +11,12 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import com.safar.app.MainActivity
+import com.safar.app.data.local.SafarDataStore
+import com.safar.app.ui.ekagra.focusshield.FocusShieldOverlayService
+import com.safar.app.ui.ekagra.focusshield.FocusShieldRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,6 +25,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class TimerService : Service() {
@@ -39,6 +44,9 @@ class TimerService : Service() {
     private val binder  = TimerBinder()
     private val scope   = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var tickJob: Job? = null
+    private var shieldActivationJob: Job? = null
+    private var lastTickElapsedMs: Long = 0L
+    private val safarDataStore by lazy { SafarDataStore(applicationContext) }
 
     // ── Exposed state ─────────────────────────────────────────────────────────
     private val _secondsLeft  = MutableStateFlow(25 * 60)
@@ -50,6 +58,97 @@ class TimerService : Service() {
     val totalSeconds: StateFlow<Int>       = _totalSeconds
     val isRunning:    StateFlow<Boolean>   = _isRunning
     val timerMode:    StateFlow<TimerMode> = _timerMode
+
+    // ── Focus Shield state ─────────────────────────────────────────────────
+    private val _focusShieldActive  = MutableStateFlow(false)
+    private val _blockedPackages    = MutableStateFlow<Set<String>>(emptySet())
+    private val _strictMode         = MutableStateFlow(false)
+
+    val focusShieldActive: StateFlow<Boolean>      = _focusShieldActive
+    val blockedPackages:   StateFlow<Set<String>>  = _blockedPackages
+    val strictMode:        StateFlow<Boolean>      = _strictMode
+
+    /**
+     * Called by EkagraScreen/ViewModel when a focus session starts
+     * and Focus Shield is enabled.
+     */
+    fun setFocusShieldConfig(
+        packages: Set<String>,
+        strict: Boolean,
+    ) {
+        _blockedPackages.value = packages
+        _strictMode.value = strict
+        android.util.Log.w("FocusShieldA11y", "TimerService.setFocusShieldConfig(${packages.size} pkgs, strict=$strict)")
+    }
+
+    fun enableFocusShieldForSession() {
+        _focusShieldActive.value = true
+
+        val pkgs = _blockedPackages.value
+        val strict = _strictMode.value
+
+        // Write to SharedPreferences (survives process death!)
+        FocusShieldRepository.ShieldPrefs.write(
+            this, true, pkgs, strict,
+        )
+
+        // Also update volatile snapshot for in-process fast access
+        FocusShieldRepository.Snapshot.active = true
+        FocusShieldRepository.Snapshot.packages = pkgs
+        FocusShieldRepository.Snapshot.strict = strict
+
+        // Start overlay blocking service
+        FocusShieldOverlayService.start(this)
+
+        android.util.Log.w("FocusShieldA11y", "TimerService.enableFocusShieldForSession() → DONE")
+        android.util.Log.w("FocusShieldA11y", "  packages=$pkgs")
+    }
+
+    fun disableFocusShieldForSession() {
+        android.util.Log.w("FocusShieldA11y", "TimerService.disableFocusShieldForSession()")
+        _focusShieldActive.value = false
+        _blockedPackages.value = emptySet()
+
+        // Clear SharedPreferences
+        shieldActivationJob?.cancel()
+        FocusShieldRepository.ShieldPrefs.clear(this)
+
+        // Clear volatile snapshot
+        FocusShieldRepository.Snapshot.active = false
+        FocusShieldRepository.Snapshot.packages = emptySet()
+
+        // Stop overlay service
+        FocusShieldOverlayService.stop(this)
+    }
+
+    private fun activateFocusShieldFromSettingsIfNeeded() {
+        if (_timerMode.value != TimerMode.FOCUS) {
+            disableFocusShieldForSession()
+            return
+        }
+
+        shieldActivationJob?.cancel()
+        shieldActivationJob = scope.launch {
+            val enabled = safarDataStore.focusShieldEnabled.first()
+            val packages = safarDataStore.focusShieldBlockedPackages.first()
+            val strict = safarDataStore.focusShieldStrictMode.first()
+
+            if (enabled && packages.isNotEmpty()) {
+                android.util.Log.w(
+                    "FocusShieldA11y",
+                    "TimerService.start() -> activating from persisted settings: $packages",
+                )
+                setFocusShieldConfig(packages = packages, strict = strict)
+                enableFocusShieldForSession()
+            } else {
+                android.util.Log.w(
+                    "FocusShieldA11y",
+                    "TimerService.start() -> shield not activated (enabled=$enabled, pkgs=${packages.size})",
+                )
+                disableFocusShieldForSession()
+            }
+        }
+    }
 
     // ── Theme persistence (SharedPreferences so it survives navigation/rebind) ─
     private fun themePrefs() = getSharedPreferences("ekagra_theme_prefs", MODE_PRIVATE)
@@ -129,6 +228,16 @@ class TimerService : Service() {
         stopForegroundCompat()
     }
 
+    fun restoreSession(mode: TimerMode, totalSeconds: Int, remainingSeconds: Int, running: Boolean) {
+        tickJob?.cancel()
+        _timerMode.value = mode
+        _totalSeconds.value = totalSeconds.coerceAtLeast(60)
+        _secondsLeft.value = remainingSeconds.coerceIn(0, _totalSeconds.value)
+        _isRunning.value = false
+        releaseMusic()
+        if (running && _secondsLeft.value > 0) start() else updateNotification()
+    }
+
     fun togglePlayPause() {
         if (_isRunning.value) pause() else start()
     }
@@ -137,18 +246,28 @@ class TimerService : Service() {
         if (_secondsLeft.value <= 0) return
         _isRunning.value = true
         startForeground(NOTIFICATION_ID, buildNotification())
+        activateFocusShieldFromSettingsIfNeeded()
         startMusic(currentMusicUrl)
+        lastTickElapsedMs = SystemClock.elapsedRealtime()
         tickJob?.cancel()
         tickJob = scope.launch {
             while (_secondsLeft.value > 0 && _isRunning.value) {
                 delay(1000L)
-                _secondsLeft.value--
+                val now = SystemClock.elapsedRealtime()
+                val elapsedSeconds = ((now - lastTickElapsedMs) / 1000L).toInt().coerceAtLeast(1)
+                lastTickElapsedMs = now
+                if (elapsedSeconds > 10 * 60) {
+                    pause()
+                    break
+                }
+                _secondsLeft.value = (_secondsLeft.value - elapsedSeconds).coerceAtLeast(0)
                 updateNotification()
             }
             if (_secondsLeft.value == 0) {
                 _isRunning.value = false
                 releaseMusic()
                 clearTheme()
+                disableFocusShieldForSession()
                 updateNotification()
             }
         }
@@ -167,6 +286,7 @@ class TimerService : Service() {
         tickJob?.cancel()
         releaseMusic()
         clearTheme()
+        disableFocusShieldForSession()
         updateNotification()
     }
 

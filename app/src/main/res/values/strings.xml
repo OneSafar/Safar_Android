@@ -298,4 +298,12 @@
 
     <string name="profile_dark_mode">Dark Mode</string>
     <string name="profile_light_mode">Light Mode</string>
+
+    <!-- Focus Shield -->
+    <string name="focus_shield_service_label">Safar Focus Shield</string>
+    <string name="focus_shield_accessibility_desc">Safar Focus Shield blocks distracting apps during your focus sessions. It only activates while a timer is running and only affects apps you have chosen to block.</string>
+    <string name="focus_shield_blocked_title">App Blocked</string>
+    <string name="focus_shield_blocked_message">%s is blocked during your focus session. Stay focused!</string>
+    <string name="focus_shield_emergency_unlock">Emergency Unlock</string>
+    <string name="focus_shield_return_to_timer">Return to Timer</string>
 </resources>
