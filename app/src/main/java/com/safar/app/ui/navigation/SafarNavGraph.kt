@@ -58,6 +58,16 @@ fun SafarNavGraph(
         }
     }
 
+    val notificationRoute = activity?.notificationRoute
+    LaunchedEffect(notificationRoute, isLoggedIn) {
+        val route = notificationRoute ?: return@LaunchedEffect
+        if (isLoggedIn == false) return@LaunchedEffect
+        if (currentRoute != route) {
+            navController.navigate(route) { launchSingleTop = true; restoreState = true }
+        }
+        activity.resetNotificationRoute()
+    }
+
     fun navigate(route: String) {
         if (route == Routes.DM_CHAT) {
             navController.navigate(route) {

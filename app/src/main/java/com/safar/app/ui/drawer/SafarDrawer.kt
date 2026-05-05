@@ -47,7 +47,7 @@ fun SafarDrawer(
 
         Text(
             text     = stringResource(R.string.app_name),
-            style    = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            style    = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.ExtraBold),
             modifier = Modifier.padding(horizontal = 20.dp),
             color    = MaterialTheme.colorScheme.primary,
         )

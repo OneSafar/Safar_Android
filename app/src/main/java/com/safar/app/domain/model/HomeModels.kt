@@ -143,7 +143,14 @@ data class EkagraAnalyticsStats(
     val focusStreak: Int = 0,
     val hourlyDistribution: List<Int> = List(24) { 0 },
     val recentSessions: List<EkagraAnalyticsRecentSession> = emptyList(),
-    val focusSessions: List<EkagraAnalyticsFocusSession> = emptyList()
+    val focusSessions: List<EkagraAnalyticsFocusSession> = emptyList(),
+    val timerDurationUsage: List<EkagraTimerDurationUsage> = emptyList()
+)
+
+data class EkagraTimerDurationUsage(
+    val durationMinutes: Int = 0,
+    val count: Int = 0,
+    val sessionType: String = "focus"
 )
 
 data class EkagraAnalyticsRecentSession(

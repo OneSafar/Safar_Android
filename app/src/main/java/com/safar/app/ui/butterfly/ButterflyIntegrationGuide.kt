@@ -27,7 +27,7 @@ package com.safar.app.ui.butterfly
  *     // 1. Define your steps (anchorX / anchorY are 0f–1f screen fractions)
  *     val tourState = rememberButterflyTourState(
  *         ButterflyTourStep(
- *             title   = "Welcome to Safar 🦋",
+ *             title   = "Welcome to SAFAR 🦋",
  *             message = "I'll show you around. Follow me!",
  *             anchorX = 0.15f, anchorY = 0.20f,
  *         ),

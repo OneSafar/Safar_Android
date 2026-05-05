@@ -170,7 +170,7 @@ class FocusShieldOverlayService : Service() {
 
         // Build overlay view programmatically
         val overlay = FrameLayout(this).apply {
-            setBackgroundColor(0xF0101010.toInt()) // near-black with slight transparency
+            setBackgroundColor(0xFF000000.toInt()) // fully opaque black — blocks all content
         }
 
         val container = LinearLayout(this).apply {
@@ -241,9 +241,9 @@ class FocusShieldOverlayService : Service() {
         }
         container.addView(subtitleView, subParams)
 
-        // "Go back to Safar" button
+        // "Go back to SAFAR" button
         val button = TextView(this).apply {
-            text = "← Go back to Safar"
+            text = "← Go back to SAFAR"
             textSize = 16f
             setTextColor(0xFF000000.toInt())
             gravity = Gravity.CENTER
@@ -292,7 +292,7 @@ class FocusShieldOverlayService : Service() {
             isOverlayShowing = true
             Log.w(TAG, "OverlayService → overlay SHOWN for $appName")
 
-            // Also emit for snackbar when user returns to Safar
+            // Also emit for snackbar when user returns to SAFAR
             BlockerEventBridge.emit(BlockerEventBridge.BlockedEvent(blockedPackageName, appName))
         } catch (e: Exception) {
             Log.e(TAG, "OverlayService → failed to show overlay", e)

@@ -6,12 +6,14 @@ import com.safar.app.data.remote.dto.CompleteSessionRequest
 import com.safar.app.data.remote.dto.EkagraAnalyticsFocusSessionDto
 import com.safar.app.data.remote.dto.EkagraAnalyticsRecentSessionDto
 import com.safar.app.data.remote.dto.EkagraAnalyticsStatsDto
+import com.safar.app.data.remote.dto.EkagraTimerDurationUsageDto
 import com.safar.app.data.remote.dto.EkagraSession
 import com.safar.app.data.remote.dto.FocusStatsResponse
 import com.safar.app.data.remote.dto.UpdateEkagraSessionRequest
 import com.safar.app.domain.model.EkagraAnalyticsFocusSession
 import com.safar.app.domain.model.EkagraAnalyticsRecentSession
 import com.safar.app.domain.model.EkagraAnalyticsStats
+import com.safar.app.domain.model.EkagraTimerDurationUsage
 import com.safar.app.domain.repository.EkagraRepository
 import com.safar.app.util.Resource
 import javax.inject.Inject
@@ -175,6 +177,13 @@ class EkagraRepositoryImpl @Inject constructor(
         hourlyDistribution = hourlyDistribution ?: List(24) { 0 },
         recentSessions = recentSessions.orEmpty().map { it.toDomain() },
         focusSessions = focusSessions.orEmpty().map { it.toDomain() },
+        timerDurationUsage = timerDurationUsage.orEmpty().map { it.toDomain() },
+    )
+
+    private fun EkagraTimerDurationUsageDto.toDomain() = EkagraTimerDurationUsage(
+        durationMinutes = durationMinutes ?: 0,
+        count = count ?: 0,
+        sessionType = sessionType ?: "focus",
     )
 
     private fun EkagraAnalyticsRecentSessionDto.toDomain() = EkagraAnalyticsRecentSession(

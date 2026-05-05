@@ -129,7 +129,7 @@ fun DhyanScreen(
     Box(Modifier.fillMaxSize()) {
     SafarDrawerScaffold(
         title    = "Dhyan",
-        subtitle = "Safar",
+        subtitle = "SAFAR",
         currentRoute      = currentRoute,
         isDarkTheme       = isDarkTheme,
         onNavigate        = onNavigate,

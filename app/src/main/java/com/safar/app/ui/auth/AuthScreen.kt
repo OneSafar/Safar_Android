@@ -131,7 +131,7 @@ private fun SafarLogoHeader(showSignup: Boolean, isDark: Boolean) {
     ) {
         AsyncImage(
             model = "https://safar.parmarssc.in/safar-logo.png.webp",
-            contentDescription = "Safar Logo",
+            contentDescription = "SAFAR Logo",
             modifier = Modifier
                 .size(80.dp)
                 .clip(CircleShape),
@@ -142,7 +142,10 @@ private fun SafarLogoHeader(showSignup: Boolean, isDark: Boolean) {
     Text(
         text = stringResource(R.string.app_name),
         color = if (isDark) BrandMint else BrandMidnight,
-        fontSize = 32.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp
+        style = MaterialTheme.typography.displayMedium.copy(
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 2.sp
+        )
     )
     Spacer(Modifier.height(6.dp))
     Text(

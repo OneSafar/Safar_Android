@@ -257,7 +257,14 @@ class HomeRepositoryImpl @Inject constructor(
         focusStreak = focusStreak ?: 0,
         hourlyDistribution = hourlyDistribution?.takeIf { it.size == 24 } ?: List(24) { 0 },
         recentSessions = recentSessions?.map { it.toDomain() } ?: emptyList(),
-        focusSessions = focusSessions?.map { it.toDomain() } ?: emptyList()
+        focusSessions = focusSessions?.map { it.toDomain() } ?: emptyList(),
+        timerDurationUsage = timerDurationUsage?.map { it.toDomain() } ?: emptyList()
+    )
+
+    private fun EkagraTimerDurationUsageDto.toDomain() = EkagraTimerDurationUsage(
+        durationMinutes = durationMinutes ?: 0,
+        count = count ?: 0,
+        sessionType = sessionType ?: "focus"
     )
 
     private fun EkagraAnalyticsRecentSessionDto.toDomain() = EkagraAnalyticsRecentSession(

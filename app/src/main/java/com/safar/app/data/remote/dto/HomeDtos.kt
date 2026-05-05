@@ -241,7 +241,14 @@ data class EkagraAnalyticsStatsDto(
     val focusStreak: Int? = 0,
     val hourlyDistribution: List<Int>? = null,
     val recentSessions: List<EkagraAnalyticsRecentSessionDto>? = null,
-    val focusSessions: List<EkagraAnalyticsFocusSessionDto>? = null
+    val focusSessions: List<EkagraAnalyticsFocusSessionDto>? = null,
+    val timerDurationUsage: List<EkagraTimerDurationUsageDto>? = null
+)
+
+data class EkagraTimerDurationUsageDto(
+    val durationMinutes: Int? = 0,
+    val count: Int? = 0,
+    val sessionType: String? = null
 )
 
 data class EkagraAnalyticsRecentSessionDto(

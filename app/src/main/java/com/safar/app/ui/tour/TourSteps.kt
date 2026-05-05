@@ -65,7 +65,7 @@ val ekagraTourSteps = listOf(
     ),
     ButterflyTourStep(
         title   = "Navigation Menu ☰",
-        message = "Swipe from the left or tap the menu icon to switch between Safar modules at any time.",
+        message = "Swipe from the left or tap the menu icon to switch between SAFAR modules at any time.",
         anchorX = 0.07f, anchorY = 0.06f,
         tooltipSide = TooltipSide.BOTTOM,
     ),
@@ -75,7 +75,7 @@ val ekagraTourSteps = listOf(
 val mehfilTourSteps = listOf(
     ButterflyTourStep(
         title   = "Welcome to Mehfil 🌐",
-        message = "Mehfil is Safar's community space. Share thoughts, find like-minded peers, and grow together.",
+        message = "Mehfil is SAFAR's community space. Share thoughts, find like-minded peers, and grow together.",
         anchorX = 0.5f, anchorY = 0.3f,
         tooltipSide = TooltipSide.BOTTOM,
     ),

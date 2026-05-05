@@ -19,14 +19,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.geometry.Offset
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safar.app.R
 import com.safar.app.data.local.SafarDataStore
+import com.safar.app.ui.theme.LoraFontFamily
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -90,7 +93,7 @@ fun SplashScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Start Safar button — appears only after video ends, no auto-navigate
+        // Start SAFAR button appears only after video ends; navigation waits for click.
         AnimatedVisibility(
             visible = uiState.videoEnded,
             enter = fadeIn(tween(600)) + scaleIn(tween(600, easing = FastOutSlowInEasing)),
@@ -103,25 +106,45 @@ fun SplashScreen(
 
 @Composable
 private fun StartSafarButton(onClick: () -> Unit) {
-    val primary = MaterialTheme.colorScheme.primary
-
-    val infiniteTransition = rememberInfiniteTransition(label = "border")
+    val infiniteTransition = rememberInfiniteTransition(label = "shine")
+    
+    // Text glow animation
     val glow by infiniteTransition.animateFloat(
         initialValue = 0.85f, targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(1000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "glow"
     )
 
-    // Pill button only — no circle wrapper
+    // Shine / Shimmer animation
+    val shineX by infiniteTransition.animateFloat(
+        initialValue = -400f,
+        targetValue = 800f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shine_x"
+    )
+
+    val buttonGradient = Brush.horizontalGradient(
+        listOf(Color(0xFF3DAC78), Color(0xFF073B3A))
+    )
+
+    val shineBrush = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.0f),
+            Color.White.copy(alpha = 0.35f),
+            Color.White.copy(alpha = 0.0f),
+        ),
+        start = Offset(shineX, 0f),
+        end = Offset(shineX + 100f, 200f)
+    )
+
     Box(
         modifier = Modifier
             .width(240.dp)
             .height(58.dp)
             .clip(RoundedCornerShape(50.dp))
-            .background(
-                Brush.horizontalGradient(
-                    listOf(primary, primary.copy(alpha = 0.80f))
-                )
-            )
+            .background(buttonGradient)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -129,16 +152,25 @@ private fun StartSafarButton(onClick: () -> Unit) {
             ),
         contentAlignment = Alignment.Center
     ) {
+        // Shine layer
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(shineBrush)
+        )
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                "Start your Safar",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White.copy(alpha = glow),
-                letterSpacing = 0.3.sp
+                stringResource(R.string.splash_start_safar),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontFamily = LoraFontFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White.copy(alpha = glow),
+                    letterSpacing = 0.5.sp
+                )
             )
             Text("→", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = glow))
         }

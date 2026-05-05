@@ -26,7 +26,7 @@ fun ExitConfirmationHandler(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Exit Safar?") },
+            title = { Text("Exit SAFAR?") },
             text = { Text("Are you sure you want to exit?") },
             confirmButton = {
                 TextButton(onClick = {

@@ -10,6 +10,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -52,6 +53,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.rememberUpdatedState
+import coil.compose.AsyncImage
+import android.content.Intent
+import android.net.Uri
 
 private enum class MehfilTab(val label: String, val icon: ImageVector) {
     COMMUNITY  ("Community",   Icons.Default.Groups),
@@ -74,6 +78,7 @@ fun MehfilScreen(
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(MehfilTab.COMMUNITY) }
     var showSandeshSheet by remember { mutableStateOf(false) }
+    var sandeshTargetId by remember { mutableStateOf<String?>(null) }
     var showCreatePostSheet by remember { mutableStateOf(false) }
     var showGuidelinesSheet by remember { mutableStateOf(false) }
     var tourState by remember { mutableStateOf<com.safar.app.ui.butterfly.ButterflyTourState?>(null) }
@@ -142,20 +147,21 @@ fun MehfilScreen(
         }
     }
 
-    if (showSandeshSheet && uiState.latestSandesh != null) {
+    if (showSandeshSheet && uiState.sandeshes.isNotEmpty()) {
         SandeshBottomSheet(
-            sandesh = uiState.latestSandesh!!,
+            sandesh = uiState.latestSandesh ?: uiState.sandeshes.first(),
             sandeshes = uiState.sandeshes,
             reactedSandeshIds = uiState.reactedSandeshIds,
             sandeshComments = uiState.sandeshComments,
             isLoadingSandeshComments = uiState.isLoadingSandeshComments,
             isLoadingMoreSandeshComments = uiState.isLoadingMoreSandeshComments,
             hasMoreSandeshComments = uiState.hasMoreSandeshComments,
+            initialCommentTargetId = sandeshTargetId,
             onReact = { viewModel.reactSandesh(it) },
             onLoadComments = { viewModel.loadSandeshComments(it) },
             onLoadMoreComments = { viewModel.loadSandeshComments(it, loadMore = true) },
             onPostComment = { id, c -> viewModel.postSandeshComment(id, c) },
-            onDismiss = { showSandeshSheet = false },
+            onDismiss = { showSandeshSheet = false; sandeshTargetId = null },
         )
     }
 
@@ -192,7 +198,7 @@ fun MehfilScreen(
 
     SafarDrawerScaffold(
         title = "Mehfil",
-        subtitle = "Safar",
+        subtitle = "SAFAR",
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
@@ -315,7 +321,10 @@ fun MehfilScreen(
                         viewModel = viewModel,
                         searchQuery = searchQuery,
                         onClearSearch = { searchQuery = "" },
-                        onSandeshClick = { showSandeshSheet = true },
+                        onSandeshCommentClick = { id -> 
+                            sandeshTargetId = id
+                            showSandeshSheet = true 
+                        },
                         onCommentClick = { post -> commentPost = post; viewModel.loadComments(post.id) },
                         onConnect = { post ->
                             dmChatNavigated.value = false
@@ -351,35 +360,172 @@ fun MehfilScreen(
 }
 
 @Composable
-private fun SandeshHeaderCard(sandesh: Sandesh, reacted: Boolean, onClick: () -> Unit) {
+private fun CollapsibleSandeshCard(
+    sandeshes: List<Sandesh>,
+    reactedSandeshIds: Set<String>,
+    onReact: (String) -> Unit,
+    onCommentClick: (String) -> Unit
+) {
+    if (sandeshes.isEmpty()) return
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         shape = RoundedCornerShape(14.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(0.15f)), contentAlignment = Alignment.Center) {
-                Text("📢", fontSize = 16.sp)
-            }
-            Column(Modifier.weight(1f)) {
-                Text("SANDESH", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.primary)
-                Text(sandesh.content, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 18.sp)
-            }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Icon(
-                        if (reacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        null,
-                        modifier = Modifier.size(12.dp),
-                        tint = if (reacted) Red500 else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text("${sandesh.reactionCount}", fontSize = 10.sp, color = if (reacted) Red500 else MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(0.15f)), contentAlignment = Alignment.Center) {
+                    Text("📢", fontSize = 16.sp)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Icon(Icons.Default.ChatBubbleOutline, null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${sandesh.commentCount}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(Modifier.weight(1f)) {
+                    Text("SANDESH", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.primary)
+                    Text(if (sandeshes.size == 1) "1 new announcement" else "${sandeshes.size} announcements", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            androidx.compose.animation.AnimatedVisibility(visible = expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    sandeshes.forEach { s ->
+                        val isReacted = reactedSandeshIds.contains(s.id)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Author Row
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF4F46E5)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.VerifiedUser, contentDescription = "Admin", tint = Color.White, modifier = Modifier.size(16.dp))
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("Parmar Sir's Corner", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                        Box(
+                                            modifier = Modifier
+                                                .background(Color(0xFFE0E7FF), RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("Faculty", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4338CA))
+                                        }
+                                    }
+                                    val dateStr = try {
+                                        val parsed = java.time.ZonedDateTime.parse(s.createdAt)
+                                        parsed.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy • hh:mm a"))
+                                    } catch (e: Exception) { s.createdAt.take(10) }
+                                    Text(dateStr, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            
+                            // Content
+                            Text(
+                                text = s.content,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            // YouTube / Image media block
+                            val ytRegex = Regex("""(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/\n\s]+/\S+/|(?:v|e(?:mbed)?)/|\S*?[?&]v=)|youtu\.be/)([a-zA-Z0-9_-]{11})""")
+                            val ytFromImage = if (s.imageUrl.contains("img.youtube.com")) {
+                                Regex("""img\.youtube\.com/vi/([a-zA-Z0-9_-]{11})""").find(s.imageUrl)?.groupValues?.get(1)
+                            } else null
+                            val ytFromContent = ytRegex.find(s.content)?.groupValues?.get(1)
+                            val ytVideoId = ytFromImage ?: ytFromContent
+                            val directImageUrl = if (ytVideoId == null && s.imageUrl.isNotBlank()) s.imageUrl else null
+
+                            if (ytVideoId != null) {
+                                val thumbUrl = "https://img.youtube.com/vi/$ytVideoId/hqdefault.jpg"
+                                val videoUrl = "https://www.youtube.com/watch?v=$ytVideoId"
+                                val context = LocalContext.current
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl))) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AsyncImage(
+                                        model = thumbUrl,
+                                        contentDescription = "YouTube thumbnail",
+                                        modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
+                                    // Dark overlay
+                                    Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.25f)))
+                                    // Play button
+                                    Box(
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.Black.copy(alpha = 0.75f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White, modifier = Modifier.size(32.dp))
+                                    }
+                                }
+                            } else if (directImageUrl != null) {
+                                AsyncImage(
+                                    model = directImageUrl,
+                                    contentDescription = "Attached image",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .heightIn(max = 220.dp),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            }
+                            
+                            // Reactions and Comments
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Spacer(Modifier.weight(1f))
+                                Row(Modifier.clickable { onReact(s.id) }.padding(end = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Icon(
+                                        if (isReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = if (isReacted) Red500 else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text("${s.reactionCount}", fontSize = 11.sp, color = if (isReacted) Red500 else MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Row(Modifier.clickable { onCommentClick(s.id) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Icon(Icons.Default.ChatBubbleOutline, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Text("${s.commentCount}", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -392,7 +538,7 @@ private fun CommunityTab(
     viewModel: MehfilViewModel,
     searchQuery: String = "",
     onClearSearch: () -> Unit = {},
-    onSandeshClick: () -> Unit,
+    onSandeshCommentClick: (String) -> Unit,
     onCommentClick: (MehfilPost) -> Unit,
     onConnect: (MehfilPost) -> Unit,
 ) {
@@ -485,11 +631,16 @@ private fun CommunityTab(
 
         // Sandesh — hides on scroll down, reappears at top
         androidx.compose.animation.AnimatedVisibility(
-            visible = showSandesh && uiState.latestSandesh != null,
+            visible = showSandesh && uiState.sandeshes.isNotEmpty(),
             enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
             exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
         ) {
-            uiState.latestSandesh?.let { SandeshHeaderCard(sandesh = it, reacted = uiState.reactedSandeshIds.contains(it.id), onClick = onSandeshClick) }
+            CollapsibleSandeshCard(
+                sandeshes = uiState.sandeshes,
+                reactedSandeshIds = uiState.reactedSandeshIds,
+                onReact = { viewModel.reactSandesh(it) },
+                onCommentClick = onSandeshCommentClick
+            )
         }
 
         Text(
@@ -748,20 +899,21 @@ private fun SandeshBottomSheet(
     isLoadingSandeshComments: Boolean = false,
     isLoadingMoreSandeshComments: Boolean = false,
     hasMoreSandeshComments: Boolean = false,
+    initialCommentTargetId: String? = null,
     onReact: (String) -> Unit,
     onLoadComments: (String) -> Unit,
     onLoadMoreComments: (String) -> Unit,
     onPostComment: (String, String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var commentTargetId by remember { mutableStateOf<String?>(null) }
+    var commentTargetId by remember { mutableStateOf<String?>(initialCommentTargetId) }
     var commentText by remember { mutableStateOf("") }
     val showComments = commentTargetId != null
 
     LaunchedEffect(commentTargetId) { commentTargetId?.let { onLoadComments(it) } }
 
     ModalBottomSheet(
-        onDismissRequest = { if (showComments) commentTargetId = null else onDismiss() },
+        onDismissRequest = { if (showComments && initialCommentTargetId == null) commentTargetId = null else onDismiss() },
         containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -1240,3 +1392,8 @@ fun DmChatScreen(
 private fun formatPostDate(ts: String): String = runCatching {
     ZonedDateTime.parse(ts).format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault()))
 }.getOrDefault(ts.take(10))
+
+/**
+ * A simple markdown parser that converts **bold** and *italic* into AnnotatedString.
+ */
+@Composable

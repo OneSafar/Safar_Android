@@ -8,6 +8,7 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safar.app.data.local.SafarDataStore
+import com.google.firebase.messaging.FirebaseMessaging
+import com.safar.app.notifications.NotificationDeepLinkHandler
 import com.safar.app.ui.ekagra.LocalTimerService
 import com.safar.app.ui.ekagra.TimerService
 import com.safar.app.ui.navigation.SafarNavGraph
@@ -45,6 +48,8 @@ class MainActivity : ComponentActivity() {
         private set
     var isInPipMode by mutableStateOf(false)
         private set
+    var notificationRoute by mutableStateOf<String?>(null)
+        private set
 
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
@@ -62,6 +67,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        FirebaseMessaging.getInstance().token
+            .addOnSuccessListener {
+                Log.d("SAFAR_FCM", "TOKEN = $it")
+            }
+            .addOnFailureListener {
+                Log.e("SAFAR_FCM", "TOKEN fetch failed", it)
+            }
+            .addOnCompleteListener { task ->
+                Log.d("SAFAR_FCM", "TOKEN task complete. success=${task.isSuccessful}")
+            }
+
         // Bind (and start) the TimerService so it survives navigation
         Intent(this, TimerService::class.java).also { intent ->
             startService(intent)
@@ -71,6 +87,7 @@ class MainActivity : ComponentActivity() {
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
             navigateToEkagra = true
         }
+        consumeNotificationIntent(intent)
 
         enableEdgeToEdge()
         setContent {
@@ -104,6 +121,7 @@ class MainActivity : ComponentActivity() {
     }
 
     fun resetNavigateToEkagra() { navigateToEkagra = false }
+    fun resetNotificationRoute() { notificationRoute = null }
 
     /** Called on logout — stops PiP and prevents any pending Ekagra navigation. */
     fun onLogout() {
@@ -127,6 +145,15 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
             navigateToEkagra = true
+        }
+        consumeNotificationIntent(intent)
+    }
+
+    private fun consumeNotificationIntent(intent: Intent?) {
+        val route = intent?.getStringExtra(NotificationDeepLinkHandler.EXTRA_ROUTE)
+            ?: intent?.dataString?.let(NotificationDeepLinkHandler::routeFor)
+        if (!route.isNullOrBlank()) {
+            notificationRoute = route
         }
     }
 

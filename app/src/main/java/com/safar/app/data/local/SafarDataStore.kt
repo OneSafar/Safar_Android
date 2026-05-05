@@ -31,6 +31,17 @@ class SafarDataStore @Inject constructor(
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val DAILY_REMINDER_TIME   = stringPreferencesKey("daily_reminder_time")
         val FCM_TOKEN             = stringPreferencesKey("fcm_token")
+        val FOCUS_TIMER_NOTIFICATIONS_ENABLED = booleanPreferencesKey("focus_timer_notifications_enabled")
+        val DAILY_STUDY_REMINDER_ENABLED      = booleanPreferencesKey("daily_study_reminder_enabled")
+        val STREAK_REMINDER_ENABLED           = booleanPreferencesKey("streak_reminder_enabled")
+        val COURSE_UPDATES_ENABLED            = booleanPreferencesKey("course_updates_enabled")
+        val ACHIEVEMENTS_ENABLED              = booleanPreferencesKey("achievements_enabled")
+        val COMMUNITY_REPLIES_ENABLED         = booleanPreferencesKey("community_replies_enabled")
+        val ANNOUNCEMENTS_ENABLED             = booleanPreferencesKey("announcements_enabled")
+        val WEEKLY_SUMMARY_ENABLED            = booleanPreferencesKey("weekly_summary_enabled")
+        val QUIET_HOURS_START                 = stringPreferencesKey("quiet_hours_start")
+        val QUIET_HOURS_END                   = stringPreferencesKey("quiet_hours_end")
+        val DEVICE_TOKEN_LAST_SYNC_AT         = longPreferencesKey("device_token_last_sync_at")
         val LAST_SYNC             = longPreferencesKey("last_sync")
         val TOUR_DONE             = booleanPreferencesKey("tour_done")
         val WELCOME_SEEN          = booleanPreferencesKey("welcome_seen")
@@ -89,6 +100,58 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.NOTIFICATIONS_ENABLED] ?: true }
 
+    val fcmToken: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FCM_TOKEN] }
+
+    val dailyReminderTime: Flow<String> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.DAILY_REMINDER_TIME] ?: "19:00" }
+
+    val focusTimerNotificationsEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_TIMER_NOTIFICATIONS_ENABLED] ?: true }
+
+    val dailyStudyReminderEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.DAILY_STUDY_REMINDER_ENABLED] ?: false }
+
+    val streakReminderEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.STREAK_REMINDER_ENABLED] ?: true }
+
+    val courseUpdatesEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.COURSE_UPDATES_ENABLED] ?: true }
+
+    val achievementsEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.ACHIEVEMENTS_ENABLED] ?: false }
+
+    val communityRepliesEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.COMMUNITY_REPLIES_ENABLED] ?: false }
+
+    val announcementsEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.ANNOUNCEMENTS_ENABLED] ?: false }
+
+    val weeklySummaryEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.WEEKLY_SUMMARY_ENABLED] ?: false }
+
+    val quietHoursStart: Flow<String> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.QUIET_HOURS_START] ?: "22:00" }
+
+    val quietHoursEnd: Flow<String> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.QUIET_HOURS_END] ?: "07:00" }
+
+    val deviceTokenLastSyncAt: Flow<Long> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.DEVICE_TOKEN_LAST_SYNC_AT] ?: 0L }
+
     val isTourDone: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.TOUR_DONE] ?: false }
@@ -130,6 +193,21 @@ class SafarDataStore @Inject constructor(
     suspend fun setNotificationsEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.NOTIFICATIONS_ENABLED] = enabled }
     suspend fun setFcmToken(token: String) = context.dataStore.edit { it[Keys.FCM_TOKEN] = token }
     suspend fun setDailyReminderTime(time: String) = context.dataStore.edit { it[Keys.DAILY_REMINDER_TIME] = time }
+    suspend fun setFocusTimerNotificationsEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_TIMER_NOTIFICATIONS_ENABLED] = enabled }
+    suspend fun setDailyStudyReminderEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.DAILY_STUDY_REMINDER_ENABLED] = enabled }
+    suspend fun setStreakReminderEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.STREAK_REMINDER_ENABLED] = enabled }
+    suspend fun setCourseUpdatesEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.COURSE_UPDATES_ENABLED] = enabled }
+    suspend fun setAchievementsEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.ACHIEVEMENTS_ENABLED] = enabled }
+    suspend fun setCommunityRepliesEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.COMMUNITY_REPLIES_ENABLED] = enabled }
+    suspend fun setAnnouncementsEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.ANNOUNCEMENTS_ENABLED] = enabled }
+    suspend fun setWeeklySummaryEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.WEEKLY_SUMMARY_ENABLED] = enabled }
+    suspend fun setQuietHours(start: String, end: String) = context.dataStore.edit {
+        it[Keys.QUIET_HOURS_START] = start
+        it[Keys.QUIET_HOURS_END] = end
+    }
+    suspend fun setDeviceTokenLastSyncAt(time: Long) = context.dataStore.edit {
+        it[Keys.DEVICE_TOKEN_LAST_SYNC_AT] = time
+    }
     suspend fun setLastSync(time: Long) = context.dataStore.edit { it[Keys.LAST_SYNC] = time }
     suspend fun setTourDone(done: Boolean) = context.dataStore.edit { it[Keys.TOUR_DONE] = done }
     suspend fun setWelcomeSeen(seen: Boolean) = context.dataStore.edit { it[Keys.WELCOME_SEEN] = seen }

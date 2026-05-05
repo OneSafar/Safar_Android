@@ -31,7 +31,7 @@ class InstalledAppsLoader @Inject constructor(
         resolveInfos
             .map { it.activityInfo.packageName }
             .distinct()
-            .filter { it != context.packageName } // Exclude Safar
+            .filter { it != context.packageName } // Exclude SAFAR
             .mapNotNull { pkgName ->
                 try {
                     val appInfo = pm.getApplicationInfo(pkgName, 0)

@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App -->
-    <string name="app_name">Safar</string>
+    <string name="app_name">SAFAR</string>
     <string name="app_tagline">Your mindful journey begins here.</string>
 
     <!-- Splash -->
     <string name="splash_title">सफर</string>
-    <string name="splash_start_safar">Start Safar</string>
+    <string name="splash_start_safar">Start SAFAR</string>
 
     <!-- Auth -->
     <string name="auth_tagline">Sign in to continue your journey</string>
-    <string name="auth_create_account_tagline">Create your Safar account</string>
+    <string name="auth_create_account_tagline">Create your SAFAR account</string>
     <string name="auth_sign_in_to_continue">Sign in to continue</string>
     <string name="auth_create_account">Create your account</string>
     <string name="auth_label_email">EMAIL</string>
@@ -38,7 +38,7 @@
     <string name="auth_sign_up_here">Sign up here</string>
     <string name="auth_have_account">Already have an account? </string>
     <string name="auth_sign_in_here">Sign in here</string>
-    <string name="auth_footer">Safar · Wellness for every aspirant</string>
+    <string name="auth_footer">SAFAR · Wellness for every aspirant</string>
 
     <!-- Navigation -->
     <string name="nav_back">Back</string>
@@ -300,8 +300,8 @@
     <string name="profile_light_mode">Light Mode</string>
 
     <!-- Focus Shield -->
-    <string name="focus_shield_service_label">Safar Focus Shield</string>
-    <string name="focus_shield_accessibility_desc">Safar Focus Shield blocks distracting apps during your focus sessions. It only activates while a timer is running and only affects apps you have chosen to block.</string>
+    <string name="focus_shield_service_label">SAFAR Focus Shield</string>
+    <string name="focus_shield_accessibility_desc">SAFAR Focus Shield blocks distracting apps during your focus sessions. It only activates while a timer is running and only affects apps you have chosen to block.</string>
     <string name="focus_shield_blocked_title">App Blocked</string>
     <string name="focus_shield_blocked_message">%s is blocked during your focus session. Stay focused!</string>
     <string name="focus_shield_emergency_unlock">Emergency Unlock</string>

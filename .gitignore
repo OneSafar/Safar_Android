@@ -17,3 +17,7 @@ app/build/
 idea
 .idea
 .kotlin/
+
+# Firebase Admin SDK private keys
+*firebase-adminsdk*.json
+service-account*.json

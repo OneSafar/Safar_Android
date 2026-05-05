@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -26,13 +28,13 @@ android {
             dimension = "env"
             applicationIdSuffix = ".qa"
             versionNameSuffix = "-qa"
-            buildConfigField("String", "BASE_URL", "\"https://safar.parmarssc.in/api/\"")
-            resValue("string", "app_name", "Safar QA")
+             buildConfigField("String", "BASE_URL", "\"http://localhost:8080/api/\"")
+            resValue("string", "app_name", "SAFAR QA")
         }
         create("prod") {
             dimension = "env"
             buildConfigField("String", "BASE_URL", "\"https://safar.parmarssc.in/api/\"")
-            resValue("string", "app_name", "Safar")
+            resValue("string", "app_name", "SAFAR")
         }
     }
 

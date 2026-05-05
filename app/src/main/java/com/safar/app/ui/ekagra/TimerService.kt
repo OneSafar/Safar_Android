@@ -1,7 +1,6 @@
 package com.safar.app.ui.ekagra
 
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -13,8 +12,10 @@ import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
-import com.safar.app.MainActivity
 import com.safar.app.data.local.SafarDataStore
+import com.safar.app.notifications.NotificationDeepLinkHandler
+import com.safar.app.notifications.SafarNotificationChannels
+import com.safar.app.notifications.SafarNotificationManager
 import com.safar.app.ui.ekagra.focusshield.FocusShieldOverlayService
 import com.safar.app.ui.ekagra.focusshield.FocusShieldRepository
 import kotlinx.coroutines.CoroutineScope
@@ -31,8 +32,9 @@ import kotlinx.coroutines.launch
 class TimerService : Service() {
 
     companion object {
-        const val CHANNEL_ID        = "ekagra_timer_channel"
+        const val CHANNEL_ID        = SafarNotificationChannels.FOCUS_TIMER
         const val NOTIFICATION_ID   = 1001
+        const val COMPLETION_NOTIFICATION_ID = 1002
         const val ACTION_PLAY_PAUSE = "com.safar.ekagra.ACTION_PLAY_PAUSE"
         const val ACTION_RESET      = "com.safar.ekagra.ACTION_RESET"
     }
@@ -190,7 +192,7 @@ class TimerService : Service() {
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
+        SafarNotificationChannels.createAll(this)
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -268,6 +270,7 @@ class TimerService : Service() {
                 releaseMusic()
                 clearTheme()
                 disableFocusShieldForSession()
+                showCompletionNotification()
                 updateNotification()
             }
         }
@@ -293,27 +296,10 @@ class TimerService : Service() {
     fun isActive(): Boolean = _isRunning.value || _secondsLeft.value < _totalSeconds.value
 
     // ── Notification ──────────────────────────────────────────────────────────
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Focus Timer",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Shows active focus timer"
-                setShowBadge(false)
-            }
-            getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(channel)
-        }
-    }
-
     private fun buildNotification(): Notification {
         val openIntent = PendingIntent.getActivity(
             this, 0,
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            },
+            NotificationDeepLinkHandler.activityIntent(this, "safar://ekagra"),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -348,6 +334,28 @@ class TimerService : Service() {
             )
             .addAction(android.R.drawable.ic_menu_revert, "Reset", resetIntent)
             .build()
+    }
+
+    private fun showCompletionNotification() {
+        scope.launch {
+            if (!safarDataStore.notificationsEnabled.first() ||
+                !safarDataStore.focusTimerNotificationsEnabled.first()
+            ) return@launch
+
+            val mode = _timerMode.value
+            val body = when (mode) {
+                TimerMode.FOCUS -> "Focus session complete. Great work - take a mindful break."
+                TimerMode.BREAK,
+                TimerMode.LONG_BREAK -> "Break finished. Ready for your next session?"
+            }
+            SafarNotificationManager(this@TimerService).show(
+                title = if (mode == TimerMode.FOCUS) "Focus session complete" else "Break finished",
+                body = body,
+                channelId = SafarNotificationChannels.FOCUS_TIMER,
+                deepLink = "safar://ekagra",
+                notificationId = COMPLETION_NOTIFICATION_ID,
+            )
+        }
     }
 
     private fun updateNotification() {

@@ -2,6 +2,8 @@ package com.safar.app.data.repository
 
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.data.remote.api.AuthApi
+import com.safar.app.data.remote.api.NotificationApi
+import com.safar.app.data.remote.dto.DeviceTokenRevokeRequest
 import com.safar.app.data.remote.dto.*
 import com.safar.app.domain.model.User
 import com.safar.app.domain.model.UserProfile
@@ -9,12 +11,14 @@ import com.safar.app.domain.repository.AuthRepository
 import com.safar.app.util.Resource
 import com.safar.app.util.safeApiCall
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
+    private val notificationApi: NotificationApi,
     private val dataStore: SafarDataStore
 ) : AuthRepository {
 
@@ -64,8 +68,12 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun logout(): Resource<Unit> {
         runCatching { safeApiCall { authApi.logout() } }
+        val token = dataStore.fcmToken.first()
+        if (!token.isNullOrBlank()) {
+            runCatching { safeApiCall { notificationApi.revokeDeviceToken(DeviceTokenRevokeRequest(token)) } }
+        }
         dataStore.setLoggedIn(false)
-        dataStore.setAuthToken("")
+        dataStore.clearSession()
         return Resource.Success(Unit)
     }
 

@@ -56,6 +56,7 @@ object NetworkModule {
     @Provides @Singleton fun provideFocusApi(r: Retrofit): FocusApi = r.create(FocusApi::class.java)
     @Provides @Singleton fun provideMehfilApi(r: Retrofit): MehfilApi = r.create(MehfilApi::class.java)
     @Provides @Singleton fun provideThoughtsApi(r: Retrofit): ThoughtsApi = r.create(ThoughtsApi::class.java)
+    @Provides @Singleton fun provideNotificationApi(r: Retrofit): NotificationApi = r.create(NotificationApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
     @Provides @Singleton fun provideMehfilSocketManager(gson: Gson): MehfilSocketManager = MehfilSocketManager(gson)
 }
