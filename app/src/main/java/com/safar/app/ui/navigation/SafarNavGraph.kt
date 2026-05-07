@@ -22,6 +22,7 @@ import com.safar.app.ui.nishtha.NishthaScreen
 import com.safar.app.ui.ekagra.LocalTimerService
 import com.safar.app.ui.profile.ProfileScreen
 import com.safar.app.ui.splash.SplashScreen
+import com.safar.app.ui.studyplanner.StudyPlannerScreen
 
 @Composable
 fun SafarNavGraph(
@@ -112,6 +113,24 @@ fun SafarNavGraph(
             NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 4)
         }
 
+        composable(
+            route = Routes.NISHTHA_ANALYTICS_SECTION,
+            arguments = listOf(
+                navArgument("section") { type = NavType.StringType; nullable = true; defaultValue = "overview" },
+            )
+        ) { entry ->
+            NishthaScreen(
+                currentRoute = Routes.NISHTHA_ANALYTICS,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleNightMode = onToggleNightMode,
+                onLanguageClick = onLanguageToggle,
+                onProfileClick = { navigate(Routes.PROFILE) },
+                initialTab = 4,
+                analyticsInitialSection = entry.arguments?.getString("section") ?: "overview",
+            )
+        }
+
         composable(Routes.EKAGRA) {
             EkagraScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle)
         }
@@ -133,6 +152,17 @@ fun SafarNavGraph(
                 linkedGoalId = entry.arguments?.getString("goalId"),
                 linkedGoalTitle = entry.arguments?.getString("goalTitle"),
                 initialView = entry.arguments?.getString("view"),
+            )
+        }
+
+        composable(Routes.STUDY_PLANNER) {
+            StudyPlannerScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onBack = { navController.popBackStack() },
+                onToggleDarkTheme = onToggleDarkTheme,
+                onLanguageClick = onLanguageToggle,
             )
         }
 

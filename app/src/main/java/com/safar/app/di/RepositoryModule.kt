@@ -17,4 +17,5 @@ abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindJournalRepository(impl: JournalRepositoryImpl): JournalRepository
     @Binds @Singleton abstract fun bindEkagraRepository(impl: EkagraRepositoryImpl): EkagraRepository
     @Binds @Singleton abstract fun bindMehfilRepository(impl: MehfilRepositoryImpl): MehfilRepository
+    @Binds @Singleton abstract fun bindStudyPlannerRepository(impl: StudyPlannerRepositoryImpl): StudyPlannerRepository
 }

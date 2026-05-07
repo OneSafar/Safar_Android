@@ -15,9 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -28,9 +27,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.safar.app.R
-import com.safar.app.data.remote.dto.EkagraSession
-import com.safar.app.data.remote.dto.FocusStatsResponse
-import com.safar.app.data.remote.dto.RecentSession
 import com.safar.app.domain.model.EkagraAnalyticsStats
 import com.safar.app.notifications.rememberNotificationPermissionRequester
 import com.safar.app.ui.drawer.SafarDrawerScaffold
@@ -41,7 +37,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.foundation.Canvas
+import kotlin.math.roundToInt
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import android.net.Uri
@@ -60,6 +56,11 @@ import com.safar.app.MainActivity
 import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import android.view.TextureView
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.text.style.TextAlign
 
 
 val LocalTimerService = staticCompositionLocalOf<TimerService?> { null }
@@ -253,15 +254,34 @@ private enum class EkagraNavTab(val icon: ImageVector, val label: String) {
     TIMER    (Icons.Default.Timer,          "Focus"),
     DURATION (Icons.Default.Tune,           "Duration"),
     SHIELD   (Icons.Default.Shield,         "Shield"),
-    ANALYTICS(Icons.Default.BarChart,       "Analytics"),
     HISTORY  (Icons.Default.History,        "History"),
 }
 
 
-enum class TimerMode(val icon: ImageVector, val label: String, val showInPill: Boolean = true) {
-    FOCUS      (Icons.Default.Timer,         "Focus",      true),
-    BREAK      (Icons.Default.FreeBreakfast, "Break",      true),
-    LONG_BREAK (Icons.Default.Hotel,         "Long Break", true),
+enum class TimerMode(
+    @DrawableRes val lightIconRes: Int,
+    @DrawableRes val darkIconRes: Int,
+    val label: String,
+    val showInPill: Boolean = true,
+) {
+    FOCUS(
+        R.drawable.ic_ekagra_timer_light,
+        R.drawable.ic_ekagra_timer_dark,
+        "Focus",
+        true,
+    ),
+    BREAK(
+        R.drawable.ic_ekagra_coffee_light,
+        R.drawable.ic_ekagra_coffee_dark,
+        "Break",
+        true,
+    ),
+    LONG_BREAK(
+        R.drawable.ic_ekagra_bed_light,
+        R.drawable.ic_ekagra_bed_dark,
+        "Long Break",
+        true,
+    ),
 }
 
 
@@ -279,11 +299,9 @@ fun EkagraScreen(
     viewModel: EkagraViewModel = hiltViewModel(),
     focusShieldViewModel: com.safar.app.ui.ekagra.focusshield.FocusShieldViewModel = hiltViewModel(),
 ) {
-    val statsState by viewModel.stats.collectAsStateWithLifecycle()
-    val openSessions by viewModel.openSessions.collectAsStateWithLifecycle()
     val activeSession by viewModel.activeSession.collectAsStateWithLifecycle()
     val ekagraAnalytics by viewModel.ekagraAnalytics.collectAsStateWithLifecycle()
-    val pausedSessionsCount = openSessions.count { it.status.equals("paused", ignoreCase = true) }
+    val allGoals by viewModel.allGoals.collectAsStateWithLifecycle()
 
     val timerService = LocalTimerService.current
     val context      = LocalContext.current
@@ -296,13 +314,14 @@ fun EkagraScreen(
     val timerRunning by (timerService?.isRunning    ?: MutableStateFlow(false)).collectAsState()
     val timerMode    by (timerService?.timerMode    ?: MutableStateFlow(TimerMode.FOCUS)).collectAsState()
 
-    var selectedTab      by remember(initialView) { mutableStateOf(if (initialView == "analytics") EkagraNavTab.ANALYTICS else EkagraNavTab.TIMER) }
+    var selectedTab      by remember { mutableStateOf(EkagraNavTab.TIMER) }
     var showThemeDialog  by remember { mutableStateOf(false) }
     var showSongSheet    by remember { mutableStateOf(false) }
-    var showSessionsSheet by remember { mutableStateOf(false) }
     var showEkagraGuide  by remember { mutableStateOf(false) }
+    var showOrganizeSheet by remember { mutableStateOf(false) }
+    var pendingEndedSession by remember { mutableStateOf<PendingEndedEkagraSession?>(null) }
+    var titleInput by remember { mutableStateOf("") }
     var tourState        by remember { mutableStateOf<com.safar.app.ui.butterfly.ButterflyTourState?>(null) }
-    var showAddTask      by remember { mutableStateOf(false) }
     var selectedTheme by remember {
         val prefs = context.getSharedPreferences("ekagra_theme_prefs", android.content.Context.MODE_PRIVATE)
         val idx   = prefs.getInt("theme_index", -1)
@@ -352,13 +371,29 @@ fun EkagraScreen(
     }
 
     fun resetTimer() {
-        viewModel.pauseActiveSession(
-            totalSeconds = totalSeconds,
-            secondsLeft = secondsLeft,
-            mode = timerMode.toApiMode(),
-            goalTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
-        )
+        activeSession?.id?.let { viewModel.discardSession(it) }
         timerService?.reset()          // also calls disableFocusShieldForSession()
+        associatedGoalId = null
+        associatedGoalTitle = null
+    }
+
+    fun endCurrentSession() {
+        val session = activeSession
+        if (session != null && timerMode == TimerMode.FOCUS) {
+            timerService?.pause()
+            pendingEndedSession = PendingEndedEkagraSession(
+                sessionId = session.id,
+                totalSeconds = totalSeconds,
+                secondsLeft = secondsLeft,
+                mode = timerMode.toApiMode(),
+                startedAt = session.sessionStartedAt,
+            )
+            titleInput = session.sessionTitle ?: taskText
+            showOrganizeSheet = true
+            return
+        }
+        viewModel.onSessionCompleted(totalSeconds, secondsLeft, timerMode.toApiMode())
+        timerService?.reset()
         associatedGoalId = null
         associatedGoalTitle = null
     }
@@ -384,22 +419,18 @@ fun EkagraScreen(
         }
     }
 
+    LaunchedEffect(initialView) {
+        if (initialView == "analytics") {
+            onNavigate(Routes.nishthaAnalytics("focus"))
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.refreshEkagra()
         viewModel.loadTasks()
         while (true) {
             delay(20_000L)
-            viewModel.loadOpenSessions()
-        }
-    }
-
-    LaunchedEffect(activeSession?.id) {
-        val session = activeSession
-        if (session != null && session.status == "active" && timerService?.isActive() == false) {
-            timerService.restoreSession(session.mode.toTimerMode(), session.totalSeconds, session.remainingSeconds, running = session.isRunning)
-            taskText = session.goalTitle ?: session.sessionTitle ?: taskText
-            associatedGoalId = session.goalId?.takeUnless { it.startsWith("named:") }
-            associatedGoalTitle = session.goalTitle
+            viewModel.loadEkagraAnalytics()
         }
     }
 
@@ -476,6 +507,19 @@ fun EkagraScreen(
             try { buildPipParams()?.let { pipActivity?.setPictureInPictureParams(it) } } catch (_: Exception) {}
         }
         if (!timerRunning && secondsLeft == 0 && totalSeconds > 0) {
+            val session = activeSession
+            if (timerMode == TimerMode.FOCUS && session != null) {
+                pendingEndedSession = PendingEndedEkagraSession(
+                    sessionId = session.id,
+                    totalSeconds = totalSeconds,
+                    secondsLeft = 0,
+                    mode = timerMode.toApiMode(),
+                    startedAt = session.sessionStartedAt,
+                )
+                titleInput = session.sessionTitle ?: ""
+                showOrganizeSheet = true
+                return@LaunchedEffect
+            }
             viewModel.onSessionCompleted(
                 totalSeconds = totalSeconds,
                 secondsLeft  = 0,
@@ -489,6 +533,14 @@ fun EkagraScreen(
     val accent    = selectedTheme.accent
     val mottoText = if (timerRunning) "STAY FOCUSED, YOU'RE DOING GREAT!" else "READY TO FOCUS?"
     val progress  = if (totalSeconds > 0) 1f - secondsLeft.toFloat() / totalSeconds else 0f
+    val openGoals = remember(allGoals) {
+        allGoals.filter { goal ->
+            goal.id.isNotBlank() &&
+                goal.title.isNotBlank() &&
+                !goal.completed &&
+                goal.lifecycleStatus !in listOf("abandoned", "rolled_over")
+        }
+    }
 
     if (isInPipMode) {
         Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
@@ -518,48 +570,61 @@ fun EkagraScreen(
     if (showEkagraGuide) {
         EkagraGuideDialog(onDismiss = { showEkagraGuide = false }, accent = accent)
     }
-    if (showAddTask) {
-        AddTaskDialog(
-            current   = taskText,
-            onConfirm = {
-                taskText = it
-                associatedGoalId = null
-                associatedGoalTitle = null
-                showAddTask = false
-                if (it.isNotBlank()) viewModel.createTaskAsGoal(it)
-            },
-            onDismiss = { showAddTask = false },
-        )
-    }
-    if (showSessionsSheet) {
-        EkagraSessionsSheet(
-            sessions = openSessions,
+    if (showOrganizeSheet) {
+        val pending = pendingEndedSession
+        OrganizeFreeFocusSheet(
+            pending = pending,
+            goals = openGoals,
+            titleInput = titleInput,
+            onTitleChange = { titleInput = it },
             accent = accent,
-            onDismiss = { showSessionsSheet = false },
-            onResume = { session ->
-                val mode = session.mode.toTimerMode()
-                timerService?.restoreSession(mode, session.totalSeconds, session.remainingSeconds, running = true)
-                taskText = session.goalTitle ?: session.sessionTitle ?: taskText
-                associatedGoalId = session.goalId?.takeUnless { it.startsWith("named:") }
-                associatedGoalTitle = session.goalTitle
-                viewModel.resumeSession(session, session.totalSeconds, session.remainingSeconds, session.mode)
-                showSessionsSheet = false
-            },
-            onPause = { session ->
-                if (session.status == "active") {
-                    timerService?.pause()
-                    viewModel.pauseActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(), associatedGoalTitle)
+            onDismiss = { showOrganizeSheet = false },
+            onSaveFree = {
+                if (pending != null) {
+                    viewModel.completeSession(
+                        sessionId = pending.sessionId,
+                        totalSeconds = pending.totalSeconds,
+                        secondsLeft = pending.secondsLeft,
+                        mode = pending.mode,
+                        startedAt = pending.startedAt,
+                        taskTitle = titleInput.ifBlank { "Free Focus" },
+                        goalId = null,
+                        goalTitle = null,
+                    )
+                    timerService?.reset()
+                    associatedGoalId = null
+                    associatedGoalTitle = null
+                    pendingEndedSession = null
+                    showOrganizeSheet = false
                 }
             },
-            onEnd = { session ->
-                val isCurrent = session.status == "active"
-                val liveTotal = if (isCurrent) totalSeconds else session.totalSeconds
-                val liveLeft = if (isCurrent) secondsLeft else session.remainingSeconds
-                viewModel.completeSession(session.id, liveTotal, liveLeft, session.mode, session.sessionStartedAt)
-                if (isCurrent) timerService?.reset()
+            onLinkGoal = { goal ->
+                if (pending != null) {
+                    viewModel.linkGoalAndCompleteSession(
+                        sessionId = pending.sessionId,
+                        goal = goal,
+                        totalSeconds = pending.totalSeconds,
+                        secondsLeft = pending.secondsLeft,
+                        mode = pending.mode,
+                        startedAt = pending.startedAt,
+                    )
+                    timerService?.reset()
+                    associatedGoalId = null
+                    associatedGoalTitle = null
+                    pendingEndedSession = null
+                    showOrganizeSheet = false
+                }
             },
-            onDiscard = { viewModel.discardSession(it.id) },
-            onDelete = { viewModel.deleteSession(it.id) },
+            onDiscard = {
+                if (pending != null) {
+                    viewModel.discardSession(pending.sessionId)
+                    timerService?.reset()
+                    associatedGoalId = null
+                    associatedGoalTitle = null
+                    pendingEndedSession = null
+                    showOrganizeSheet = false
+                }
+            },
         )
     }
 
@@ -572,19 +637,9 @@ fun EkagraScreen(
             onNavigate        = onNavigate,
             onToggleDarkTheme = onToggleNightMode,
             onLanguageClick   = onLanguageClick,
+            topBarContentColor = Color.White,
             topBarActions     = {
                 IconButton(onClick = { showEkagraGuide = true }) { Icon(Icons.Default.HelpOutline, contentDescription = "Ekagra Usage Guide") }
-                BadgedBox(
-                    badge = {
-                        if (pausedSessionsCount > 0) {
-                            Badge(containerColor = accent) {
-                                Text(pausedSessionsCount.toString(), color = Color.White, fontSize = 10.sp)
-                            }
-                        }
-                    }
-                ) {
-                    IconButton(onClick = { showSessionsSheet = true }) { Icon(Icons.Default.FormatListBulleted, contentDescription = "Focus Sessions") }
-                }
                 IconButton(onClick = { showThemeDialog = true }) { Icon(Icons.Default.Palette, contentDescription = "Theme") }
                 IconButton(onClick = { showSongSheet = true }) { Icon(Icons.Default.MusicNote, contentDescription = "Song") }
             },
@@ -602,136 +657,64 @@ fun EkagraScreen(
                     containerColor = Color.Transparent,
                     snackbarHost   = { SnackbarHost(hostState = snackbarHostState) },
                     bottomBar = {
-                        NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
-                            EkagraNavTab.entries.forEach { tab ->
-                                NavigationBarItem(
-                                    selected = selectedTab == tab,
-                                    onClick  = {
-                                        selectedTab = tab
-                                        if (tab == EkagraNavTab.ANALYTICS) viewModel.loadStats()
-                                    },
-                                    icon  = { Icon(tab.icon, contentDescription = null) },
-                                    label = { Text(tab.label, fontWeight = if (selectedTab == tab) FontWeight.SemiBold else FontWeight.Normal) },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor   = MaterialTheme.colorScheme.primary,
-                                        selectedTextColor   = MaterialTheme.colorScheme.primary,
-                                        indicatorColor      = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    ),
-                                )
-                            }
-                        }
+                        EkagraBottomNav(
+                            selectedTab = selectedTab,
+                            onSelect = { selectedTab = it },
+                            accent = accent,
+                        )
                     },
                 ) { innerPadding ->
 
                     when (selectedTab) {
 
                         EkagraNavTab.TIMER -> {
-                            Box(Modifier.fillMaxSize()) {
-                                Box(Modifier.fillMaxSize().padding(bottom = innerPadding.calculateBottomPadding())) {
-                                    Column(
-                                        modifier = Modifier.fillMaxSize(),
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                    ) {
-                                        Spacer(Modifier.weight(1f))
-
-                                        GlassTimerCard(
-                                            timerMode    = timerMode,
-                                            secondsLeft  = secondsLeft,
-                                            isRunning    = timerRunning,
-                                            timerActive  = timerRunning || secondsLeft < totalSeconds,
-                                            taskText     = taskText,
-                                            linkedGoalTitle = associatedGoalTitle,
-                                            accent       = accent,
-                                            onModeChange = { mode ->
-                                                val mins = when (mode) {
-                                                    TimerMode.FOCUS       -> focusMinutes
-                                                    TimerMode.BREAK       -> breakMinutes
-                                                    TimerMode.LONG_BREAK  -> longBreakMinutes
-                                                }
-                                                timerService?.setDuration(mode, mins * 60)
-                                            },
-                                            onPlayPause  = {
-                                                val wasRunning = timerRunning
-                                                val wasInactive = timerService?.isActive() == false
-                                                if (wasInactive) requestNotificationPermission()
-                                                timerService?.togglePlayPause()
-                                                if (wasInactive) {
-                                                    viewModel.onSessionStarted(
-                                                        taskText = taskText,
-                                                        totalSeconds = totalSeconds,
-                                                        goalId = if (timerMode == TimerMode.FOCUS) associatedGoalId else null,
-                                                        goalTitle = if (timerMode == TimerMode.FOCUS) associatedGoalTitle else null,
-                                                        mode = timerMode.toApiMode(),
-                                                    )
-                                                } else if (wasRunning) {
-                                                    viewModel.pauseActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(), associatedGoalTitle)
-                                                } else {
-                                                    viewModel.syncActiveSession(
-                                                        totalSeconds = totalSeconds,
-                                                        secondsLeft = secondsLeft,
-                                                        mode = timerMode.toApiMode(),
-                                                        isRunning = true,
-                                                        goalTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
-                                                    )
-                                                }
-                                            },
-                                            onReset      = { resetTimer() },
-                                            onAddTask    = { showAddTask = true },
-                                            onSessions   = { showSessionsSheet = true },
-                                            onUnlinkGoal = {
-                                                associatedGoalId = null
-                                                associatedGoalTitle = null
-                                            },
-                                            modifier     = Modifier.padding(horizontal = 20.dp),
-                                        )
-
-                                        val pausedCount = openSessions.count { it.status == "paused" }
-                                        if (!timerRunning && pausedCount > 0) {
-                                            Spacer(Modifier.height(12.dp))
-                                            PausedSessionsReminder(
-                                                count = pausedCount,
-                                                accent = accent,
-                                                onClick = { showSessionsSheet = true },
-                                            )
-                                        }
-
-                                        Spacer(Modifier.weight(1f))
-
-                                        Column(
-                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                        ) {
-                                            Text(mottoText, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                                                letterSpacing = 1.5.sp, color = Color.White.copy(alpha = 0.85f))
-                                            Spacer(Modifier.height(14.dp))
-
-                                            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                                                val bugSize        = 20.dp
-                                                val barHeight      = 4.dp
-                                                val totalWidth     = maxWidth
-                                                val clampedProgress = progress.coerceIn(0f, 1f)
-                                                val bugOffsetX     = (totalWidth - bugSize) * clampedProgress
-
-                                                Box(Modifier.fillMaxWidth().height(barHeight).align(Alignment.Center)
-                                                    .clip(RoundedCornerShape(2.dp)).background(Color.White.copy(alpha = 0.15f)))
-                                                if (clampedProgress > 0f) {
-                                                    Box(Modifier.fillMaxWidth(clampedProgress).height(barHeight)
-                                                        .align(Alignment.CenterStart).clip(RoundedCornerShape(2.dp)).background(accent))
-                                                }
-                                                AsyncImage(
-                                                    model = "https://cdn-icons-png.flaticon.com/512/616/616408.png",
-                                                    contentDescription = "progress bug",
-                                                    modifier = Modifier.size(bugSize).offset(x = bugOffsetX).align(Alignment.CenterStart),
-                                                    contentScale = ContentScale.Fit,
-                                                )
-                                            }
-                                        }
+                            TimerFocusTab(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(top = padding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding()),
+                                timerMode = timerMode,
+                                secondsLeft = secondsLeft,
+                                isRunning = timerRunning,
+                                accent = accent,
+                                progress = progress,
+                                mottoText = mottoText,
+                                onModeChange = { mode ->
+                                    val mins = when (mode) {
+                                        TimerMode.FOCUS -> focusMinutes
+                                        TimerMode.BREAK -> breakMinutes
+                                        TimerMode.LONG_BREAK -> longBreakMinutes
                                     }
-                                }
-                            }
+                                    timerService?.setDuration(mode, mins * 60)
+                                },
+                                onPlayPause = {
+                                    val wasRunning = timerRunning
+                                    val wasInactive = timerService?.isActive() == false
+                                    if (wasInactive) requestNotificationPermission()
+                                    timerService?.togglePlayPause()
+                                    if (wasInactive) {
+                                        viewModel.onSessionStarted(
+                                            taskText = taskText,
+                                            totalSeconds = totalSeconds,
+                                            goalId = if (timerMode == TimerMode.FOCUS) associatedGoalId else null,
+                                            goalTitle = if (timerMode == TimerMode.FOCUS) associatedGoalTitle else null,
+                                            mode = timerMode.toApiMode(),
+                                        )
+                                    } else if (wasRunning) {
+                                        viewModel.pauseActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(), associatedGoalTitle)
+                                    } else {
+                                        viewModel.syncActiveSession(
+                                            totalSeconds = totalSeconds,
+                                            secondsLeft = secondsLeft,
+                                            mode = timerMode.toApiMode(),
+                                            isRunning = true,
+                                            goalTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
+                                        )
+                                    }
+                                },
+                                onReset = { endCurrentSession() },
+                                onStudyPlannerClick = { onNavigate(Routes.STUDY_PLANNER) },
+                                isDarkTheme = isDarkTheme,
+                            )
                         }
 
                         EkagraNavTab.DURATION -> {
@@ -742,6 +725,7 @@ fun EkagraScreen(
                                 accent        = accent,
                                 onFocusChange = { focusMinutes = it },
                                 onBreakChange = { breakMinutes = it; longBreakMinutes = it },
+                                onStartFocusSession = { startTimer(TimerMode.FOCUS, focusMinutes) },
                             )
                         }
 
@@ -760,20 +744,6 @@ fun EkagraScreen(
                                     top = padding.calculateTopPadding(),
                                     bottom = innerPadding.calculateBottomPadding(),
                                 ),
-                            )
-                        }
-
-                        EkagraNavTab.ANALYTICS -> {
-                            AnalyticsTab(
-                                modifier        = Modifier.padding(top = padding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding()),
-                                statsState      = statsState,
-                                ekagraAnalytics = ekagraAnalytics,
-                                accent          = accent,
-                                onRefresh       = { viewModel.loadStats(); viewModel.loadEkagraAnalytics() },
-                                onStartFocus25  = { focusMinutes = 25; startTimer(TimerMode.FOCUS, 25); selectedTab = EkagraNavTab.TIMER },
-                                onStartFocus50  = { focusMinutes = 50; startTimer(TimerMode.FOCUS, 50); selectedTab = EkagraNavTab.TIMER },
-                                onStartBreak5   = { breakMinutes = 5;  startTimer(TimerMode.BREAK, 5);  selectedTab = EkagraNavTab.TIMER },
-                                onStartBreak15  = { longBreakMinutes = 15; startTimer(TimerMode.LONG_BREAK, 15); selectedTab = EkagraNavTab.TIMER },
                             )
                         }
 
@@ -804,93 +774,96 @@ private fun GlassTimerCard(
     timerMode: TimerMode,
     secondsLeft: Int,
     isRunning: Boolean,
-    timerActive: Boolean,
-    taskText: String,
-    linkedGoalTitle: String?,
     accent: Color,
+    isDarkTheme: Boolean,
     onModeChange: (TimerMode) -> Unit,
     onPlayPause: () -> Unit,
     onReset: () -> Unit,
-    onAddTask: () -> Unit,
-    onSessions: () -> Unit,
-    onUnlinkGoal: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(Color.White.copy(alpha = 0.13f))
-            .border(1.5.dp, accent.copy(alpha = 0.7f), RoundedCornerShape(28.dp))
-            .padding(24.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(36.dp))
+            .background(Color.White.copy(alpha = 0.11f))
+            .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(36.dp))
+            .padding(horizontal = 24.dp, vertical = 28.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            ModePill(selected = timerMode, accent = accent, onSelect = onModeChange)
-
-            if (!linkedGoalTitle.isNullOrBlank()) {
-                Row(
-                    Modifier.fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(accent.copy(alpha = 0.22f))
-                        .border(1.dp, accent.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(Icons.Default.Link, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    Text(linkedGoalTitle, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1)
-                    TextButton(onClick = onUnlinkGoal, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
-                        Text("Unlink", color = Color.White, fontSize = 12.sp)
-                    }
-                }
-            } else {
-                Row(
-                    Modifier.fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.1f))
-                        .clickable(onClick = onAddTask)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White.copy(alpha = 0.75f), modifier = Modifier.size(16.dp))
-                    Text(taskText.ifBlank { "Name this session" }, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
-                    IconButton(onClick = onSessions, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.FormatListBulleted, contentDescription = "Sessions", tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
-                    }
-                }
-            }
+            ModePill(
+                selected = timerMode,
+                accent = accent,
+                isDarkTheme = isDarkTheme,
+                onSelect = onModeChange,
+            )
 
             Text(
                 "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
-                fontSize = 80.sp, fontWeight = FontWeight.ExtraBold,
-                color = Color.White.copy(alpha = 0.92f), letterSpacing = (-2).sp,
+                fontSize = 92.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White.copy(alpha = 0.96f),
+                letterSpacing = (-3).sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
 
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Box(
-                    modifier = Modifier.size(54.dp).clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.15f))
-                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color.White.copy(alpha = 0.16f))
+                        .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(18.dp))
                         .clickable { onReset() },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Reset", tint = Color.White.copy(alpha = 0.8f))
+                    Row(
+                        Modifier.padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = "End Session", tint = Color.White.copy(alpha = 0.8f))
+                        Text("End", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
                 Box(
-                    modifier = Modifier.size(54.dp).clip(RoundedCornerShape(16.dp)).background(accent).clickable { onPlayPause() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    accent.copy(alpha = 0.92f),
+                                    accent,
+                                    accent.copy(alpha = 0.88f),
+                                ),
+                            ),
+                        )
+                        .clickable { onPlayPause() },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp),
-                    )
+                    Row(
+                        Modifier.padding(horizontal = 18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp),
+                        )
+                        Text(if (isRunning) "Pause" else "Start", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                    }
                 }
             }
         }
@@ -899,28 +872,267 @@ private fun GlassTimerCard(
 
 
 @Composable
-private fun ModePill(selected: TimerMode, accent: Color, onSelect: (TimerMode) -> Unit) {
+private fun ModePill(
+    selected: TimerMode,
+    accent: Color,
+    isDarkTheme: Boolean,
+    onSelect: (TimerMode) -> Unit,
+) {
+    val resolvedDark = isDarkTheme || MaterialTheme.colorScheme.background.luminance() < 0.5f
     Box(
-        modifier = Modifier.clip(RoundedCornerShape(50.dp))
-            .background(Color.White.copy(alpha = 0.15f))
-            .border(1.dp, accent.copy(alpha = 0.5f), RoundedCornerShape(50.dp))
+        modifier = Modifier
+            .clip(RoundedCornerShape(50.dp))
+            .background(Color.White.copy(alpha = 0.12f))
+            .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(50.dp))
             .padding(4.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TimerMode.entries.filter { it.showInPill }.forEach { mode ->
                 val isSelected = mode == selected
+                val iconRes = when {
+                    isSelected -> mode.lightIconRes
+                    resolvedDark -> mode.lightIconRes
+                    else -> mode.darkIconRes
+                }
+                val iconAlpha = when {
+                    isSelected -> 1f
+                    resolvedDark -> 0.88f
+                    else -> 0.8f
+                }
                 Box(
-                    modifier = Modifier.size(48.dp).clip(CircleShape)
-                        .background(if (isSelected) accent else Color.Transparent)
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) accent else Color.Transparent,
+                        )
                         .clickable { onSelect(mode) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        mode.icon, contentDescription = mode.label,
-                        tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.45f),
-                        modifier = Modifier.size(22.dp),
+                        painter = painterResource(iconRes),
+                        contentDescription = mode.label,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(22.dp).alpha(iconAlpha),
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimerFocusTab(
+    modifier: Modifier,
+    timerMode: TimerMode,
+    secondsLeft: Int,
+    isRunning: Boolean,
+    accent: Color,
+    progress: Float,
+    mottoText: String,
+    onModeChange: (TimerMode) -> Unit,
+    onPlayPause: () -> Unit,
+    onReset: () -> Unit,
+    onStudyPlannerClick: () -> Unit,
+    isDarkTheme: Boolean,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val resolvedDark = isDarkTheme || scheme.background.luminance() < 0.5f
+    val panelColor = if (resolvedDark) Color(0x99242624) else scheme.surfaceVariant.copy(alpha = 0.78f)
+    val borderColor = if (resolvedDark) Color(0x33474846) else scheme.outline.copy(alpha = 0.32f)
+    val secondaryText = if (resolvedDark) Color(0xFFABABA8) else scheme.onSurfaceVariant
+    val timerTextColor = scheme.onSurface
+
+    Box(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.height(140.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(panelColor)
+                    .border(1.dp, borderColor, RoundedCornerShape(24.dp))
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    ModePill(
+                        selected = timerMode,
+                        accent = accent,
+                        isDarkTheme = isDarkTheme,
+                        onSelect = onModeChange,
+                    )
+                    Text(
+                        "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
+                        fontSize = 62.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                        color = timerTextColor,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (resolvedDark) 0.35f else 0.62f))
+                                .border(1.dp, borderColor, RoundedCornerShape(999.dp))
+                                .clickable { onReset() },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(secondaryText))
+                                Text("End", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = secondaryText)
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Brush.horizontalGradient(listOf(accent, accent.copy(alpha = 0.9f))))
+                                .clickable { onPlayPause() },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(
+                                    if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                )
+                                Text(
+                                    if (isRunning) "Pause" else "Start",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.86f)
+                    .height(50.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Brush.horizontalGradient(listOf(Color(0xFF315E49), Color(0xFF45614E), Color(0xFF315E49))))
+                    .border(
+                        1.dp,
+                        Brush.horizontalGradient(listOf(Color(0xFF7FA591), Color(0xFFAFCDB8), Color(0xFF7FA591))),
+                        RoundedCornerShape(999.dp),
+                    )
+                    .clickable { onStudyPlannerClick() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.School, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Text("TRY STUDY PLANNER", fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = Color.White)
+                }
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            Text(
+                text = mottoText,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 2.sp,
+                color = secondaryText,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(14.dp))
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+            ) {
+                val clamped = progress.coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(clamped)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.6f), accent))),
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .offset(x = ((maxWidth - 24.dp) * clamped))
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, accent, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(accent))
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun EkagraBottomNav(
+    selectedTab: EkagraNavTab,
+    onSelect: (EkagraNavTab) -> Unit,
+    accent: Color,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val isDark = scheme.background.luminance() < 0.5f
+    val bg = if (selectedTab == EkagraNavTab.TIMER) {
+        if (isDark) Color(0xCC111317) else scheme.surface
+    } else {
+        scheme.surface
+    }
+    val inactive = if (selectedTab == EkagraNavTab.TIMER) {
+        if (isDark) Color(0xFF737373) else scheme.onSurfaceVariant
+    } else {
+        scheme.onSurfaceVariant
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .background(bg)
+            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        EkagraNavTab.entries.forEach { tab ->
+            val isSelected = tab == selectedTab
+            val tint = if (isSelected) accent else inactive
+            Column(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onSelect(tab) }
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Icon(tab.icon, contentDescription = tab.label, tint = tint, modifier = Modifier.size(22.dp))
+                Text(tab.label, fontSize = 10.sp, letterSpacing = 1.sp, color = tint, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -935,15 +1147,59 @@ private fun DurationTab(
     accent: Color,
     onFocusChange: (Int) -> Unit,
     onBreakChange: (Int) -> Unit,
+    onStartFocusSession: () -> Unit,
 ) {
+    val scheme = MaterialTheme.colorScheme
+    val sectionTitleColor = scheme.onSurface
+    val cardColor = scheme.surface
+    val cardBorder = scheme.outline.copy(alpha = if (scheme.background.luminance() < 0.5f) 0.45f else 0.28f)
+    val chipMutedBg = scheme.surfaceVariant.copy(alpha = if (scheme.background.luminance() < 0.5f) 0.65f else 0.9f)
+    val chipMutedText = scheme.onSurface
+    val buttonTextColor = if (scheme.background.luminance() < 0.5f) scheme.background else scheme.onPrimary
+
     Column(
         modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("Timer Duration", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        DurationCard(icon = Icons.Default.Timer, title = "Timer Duration", value = focusMinutes, range = 5f..120f, accent = accent, onValueChange = onFocusChange)
-        DurationCard(icon = Icons.Default.FreeBreakfast, title = "Set Break", value = breakMinutes, range = 5f..60f, accent = accent, onValueChange = onBreakChange)
+        Text("Timer Duration", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = sectionTitleColor)
+        DurationCard(
+            icon = Icons.Default.Timer,
+            title = "Timer Duration",
+            value = focusMinutes,
+            range = 1f..120f,
+            accent = accent,
+            cardColor = cardColor,
+            cardBorder = cardBorder,
+            chipMutedBg = chipMutedBg,
+            chipMutedText = chipMutedText,
+            onValueChange = onFocusChange,
+        )
+        DurationCard(
+            icon = Icons.Default.FreeBreakfast,
+            title = "Set Break",
+            value = breakMinutes,
+            range = 1f..60f,
+            accent = accent,
+            cardColor = cardColor,
+            cardBorder = cardBorder,
+            chipMutedBg = chipMutedBg,
+            chipMutedText = chipMutedText,
+            onValueChange = onBreakChange,
+        )
+        Spacer(Modifier.height(6.dp))
+        Button(
+            onClick = onStartFocusSession,
+            modifier = Modifier.fillMaxWidth().height(54.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = accent,
+                contentColor = buttonTextColor,
+            ),
+        ) {
+            Text("Start Focus Session", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -954,17 +1210,27 @@ private fun DurationCard(
     value: Int,
     range: ClosedFloatingPointRange<Float>,
     accent: Color,
+    cardColor: Color,
+    cardBorder: Color,
+    chipMutedBg: Color,
+    chipMutedText: Color,
     onValueChange: (Int) -> Unit,
 ) {
     var showCustomInput by remember { mutableStateOf(false) }
     var customText      by remember { mutableStateOf("") }
 
-    Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, cardBorder),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(icon, null, tint = accent, modifier = Modifier.size(18.dp))
-                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                Text("${value}m", fontWeight = FontWeight.Bold, color = accent, fontSize = 15.sp)
+                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                Text("${value}m", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontSize = 25.sp)
                 IconButton(onClick = { showCustomInput = !showCustomInput; customText = "" }, modifier = Modifier.size(28.dp)) {
                     Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -981,24 +1247,52 @@ private fun DurationCard(
                     Button(onClick = {
                         val v = customText.toIntOrNull()
                         if (v != null && v >= range.start.toInt() && v <= range.endInclusive.toInt()) {
-                            val normalized = ((v + 2) / 5 * 5).coerceIn(range.start.toInt(), range.endInclusive.toInt())
-                            onValueChange(normalized)
+                            onValueChange(v)
                             showCustomInput = false
                         }
                     }, shape = RoundedCornerShape(10.dp)) { Text("Set") }
                 }
             }
             SlimSlider(
-                value = value.toFloat(), onValueChange = { onValueChange(((it.toInt() + 2) / 5 * 5).coerceIn(range.start.toInt(), range.endInclusive.toInt())) }, valueRange = range,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                value = value.toFloat(),
+                onValueChange = {
+                    onValueChange(
+                        it.roundToInt().coerceIn(range.start.toInt(), range.endInclusive.toInt()),
+                    )
+                },
+                valueRange = range,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                 activeColor = accent, inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.2f),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                val presets = when { range.endInclusive <= 30f -> listOf(5, 10, 15, 20); range.endInclusive <= 60f -> listOf(5, 15, 30, 45); else -> listOf(15, 25, 45, 60) }
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val presets = if (range.endInclusive <= 60f) {
+                    listOf(1, 5, 15, 30)
+                } else {
+                    listOf(1, 25, 45, 60, 90)
+                }
                 presets.forEach { preset ->
                     val isSel = value == preset
-                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(if (isSel) accent else accent.copy(0.08f)).clickable { onValueChange(preset) }.padding(horizontal = 10.dp, vertical = 5.dp)) {
-                        Text("${preset}m", fontSize = 12.sp, color = if (isSel) Color.White else accent, fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Normal)
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSel) accent else chipMutedBg)
+                            .border(
+                                width = if (isSel) 2.dp else 0.dp,
+                                color = if (isSel) accent else Color.Transparent,
+                                shape = RoundedCornerShape(10.dp),
+                            )
+                            .clickable { onValueChange(preset) }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            "${preset}m",
+                            fontSize = 14.sp,
+                            color = if (isSel) (if (MaterialTheme.colorScheme.background.luminance() < 0.5f) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onPrimary) else chipMutedText,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
                 }
             }
@@ -1038,8 +1332,8 @@ private fun EkagraGuideDialog(onDismiss: () -> Unit, accent: Color) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("What changed (quick recap)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         GuideBullet("Goals stay in Goals. Ekagra only links to them while you focus.")
-                        GuideBullet("Finished sessions move out of the Sessions overlay and into History and Analytics.")
-                        GuideBullet("Ending a linked session marks that goal completed.")
+                        GuideBullet("Saved sessions appear in History and Analytics.")
+                        GuideBullet("When saving to a goal, Ekagra adds focus time; complete the goal only when you choose to.")
                         GuideBullet("Timer analytics now uses actual timer time used by the session.")
                     }
                 }
@@ -1047,7 +1341,7 @@ private fun EkagraGuideDialog(onDismiss: () -> Unit, accent: Color) {
                 GuideSection(
                     title = "1. How to start a session",
                     bullets = listOf(
-                        "Open Ekagra from a goal using Focus, or start an unlinked session with your own task title.",
+                        "Start first, then save the finished timer as Free Focus or Goal Focus.",
                         "Set the timer duration from the sidebar.",
                         "Press Start to begin the active focus session.",
                     ),
@@ -1065,11 +1359,11 @@ private fun EkagraGuideDialog(onDismiss: () -> Unit, accent: Color) {
                 GuideSection(
                     title = "3. History and Sessions",
                     bullets = listOf(
-                        "Sessions: manage running and paused live sessions here.",
+                        "Recovery: unfinished local timers can be resumed, saved, or discarded.",
                         "Reload safety: if you pause and reload, your session stays safe under Sessions.",
                         "Resume: reopens the same paused session and starts the timer again.",
                         "Delete: removes a live session completely.",
-                        "History: shows today's finished focus work, split into linked and unlinked items.",
+                        "History: shows today's saved focus work, split into Goal Focus and Free Focus.",
                     ),
                 )
                 GuideSection(
@@ -1092,11 +1386,11 @@ private fun EkagraGuideDialog(onDismiss: () -> Unit, accent: Color) {
                 GuideSection(
                     title = "6. Recommended flow",
                     bullets = listOf(
-                        "Pick a linked goal or create a simple unlinked focus session.",
+                        "Save the timer as Free Focus, or assign it to a goal after you finish.",
                         "Set a realistic duration before you start.",
                         "Pause only when needed, then resume the same session.",
-                        "End the session when you finish. It will move into History and Timer Analytics automatically.",
-                        "Open Analytics when you want to review total focus time and session logs.",
+                        "End the session when you finish. It will move into today's History automatically.",
+                        "Open Analytics > Focus or Sessions when you want to review patterns and logs.",
                     ),
                 )
             }
@@ -1125,314 +1419,6 @@ private fun GuideBullet(text: String) {
 }
 
 @Composable
-private fun AnalyticsTab(
-    modifier: Modifier,
-    statsState: StatsUiState,
-    ekagraAnalytics: EkagraAnalyticsStats,
-    accent: Color,
-    onRefresh: () -> Unit,
-    onStartFocus25: () -> Unit,
-    onStartFocus50: () -> Unit,
-    onStartBreak5: () -> Unit,
-    onStartBreak15: () -> Unit,
-) {
-    var selectedSection by remember { mutableStateOf("overview") }
-    Column(
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Timer Analytics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Focused metrics and session history from Ekagra timer sessions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            OutlinedButton(onClick = onRefresh, shape = RoundedCornerShape(20.dp), contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)) {
-                Text("Refresh", fontSize = 12.sp)
-            }
-        }
-
-        Row(
-            Modifier.clip(RoundedCornerShape(12.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            AnalyticsSegment("Overview", selectedSection == "overview", accent) { selectedSection = "overview" }
-            AnalyticsSegment("Sessions", selectedSection == "sessions", accent) { selectedSection = "sessions" }
-        }
-
-        when (val s = statsState) {
-            is StatsUiState.Loading -> Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = accent) }
-            is StatsUiState.Error   -> {
-                Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-                    Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                        Text(s.message, color = MaterialTheme.colorScheme.error)
-                    }
-                }
-                Button(onClick = onRefresh, shape = RoundedCornerShape(10.dp)) { Text("Retry") }
-            }
-            is StatsUiState.Success -> {
-                if (selectedSection == "overview") {
-                    AnalyticsOverviewContent(analytics = ekagraAnalytics, accent = accent)
-                } else {
-                    AnalyticsSessionsContent(analytics = ekagraAnalytics, accent = accent)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AnalyticsSegment(label: String, selected: Boolean, accent: Color, onClick: () -> Unit) {
-    Box(
-        Modifier.clip(RoundedCornerShape(9.dp))
-            .background(if (selected) accent else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun AnalyticsOverviewContent(analytics: EkagraAnalyticsStats, accent: Color) {
-    val linkedSessionCount = analytics.focusSessions.count { !it.associatedGoalId.isNullOrBlank() }
-    val unlinkedSessionCount = analytics.focusSessions.count { it.associatedGoalId.isNullOrBlank() }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CleanMetricCard("Time spent on timer", formatMinutes(analytics.totalFocusMinutes), null, accent, Modifier.weight(1f))
-            CleanMetricCard("Breaks taken", analytics.breakSessionsCount.toString(), "Short ${analytics.shortBreakSessionsCount} | Long ${analytics.longBreakSessionsCount}", accent, Modifier.weight(1f))
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CleanMetricCard("Long duration timer uses", analytics.longDurationSessionCount.toString(), "60 minutes or longer", accent, Modifier.weight(1f))
-            CleanMetricCard("Average timer duration", formatMinutes(analytics.averageTimerMinutes), null, accent, Modifier.weight(1f))
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CleanMetricCard("Most used timer duration", analytics.mostUsedTimerDurationMinutes?.let { formatMinutes(it) } ?: "-", null, accent, Modifier.weight(1f))
-            CleanMetricCard("Total sessions", analytics.totalSessions.toString(), "${analytics.completedSessions} completed", accent, Modifier.weight(1f))
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CleanMetricCard("Linked focus sessions", linkedSessionCount.toString(), "Goal-linked sessions", accent, Modifier.weight(1f))
-            CleanMetricCard("Unlinked focus sessions", unlinkedSessionCount.toString(), "Named or timer-only sessions", accent, Modifier.weight(1f))
-        }
-
-        val durationRows = analytics.timerDurationUsage
-            .filter { it.count > 0 }
-            .sortedByDescending { it.count }
-            .take(5)
-        Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Timer Duration Usage", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("Includes focus timers and both break types.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (durationRows.isEmpty()) {
-                    Text("No timer duration usage yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    durationRows.forEach { row ->
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Box(Modifier.size(9.dp).clip(CircleShape).background(accent))
-                            Text(timerDurationUsageLabel(row.sessionType, row.durationMinutes), fontSize = 13.sp, modifier = Modifier.weight(1f))
-                            Text(row.count.toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AnalyticsSessionsContent(analytics: EkagraAnalyticsStats, accent: Color) {
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.FormatListBulleted, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
-                    Text("Focus Sessions", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-                Text("${analytics.focusSessions.size} sessions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text("All closed focus sessions are listed here.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (analytics.focusSessions.isEmpty()) {
-                Text("No focus sessions available yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
-                analytics.focusSessions.forEach { session ->
-                    FocusSessionRow(
-                        title = session.taskText ?: "Unlabeled task",
-                        meta = "${formatDateTime(session.endedAt ?: session.startedAt)} - Planned ${session.durationMinutes}m - Actual ${session.actualMinutes}m${if (session.pauseCount > 0) " - ${session.pauseCount} pauses" else ""}",
-                        accent = accent,
-                        badge = if (session.associatedGoalId.isNullOrBlank()) "Unlinked" else "Linked",
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun timerDurationUsageLabel(sessionType: String, durationMinutes: Int): String {
-    val duration = "${durationMinutes.coerceAtLeast(0)}m"
-    return when (sessionType) {
-        "short_break" -> "Short break $duration"
-        "long_break" -> "Long break $duration"
-        else -> "Focus $duration"
-    }
-}
-
-@Composable
-private fun AnalyticsContent(data: FocusStatsResponse, ekagraAnalytics: EkagraAnalyticsStats, accent: Color) {
-    val abandonedSessions = data.totalSessions - data.completedSessions
-    val sessionQuality    = if (data.totalSessions > 0) (data.completedSessions * 100 / data.totalSessions) else 0
-    val dailyProgressMin  = (data.dailyGoalProgress * data.dailyGoalMinutes / 100f).toInt()
-
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatCard(icon = Icons.Default.Bolt, label = "TOTAL FOCUS", value = formatMinutes(data.totalFocusMinutes), sub = "+ ${formatMinutes(data.totalBreakMinutes)} breaks", accent = accent, modifier = Modifier.weight(1f))
-        StatCard(icon = Icons.Default.Check, label = "QUALITY", value = "$sessionQuality%", sub = "${data.completedSessions} done", accent = accent, modifier = Modifier.weight(1f))
-    }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatCard(icon = Icons.Default.Timer, label = "EKAGRA", value = formatMinutes(ekagraAnalytics.totalFocusMinutes), sub = "${ekagraAnalytics.timerUsageCount} timers", accent = accent, modifier = Modifier.weight(1f))
-        StatCard(icon = Icons.Default.FreeBreakfast, label = "BREAKS", value = formatMinutes(ekagraAnalytics.totalBreakMinutes), sub = "${ekagraAnalytics.shortBreakSessionsCount} short, ${ekagraAnalytics.longBreakSessionsCount} long", accent = accent, modifier = Modifier.weight(1f))
-    }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatCard(icon = Icons.Default.LocalFireDepartment, label = "STREAK", value = "${data.focusStreak}d", sub = if (data.focusStreak == 0) "Keep going" else "🔥 On a roll!", accent = accent, modifier = Modifier.weight(1f))
-        StatCard(icon = Icons.Default.TrackChanges, label = "DAILY GOAL", value = "${data.dailyGoalProgress}%", sub = "${dailyProgressMin}m / ${data.dailyGoalMinutes}m", accent = accent, modifier = Modifier.weight(1f))
-    }
-
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Today's Focus Goal", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Text("${dailyProgressMin}m / ${data.dailyGoalMinutes}m", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            LinearProgressIndicator(progress = { data.dailyGoalProgress / 100f }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)), color = accent, trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-        }
-    }
-
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Weekly Overview", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("Focus vs break time per day", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    LegendDot(color = accent, label = "FOCUS")
-                    LegendDot(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f), label = "BREAK")
-                }
-            }
-            WeeklyBarChart(weeklyData = data.weeklyData, weeklyBreaks = data.weeklyBreaks, accent = accent)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Week total", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${formatMinutes(data.weeklyData.sum())} focus", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = accent)
-            }
-        }
-    }
-
-    val peakHour  = data.hourlyDistribution.indexOfMax()
-    val peakValue = data.hourlyDistribution.getOrElse(peakHour) { 0 }
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("When You Focus Best", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            Text("Hourly distribution across all sessions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            HourlyChart(distribution = data.hourlyDistribution, accent = accent)
-            if (peakValue > 0) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("⚡", fontSize = 14.sp)
-                    Text("Peak focus: ${formatHour(peakHour)} · ${formatMinutes(peakValue)} that hour", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = accent)
-                }
-            }
-        }
-    }
-
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.FormatListBulleted, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-                Text("Goals Progress", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
-            Text("How focus sessions align with goal completion", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Goals Completed", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Text("${data.goalsCompleted} / ${data.goalsSet}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = accent)
-            }
-            LinearProgressIndicator(progress = { if (data.goalsSet > 0) data.goalsCompleted.toFloat() / data.goalsSet else 0f }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = accent, trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-            val pct = if (data.goalsSet > 0) data.goalsCompleted * 100 / data.goalsSet else 0
-            Text("$pct% complete · ${data.goalsSet - data.goalsCompleted} remaining", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.ShowChart, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-                Text("Session Quality", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
-            Text("Completion breakdown across all sessions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                DonutChart(pct = sessionQuality, accent = accent)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LegendRow(color = accent, label = "${data.completedSessions} completed")
-                    LegendRow(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.35f), label = "${abandonedSessions} abandoned")
-                }
-            }
-            if (sessionQuality >= 80) {
-                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(accent.copy(alpha = 0.08f)).padding(10.dp)) {
-                    Text("🔥 Excellent consistency — keep this up!", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = accent)
-                }
-            }
-        }
-    }
-
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.CalendarToday, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
-                    Text("Recent Sessions", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-                Text("Last ${data.recentSessions.size} sessions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            HorizontalDivider()
-            if (data.recentSessions.isEmpty()) {
-                Text("No sessions yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(0.4f))
-            } else {
-                data.recentSessions.forEach { session -> RecentSessionRow(session = session, accent = accent) }
-            }
-        }
-    }
-
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.History, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
-                    Text("Ekagra History", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-                Text("${ekagraAnalytics.focusSessions.size} closed", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            HorizontalDivider()
-            if (ekagraAnalytics.focusSessions.isEmpty()) {
-                Text("No Ekagra sessions yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(0.4f))
-            } else {
-                ekagraAnalytics.focusSessions.take(8).forEach { session ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(session.taskText ?: "Focus session", fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-                            Text(formatDate(session.endedAt ?: session.startedAt.orEmpty()), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Text("${session.actualMinutes}m", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = accent)
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
 private fun FocusHistoryTab(
     modifier: Modifier,
     analytics: EkagraAnalyticsStats,
@@ -1440,7 +1426,7 @@ private fun FocusHistoryTab(
 ) {
     val todaySessions = analytics.focusSessions.filter { isTodayIso(it.endedAt ?: it.startedAt) }
     val linkedSessions = todaySessions.filter { !it.associatedGoalId.isNullOrBlank() && it.associatedGoalId?.startsWith("named:") != true }
-    val unlinkedSessions = todaySessions.filterNot { !it.associatedGoalId.isNullOrBlank() && it.associatedGoalId?.startsWith("named:") != true }
+    val freeFocusSessions = todaySessions.filterNot { !it.associatedGoalId.isNullOrBlank() && it.associatedGoalId?.startsWith("named:") != true }
     val todayFocusMinutes = todaySessions.sumOf { it.actualMinutes }
 
     Column(
@@ -1471,7 +1457,7 @@ private fun FocusHistoryTab(
         }
 
         HistorySection(
-            title = "Linked Sessions",
+            title = "Goal Focus",
             subtitle = "Today's goal-linked focus sessions.",
             sessions = linkedSessions,
             accent = accent,
@@ -1479,11 +1465,11 @@ private fun FocusHistoryTab(
         )
 
         HistorySection(
-            title = "Unlinked Sessions",
-            subtitle = "Named and timer-only focus sessions.",
-            sessions = unlinkedSessions,
+            title = "Free Focus",
+            subtitle = "Saved focus sessions without a goal.",
+            sessions = freeFocusSessions,
             accent = accent,
-            emptyText = "No unlinked sessions today.",
+            emptyText = "No free focus today.",
         )
     }
 }
@@ -1519,17 +1505,6 @@ private fun HistorySection(
 }
 
 @Composable
-private fun CleanMetricCard(label: String, value: String, sub: String?, accent: Color, modifier: Modifier = Modifier) {
-    Card(shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)), modifier = modifier.heightIn(min = 110.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
-            if (!sub.isNullOrBlank()) Text(sub, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
 private fun FocusSessionRow(title: String, meta: String, accent: Color, trailing: String? = null, badge: String? = null) {
     Card(shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(0.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1557,120 +1532,10 @@ private fun FocusSessionRow(title: String, meta: String, accent: Color, trailing
     }
 }
 
-@Composable
-private fun StatCard(icon: ImageVector, label: String, value: String, sub: String, accent: Color, modifier: Modifier = Modifier) {
-    Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)), modifier = modifier) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(accent.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-            }
-            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.5.sp)
-            Text(sub, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-
-@Composable
-private fun WeeklyBarChart(weeklyData: List<Int>, weeklyBreaks: List<Int>, accent: Color) {
-    val days       = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val maxVal     = (weeklyData + weeklyBreaks).maxOrNull()?.takeIf { it > 0 } ?: 1
-    val breakColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
-    val today      = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
-
-    Row(Modifier.fillMaxWidth().height(100.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-        days.forEachIndexed { i, day ->
-            val focusH  = weeklyData.getOrElse(i) { 0 }.toFloat() / maxVal
-            val breakH  = weeklyBreaks.getOrElse(i) { 0 }.toFloat() / maxVal
-            val isToday = i == today
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(1f).fillMaxHeight()) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.Bottom) {
-                    if (breakH > 0) Box(Modifier.fillMaxWidth(0.55f).fillMaxHeight(breakH).align(Alignment.CenterHorizontally).clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)).background(breakColor))
-                    if (focusH > 0) Box(Modifier.fillMaxWidth(0.55f).fillMaxHeight(focusH.coerceAtLeast(0.04f)).align(Alignment.CenterHorizontally).clip(RoundedCornerShape(topStart = if (breakH == 0f) 3.dp else 0.dp, topEnd = if (breakH == 0f) 3.dp else 0.dp, bottomStart = 3.dp, bottomEnd = 3.dp)).background(accent))
-                }
-                Spacer(Modifier.height(4.dp))
-                Text(day, fontSize = 10.sp, fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal, color = if (isToday) accent else MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun HourlyChart(distribution: List<Int>, accent: Color) {
-    val maxVal = distribution.maxOrNull()?.takeIf { it > 0 } ?: 1
-    val labels = listOf("12am", "6am", "12pm", "5pm", "11pm")
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth().height(80.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-            distribution.forEach { value ->
-                val h = value.toFloat() / maxVal
-                Box(Modifier.weight(1f).fillMaxHeight(h.coerceAtLeast(if (value > 0) 0.06f else 0f)).padding(horizontal = 1.dp).clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)).background(if (value > 0) accent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)))
-            }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            labels.forEach { Text(it, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
-    }
-}
-
-
-@Composable
-private fun DonutChart(pct: Int, accent: Color) {
-    val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
-    Box(Modifier.size(80.dp), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) {
-            val stroke = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-            drawArc(color = trackColor, startAngle = -90f, sweepAngle = 360f, useCenter = false, style = stroke)
-            drawArc(color = accent, startAngle = -90f, sweepAngle = 360f * pct / 100f, useCenter = false, style = stroke)
-        }
-        Text("$pct%", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = accent)
-    }
-}
-
-
-@Composable
-private fun RecentSessionRow(session: RecentSession, accent: Color) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Icon(if (session.completed) Icons.Default.CheckCircle else Icons.Default.Cancel, contentDescription = null, tint = if (session.completed) accent else MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-        Column(Modifier.weight(1f)) {
-            Text(session.taskText ?: "No task set", fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Text(formatDate(session.startedAt), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Text(formatMinutes(session.actualMinutes), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = accent)
-    }
-}
-
-
-@Composable
-private fun LegendDot(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun LegendRow(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(Modifier.size(10.dp).clip(CircleShape).background(color))
-        Text(label, fontSize = 13.sp)
-    }
-}
-
-private fun List<Int>.indexOfMax(): Int = indices.maxByOrNull { this[it] } ?: 0
-
 private fun formatMinutes(min: Int): String = when {
     min <= 0  -> "0m"
     min < 60  -> "${min}m"
     else      -> "${min / 60}h ${min % 60}m".trimEnd().let { if (it.endsWith("0m")) it.dropLast(2).trim() else it }
-}
-
-private fun formatHour(h: Int): String = when {
-    h == 0  -> "12am"
-    h < 12  -> "${h}am"
-    h == 12 -> "12pm"
-    else    -> "${h - 12}pm"
 }
 
 private fun formatDate(iso: String): String = runCatching {
@@ -1719,123 +1584,6 @@ private fun sessionModeLabel(mode: String): String = when (mode.lowercase(Locale
     "long" -> "Long break"
     else -> "Focus"
 }
-
-@Composable
-private fun PausedSessionsReminder(count: Int, accent: Color, onClick: () -> Unit) {
-    Row(
-        Modifier.padding(horizontal = 20.dp)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.12f))
-            .border(1.dp, accent.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(Icons.Default.PauseCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-        Text(if (count == 1) "Paused session is safe in Sessions" else "$count paused sessions safe in Sessions", color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f))
-        Text("Sessions", color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EkagraSessionsSheet(
-    sessions: List<EkagraSession>,
-    accent: Color,
-    onDismiss: () -> Unit,
-    onResume: (EkagraSession) -> Unit,
-    onPause: (EkagraSession) -> Unit,
-    onEnd: (EkagraSession) -> Unit,
-    onDiscard: (EkagraSession) -> Unit,
-    onDelete: (EkagraSession) -> Unit,
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
-        Column(
-            Modifier.fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Text("Focus Sessions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Manage running and paused sessions.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-            val active = sessions.filter { it.status == "active" }
-            val paused = sessions.filter { it.status == "paused" }
-            SessionSection(
-                title = "Running Now",
-                emptyText = "No active session running.",
-                sessions = active,
-                accent = accent,
-                onResume = onResume,
-                onPause = onPause,
-                onEnd = onEnd,
-                onDiscard = onDiscard,
-                onDelete = onDelete,
-            )
-            SessionSection(
-                title = "Paused",
-                emptyText = "No paused sessions.",
-                sessions = paused,
-                accent = accent,
-                onResume = onResume,
-                onPause = onPause,
-                onEnd = onEnd,
-                onDiscard = onDiscard,
-                onDelete = onDelete,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SessionSection(
-    title: String,
-    emptyText: String,
-    sessions: List<EkagraSession>,
-    accent: Color,
-    onResume: (EkagraSession) -> Unit,
-    onPause: (EkagraSession) -> Unit,
-    onEnd: (EkagraSession) -> Unit,
-    onDiscard: (EkagraSession) -> Unit,
-    onDelete: (EkagraSession) -> Unit,
-) {
-    Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-    if (sessions.isEmpty()) {
-        Text(emptyText, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        return
-    }
-    sessions.forEach { session ->
-        Card(
-            shape = RoundedCornerShape(14.dp),
-            elevation = CardDefaults.cardElevation(0.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
-        ) {
-            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(if (session.status == "active") Icons.Default.PlayCircle else Icons.Default.PauseCircle, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(session.goalTitle ?: session.sessionTitle ?: "Focus session", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
-                        Text("${sessionModeLabel(session.mode)} | ${((session.totalSeconds - session.remainingSeconds).coerceAtLeast(0) / 60)}m spent", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (session.status == "active") {
-                        OutlinedButton(onClick = { onPause(session) }, shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1f)) { Text("Pause", fontSize = 12.sp) }
-                    } else {
-                        Button(onClick = { onResume(session) }, shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = accent)) { Text("Resume", fontSize = 12.sp) }
-                    }
-                    OutlinedButton(onClick = { onEnd(session) }, shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1f)) { Text("End Session", fontSize = 12.sp) }
-                    IconButton(onClick = { onDelete(session) }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", modifier = Modifier.size(18.dp)) }
-                }
-            }
-        }
-    }
-}
-
 
 @Composable
 private fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> Unit, onDismiss: () -> Unit) {
@@ -1890,19 +1638,69 @@ private fun SongPickerSheet(current: String, onSelect: (String) -> Unit, onDismi
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddTaskDialog(current: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
-    var text by remember { mutableStateOf(current) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("What are you working on?", fontWeight = FontWeight.Bold) },
-        text  = {
-            OutlinedTextField(value = text, onValueChange = { text = it }, placeholder = { Text("Enter task...") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-        },
-        confirmButton = { Button(onClick = { onConfirm(text) }, shape = RoundedCornerShape(10.dp)) { Text("Set") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+private fun OrganizeFreeFocusSheet(
+    pending: PendingEndedEkagraSession?,
+    goals: List<com.safar.app.domain.model.Goal>,
+    titleInput: String,
+    onTitleChange: (String) -> Unit,
+    accent: Color,
+    onDismiss: () -> Unit,
+    onSaveFree: () -> Unit,
+    onLinkGoal: (com.safar.app.domain.model.Goal) -> Unit,
+    onDiscard: () -> Unit,
+) {
+    val focusedMinutes = ((pending?.totalSeconds ?: 0) - (pending?.secondsLeft ?: 0)).coerceAtLeast(60) / 60
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("You focused for ${focusedMinutes} min.", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("What were you working on?", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Text("Link to existing goal", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (goals.isEmpty()) {
+                Text("No open goals available.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                goals.take(5).forEach { goal ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onLinkGoal(goal) }
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)).padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Icon(Icons.Default.Link, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+                        Text(goal.title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1)
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = titleInput,
+                onValueChange = onTitleChange,
+                placeholder = { Text("Add title") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                TextButton(onClick = onDiscard, modifier = Modifier.weight(1f)) {
+                    Text("Discard", fontSize = 12.sp)
+                }
+                Button(onClick = onSaveFree, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = accent)) {
+                    Text("Save Free Focus", fontSize = 12.sp)
+                }
+            }
+        }
+    }
 }
+
+private data class PendingEndedEkagraSession(
+    val sessionId: String,
+    val totalSeconds: Int,
+    val secondsLeft: Int,
+    val mode: String,
+    val startedAt: String?,
+)
 
 
 
