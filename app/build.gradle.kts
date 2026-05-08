@@ -11,6 +11,9 @@ plugins {
 android {
     namespace = "com.safar.app"
     compileSdk = 35
+    val qaBaseUrl = providers.gradleProperty("SAFAR_QA_BASE_URL")
+        .orElse("https://safar.parmarssc.in/api/")
+        .get()
 
     defaultConfig {
         applicationId = "com.safar.app"
@@ -28,7 +31,7 @@ android {
             dimension = "env"
             applicationIdSuffix = ".qa"
             versionNameSuffix = "-qa"
-             buildConfigField("String", "BASE_URL", "\"http://localhost:8080/api/\"")
+            buildConfigField("String", "BASE_URL", "\"$qaBaseUrl\"")
             resValue("string", "app_name", "SAFAR QA")
         }
         create("prod") {
@@ -38,11 +41,24 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("safar-release.jks")
+            storePassword = "safarrel123"
+            keyAlias = "safarrelease"
+            keyPassword = "safarrel123"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

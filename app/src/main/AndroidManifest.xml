@@ -1,19 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission
-        android:name="android.permission.PACKAGE_USAGE_STATS"
-        tools:ignore="ProtectedPermissions" />
-    <!-- Display over other apps — for Focus Shield blocking overlay -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- Allow PackageManager to resolve launchable apps for the app picker -->
+    <!-- Allow PackageManager to resolve launchable apps for the app picker. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -25,9 +18,9 @@
         android:name=".SafarApplication"
         android:allowBackup="true"
         android:usesCleartextTraffic="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/logo_vector_black"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/logo_vector_black"
         android:supportsRtl="true"
         android:theme="@style/Theme.Safar"
         android:hardwareAccelerated="true">
@@ -64,26 +57,6 @@
             android:name=".ui.ekagra.TimerService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="false" />
-
-        <!-- Focus Shield Overlay Blocker Service -->
-        <service
-            android:name=".ui.ekagra.focusshield.FocusShieldOverlayService"
-            android:foregroundServiceType="specialUse"
-            android:exported="false" />
-
-        <!-- Focus Shield Accessibility Service (secondary blocker) -->
-        <service
-            android:name=".ui.ekagra.focusshield.SafarBlockerAccessibilityService"
-            android:label="@string/focus_shield_service_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/focus_shield_accessibility_service" />
-        </service>
 
     </application>
 

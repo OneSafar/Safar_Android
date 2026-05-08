@@ -362,7 +362,11 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                                     Text(plainNote, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 32.dp), lineHeight = 16.sp)
                                 }
                                 if (!causedByLine.isNullOrBlank()) {
-                                    Text("💬 $causedByLine", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 32.dp))
+                                    Row(modifier = Modifier.padding(start = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_chat), contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(causedByLine, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                 }
                                 if (tags.isNotEmpty()) {
                                     androidx.compose.foundation.layout.FlowRow(

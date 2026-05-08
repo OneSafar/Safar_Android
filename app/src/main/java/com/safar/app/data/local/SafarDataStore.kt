@@ -130,11 +130,11 @@ class SafarDataStore @Inject constructor(
 
     val communityRepliesEnabled: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
-        .map { it[Keys.COMMUNITY_REPLIES_ENABLED] ?: false }
+        .map { it[Keys.COMMUNITY_REPLIES_ENABLED] ?: true }
 
     val announcementsEnabled: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
-        .map { it[Keys.ANNOUNCEMENTS_ENABLED] ?: false }
+        .map { it[Keys.ANNOUNCEMENTS_ENABLED] ?: true }
 
     val weeklySummaryEnabled: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }

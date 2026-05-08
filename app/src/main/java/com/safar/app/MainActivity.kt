@@ -4,6 +4,7 @@ import android.app.PictureInPictureParams
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -14,14 +15,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safar.app.data.local.SafarDataStore
@@ -53,6 +61,8 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
+        private const val TABLET_SMALLEST_WIDTH_DP = 600
+        private val PHONE_VIEWPORT_MAX_WIDTH_DP = 430.dp
     }
 
     private val serviceConnection = object : ServiceConnection {
@@ -66,6 +76,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyOrientationPolicy()
 
         FirebaseMessaging.getInstance().token
             .addOnSuccessListener {
@@ -97,23 +108,39 @@ class MainActivity : ComponentActivity() {
             val currentLanguage by themeViewModel.language.collectAsState()
 
             SafarTheme(darkTheme = isDarkTheme, nightMode = isNightMode) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    // Provide TimerService to the entire composition tree
-                    CompositionLocalProvider(LocalTimerService provides timerService) {
-                        SafarNavGraph(
-                            dataStore          = dataStore,
-                            isDarkTheme        = isDarkTheme,
-                            isNightMode        = isNightMode,
-                            onToggleDarkTheme  = { themeViewModel.toggleDarkTheme() },
-                            onToggleNightMode  = {},
-                            onLanguageToggle   = {
-                                val next = if (currentLanguage == "en") "hi" else "en"
-                                themeViewModel.setLanguage(next)
-                                AppCompatDelegate.setApplicationLocales(
-                                    LocaleListCompat.forLanguageTags(next)
-                                )
-                            }
-                        )
+                val configuration = LocalConfiguration.current
+                val isTablet = configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(androidx.compose.material3.MaterialTheme.colorScheme.background),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .then(
+                                if (isTablet) Modifier.widthIn(max = PHONE_VIEWPORT_MAX_WIDTH_DP)
+                                else Modifier.fillMaxSize()
+                            )
+                    ) {
+                        // Provide TimerService to the entire composition tree
+                        CompositionLocalProvider(LocalTimerService provides timerService) {
+                            SafarNavGraph(
+                                dataStore          = dataStore,
+                                isDarkTheme        = isDarkTheme,
+                                isNightMode        = isNightMode,
+                                onToggleDarkTheme  = { themeViewModel.toggleDarkTheme() },
+                                onToggleNightMode  = {},
+                                onLanguageToggle   = {
+                                    val next = if (currentLanguage == "en") "hi" else "en"
+                                    themeViewModel.setLanguage(next)
+                                    AppCompatDelegate.setApplicationLocales(
+                                        LocaleListCompat.forLanguageTags(next)
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -122,6 +149,15 @@ class MainActivity : ComponentActivity() {
 
     fun resetNavigateToEkagra() { navigateToEkagra = false }
     fun resetNotificationRoute() { notificationRoute = null }
+
+    private fun applyOrientationPolicy() {
+        requestedOrientation =
+            if (resources.configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP) {
+                ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+    }
 
     /** Called on logout — stops PiP and prevents any pending Ekagra navigation. */
     fun onLogout() {
@@ -199,5 +235,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyOrientationPolicy()
+    }
+
     // Required so Ekagra PiP overlay renders correctly
+
 }

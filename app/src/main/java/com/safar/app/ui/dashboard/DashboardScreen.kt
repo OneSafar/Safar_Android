@@ -143,9 +143,9 @@ private fun DashboardWelcomeOverlay(userName: String, onDismiss: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("🌿", fontSize = 48.sp, textAlign = TextAlign.Center)
+                Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_leaf), contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
                 Text(
-                    text = "Welcome back,\n${userName.replaceFirstChar { it.uppercase() }.ifEmpty { "Friend" }} 🙏",
+                    text = "Welcome back,\n${userName.replaceFirstChar { it.uppercase() }.ifEmpty { "Friend" }}",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -164,7 +164,10 @@ private fun DashboardWelcomeOverlay(userName: String, onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                 ) {
-                    Text("Let's begin ✨", fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Let's begin", fontWeight = FontWeight.SemiBold)
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_sparkle), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimary)
+                    }
                 }
             }
         }
@@ -249,7 +252,7 @@ private fun ActiveTitleCard(title: String, titleId: String, isDark: Boolean) {
                         .background(Brush.radialGradient(listOf(BrandTeal, BgDark))),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("⚡", fontSize = 28.sp)
+                    Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_zap), contentDescription = null, modifier = Modifier.size(28.dp), tint = BrandTeal)
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -415,7 +418,7 @@ private fun BadgesCard(earned: List<Achievement>, all: List<Achievement>, isDark
                             modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp))
                         )
                     } else {
-                        Text(if (achievement.type == "title") "👑" else "🏅", fontSize = 26.sp)
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(26.dp), tint = Amber500)
                     }
                     Text(
                         achievement.name,
@@ -471,7 +474,7 @@ private fun AchievementDetailDialog(achievement: Achievement, onDismiss: () -> U
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(if (achievement.type == "title") "👑" else "🏅", fontSize = 36.sp)
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(36.dp), tint = Amber500)
                     }
                 }
 

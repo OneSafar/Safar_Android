@@ -189,7 +189,7 @@
 
     <!-- Streaks -->
     <string name="streaks_current_label">Current Streak</string>
-    <string name="streaks_current_value">7 days 🔥</string>
+    <string name="streaks_current_value">7 days</string>
     <string name="streaks_keep_it_up">Keep it up!</string>
     <string name="streaks_this_week">This Week</string>
     <string name="streaks_longest_label">Longest Streak</string>
@@ -268,7 +268,7 @@
     <string name="ekagra_pause">Pause</string>
     <string name="ekagra_start">Start</string>
     <string name="ekagra_start_break">Start Break</string>
-    <string name="ekagra_break_time">Break Time ☕</string>
+    <string name="ekagra_break_time">Break Time</string>
     <string name="ekagra_break_minutes">%d min break</string>
     <string name="ekagra_choose_theme">Choose Theme</string>
     <string name="ekagra_ambient_sound">Ambient Sound</string>

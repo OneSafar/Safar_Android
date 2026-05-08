@@ -3,6 +3,7 @@ package com.safar.app.ui.nishtha.analytics
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.draw.alpha
@@ -44,6 +45,7 @@ import java.util.Locale
 fun NishthaAnalyticsScreen(
     viewModel: NishthaViewModel = hiltViewModel(),
     onNavigate: (String) -> Unit = {},
+    initialSection: String = "overview",
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val report = uiState.monthlyReport
@@ -61,6 +63,17 @@ fun NishthaAnalyticsScreen(
         }
     }
     var selectedMonth by remember { mutableStateOf(months[0].first) }
+    var selectedSection by remember(initialSection) {
+        mutableStateOf(
+            when (initialSection.lowercase(Locale.US)) {
+                "goals" -> "goals"
+                "focus" -> "focus"
+                "sessions" -> "sessions"
+                "monthly" -> "monthly"
+                else -> "overview"
+            }
+        )
+    }
 
     var showMonthPicker by remember { mutableStateOf(false) }
     val androidContext = androidx.compose.ui.platform.LocalContext.current
@@ -106,15 +119,11 @@ fun NishthaAnalyticsScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(
                 Icons.Default.BarChart,
                 contentDescription = null,
@@ -124,22 +133,88 @@ fun NishthaAnalyticsScreen(
             Spacer(Modifier.width(8.dp))
             Column {
                 Text(
-                    stringResource(R.string.analytics_scorecard_title),
+                    "Analytics",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    months.first { it.first == selectedMonth }.second,
+                    "One home for progress patterns and monthly reflection.",
                     fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // Calendar month picker button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AnalyticsSectionChip("Overview", selectedSection == "overview") { selectedSection = "overview" }
+            AnalyticsSectionChip("Goals", selectedSection == "goals") { selectedSection = "goals" }
+            AnalyticsSectionChip("Focus", selectedSection == "focus") { selectedSection = "focus" }
+            AnalyticsSectionChip("Sessions", selectedSection == "sessions") { selectedSection = "sessions" }
+            AnalyticsSectionChip("Monthly Review", selectedSection == "monthly") { selectedSection = "monthly" }
+        }
+
+        Box(Modifier.fillMaxSize()) {
+            when (selectedSection) {
+                "goals" -> GoalInsightsSection(uiState.goals)
+                "focus" -> FocusInsightsSection(uiState.ekagraAnalytics)
+                "sessions" -> SessionHistorySection(uiState.ekagraAnalytics)
+                "monthly" -> MonthlyReviewSection(
+                    selectedMonthLabel = months.first { it.first == selectedMonth }.second,
+                    onMonthClick = { showMonthPicker = true },
+                    isLoading = uiState.isLoadingReport,
+                    report = report,
+                    achievements = achievements,
+                    onNavigate = onNavigate,
+                    onGenerate = { viewModel.onEvent(NishthaEvent.LoadMonthlyReport) },
+                )
+                else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsSectionChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(12.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun MonthlyReviewSection(
+    selectedMonthLabel: String,
+    onMonthClick: () -> Unit,
+    isLoading: Boolean,
+    report: MonthlyReport?,
+    achievements: List<com.safar.app.domain.model.Achievement>,
+    onNavigate: (String) -> Unit,
+    onGenerate: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .clickable { showMonthPicker = true },
+                .clickable { onMonthClick() },
             color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(14.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
@@ -151,7 +226,7 @@ fun NishthaAnalyticsScreen(
             ) {
                 Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 Text(
-                    months.first { it.first == selectedMonth }.second,
+                    selectedMonthLabel,
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
@@ -160,7 +235,7 @@ fun NishthaAnalyticsScreen(
         }
 
         when {
-            uiState.isLoadingReport -> {
+            isLoading -> {
                 Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
@@ -172,14 +247,14 @@ fun NishthaAnalyticsScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(months.first { it.first == selectedMonth }.second, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        Text(selectedMonthLabel, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                         Text(
                             stringResource(R.string.analytics_no_report_hint),
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Button(
-                            onClick = { viewModel.onEvent(NishthaEvent.LoadMonthlyReport) },
+                            onClick = onGenerate,
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -196,9 +271,9 @@ fun NishthaAnalyticsScreen(
 
 @Composable
 private fun ReportContent(report: MonthlyReport, achievements: List<com.safar.app.domain.model.Achievement> = emptyList(), onNavigate: (String) -> Unit = {}) {
-    ScoreCard("⚡", stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, Amber500)
-    ScoreCard("✅", stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, Emerald500)
-    ScoreCard("🎯", stringResource(R.string.analytics_focus_depth), "${report.totalFocusMinutes}m/day", report.focusMessage, Indigo500)
+    ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, Amber500)
+    ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, Emerald500)
+    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.totalFocusMinutes}m/day", report.focusMessage, Indigo500)
 
     // Skill Radar — rendered as horizontal progress bars
     if (report.radar.isNotEmpty()) {
@@ -314,13 +389,13 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safar.ap
                     fontWeight = FontWeight.SemiBold, fontSize = 15.sp
                 )
                 if (report.powerHourMessage.isNotEmpty()) {
-                    InsightRow("⚡", stringResource(R.string.analytics_power_hour_title), report.powerHourMessage)
+                    InsightRow(R.drawable.ic_zap, stringResource(R.string.analytics_power_hour_title), report.powerHourMessage)
                 }
                 if (report.moodConnectionMessage.isNotEmpty()) {
-                    InsightRow("🧠", stringResource(R.string.analytics_mood_connection_title), report.moodConnectionMessage)
+                    InsightRow(R.drawable.ic_brain, stringResource(R.string.analytics_mood_connection_title), report.moodConnectionMessage)
                 }
                 if (report.sundayScariesMessage.isNotEmpty()) {
-                    InsightRow("📅", stringResource(R.string.analytics_sunday_scaries_title), report.sundayScariesMessage)
+                    InsightRow(R.drawable.ic_calendar_dots, stringResource(R.string.analytics_sunday_scaries_title), report.sundayScariesMessage)
                 }
             }
         }
@@ -382,7 +457,7 @@ private fun AchievementsSection(achievements: List<com.safar.app.domain.model.Ac
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             // Header row
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("🏆", fontSize = 18.sp)
+                Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_trophy), contentDescription = null, modifier = Modifier.size(18.dp), tint = Amber500)
                 Text("Achievements", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 Text(
                     "See All",
@@ -400,7 +475,7 @@ private fun AchievementsSection(achievements: List<com.safar.app.domain.model.Ac
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("🔒", fontSize = 32.sp)
+                    Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_lock), contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("No achievements earned yet", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("Keep up your streaks to earn badges!", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                 }
@@ -430,7 +505,7 @@ private fun AchievementsSection(achievements: List<com.safar.app.domain.model.Ac
                                     modifier = Modifier.size(38.dp).clip(RoundedCornerShape(8.dp))
                                 )
                             } else {
-                                Text(if (ach.type == "title") "👑" else "🏅", fontSize = 22.sp)
+                                Icon(painter = androidx.compose.ui.res.painterResource(id = if (ach.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(22.dp), tint = Amber500)
                             }
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -453,7 +528,7 @@ private fun AchievementsSection(achievements: List<com.safar.app.domain.model.Ac
 }
 
 @Composable
-private fun ScoreCard(emoji: String, label: String, value: String, message: String, accentColor: Color) {
+private fun ScoreCard(iconRes: Int, label: String, value: String, message: String, accentColor: Color) {
     Card(
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -466,7 +541,7 @@ private fun ScoreCard(emoji: String, label: String, value: String, message: Stri
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(emoji, fontSize = 24.sp)
+            Icon(painter = androidx.compose.ui.res.painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(24.dp), tint = accentColor)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     label.uppercase(),
@@ -485,9 +560,9 @@ private fun ScoreCard(emoji: String, label: String, value: String, message: Stri
 }
 
 @Composable
-private fun InsightRow(emoji: String, title: String, message: String) {
+private fun InsightRow(iconRes: Int, title: String, message: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(emoji, fontSize = 18.sp, modifier = Modifier.padding(top = 2.dp))
+        Icon(painter = androidx.compose.ui.res.painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(18.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.primary)
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 title.uppercase(),

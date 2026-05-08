@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -434,12 +435,23 @@ private fun TooltipCard(
 
             Spacer(Modifier.height(6.dp))
 
-            Text(
-                text = step.title,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = ButterflyTextDark,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                step.iconRes?.let { res ->
+                    androidx.compose.material3.Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = res),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = ButterflyTextDark
+                    )
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(
+                    text = step.title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ButterflyTextDark,
+                )
+            }
 
             Spacer(Modifier.height(4.dp))
 

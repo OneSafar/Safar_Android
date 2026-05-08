@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:513808201301:android:86769949fb67c6e278c6dc",
+        "android_client_info": {
+          "package_name": "com.safar.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDryO7KlhYpmRqvfvDqt-Xhz0rQqaXTJrU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:513808201301:android:d629da96da8d2b7978c6dc",
         "android_client_info": {
           "package_name": "com.safar.app.qa"

@@ -386,7 +386,7 @@ private fun CollapsibleSandeshCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Box(Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(0.15f)), contentAlignment = Alignment.Center) {
-                    Text("📢", fontSize = 16.sp)
+                    Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_megaphone), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                 }
                 Column(Modifier.weight(1f)) {
                     Text("SANDESH", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.primary)
@@ -696,7 +696,7 @@ private fun CommunityTab(
         if (!uiState.isLoadingPosts && uiState.posts.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("💬", fontSize = 48.sp)
+                    Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_chat), contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("No posts yet. Be the first!", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -710,7 +710,7 @@ private fun CommunityTab(
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp), strokeWidth = 2.5.dp)
                         Text("Searching posts…", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                     } else {
-                        Text("🔍", fontSize = 40.sp)
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_magnifying_glass), contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("No results for \"$searchQuery\"", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                         TextButton(onClick = { onClearSearch() }) { Text("Clear search") }
                     }
@@ -1055,7 +1055,7 @@ private fun CreatePostSheet(selectedSpace: String, onPost: (String, String, Bool
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("👻", fontSize = 20.sp)
+                    Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_ghost), contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Column(Modifier.weight(1f)) {
                         Text("Post Anonymously", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         Text("Your name won't be shown", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1088,19 +1088,19 @@ private fun GuidelinesSheet(onDismiss: () -> Unit) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Community Guidelines", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Text("Posting Rules", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-            GuidelineItem("🎓", "Academic Hall", "Research, study hacks, and career help only. No venting.")
-            GuidelineItem("💬", "Thoughts", "Emotional support and venting. Move here for personal struggles.")
+            GuidelineItem(com.safar.app.R.drawable.ic_graduation_cap, "Academic Hall", "Research, study hacks, and career help only. No venting.")
+            GuidelineItem(com.safar.app.R.drawable.ic_chat, "Thoughts", "Emotional support and venting. Move here for personal struggles.")
             Text("Consequences", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-            GuidelineItem("🚫", "Report-Based Bans", "1+ reports trigger automatic bans (2D → 7D → Permanent).")
-            GuidelineItem("👻", "Shadow Banning", "Repeated spam results in silent silencing — others won't see you.")
+            GuidelineItem(com.safar.app.R.drawable.ic_shield_check, "Report-Based Bans", "1+ reports trigger automatic bans (2D → 7D → Permanent).")
+            GuidelineItem(com.safar.app.R.drawable.ic_ghost, "Shadow Banning", "Repeated spam results in silent silencing — others won't see you.")
         }
     }
 }
 
 @Composable
-private fun GuidelineItem(emoji: String, title: String, desc: String) {
+private fun GuidelineItem(iconRes: Int, title: String, desc: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(emoji, fontSize = 18.sp)
+        Icon(painter = androidx.compose.ui.res.painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             Text(desc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 17.sp)
@@ -1117,7 +1117,7 @@ private fun SavedTab(uiState: MehfilUiState, viewModel: MehfilViewModel, onComme
     if (uiState.savedPosts.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("🔖", fontSize = 48.sp)
+                Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_bookmarks_simple), contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("No saved posts yet", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -1167,7 +1167,7 @@ private fun AnalyticsTab(uiState: MehfilUiState) {
             items(uiState.activity) { item ->
                 Card(shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
                     Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(when (item.type) { "post" -> "✍️"; "comment" -> "💬"; "like" -> "❤️"; else -> "📌" }, fontSize = 20.sp)
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = when (item.type) { "post" -> com.safar.app.R.drawable.ic_pencil_simple_line; "comment" -> com.safar.app.R.drawable.ic_chat; "like" -> com.safar.app.R.drawable.ic_heart_straight; else -> com.safar.app.R.drawable.ic_push_pin }), contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
                         Column(Modifier.weight(1f)) {
                             Text(when (item.type) { "post" -> "Posted"; "comment" -> "Commented: ${item.comment ?: ""}"; "like" -> "Liked a post"; else -> item.type }, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                             Text(item.thoughtContent.take(60), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1243,7 +1243,11 @@ private fun ConnectionsTab(uiState: MehfilUiState, viewModel: MehfilViewModel, o
             is DmState.IncomingRequest -> {
                 Card(shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("📨 ${dmState.fromUserName} wants to connect", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_envelope_simple), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.width(6.dp))
+                            Text("${dmState.fromUserName} wants to connect", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(onClick = { onAcceptDm(dmState.fromUserId) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(vertical = 6.dp)) { Text("Accept", fontSize = 13.sp) }
                             OutlinedButton(onClick = { viewModel.declineDm(dmState.fromUserId) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(vertical = 6.dp)) { Text("Decline", fontSize = 13.sp) }
@@ -1393,7 +1397,3 @@ private fun formatPostDate(ts: String): String = runCatching {
     ZonedDateTime.parse(ts).format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault()))
 }.getOrDefault(ts.take(10))
 
-/**
- * A simple markdown parser that converts **bold** and *italic* into AnnotatedString.
- */
-@Composable

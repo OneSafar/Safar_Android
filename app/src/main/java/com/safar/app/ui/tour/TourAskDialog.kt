@@ -26,7 +26,12 @@ fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text("🦋", fontSize = 44.sp, textAlign = TextAlign.Center)
+                Icon(
+                    painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_sparkle),
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
                 Text(
                     "Hi, I'm Nishtha!",
                     fontSize = 20.sp,
@@ -46,7 +51,15 @@ fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                 ) {
-                    Text("Yes, show me around! 🎉", fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Yes, show me around!", fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_party_popper),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
                 OutlinedButton(
                     onClick = onNo,

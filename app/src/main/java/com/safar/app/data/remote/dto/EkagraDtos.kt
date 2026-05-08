@@ -47,57 +47,24 @@ data class EkagraSessionsResponse(
     val sessions: List<EkagraSession>,
 )
 
-
-data class ActivateSessionRequest(
-    val sessionType: String = "named",
+data class SaveEkagraSessionRequest(
+    val mode: String,
+    val startedAt: String,
+    val endedAt: String? = null,
+    val plannedDurationMinutes: Int,
+    val actualDurationMinutes: Int,
     val goalId: String? = null,
     val goalTitle: String? = null,
-    val sessionTitle: String,
-    val source: String = "manual",
-    val importedFromGoal: Boolean = false,
-    val overrideActive: Boolean = true,
-    val mode: String = "Timer",
-    val totalSeconds: Int,
-    val remainingSeconds: Int,
-    val isRunning: Boolean = true,
-    val sessionStartedAt: String,
+    val completed: Boolean = true,
+    val taskTitle: String? = null,
+    val source: String? = "android",
+    val markGoalComplete: Boolean = false,
 )
 
-data class ActivateSessionResponse(
+data class SaveEkagraSessionResponse(
     val session: EkagraSession,
 )
 
-data class UpdateEkagraSessionRequest(
-    val status: String? = null,
-    val mode: String? = null,
-    val totalSeconds: Int? = null,
-    val remainingSeconds: Int? = null,
-    val isRunning: Boolean? = null,
-    val sessionStartedAt: String? = null,
-    val goalTitle: String? = null,
-    val source: String? = null,
-    val importedFromGoal: Boolean? = null,
-)
-
-data class UpdateEkagraSessionResponse(
-    val session: EkagraSession,
-)
-
-data class CompleteSessionRequest(
-    val mode: String = "Timer",
-    val totalSeconds: Int,
-    val elapsedSeconds: Int,
-    val remainingSeconds: Int,
-    val sessionStartedAt: String?,
-)
-
-data class CompleteSessionResponse(
-    val session: EkagraSession,
-)
-
-data class DiscardEkagraSessionResponse(
-    val session: EkagraSession,
-)
 
 data class DeleteEkagraSessionResponse(
     val ok: Boolean = false,

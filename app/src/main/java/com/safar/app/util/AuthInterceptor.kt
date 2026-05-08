@@ -24,7 +24,7 @@ class AuthInterceptor @Inject constructor(
             addHeader("Accept-Language", language)
         }.build()
         var response = chain.proceed(request)
-        if (response.code == 401 && !request.url.encodedPath.contains("/auth/refresh")) {
+        if (response.code == 401 && shouldAttemptRefresh(request.url.encodedPath)) {
             response.close()
             val refreshRequest = request.newBuilder()
                 .url(BuildConfig.BASE_URL.trimEnd('/') + "/auth/refresh")
@@ -47,5 +47,16 @@ class AuthInterceptor @Inject constructor(
             }
         }
         return response
+    }
+
+    private fun shouldAttemptRefresh(path: String): Boolean {
+        val authPathsWithoutSession = listOf(
+            "/auth/login",
+            "/auth/signup",
+            "/auth/forgot-password",
+            "/auth/reset-password",
+            "/auth/refresh"
+        )
+        return authPathsWithoutSession.none { path.contains(it) }
     }
 }

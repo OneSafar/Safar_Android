@@ -40,6 +40,7 @@ fun NishthaScreen(
     onLanguageClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     initialTab: Int = 0,
+    analyticsInitialSection: String = "overview",
     viewModel: NishthaViewModel = hiltViewModel(),
 ) {
     var selectedTab by remember { mutableStateOf(NishthaTab.entries.getOrElse(initialTab) { NishthaTab.CHECK_IN }) }
@@ -108,7 +109,7 @@ fun NishthaScreen(
                         NishthaTab.JOURNAL   -> JournalScreen(openSheetOnLoad = journalOpenCount > 0)
                         NishthaTab.GOALS     -> GoalsScreen(onNavigate = onNavigate)
                         NishthaTab.STREAKS   -> StreaksScreen()
-                        NishthaTab.ANALYTICS -> NishthaAnalyticsScreen(onNavigate = onNavigate)
+                        NishthaTab.ANALYTICS -> NishthaAnalyticsScreen(onNavigate = onNavigate, initialSection = analyticsInitialSection)
                     }
                 }
             }

@@ -7,31 +7,17 @@ import com.safar.app.util.Resource
 
 interface EkagraRepository {
     suspend fun getStats(): Resource<FocusStatsResponse>
-    suspend fun getOpenSessions(): Resource<List<EkagraSession>>
-    suspend fun getActiveSession(): Resource<EkagraSession?>
     suspend fun getEkagraAnalytics(): Resource<EkagraAnalyticsStats>
-    suspend fun activateSession(
-        title: String,
-        totalSeconds: Int,
-        sessionStartedAt: String,
+    suspend fun saveSession(
+        mode: String,
+        startedAt: String,
+        endedAt: String?,
+        plannedDurationMinutes: Int,
+        actualDurationMinutes: Int,
         goalId: String? = null,
         goalTitle: String? = null,
-        mode: String = "Timer",
-        remainingSeconds: Int = totalSeconds,
+        taskTitle: String? = null,
+        markGoalComplete: Boolean = false,
     ): Resource<EkagraSession>
-    suspend fun updateSession(
-        sessionId: String,
-        status: String? = null,
-        mode: String? = null,
-        totalSeconds: Int? = null,
-        remainingSeconds: Int? = null,
-        isRunning: Boolean? = null,
-        sessionStartedAt: String? = null,
-        goalTitle: String? = null,
-        source: String? = null,
-        importedFromGoal: Boolean? = null,
-    ): Resource<EkagraSession>
-    suspend fun completeSession(sessionId: String, totalSeconds: Int, elapsedSeconds: Int, remainingSeconds: Int, sessionStartedAt: String?, mode: String = "Timer"): Resource<EkagraSession>
-    suspend fun discardSession(sessionId: String): Resource<EkagraSession>
     suspend fun deleteSession(sessionId: String): Resource<Unit>
 }

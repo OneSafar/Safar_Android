@@ -187,7 +187,7 @@
 
     <!-- Streaks -->
     <string name="streaks_current_label">वर्तमान स्ट्रीक</string>
-    <string name="streaks_current_value">7 दिन 🔥</string>
+    <string name="streaks_current_value">7 दिन</string>
     <string name="streaks_keep_it_up">इसी तरह जारी रखें!</string>
     <string name="streaks_this_week">इस हफ्ते</string>
     <string name="streaks_longest_label">सबसे लंबी स्ट्रीक</string>
@@ -266,7 +266,7 @@
     <string name="ekagra_pause">रुकें</string>
     <string name="ekagra_start">शुरू करें</string>
     <string name="ekagra_start_break">ब्रेक शुरू करें</string>
-    <string name="ekagra_break_time">ब्रेक का समय ☕</string>
+    <string name="ekagra_break_time">ब्रेक का समय</string>
     <string name="ekagra_break_minutes">%d मिनट का ब्रेक</string>
     <string name="ekagra_choose_theme">थीम चुनें</string>
     <string name="ekagra_ambient_sound">परिवेश ध्वनि</string>

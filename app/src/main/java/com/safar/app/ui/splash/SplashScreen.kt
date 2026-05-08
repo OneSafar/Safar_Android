@@ -81,22 +81,17 @@ fun SplashScreen(
     }
 
     LaunchedEffect(Unit) {
-        delay(1500L)
+        delay(1750L) // ~30% faster than 2500ms; matches scaled logo timeline (~1575ms) + small buffer
         viewModel.onVideoEnded()
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        Image(
-            painter = painterResource(id = R.drawable.safar_static_splash),
-            contentDescription = "SAFAR loading image",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        SafarLogoAnimation(modifier = Modifier.fillMaxSize())
 
         // Start SAFAR button appears only after video ends; navigation waits for click.
         AnimatedVisibility(
             visible = uiState.videoEnded,
-            enter = fadeIn(tween(600)) + scaleIn(tween(600, easing = FastOutSlowInEasing)),
+            enter = fadeIn(tween(420)) + scaleIn(tween(420, easing = FastOutSlowInEasing)),
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
         ) {
             StartSafarButton(onClick = { viewModel.onStartSafar() })
@@ -111,7 +106,7 @@ private fun StartSafarButton(onClick: () -> Unit) {
     // Text glow animation
     val glow by infiniteTransition.animateFloat(
         initialValue = 0.85f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "glow"
+        animationSpec = infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "glow"
     )
 
     // Shine / Shimmer animation
@@ -119,14 +114,18 @@ private fun StartSafarButton(onClick: () -> Unit) {
         initialValue = -400f,
         targetValue = 800f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1500, easing = LinearEasing),
+            animation = tween(durationMillis = 1050, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "shine_x"
     )
 
     val buttonGradient = Brush.horizontalGradient(
-        listOf(Color(0xFF3DAC78), Color(0xFF073B3A))
+        listOf(
+            Color(0xFF10B981), // Vibrant Emerald
+            Color(0xFF047857), // Mid Forest
+            Color(0xFF064E3B)  // Deep Anchor
+        )
     )
 
     val shineBrush = Brush.linearGradient(

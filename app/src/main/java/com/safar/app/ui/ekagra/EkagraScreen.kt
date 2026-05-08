@@ -1030,10 +1030,10 @@ private fun TimerFocusTab(
                     .fillMaxWidth(0.86f)
                     .height(50.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFF315E49), Color(0xFF45614E), Color(0xFF315E49))))
+                    .background(Color(0xFF20DFBB))
                     .border(
                         1.dp,
-                        Brush.horizontalGradient(listOf(Color(0xFF7FA591), Color(0xFFAFCDB8), Color(0xFF7FA591))),
+                        Color(0xFF20DFBB),
                         RoundedCornerShape(999.dp),
                     )
                     .clickable { onStudyPlannerClick() },

@@ -23,12 +23,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -70,53 +72,272 @@ fun AuthScreen(
         },
         containerColor = if (isDark) BgDark else BgLight
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(top = 56.dp, bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            SafarLogoHeader(showSignup = uiState.isSignupMode, isDark = isDark)
-            Spacer(Modifier.height(32.dp))
-
-            Box(
+        if (uiState.isSignupMode) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(
-                        if (isDark) BrandMidnightLight.copy(alpha = 0.85f)
-                        else Color.White.copy(alpha = 0.92f)
-                    )
-                    .border(
-                        width = 0.5.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                if (isDark) BrandTeal.copy(alpha = 0.3f) else PrimaryLight.copy(alpha = 0.2f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = RoundedCornerShape(28.dp)
-                    )
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 56.dp, bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AnimatedContent(
-                    targetState = uiState.isSignupMode,
-                    transitionSpec = {
-                        slideInHorizontally { if (targetState) it else -it } + fadeIn() togetherWith
-                                slideOutHorizontally { if (targetState) -it else it } + fadeOut()
-                    },
-                    label = "auth_mode"
-                ) { isSignup ->
-                    if (isSignup) {
-                        SignupForm(uiState, isDark, viewModel::onEvent) { viewModel.onEvent(AuthEvent.SwitchMode) }
-                    } else {
-                        LoginForm(uiState, isDark, viewModel::onEvent) { viewModel.onEvent(AuthEvent.SwitchMode) }
-                    }
+                SafarLogoHeader(showSignup = true, isDark = isDark)
+                Spacer(Modifier.height(32.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(BrandMidnightLight.copy(alpha = 0.85f))
+                        .border(
+                            width = 0.5.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(BrandTeal.copy(alpha = 0.3f), Color.Transparent)
+                            ),
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                ) {
+                    SignupForm(uiState, isDark, viewModel::onEvent) { viewModel.onEvent(AuthEvent.SwitchMode) }
                 }
             }
+        } else {
+            LoginScreenFromDesign(
+                padding = padding,
+                isDark = isDark,
+                uiState = uiState,
+                onEvent = viewModel::onEvent,
+                onSwitchToSignup = { viewModel.onEvent(AuthEvent.SwitchMode) },
+            )
         }
     }
+}
+
+@Composable
+private fun LoginScreenFromDesign(
+    padding: PaddingValues,
+    isDark: Boolean,
+    uiState: AuthUiState,
+    onEvent: (AuthEvent) -> Unit,
+    onSwitchToSignup: () -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+    var passwordVisible by remember { mutableStateOf(false) }
+    val scroll = rememberScrollState()
+
+    val bg = if (isDark) Color(0xFF111317) else Color(0xFFF4F6FA)
+    val card = if (isDark) Color(0xFF1E2023) else Color(0xFFFFFFFF)
+    val field = if (isDark) Color(0xFF1A1C1F) else Color(0xFFF7F8FB)
+    val outline = if (isDark) Color(0xFF3C4A43) else Color(0xFFD7DDE5)
+    val text = if (isDark) Color(0xFFE2E2E7) else Color(0xFF0E1530)
+    val textMuted = if (isDark) Color(0xFFBBCAC1) else Color(0xFF5A6478)
+    val primary = if (isDark) Color(0xFF56EEBD) else Color(0xFF1E8A6B)
+    val primaryContainer = if (isDark) Color(0xFF2ED1A2) else Color(0xFF1E8A6B)
+    val onPrimary = if (isDark) Color(0xFF003829) else Color(0xFFFFFFFF)
+    val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
+    val logoRingBg = if (isDark) Color(0xFF1A1C1F) else Color(0xFFFFFFFF)
+    val logoRingOutline = if (isDark) outline else Color(0xFFE3E7EE)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bg)
+            .verticalScroll(scroll)
+            .padding(padding)
+            .padding(horizontal = 20.dp, vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Column(
+            modifier = Modifier.widthIn(max = 420.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .background(logoRingBg)
+                    .border(1.dp, logoRingOutline, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                AsyncImage(
+                    model = logoRes,
+                    contentDescription = "SAFAR Logo",
+                    modifier = Modifier.size(72.dp),
+                    contentScale = ContentScale.Fit,
+                )
+            }
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.app_name),
+                color = text,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.3).sp,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Sign in to continue your journey",
+                color = textMuted.copy(alpha = 0.82f),
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(Modifier.height(32.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(card)
+                    .border(1.dp, outline, RoundedCornerShape(12.dp))
+                    .padding(24.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.auth_sign_in_to_continue),
+                    color = text,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(24.dp))
+
+                LoginLabel(stringResource(R.string.auth_label_email), textMuted)
+                LoginTextField(
+                    value = uiState.email,
+                    onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
+                    placeholder = stringResource(R.string.auth_hint_email),
+                    backgroundColor = field,
+                    borderColor = outline,
+                    textColor = text,
+                    accent = primary,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                )
+
+                Spacer(Modifier.height(16.dp))
+                LoginLabel(stringResource(R.string.auth_label_password), textMuted)
+                LoginTextField(
+                    value = uiState.password,
+                    onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
+                    placeholder = stringResource(R.string.auth_hint_password),
+                    backgroundColor = field,
+                    borderColor = outline,
+                    textColor = text,
+                    accent = primary,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = null,
+                                tint = primary,
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        focusManager.clearFocus()
+                        onEvent(AuthEvent.Login)
+                    }),
+                )
+
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { onEvent(AuthEvent.ForgotPassword) }) {
+                        Text(
+                            stringResource(R.string.auth_forgot_password),
+                            color = textMuted,
+                            fontSize = 13.sp,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { onEvent(AuthEvent.Login) },
+                    enabled = !uiState.isLoading,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryContainer,
+                        contentColor = onPrimary,
+                        disabledContainerColor = primaryContainer.copy(alpha = 0.45f),
+                        disabledContentColor = onPrimary.copy(alpha = 0.7f),
+                    ),
+                ) {
+                    Text(
+                        text = stringResource(if (uiState.isLoading) R.string.auth_signing_in else R.string.auth_sign_in),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.auth_no_account),
+                color = primary,
+                fontSize = 14.sp,
+                modifier = Modifier.clickable(onClick = onSwitchToSignup),
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.auth_footer),
+                color = textMuted.copy(alpha = 0.6f),
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoginLabel(text: String, color: Color) {
+    Text(
+        text = text.uppercase(),
+        color = color,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.sp,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+    )
+}
+
+@Composable
+private fun LoginTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    backgroundColor: Color,
+    borderColor: Color,
+    textColor: Color,
+    accent: Color,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    minHeight: Dp = 50.dp,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth().heightIn(min = minHeight),
+        singleLine = true,
+        shape = RoundedCornerShape(10.dp),
+        placeholder = { Text(text = placeholder, color = textColor.copy(alpha = 0.4f), fontSize = 15.sp) },
+        visualTransformation = visualTransformation,
+        trailingIcon = trailingIcon,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = backgroundColor,
+            unfocusedContainerColor = backgroundColor,
+            focusedBorderColor = accent,
+            unfocusedBorderColor = borderColor,
+            focusedTextColor = textColor,
+            unfocusedTextColor = textColor,
+            cursorColor = accent,
+        ),
+    )
 }
 
 @Composable

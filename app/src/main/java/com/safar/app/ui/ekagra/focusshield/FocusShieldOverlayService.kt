@@ -20,6 +20,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 import com.safar.app.MainActivity
+import com.safar.app.notifications.SafarNotificationManager
 import kotlinx.coroutines.*
 
 /**
@@ -329,7 +330,8 @@ class FocusShieldOverlayService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Focus Shield Active")
             .setContentText("Blocking distracting apps during your session")
-            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
+            .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()

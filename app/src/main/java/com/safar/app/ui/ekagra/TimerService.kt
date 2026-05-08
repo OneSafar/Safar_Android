@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
+import com.safar.app.R
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.notifications.NotificationDeepLinkHandler
 import com.safar.app.notifications.SafarNotificationChannels
@@ -320,9 +321,10 @@ class TimerService : Service() {
         val time = "%02d:%02d".format(s / 60, s % 60)
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("$mode · $time")
+            .setContentTitle("$mode \u00b7 $time")
             .setContentText(if (_isRunning.value) "Focus in progress" else "Timer paused")
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
+            .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
             .setContentIntent(openIntent)
             .setOngoing(_isRunning.value)
             .setOnlyAlertOnce(true)

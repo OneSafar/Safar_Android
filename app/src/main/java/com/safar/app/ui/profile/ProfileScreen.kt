@@ -30,10 +30,20 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.text.style.TextAlign
 
 private val examOptions = listOf("UPSC", "SSC", "IBPS", "RRB", "NEET", "JEE", "12th Boards", "State PSC", "CAT", "GATE", "Other")
 private val stageOptions = listOf("Beginner", "Intermediate", "Advanced", "Revision", "Mock Tests")
 private val genderOptions = listOf("Male", "Female", "Other", "Prefer not to say")
+
+private fun isValidReminderTimeInput(value: String): Boolean {
+    if (!Regex("^\\d{2}:\\d{2}$").matches(value)) return false
+    val parts = value.split(":")
+    if (parts.size != 2) return false
+    val hour = parts[0].toIntOrNull() ?: return false
+    val minute = parts[1].toIntOrNull() ?: return false
+    return hour in 0..23 && minute in 0..59
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +57,29 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val requestNotificationPermission = rememberNotificationPermissionRequester()
+    var pendingMasterEnable by remember { mutableStateOf(false) }
+    var pendingDailyEnable by remember { mutableStateOf(false) }
+    var reminderDraft by remember(uiState.dailyReminderTime) { mutableStateOf(uiState.dailyReminderTime) }
+
+    val requestNotificationPermission = rememberNotificationPermissionRequester { granted ->
+        if (pendingMasterEnable) {
+            pendingMasterEnable = false
+            if (granted) {
+                viewModel.onEvent(ProfileEvent.ToggleNotifications(true))
+            } else {
+                Toast.makeText(context, "Notification permission is required to enable alerts.", Toast.LENGTH_SHORT).show()
+            }
+        }
+        if (pendingDailyEnable) {
+            pendingDailyEnable = false
+            if (granted) {
+                if (!uiState.notificationsEnabled) viewModel.onEvent(ProfileEvent.ToggleNotifications(true))
+                viewModel.onEvent(ProfileEvent.ToggleDailyStudyReminder(true))
+            } else {
+                Toast.makeText(context, "Notification permission is required for daily reminders.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
@@ -282,8 +314,12 @@ fun ProfileScreen(
                     subtitle = "Master switch for SAFAR alerts.",
                     checked = uiState.notificationsEnabled,
                     onCheckedChange = {
-                        if (it) requestNotificationPermission()
-                        viewModel.onEvent(ProfileEvent.ToggleNotifications(it))
+                        if (!it) {
+                            viewModel.onEvent(ProfileEvent.ToggleNotifications(false))
+                        } else {
+                            pendingMasterEnable = true
+                            requestNotificationPermission()
+                        }
                     },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
@@ -300,14 +336,21 @@ fun ProfileScreen(
                     checked = uiState.dailyStudyReminderEnabled,
                     enabled = uiState.notificationsEnabled,
                     onCheckedChange = {
-                        if (it) requestNotificationPermission()
-                        viewModel.onEvent(ProfileEvent.ToggleDailyStudyReminder(it))
+                        if (!it) {
+                            viewModel.onEvent(ProfileEvent.ToggleDailyStudyReminder(false))
+                        } else {
+                            pendingDailyEnable = true
+                            requestNotificationPermission()
+                        }
                     },
                 )
                 OutlinedTextField(
-                    value = uiState.dailyReminderTime,
+                    value = reminderDraft,
                     onValueChange = { value ->
                         if (value.length <= 5 && value.all { it.isDigit() || it == ':' }) {
+                            reminderDraft = value
+                        }
+                        if (isValidReminderTimeInput(value)) {
                             viewModel.onEvent(ProfileEvent.UpdateDailyReminderTime(value))
                         }
                     },
@@ -317,6 +360,11 @@ fun ProfileScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
+                    supportingText = {
+                        if (reminderDraft.isNotBlank() && !isValidReminderTimeInput(reminderDraft)) {
+                            Text("Use 24-hour time in HH:mm format (e.g., 07:30, 19:00).")
+                        }
+                    },
                 )
                 NotificationToggleRow(
                     title = "Streak reminders",

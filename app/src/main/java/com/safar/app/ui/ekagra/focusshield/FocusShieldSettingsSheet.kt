@@ -15,8 +15,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -49,6 +52,15 @@ fun FocusShieldSettingsContent(
     var hasAccessibility by remember { mutableStateOf(state.hasAccessibility) }
     var hasOverlay by remember { mutableStateOf(state.hasOverlayPermission) }
     var hasNotifications by remember { mutableStateOf(state.hasNotifications) }
+    val scheme = MaterialTheme.colorScheme
+    val isDark = scheme.background.luminance() < 0.5f
+    val bg = scheme.background
+    val card = if (isDark) Color(0xFF1A1C1F) else Color(0xFFF8FAFC)
+    val border = if (isDark) Color(0xFF2D3139) else Color(0xFFD6DEE8)
+    val textPrimary = scheme.onBackground
+    val textSecondary = if (isDark) Color(0xFF9CA3AF) else Color(0xFF64748B)
+    val cardIconBg = if (isDark) Color(0xFF23262C) else Color(0xFFEFF3F8)
+    val infoCard = if (isDark) Color(0xFF1D2025) else Color(0xFFF1F5F9)
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -66,17 +78,16 @@ fun FocusShieldSettingsContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(bg)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         // Header
-        Text("Focus Shield", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Focus Shield", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = textPrimary)
         Text(
             "Block distracting apps during your focus sessions",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall, color = textSecondary,
         )
 
         // ── Master toggle ────────────────────────────────────────────────────
@@ -86,6 +97,12 @@ fun FocusShieldSettingsContent(
             subtitle = if (state.isEnabled) "Apps will be blocked during focus sessions" else "Turn on to block distracting apps",
             checked = state.isEnabled,
             accent = accent,
+            cardColor = card,
+            borderColor = border,
+            iconBgColor = cardIconBg,
+            iconTint = Color(0xFF60A5FA),
+            titleColor = textPrimary,
+            subtitleColor = textSecondary,
             onCheckedChange = onToggleEnabled,
         )
 
@@ -93,9 +110,9 @@ fun FocusShieldSettingsContent(
             // ── App picker ───────────────────────────────────────────────────
             Card(
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                colors = CardDefaults.cardColors(containerColor = card),
                 elevation = CardDefaults.cardElevation(0.dp),
-                border = CardDefaults.outlinedCardBorder(),
+                border = CardDefaults.outlinedCardBorder().copy(brush = SolidColor(border)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -110,23 +127,23 @@ fun FocusShieldSettingsContent(
                         Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(accent.copy(alpha = 0.12f)),
+                            .background(cardIconBg),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(Icons.Default.AppBlocking, null, tint = accent, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.AppBlocking, null, tint = Color(0xFF60A5FA), modifier = Modifier.size(20.dp))
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("Blocked Apps", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text("Blocked Apps", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = textPrimary)
                         val count = state.blockedPackages.size
                         Text(
                             if (count == 0) "Tap to choose apps" else "$count app${if (count != 1) "s" else ""} selected",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = textSecondary,
                         )
                     }
                     Icon(
                         Icons.Default.ChevronRight, null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = textSecondary,
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -139,6 +156,13 @@ fun FocusShieldSettingsContent(
                 subtitle = "Cannot disable blocking until timer ends",
                 checked = state.isStrictMode,
                 accent = accent,
+                cardColor = card,
+                borderColor = border,
+                iconBgColor = cardIconBg,
+                iconTint = Color(0xFF60A5FA),
+                titleColor = textPrimary,
+                subtitleColor = textSecondary,
+                contentAlpha = 0.7f,
                 onCheckedChange = onToggleStrictMode,
             )
 
@@ -148,6 +172,12 @@ fun FocusShieldSettingsContent(
                 subtitle = "Allow one-time unlock for urgent situations",
                 checked = state.allowEmergencyUnlock,
                 accent = accent,
+                cardColor = card,
+                borderColor = border,
+                iconBgColor = cardIconBg,
+                iconTint = Color(0xFF60A5FA),
+                titleColor = textPrimary,
+                subtitleColor = textSecondary,
                 onCheckedChange = onToggleEmergencyUnlock,
             )
 
@@ -157,8 +187,8 @@ fun FocusShieldSettingsContent(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
+                color = textSecondary,
+                modifier = Modifier.padding(top = 8.dp, start = 2.dp),
             )
 
             PermissionRow(
@@ -166,6 +196,10 @@ fun FocusShieldSettingsContent(
                 title = "Usage Access",
                 granted = hasUsage,
                 accent = accent,
+                cardColor = card,
+                borderColor = border,
+                titleColor = textPrimary,
+                iconColor = textSecondary,
                 onClick = onOpenUsageAccess,
             )
 
@@ -174,6 +208,10 @@ fun FocusShieldSettingsContent(
                 title = "Accessibility Service",
                 granted = hasAccessibility,
                 accent = accent,
+                cardColor = card,
+                borderColor = border,
+                titleColor = textPrimary,
+                iconColor = textSecondary,
                 onClick = onOpenAccessibility,
             )
 
@@ -182,6 +220,10 @@ fun FocusShieldSettingsContent(
                 title = "Display Over Other Apps",
                 granted = hasOverlay,
                 accent = accent,
+                cardColor = card,
+                borderColor = border,
+                titleColor = textPrimary,
+                iconColor = textSecondary,
                 onClick = onOpenOverlaySettings,
             )
 
@@ -190,16 +232,19 @@ fun FocusShieldSettingsContent(
                 title = "Notifications",
                 granted = hasNotifications,
                 accent = accent,
+                cardColor = card,
+                borderColor = border,
+                titleColor = textPrimary,
+                iconColor = textSecondary,
                 onClick = null, // Already granted or handled via system
             )
 
             // ── Info card ────────────────────────────────────────────────────
             Card(
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = accent.copy(alpha = 0.06f),
-                ),
+                colors = CardDefaults.cardColors(containerColor = infoCard),
                 elevation = CardDefaults.cardElevation(0.dp),
+                border = CardDefaults.outlinedCardBorder().copy(brush = SolidColor(border.copy(alpha = 0.7f))),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -209,18 +254,19 @@ fun FocusShieldSettingsContent(
                     Icon(
                         Icons.Default.Info,
                         contentDescription = null,
-                        tint = accent,
+                        tint = Color(0xFF60A5FA),
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
                         "Focus Shield only blocks apps during active focus sessions. " +
                                 "It does not collect any data about your app usage.",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = textSecondary,
                         lineHeight = 17.sp,
                     )
                 }
             }
+            Spacer(Modifier.height(84.dp))
         }
     }
 }
@@ -233,19 +279,27 @@ private fun ShieldToggleCard(
     subtitle: String,
     checked: Boolean,
     accent: Color,
+    cardColor: Color,
+    borderColor: Color,
+    iconBgColor: Color,
+    iconTint: Color,
+    titleColor: Color,
+    subtitleColor: Color,
+    contentAlpha: Float = 1f,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = CardDefaults.outlinedCardBorder(),
+        border = CardDefaults.outlinedCardBorder().copy(brush = SolidColor(borderColor)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(14.dp)
+                .alpha(contentAlpha),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -253,14 +307,14 @@ private fun ShieldToggleCard(
                 Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(accent.copy(alpha = 0.12f)),
+                    .background(iconBgColor),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, null, tint = accent, modifier = Modifier.size(20.dp))
+                Icon(icon, null, tint = iconTint, modifier = Modifier.size(20.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = titleColor)
+                Text(subtitle, fontSize = 12.sp, color = subtitleColor)
             }
             Switch(
                 checked = checked,
@@ -268,6 +322,8 @@ private fun ShieldToggleCard(
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = Color.White,
                     checkedTrackColor = accent,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFF4B5563),
                 ),
             )
         }
@@ -281,18 +337,22 @@ private fun PermissionRow(
     title: String,
     granted: Boolean,
     accent: Color,
+    cardColor: Color,
+    borderColor: Color,
+    titleColor: Color,
+    iconColor: Color,
     onClick: (() -> Unit)?,
 ) {
     val statusColor by animateColorAsState(
-        targetValue = if (granted) Color(0xFF43A047) else Color(0xFFE53935),
+        targetValue = if (granted) accent else Color(0xFFEF4444),
         label = "permColor",
     )
 
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = CardDefaults.outlinedCardBorder(),
+        border = CardDefaults.outlinedCardBorder().copy(brush = SolidColor(borderColor)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -303,8 +363,8 @@ private fun PermissionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-            Text(title, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = titleColor, modifier = Modifier.weight(1f))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -319,7 +379,7 @@ private fun PermissionRow(
                     if (granted) "Granted" else "Required",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = statusColor,
+                    color = Color.White,
                 )
                 if (!granted && onClick != null) {
                     Icon(

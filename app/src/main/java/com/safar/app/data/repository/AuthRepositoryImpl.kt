@@ -29,13 +29,13 @@ class AuthRepositoryImpl @Inject constructor(
         return when (r) {
             is Resource.Success -> {
                 val u = r.data.user
-                if (r.data.accessToken != null) dataStore.setAuthToken(r.data.accessToken)
-                if (u != null) {
-                    dataStore.setLoggedIn(true)
-                    dataStore.setUserId(u.id)
-                    dataStore.setUserName(u.name ?: "")
-                    dataStore.setUserAvatar(u.avatar)
-                }
+                val token = r.data.accessToken
+                if (token.isNullOrBlank()) return Resource.Error("Login response did not include a session token")
+                dataStore.setAuthToken(token)
+                dataStore.setLoggedIn(true)
+                dataStore.setUserId(u?.id)
+                dataStore.setUserName(u?.name ?: "")
+                dataStore.setUserAvatar(u?.avatar)
                 Resource.Success(User(id = u?.id ?: "", name = u?.name ?: "", email = u?.email ?: "", photoUrl = u?.avatar, exam = u?.examType, stage = u?.preparationStage, gender = u?.gender))
             }
             is Resource.Error   -> Resource.Error(r.message)
@@ -48,8 +48,13 @@ class AuthRepositoryImpl @Inject constructor(
         return when (r) {
             is Resource.Success -> {
                 val u = r.data.user
-                if (r.data.accessToken != null) dataStore.setAuthToken(r.data.accessToken)
-                if (u != null) { dataStore.setLoggedIn(true); dataStore.setUserId(u.id); dataStore.setUserName(u.name ?: ""); dataStore.setUserAvatar(u.avatar) }
+                val token = r.data.accessToken
+                if (token.isNullOrBlank()) return Resource.Error("Signup response did not include a session token")
+                dataStore.setAuthToken(token)
+                dataStore.setLoggedIn(true)
+                dataStore.setUserId(u?.id)
+                dataStore.setUserName(u?.name ?: "")
+                dataStore.setUserAvatar(u?.avatar)
                 Resource.Success(User(id = u?.id ?: "", name = u?.name ?: "", email = u?.email ?: "", photoUrl = u?.avatar, exam = u?.examType, stage = u?.preparationStage, gender = u?.gender))
             }
             is Resource.Error   -> Resource.Error(r.message)

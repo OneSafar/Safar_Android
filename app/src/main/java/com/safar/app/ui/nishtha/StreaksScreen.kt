@@ -58,7 +58,16 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header
-        Text("🔥 ${stringResource(R.string.streaks_header_title)}", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_flame),
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.streaks_header_title), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+        }
         Text(stringResource(R.string.streaks_header_subtitle), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         if (uiState.isLoadingStreaks) {
@@ -66,7 +75,6 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
-            // Check-In Streak — emerald tint per spec
             StreakCard(
                 label     = stringResource(R.string.streaks_checkin_label),
                 value     = streaks.checkInStreak,
@@ -74,16 +82,19 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                             else stringResource(R.string.streaks_amazing),
                 color     = Emerald500.copy(alpha = 0.15f),
                 textColor = MaterialTheme.colorScheme.onSurface,
-                accent    = Emerald500
+                accent    = Emerald500,
+                iconRes   = R.drawable.ic_circle_check
             )
 
             StreakCard(
                 label     = stringResource(R.string.streaks_login_label),
                 value     = streaks.loginStreak,
-                message   = if (streaks.loginStreak > 0) "✨ ${stringResource(R.string.streaks_amazing)}" else stringResource(R.string.streaks_start_today),
+                message   = stringResource(if (streaks.loginStreak > 0) R.string.streaks_amazing else R.string.streaks_start_today),
                 color     = Orange500.copy(alpha = 0.15f),
                 textColor = MaterialTheme.colorScheme.onSurface,
-                accent    = Orange500
+                accent    = Orange500,
+                iconRes   = R.drawable.ic_zap,
+                messageIconRes = if (streaks.loginStreak > 0) R.drawable.ic_sparkle else null
             )
 
             // Monthly Health card
@@ -128,7 +139,16 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun StreakCard(label: String, value: Int, message: String, color: androidx.compose.ui.graphics.Color, textColor: androidx.compose.ui.graphics.Color, accent: androidx.compose.ui.graphics.Color) {
+private fun StreakCard(
+    label: String, 
+    value: Int, 
+    message: String, 
+    color: androidx.compose.ui.graphics.Color, 
+    textColor: androidx.compose.ui.graphics.Color, 
+    accent: androidx.compose.ui.graphics.Color,
+    iconRes: Int,
+    messageIconRes: Int? = null
+) {
     Card(
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -138,7 +158,7 @@ private fun StreakCard(label: String, value: Int, message: String, color: androi
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Surface(shape = RoundedCornerShape(20.dp), color = accent.copy(alpha = 0.2f)) {
                     Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("⚡", fontSize = 12.sp)
+                        Icon(androidx.compose.ui.res.painterResource(iconRes), contentDescription = null, modifier = Modifier.size(12.dp), tint = accent)
                         Spacer(Modifier.width(4.dp))
                         Text(label.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = accent)
                     }
@@ -147,7 +167,13 @@ private fun StreakCard(label: String, value: Int, message: String, color: androi
                     Text("$value", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold, color = textColor))
                     Text(stringResource(R.string.streaks_days_unit), fontSize = 18.sp, color = textColor.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 6.dp))
                 }
-                Text(message, fontSize = 13.sp, color = accent)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    messageIconRes?.let {
+                        Icon(androidx.compose.ui.res.painterResource(it), contentDescription = null, modifier = Modifier.size(14.dp), tint = accent)
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Text(message, fontSize = 13.sp, color = accent)
+                }
             }
         }
     }

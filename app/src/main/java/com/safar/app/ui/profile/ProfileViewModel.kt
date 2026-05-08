@@ -113,7 +113,11 @@ class ProfileViewModel @Inject constructor(
     private fun updateNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             dataStore.setNotificationsEnabled(enabled)
-            if (!enabled) StudyReminderWorker.cancel(appContext)
+            if (!enabled) {
+                StudyReminderWorker.cancel(appContext)
+            } else if (dataStore.dailyStudyReminderEnabled.first()) {
+                StudyReminderWorker.schedule(appContext, dataStore.dailyReminderTime.first())
+            }
             loadNotificationPreferences()
             schedulePreferenceSync()
         }
@@ -133,13 +137,24 @@ class ProfileViewModel @Inject constructor(
     }
 
     private fun updateDailyReminderTime(time: String) {
+        if (!isValidReminderTime(time)) return
         viewModelScope.launch {
             dataStore.setDailyReminderTime(time)
             if (dataStore.dailyStudyReminderEnabled.first()) {
                 StudyReminderWorker.schedule(appContext, time)
             }
             loadNotificationPreferences()
+            schedulePreferenceSync()
         }
+    }
+
+    private fun isValidReminderTime(time: String): Boolean {
+        if (!Regex("^\\d{2}:\\d{2}$").matches(time)) return false
+        val parts = time.split(":")
+        if (parts.size != 2) return false
+        val hour = parts[0].toIntOrNull() ?: return false
+        val minute = parts[1].toIntOrNull() ?: return false
+        return hour in 0..23 && minute in 0..59
     }
 
     private fun schedulePreferenceSync() {

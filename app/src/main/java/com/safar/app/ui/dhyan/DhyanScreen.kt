@@ -51,7 +51,7 @@ import kotlinx.coroutines.delay
 
 private data class BreathingTechnique(
     val name: String,
-    val emoji: String,
+    val iconRes: Int,
     val description: String,
     val inhale: Int,
     val hold: Int,
@@ -61,10 +61,10 @@ private data class BreathingTechnique(
 )
 
 private val techniques = listOf(
-    BreathingTechnique("Diaphragmatic", "🌬️", "Belly breathing for full oxygen exchange", 4, 0, 6, 0, "4-6"),
-    BreathingTechnique("Box Breathing", "⬜", "Rhythmic 4-4-4-4 for stress reduction", 4, 4, 4, 4, "4-4-4-4"),
-    BreathingTechnique("4-7-8 Breathing", "🌙", "Deep relaxation for anxiety and sleep", 4, 7, 8, 0, "4-7-8"),
-    BreathingTechnique("6-7-8 Breathing", "☯️", "Slower inhale variation for deeper calm", 6, 7, 8, 0, "6-7-8"),
+    BreathingTechnique("Diaphragmatic", com.safar.app.R.drawable.ic_wind, "Belly breathing for full oxygen exchange", 4, 0, 6, 0, "4-6"),
+    BreathingTechnique("Box Breathing", com.safar.app.R.drawable.ic_square, "Rhythmic 4-4-4-4 for stress reduction", 4, 4, 4, 4, "4-4-4-4"),
+    BreathingTechnique("4-7-8 Breathing", com.safar.app.R.drawable.ic_moon, "Deep relaxation for anxiety and sleep", 4, 7, 8, 0, "4-7-8"),
+    BreathingTechnique("6-7-8 Breathing", com.safar.app.R.drawable.ic_yin_yang, "Slower inhale variation for deeper calm", 6, 7, 8, 0, "6-7-8"),
 )
 
 private val intensityLabels = listOf("Light", "Gentle", "Moderate", "Deep", "Intense")
@@ -377,12 +377,14 @@ private fun BreathingTab(
                                 .background(MaterialTheme.colorScheme.primary.copy(0.12f))
                                 .padding(horizontal = 12.dp, vertical = 5.dp)
                         ) {
-                            Text(
-                                "${technique.emoji} ${technique.name} · ${technique.pattern}",
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(painter = androidx.compose.ui.res.painterResource(id = technique.iconRes), contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Text("${technique.name} · ${technique.pattern}",
                                 fontSize   = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color      = MaterialTheme.colorScheme.primary,
                             )
+                                }
                         }
                         Box(
                             modifier = Modifier
@@ -538,7 +540,10 @@ private fun BreathingOptionsSheet(
                 .padding(bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Breathe with me 🌬️", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_wind), contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
+                Text("Breathe with me", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            }
             Text("Choose a technique to start.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.1f))
@@ -558,7 +563,7 @@ private fun BreathingOptionsSheet(
                         verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Text(t.emoji, fontSize = 26.sp)
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = t.iconRes), contentDescription = null, modifier = Modifier.size(26.dp), tint = MaterialTheme.colorScheme.onSurface)
                         Column(Modifier.weight(1f)) {
                             Text(t.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                             Text(t.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 17.sp)
@@ -632,7 +637,7 @@ private fun CoursesTab() {
         Text("Deepen your meditation journey with guided courses, daily structure, and progress checkpoints.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 20.sp)
         Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)), elevation = CardDefaults.cardElevation(0.dp)) {
             Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("🌱", fontSize = 28.sp)
+                Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_leaf), contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("It will be available soon", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.primary)
                     Text("We're crafting thoughtful courses for you. Stay tuned.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
@@ -642,7 +647,7 @@ private fun CoursesTab() {
         Card(shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primary.copy(0.1f)), contentAlignment = Alignment.Center) { Text("🧘", fontSize = 24.sp) }
+                    Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primary.copy(0.1f)), contentAlignment = Alignment.Center) { Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_person_standing), contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary) }
                     Text("SAFAR 30-Day Meditation Course", fontWeight = FontWeight.Bold, fontSize = 14.sp, lineHeight = 18.sp, modifier = Modifier.weight(1f))
                 }
                 Text("A 30-day guided meditation journey to build a consistent practice, reduce stress, and deepen self-awareness.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 19.sp)

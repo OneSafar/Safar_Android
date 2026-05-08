@@ -1,9 +1,7 @@
 package com.safar.app.ui.drawer
 
 import android.app.Activity
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -33,6 +31,7 @@ fun SafarDrawerScaffold(
     onLanguageClick: () -> Unit = {},
     topBarActions: @Composable RowScope.() -> Unit = {},
     topBarContentColor: Color? = null,
+    emphasizeTopBar: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -79,11 +78,13 @@ fun SafarDrawerScaffold(
                     navigationIcon = {
                         IconButton(
                             onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier
-                                .padding(start = 8.dp)
-                                .background(actualContentColor.copy(alpha = 0.12f), CircleShape)
+                            modifier = Modifier.padding(start = 8.dp),
                         ) {
-                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.nav_open_menu))
+                            Icon(
+                                Icons.Default.Menu,
+                                contentDescription = stringResource(R.string.nav_open_menu),
+                                modifier = Modifier.size(if (emphasizeTopBar) 26.dp else 24.dp),
+                            )
                         }
                     },
                     title = {
@@ -91,18 +92,18 @@ fun SafarDrawerScaffold(
                             if (subtitle != null) {
                                 Text(
                                     subtitle.uppercase(),
-                                    fontSize = 11.sp,
+                                    fontSize = if (emphasizeTopBar) 12.sp else 11.sp,
                                     lineHeight = 12.sp,
-                                    color = actualContentColor.copy(alpha = 0.7f),
+                                    color = actualContentColor.copy(alpha = if (emphasizeTopBar) 0.82f else 0.7f),
                                     fontFamily = if (subtitle.uppercase() == "SAFAR") LoraFontFamily else null,
                                     fontWeight = if (subtitle.uppercase() == "SAFAR") FontWeight.Bold else null,
                                 )
                             }
                             Text(
                                 title, 
-                                fontSize = 18.sp, 
-                                lineHeight = 20.sp, 
-                                fontWeight = FontWeight.SemiBold,
+                                fontSize = if (emphasizeTopBar) 24.sp else 20.sp,
+                                lineHeight = if (emphasizeTopBar) 26.sp else 22.sp,
+                                fontWeight = if (emphasizeTopBar) FontWeight.ExtraBold else FontWeight.Bold,
                                 fontFamily = if (title.uppercase() == "SAFAR") LoraFontFamily else null
                             )
                         }

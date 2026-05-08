@@ -15,6 +15,7 @@ data class ButterflyTourStep(
     val anchorX: Float = 0.5f,
     val anchorY: Float = 0.5f,
     val tooltipSide: TooltipSide = TooltipSide.AUTO,
+    val iconRes: Int? = null,
 )
 
 enum class TooltipSide { AUTO, LEFT, RIGHT, TOP, BOTTOM }

@@ -98,7 +98,12 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                             .padding(horizontal = 12.dp, vertical = 10.dp)
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("✨", fontSize = 14.sp)
+                            Icon(
+                                painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_sparkle),
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = Violet600
+                            )
                             Text(promptContext!!, fontSize = 13.sp, color = Violet600, fontStyle = FontStyle.Italic, lineHeight = 19.sp)
                         }
                     }
@@ -200,7 +205,12 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
             } else if (!showJournals) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("📖", fontSize = 48.sp)
+                        Icon(
+                            painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_book_open_user),
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Text(if (uiState.journals.isEmpty()) "No entries yet" else "Tap + to write", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("Swipe the prompt above or tap +", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.6f), textAlign = TextAlign.Center)
                     }

@@ -37,6 +37,7 @@ class EkagraViewModel @Inject constructor(
     private val _stats = MutableStateFlow<StatsUiState>(StatsUiState.Loading)
     val stats = _stats.asStateFlow()
 
+    // Kept for screen compatibility, but active/open sessions are now local-only drafts.
     private val _openSessions = MutableStateFlow<List<EkagraSession>>(emptyList())
     val openSessions = _openSessions.asStateFlow()
 
@@ -48,6 +49,9 @@ class EkagraViewModel @Inject constructor(
 
     private val _tasks = MutableStateFlow<List<Goal>>(emptyList())
     val tasks = _tasks.asStateFlow()
+
+    private val _allGoals = MutableStateFlow<List<Goal>>(emptyList())
+    val allGoals = _allGoals.asStateFlow()
 
     private var activeSessionId: String? = null
     private var sessionStartedAt: String? = null
@@ -71,27 +75,12 @@ class EkagraViewModel @Inject constructor(
     }
 
     fun refreshEkagra() {
-        loadOpenSessions()
+        _openSessions.value = emptyList()
         loadEkagraAnalytics()
     }
 
     fun loadOpenSessions() {
-        viewModelScope.launch {
-            when (val sessions = repo.getOpenSessions()) {
-                is Resource.Success -> _openSessions.value = sessions.data
-                is Resource.Error -> Unit
-                is Resource.Loading -> Unit
-            }
-            when (val active = repo.getActiveSession()) {
-                is Resource.Success -> {
-                    _activeSession.value = active.data
-                    activeSessionId = active.data?.id ?: activeSessionId
-                    sessionStartedAt = active.data?.sessionStartedAt ?: sessionStartedAt
-                }
-                is Resource.Error -> Unit
-                is Resource.Loading -> Unit
-            }
-        }
+        _openSessions.value = emptyList()
     }
 
     fun loadEkagraAnalytics() {
@@ -107,7 +96,10 @@ class EkagraViewModel @Inject constructor(
     fun loadTasks() {
         viewModelScope.launch {
             when (val r = homeRepo.getGoals()) {
-                is Resource.Success -> _tasks.value = r.data.filter { it.source == "ekagra" }
+                is Resource.Success -> {
+                    _allGoals.value = r.data
+                    _tasks.value = r.data.filter { it.source == "ekagra" }
+                }
                 is Resource.Error -> Unit
                 is Resource.Loading -> Unit
             }
@@ -133,83 +125,139 @@ class EkagraViewModel @Inject constructor(
         remainingSeconds: Int = totalSeconds,
     ) {
         val now = Instant.now().toString()
+        val id = "local-${System.currentTimeMillis()}"
+        activeSessionId = id
         sessionStartedAt = now
-        viewModelScope.launch {
-            when (val r = repo.activateSession(
-                title = taskText.ifBlank { goalTitle ?: "Focus Session" },
-                totalSeconds = totalSeconds,
-                sessionStartedAt = now,
-                goalId = goalId,
-                goalTitle = goalTitle,
-                mode = mode,
-                remainingSeconds = remainingSeconds,
-            )) {
-                is Resource.Success -> {
-                    activeSessionId = r.data.id
-                    _activeSession.value = r.data
-                    loadOpenSessions()
-                }
-                is Resource.Error -> Unit
-                is Resource.Loading -> Unit
-            }
-        }
+        _activeSession.value = EkagraSession(
+            id = id,
+            goalId = goalId,
+            goalTitle = goalTitle,
+            sessionType = if (goalId.isNullOrBlank()) "named" else "goal",
+            sessionTitle = taskText.ifBlank { goalTitle ?: "Free Focus" },
+            source = if (goalId.isNullOrBlank()) "manual" else "goal_continue",
+            status = "active",
+            mode = mode,
+            totalSeconds = totalSeconds,
+            remainingSeconds = remainingSeconds,
+            isRunning = true,
+            sessionStartedAt = now,
+            createdAt = now,
+            updatedAt = now,
+        )
     }
 
     fun pauseActiveSession(totalSeconds: Int, secondsLeft: Int, mode: String, goalTitle: String? = null) {
-        val id = activeSessionId ?: _activeSession.value?.id ?: return
-        viewModelScope.launch {
-            repo.updateSession(
-                sessionId = id,
-                status = "paused",
-                mode = mode,
-                totalSeconds = totalSeconds,
-                remainingSeconds = secondsLeft.coerceAtLeast(1),
-                isRunning = false,
-                sessionStartedAt = sessionStartedAt,
-                goalTitle = goalTitle,
-            )
-            loadOpenSessions()
-        }
+        updateLocalDraft(totalSeconds, secondsLeft, mode, false, goalTitle)
     }
 
     fun resumeSession(session: EkagraSession, totalSeconds: Int, secondsLeft: Int, mode: String) {
         activeSessionId = session.id
         sessionStartedAt = session.sessionStartedAt ?: Instant.now().toString()
-        viewModelScope.launch {
-            when (val r = repo.updateSession(
-                sessionId = session.id,
-                status = "active",
-                mode = mode,
-                totalSeconds = totalSeconds,
-                remainingSeconds = secondsLeft,
-                isRunning = true,
-                sessionStartedAt = sessionStartedAt,
-                goalTitle = session.goalTitle ?: session.sessionTitle,
-                source = session.source,
-                importedFromGoal = session.importedFromGoal,
-            )) {
-                is Resource.Success -> _activeSession.value = r.data
-                is Resource.Error -> Unit
-                is Resource.Loading -> Unit
-            }
-            loadOpenSessions()
-        }
+        _activeSession.value = session.copy(
+            status = "active",
+            mode = mode,
+            totalSeconds = totalSeconds,
+            remainingSeconds = secondsLeft,
+            isRunning = true,
+            sessionStartedAt = sessionStartedAt,
+            updatedAt = Instant.now().toString(),
+        )
     }
 
     fun syncActiveSession(totalSeconds: Int, secondsLeft: Int, mode: String, isRunning: Boolean, goalTitle: String? = null) {
-        val id = activeSessionId ?: _activeSession.value?.id ?: return
+        updateLocalDraft(totalSeconds, secondsLeft, mode, isRunning, goalTitle)
+    }
+
+    private fun updateLocalDraft(totalSeconds: Int, secondsLeft: Int, mode: String, isRunning: Boolean, goalTitle: String?) {
+        val current = _activeSession.value ?: return
+        _activeSession.value = current.copy(
+            status = if (isRunning) "active" else "paused",
+            mode = mode,
+            totalSeconds = totalSeconds,
+            remainingSeconds = secondsLeft.coerceIn(0, totalSeconds.coerceAtLeast(1)),
+            isRunning = isRunning,
+            goalTitle = goalTitle ?: current.goalTitle,
+            updatedAt = Instant.now().toString(),
+        )
+    }
+
+    fun addTitleToActiveSession(title: String) {
+        val cleanTitle = title.trim().ifBlank { return }
+        val current = _activeSession.value ?: return
+        _activeSession.value = current.copy(
+            sessionType = if (current.goalId.isNullOrBlank()) "named" else current.sessionType,
+            sessionTitle = cleanTitle,
+            goalTitle = current.goalTitle,
+            source = if (current.goalId.isNullOrBlank()) "manual" else current.source,
+            updatedAt = Instant.now().toString(),
+        )
+    }
+
+    fun linkActiveSessionToGoal(goal: Goal) {
+        val current = _activeSession.value ?: return
+        _activeSession.value = current.copy(
+            goalId = goal.id,
+            goalTitle = goal.title,
+            sessionType = "goal",
+            source = "goal_continue",
+            importedFromGoal = goal.importedFromGoal,
+            updatedAt = Instant.now().toString(),
+        )
+    }
+
+    fun createGoalAndCompleteSession(sessionId: String, title: String, totalSeconds: Int, secondsLeft: Int, mode: String, startedAt: String?) {
+        val cleanTitle = title.trim().ifBlank { return }
         viewModelScope.launch {
-            repo.updateSession(
-                sessionId = id,
-                status = if (isRunning) "active" else "paused",
-                mode = mode,
-                totalSeconds = totalSeconds,
-                remainingSeconds = secondsLeft.coerceAtLeast(if (isRunning) 0 else 1),
-                isRunning = isRunning,
-                sessionStartedAt = sessionStartedAt,
-                goalTitle = goalTitle,
-            )
+            val today = IstDateUtils.todayKey()
+            val nowIso = LocalDateTime.now(ZoneOffset.ofHoursMinutes(5, 30))
+                .toInstant(ZoneOffset.ofHoursMinutes(5, 30)).toString()
+            when (val created = homeRepo.addGoal(
+                title = cleanTitle,
+                description = null,
+                priority = "medium",
+                scheduledDate = today,
+                startedAt = nowIso,
+                subtasks = emptyList(),
+                source = "manual",
+                linkedFocusEnabled = false,
+                unitType = "binary",
+                plannedFocusMinutes = null,
+            )) {
+                is Resource.Success -> completeSession(
+                    sessionId = sessionId,
+                    totalSeconds = totalSeconds,
+                    secondsLeft = secondsLeft,
+                    mode = mode,
+                    startedAt = startedAt,
+                    taskTitle = cleanTitle,
+                    goalId = created.data.id,
+                    goalTitle = created.data.title,
+                )
+                is Resource.Error -> Unit
+                is Resource.Loading -> Unit
+            }
         }
+    }
+
+    fun linkGoalAndCompleteSession(
+        sessionId: String,
+        goal: Goal,
+        totalSeconds: Int,
+        secondsLeft: Int,
+        mode: String,
+        startedAt: String?,
+        markGoalComplete: Boolean = false,
+    ) {
+        completeSession(
+            sessionId = sessionId,
+            totalSeconds = totalSeconds,
+            secondsLeft = secondsLeft,
+            mode = mode,
+            startedAt = startedAt,
+            goalId = goal.id,
+            goalTitle = goal.title,
+            markGoalComplete = markGoalComplete,
+        )
     }
 
     fun onSessionCompleted(totalSeconds: Int, secondsLeft: Int, mode: String = "Timer") {
@@ -227,21 +275,36 @@ class EkagraViewModel @Inject constructor(
         secondsLeft: Int,
         mode: String = "Timer",
         startedAt: String? = null,
+        taskTitle: String? = null,
+        goalId: String? = null,
+        goalTitle: String? = null,
+        markGoalComplete: Boolean = false,
     ) {
+        val current = _activeSession.value
+        val elapsedSeconds = (totalSeconds - secondsLeft).coerceAtLeast(0)
+        val actualMinutes = (elapsedSeconds.coerceAtLeast(60) + 59) / 60
+        val plannedMinutes = (totalSeconds.coerceAtLeast(60) + 59) / 60
+        val started = startedAt ?: current?.sessionStartedAt ?: sessionStartedAt ?: Instant.now().minusSeconds(elapsedSeconds.toLong()).toString()
+        val cleanGoalId = goalId ?: current?.goalId
+        val cleanGoalTitle = goalTitle ?: current?.goalTitle
+        val cleanTitle = taskTitle?.trim()?.takeIf { it.isNotBlank() }
+            ?: current?.sessionTitle?.trim()?.takeIf { it.isNotBlank() }
+            ?: cleanGoalTitle
+            ?: "Free Focus"
+
         viewModelScope.launch {
-            repo.completeSession(
-                sessionId = sessionId,
-                totalSeconds = totalSeconds,
-                elapsedSeconds = (totalSeconds - secondsLeft).coerceAtLeast(0),
-                remainingSeconds = secondsLeft,
-                sessionStartedAt = startedAt ?: sessionStartedAt,
+            repo.saveSession(
                 mode = mode,
+                startedAt = started,
+                endedAt = Instant.now().toString(),
+                plannedDurationMinutes = plannedMinutes,
+                actualDurationMinutes = actualMinutes,
+                goalId = cleanGoalId?.takeIf { it.isNotBlank() && !it.startsWith("named:") },
+                goalTitle = cleanGoalTitle,
+                taskTitle = cleanTitle,
+                markGoalComplete = markGoalComplete,
             )
-            if (activeSessionId == sessionId) {
-                activeSessionId = null
-                sessionStartedAt = null
-                _activeSession.value = null
-            }
+            if (activeSessionId == sessionId || current?.id == sessionId) clearLocalDraft()
             focusShieldRepo.deactivateSession()
             loadStats()
             refreshEkagra()
@@ -250,25 +313,20 @@ class EkagraViewModel @Inject constructor(
     }
 
     fun discardSession(sessionId: String) {
-        viewModelScope.launch {
-            repo.discardSession(sessionId)
-            if (activeSessionId == sessionId) {
-                activeSessionId = null
-                _activeSession.value = null
-            }
-            loadOpenSessions()
+        if (activeSessionId == sessionId || _activeSession.value?.id == sessionId) {
+            clearLocalDraft()
         }
     }
 
     fun deleteSession(sessionId: String) {
-        viewModelScope.launch {
-            repo.deleteSession(sessionId)
-            if (activeSessionId == sessionId) {
-                activeSessionId = null
-                _activeSession.value = null
-            }
-            loadOpenSessions()
-        }
+        discardSession(sessionId)
+    }
+
+    fun clearLocalDraft() {
+        activeSessionId = null
+        sessionStartedAt = null
+        _activeSession.value = null
+        _openSessions.value = emptyList()
     }
 
     fun createTaskAsGoal(taskText: String) {
@@ -283,7 +341,8 @@ class EkagraViewModel @Inject constructor(
                 scheduledDate = today,
                 startedAt = nowIso,
                 subtasks = emptyList(),
-                source = "ekagra",
+                source = "manual",
+                linkedFocusEnabled = false,
             )
             loadTasks()
         }

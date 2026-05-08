@@ -18,38 +18,43 @@ val nishthaTourSteps = listOf(
         tooltipSide = TooltipSide.TOP,
     ),
     ButterflyTourStep(
-        title   = "Journal ✍️",
+        title   = "Journal",
         message = "Tap Journal to write freely. Your entries are private and stay on your device.",
         anchorX = 0.35f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
+        iconRes = com.safar.app.R.drawable.ic_pencil_simple_line
     ),
     ButterflyTourStep(
-        title   = "Goals 🎯",
+        title   = "Goals",
         message = "Set meaningful daily or weekly goals here. Completing them feeds your streak.",
         anchorX = 0.57f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
+        iconRes = com.safar.app.R.drawable.ic_target
     ),
     ButterflyTourStep(
-        title   = "Streaks 🔥",
+        title   = "Streaks",
         message = "Your current streak lives here. Consistency is the magic — even one small action counts.",
         anchorX = 0.75f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
+        iconRes = com.safar.app.R.drawable.ic_flame
     ),
     ButterflyTourStep(
-        title   = "Analytics 📊",
+        title   = "Analytics",
         message = "See your weekly patterns, mood trends, and progress charts over time.",
         anchorX = 0.92f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
+        iconRes = com.safar.app.R.drawable.ic_chart_bar
     ),
 )
 
 /** Tour steps shown on the Ekagra screen. */
 val ekagraTourSteps = listOf(
     ButterflyTourStep(
-        title   = "Welcome to Ekagra 🎯",
+        title   = "Welcome to Ekagra",
         message = "Ekagra means 'one-pointed focus'. Use it for deep work sessions, Pomodoro timers, and flow tracking.",
         anchorX = 0.5f, anchorY = 0.28f,
         tooltipSide = TooltipSide.BOTTOM,
+        iconRes = com.safar.app.R.drawable.ic_target
     ),
     ButterflyTourStep(
         title   = "Focus Timer",
@@ -64,7 +69,7 @@ val ekagraTourSteps = listOf(
         tooltipSide = TooltipSide.TOP,
     ),
     ButterflyTourStep(
-        title   = "Navigation Menu ☰",
+        title   = "Navigation Menu",
         message = "Swipe from the left or tap the menu icon to switch between SAFAR modules at any time.",
         anchorX = 0.07f, anchorY = 0.06f,
         tooltipSide = TooltipSide.BOTTOM,
@@ -74,10 +79,11 @@ val ekagraTourSteps = listOf(
 /** Tour steps shown on the Mehfil screen. */
 val mehfilTourSteps = listOf(
     ButterflyTourStep(
-        title   = "Welcome to Mehfil 🌐",
+        title   = "Welcome to Mehfil",
         message = "Mehfil is SAFAR's community space. Share thoughts, find like-minded peers, and grow together.",
         anchorX = 0.5f, anchorY = 0.3f,
         tooltipSide = TooltipSide.BOTTOM,
+        iconRes = com.safar.app.R.drawable.ic_globe
     ),
     ButterflyTourStep(
         title   = "Community Posts",
@@ -86,10 +92,11 @@ val mehfilTourSteps = listOf(
         tooltipSide = TooltipSide.TOP,
     ),
     ButterflyTourStep(
-        title   = "Sandesh 📢",
+        title   = "Sandesh",
         message = "The banner at the top is a Sandesh — a community-wide message. Tap it to react and comment.",
         anchorX = 0.5f, anchorY = 0.18f,
         tooltipSide = TooltipSide.BOTTOM,
+        iconRes = com.safar.app.R.drawable.ic_megaphone
     ),
     ButterflyTourStep(
         title   = "Connect with Someone",
@@ -104,20 +111,22 @@ val mehfilTourSteps = listOf(
         tooltipSide = TooltipSide.TOP,
     ),
     ButterflyTourStep(
-        title   = "Create a Post ✍️",
+        title   = "Create a Post",
         message = "Tap the + button to share your thoughts with the community. Choose Academic or Reflective space.",
         anchorX = 0.88f, anchorY = 0.82f,
         tooltipSide = TooltipSide.LEFT,
+        iconRes = com.safar.app.R.drawable.ic_pencil_simple_line
     ),
 )
 
 /** Tour steps shown on the Dhyan screen. */
 val dhyanTourSteps = listOf(
     ButterflyTourStep(
-        title   = "Welcome to Dhyan 🧘",
+        title   = "Welcome to Dhyan",
         message = "Dhyan means meditation in Sanskrit. This space is for breathing exercises, calm, and guided courses.",
         anchorX = 0.5f, anchorY = 0.28f,
         tooltipSide = TooltipSide.BOTTOM,
+        iconRes = com.safar.app.R.drawable.ic_person_standing
     ),
     ButterflyTourStep(
         title   = "Breathe with Me",
@@ -126,21 +135,24 @@ val dhyanTourSteps = listOf(
         tooltipSide = TooltipSide.TOP,
     ),
     ButterflyTourStep(
-        title   = "Techniques 🌬️",
+        title   = "Techniques",
         message = "Tap the air-icon FAB to switch between Diaphragmatic, Box, 4-7-8 and 6-7-8 techniques.",
         anchorX = 0.88f, anchorY = 0.82f,
         tooltipSide = TooltipSide.LEFT,
+        iconRes = com.safar.app.R.drawable.ic_wind
     ),
     ButterflyTourStep(
-        title   = "Courses 📚",
+        title   = "Courses",
         message = "Switch to the Courses tab for structured meditation tracks — including the SAFAR 30-Day Journey.",
         anchorX = 0.75f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
+        iconRes = com.safar.app.R.drawable.ic_library
     ),
     ButterflyTourStep(
-        title   = "Ambient Sound 🎵",
+        title   = "Ambient Sound",
         message = "Tap the music icon in the top bar to add Rain, Forest, Ocean, or Binaural Beats to your session.",
         anchorX = 0.88f, anchorY = 0.06f,
         tooltipSide = TooltipSide.BOTTOM,
+        iconRes = com.safar.app.R.drawable.ic_music_notes_simple
     ),
 )
