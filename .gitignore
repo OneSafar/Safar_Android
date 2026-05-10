@@ -45,3 +45,8 @@ service-account*.json
 /safar_notification_icon_assets.zip
 /package.json
 /package-lock.json
+
+# Local tooling / scratch (keep repo root clean)
+/bgremover*.tgz
+/tmp_bgremover_pkg/
+/tmp_notification_assets/
