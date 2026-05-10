@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.safar.app.BuildConfig
 import com.safar.app.R
@@ -50,7 +51,7 @@ fun DashboardScreen(
     onProfileClick: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     SafarDrawerScaffold(
         title = stringResource(R.string.dashboard_title),

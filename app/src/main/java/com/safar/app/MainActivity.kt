@@ -16,22 +16,21 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.data.local.SafarDataStore
 import com.google.firebase.messaging.FirebaseMessaging
 import com.safar.app.notifications.NotificationDeepLinkHandler
@@ -62,7 +61,6 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
         private const val TABLET_SMALLEST_WIDTH_DP = 600
-        private val PHONE_VIEWPORT_MAX_WIDTH_DP = 430.dp
     }
 
     private val serviceConnection = object : ServiceConnection {
@@ -80,13 +78,13 @@ class MainActivity : ComponentActivity() {
 
         FirebaseMessaging.getInstance().token
             .addOnSuccessListener {
-                Log.d("SAFAR_FCM", "TOKEN = $it")
+                if (BuildConfig.DEBUG) Log.d("SAFAR_FCM", "FCM token fetched")
             }
             .addOnFailureListener {
-                Log.e("SAFAR_FCM", "TOKEN fetch failed", it)
+                if (BuildConfig.DEBUG) Log.e("SAFAR_FCM", "FCM token fetch failed", it)
             }
             .addOnCompleteListener { task ->
-                Log.d("SAFAR_FCM", "TOKEN task complete. success=${task.isSuccessful}")
+                if (BuildConfig.DEBUG) Log.d("SAFAR_FCM", "FCM token task complete. success=${task.isSuccessful}")
             }
 
         // Bind (and start) the TimerService so it survives navigation
@@ -103,27 +101,30 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val themeViewModel: ThemeViewModel = hiltViewModel()
-            val isDarkTheme by themeViewModel.isDarkTheme.collectAsState()
-            val isNightMode by themeViewModel.isNightMode.collectAsState()
-            val currentLanguage by themeViewModel.language.collectAsState()
+            val isDarkTheme by themeViewModel.isDarkTheme.collectAsStateWithLifecycle()
+            val isNightMode by themeViewModel.isNightMode.collectAsStateWithLifecycle()
+            val currentLanguage by themeViewModel.language.collectAsStateWithLifecycle()
+            val configuration = LocalConfiguration.current
 
             SafarTheme(darkTheme = isDarkTheme, nightMode = isNightMode) {
-                val configuration = LocalConfiguration.current
-                val isTablet = configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP
-                Box(
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(androidx.compose.material3.MaterialTheme.colorScheme.background),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .then(
-                                if (isTablet) Modifier.widthIn(max = PHONE_VIEWPORT_MAX_WIDTH_DP)
-                                else Modifier.fillMaxSize()
-                            )
-                    ) {
+                    val isTablet = configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP
+                    val isTabletLandscape = isTablet && maxWidth > maxHeight
+                    val appContentModifier =
+                        if (isTabletLandscape) {
+                            Modifier
+                                .width(maxHeight * 9f / 16f)
+                                .fillMaxHeight()
+                        } else {
+                            Modifier.fillMaxSize()
+                        }
+
+                    Surface(modifier = appContentModifier) {
                         // Provide TimerService to the entire composition tree
                         CompositionLocalProvider(LocalTimerService provides timerService) {
                             SafarNavGraph(
@@ -193,6 +194,49 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun buildTimerPipParams(): PictureInPictureParams? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
+        return PictureInPictureParams.Builder()
+            .setAspectRatio(Rational(1, 1))
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    setAutoEnterEnabled(timerService?.isRunning?.value == true)
+                    setSeamlessResizeEnabled(true)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    setTitle("SAFAR Focus Timer")
+                    setSubtitle("Focus timer running")
+                }
+            }
+            .build()
+    }
+
+    private fun enterTimerPipIfRunning(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+        val service = timerService ?: return false
+        if (!service.isRunning.value || isFinishing || isDestroyed) return false
+        return try {
+            buildTimerPipParams()?.let(::enterPictureInPictureMode) ?: false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun keepPipAliveIfTimerRunning() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        window.decorView.postDelayed({
+            if (
+                timerService?.isRunning?.value == true &&
+                !isInPictureInPictureMode &&
+                !hasWindowFocus() &&
+                !isFinishing &&
+                !isDestroyed
+            ) {
+                enterTimerPipIfRunning()
+            }
+        }, 250L)
+    }
+
     override fun onDestroy() {
         unbindService(serviceConnection)
         super.onDestroy()
@@ -202,22 +246,7 @@ class MainActivity : ComponentActivity() {
     // onUserLeaveHint fires ONLY on app minimize — never on in-app navigation.
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val service = timerService ?: return
-            if (!service.isRunning.value) return
-            try {
-                val params = PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(1, 1))
-                    .apply {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            setAutoEnterEnabled(true)
-                            setSeamlessResizeEnabled(true)
-                        }
-                    }
-                    .build()
-                enterPictureInPictureMode(params)
-            } catch (_: Exception) {}
-        }
+        enterTimerPipIfRunning()
     }
 
     override fun onPictureInPictureModeChanged(
@@ -232,6 +261,14 @@ class MainActivity : ComponentActivity() {
         } else {
             // Exiting PiP (restore) — also navigate to Ekagra
             navigateToEkagra = true
+            keepPipAliveIfTimerRunning()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isInPictureInPictureMode) {
+            keepPipAliveIfTimerRunning()
         }
     }
 

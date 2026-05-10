@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.domain.model.JournalEntry
 import com.safar.app.ui.nishtha.NishthaEvent
 import com.safar.app.ui.nishtha.NishthaViewModel
@@ -50,7 +51,7 @@ private val journalPrompts = listOf(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad: Boolean = false) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showWriteSheet by remember { mutableStateOf(openSheetOnLoad) }
     var titleInput by remember { mutableStateOf("") }

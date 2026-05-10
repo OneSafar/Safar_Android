@@ -6,6 +6,7 @@ object Routes {
     const val HOME      = "home"
     const val DASHBOARD = "dashboard"
     const val PROFILE   = "profile"
+    const val SETTINGS  = "settings"
     const val ACHIEVEMENTS = "achievements"
     const val NISHTHA           = "nishtha"
     const val NISHTHA_CHECKIN   = "nishtha/checkin"

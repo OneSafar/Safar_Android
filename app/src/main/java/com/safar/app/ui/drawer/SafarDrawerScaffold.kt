@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.R
 import com.safar.app.ui.theme.LoraFontFamily
 import com.safar.app.ui.theme.ThemeViewModel
@@ -47,7 +48,7 @@ fun SafarDrawerScaffold(
     } else {
         hiltViewModel()
     }
-    val liveDark by themeVm.isDarkTheme.collectAsState()
+    val liveDark by themeVm.isDarkTheme.collectAsStateWithLifecycle()
 
     val actualContentColor = topBarContentColor ?: if (liveDark) Color.White else MaterialTheme.colorScheme.onSurface
 

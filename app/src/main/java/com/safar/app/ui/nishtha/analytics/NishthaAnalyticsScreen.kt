@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.R
 import com.safar.app.domain.model.MonthlyReport
 import com.safar.app.ui.nishtha.NishthaEvent
@@ -47,7 +48,7 @@ fun NishthaAnalyticsScreen(
     onNavigate: (String) -> Unit = {},
     initialSection: String = "overview",
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val report = uiState.monthlyReport
     val achievements = uiState.achievements
 

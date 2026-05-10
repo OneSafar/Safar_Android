@@ -8,6 +8,36 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+val releaseStoreFile = providers.gradleProperty("SAFAR_RELEASE_STORE_FILE")
+    .orElse(providers.environmentVariable("SAFAR_RELEASE_STORE_FILE"))
+val releaseStorePassword = providers.gradleProperty("SAFAR_RELEASE_STORE_PASSWORD")
+    .orElse(providers.environmentVariable("SAFAR_RELEASE_STORE_PASSWORD"))
+val releaseKeyAlias = providers.gradleProperty("SAFAR_RELEASE_KEY_ALIAS")
+    .orElse(providers.environmentVariable("SAFAR_RELEASE_KEY_ALIAS"))
+val releaseKeyPassword = providers.gradleProperty("SAFAR_RELEASE_KEY_PASSWORD")
+    .orElse(providers.environmentVariable("SAFAR_RELEASE_KEY_PASSWORD"))
+val hasReleaseSigning = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { it.isPresent }
+
+gradle.taskGraph.whenReady {
+    val requiresReleaseSigning = allTasks.any { task ->
+        task.path.startsWith(":app:") &&
+            task.name.contains("Release") &&
+            (task.name.startsWith("assemble") || task.name.startsWith("bundle"))
+    }
+    if (requiresReleaseSigning && !hasReleaseSigning) {
+        throw GradleException(
+            "Release signing is not configured. Set SAFAR_RELEASE_STORE_FILE, " +
+                "SAFAR_RELEASE_STORE_PASSWORD, SAFAR_RELEASE_KEY_ALIAS, and " +
+                "SAFAR_RELEASE_KEY_PASSWORD in local Gradle properties or CI environment."
+        )
+    }
+}
+
 android {
     namespace = "com.safar.app"
     compileSdk = 35
@@ -32,21 +62,27 @@ android {
             applicationIdSuffix = ".qa"
             versionNameSuffix = "-qa"
             buildConfigField("String", "BASE_URL", "\"$qaBaseUrl\"")
-            resValue("string", "app_name", "SAFAR QA")
+            manifestPlaceholders["allowBackup"] = "false"
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+            resValue("string", "app_name", "Safar QA")
         }
         create("prod") {
             dimension = "env"
             buildConfigField("String", "BASE_URL", "\"https://safar.parmarssc.in/api/\"")
+            manifestPlaceholders["allowBackup"] = "false"
+            manifestPlaceholders["usesCleartextTraffic"] = "false"
             resValue("string", "app_name", "SAFAR")
         }
     }
 
     signingConfigs {
         create("release") {
-            storeFile = file("safar-release.jks")
-            storePassword = "safarrel123"
-            keyAlias = "safarrelease"
-            keyPassword = "safarrel123"
+            if (hasReleaseSigning) {
+                storeFile = file(releaseStoreFile.get())
+                storePassword = releaseStorePassword.get()
+                keyAlias = releaseKeyAlias.get()
+                keyPassword = releaseKeyPassword.get()
+            }
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
@@ -58,7 +94,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -144,6 +182,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

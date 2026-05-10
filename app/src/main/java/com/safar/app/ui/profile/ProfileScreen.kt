@@ -1,48 +1,230 @@
 package com.safar.app.ui.profile
 
-import androidx.compose.foundation.BorderStroke
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Nightlight
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.safar.app.notifications.rememberNotificationPermissionRequester
-import com.safar.app.ui.theme.Green500
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.text.style.TextAlign
+/** Tailwind-aligned tokens from the Profile Settings design reference. */
+internal object ProfileDesignColors {
+    val PrimaryContainer = Color(0xFF2D3E9F)
+    val PrimaryFixed = Color(0xFFDEE0FF)
+    val Primary = Color(0xFF102488)
+    val OnSurfaceVariant = Color(0xFF454652)
+    val SurfaceVariant = Color(0xFFE3E2E0)
+    val SurfaceContainerLow = Color(0xFFF4F3F1)
+    val OnBackground = Color(0xFF1A1C1B)
+    val Background = Color(0xFFFAF9F7)
+    val SurfaceBright = Color(0xFFFAF9F7)
+    val Outline = Color(0xFF757684)
+    val ErrorContainer = Color(0xFFFFDAD6)
+    val Error = Color(0xFFBA1A1A)
+    val Success = Color(0xFF22C55E)
+    val SuccessBackground = Color(0xFFF0FDF4)
+    val SuccessLabel = Color(0xFF15803D)
+}
+
+internal object ProfileDesignTypography {
+    val HeadlineXl = androidx.compose.ui.text.TextStyle(
+        fontSize = 32.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 40.sp,
+        letterSpacing = (-0.64).sp,
+    )
+    val HeadlineLg = androidx.compose.ui.text.TextStyle(
+        fontSize = 24.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 32.sp,
+    )
+    val HeadlineMd = androidx.compose.ui.text.TextStyle(
+        fontSize = 20.sp,
+        fontWeight = FontWeight.SemiBold,
+        lineHeight = 28.sp,
+    )
+    val BodyLg = androidx.compose.ui.text.TextStyle(
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Normal,
+        lineHeight = 24.sp,
+    )
+    val BodyMd = androidx.compose.ui.text.TextStyle(
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Normal,
+        lineHeight = 20.sp,
+    )
+    val LabelCaps = androidx.compose.ui.text.TextStyle(
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 16.sp,
+        letterSpacing = 0.6.sp,
+    )
+    val LabelSm = androidx.compose.ui.text.TextStyle(
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Medium,
+        lineHeight = 16.sp,
+    )
+}
 
 private val examOptions = listOf("UPSC", "SSC", "IBPS", "RRB", "NEET", "JEE", "12th Boards", "State PSC", "CAT", "GATE", "Other")
 private val stageOptions = listOf("Beginner", "Intermediate", "Advanced", "Revision", "Mock Tests")
 private val genderOptions = listOf("Male", "Female", "Other", "Prefer not to say")
 
-private fun isValidReminderTimeInput(value: String): Boolean {
-    if (!Regex("^\\d{2}:\\d{2}$").matches(value)) return false
-    val parts = value.split(":")
-    if (parts.size != 2) return false
-    val hour = parts[0].toIntOrNull() ?: return false
-    val minute = parts[1].toIntOrNull() ?: return false
-    return hour in 0..23 && minute in 0..59
+@Composable
+private fun lightBg(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.background else ProfileDesignColors.Background
+
+@Composable
+private fun glassSurface(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.96f) else Color.White.copy(alpha = 0.85f)
+
+@Composable
+private fun labelCapsColor(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer
+
+@Composable
+private fun iconCircleBg(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else ProfileDesignColors.PrimaryFixed
+
+@Composable
+private fun iconTint(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer
+
+@Composable
+private fun borderUnfocused(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.55f) else ProfileDesignColors.SurfaceVariant
+
+@Composable
+private fun borderDisabled(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.35f) else ProfileDesignColors.SurfaceVariant
+
+@Composable
+private fun subtleText(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant else ProfileDesignColors.OnSurfaceVariant
+
+@Composable
+private fun footerMuted(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f) else ProfileDesignColors.Outline
+
+@Composable
+private fun GlassCard(modifier: Modifier = Modifier, isDarkTheme: Boolean, content: @Composable () -> Unit) {
+    val borderCol = if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.4f)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(24.dp),
+                spotColor = ProfileDesignColors.PrimaryContainer.copy(alpha = 0.06f),
+            )
+            .clip(RoundedCornerShape(24.dp))
+            .background(glassSurface(isDarkTheme))
+            .border(1.dp, borderCol, RoundedCornerShape(24.dp)),
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun SectionHeader(icon: ImageVector, title: String, isDarkTheme: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(iconCircleBg(isDarkTheme)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = iconTint(isDarkTheme), modifier = Modifier.size(22.dp))
+        }
+        Text(
+            title,
+            style = ProfileDesignTypography.HeadlineMd,
+            color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+            modifier = Modifier.weight(1f),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,34 +234,15 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onHome: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     onToggleDarkTheme: () -> Unit,
+    onLibrary: () -> Unit = {},
+    onProgress: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var pendingMasterEnable by remember { mutableStateOf(false) }
-    var pendingDailyEnable by remember { mutableStateOf(false) }
-    var reminderDraft by remember(uiState.dailyReminderTime) { mutableStateOf(uiState.dailyReminderTime) }
-
-    val requestNotificationPermission = rememberNotificationPermissionRequester { granted ->
-        if (pendingMasterEnable) {
-            pendingMasterEnable = false
-            if (granted) {
-                viewModel.onEvent(ProfileEvent.ToggleNotifications(true))
-            } else {
-                Toast.makeText(context, "Notification permission is required to enable alerts.", Toast.LENGTH_SHORT).show()
-            }
-        }
-        if (pendingDailyEnable) {
-            pendingDailyEnable = false
-            if (granted) {
-                if (!uiState.notificationsEnabled) viewModel.onEvent(ProfileEvent.ToggleNotifications(true))
-                viewModel.onEvent(ProfileEvent.ToggleDailyStudyReminder(true))
-            } else {
-                Toast.makeText(context, "Notification permission is required for daily reminders.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+    val pageBg = lightBg(isDarkTheme)
 
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
@@ -94,505 +257,625 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = pageBg,
         topBar = {
             Surface(
-                modifier = Modifier.shadow(8.dp, spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                color = MaterialTheme.colorScheme.background
+                color = if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.92f) else ProfileDesignColors.SurfaceBright.copy(alpha = 0.9f),
+                modifier = Modifier.shadow(1.dp, spotColor = Color.Black.copy(alpha = 0.06f)),
             ) {
                 TopAppBar(
                     title = {
-                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                            Text("Profile Settings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, letterSpacing = (-0.5).sp)
-                            Text("Manage your sanctuary preferences.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f))
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                "Profile",
+                                style = ProfileDesignTypography.HeadlineMd,
+                                color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                "Your identity and study",
+                                style = ProfileDesignTypography.BodyMd,
+                                color = if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant else ProfileDesignColors.OnSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.primary) }
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
+                            )
+                        }
                     },
                     actions = {
-                        IconButton(onClick = onHome) { Icon(Icons.Default.Home, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        IconButton(onClick = onToggleDarkTheme) { Icon(if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.Nightlight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = navIconTint(isDarkTheme))
+                        }
+                        IconButton(onClick = onHome) {
+                            Icon(Icons.Default.Home, contentDescription = "Home", tint = navIconTint(isDarkTheme))
+                        }
+                        IconButton(onClick = onToggleDarkTheme) {
+                            Icon(
+                                if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.Nightlight,
+                                contentDescription = "Theme",
+                                tint = navIconTint(isDarkTheme),
+                            )
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 )
             }
         },
-    ) { padding ->
+        bottomBar = {
+            ProfileBottomNavigation(
+                isDarkTheme = isDarkTheme,
+                onHome = onHome,
+                onLibrary = onLibrary,
+                onProgress = onProgress,
+            )
+        },
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            // Avatar / name card with subtle glow
-            Box {
-                Card(
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(2.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.03f), Color.Transparent)
-                                )
-                            )
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(18.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.BottomEnd) {
-                            // Avatar Aura
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .blur(12.dp, BlurredEdgeTreatment.Unbounded)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                        )
-                                    )
-                                    .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(uiState.userName.firstOrNull()?.uppercase() ?: "U", fontSize = 26.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                            }
-                            Surface(
-                                modifier = Modifier.size(22.dp),
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary,
-                                shadowElevation = 2.dp
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.CameraAlt, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(12.dp))
-                                }
-                            }
-                        }
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(uiState.userName.ifEmpty { "User" }, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, letterSpacing = (-0.5).sp)
-                            Text(uiState.userEmail, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                            Surface(
-                                color = Green500.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(50),
-                                modifier = Modifier.padding(top = 2.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                ) {
-                                    Box(Modifier.size(6.dp).clip(CircleShape).background(Green500))
-                                    Text("ONLINE", fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = Green500)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            ProfileHeaderCard(uiState = uiState, isDarkTheme = isDarkTheme)
 
-            // Personal Information
-            ProfileSectionCard(title = "Personal Information", icon = Icons.Default.Person) {
-                ProfileFieldLabel("FULL NAME")
-                OutlinedTextField(
-                    value = uiState.editName,
-                    onValueChange = { viewModel.onEvent(ProfileEvent.UpdateName(it)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
-                    )
-                )
+            PersonalInfoSection(uiState = uiState, viewModel = viewModel, isDarkTheme = isDarkTheme)
 
-                Spacer(Modifier.height(8.dp))
-                ProfileFieldLabel("EMAIL ADDRESS")
-                OutlinedTextField(
-                    value = uiState.userEmail,
-                    onValueChange = {},
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = false,
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.05f),
-                        disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                )
-                Text("Contact support to update your primary email address.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.padding(start = 4.dp))
+            ExamFocusSection(uiState = uiState, viewModel = viewModel, isDarkTheme = isDarkTheme)
 
-                Spacer(Modifier.height(8.dp))
-                ProfileFieldLabel("GENDER")
-                DropdownSelector(
-                    selected = uiState.editGender.ifEmpty { "Select gender" },
-                    options = genderOptions,
-                    onSelect = { viewModel.onEvent(ProfileEvent.UpdateGender(it)) },
-                )
-            }
-
-            // Exam Focus
-            ProfileSectionCard(title = "Exam Focus", icon = Icons.Default.School) {
-                ProfileFieldLabel("TARGET EXAM")
-                DropdownSelector(
-                    selected = uiState.editExamType.ifEmpty { "Select exam" },
-                    options = examOptions,
-                    onSelect = { viewModel.onEvent(ProfileEvent.UpdateExamType(it)) },
-                )
-
-                Spacer(Modifier.height(14.dp))
-                ProfileFieldLabel("PREPARATION STAGE")
-                DropdownSelector(
-                    selected = uiState.editStage.ifEmpty { "Select stage" },
-                    options = stageOptions,
-                    onSelect = { viewModel.onEvent(ProfileEvent.UpdateStage(it)) },
-                )
-            }
-
-            // Account Status
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(1.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-            ) {
-                Row(
-                    Modifier
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f), Color.Transparent)
-                            )
-                        )
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Box(Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(0.1f)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Shield, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Text("Account Status", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Text("Your account is verified and secured.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                    }
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            "VERIFIED",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-                }
-            }
-
-            ProfileSectionCard(title = "Notifications", icon = Icons.Default.Notifications) {
-                Text(
-                    "Helpful alerts for focus sessions, streaks, and important class updates.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                NotificationToggleRow(
-                    title = "Notifications",
-                    subtitle = "Master switch for SAFAR alerts.",
-                    checked = uiState.notificationsEnabled,
-                    onCheckedChange = {
-                        if (!it) {
-                            viewModel.onEvent(ProfileEvent.ToggleNotifications(false))
-                        } else {
-                            pendingMasterEnable = true
-                            requestNotificationPermission()
-                        }
-                    },
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
-                NotificationToggleRow(
-                    title = "Focus timer updates",
-                    subtitle = "Timer running, session complete, and break status.",
-                    checked = uiState.focusTimerNotificationsEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(ProfileEvent.ToggleFocusTimerNotifications(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Daily study reminders",
-                    subtitle = "A planned reminder for your Ekagra study block.",
-                    checked = uiState.dailyStudyReminderEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = {
-                        if (!it) {
-                            viewModel.onEvent(ProfileEvent.ToggleDailyStudyReminder(false))
-                        } else {
-                            pendingDailyEnable = true
-                            requestNotificationPermission()
-                        }
-                    },
-                )
-                OutlinedTextField(
-                    value = reminderDraft,
-                    onValueChange = { value ->
-                        if (value.length <= 5 && value.all { it.isDigit() || it == ':' }) {
-                            reminderDraft = value
-                        }
-                        if (isValidReminderTimeInput(value)) {
-                            viewModel.onEvent(ProfileEvent.UpdateDailyReminderTime(value))
-                        }
-                    },
-                    enabled = uiState.notificationsEnabled && uiState.dailyStudyReminderEnabled,
-                    label = { Text("Reminder time") },
-                    placeholder = { Text("19:00") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    supportingText = {
-                        if (reminderDraft.isNotBlank() && !isValidReminderTimeInput(reminderDraft)) {
-                            Text("Use 24-hour time in HH:mm format (e.g., 07:30, 19:00).")
-                        }
-                    },
-                )
-                NotificationToggleRow(
-                    title = "Streak reminders",
-                    subtitle = "Evening warning before your streak expires.",
-                    checked = uiState.streakReminderEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(ProfileEvent.ToggleStreakReminder(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Course/class updates",
-                    subtitle = "New lessons, tests, PDFs, and live class alerts.",
-                    checked = uiState.courseUpdatesEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(ProfileEvent.ToggleCourseUpdates(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Achievements",
-                    subtitle = "Badges, milestones, and goal completion.",
-                    checked = uiState.achievementsEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(ProfileEvent.ToggleAchievements(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Community replies",
-                    subtitle = "Mehfil replies, mentions, and teacher responses.",
-                    checked = uiState.communityRepliesEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(ProfileEvent.ToggleCommunityReplies(it)) },
-                )
-                NotificationToggleRow(
-                    title = "SAFAR announcements",
-                    subtitle = "Admin announcements and major challenges.",
-                    checked = uiState.announcementsEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(ProfileEvent.ToggleAnnouncements(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Weekly summary",
-                    subtitle = "Progress recap when summaries are enabled.",
-                    checked = uiState.weeklySummaryEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(ProfileEvent.ToggleWeeklySummary(it)) },
-                )
-                Text(
-                    "Quiet hours: ${uiState.quietHoursStart} to ${uiState.quietHoursEnd}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            AccountStatusSection(isDarkTheme = isDarkTheme)
 
             if (uiState.error != null) {
                 Surface(
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
                         uiState.error!!,
                         color = MaterialTheme.colorScheme.error,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(12.dp)
+                        style = ProfileDesignTypography.BodyMd,
+                        modifier = Modifier.padding(14.dp),
+                        maxLines = 6,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = { viewModel.onEvent(ProfileEvent.ShowLogoutDialog) },
-                    modifier = Modifier.weight(1f).height(54.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
-                ) {
-                    Icon(Icons.Default.Logout, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Logout", fontWeight = FontWeight.Bold)
-                }
-                
-                Button(
-                    onClick = { viewModel.onEvent(ProfileEvent.SaveProfile) },
-                    enabled = !uiState.isSaving,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(54.dp)
-                        .shadow(4.dp, RoundedCornerShape(16.dp), spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(0.dp) // Important for gradient background
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.horizontalGradient(
-                                    if (uiState.isSaving) listOf(Color.Gray, Color.Gray)
-                                    else listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (uiState.isSaving) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.5.dp)
-                        } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Save Changes", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                            }
-                        }
-                    }
-                }
-            }
+            ActionsSection(
+                isSaving = uiState.isSaving,
+                isDarkTheme = isDarkTheme,
+                onLogoutClick = { viewModel.onEvent(ProfileEvent.ShowLogoutDialog) },
+                onSaveClick = { viewModel.onEvent(ProfileEvent.SaveProfile) },
+            )
 
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    "For any technical or app related queries mail at\nonesafar@gmail.com • safarparmar0@gmail.com",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    lineHeight = 18.sp,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-                Text("© 2026 SAFAR • Version 1.0.4", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-            }
-            Spacer(Modifier.height(24.dp))
+            FooterSection(isDarkTheme = isDarkTheme)
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 
     if (uiState.showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) },
-            icon = { Icon(Icons.Default.Logout, null, tint = MaterialTheme.colorScheme.error) },
+            icon = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = MaterialTheme.colorScheme.error) },
             title = { Text("Confirm Logout", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to logout? You will need to sign in again to access your sanctuary.") },
-            confirmButton = { Button(onClick = { viewModel.logout { onLogout() } }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Logout", fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) }) { Text("Stay Here", fontWeight = FontWeight.SemiBold) } },
-            shape = RoundedCornerShape(24.dp)
-        )
-    }
-}
-
-@Composable
-private fun NotificationToggleRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    enabled: Boolean = true,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Switch(
-            checked = checked,
-            enabled = enabled,
-            onCheckedChange = onCheckedChange,
-        )
-    }
-}
-
-@Composable
-private fun ProfileSectionCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(1.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-    ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(0.12f)), contentAlignment = Alignment.Center) {
-                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.logout { onLogout() } },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Text("Logout", fontWeight = FontWeight.Bold)
                 }
-                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = (-0.3).sp)
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) }) {
+                    Text("Stay Here", fontWeight = FontWeight.SemiBold)
+                }
+            },
+            shape = RoundedCornerShape(24.dp),
+        )
+    }
+}
+
+@Composable
+private fun navIconTint(isDarkTheme: Boolean): Color =
+    if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.92f) else ProfileDesignColors.OnSurfaceVariant
+
+@Composable
+private fun ProfileHeaderCard(uiState: ProfileUiState, isDarkTheme: Boolean) {
+    GlassCard(isDarkTheme = isDarkTheme) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(contentAlignment = Alignment.BottomEnd) {
+                val avatarRing = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.White
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                        .background(iconCircleBg(isDarkTheme))
+                        .border(4.dp, avatarRing, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        uiState.userName.firstOrNull()?.uppercase() ?: "U",
+                        style = ProfileDesignTypography.HeadlineXl,
+                        color = iconTint(isDarkTheme),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .offset(x = 4.dp, y = 4.dp)
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer)
+                        .border(2.dp, avatarRing, CircleShape)
+                        .clickable { /* photo picker TBD */ },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = "Change photo",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.06f), thickness = 1.dp)
-            content()
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .wrapContentHeight(),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    uiState.userName.ifEmpty { "User" },
+                    style = ProfileDesignTypography.HeadlineLg,
+                    color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    uiState.userEmail,
+                    style = ProfileDesignTypography.BodyLg,
+                    color = subtleText(isDarkTheme),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(6.dp))
+                val onlineBg =
+                    if (isDarkTheme) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                    else ProfileDesignColors.SuccessBackground
+                val onlineDot =
+                    if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                    else ProfileDesignColors.Success
+                val onlineFg =
+                    if (isDarkTheme) MaterialTheme.colorScheme.onPrimaryContainer
+                    else ProfileDesignColors.SuccessLabel
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(onlineBg)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(onlineDot),
+                    )
+                    Text("ONLINE", style = ProfileDesignTypography.LabelCaps, color = onlineFg)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ProfileFieldLabel(text: String) {
-    Text(
-        text,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Black,
-        letterSpacing = 1.sp,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-        modifier = Modifier.padding(bottom = 2.dp, start = 2.dp)
+private fun PersonalInfoSection(uiState: ProfileUiState, viewModel: ProfileViewModel, isDarkTheme: Boolean) {
+    GlassCard(isDarkTheme = isDarkTheme) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            SectionHeader(Icons.Default.Person, "Personal Information", isDarkTheme)
+            Spacer(Modifier.height(24.dp))
+            CustomTextField(
+                label = "FULL NAME",
+                value = uiState.editName,
+                onValueChange = { viewModel.onEvent(ProfileEvent.UpdateName(it)) },
+                isDarkTheme = isDarkTheme,
+            )
+            Spacer(Modifier.height(24.dp))
+            CustomTextField(
+                label = "EMAIL ADDRESS",
+                value = uiState.userEmail,
+                onValueChange = {},
+                enabled = false,
+                helperText = "Contact support to update your primary email address.",
+                isDarkTheme = isDarkTheme,
+            )
+            Spacer(Modifier.height(24.dp))
+            CustomDropdownMenu(
+                label = "GENDER",
+                options = genderOptions,
+                selectedOption = uiState.editGender.ifEmpty { "Select gender" },
+                onSelect = { viewModel.onEvent(ProfileEvent.UpdateGender(it)) },
+                isDarkTheme = isDarkTheme,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExamFocusSection(uiState: ProfileUiState, viewModel: ProfileViewModel, isDarkTheme: Boolean) {
+    GlassCard(isDarkTheme = isDarkTheme) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            SectionHeader(Icons.Default.School, "Exam Focus", isDarkTheme)
+            Spacer(Modifier.height(24.dp))
+            CustomDropdownMenu(
+                label = "TARGET EXAM",
+                options = examOptions,
+                selectedOption = uiState.editExamType.ifEmpty { "Select exam" },
+                onSelect = { viewModel.onEvent(ProfileEvent.UpdateExamType(it)) },
+                isDarkTheme = isDarkTheme,
+            )
+            Spacer(Modifier.height(24.dp))
+            CustomDropdownMenu(
+                label = "PREPARATION STAGE",
+                options = stageOptions,
+                selectedOption = uiState.editStage.ifEmpty { "Select stage" },
+                onSelect = { viewModel.onEvent(ProfileEvent.UpdateStage(it)) },
+                isDarkTheme = isDarkTheme,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccountStatusSection(isDarkTheme: Boolean) {
+    GlassCard(isDarkTheme = isDarkTheme) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(iconCircleBg(isDarkTheme)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = iconTint(isDarkTheme),
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Account Status",
+                        style = ProfileDesignTypography.HeadlineMd,
+                        color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        "Your account is verified and secured.",
+                        style = ProfileDesignTypography.BodyMd,
+                        color = subtleText(isDarkTheme),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Text(
+                text = "VERIFIED",
+                style = ProfileDesignTypography.LabelCaps,
+                color = iconTint(isDarkTheme),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(iconCircleBg(isDarkTheme))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActionsSection(
+    isSaving: Boolean,
+    isDarkTheme: Boolean,
+    onLogoutClick: () -> Unit,
+    onSaveClick: () -> Unit,
+) {
+    val primaryBtn = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        OutlinedButton(
+            onClick = onLogoutClick,
+            modifier = Modifier
+                .weight(1f)
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isDarkTheme) MaterialTheme.colorScheme.error.copy(alpha = 0.65f) else ProfileDesignColors.ErrorContainer,
+            ),
+        ) {
+            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Logout",
+                style = ProfileDesignTypography.HeadlineMd.copy(fontSize = 16.sp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Button(
+            onClick = onSaveClick,
+            enabled = !isSaving,
+            modifier = Modifier
+                .weight(1f)
+                .height(56.dp)
+                .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = ProfileDesignColors.PrimaryContainer.copy(alpha = 0.35f)),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = primaryBtn,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+        ) {
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Save Changes",
+                    style = ProfileDesignTypography.HeadlineMd.copy(fontSize = 16.sp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FooterSection(isDarkTheme: Boolean) {
+    val outline = footerMuted(isDarkTheme)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "For any technical or app related queries mail at\nonesafar@gmail.com • safarparmar0@gmail.com",
+            style = ProfileDesignTypography.BodyMd,
+            color = outline,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "© 2026 SAFAR • Version 1.0.4",
+            style = ProfileDesignTypography.BodyMd,
+            color = outline.copy(alpha = 0.6f),
+        )
+    }
+}
+
+@Composable
+private fun ProfileBottomNavigation(
+    isDarkTheme: Boolean,
+    onHome: () -> Unit,
+    onLibrary: () -> Unit,
+    onProgress: () -> Unit,
+) {
+    val container = if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.92f) else ProfileDesignColors.SurfaceBright.copy(alpha = 0.9f)
+    val items = listOf(
+        Triple("Home", Icons.Default.Home, onHome),
+        Triple("Library", Icons.AutoMirrored.Filled.MenuBook, onLibrary),
+        Triple("Progress", Icons.Default.BarChart, onProgress),
+        Triple("Profile", Icons.Default.Person, { }),
     )
+    NavigationBar(
+        containerColor = container,
+        tonalElevation = 8.dp,
+        modifier = Modifier
+            .navigationBarsPadding()
+            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+        windowInsets = NavigationBarDefaults.windowInsets,
+    ) {
+        items.forEach { (label, icon, onClick) ->
+            val selected = label == "Profile"
+            NavigationBarItem(
+                selected = selected,
+                onClick = onClick,
+                icon = {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = if (selected) {
+                            if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer
+                        } else {
+                            navIconTint(isDarkTheme)
+                        },
+                    )
+                },
+                label = {
+                    Text(
+                        text = label.uppercase(),
+                        style = ProfileDesignTypography.LabelSm.copy(fontSize = 10.sp, letterSpacing = 0.3.sp),
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = ProfileDesignColors.PrimaryFixed.copy(alpha = if (isDarkTheme) 0.35f else 0.5f),
+                    selectedIconColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
+                    selectedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
+                    unselectedIconColor = navIconTint(isDarkTheme),
+                    unselectedTextColor = navIconTint(isDarkTheme),
+                ),
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DropdownSelector(selected: String, options: List<String>, onSelect: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+private fun CustomTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    enabled: Boolean = true,
+    helperText: String? = null,
+    isDarkTheme: Boolean,
+) {
+    Column {
+        Text(text = label, style = ProfileDesignTypography.LabelCaps, color = labelCapsColor(isDarkTheme))
+        Spacer(Modifier.height(8.dp))
         OutlinedTextField(
-            value = selected, onValueChange = {}, readOnly = true, modifier = Modifier.fillMaxWidth().menuAnchor(),
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            shape = RoundedCornerShape(12.dp),
+            value = value,
+            onValueChange = onValueChange,
+            readOnly = false,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp),
+            textStyle = ProfileDesignTypography.BodyLg,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
-            )
+                focusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                unfocusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                disabledTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant else ProfileDesignColors.OnSurfaceVariant,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedBorderColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
+                unfocusedBorderColor = borderUnfocused(isDarkTheme),
+                disabledBorderColor = borderDisabled(isDarkTheme),
+                focusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f) else ProfileDesignColors.SurfaceBright,
+                unfocusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f) else ProfileDesignColors.SurfaceBright,
+                disabledContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else ProfileDesignColors.SurfaceContainerLow,
+            ),
         )
-        ExposedDropdownMenu(
+        if (helperText != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = helperText,
+                style = ProfileDesignTypography.BodyMd.copy(fontSize = 12.sp),
+                color = if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f) else ProfileDesignColors.Outline,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomDropdownMenu(
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onSelect: (String) -> Unit,
+    isDarkTheme: Boolean,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        Text(text = label, style = ProfileDesignTypography.LabelCaps, color = labelCapsColor(isDarkTheme))
+        Spacer(Modifier.height(8.dp))
+        ExposedDropdownMenuBox(
             expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+            onExpandedChange = { expanded = it },
         ) {
-            options.forEach { opt ->
-                DropdownMenuItem(
-                    text = { Text(opt, fontWeight = FontWeight.Medium) },
-                    onClick = { onSelect(opt); expanded = false },
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                )
+            OutlinedTextField(
+                value = selectedOption,
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
+                shape = RoundedCornerShape(16.dp),
+                textStyle = ProfileDesignTypography.BodyLg,
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(
+                        expanded = expanded,
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                    unfocusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedBorderColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
+                    unfocusedBorderColor = borderUnfocused(isDarkTheme),
+                    focusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f) else ProfileDesignColors.SurfaceBright,
+                    unfocusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f) else ProfileDesignColors.SurfaceBright,
+                ),
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                option,
+                                style = ProfileDesignTypography.BodyLg,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        onClick = {
+                            onSelect(option)
+                            expanded = false
+                        },
+                    )
+                }
             }
         }
     }

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,8 +29,8 @@ fun AppPickerScreen(
     onBack: () -> Unit,
     viewModel: FocusShieldViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.pickerState.collectAsState()
-    val shieldState by viewModel.shieldState.collectAsState()
+    val state by viewModel.pickerState.collectAsStateWithLifecycle()
+    val shieldState by viewModel.shieldState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { viewModel.loadApps() }
 

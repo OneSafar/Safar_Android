@@ -15,11 +15,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.safar.app.notifications.SafarNotificationManager
+import com.safar.app.notifications.SafarNotificationChannels
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
-    private val dataStore: SafarDataStore
+    private val dataStore: SafarDataStore,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -68,6 +73,24 @@ class DashboardViewModel @Inject constructor(
             val completedGoals = goals.filter { it.completed }.takeLast(5)
             val todayMood      = moods.firstOrNull { it.timestamp.startsWith(today) }
             val weeklyMoods    = moods.take(7)
+
+            // Trigger local notifications for newly earned achievements
+            val notifiedAchievements = dataStore.notifiedAchievements.first()
+            val notificationsEnabled = dataStore.notificationsEnabled.first() && dataStore.achievementsEnabled.first()
+            val newlyEarned = achievements.filter { it.earned && !notifiedAchievements.contains(it.id) }
+            
+            if (newlyEarned.isNotEmpty() && notificationsEnabled) {
+                val notificationManager = SafarNotificationManager(context)
+                newlyEarned.forEach { achievement ->
+                    notificationManager.show(
+                        title = "Achievement Unlocked! \uD83C\uDFC6",
+                        body = "You unlocked: ${achievement.name}",
+                        channelId = SafarNotificationChannels.ACHIEVEMENTS,
+                        deepLink = "safar://achievements"
+                    )
+                    dataStore.addNotifiedAchievement(achievement.id)
+                }
+            }
 
             _uiState.update {
                 it.copy(

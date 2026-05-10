@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App -->
-    <string name="app_name">SAFAR</string>
+    <string name="app_name">Safar</string>
     <string name="app_tagline">Your mindful journey begins here.</string>
 
     <!-- Splash -->
     <string name="splash_title">सफर</string>
     <string name="splash_start_safar">Start SAFAR</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_headline">Move at the speed of thought.</string>
+    <string name="onboarding_body">Experience frictionless travel designed for the modern rhythm.</string>
 
     <!-- Auth -->
     <string name="auth_tagline">Sign in to continue your journey</string>
@@ -300,8 +304,6 @@
     <string name="profile_light_mode">Light Mode</string>
 
     <!-- Focus Shield -->
-    <string name="focus_shield_service_label">SAFAR Focus Shield</string>
-    <string name="focus_shield_accessibility_desc">SAFAR Focus Shield blocks distracting apps during your focus sessions. It only activates while a timer is running and only affects apps you have chosen to block.</string>
     <string name="focus_shield_blocked_title">App Blocked</string>
     <string name="focus_shield_blocked_message">%s is blocked during your focus session. Stay focused!</string>
     <string name="focus_shield_emergency_unlock">Emergency Unlock</string>

@@ -45,6 +45,7 @@ class SafarDataStore @Inject constructor(
         val LAST_SYNC             = longPreferencesKey("last_sync")
         val TOUR_DONE             = booleanPreferencesKey("tour_done")
         val WELCOME_SEEN          = booleanPreferencesKey("welcome_seen")
+        val NOTIFIED_ACHIEVEMENTS = stringSetPreferencesKey("notified_achievements")
 
         // Focus Shield
         val FOCUS_SHIELD_ENABLED          = booleanPreferencesKey("focus_shield_enabled")
@@ -160,6 +161,10 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.WELCOME_SEEN] ?: false }
 
+    val notifiedAchievements: Flow<Set<String>> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.NOTIFIED_ACHIEVEMENTS] ?: emptySet() }
+
     // ── Focus Shield Flows ────────────────────────────────────────────────────
 
     val focusShieldEnabled: Flow<Boolean> = context.dataStore.data
@@ -180,6 +185,7 @@ class SafarDataStore @Inject constructor(
             val raw = prefs[Keys.FOCUS_SHIELD_BLOCKED_PACKAGES] ?: ""
             if (raw.isBlank()) emptySet() else raw.split(",").toSet()
         }
+
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -211,6 +217,11 @@ class SafarDataStore @Inject constructor(
     suspend fun setLastSync(time: Long) = context.dataStore.edit { it[Keys.LAST_SYNC] = time }
     suspend fun setTourDone(done: Boolean) = context.dataStore.edit { it[Keys.TOUR_DONE] = done }
     suspend fun setWelcomeSeen(seen: Boolean) = context.dataStore.edit { it[Keys.WELCOME_SEEN] = seen }
+
+    suspend fun addNotifiedAchievement(achievementId: String) = context.dataStore.edit { prefs ->
+        val current = prefs[Keys.NOTIFIED_ACHIEVEMENTS] ?: emptySet()
+        prefs[Keys.NOTIFIED_ACHIEVEMENTS] = current + achievementId
+    }
 
     // ── Focus Shield Setters ─────────────────────────────────────────────────
 

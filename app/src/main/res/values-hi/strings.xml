@@ -8,6 +8,10 @@
     <string name="splash_title">सफर</string>
     <string name="splash_start_safar">सफर शुरू करें</string>
 
+    <!-- Onboarding -->
+    <string name="onboarding_headline">विचार की गति से चलें।</string>
+    <string name="onboarding_body">आधुनिक लय के लिए डिज़ाइन किया गया निर्बाध सफ़र अनुभव करें।</string>
+
     <!-- Auth -->
     <string name="auth_tagline">अपनी यात्रा जारी रखने के लिए साइन इन करें</string>
     <string name="auth_create_account_tagline">अपना सफर अकाउंट बनाएं</string>

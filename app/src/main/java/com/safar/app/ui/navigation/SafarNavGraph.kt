@@ -9,6 +9,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.ui.achievements.AchievementsScreen
 import com.safar.app.ui.auth.AuthScreen
@@ -21,6 +22,7 @@ import com.safar.app.ui.mehfil.MehfilScreen
 import com.safar.app.ui.nishtha.NishthaScreen
 import com.safar.app.ui.ekagra.LocalTimerService
 import com.safar.app.ui.profile.ProfileScreen
+import com.safar.app.ui.settings.SettingsScreen
 import com.safar.app.ui.splash.SplashScreen
 import com.safar.app.ui.studyplanner.StudyPlannerScreen
 
@@ -36,7 +38,7 @@ fun SafarNavGraph(
     val navController = rememberNavController()
     val currentEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentEntry?.destination?.route ?: Routes.SPLASH
-    val isLoggedIn by dataStore.isLoggedIn.collectAsState(initial = null)
+    val isLoggedIn by dataStore.isLoggedIn.collectAsStateWithLifecycle(initialValue = null)
 
     LaunchedEffect(isLoggedIn) {
         // null = DataStore not yet loaded, don't redirect yet
@@ -197,7 +199,7 @@ fun SafarNavGraph(
         composable(Routes.ACHIEVEMENTS) {
             val parentEntry = remember(currentEntry) { navController.getBackStackEntry(Routes.DASHBOARD) }
             val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safar.app.ui.dashboard.DashboardViewModel>(parentEntry)
-            val uiState by dashVm.uiState.collectAsState()
+            val uiState by dashVm.uiState.collectAsStateWithLifecycle()
             AchievementsScreen(achievements = uiState.allAchievements, onBack = { navController.popBackStack() })
         }
 
@@ -212,7 +214,21 @@ fun SafarNavGraph(
                     navigateAndClear(Routes.AUTH)
                 },
                 onHome = { navigate(Routes.HOME) },
-                onToggleDarkTheme = onToggleDarkTheme
+                onOpenSettings = { navigate(Routes.SETTINGS) },
+                onToggleDarkTheme = onToggleDarkTheme,
+                onLibrary = { navigate(Routes.DASHBOARD) },
+                onProgress = { navigate(Routes.NISHTHA_ANALYTICS) },
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                isDarkTheme = isDarkTheme,
+                onBack = { navController.popBackStack() },
+                onHome = { navigate(Routes.HOME) },
+                onToggleDarkTheme = onToggleDarkTheme,
+                dataStore = dataStore,
+                onLanguageClick = onLanguageToggle,
             )
         }
     }

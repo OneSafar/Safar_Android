@@ -4,6 +4,7 @@ import java.io.EOFException
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.concurrent.CancellationException
 import org.json.JSONObject
 import retrofit2.Response
 
@@ -32,6 +33,8 @@ suspend fun <T> safeApiCall(call: suspend () -> Response<T>): Resource<T> {
             }
             Resource.Error(errorMessage, response.code())
         }
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: UnknownHostException) {
         Resource.Error("Could not reach SAFAR. Please check your internet connection.")
     } catch (e: SocketTimeoutException) {

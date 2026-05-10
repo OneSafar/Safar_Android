@@ -23,7 +23,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -34,6 +33,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.safar.app.R
 import com.safar.app.ui.theme.*
@@ -43,8 +43,8 @@ fun AuthScreen(
     onNavigateToHome: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val isDark = !MaterialTheme.colorScheme.background.isLight()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.isSuccess) {
@@ -131,8 +131,8 @@ private fun LoginScreenFromDesign(
     val text = if (isDark) Color(0xFFE2E2E7) else Color(0xFF0E1530)
     val textMuted = if (isDark) Color(0xFFBBCAC1) else Color(0xFF5A6478)
     val primary = if (isDark) Color(0xFF56EEBD) else Color(0xFF1E8A6B)
-    val primaryContainer = if (isDark) Color(0xFF2ED1A2) else Color(0xFF1E8A6B)
-    val onPrimary = if (isDark) Color(0xFF003829) else Color(0xFFFFFFFF)
+    val primaryContainer = AuthLoginButtonTokens.container(isDark)
+    val onPrimary = AuthLoginButtonTokens.content(isDark)
     val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
     val logoRingBg = if (isDark) Color(0xFF1A1C1F) else Color(0xFFFFFFFF)
     val logoRingOutline = if (isDark) outline else Color(0xFFE3E7EE)
@@ -628,7 +628,3 @@ private fun SwitchModeRow(prompt: String, link: String, isDark: Boolean, onClick
     }
 }
 
-private fun Color.isLight(): Boolean {
-    val luminance = 0.2126f * red + 0.7152f * green + 0.0722f * blue
-    return luminance > 0.5f
-}

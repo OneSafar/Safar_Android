@@ -64,7 +64,7 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
                 dataStore.streakReminderEnabled.first()
             SafarNotificationChannels.COURSE_UPDATES -> dataStore.courseUpdatesEnabled.first()
             SafarNotificationChannels.ACHIEVEMENTS -> dataStore.achievementsEnabled.first()
-            SafarNotificationChannels.COMMUNITY -> dataStore.communityRepliesEnabled.first()
+            SafarNotificationChannels.COMMUNITY -> false // Disabled per user request
             SafarNotificationChannels.ANNOUNCEMENTS -> dataStore.announcementsEnabled.first()
             SafarNotificationChannels.ACCOUNT_SYSTEM -> true
             else -> true

@@ -1,35 +1,48 @@
 package com.safar.app.ui.splash
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.geometry.Offset
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.safar.app.R
 import com.safar.app.data.local.SafarDataStore
+import com.safar.app.R
+import com.safar.app.ui.theme.AuthLoginButtonTokens
 import com.safar.app.ui.theme.LoraFontFamily
+import com.safar.app.ui.theme.isLightBackground
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,7 +83,7 @@ fun SplashScreen(
     onNavigateToHome: () -> Unit,
     viewModel: SplashViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.destination) {
         when (uiState.destination) {
@@ -85,93 +98,75 @@ fun SplashScreen(
         viewModel.onVideoEnded()
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        SafarLogoAnimation(modifier = Modifier.fillMaxSize())
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(horizontal = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Spacer(Modifier.weight(0.4f))
+        SafarLogoAnimation(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(4.8f)
+        )
 
-        // Start SAFAR button appears only after video ends; navigation waits for click.
-        AnimatedVisibility(
-            visible = uiState.videoEnded,
-            enter = fadeIn(tween(420)) + scaleIn(tween(420, easing = FastOutSlowInEasing)),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(78.dp),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            StartSafarButton(onClick = { viewModel.onStartSafar() })
+            // Start SAFAR button appears only after video ends; navigation waits for click.
+            androidx.compose.animation.AnimatedVisibility(
+                visible = uiState.videoEnded,
+                enter = fadeIn(tween(420)) + scaleIn(tween(420, easing = FastOutSlowInEasing)),
+            ) {
+                StartSafarButton(onClick = { viewModel.onStartSafar() })
+            }
         }
+        Spacer(Modifier.weight(0.55f))
     }
 }
 
 @Composable
 private fun StartSafarButton(onClick: () -> Unit) {
-    val infiniteTransition = rememberInfiniteTransition(label = "shine")
-    
-    // Text glow animation
-    val glow by infiniteTransition.animateFloat(
-        initialValue = 0.85f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "glow"
-    )
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val container = AuthLoginButtonTokens.container(isDark)
+    val content = AuthLoginButtonTokens.content(isDark)
 
-    // Shine / Shimmer animation
-    val shineX by infiniteTransition.animateFloat(
-        initialValue = -400f,
-        targetValue = 800f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1050, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shine_x"
-    )
-
-    val buttonGradient = Brush.horizontalGradient(
-        listOf(
-            Color(0xFF10B981), // Vibrant Emerald
-            Color(0xFF047857), // Mid Forest
-            Color(0xFF064E3B)  // Deep Anchor
-        )
-    )
-
-    val shineBrush = Brush.linearGradient(
-        colors = listOf(
-            Color.White.copy(alpha = 0.0f),
-            Color.White.copy(alpha = 0.35f),
-            Color.White.copy(alpha = 0.0f),
-        ),
-        start = Offset(shineX, 0f),
-        end = Offset(shineX + 100f, 200f)
-    )
-
-    Box(
+    Button(
+        onClick = onClick,
         modifier = Modifier
             .width(240.dp)
-            .height(58.dp)
-            .clip(RoundedCornerShape(50.dp))
-            .background(buttonGradient)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
+            .height(50.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = container,
+            contentColor = content,
+            disabledContainerColor = container.copy(alpha = 0.45f),
+            disabledContentColor = content.copy(alpha = 0.7f),
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp,
+        ),
     ) {
-        // Shine layer
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(shineBrush)
+        Text(
+            text = stringResource(R.string.splash_start_safar),
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontFamily = LoraFontFamily,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp,
+            ),
         )
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                stringResource(R.string.splash_start_safar),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = LoraFontFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White.copy(alpha = glow),
-                    letterSpacing = 0.5.sp
-                )
-            )
-            Text("→", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = glow))
-        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            modifier = Modifier
+                .padding(start = 10.dp)
+                .size(22.dp),
+        )
     }
 }

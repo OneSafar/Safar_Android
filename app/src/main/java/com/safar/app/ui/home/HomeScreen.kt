@@ -37,6 +37,7 @@ import com.safar.app.ui.drawer.SafarDrawerScaffold
 import com.safar.app.ui.navigation.Routes
 import com.safar.app.ui.theme.*
 import com.safar.app.notifications.NotificationPermissionRequest
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 
 private data class HomeSlide(
@@ -90,6 +91,7 @@ private val slides =
                 ),
         )
 
+
 private val toolCards = listOf(
     ToolCard(R.string.module_ekagra, R.drawable.tool_ekagra, Routes.EKAGRA),
     ToolCard(R.string.module_nishtha, R.drawable.tool_nistha, Routes.NISHTHA),
@@ -108,7 +110,7 @@ fun HomeScreen(
     dataStore: SafarDataStore? = null,
 ) {
     val isLoggedIn by (dataStore?.isLoggedIn ?: kotlinx.coroutines.flow.MutableStateFlow(true))
-        .collectAsState(initial = true)
+        .collectAsStateWithLifecycle(initialValue = true)
     LaunchedEffect(isLoggedIn) {
         if (!isLoggedIn) onNavigateToAuth()
     }
@@ -127,8 +129,8 @@ fun HomeScreen(
     }
 
     SafarDrawerScaffold(
-        title = stringResource(R.string.app_name),
-        subtitle = "Home",
+        title = "Home",
+        subtitle = stringResource(R.string.app_name),
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
@@ -137,8 +139,8 @@ fun HomeScreen(
         topBarContentColor = Color.White,
         emphasizeTopBar = true,
     ) { padding ->
-        val lightModeTurquoise = Color(0xFF20DFBB)
-        val ctaPrimary = if (isDarkTheme) MaterialTheme.colorScheme.primary else lightModeTurquoise
+        val lightModeNavy = Color(0xFF002EEE)
+        val ctaPrimary = if (isDarkTheme) MaterialTheme.colorScheme.primary else lightModeNavy
         val ctaOnPrimary = MaterialTheme.colorScheme.onPrimary
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val screenWidth = maxWidth
@@ -204,29 +206,30 @@ fun HomeScreen(
                             .height(descriptionFrameHeight)
                             .clip(RoundedCornerShape(20.dp))
                     ) {
+                        // Frosted glass pane inside the frame (drawn behind the frame)
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .padding(start = 14.dp, end = 14.dp, top = 18.dp, bottom = 34.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(if (isDarkTheme) Color.Transparent else Color.Black.copy(alpha = 0.5f))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(alpha = 0.2f),
+                                            Color.White.copy(alpha = 0.1f),
+                                        )
+                                    )
+                                )
+                        )
+
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data("file:///android_asset/Description_Box_Frame.png")
+                                .data(if (isDarkTheme) "file:///android_asset/Description_Box_Frame.png" else "file:///android_asset/WEEE.png")
                                 .build(),
                             contentDescription = null,
                             contentScale = ContentScale.FillBounds,
                             modifier = Modifier.matchParentSize()
-                        )
-
-                        // Frosted glass pane inside the frame
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .padding(horizontal = 18.dp, vertical = 18.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(
-                                            Color.White.copy(alpha = 0.14f),
-                                            Color.White.copy(alpha = 0.07f),
-                                        )
-                                    )
-                                )
                         )
 
                         Column(
@@ -312,7 +315,7 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            "✦   START FOCUSING   ✦",
+                            "✦   GO TO DASHBOARD   ✦",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             letterSpacing = 2.sp,
@@ -365,8 +368,8 @@ private fun ToolImageCard(
             contentAlignment = Alignment.Center
         ) {
             val resolvedBorderColor = if (isActive) borderColor else borderColor.copy(alpha = 0.5f)
-            // +20% vs previous 1.8 / 1.2 dp
-            val borderWidth = if (isActive) 2.16.dp else 1.44.dp
+            // Increased by 20% from 2.16 / 1.44 dp
+            val borderWidth = if (isActive) 2.6.dp else 1.73.dp
 
             // The actual card
             Box(

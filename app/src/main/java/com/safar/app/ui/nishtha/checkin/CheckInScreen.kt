@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.R
 import com.safar.app.ui.nishtha.NishthaViewModel
 import com.safar.app.ui.theme.*
@@ -136,7 +137,7 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
         )
     }
 
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedMood by remember { mutableStateOf<MoodOption?>(null) }
     // Resolve selected mood label in composable scope
     val selectedMoodLabel = selectedMood?.let { stringResource(it.labelRes) }

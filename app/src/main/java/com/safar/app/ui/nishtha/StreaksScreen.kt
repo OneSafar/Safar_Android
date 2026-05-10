@@ -3,6 +3,8 @@ package com.safar.app.ui.nishtha
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -24,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.R
 import com.safar.app.ui.theme.*
 import java.time.LocalDate
@@ -32,7 +35,7 @@ import java.util.Locale
 
 @Composable
 fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val streaks = uiState.streaks
     val loginDates = remember(uiState.loginHistory) {
         uiState.loginHistory.mapNotNull { entry ->
@@ -78,23 +81,69 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
             StreakCard(
                 label     = stringResource(R.string.streaks_checkin_label),
                 value     = streaks.checkInStreak,
-                message   = if (streaks.checkInStreak == 0) stringResource(R.string.streaks_start_today)
-                            else stringResource(R.string.streaks_amazing),
-                color     = Emerald500.copy(alpha = 0.15f),
-                textColor = MaterialTheme.colorScheme.onSurface,
                 accent    = Emerald500,
-                iconRes   = R.drawable.ic_circle_check
+                iconRes   = R.drawable.ic_zap,
+                bgIconRes = R.drawable.ic_heart_straight,
+                bgIconRotation = 12f,
+                bgIconOffsetX = 24.dp,
+                bgIconOffsetY = (-24).dp,
+                bottomContent = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { /* Handle click if needed */ }
+                    ) {
+                        Text(
+                            stringResource(R.string.streaks_start_today), 
+                            color = Emerald500, 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 14.sp
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            Icons.Default.ArrowForward, 
+                            contentDescription = null, 
+                            tint = Emerald500,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             )
 
             StreakCard(
                 label     = stringResource(R.string.streaks_login_label),
                 value     = streaks.loginStreak,
-                message   = stringResource(if (streaks.loginStreak > 0) R.string.streaks_amazing else R.string.streaks_start_today),
-                color     = Orange500.copy(alpha = 0.15f),
-                textColor = MaterialTheme.colorScheme.onSurface,
                 accent    = Orange500,
                 iconRes   = R.drawable.ic_zap,
-                messageIconRes = if (streaks.loginStreak > 0) R.drawable.ic_sparkle else null
+                bgIconRes = R.drawable.ic_flame,
+                bgIconRotation = -12f,
+                bgIconOffsetX = 24.dp,
+                bgIconOffsetY = 24.dp,
+                bottomContent = {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Orange500.copy(alpha = 0.1f),
+                        border = BorderStroke(1.dp, Orange500.copy(alpha = 0.1f))
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                androidx.compose.ui.res.painterResource(R.drawable.ic_sparkle), 
+                                contentDescription = null, 
+                                modifier = Modifier.size(16.dp), 
+                                tint = Orange500
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                stringResource(R.string.streaks_amazing), 
+                                color = Orange500.copy(alpha = 0.8f), 
+                                fontWeight = FontWeight.Bold, 
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
             )
 
             // Monthly Health card
@@ -142,38 +191,82 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
 private fun StreakCard(
     label: String, 
     value: Int, 
-    message: String, 
-    color: androidx.compose.ui.graphics.Color, 
-    textColor: androidx.compose.ui.graphics.Color, 
-    accent: androidx.compose.ui.graphics.Color,
+    accent: Color,
     iconRes: Int,
-    messageIconRes: Int? = null
+    bgIconRes: Int,
+    bgIconRotation: Float,
+    bgIconOffsetX: androidx.compose.ui.unit.Dp,
+    bgIconOffsetY: androidx.compose.ui.unit.Dp,
+    bottomContent: @Composable () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = color)
+        shape = RoundedCornerShape(32.dp),
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.1f)),
+        border = BorderStroke(2.dp, accent.copy(alpha = 0.2f))
     ) {
-        Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Surface(shape = RoundedCornerShape(20.dp), color = accent.copy(alpha = 0.2f)) {
-                    Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(androidx.compose.ui.res.painterResource(iconRes), contentDescription = null, modifier = Modifier.size(12.dp), tint = accent)
-                        Spacer(Modifier.width(4.dp))
-                        Text(label.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = accent)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Background Icon
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(bgIconRes),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(128.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = bgIconOffsetX, y = bgIconOffsetY)
+                    .graphicsLayer(rotationZ = bgIconRotation),
+                tint = accent.copy(alpha = 0.1f)
+            )
+            
+            // Content
+            Column(
+                modifier = Modifier.padding(32.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Top Label
+                Surface(
+                    shape = RoundedCornerShape(50), 
+                    color = accent.copy(alpha = 0.1f),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.2f))
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 12.dp, vertical = 6.dp), 
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(androidx.compose.ui.res.painterResource(iconRes), contentDescription = null, modifier = Modifier.size(14.dp), tint = accent)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            label.uppercase(), 
+                            fontSize = 10.sp, 
+                            fontWeight = FontWeight.Black, 
+                            color = accent,
+                            letterSpacing = 1.sp
+                        )
                     }
                 }
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("$value", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold, color = textColor))
-                    Text(stringResource(R.string.streaks_days_unit), fontSize = 18.sp, color = textColor.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 6.dp))
+                
+                // Value
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        "$value", 
+                        fontSize = 60.sp, 
+                        fontWeight = FontWeight.Black, 
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 60.sp
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.streaks_days_unit), 
+                        fontSize = 20.sp, 
+                        fontWeight = FontWeight.Bold, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    messageIconRes?.let {
-                        Icon(androidx.compose.ui.res.painterResource(it), contentDescription = null, modifier = Modifier.size(14.dp), tint = accent)
-                        Spacer(Modifier.width(4.dp))
-                    }
-                    Text(message, fontSize = 13.sp, color = accent)
-                }
+                
+                // Bottom Content
+                bottomContent()
             }
         }
     }

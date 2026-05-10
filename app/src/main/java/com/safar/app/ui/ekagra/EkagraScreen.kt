@@ -307,7 +307,7 @@ fun EkagraScreen(
     val context      = LocalContext.current
     val requestNotificationPermission = rememberNotificationPermissionRequester()
 
-    val shieldState by focusShieldViewModel.shieldState.collectAsState()
+    val shieldState by focusShieldViewModel.shieldState.collectAsStateWithLifecycle()
 
     val secondsLeft  by (timerService?.secondsLeft  ?: MutableStateFlow(25 * 60)).collectAsState()
     val totalSeconds by (timerService?.totalSeconds ?: MutableStateFlow(25 * 60)).collectAsState()
@@ -341,6 +341,17 @@ fun EkagraScreen(
     var longBreakMinutes by remember { mutableStateOf(15) }
 
     fun startTimer(mode: TimerMode, minutes: Int) {
+        if (
+            mode == TimerMode.FOCUS &&
+            shieldState.isEnabled &&
+            shieldState.blockedPackages.isNotEmpty() &&
+            !shieldState.hasUsageAccess
+        ) {
+            selectedTab = EkagraNavTab.SHIELD
+            focusShieldViewModel.openUsageAccessSettings()
+            return
+        }
+
         requestNotificationPermission()
         timerService?.saveTheme(visualThemes.indexOf(selectedTheme), selectedSong)
         timerService?.setDuration(mode, minutes * 60)
@@ -352,21 +363,12 @@ fun EkagraScreen(
             goalTitle    = if (mode == TimerMode.FOCUS) associatedGoalTitle else null,
             mode         = mode.toApiMode(),
         )
-        if (mode == TimerMode.FOCUS) {
-            // Activate Focus Shield if enabled
-            if (shieldState.isEnabled && shieldState.blockedPackages.isNotEmpty()) {
-                android.util.Log.w("FocusShieldA11y", "⏱ Timer start → activating shield")
-                android.util.Log.w("FocusShieldA11y", "  Blocked packages: ${shieldState.blockedPackages}")
-                android.util.Log.w("FocusShieldA11y", "  Strict mode: ${shieldState.isStrictMode}")
-                timerService?.setFocusShieldConfig(
-                    packages = shieldState.blockedPackages,
-                    strict   = shieldState.isStrictMode,
-                )
-                timerService?.enableFocusShieldForSession()
-                android.util.Log.w("FocusShieldA11y", "  ✓ enableFocusShieldForSession() called")
-            } else {
-                android.util.Log.w("FocusShieldA11y", "⏱ Timer start → shield NOT activated (enabled=${shieldState.isEnabled}, pkgs=${shieldState.blockedPackages.size})")
-            }
+        if (mode == TimerMode.FOCUS && shieldState.isEnabled && shieldState.blockedPackages.isNotEmpty()) {
+            timerService?.setFocusShieldConfig(
+                packages = shieldState.blockedPackages,
+                strict   = shieldState.isStrictMode,
+            )
+            timerService?.enableFocusShieldForSession()
         }
     }
 
@@ -398,16 +400,7 @@ fun EkagraScreen(
         associatedGoalTitle = null
     }
 
-    // Blocked app event listener — show snackbar when a blocked app is intercepted
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
-    LaunchedEffect(Unit) {
-        com.safar.app.ui.ekagra.focusshield.BlockerEventBridge.blockedEvents.collect { event ->
-            snackbarHostState.showSnackbar(
-                message = "🛡️ ${event.appName} is blocked during your focus session",
-                duration = androidx.compose.material3.SnackbarDuration.Short,
-            )
-        }
-    }
 
     LaunchedEffect(selectedTab) {
         when (selectedTab) {
@@ -499,6 +492,10 @@ fun EkagraScreen(
                 ),
             )
         )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            builder.setTitle("SAFAR Focus Timer")
+            builder.setSubtitle("Focus timer running")
+        }
         return builder.build()
     }
 
@@ -533,6 +530,7 @@ fun EkagraScreen(
     val accent    = selectedTheme.accent
     val mottoText = if (timerRunning) "STAY FOCUSED, YOU'RE DOING GREAT!" else "READY TO FOCUS?"
     val progress  = if (totalSeconds > 0) 1f - secondsLeft.toFloat() / totalSeconds else 0f
+    val topBarColor = if (selectedTab == EkagraNavTab.TIMER || isDarkTheme) Color.White else Color.Black
     val openGoals = remember(allGoals) {
         allGoals.filter { goal ->
             goal.id.isNotBlank() &&
@@ -543,18 +541,59 @@ fun EkagraScreen(
     }
 
     if (isInPipMode) {
-        Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
-                    fontSize = 42.sp, fontWeight = FontWeight.ExtraBold, color = Color.White,
-                )
-                Box(Modifier.fillMaxWidth(0.8f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color.White.copy(0.2f))) {
-                    Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(accent))
+        val shieldActive = shieldState.isEnabled && shieldState.blockedPackages.isNotEmpty() && timerRunning
+        val pipBg = if (shieldActive) Color(0xFF1C1917) else Color(0xFF05070A)
+        val pipAccent = if (shieldActive) Color(0xFFF59E0B) else accent
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(pipBg)
+                .padding(14.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                if (shieldActive) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(pipAccent.copy(alpha = 0.18f))
+                            .border(1.dp, pipAccent.copy(alpha = 0.55f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Default.WarningAmber,
+                            contentDescription = null,
+                            tint = pipAccent,
+                            modifier = Modifier.size(21.dp),
+                        )
+                    }
                 }
                 Text(
-                    if (timerRunning) "FOCUSING" else "PAUSED",
-                    fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, color = Color.White.copy(0.6f),
+                    "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
+                    fontSize = if (shieldActive) 36.sp else 42.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                )
+                Box(Modifier.fillMaxWidth(0.82f).height(4.dp).clip(RoundedCornerShape(999.dp)).background(Color.White.copy(0.16f))) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(progress.coerceIn(0f, 1f))
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(pipAccent),
+                    )
+                }
+                Text(
+                    when {
+                        shieldActive -> "SHIELD ACTIVE"
+                        timerRunning -> "FOCUSING"
+                        else -> "PAUSED"
+                    },
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.sp,
+                    color = if (shieldActive) pipAccent else Color.White.copy(0.65f),
                 )
             }
         }
@@ -637,7 +676,7 @@ fun EkagraScreen(
             onNavigate        = onNavigate,
             onToggleDarkTheme = onToggleNightMode,
             onLanguageClick   = onLanguageClick,
-            topBarContentColor = Color.White,
+            topBarContentColor = topBarColor,
             topBarActions     = {
                 IconButton(onClick = { showEkagraGuide = true }) { Icon(Icons.Default.HelpOutline, contentDescription = "Ekagra Usage Guide") }
                 IconButton(onClick = { showThemeDialog = true }) { Icon(Icons.Default.Palette, contentDescription = "Theme") }
@@ -712,7 +751,6 @@ fun EkagraScreen(
                                     }
                                 },
                                 onReset = { endCurrentSession() },
-                                onStudyPlannerClick = { onNavigate(Routes.STUDY_PLANNER) },
                                 isDarkTheme = isDarkTheme,
                             )
                         }
@@ -738,8 +776,6 @@ fun EkagraScreen(
                                 onToggleEmergencyUnlock = { focusShieldViewModel.setAllowEmergencyUnlock(it) },
                                 onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },
                                 onOpenUsageAccess = { focusShieldViewModel.openUsageAccessSettings() },
-                                onOpenAccessibility = { focusShieldViewModel.openAccessibilitySettings() },
-                                onOpenOverlaySettings = { focusShieldViewModel.openOverlaySettings() },
                                 modifier = Modifier.padding(
                                     top = padding.calculateTopPadding(),
                                     bottom = innerPadding.calculateBottomPadding(),
@@ -933,7 +969,6 @@ private fun TimerFocusTab(
     onModeChange: (TimerMode) -> Unit,
     onPlayPause: () -> Unit,
     onReset: () -> Unit,
-    onStudyPlannerClick: () -> Unit,
     isDarkTheme: Boolean,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -1025,26 +1060,6 @@ private fun TimerFocusTab(
 
             Spacer(Modifier.height(16.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.86f)
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFF20DFBB))
-                    .border(
-                        1.dp,
-                        Color(0xFF20DFBB),
-                        RoundedCornerShape(999.dp),
-                    )
-                    .clickable { onStudyPlannerClick() },
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.School, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                    Text("TRY STUDY PLANNER", fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = Color.White)
-                }
-            }
-
             Spacer(Modifier.weight(1f))
 
             Text(
@@ -1103,10 +1118,10 @@ private fun EkagraBottomNav(
     } else {
         scheme.surface
     }
-    val inactive = if (selectedTab == EkagraNavTab.TIMER) {
-        if (isDark) Color(0xFF737373) else scheme.onSurfaceVariant
+    val inactive = if (isDark) {
+        if (selectedTab == EkagraNavTab.TIMER) Color(0xFF737373) else scheme.onSurfaceVariant
     } else {
-        scheme.onSurfaceVariant
+        Color.Black
     }
 
     Row(

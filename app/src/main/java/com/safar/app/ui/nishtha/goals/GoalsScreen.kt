@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.domain.model.Goal
 import com.safar.app.domain.model.GoalSubtask
 import com.safar.app.ui.nishtha.NishthaEvent
@@ -45,7 +46,7 @@ fun GoalsScreen(
     onNavigate: (String) -> Unit = {},
     viewModel: NishthaViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Goals", "History")

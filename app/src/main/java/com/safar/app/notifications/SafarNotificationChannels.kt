@@ -7,6 +7,7 @@ import android.os.Build
 
 object SafarNotificationChannels {
     const val FOCUS_TIMER = "focus_timer"
+    const val FOCUS_SHIELD_ALERTS = "focus_shield_alerts"
     const val STUDY_REMINDERS = "study_reminders"
     const val COURSE_UPDATES = "course_updates"
     const val ACHIEVEMENTS = "achievements"
@@ -24,6 +25,14 @@ object SafarNotificationChannels {
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
                 description = "Active focus timer and break status"
+                setShowBadge(false)
+            },
+            NotificationChannel(
+                FOCUS_SHIELD_ALERTS,
+                "Focus Shield alerts",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Alerts when a blocked app is opened during an active focus session"
                 setShowBadge(false)
             },
             NotificationChannel(
@@ -76,6 +85,7 @@ object SafarNotificationChannels {
 
     fun normalize(channelId: String?): String = when (channelId) {
         FOCUS_TIMER,
+        FOCUS_SHIELD_ALERTS,
         STUDY_REMINDERS,
         COURSE_UPDATES,
         ACHIEVEMENTS,

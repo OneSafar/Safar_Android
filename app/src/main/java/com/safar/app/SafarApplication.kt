@@ -5,6 +5,7 @@ import com.safar.app.data.local.SafarDataStore
 import com.safar.app.data.remote.api.NotificationApi
 import com.safar.app.data.remote.dto.DeviceTokenRequest
 import com.safar.app.notifications.SafarNotificationChannels
+import com.safar.app.notifications.PlannerAlertsWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,12 @@ class SafarApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         SafarNotificationChannels.createAll(this)
-        appScope.launch { registerStoredTokenIfNeeded() }
+        appScope.launch {
+            registerStoredTokenIfNeeded()
+            if (dataStore.notificationsEnabled.first() && dataStore.dailyStudyReminderEnabled.first()) {
+                PlannerAlertsWorker.schedule(this@SafarApplication, dataStore.dailyReminderTime.first())
+            }
+        }
     }
 
     private suspend fun registerStoredTokenIfNeeded() {

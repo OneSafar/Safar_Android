@@ -19,8 +19,6 @@ data class FocusShieldUiState(
     val allowEmergencyUnlock: Boolean = true,
     val blockedPackages: Set<String> = emptySet(),
     val hasUsageAccess: Boolean = false,
-    val hasAccessibility: Boolean = false,
-    val hasOverlayPermission: Boolean = false,
     val hasNotifications: Boolean = false,
 )
 
@@ -51,8 +49,6 @@ class FocusShieldViewModel @Inject constructor(
             allowEmergencyUnlock = emergency,
             blockedPackages = packages,
             hasUsageAccess = UsageAccessHelper.hasUsageAccess(app),
-            hasAccessibility = UsageAccessHelper.isAccessibilityServiceEnabled(app),
-            hasOverlayPermission = UsageAccessHelper.canDrawOverlays(app),
             hasNotifications = UsageAccessHelper.hasNotificationPermission(app),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FocusShieldUiState())
@@ -107,6 +103,4 @@ class FocusShieldViewModel @Inject constructor(
     }
 
     fun openUsageAccessSettings() = UsageAccessHelper.openUsageAccessSettings(app)
-    fun openAccessibilitySettings() = UsageAccessHelper.openAccessibilitySettings(app)
-    fun openOverlaySettings() = UsageAccessHelper.openOverlaySettings(app)
 }
