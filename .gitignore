@@ -25,3 +25,23 @@ tmp_*/
 # Firebase Admin SDK private keys
 *firebase-adminsdk*.json
 service-account*.json
+
+# Repo-root design scraps (screenshots, Figma exports, duplicate assets — app lives under app/)
+/homescreen_*.png
+/moto_*
+/new_*
+/xiaomi_*.png
+/img.jpg
+/WEEE.png
+/navy_blue_frame*.png
+/Description_frame*.png
+/Description_Box.jpeg
+/Dhyan.png
+/Ekagra.png
+/Mehfil.png
+/Nistha.png
+/Clash Royale Screen.jpeg
+/Safar screen .jpeg
+/safar_notification_icon_assets.zip
+/package.json
+/package-lock.json
