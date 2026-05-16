@@ -1,5 +1,6 @@
 package com.safar.app.di
 
+import android.content.Context
 import com.safar.app.BuildConfig
 import com.safar.app.data.remote.api.*
 import com.safar.app.data.remote.socket.MehfilSocketManager
@@ -8,12 +9,15 @@ import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.Cache
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.File
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.util.concurrent.TimeUnit
@@ -28,11 +32,31 @@ object NetworkModule {
     fun provideCookieManager(): CookieManager =
         CookieManager().also { it.setCookiePolicy(CookiePolicy.ACCEPT_ALL) }
 
+    // 5 MB shared HTTP cache for safe-to-cache GETs. Endpoints opt in by
+    // declaring `@Headers("X-Cache-Max-Age: <seconds>")` on their Retrofit
+    // method; a network interceptor below strips that marker before the
+    // request leaves the device and rewrites the response with a matching
+    // `Cache-Control: public, max-age=<seconds>` so OkHttp's on-disk cache
+    // can serve repeats. Endpoints without the marker fall through
+    // unchanged, so this is strictly additive — no audited endpoint can
+    // start serving stale data unintentionally.
     @Singleton
     @Provides
-    fun provideOkHttpClient(authInterceptor: AuthInterceptor, cookieManager: CookieManager): OkHttpClient =
+    fun provideHttpCache(@ApplicationContext context: Context): Cache {
+        val cacheDir = File(context.cacheDir, "http_cache")
+        return Cache(cacheDir, HTTP_CACHE_SIZE_BYTES)
+    }
+
+    @Singleton
+    @Provides
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        cookieManager: CookieManager,
+        cache: Cache,
+    ): OkHttpClient =
         OkHttpClient.Builder()
             .cookieJar(JavaNetCookieJar(cookieManager))
+            .cache(cache)
             .addInterceptor(authInterceptor)
             // Per-call timeout override: any request that sets the X-Timeout-Seconds header
             // (stripped before sending) gets its connect/read/write timeouts bumped to that
@@ -52,6 +76,27 @@ object NetworkModule {
                     .withWriteTimeout(seconds, TimeUnit.SECONDS)
                     .proceed(stripped)
             }
+            // Cache-rewrite network interceptor: when a request carries the
+            // X-Cache-Max-Age marker, strip it before hitting the wire and
+            // rewrite the response Cache-Control so OkHttp's cache will
+            // store and reuse it for the requested TTL. Runs as a network
+            // interceptor (not application) so the cache layer above sees
+            // the rewritten headers.
+            .addNetworkInterceptor cache@{ chain ->
+                val original = chain.request()
+                val maxAge = original.header(CACHE_MAX_AGE_HEADER)?.toIntOrNull()?.coerceIn(1, 86_400)
+                if (maxAge == null) {
+                    return@cache chain.proceed(original)
+                }
+                val stripped = original.newBuilder().removeHeader(CACHE_MAX_AGE_HEADER).build()
+                val response = chain.proceed(stripped)
+                if (!response.isSuccessful) return@cache response
+                response.newBuilder()
+                    .removeHeader("Pragma")
+                    .removeHeader("Cache-Control")
+                    .header("Cache-Control", "public, max-age=$maxAge")
+                    .build()
+            }
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
                     level = if (BuildConfig.DEBUG) {
@@ -67,6 +112,8 @@ object NetworkModule {
             .build()
 
     private const val TIMEOUT_HEADER = "X-Timeout-Seconds"
+    private const val CACHE_MAX_AGE_HEADER = "X-Cache-Max-Age"
+    private const val HTTP_CACHE_SIZE_BYTES = 5L * 1024L * 1024L
 
     @Singleton
     @Provides

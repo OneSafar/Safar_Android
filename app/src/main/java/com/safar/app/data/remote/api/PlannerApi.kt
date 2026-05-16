@@ -30,9 +30,18 @@ interface PlannerApi {
     @DELETE("plans/{planId}")
     suspend fun deletePlan(@Path("planId") planId: String): Response<BasicPlannerResponse>
 
+    // Catalog of bundled exam templates is essentially immutable per app
+    // version. The X-Cache-Max-Age header is consumed by an OkHttp network
+    // interceptor (see NetworkModule) which rewrites the response with a
+    // matching `Cache-Control: max-age=...` so OkHttp's on-disk cache can
+    // serve repeat reads. Re-opening the "Create plan" screen during the
+    // same session becomes free, and cold opens after a recent visit avoid
+    // a network round-trip.
+    @Headers("X-Cache-Max-Age: 300")
     @GET("plans/templates")
     suspend fun getTemplates(): Response<List<ExamTemplateSummary>>
 
+    @Headers("X-Cache-Max-Age: 300")
     @GET("plans/templates/{templateId}")
     suspend fun getTemplateDetail(@Path("templateId") templateId: String): Response<ExamTemplate>
 
