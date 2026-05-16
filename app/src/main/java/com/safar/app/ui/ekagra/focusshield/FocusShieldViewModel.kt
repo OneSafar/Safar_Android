@@ -18,8 +18,9 @@ data class FocusShieldUiState(
     val isStrictMode: Boolean = false,
     val allowEmergencyUnlock: Boolean = true,
     val blockedPackages: Set<String> = emptySet(),
-    val hasUsageAccess: Boolean = false,
+    val hasAccessibilityService: Boolean = false,
     val hasNotifications: Boolean = false,
+    val hasUsageStats: Boolean = false,
 )
 
 data class AppPickerUiState(
@@ -48,8 +49,9 @@ class FocusShieldViewModel @Inject constructor(
             isStrictMode = strict,
             allowEmergencyUnlock = emergency,
             blockedPackages = packages,
-            hasUsageAccess = UsageAccessHelper.hasUsageAccess(app),
-            hasNotifications = UsageAccessHelper.hasNotificationPermission(app),
+            hasAccessibilityService = FocusShieldPermissionHelper.hasAccessibilityService(app),
+            hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(app),
+            hasUsageStats = FocusShieldPermissionHelper.hasUsageStatsPermission(app),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FocusShieldUiState())
 
@@ -102,5 +104,5 @@ class FocusShieldViewModel @Inject constructor(
         // No-op — the permissions are re-checked on every emission
     }
 
-    fun openUsageAccessSettings() = UsageAccessHelper.openUsageAccessSettings(app)
+    fun openAccessibilitySettings() = FocusShieldPermissionHelper.openAccessibilitySettings(app)
 }

@@ -6,7 +6,8 @@
 
     <!-- Splash -->
     <string name="splash_title">सफर</string>
-    <string name="splash_start_safar">Start SAFAR</string>
+    <string name="splash_start_safar">Start Safar</string>
+    <string name="splash_tagline">Your marks matter, but so does your mind.</string>
 
     <!-- Onboarding -->
     <string name="onboarding_headline">Move at the speed of thought.</string>
@@ -48,6 +49,7 @@
     <string name="nav_back">Back</string>
     <string name="nav_home">Home</string>
     <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_study_planner">Study Planner</string>
     <string name="nav_profile">Profile</string>
     <string name="nav_night_mode">Night Mode</string>
     <string name="nav_language">Language</string>
@@ -55,6 +57,7 @@
     <string name="nav_open_menu">Open menu</string>
     <string name="nav_previous">Previous</string>
     <string name="nav_next">Next</string>
+    <string name="nav_focus_shield">Kavach</string>
 
     <!-- Drawer -->
     <string name="drawer_tagline">Your wellness journey</string>
@@ -74,10 +77,10 @@
     <string name="dashboard_no_checkin">No check-in yet today</string>
     <string name="dashboard_intensity">Intensity: %d/10</string>
     <string name="dashboard_today_goals">Today\'s Goals</string>
-    <string name="dashboard_goals_count">%d/%d done</string>
+    <string name="dashboard_goals_count">%1$d/%2$d done</string>
     <string name="dashboard_no_goals">No goals set for today</string>
     <string name="dashboard_achievements">Achievements</string>
-    <string name="dashboard_achievements_count">%d earned · %d total</string>
+    <string name="dashboard_achievements_count">%1$d earned · %2$d total</string>
     <string name="dashboard_monthly_snapshot">Monthly Snapshot</string>
     <string name="dashboard_consistency">Consistency</string>
     <string name="dashboard_completion">Completion</string>
@@ -305,7 +308,9 @@
 
     <!-- Focus Shield -->
     <string name="focus_shield_blocked_title">App Blocked</string>
-    <string name="focus_shield_blocked_message">%s is blocked during your focus session. Stay focused!</string>
+    <string name="focus_shield_blocked_message">%s is blocked during your focus session or Study Session. Stay focused!</string>
     <string name="focus_shield_emergency_unlock">Emergency Unlock</string>
     <string name="focus_shield_return_to_timer">Return to Timer</string>
+    <string name="focus_shield_accessibility_label">SAFAR Ekagra Mode Accessibility</string>
+    <string name="focus_shield_accessibility_description">Optional Ekagra Mode Accessibility service. When you enable Kavach and start a focus timer or Study Session, SAFAR detects opened app package names to block only the distracting apps you selected. It does not read screen content, messages, passwords, or typed text, and it does not click buttons or control your device.</string>
 </resources>

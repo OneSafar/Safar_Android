@@ -67,7 +67,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.BuildConfig
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.notifications.rememberNotificationPermissionRequester
-import com.safar.app.ui.ekagra.focusshield.UsageAccessHelper
+import com.safar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
 import com.safar.app.ui.profile.NotificationToggleRow
 import com.safar.app.ui.profile.ProfileSectionCard
 
@@ -105,14 +105,14 @@ fun SettingsScreen(
     var pendingDailyEnable by remember { mutableStateOf(false) }
     var reminderDraft by remember(uiState.dailyReminderTime) { mutableStateOf(uiState.dailyReminderTime) }
 
-    var hasUsageAccess by remember { mutableStateOf(UsageAccessHelper.hasUsageAccess(context)) }
-    var hasNotificationPermission by remember { mutableStateOf(UsageAccessHelper.hasNotificationPermission(context)) }
+    var hasFocusShieldAccessibility by remember { mutableStateOf(FocusShieldPermissionHelper.hasAccessibilityService(context)) }
+    var hasNotificationPermission by remember { mutableStateOf(FocusShieldPermissionHelper.hasNotificationPermission(context)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                hasUsageAccess = UsageAccessHelper.hasUsageAccess(context)
-                hasNotificationPermission = UsageAccessHelper.hasNotificationPermission(context)
+                hasFocusShieldAccessibility = FocusShieldPermissionHelper.hasAccessibilityService(context)
+                hasNotificationPermission = FocusShieldPermissionHelper.hasNotificationPermission(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -120,7 +120,7 @@ fun SettingsScreen(
     }
 
     val requestNotificationPermission = rememberNotificationPermissionRequester { granted ->
-        hasNotificationPermission = UsageAccessHelper.hasNotificationPermission(context)
+        hasNotificationPermission = FocusShieldPermissionHelper.hasNotificationPermission(context)
         if (pendingMasterEnable) {
             pendingMasterEnable = false
             if (granted) {
@@ -332,17 +332,17 @@ fun SettingsScreen(
 
             ProfileSectionCard(title = "Permissions overview", icon = Icons.Default.Info) {
                 Text(
-                    "SAFAR uses these only when you allow them. For Focus Shield setup (blocked apps, strict mode), open Ekagra → Focus Shield.",
+                    "SAFAR uses these only when you allow them. For Kavach setup (blocked apps, beast mode), open Ekagra → Kavach.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 SettingsPermissionRow(
                     icon = Icons.Default.Info,
-                    title = "Usage access",
-                    subtitle = "Used for Focus Shield while a focus timer runs. You can also enable this from Ekagra → Focus Shield.",
-                    granted = hasUsageAccess,
+                    title = "Ekagra Mode Accessibility",
+                    subtitle = "Used only to detect opened blocked apps while a focus timer or Study Session runs. You can also enable this from Ekagra → Kavach.",
+                    granted = hasFocusShieldAccessibility,
                     accent = MaterialTheme.colorScheme.primary,
-                    onClickWhenNotGranted = { UsageAccessHelper.openUsageAccessSettings(context) },
+                    onClickWhenNotGranted = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
                 )
                 SettingsPermissionRow(
                     icon = Icons.Default.CheckCircle,

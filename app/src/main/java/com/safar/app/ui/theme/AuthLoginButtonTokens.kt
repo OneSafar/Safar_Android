@@ -7,10 +7,10 @@ import androidx.compose.ui.graphics.Color
  */
 object AuthLoginButtonTokens {
     fun container(isDark: Boolean): Color =
-        if (isDark) Color(0xFF2ED1A2) else Color(0xFF1E8A6B)
+        if (isDark) Color(0xFF1FE0BA) else Color(0xFF2E3F9E)
 
     fun content(isDark: Boolean): Color =
-        if (isDark) Color(0xFF003829) else Color(0xFFFFFFFF)
+        if (isDark) Color(0xFF0F1115) else Color(0xFFFFFFFF)
 }
 
 /** Same luminance heuristic as the auth screen for light vs dark UI. */

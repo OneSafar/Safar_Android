@@ -47,7 +47,7 @@ class SafarNotificationManager(
             .setSmallIcon(SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationStyle.brandColor(context))
             // Intentionally NOT calling setLargeIcon(...) — like Gmail/YouTube,
-            // we rely on the small icon (tinted brand-blue) to brand the
+            // we rely on the small icon (white sparkle + [brandColor] in shade) to brand the
             // status bar AND the shade entry, so users see exactly ONE logo.
             .setContentTitle(title)
             .setContentText(body)
@@ -70,22 +70,22 @@ class SafarNotificationManager(
      * same pattern Gmail, YouTube, and Slack use.
      */
     object SafarNotificationStyle {
-        private const val SPARKLE_GOLD = 0xFFFFC83D.toInt()
+        private const val NOTIFICATION_SPARKLE_WHITE = 0xFFFFFFFF.toInt()
 
         fun isNightMode(context: Context): Boolean {
             val mode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
             return mode == Configuration.UI_MODE_NIGHT_YES
         }
 
-        /** Gold sparkle tint for notification panel icon rendering. */
+        /** White accent for notification shade small-icon tint (see [smallIconRes]). */
         fun brandColor(context: Context): Int =
-            SPARKLE_GOLD
+            NOTIFICATION_SPARKLE_WHITE
 
         /**
          * Small icon must be a white-on-transparent silhouette for system pipeline.
          * We use a sparkle glyph so:
          * - Status bar remains monochrome (system behavior)
-         * - Notification panel gets brand tint via [brandColor]
+         * - Notification panel tints the icon with [brandColor] (white)
          */
         fun smallIconRes(context: Context): Int =
             R.drawable.ic_safar_notification_sparkle

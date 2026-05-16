@@ -6,6 +6,7 @@ import com.safar.app.data.remote.api.NotificationApi
 import com.safar.app.data.remote.dto.DeviceTokenRequest
 import com.safar.app.notifications.SafarNotificationChannels
 import com.safar.app.notifications.PlannerAlertsWorker
+import com.safar.app.notifications.MorningNudgeWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,8 @@ class SafarApplication : Application() {
             registerStoredTokenIfNeeded()
             if (dataStore.notificationsEnabled.first() && dataStore.dailyStudyReminderEnabled.first()) {
                 PlannerAlertsWorker.schedule(this@SafarApplication, dataStore.dailyReminderTime.first())
+                // Morning Nudge at 6:30 AM
+                MorningNudgeWorker.schedule(this@SafarApplication, 6, 30)
             }
         }
     }

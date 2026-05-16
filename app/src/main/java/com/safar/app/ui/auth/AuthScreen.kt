@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.safar.app.R
 import com.safar.app.ui.theme.*
+import com.safar.app.ui.theme.shimmer
 
 @Composable
 fun AuthScreen(
@@ -255,8 +256,8 @@ private fun LoginScreenFromDesign(
                 Button(
                     onClick = { onEvent(AuthEvent.Login) },
                     enabled = !uiState.isLoading,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(28.dp)).shimmer(),
+                    shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = primaryContainer,
                         contentColor = onPrimary,
@@ -607,7 +608,8 @@ private fun AuthDropdown(
 @Composable
 private fun GradientButton(text: String, isDark: Boolean, onClick: () -> Unit, enabled: Boolean = true) {
     Box(
-        modifier = Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(14.dp))
+        modifier = Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(28.dp))
+            .shimmer()
             .background(
                 if (enabled) Brush.horizontalGradient(listOf(if (isDark) PrimaryDark else PrimaryLight, GradientMidDark))
                 else Brush.horizontalGradient(listOf(BtnDisabled, BrandMidnight))

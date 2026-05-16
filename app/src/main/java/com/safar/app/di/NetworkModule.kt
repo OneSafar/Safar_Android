@@ -34,6 +34,24 @@ object NetworkModule {
         OkHttpClient.Builder()
             .cookieJar(JavaNetCookieJar(cookieManager))
             .addInterceptor(authInterceptor)
+            // Per-call timeout override: any request that sets the X-Timeout-Seconds header
+            // (stripped before sending) gets its connect/read/write timeouts bumped to that
+            // value. Used for slow AI calls such as the Study Planner syllabus import, where
+            // the Railway-hosted agent + Groq inference can take well over 30s on a cold start.
+            .addInterceptor okhttp@{ chain ->
+                val original = chain.request()
+                val timeoutHeader = original.header(TIMEOUT_HEADER)
+                if (timeoutHeader.isNullOrBlank()) {
+                    return@okhttp chain.proceed(original)
+                }
+                val seconds = timeoutHeader.toIntOrNull()?.coerceIn(1, 600)
+                    ?: return@okhttp chain.proceed(original.newBuilder().removeHeader(TIMEOUT_HEADER).build())
+                val stripped = original.newBuilder().removeHeader(TIMEOUT_HEADER).build()
+                chain.withConnectTimeout(seconds, TimeUnit.SECONDS)
+                    .withReadTimeout(seconds, TimeUnit.SECONDS)
+                    .withWriteTimeout(seconds, TimeUnit.SECONDS)
+                    .proceed(stripped)
+            }
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
                     level = if (BuildConfig.DEBUG) {
@@ -47,6 +65,8 @@ object NetworkModule {
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
+
+    private const val TIMEOUT_HEADER = "X-Timeout-Seconds"
 
     @Singleton
     @Provides

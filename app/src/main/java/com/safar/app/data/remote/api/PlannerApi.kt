@@ -13,6 +13,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -124,7 +125,12 @@ interface PlannerApi {
         @Path("topicId") topicId: String,
     ): Response<StudyPlan>
 
+    // The syllabus import goes through the VPS Express backend, which forwards to the
+    // Railway-hosted Python agent (PyMuPDF extraction + Groq Llama-4-Scout). The full
+    // round trip can easily exceed 60s on a cold start, so we tag this call so the
+    // OkHttp interceptor in NetworkModule bumps connect/read/write timeouts to 180s.
     @Multipart
+    @Headers("X-Timeout-Seconds: 180")
     @POST("syllabus/import")
     suspend fun importSyllabusFile(@Part file: MultipartBody.Part): Response<SyllabusImportResponse>
 }
@@ -191,6 +197,10 @@ data class TopicPatchRequest(
 )
 
 data class SyllabusImportResponse(
+    val success: Boolean? = null,
     val syllabusCode: String? = null,
     val message: String? = null,
+    val errors: List<String>? = null,
+    val detail: String? = null,
+    val error: String? = null,
 )

@@ -22,6 +22,8 @@ object Routes {
     const val DM_CHAT = "mehfil/dm_chat"
     const val DHYAN  = "dhyan"
     const val APP_PICKER = "ekagra/app_picker"
+    const val LAUNCH_USAGE_QUESTIONNAIRE = "launch_usage_questionnaire"
+    const val FOCUS_SHIELD = "focus_shield"
 
     fun ekagraForGoal(goalId: String, goalTitle: String): String =
         "ekagra?goalId=${android.net.Uri.encode(goalId)}&goalTitle=${android.net.Uri.encode(goalTitle)}"

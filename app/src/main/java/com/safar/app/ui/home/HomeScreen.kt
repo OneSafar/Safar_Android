@@ -139,8 +139,7 @@ fun HomeScreen(
         topBarContentColor = Color.White,
         emphasizeTopBar = true,
     ) { padding ->
-        val lightModeNavy = Color(0xFF002EEE)
-        val ctaPrimary = if (isDarkTheme) MaterialTheme.colorScheme.primary else lightModeNavy
+        val ctaPrimary = MaterialTheme.colorScheme.primary
         val ctaOnPrimary = MaterialTheme.colorScheme.onPrimary
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val screenWidth = maxWidth

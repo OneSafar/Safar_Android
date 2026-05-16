@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.safar.app.R
 import com.safar.app.ui.theme.LoraFontFamily
 import com.safar.app.ui.theme.SafarTheme
+import com.safar.app.ui.theme.shimmer
 
 /**
  * Marketing-style onboarding hero with SAFAR logo and the same primary action pattern as splash
@@ -260,7 +261,9 @@ private fun StartSafarPrimaryButton(onClick: () -> Unit) {
                 shape = CircleShape,
                 ambientColor = scheme.primary.copy(alpha = 0.25f),
                 spotColor = scheme.primary.copy(alpha = 0.25f),
-            ),
+            )
+            .clip(CircleShape)
+            .shimmer(),
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = scheme.primary,

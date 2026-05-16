@@ -48,6 +48,7 @@
     <string name="nav_back">वापस</string>
     <string name="nav_home">होम</string>
     <string name="nav_dashboard">डैशबोर्ड</string>
+    <string name="nav_study_planner">स्टडी प्लानर</string>
     <string name="nav_profile">प्रोफ़ाइल</string>
     <string name="nav_night_mode">नाइट मोड</string>
     <string name="nav_language">भाषा</string>
@@ -55,6 +56,7 @@
     <string name="nav_open_menu">मेनू खोलें</string>
     <string name="nav_previous">पिछला</string>
     <string name="nav_next">अगला</string>
+    <string name="nav_focus_shield">कवच</string>
 
     <!-- Drawer -->
     <string name="drawer_tagline">आपकी स्वास्थ्य यात्रा</string>
@@ -74,10 +76,10 @@
     <string name="dashboard_no_checkin">आज अभी तक चेक-इन नहीं हुआ</string>
     <string name="dashboard_intensity">तीव्रता: %d/10</string>
     <string name="dashboard_today_goals">आज के लक्ष्य</string>
-    <string name="dashboard_goals_count">%d/%d पूरे</string>
+    <string name="dashboard_goals_count" formatted="false">%d/%d पूरे</string>
     <string name="dashboard_no_goals">आज के लिए कोई लक्ष्य नहीं</string>
     <string name="dashboard_achievements">उपलब्धियाँ</string>
-    <string name="dashboard_achievements_count">%d अर्जित · %d कुल</string>
+    <string name="dashboard_achievements_count" formatted="false">%d अर्जित · %d कुल</string>
     <string name="dashboard_monthly_snapshot">मासिक सारांश</string>
     <string name="dashboard_consistency">निरंतरता</string>
     <string name="dashboard_completion">पूर्णता</string>
@@ -300,4 +302,6 @@
 
     <string name="profile_dark_mode">डार्क मोड</string>
     <string name="profile_light_mode">लाइट मोड</string>
+    <string name="focus_shield_accessibility_label">सफर एकाग्र मोड एक्सेसिबिलिटी</string>
+    <string name="focus_shield_accessibility_description">वैकल्पिक एकाग्र मोड एक्सेसिबिलिटी सेवा। जब आप कवच को सक्षम करते हैं और फोकस टाइमर या स्टडी सेशन शुरू करते हैं, तो सफर आपके द्वारा चुने गए विचलित करने वाले ऐप्स को ब्लॉक करने के लिए केवल खुले हुए ऐप पैकेज नामों का पता लगाता है। यह स्क्रीन सामग्री, संदेश, पासवर्ड या टाइप किए गए टेक्स्ट को नहीं पढ़ता है, और यह बटनों पर क्लिक नहीं करता है या आपके डिवाइस को नियंत्रित नहीं करता है।</string>
 </resources>

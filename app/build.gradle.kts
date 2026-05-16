@@ -71,7 +71,7 @@ android {
             buildConfigField("String", "BASE_URL", "\"https://safar.parmarssc.in/api/\"")
             manifestPlaceholders["allowBackup"] = "false"
             manifestPlaceholders["usesCleartextTraffic"] = "false"
-            resValue("string", "app_name", "SAFAR")
+            resValue("string", "app_name", "Safar")
         }
     }
 

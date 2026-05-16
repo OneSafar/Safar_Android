@@ -166,7 +166,7 @@ private fun BlockedAppScreen(
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        "Focus Shield is active. This app is blocked until your current focus timer ends.",
+                        "Kavach is active. This app is blocked until your current focus timer or Study Session ends.",
                         modifier = Modifier.padding(top = 16.dp),
                         color = scheme.onSurfaceVariant,
                         fontSize = 15.sp,

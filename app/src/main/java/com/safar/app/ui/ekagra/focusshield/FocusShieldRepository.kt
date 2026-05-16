@@ -66,6 +66,14 @@ class FocusShieldRepository @Inject constructor(
             debugLog("activateForSession skipped: no blocked packages")
             return
         }
+        if (!FocusShieldPermissionHelper.hasUsageStatsPermission(appContext)) {
+            debugLog("activateForSession skipped: usage access missing")
+            return
+        }
+        if (!FocusShieldPermissionHelper.hasAccessibilityService(appContext)) {
+            debugLog("activateForSession skipped: accessibility service missing")
+            return
+        }
 
         _sessionBlockedPackages.value = packages
         _sessionActive.value = true

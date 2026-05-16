@@ -222,21 +222,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun keepPipAliveIfTimerRunning() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        window.decorView.postDelayed({
-            if (
-                timerService?.isRunning?.value == true &&
-                !isInPictureInPictureMode &&
-                !hasWindowFocus() &&
-                !isFinishing &&
-                !isDestroyed
-            ) {
-                enterTimerPipIfRunning()
-            }
-        }, 250L)
-    }
-
     override fun onDestroy() {
         unbindService(serviceConnection)
         super.onDestroy()
@@ -261,15 +246,13 @@ class MainActivity : ComponentActivity() {
         } else {
             // Exiting PiP (restore) — also navigate to Ekagra
             navigateToEkagra = true
-            keepPipAliveIfTimerRunning()
         }
     }
 
     override fun onStop() {
         super.onStop()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isInPictureInPictureMode) {
-            keepPipAliveIfTimerRunning()
-        }
+        // Focus Shield is owned by TimerService, not the PiP window. Do not
+        // recreate PiP after the user dismisses it.
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

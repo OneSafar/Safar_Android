@@ -25,6 +25,12 @@ import com.safar.app.ui.profile.ProfileScreen
 import com.safar.app.ui.settings.SettingsScreen
 import com.safar.app.ui.splash.SplashScreen
 import com.safar.app.ui.studyplanner.StudyPlannerScreen
+import com.safar.app.ui.launch.LaunchUsageQuestionnaireScreen
+import com.safar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SafarNavGraph(
@@ -39,6 +45,28 @@ fun SafarNavGraph(
     val currentEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentEntry?.destination?.route ?: Routes.SPLASH
     val isLoggedIn by dataStore.isLoggedIn.collectAsStateWithLifecycle(initialValue = null)
+    val scope = rememberCoroutineScope()
+
+    fun navigate(route: String) {
+        if (route == Routes.DM_CHAT) {
+            navController.navigate(route) {
+                launchSingleTop = true
+                popUpTo(Routes.MEHFIL) { inclusive = false }
+            }
+        } else {
+            navController.navigate(route) { launchSingleTop = true; restoreState = true }
+        }
+    }
+    fun navigateAndClear(route: String) { navController.navigate(route) { popUpTo(0) { inclusive = true } } }
+
+    fun navigateTowardHomeAfterLogin() {
+        scope.launch {
+            val done = withContext(Dispatchers.IO) {
+                dataStore.launchUsageQuestionnaireCompleted.first()
+            }
+            navigateAndClear(if (done) Routes.HOME else Routes.LAUNCH_USAGE_QUESTIONNAIRE)
+        }
+    }
 
     LaunchedEffect(isLoggedIn) {
         // null = DataStore not yet loaded, don't redirect yet
@@ -71,23 +99,25 @@ fun SafarNavGraph(
         activity.resetNotificationRoute()
     }
 
-    fun navigate(route: String) {
-        if (route == Routes.DM_CHAT) {
-            navController.navigate(route) {
-                launchSingleTop = true
-                popUpTo(Routes.MEHFIL) { inclusive = false }
-            }
-        } else {
-            navController.navigate(route) { launchSingleTop = true; restoreState = true }
-        }
-    }
-    fun navigateAndClear(route: String) { navController.navigate(route) { popUpTo(0) { inclusive = true } } }
-
     NavHost(navController = navController, startDestination = Routes.SPLASH) {
 
-        composable(Routes.SPLASH) { SplashScreen(onNavigateToAuth = { navigateAndClear(Routes.AUTH) }, onNavigateToHome = { navigateAndClear(Routes.HOME) }) }
+        composable(Routes.SPLASH) {
+            SplashScreen(
+                onNavigateToAuth = { navigateAndClear(Routes.AUTH) },
+                onNavigateToHome = { navigateTowardHomeAfterLogin() },
+                isDarkTheme = isDarkTheme
+            )
+        }
 
-        composable(Routes.AUTH) { AuthScreen(onNavigateToHome = { navigateAndClear(Routes.HOME) }) }
+        composable(Routes.AUTH) { AuthScreen(onNavigateToHome = { navigateTowardHomeAfterLogin() }) }
+
+        composable(Routes.LAUNCH_USAGE_QUESTIONNAIRE) {
+            LaunchUsageQuestionnaireScreen(
+                dataStore = dataStore,
+                onNavigateHome = { navigateAndClear(Routes.HOME) },
+                onUnauthorized = { navigateAndClear(Routes.AUTH) },
+            )
+        }
 
         composable(Routes.HOME) { HomeScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle, onNavigateToAuth = { navigateAndClear(Routes.AUTH) }, dataStore = dataStore) }
 
@@ -188,6 +218,16 @@ fun SafarNavGraph(
 
         composable(Routes.DHYAN) {
             DhyanScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle)
+        }
+
+        composable(Routes.FOCUS_SHIELD) {
+            FocusShieldStandaloneScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                onLanguageClick = onLanguageToggle,
+            )
         }
 
         composable(Routes.APP_PICKER) {

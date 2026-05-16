@@ -33,6 +33,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 
+import com.safar.app.ui.theme.LoraFontFamily
+import com.safar.app.ui.theme.shimmer
+
 // ── Simple requester (already used in Ekagra + Profile — kept as-is) ──────────
 
 @Composable
@@ -127,7 +130,7 @@ private fun NotificationRationaleDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 28.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(28.dp))
                 .background(Color(0xFF1A1F2E)),
         ) {
             Column(
@@ -161,8 +164,9 @@ private fun NotificationRationaleDialog(
 
                 Text(
                     text = "Stay in the loop",
-                    fontSize = 22.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = LoraFontFamily,
                     color = Color.White,
                     textAlign = TextAlign.Center,
                 )
@@ -190,7 +194,7 @@ private fun NotificationRationaleDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF252B3B))
                             .padding(horizontal = 14.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -216,8 +220,9 @@ private fun NotificationRationaleDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(28.dp))
+                        .shimmer()
                         .background(
                             Brush.horizontalGradient(
                                 listOf(Color(0xFF3DAC78), Color(0xFF073B3A)),
@@ -231,8 +236,9 @@ private fun NotificationRationaleDialog(
                     ) {
                         Text(
                             text = "Allow Notifications",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = LoraFontFamily,
+                            fontSize = 17.sp,
                             color = Color.White,
                         )
                     }

@@ -100,8 +100,8 @@ class PlannerAlertsWorker(
                         val requiredPace = remainingTopics.toDouble() / daysUntil
                         if (requiredPace > plan.dailyGoal) {
                             notificationManager.show(
-                                title = "Study Pace Warning",
-                                body = "You need to complete ${requiredPace.toInt()} topics/day to finish ${plan.title} on time.",
+                                title = plan.title,
+                                body = "You're behind schedule, Time to catch up!",
                                 channelId = SafarNotificationChannels.STUDY_REMINDERS,
                                 deepLink = "safar://studyplanner",
                             )

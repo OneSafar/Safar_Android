@@ -53,6 +53,9 @@ class SafarDataStore @Inject constructor(
         val FOCUS_SHIELD_EMERGENCY_UNLOCK = booleanPreferencesKey("focus_shield_allow_emergency_unlock")
         val FOCUS_SHIELD_BLOCKED_PACKAGES = stringPreferencesKey("focus_shield_blocked_packages")
         val FOCUS_SHIELD_LAST_BLOCK_COUNT = intPreferencesKey("focus_shield_last_block_count")
+
+        val LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED = booleanPreferencesKey("launch_usage_questionnaire_completed")
+        val APP_USAGE_MODE = stringPreferencesKey("app_usage_mode")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -186,6 +189,13 @@ class SafarDataStore @Inject constructor(
             if (raw.isBlank()) emptySet() else raw.split(",").toSet()
         }
 
+    val launchUsageQuestionnaireCompleted: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED] ?: false }
+
+    val appUsageMode: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.APP_USAGE_MODE] }
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -232,6 +242,14 @@ class SafarDataStore @Inject constructor(
         it[Keys.FOCUS_SHIELD_BLOCKED_PACKAGES] = packages.joinToString(",")
     }
     suspend fun setFocusShieldLastBlockCount(count: Int) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_LAST_BLOCK_COUNT] = count }
+
+    suspend fun setLaunchUsageQuestionnaireCompleted(completed: Boolean) = context.dataStore.edit {
+        it[Keys.LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED] = completed
+    }
+
+    suspend fun setAppUsageMode(mode: String?) = context.dataStore.edit { prefs ->
+        if (mode != null) prefs[Keys.APP_USAGE_MODE] = mode else prefs.remove(Keys.APP_USAGE_MODE)
+    }
 
     suspend fun setUserId(id: String?) {
         id?.let { context.dataStore.edit { prefs -> prefs[Keys.USER_ID] = it } }

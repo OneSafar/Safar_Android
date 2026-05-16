@@ -3,8 +3,10 @@ package com.safar.app.ui.splash
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,7 +21,7 @@ import androidx.compose.ui.graphics.vector.PathParser
 /** Timeline scaled ~30% faster than original (0.7×). */
 private fun splashMs(ms: Int): Int = (ms * 0.7f).toInt()
 
-private val NAVY = Color(0xFF042854)
+// Default Navy replaced by dynamic theme-aware color
 private val ORANGE = Color(0xFFFE9E2E)
 
 private val TRACE_CURVE_PATH = """
@@ -212,6 +214,7 @@ M314 690 C415 644 591 635 735 647
 
 @Composable
 fun SafarLogoAnimation(modifier: Modifier = Modifier) {
+    val logoNavy = MaterialTheme.colorScheme.primary
 
     var isAnimated by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -428,7 +431,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
     val travelerPos = remember { FloatArray(2) }
     val extractedPath = remember { Path() }
 
-    Box(modifier = modifier.fillMaxSize().background(Color.White), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             // ViewBox is 1024x1024. We want to scale it to fit the screen width, maybe a bit smaller.
             val scale = size.width / 1024f
@@ -447,7 +450,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                     pathMeasure.getSegment(0f, length * tracePathLength, extractedPath.asAndroidPath(), true)
                     drawPath(
                         path = extractedPath,
-                        color = NAVY.copy(alpha = traceOpacity),
+                        color = logoNavy.copy(alpha = traceOpacity),
                         style = androidx.compose.ui.graphics.drawscope.Stroke(
                             width = traceStroke,
                             cap = StrokeCap.Round,
@@ -480,7 +483,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                     // Let's approximate center bottom as 545, 870
                     rotate(degrees = markRot, pivot = Offset(545f, 870f))
                 }) {
-                    drawPath(path = markPath, color = NAVY)
+                    drawPath(path = markPath, color = logoNavy)
                 }
 
                 // Seal Ring
@@ -516,7 +519,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                     // Wordmark bounds roughly x:280..800, y:400..610
                     rotate(degrees = wordRot, pivot = Offset(540f, 505f))
                 }) {
-                    drawPath(path = wordmarkPath, color = NAVY)
+                    drawPath(path = wordmarkPath, color = logoNavy)
                 }
 
                 // Glint

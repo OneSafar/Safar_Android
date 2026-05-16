@@ -3,6 +3,7 @@ package com.safar.app.ui.ekagra
 
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,8 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -253,7 +256,6 @@ private val focusMusicTracks = listOf(
 private enum class EkagraNavTab(val icon: ImageVector, val label: String) {
     TIMER    (Icons.Default.Timer,          "Focus"),
     DURATION (Icons.Default.Tune,           "Duration"),
-    SHIELD   (Icons.Default.Shield,         "Shield"),
     HISTORY  (Icons.Default.History,        "History"),
 }
 
@@ -313,6 +315,7 @@ fun EkagraScreen(
     val totalSeconds by (timerService?.totalSeconds ?: MutableStateFlow(25 * 60)).collectAsState()
     val timerRunning by (timerService?.isRunning    ?: MutableStateFlow(false)).collectAsState()
     val timerMode    by (timerService?.timerMode    ?: MutableStateFlow(TimerMode.FOCUS)).collectAsState()
+    val focusShieldActive by (timerService?.focusShieldActive ?: MutableStateFlow(false)).collectAsState()
 
     var selectedTab      by remember { mutableStateOf(EkagraNavTab.TIMER) }
     var showThemeDialog  by remember { mutableStateOf(false) }
@@ -345,10 +348,9 @@ fun EkagraScreen(
             mode == TimerMode.FOCUS &&
             shieldState.isEnabled &&
             shieldState.blockedPackages.isNotEmpty() &&
-            !shieldState.hasUsageAccess
+            (!shieldState.hasUsageStats || !shieldState.hasAccessibilityService)
         ) {
-            selectedTab = EkagraNavTab.SHIELD
-            focusShieldViewModel.openUsageAccessSettings()
+            onNavigate(Routes.FOCUS_SHIELD)
             return
         }
 
@@ -435,7 +437,7 @@ fun EkagraScreen(
     LaunchedEffect(timerRunning) {
         while (timerRunning) {
             delay(15_000L)
-            if (latestSecondsLeft > 0) {
+            if (latestSecondsLeft > 0 && latestTimerMode == TimerMode.FOCUS) {
                 viewModel.syncActiveSession(
                     totalSeconds = latestTotalSeconds,
                     secondsLeft = latestSecondsLeft,
@@ -505,6 +507,7 @@ fun EkagraScreen(
         }
         if (!timerRunning && secondsLeft == 0 && totalSeconds > 0) {
             val session = activeSession
+            if (timerMode != TimerMode.FOCUS) return@LaunchedEffect
             if (timerMode == TimerMode.FOCUS && session != null) {
                 pendingEndedSession = PendingEndedEkagraSession(
                     sessionId = session.id,
@@ -528,7 +531,11 @@ fun EkagraScreen(
     }
 
     val accent    = selectedTheme.accent
-    val mottoText = if (timerRunning) "STAY FOCUSED, YOU'RE DOING GREAT!" else "READY TO FOCUS?"
+    val mottoText = when {
+        timerMode != TimerMode.FOCUS && timerRunning -> "BREAK TIME - KAVACH PAUSED"
+        timerRunning -> "STAY FOCUSED, YOU'RE DOING GREAT!"
+        else -> "READY TO FOCUS?"
+    }
     val progress  = if (totalSeconds > 0) 1f - secondsLeft.toFloat() / totalSeconds else 0f
     val topBarColor = if (selectedTab == EkagraNavTab.TIMER || isDarkTheme) Color.White else Color.Black
     val openGoals = remember(allGoals) {
@@ -541,7 +548,7 @@ fun EkagraScreen(
     }
 
     if (isInPipMode) {
-        val shieldActive = shieldState.isEnabled && shieldState.blockedPackages.isNotEmpty() && timerRunning
+        val shieldActive = focusShieldActive && timerRunning
         val pipBg = if (shieldActive) Color(0xFF1C1917) else Color(0xFF05070A)
         val pipAccent = if (shieldActive) Color(0xFFF59E0B) else accent
         Box(
@@ -723,14 +730,23 @@ fun EkagraScreen(
                                         TimerMode.BREAK -> breakMinutes
                                         TimerMode.LONG_BREAK -> longBreakMinutes
                                     }
-                                    timerService?.setDuration(mode, mins * 60)
+                                    val service = timerService
+                                    if (
+                                        mode != TimerMode.FOCUS &&
+                                        timerMode == TimerMode.FOCUS &&
+                                        service?.isActive() == true
+                                    ) {
+                                        service.startBreak(mode, mins * 60)
+                                    } else {
+                                        service?.setDuration(mode, mins * 60)
+                                    }
                                 },
                                 onPlayPause = {
                                     val wasRunning = timerRunning
                                     val wasInactive = timerService?.isActive() == false
                                     if (wasInactive) requestNotificationPermission()
                                     timerService?.togglePlayPause()
-                                    if (wasInactive) {
+                                    if (wasInactive && timerMode == TimerMode.FOCUS) {
                                         viewModel.onSessionStarted(
                                             taskText = taskText,
                                             totalSeconds = totalSeconds,
@@ -738,9 +754,9 @@ fun EkagraScreen(
                                             goalTitle = if (timerMode == TimerMode.FOCUS) associatedGoalTitle else null,
                                             mode = timerMode.toApiMode(),
                                         )
-                                    } else if (wasRunning) {
+                                    } else if (wasRunning && timerMode == TimerMode.FOCUS) {
                                         viewModel.pauseActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(), associatedGoalTitle)
-                                    } else {
+                                    } else if (timerMode == TimerMode.FOCUS) {
                                         viewModel.syncActiveSession(
                                             totalSeconds = totalSeconds,
                                             secondsLeft = secondsLeft,
@@ -749,6 +765,10 @@ fun EkagraScreen(
                                             goalTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
                                         )
                                     }
+                                },
+                                canStartBreak = timerMode == TimerMode.FOCUS && timerService?.isActive() == true,
+                                onStartBreak = {
+                                    timerService?.startBreak(TimerMode.BREAK, breakMinutes * 60)
                                 },
                                 onReset = { endCurrentSession() },
                                 isDarkTheme = isDarkTheme,
@@ -764,22 +784,6 @@ fun EkagraScreen(
                                 onFocusChange = { focusMinutes = it },
                                 onBreakChange = { breakMinutes = it; longBreakMinutes = it },
                                 onStartFocusSession = { startTimer(TimerMode.FOCUS, focusMinutes) },
-                            )
-                        }
-
-                        EkagraNavTab.SHIELD -> {
-                            com.safar.app.ui.ekagra.focusshield.FocusShieldSettingsContent(
-                                state = shieldState,
-                                accent = accent,
-                                onToggleEnabled = { focusShieldViewModel.setEnabled(it) },
-                                onToggleStrictMode = { focusShieldViewModel.setStrictMode(it) },
-                                onToggleEmergencyUnlock = { focusShieldViewModel.setAllowEmergencyUnlock(it) },
-                                onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },
-                                onOpenUsageAccess = { focusShieldViewModel.openUsageAccessSettings() },
-                                modifier = Modifier.padding(
-                                    top = padding.calculateTopPadding(),
-                                    bottom = innerPadding.calculateBottomPadding(),
-                                ),
                             )
                         }
 
@@ -804,108 +808,7 @@ fun EkagraScreen(
     }
 }
 
-
-@Composable
-private fun GlassTimerCard(
-    timerMode: TimerMode,
-    secondsLeft: Int,
-    isRunning: Boolean,
-    accent: Color,
-    isDarkTheme: Boolean,
-    onModeChange: (TimerMode) -> Unit,
-    onPlayPause: () -> Unit,
-    onReset: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(36.dp))
-            .background(Color.White.copy(alpha = 0.11f))
-            .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(36.dp))
-            .padding(horizontal = 24.dp, vertical = 28.dp),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            ModePill(
-                selected = timerMode,
-                accent = accent,
-                isDarkTheme = isDarkTheme,
-                onSelect = onModeChange,
-            )
-
-            Text(
-                "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
-                fontSize = 92.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White.copy(alpha = 0.96f),
-                letterSpacing = (-3).sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color.White.copy(alpha = 0.16f))
-                        .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(18.dp))
-                        .clickable { onReset() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(
-                        Modifier.padding(horizontal = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(Icons.Default.Stop, contentDescription = "End Session", tint = Color.White.copy(alpha = 0.8f))
-                        Text("End", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    accent.copy(alpha = 0.92f),
-                                    accent,
-                                    accent.copy(alpha = 0.88f),
-                                ),
-                            ),
-                        )
-                        .clickable { onPlayPause() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(
-                        Modifier.padding(horizontal = 18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp),
-                        )
-                        Text(if (isRunning) "Pause" else "Start", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-                    }
-                }
-            }
-        }
-    }
-}
-
+private val EkagraTimerCardShape = RoundedCornerShape(28.dp)
 
 @Composable
 private fun ModePill(
@@ -968,13 +871,18 @@ private fun TimerFocusTab(
     mottoText: String,
     onModeChange: (TimerMode) -> Unit,
     onPlayPause: () -> Unit,
+    canStartBreak: Boolean,
+    onStartBreak: () -> Unit,
     onReset: () -> Unit,
     isDarkTheme: Boolean,
 ) {
     val scheme = MaterialTheme.colorScheme
     val resolvedDark = isDarkTheme || scheme.background.luminance() < 0.5f
-    val panelColor = if (resolvedDark) Color(0x99242624) else scheme.surfaceVariant.copy(alpha = 0.78f)
-    val borderColor = if (resolvedDark) Color(0x33474846) else scheme.outline.copy(alpha = 0.32f)
+    val panelColor = if (resolvedDark) Color(0x99242624) else scheme.surfaceVariant.copy(alpha = 0.58f)
+    // Visible theme-aware stroke (Surface + BorderStroke avoids clip eating the border)
+    val timerCardOutline = accent.copy(alpha = if (resolvedDark) 0.75f else 0.9f)
+    val controlBorder = lerp(scheme.outline, scheme.primary, 0.1f)
+        .copy(alpha = if (resolvedDark) 0.48f else 0.38f)
     val secondaryText = if (resolvedDark) Color(0xFFABABA8) else scheme.onSurfaceVariant
     val timerTextColor = scheme.onSurface
 
@@ -987,16 +895,18 @@ private fun TimerFocusTab(
         ) {
             Spacer(Modifier.height(140.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(panelColor)
-                    .border(1.dp, borderColor, RoundedCornerShape(24.dp))
-                    .padding(horizontal = 20.dp, vertical = 24.dp),
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = EkagraTimerCardShape,
+                color = panelColor,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+                border = BorderStroke(2.9.dp, timerCardOutline),
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
@@ -1022,12 +932,12 @@ private fun TimerFocusTab(
                                 .height(48.dp)
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (resolvedDark) 0.35f else 0.62f))
-                                .border(1.dp, borderColor, RoundedCornerShape(999.dp))
+                                .border(1.dp, controlBorder, RoundedCornerShape(999.dp))
                                 .clickable { onReset() },
                             contentAlignment = Alignment.Center,
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Box(Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(secondaryText))
+                                Icon(Icons.Default.Stop, contentDescription = null, tint = secondaryText, modifier = Modifier.size(16.dp))
                                 Text("End", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = secondaryText)
                             }
                         }
@@ -1052,6 +962,23 @@ private fun TimerFocusTab(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                 )
+                            }
+                        }
+                    }
+                    if (canStartBreak) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (resolvedDark) 0.28f else 0.55f))
+                                .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(999.dp))
+                                .clickable { onStartBreak() },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.FreeBreakfast, contentDescription = null, tint = accent, modifier = Modifier.size(17.dp))
+                                Text("Take Break", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = accent)
                             }
                         }
                     }
@@ -1716,6 +1643,3 @@ private data class PendingEndedEkagraSession(
     val mode: String,
     val startedAt: String?,
 )
-
-
-
