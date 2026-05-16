@@ -11,7 +11,6 @@ import com.safar.app.domain.repository.HomeRepository
 import com.safar.app.util.IstDateUtils
 import com.safar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -57,10 +56,11 @@ class EkagraViewModel @Inject constructor(
     private var sessionStartedAt: String? = null
 
     init {
+        // Initial fetch; periodic refresh is now driven from the screen via
+        // repeatOnLifecycle so polling pauses when Ekagra is not on top.
         loadStats()
         refreshEkagra()
         loadTasks()
-        startAutoRefresh()
     }
 
     fun loadStats() {
@@ -102,16 +102,6 @@ class EkagraViewModel @Inject constructor(
                 }
                 is Resource.Error -> Unit
                 is Resource.Loading -> Unit
-            }
-        }
-    }
-
-    private fun startAutoRefresh() {
-        viewModelScope.launch {
-            while (true) {
-                delay(60_000L)
-                loadStats()
-                loadEkagraAnalytics()
             }
         }
     }

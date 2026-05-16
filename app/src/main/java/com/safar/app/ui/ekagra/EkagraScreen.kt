@@ -27,7 +27,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import coil.compose.AsyncImage
 import com.safar.app.R
 import com.safar.app.domain.model.EkagraAnalyticsStats
@@ -311,11 +314,11 @@ fun EkagraScreen(
 
     val shieldState by focusShieldViewModel.shieldState.collectAsStateWithLifecycle()
 
-    val secondsLeft  by (timerService?.secondsLeft  ?: MutableStateFlow(25 * 60)).collectAsState()
-    val totalSeconds by (timerService?.totalSeconds ?: MutableStateFlow(25 * 60)).collectAsState()
-    val timerRunning by (timerService?.isRunning    ?: MutableStateFlow(false)).collectAsState()
-    val timerMode    by (timerService?.timerMode    ?: MutableStateFlow(TimerMode.FOCUS)).collectAsState()
-    val focusShieldActive by (timerService?.focusShieldActive ?: MutableStateFlow(false)).collectAsState()
+    val secondsLeft  by (timerService?.secondsLeft  ?: MutableStateFlow(25 * 60)).collectAsStateWithLifecycle()
+    val totalSeconds by (timerService?.totalSeconds ?: MutableStateFlow(25 * 60)).collectAsStateWithLifecycle()
+    val timerRunning by (timerService?.isRunning    ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
+    val timerMode    by (timerService?.timerMode    ?: MutableStateFlow(TimerMode.FOCUS)).collectAsStateWithLifecycle()
+    val focusShieldActive by (timerService?.focusShieldActive ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
 
     var selectedTab      by remember { mutableStateOf(EkagraNavTab.TIMER) }
     var showThemeDialog  by remember { mutableStateOf(false) }
@@ -420,12 +423,19 @@ fun EkagraScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshEkagra()
-        viewModel.loadTasks()
-        while (true) {
-            delay(20_000L)
-            viewModel.loadEkagraAnalytics()
+    // Refresh on first composition and re-poll every 20s, but only while the
+    // host lifecycle is at least STARTED. When the user backgrounds the app or
+    // navigates to another tab, repeatOnLifecycle cancels this block, so we
+    // stop burning CPU/network on hidden screens.
+    val ekagraLifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(ekagraLifecycleOwner) {
+        ekagraLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.refreshEkagra()
+            viewModel.loadTasks()
+            while (true) {
+                delay(20_000L)
+                viewModel.loadEkagraAnalytics()
+            }
         }
     }
 
