@@ -4,12 +4,13 @@ import android.app.Application
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.data.remote.api.NotificationApi
 import com.safar.app.data.remote.dto.DeviceTokenRequest
+import com.safar.app.di.IoDispatcher
 import com.safar.app.notifications.SafarNotificationChannels
 import com.safar.app.notifications.PlannerAlertsWorker
 import com.safar.app.notifications.MorningNudgeWorker
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -20,8 +21,9 @@ class SafarApplication : Application() {
 
     @Inject lateinit var dataStore: SafarDataStore
     @Inject lateinit var notificationApi: NotificationApi
+    @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val appScope by lazy { CoroutineScope(SupervisorJob() + ioDispatcher) }
 
     override fun onCreate() {
         super.onCreate()

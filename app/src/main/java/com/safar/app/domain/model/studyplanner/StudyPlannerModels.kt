@@ -1,5 +1,6 @@
 package com.safar.app.domain.model.studyplanner
 
+import androidx.compose.runtime.Immutable
 import com.google.gson.annotations.SerializedName
 
 typealias CalendarMap = Map<String, List<CalendarTopicItem>>
@@ -18,11 +19,13 @@ enum class TopicStatus(val wireValue: String, val label: String) {
     REVISION_NEEDED("revision_needed", "Revision"),
 }
 
+@Immutable
 data class StudyPlannerFeatureFlags(
     val isPremium: Boolean = false,
     val unlockedAt: String? = null,
 )
 
+@Immutable
 data class StudyTopic(
     val id: String = "",
     val name: String = "",
@@ -32,12 +35,14 @@ data class StudyTopic(
     val notes: String? = null,
 )
 
+@Immutable
 data class StudyChapter(
     val id: String = "",
     val name: String = "",
     val topics: List<StudyTopic> = emptyList(),
 )
 
+@Immutable
 data class StudySubject(
     val id: String = "",
     val name: String = "",
@@ -47,6 +52,7 @@ data class StudySubject(
     val chapters: List<StudyChapter> = emptyList(),
 )
 
+@Immutable
 data class PlanProgress(
     val totalTopics: Int = 0,
     val doneTopics: Int = 0,
@@ -57,6 +63,7 @@ data class PlanProgress(
     val bySubject: List<SubjectProgress> = emptyList(),
 )
 
+@Immutable
 data class SubjectProgress(
     val subjectId: String = "",
     val subjectName: String = "",
@@ -66,6 +73,7 @@ data class SubjectProgress(
     val byChapter: List<ChapterProgress> = emptyList(),
 )
 
+@Immutable
 data class ChapterProgress(
     val chapterId: String = "",
     val chapterName: String = "",
@@ -74,6 +82,7 @@ data class ChapterProgress(
     val completionPercent: Int = 0,
 )
 
+@Immutable
 data class StudyPlan(
     val id: String = "",
     val userId: String = "",
@@ -94,6 +103,7 @@ data class StudyPlan(
     val totalTopics: Int? = null,
 )
 
+@Immutable
 data class CalendarTopicItem(
     val topicId: String = "",
     val topicName: String = "",
@@ -105,16 +115,19 @@ data class CalendarTopicItem(
     val status: TopicStatus = TopicStatus.TODO,
 )
 
+@Immutable
 data class HeatmapPoint(
     val date: String = "",
     val count: Int = 0,
 )
 
+@Immutable
 data class PlannerAnalytics(
     val progress: PlanProgress = PlanProgress(),
     val heatmap: List<HeatmapPoint> = emptyList(),
 )
 
+@Immutable
 data class ExamTemplateSummary(
     val id: String = "",
     val name: String = "",
@@ -124,6 +137,7 @@ data class ExamTemplateSummary(
     val topicCount: Int? = null,
 )
 
+@Immutable
 data class ExamTemplate(
     val id: String = "",
     val name: String = "",
@@ -132,17 +146,20 @@ data class ExamTemplate(
     val subjects: List<TemplateSubject> = emptyList(),
 )
 
+@Immutable
 data class TemplateSubject(
     val name: String = "",
     val color: String = "#0ea5e9",
     val chapters: List<TemplateChapter> = emptyList(),
 )
 
+@Immutable
 data class TemplateChapter(
     val name: String = "",
     val topics: List<String> = emptyList(),
 )
 
+@Immutable
 data class AutoDistributeResult(
     val message: String? = null,
     val assigned: Int = 0,
@@ -150,6 +167,7 @@ data class AutoDistributeResult(
     val plan: StudyPlan? = null,
 )
 
+@Immutable
 data class UpgradePlannerResult(
     val message: String? = null,
     val plan: StudyPlan? = null,

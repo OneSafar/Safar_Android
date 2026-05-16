@@ -8,9 +8,10 @@ import com.safar.app.BuildConfig
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.data.remote.api.NotificationApi
 import com.safar.app.data.remote.dto.DeviceTokenRequest
+import com.safar.app.di.IoDispatcher
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -20,8 +21,9 @@ import javax.inject.Inject
 class SafarFirebaseMessagingService : FirebaseMessagingService() {
     @Inject lateinit var dataStore: SafarDataStore
     @Inject lateinit var notificationApi: NotificationApi
+    @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope by lazy { CoroutineScope(SupervisorJob() + ioDispatcher) }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)

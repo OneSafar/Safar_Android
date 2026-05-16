@@ -1,9 +1,11 @@
 package com.safar.app.ui.studyplanner
 
+import androidx.compose.runtime.Immutable
 import com.safar.app.domain.model.studyplanner.TopicStatus
 
 enum class InsightTrackStatus { ON_TRACK, AT_RISK, BEHIND, AHEAD, NEEDS_DATA }
 
+@Immutable
 data class PlannerInsightSummary(
     val completionPercent: Int,
     val remainingTopics: Int,
@@ -16,12 +18,14 @@ data class PlannerInsightSummary(
     val scheduleCoveragePercent: Int?,
 )
 
+@Immutable
 data class PlannerInsightDayLoad(
     val date: String,
     val plannedCount: Int,
     val doneCount: Int,
 )
 
+@Immutable
 data class PlannerInsightWorkload(
     val next14Days: List<PlannerInsightDayLoad>,
     val overloadDays: Int,
@@ -30,6 +34,7 @@ data class PlannerInsightWorkload(
     val busiestSubjectUpcoming: String?,
 )
 
+@Immutable
 data class PlannerInsightSubjectRow(
     val subjectId: String,
     val subjectName: String,
@@ -39,6 +44,7 @@ data class PlannerInsightSubjectRow(
     val revisionTopics: Int,
 )
 
+@Immutable
 data class PlannerInsightLaggingChapter(
     val subjectName: String,
     val chapterName: String,
@@ -47,6 +53,7 @@ data class PlannerInsightLaggingChapter(
     val overdueTopics: Int,
 )
 
+@Immutable
 data class PlannerInsightBacklog(
     val overdueTotal: Int,
     val overdue1to3: Int,
@@ -56,6 +63,7 @@ data class PlannerInsightBacklog(
     val revisionNeeded: Int,
 )
 
+@Immutable
 data class PlannerInsightConsistency(
     val studyStreak: Int,
     val activeDaysLast14: Int,
@@ -64,8 +72,10 @@ data class PlannerInsightConsistency(
     val heatmap: List<HeatmapCell>,
 )
 
+@Immutable
 data class HeatmapCell(val date: String, val count: Int)
 
+@Immutable
 data class PlannerInsights(
     val summary: PlannerInsightSummary,
     val workload: PlannerInsightWorkload,
