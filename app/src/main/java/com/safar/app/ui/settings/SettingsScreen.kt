@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +37,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -71,6 +74,15 @@ import com.safar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
 import com.safar.app.ui.profile.NotificationToggleRow
 import com.safar.app.ui.profile.ProfileSectionCard
 
+private enum class SettingsInfoSheet {
+    EULA,
+    PRIVACY,
+    KAVACH,
+    ACCESSIBILITY,
+    USAGE_ACCESS,
+    NOTIFICATIONS,
+}
+
 private fun isValidReminderTimeInput(value: String): Boolean {
     if (!Regex("^\\d{2}:\\d{2}$").matches(value)) return false
     val parts = value.split(":")
@@ -89,9 +101,11 @@ private fun languageDisplay(code: String): String = when (code) {
 @Composable
 fun SettingsScreen(
     isDarkTheme: Boolean = false,
+    isNightMode: Boolean = false,
     onBack: () -> Unit,
     onHome: () -> Unit = {},
     onToggleDarkTheme: () -> Unit,
+    onToggleNightMode: () -> Unit = {},
     dataStore: SafarDataStore,
     onLanguageClick: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -104,13 +118,16 @@ fun SettingsScreen(
     var pendingMasterEnable by remember { mutableStateOf(false) }
     var pendingDailyEnable by remember { mutableStateOf(false) }
     var reminderDraft by remember(uiState.dailyReminderTime) { mutableStateOf(uiState.dailyReminderTime) }
+    var activeInfoSheet by remember { mutableStateOf<SettingsInfoSheet?>(null) }
 
+    var hasUsageAccess by remember { mutableStateOf(FocusShieldPermissionHelper.hasUsageStatsPermission(context)) }
     var hasFocusShieldAccessibility by remember { mutableStateOf(FocusShieldPermissionHelper.hasAccessibilityService(context)) }
     var hasNotificationPermission by remember { mutableStateOf(FocusShieldPermissionHelper.hasNotificationPermission(context)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                hasUsageAccess = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
                 hasFocusShieldAccessibility = FocusShieldPermissionHelper.hasAccessibilityService(context)
                 hasNotificationPermission = FocusShieldPermissionHelper.hasNotificationPermission(context)
             }
@@ -140,8 +157,16 @@ fun SettingsScreen(
         }
     }
 
+    activeInfoSheet?.let { sheet ->
+        SettingsLegalInfoSheet(
+            sheet = sheet,
+            onDismiss = { activeInfoSheet = null },
+        )
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             Surface(
                 modifier = Modifier.shadow(8.dp, spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
@@ -186,9 +211,15 @@ fun SettingsScreen(
         ) {
             ProfileSectionCard(title = "Appearance & about", icon = Icons.Default.Tune) {
                 Text(
-                    "Use the sun/moon icon above to switch light and dark theme.",
+                    "Sun/moon toggles light and dark. Dim mode is a warm low-light theme for reading.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                NotificationToggleRow(
+                    title = "Dim mode (night reading)",
+                    subtitle = if (isNightMode) "On — warm dim surfaces" else "Off",
+                    checked = isNightMode,
+                    onCheckedChange = { onToggleNightMode() },
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -207,7 +238,7 @@ fun SettingsScreen(
                     }
                 }
                 Text(
-                    "Version ${BuildConfig.VERSION_NAME}",
+                    "Version ${BuildConfig.VERSION_NAME.substringBefore('-')}",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -330,27 +361,54 @@ fun SettingsScreen(
                 )
             }
 
-            ProfileSectionCard(title = "Permissions overview", icon = Icons.Default.Info) {
+            ProfileSectionCard(title = "Legal & permissions", icon = Icons.Default.Info) {
                 Text(
-                    "SAFAR uses these only when you allow them. For Kavach setup (blocked apps, beast mode), open Ekagra → Kavach.",
+                    "Simple notes about SAFAR, your choices, and the permissions Kavach uses.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SettingsInfoRow(
+                    title = "EULA",
+                    subtitle = "Your basic agreement for using SAFAR.",
+                    onClick = { activeInfoSheet = SettingsInfoSheet.EULA },
+                )
+                SettingsInfoRow(
+                    title = "Privacy & data",
+                    subtitle = "What SAFAR uses, and what it does not read.",
+                    onClick = { activeInfoSheet = SettingsInfoSheet.PRIVACY },
+                )
+                SettingsInfoRow(
+                    title = "Why Kavach needs permissions",
+                    subtitle = "A friendly guide to focus blocking.",
+                    onClick = { activeInfoSheet = SettingsInfoSheet.KAVACH },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
+                SettingsPermissionRow(
+                    icon = Icons.Default.Info,
+                    title = "App Usage Permission",
+                    subtitle = "Helps Kavach notice when a selected app opens during a focus session.",
+                    granted = hasUsageAccess,
+                    accent = MaterialTheme.colorScheme.primary,
+                    onClickWhenNotGranted = { FocusShieldPermissionHelper.openUsageAccessSettings(context) },
+                    onInfoClick = { activeInfoSheet = SettingsInfoSheet.USAGE_ACCESS },
                 )
                 SettingsPermissionRow(
                     icon = Icons.Default.Info,
                     title = "Ekagra Mode Accessibility",
-                    subtitle = "Used only to detect opened blocked apps while a focus timer or Study Session runs. You can also enable this from Ekagra → Kavach.",
+                    subtitle = "Shows the block screen for apps you selected during Kavach sessions.",
                     granted = hasFocusShieldAccessibility,
                     accent = MaterialTheme.colorScheme.primary,
                     onClickWhenNotGranted = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
+                    onInfoClick = { activeInfoSheet = SettingsInfoSheet.ACCESSIBILITY },
                 )
                 SettingsPermissionRow(
                     icon = Icons.Default.CheckCircle,
                     title = "Notifications (system)",
-                    subtitle = "Required for app alerts.",
+                    subtitle = "Shows timer progress, reminders, and Kavach status.",
                     granted = hasNotificationPermission,
                     accent = MaterialTheme.colorScheme.primary,
                     onClickWhenNotGranted = requestNotificationPermission,
+                    onInfoClick = { activeInfoSheet = SettingsInfoSheet.NOTIFICATIONS },
                 )
             }
 
@@ -360,6 +418,129 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun SettingsInfoRow(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
+        }
+        Icon(Icons.Default.OpenInNew, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsLegalInfoSheet(
+    sheet: SettingsInfoSheet,
+    onDismiss: () -> Unit,
+) {
+    val content = when (sheet) {
+        SettingsInfoSheet.EULA -> SettingsInfoContent(
+            title = "EULA",
+            subtitle = "Use SAFAR for learning, focus, and exam preparation.",
+            points = listOf(
+                "Keep your account details private.",
+                "Use study tools fairly and respectfully.",
+                "SAFAR may improve features and fix issues over time.",
+            ),
+        )
+        SettingsInfoSheet.PRIVACY -> SettingsInfoContent(
+            title = "Privacy & data",
+            subtitle = "We keep permission use focused on the feature you choose.",
+            points = listOf(
+                "Kavach does not read messages, passwords, photos, or typed text.",
+                "Your blocked app choices stay on this device.",
+                "Notifications are used for reminders and active session status.",
+            ),
+        )
+        SettingsInfoSheet.KAVACH -> SettingsInfoContent(
+            title = "Why Kavach asks",
+            subtitle = "Kavach needs a few Android permissions to block distractions during focus time.",
+            points = listOf(
+                "Usage Access helps notice opened apps.",
+                "Accessibility shows the block screen for apps you selected.",
+                "You can use SAFAR without Kavach permissions.",
+            ),
+        )
+        SettingsInfoSheet.ACCESSIBILITY -> SettingsInfoContent(
+            title = "Accessibility",
+            subtitle = "Used only for Kavach app blocking.",
+            points = listOf(
+                "It notices when a selected distracting app opens.",
+                "It helps show the Kavach block screen during active sessions.",
+                "It does not read private content or control your phone.",
+            ),
+        )
+        SettingsInfoSheet.USAGE_ACCESS -> SettingsInfoContent(
+            title = "Usage Access",
+            subtitle = "Helps Kavach understand which app is open.",
+            points = listOf(
+                "Used during Kavach setup and active focus sessions.",
+                "Helps match opened apps with your blocked app list.",
+                "You stay in control of the permission.",
+            ),
+        )
+        SettingsInfoSheet.NOTIFICATIONS -> SettingsInfoContent(
+            title = "Notifications",
+            subtitle = "Helpful study updates, only when enabled.",
+            points = listOf(
+                "Timer progress and session complete alerts.",
+                "Daily study reminders if you switch them on.",
+                "Kavach status while a focus session is active.",
+            ),
+        )
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 22.dp)
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(content.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            Text(content.subtitle, fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            content.points.forEach { point ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 6.dp)
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                    )
+                    Text(point, modifier = Modifier.weight(1f), fontSize = 14.sp, lineHeight = 20.sp)
+                }
+            }
+            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                Text("Got it", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+private data class SettingsInfoContent(
+    val title: String,
+    val subtitle: String,
+    val points: List<String>,
+)
+
+@Composable
 private fun SettingsPermissionRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
@@ -367,6 +548,7 @@ private fun SettingsPermissionRow(
     granted: Boolean,
     accent: Color,
     onClickWhenNotGranted: (() -> Unit)?,
+    onInfoClick: (() -> Unit)? = null,
 ) {
     val statusColor = if (granted) accent else MaterialTheme.colorScheme.error
     Card(
@@ -392,7 +574,13 @@ private fun SettingsPermissionRow(
         ) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
                 Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -405,6 +593,11 @@ private fun SettingsPermissionRow(
                 )
                 if (!granted && onClickWhenNotGranted != null) {
                     Icon(Icons.Default.OpenInNew, null, tint = statusColor, modifier = Modifier.size(14.dp))
+                }
+                if (onInfoClick != null) {
+                    IconButton(onClick = onInfoClick, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Info, contentDescription = "More info", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
         }

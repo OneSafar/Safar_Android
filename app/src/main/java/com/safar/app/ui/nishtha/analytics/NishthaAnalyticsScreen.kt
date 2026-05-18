@@ -237,8 +237,10 @@ private fun MonthlyReviewSection(
 
         when {
             isLoading -> {
-                Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    com.safar.app.ui.components.StatCardSkeleton()
+                    com.safar.app.ui.components.StatCardSkeleton()
+                    com.safar.app.ui.components.StatCardSkeleton()
                 }
             }
             report == null -> {

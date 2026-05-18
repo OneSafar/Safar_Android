@@ -33,6 +33,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.domain.model.JournalEntry
 import com.safar.app.ui.nishtha.NishthaEvent
 import com.safar.app.ui.nishtha.NishthaViewModel
+import com.safar.app.ui.components.GoalRowSkeleton
+import com.safar.app.ui.components.SafarPullRefreshBox
 import com.safar.app.ui.theme.*
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -195,13 +197,27 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                 }
             }
 
-            if (showJournals && uiState.journals.isNotEmpty()) {
+            if (uiState.isLoadingJournals && uiState.journals.isEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(4) { GoalRowSkeleton() }
+                }
+            } else if (showJournals && uiState.journals.isNotEmpty()) {
+                SafarPullRefreshBox(
+                    isRefreshing = uiState.isLoadingJournals,
+                    onRefresh = { viewModel.onEvent(NishthaEvent.LoadJournals) },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(uiState.journals, key = { it.id }) { entry -> JournalCard(entry) }
+                }
                 }
             } else if (!showJournals) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

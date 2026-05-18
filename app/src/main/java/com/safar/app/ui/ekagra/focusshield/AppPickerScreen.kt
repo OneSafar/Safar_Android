@@ -2,35 +2,54 @@ package com.safar.app.ui.ekagra.focusshield
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safar.app.R
+import com.safar.app.ui.components.SyllabusRowSkeleton
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppPickerScreen(
     onBack: () -> Unit,
     viewModel: FocusShieldViewModel = hiltViewModel(),
 ) {
     val state by viewModel.pickerState.collectAsStateWithLifecycle()
-    val shieldState by viewModel.shieldState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { viewModel.loadApps() }
 
@@ -38,122 +57,91 @@ fun AppPickerScreen(
         if (state.searchQuery.isBlank()) state.allApps
         else state.allApps.filter {
             it.appName.contains(state.searchQuery, ignoreCase = true) ||
-                    it.packageName.contains(state.searchQuery, ignoreCase = true)
+                it.packageName.contains(state.searchQuery, ignoreCase = true)
         }
     }
 
-    val selectedCount = state.allApps.count { it.isBlocked }
-
     Scaffold(
+        containerColor = KavachDesign.Background,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("Choose Apps to Block", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(
-                            "$selectedCount app${if (selectedCount != 1) "s" else ""} selected",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (selectedCount > 0) {
-                        TextButton(onClick = {
-                            state.allApps.filter { it.isBlocked }.forEach {
-                                viewModel.toggleApp(it.packageName)
-                            }
-                        }) {
-                            Text("Clear All", fontSize = 13.sp)
-                        }
-                    }
-                },
+            KavachStitchBackHeader(
+                onBack = onBack,
+                title = stringResource(R.string.kavach_shield_configuration_title),
             )
+        },
+        bottomBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(KavachDesign.Background.copy(alpha = 0.95f))
+                    .padding(16.dp),
+            ) {
+                KavachStitchPrimaryButton(
+                    text = stringResource(R.string.kavach_save_configuration),
+                    onClick = onBack,
+                )
+            }
         },
     ) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
         ) {
-            // Search bar
-            OutlinedTextField(
+            TextField(
                 value = state.searchQuery,
                 onValueChange = { viewModel.setSearchQuery(it) },
-                placeholder = { Text("Search apps…") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                placeholder = {
+                    Text(
+                        stringResource(R.string.kavach_search_apps),
+                        color = KavachDesign.SearchHint,
+                    )
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = null, tint = KavachDesign.SearchHint)
+                },
                 trailingIcon = {
                     if (state.searchQuery.isNotBlank()) {
                         IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                            Icon(Icons.Default.Close, contentDescription = null, tint = KavachDesign.SearchHint)
                         }
                     }
                 },
                 singleLine = true,
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = KavachDesign.SearchFieldBg,
+                    unfocusedContainerColor = KavachDesign.SearchFieldBg,
+                    disabledContainerColor = KavachDesign.SearchFieldBg,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = KavachDesign.Primary,
+                    focusedTextColor = KavachDesign.TextMain,
+                    unfocusedTextColor = KavachDesign.TextMain,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
-            // Quick-select popular distractors
-            if (state.searchQuery.isBlank()) {
-                val distractors = listOf(
-                    "com.instagram.android",
-                    "com.google.android.youtube",
-                    "com.twitter.android",
-                    "com.whatsapp",
-                    "com.snapchat.android",
-                    "com.zhiliaoapp.musically", // TikTok
-                    "com.facebook.katana",
-                )
-                val distractorApps = state.allApps.filter { it.packageName in distractors }
-                if (distractorApps.isNotEmpty()) {
-                    Text(
-                        "POPULAR DISTRACTORS",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                    distractorApps.forEach { app ->
-                        AppRow(
-                            app = app,
-                            onToggle = { viewModel.toggleApp(app.packageName) },
-                        )
-                    }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                    Text(
-                        "ALL APPS",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                }
-            }
-
-            if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+            if (state.isLoading && filteredApps.isEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(8) { SyllabusRowSkeleton() }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 32.dp),
+                    contentPadding = PaddingValues(bottom = 8.dp),
                 ) {
                     items(
                         items = filteredApps,
                         key = { it.packageName },
                     ) { app ->
-                        AppRow(
+                        ShieldConfigAppRow(
                             app = app,
                             onToggle = { viewModel.toggleApp(app.packageName) },
                         )
@@ -164,60 +152,49 @@ fun AppPickerScreen(
     }
 }
 
-
 @Composable
-private fun AppRow(app: BlockedAppInfo, onToggle: () -> Unit) {
+private fun ShieldConfigAppRow(
+    app: BlockedAppInfo,
+    onToggle: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .height(64.dp)
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // App icon
         app.icon?.let { drawable ->
             Image(
                 bitmap = drawable.toBitmap(width = 96, height = 96).asImageBitmap(),
                 contentDescription = app.appName,
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(10.dp)),
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp)),
             )
         } ?: Box(
             modifier = Modifier
-                .size(42.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(KavachDesign.Surface),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Default.Android, contentDescription = null, modifier = Modifier.size(24.dp))
+            Icon(Icons.Default.Android, contentDescription = null, tint = KavachDesign.TextMuted)
         }
 
-        // App name + package
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                app.appName,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-            )
-            Text(
-                app.packageName,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-        }
+        Text(
+            app.appName,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Normal,
+            color = KavachDesign.TextMain,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+        )
 
-        // Toggle
-        Switch(
+        KavachStitchPillToggle(
             checked = app.isBlocked,
             onCheckedChange = { onToggle() },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Color(0xFFE53935),
-            ),
         )
     }
 }

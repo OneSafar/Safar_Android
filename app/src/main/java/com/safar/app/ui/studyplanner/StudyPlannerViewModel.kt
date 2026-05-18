@@ -27,11 +27,44 @@ import kotlinx.coroutines.flow.update
 import android.content.Context
 import com.safar.app.notifications.SafarNotificationManager
 import com.safar.app.notifications.SafarNotificationChannels
+import com.safar.app.ui.studyplanner.logic.flattenTopics
+import com.safar.app.ui.studyplanner.logic.parseBulkSubjectsFromTxt
+import com.safar.app.ui.studyplanner.logic.parseBulkSyllabus
+import com.safar.app.ui.studyplanner.logic.todayKey
+import com.safar.app.ui.studyplanner.templates.getLocalExamTemplate
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import java.util.Locale
 import javax.inject.Inject
+
+data class SubjectUiModel(
+    val id: String,
+    val name: String,
+    val color: String,
+    val chapterCount: Int,
+    val topicCount: Int,
+    val completionPercentage: Int
+)
+
+data class ChapterUiModel(
+    val id: String,
+    val name: String,
+    val topicCount: Int,
+    val completionPercentage: Int,
+    val status: TopicStatus
+)
+
+data class TopicUiModel(
+    val id: String,
+    val name: String,
+    val status: TopicStatus,
+    val plannedDate: String? = null
+)
 
 data class StudyPlannerUiState(
     val plans: List<StudyPlan> = emptyList(),
@@ -48,38 +81,94 @@ data class StudyPlannerUiState(
     val onboardingSkipped: Boolean = false,
     val syllabusImportDraft: String = "",
     val syllabusImportFileName: String? = null,
+    val selectedSubjectId: String? = null,
+    val selectedChapterId: String? = null,
 )
 
 @HiltViewModel
 class StudyPlannerViewModel @Inject constructor(
     private val repo: StudyPlannerRepository,
     @ApplicationContext private val context: Context,
-) : ViewModel() {
+) : ViewModel(), PlannerActions {
     private val _uiState = MutableStateFlow(StudyPlannerUiState())
     val uiState = _uiState.asStateFlow()
+    private val firedDailyMilestones = mutableSetOf<String>()
+
+    private val _selectedSubjectId = MutableStateFlow<String?>(null)
+    val selectedSubjectId = _selectedSubjectId.asStateFlow()
+
+    private val _selectedChapterId = MutableStateFlow<String?>(null)
+    val selectedChapterId = _selectedChapterId.asStateFlow()
+
+    val subjects: kotlinx.coroutines.flow.StateFlow<List<SubjectUiModel>> = _uiState.map { state ->
+        state.selectedPlan?.subjects?.map { s ->
+            val totalTopics = s.chapters.sumOf { it.topics.size }
+            val doneTopics = s.chapters.sumOf { ch -> ch.topics.count { it.status == TopicStatus.DONE } }
+            val completion = if (totalTopics > 0) (doneTopics * 100) / totalTopics else 0
+            SubjectUiModel(s.id, s.name, s.color, s.chapters.size, totalTopics, completion)
+        } ?: emptyList()
+    }.distinctUntilChanged()
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(), emptyList())
+
+    val chapters: kotlinx.coroutines.flow.StateFlow<List<ChapterUiModel>> = combine(_uiState, _selectedSubjectId) { state, subjectId ->
+        val subject = state.selectedPlan?.subjects?.find { it.id == subjectId }
+        subject?.chapters?.map { ch ->
+            val totalTopics = ch.topics.size
+            val doneTopics = ch.topics.count { it.status == TopicStatus.DONE }
+            val completion = if (totalTopics > 0) (doneTopics * 100) / totalTopics else 0
+
+            val status = when {
+                totalTopics == 0 -> TopicStatus.TODO
+                doneTopics == totalTopics -> TopicStatus.DONE
+                else -> TopicStatus.TODO
+            }
+
+            ChapterUiModel(ch.id, ch.name, totalTopics, completion, status)
+        } ?: emptyList()
+    }.distinctUntilChanged()
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(), emptyList())
+
+    val topics: kotlinx.coroutines.flow.StateFlow<List<TopicUiModel>> = combine(_uiState, _selectedSubjectId, _selectedChapterId) { state, subjectId, chapterId ->
+        val subject = state.selectedPlan?.subjects?.find { it.id == subjectId }
+        val chapter = subject?.chapters?.find { it.id == chapterId }
+        chapter?.topics?.map { t ->
+            TopicUiModel(t.id, t.name, t.status, t.plannedDate)
+        } ?: emptyList()
+    }.distinctUntilChanged()
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(), emptyList())
 
     init {
         refreshPlans()
         loadTemplates()
     }
 
-    fun setSection(section: PlannerSection) {
+    fun selectSubject(subjectId: String) {
+        _selectedSubjectId.value = subjectId
+        _uiState.update { it.copy(selectedSubjectId = subjectId) }
+    }
+
+    fun selectChapter(chapterId: String) {
+        _selectedChapterId.value = chapterId
+        _uiState.update { it.copy(selectedChapterId = chapterId) }
+    }
+
+    override fun setSection(section: PlannerSection) {
         _uiState.update { it.copy(section = section) }
     }
 
-    fun clearTransient() {
+    override fun clearTransient() {
         _uiState.update { it.copy(error = null, message = null, premiumReason = null) }
     }
 
-    fun clearSyllabusImportDraft() {
+    override fun clearSyllabusImportDraft() {
         _uiState.update { it.copy(syllabusImportDraft = "", syllabusImportFileName = null) }
     }
 
-    fun setError(message: String) {
+    override fun setError(message: String) {
         _uiState.update { it.copy(error = message) }
     }
 
-    fun showPremium(reason: PremiumReason) {
+    override fun showPremium(reason: PremiumReason) {
         _uiState.update { it.copy(premiumReason = reason) }
     }
 
@@ -87,12 +176,14 @@ class StudyPlannerViewModel @Inject constructor(
         if (_uiState.value.selectedPlan?.features?.isPremium == false) showPremium(reason) else action()
     }
 
-    fun refreshPlans() = viewModelScope.launch {
-        _uiState.update { it.copy(loading = true, error = null) }
-        when (val r = repo.listPlans()) {
-            is Resource.Success -> _uiState.update { it.copy(plans = r.data, loading = false) }
-            is Resource.Error -> _uiState.update { it.copy(error = r.message, loading = false) }
-            is Resource.Loading -> Unit
+    override fun refreshPlans() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(loading = true, error = null) }
+            when (val r = repo.listPlans()) {
+                is Resource.Success -> _uiState.update { it.copy(plans = r.data, loading = false) }
+                is Resource.Error -> _uiState.update { it.copy(error = r.message, loading = false) }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
@@ -104,74 +195,90 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun openPlan(planId: String) = viewModelScope.launch {
-        _uiState.update { it.copy(loading = true, error = null, section = PlannerSection.PLAN) }
-        when (val r = repo.getPlan(planId)) {
-            is Resource.Success -> {
-                _uiState.update { it.copy(selectedPlan = r.data, loading = false) }
-                refreshCalendar(planId)
-                refreshAnalytics(planId)
+    override fun openPlan(planId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(loading = true, error = null, section = PlannerSection.PLAN) }
+            when (val r = repo.getPlan(planId)) {
+                is Resource.Success -> {
+                    _uiState.update { it.copy(selectedPlan = r.data, loading = false) }
+                    refreshCalendar(planId)
+                    refreshAnalytics(planId)
+                }
+                is Resource.Error -> _uiState.update { it.copy(error = r.message, loading = false) }
+                is Resource.Loading -> Unit
             }
-            is Resource.Error -> _uiState.update { it.copy(error = r.message, loading = false) }
-            is Resource.Loading -> Unit
         }
     }
 
-    fun closePlan() {
+    override fun closePlan() {
         _uiState.update { it.copy(selectedPlan = null, calendar = emptyMap(), analytics = null, section = PlannerSection.PLAN) }
         refreshPlans()
     }
 
-    fun createPlan(title: String, examType: String?, examDate: String?, dailyGoal: Int, offDays: List<Int>) = viewModelScope.launch {
-        mutatePlanList {
-            repo.createPlan(CreatePlanRequest(title = title, examType = examType, examDate = examDate, dailyGoal = dailyGoal, offDays = offDays))
-        }
-    }
-
-    fun createFromTemplate(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) = viewModelScope.launch {
-        tryCreatePlanFromTemplateWithLocalFallback(templateId, title, examDate, dailyGoal, offDays)
-    }
-
-    fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) = viewModelScope.launch {
-        val serverHas = _uiState.value.templates.any { it.id == templateId }
-        if (serverHas) {
-            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, examDate, dailyGoal, offDays)
-        } else {
-            createPlanFromLocalTemplate(templateId, title, examDate, dailyGoal, offDays)
-        }
-    }
-
-    fun deletePlan(planId: String) = viewModelScope.launch {
-        _uiState.update { it.copy(mutating = true) }
-        when (val r = repo.deletePlan(planId)) {
-            is Resource.Success -> {
-                _uiState.update { it.copy(mutating = false, selectedPlan = null, message = "Plan deleted") }
-                refreshPlans()
+    override fun createPlan(title: String, examType: String?, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
+        viewModelScope.launch {
+            mutatePlanList {
+                repo.createPlan(CreatePlanRequest(title = title, examType = examType, examDate = examDate, dailyGoal = dailyGoal, offDays = offDays))
             }
-            is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
-            is Resource.Loading -> Unit
         }
     }
 
-    fun updatePlan(request: UpdatePlanRequest) = mutateSelected { planId -> repo.updatePlan(planId, request) }
-    fun addSubject(name: String) = mutateSelected { planId -> repo.addSubject(planId, SubjectRequest(name = name, color = "#0ea5e9")) }
-    fun renameSubject(subjectId: String, name: String) = mutateSelected { planId -> repo.renameSubject(planId, subjectId, SubjectRequest(name = name)) }
-    fun deleteSubject(subjectId: String) = mutateSelected { planId -> repo.deleteSubject(planId, subjectId) }
-    fun addChapter(subjectId: String, name: String) = mutateSelected { planId -> repo.addChapter(planId, subjectId, ChapterRequest(name)) }
-    fun renameChapter(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(name)) }
-    fun deleteChapter(subjectId: String, chapterId: String) = mutateSelected { planId -> repo.deleteChapter(planId, subjectId, chapterId) }
-    fun addTopic(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.addTopic(planId, subjectId, chapterId, TopicRequest(name)) }
-    fun updateTopic(topicId: String, status: TopicStatus? = null, name: String? = null, plannedDate: String? = null, notes: String? = null) {
-        val wasDone = _uiState.value.calendar.values.flatten().find { it.topicId == topicId }?.status == TopicStatus.DONE
+    override fun createFromTemplate(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
+        viewModelScope.launch {
+            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, examDate, dailyGoal, offDays)
+        }
+    }
+
+    override fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
+        viewModelScope.launch {
+            // Always try the fast server-side POST /plans/from-template first
+            // (creates entire plan in one request instead of ~175 sequential calls).
+            // The server independently validates template existence, so a client-side
+            // pre-check against loadTemplates() is unnecessary and was causing the
+            // slow local fallback when templates hadn't loaded yet.
+            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, examDate, dailyGoal, offDays)
+        }
+    }
+
+    override fun deletePlan(planId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true) }
+            when (val r = repo.deletePlan(planId)) {
+                is Resource.Success -> {
+                    _uiState.update { it.copy(mutating = false, selectedPlan = null, message = "Plan deleted") }
+                    refreshPlans()
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    override fun updatePlan(request: UpdatePlanRequest) = mutateSelected { planId -> repo.updatePlan(planId, request) }
+    override fun addSubject(name: String) = mutateSelected { planId -> repo.addSubject(planId, SubjectRequest(name = name, color = "#0ea5e9")) }
+    override fun renameSubject(subjectId: String, name: String) = mutateSelected { planId -> repo.renameSubject(planId, subjectId, SubjectRequest(name = name)) }
+    override fun deleteSubject(subjectId: String) = mutateSelected { planId -> repo.deleteSubject(planId, subjectId) }
+    override fun addChapter(subjectId: String, name: String) = mutateSelected { planId -> repo.addChapter(planId, subjectId, ChapterRequest(name)) }
+    override fun renameChapter(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(name)) }
+    override fun deleteChapter(subjectId: String, chapterId: String) = mutateSelected { planId -> repo.deleteChapter(planId, subjectId, chapterId) }
+    override fun addTopic(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.addTopic(planId, subjectId, chapterId, TopicRequest(name)) }
+    override fun updateTopic(topicId: String, status: TopicStatus?, name: String?, plannedDate: String?, notes: String?) {
+        val state = _uiState.value
+        val planId = state.selectedPlan?.id ?: return
+        val today = todayKey()
+        val todayTopics = state.calendar[today].orEmpty()
+        val topicWasToday = todayTopics.any { it.topicId == topicId }
+        val wasDone = state.calendar.values.flatten().find { it.topicId == topicId }?.status == TopicStatus.DONE
+        val beforeDoneCount = todayTopics.count { it.status == TopicStatus.DONE }
         mutateSelected(refreshCalendar = true, refreshAnalytics = true, onSuccess = {
-            if (status == TopicStatus.DONE && !wasDone) {
-                checkDailyMilestones()
+            if (topicWasToday && status == TopicStatus.DONE && !wasDone) {
+                checkDailyMilestones(planId, beforeDoneCount)
             }
         }) { planId -> repo.updateTopic(planId, topicId, TopicPatchRequest(name = name, status = status, plannedDate = plannedDate, notes = notes)) }
     }
-    fun deleteTopic(topicId: String) = mutateSelected(refreshCalendar = true, refreshAnalytics = true) { planId -> repo.deleteTopic(planId, topicId) }
+    override fun deleteTopic(topicId: String) = mutateSelected(refreshCalendar = true, refreshAnalytics = true) { planId -> repo.deleteTopic(planId, topicId) }
 
-    fun autoDistribute(includeRevision: Boolean, lockExisting: Boolean) {
+    override fun autoDistribute(includeRevision: Boolean, lockExisting: Boolean) {
         requirePremium(PremiumReason.AUTO_SCHEDULE) {
             mutateAuto {
                 repo.autoDistribute(it, AutoDistributeRequest(includeRevisionNeeded = includeRevision, lockExistingDates = lockExisting))
@@ -179,7 +286,7 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun clearFutureDates() {
+    override fun clearFutureDates() {
         requirePremium(PremiumReason.RESCHEDULE) {
             val today = todayKey()
             val refs = _uiState.value.selectedPlan?.flattenTopics().orEmpty()
@@ -188,17 +295,17 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun moveTopicsToDate(topicIds: List<String>, date: String) {
+    override fun moveTopicsToDate(topicIds: List<String>, date: String) {
         if (topicIds.isEmpty()) return
         batchTopicDates(topicIds, date, "Topics moved")
     }
 
-    fun clearTopicDates(topicIds: List<String>) {
+    override fun clearTopicDates(topicIds: List<String>) {
         if (topicIds.isEmpty()) return
         batchTopicDates(topicIds, null, "Day cleared")
     }
 
-    fun resetPlan() {
+    override fun resetPlan() {
         val refs = _uiState.value.selectedPlan?.flattenTopics().orEmpty()
         viewModelScope.launch {
             _uiState.update { it.copy(mutating = true) }
@@ -207,7 +314,7 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun bulkAdd(subjectId: String, chapterId: String, text: String) {
+    override fun bulkAdd(subjectId: String, chapterId: String, text: String) {
         val topics = parseBulkSyllabus(text).flatMap { it.second }.filter { it.isNotBlank() }
         viewModelScope.launch {
             val planId = _uiState.value.selectedPlan?.id ?: return@launch
@@ -222,7 +329,7 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     /** Full syllabus (`-` / `_` / `>`) before manual subjects — matches web bulk TXT import. */
-    fun importFullSyllabusFromTxt(text: String) {
+    override fun importFullSyllabusFromTxt(text: String) {
         val parsed = parseBulkSubjectsFromTxt(text)
         val groups = parsed.getOrElse { e ->
             _uiState.update { it.copy(error = e.message ?: "Invalid syllabus text") }
@@ -304,35 +411,39 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun importSyllabusFile(file: MultipartBody.Part, fileName: String?) = viewModelScope.launch {
-        _uiState.update { it.copy(mutating = true, error = null) }
-        when (val r = repo.importSyllabusFile(file)) {
-            is Resource.Success -> {
-                val draft = r.data.trim()
-                _uiState.update {
-                    it.copy(
-                        mutating = false,
-                        syllabusImportDraft = draft,
-                        syllabusImportFileName = fileName,
-                        message = if (draft.isNotBlank()) "Imported syllabus from ${fileName ?: "file"}." else "Syllabus import finished.",
-                    )
+    override fun importSyllabusFile(file: MultipartBody.Part, fileName: String?) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, error = null) }
+            when (val r = repo.importSyllabusFile(file)) {
+                is Resource.Success -> {
+                    val draft = r.data.trim()
+                    _uiState.update {
+                        it.copy(
+                            mutating = false,
+                            syllabusImportDraft = draft,
+                            syllabusImportFileName = fileName,
+                            message = if (draft.isNotBlank()) "Imported syllabus from ${fileName ?: "file"}." else "Syllabus import finished.",
+                        )
+                    }
                 }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message, syllabusImportFileName = fileName) }
+                is Resource.Loading -> Unit
             }
-            is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message, syllabusImportFileName = fileName) }
-            is Resource.Loading -> Unit
         }
     }
 
-    fun upgradePlan() = viewModelScope.launch {
-        val planId = _uiState.value.selectedPlan?.id ?: return@launch
-        _uiState.update { it.copy(mutating = true) }
-        when (val r = repo.upgradePlan(planId)) {
-            is Resource.Success -> {
-                _uiState.update { it.copy(mutating = false, premiumReason = null, selectedPlan = r.data.plan ?: it.selectedPlan, message = r.data.message ?: "Premium unlocked") }
-                reloadSelected()
+    override fun upgradePlan() {
+        viewModelScope.launch {
+            val planId = _uiState.value.selectedPlan?.id ?: return@launch
+            _uiState.update { it.copy(mutating = true) }
+            when (val r = repo.upgradePlan(planId)) {
+                is Resource.Success -> {
+                    _uiState.update { it.copy(mutating = false, premiumReason = null, selectedPlan = r.data.plan ?: it.selectedPlan, message = r.data.message ?: "Premium unlocked") }
+                    reloadSelected()
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Loading -> Unit
             }
-            is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
-            is Resource.Loading -> Unit
         }
     }
 
@@ -552,7 +663,7 @@ class StudyPlannerViewModel @Inject constructor(
         refreshAnalytics(planId)
     }
 
-    private suspend fun checkDailyMilestones() {
+    private suspend fun checkDailyMilestones(planId: String, beforeDoneCount: Int) {
         val today = todayKey()
         val calendar = _uiState.value.calendar
         val todayTopics = calendar[today] ?: return
@@ -562,17 +673,22 @@ class StudyPlannerViewModel @Inject constructor(
         
         val doneCount = todayTopics.count { it.status == TopicStatus.DONE }
         val half = (total + 1) / 2
+        val milestone = when {
+            beforeDoneCount < half && doneCount >= half -> "half"
+            beforeDoneCount < total && doneCount >= total -> "complete"
+            else -> return
+        }
+        val key = "$planId:$today:$milestone"
+        if (!firedDailyMilestones.add(key)) return
         
         val planTitle = _uiState.value.selectedPlan?.title ?: "Study Plan"
         val notificationManager = SafarNotificationManager(context)
         
-        if (doneCount == total || doneCount == half) {
-            notificationManager.show(
-                title = planTitle,
-                body = "You've got this, keep going !",
-                channelId = SafarNotificationChannels.STUDY_REMINDERS,
-                deepLink = "safar://studyplanner"
-            )
-        }
+        notificationManager.show(
+            title = planTitle,
+            body = "You've got this, keep going !",
+            channelId = SafarNotificationChannels.STUDY_REMINDERS,
+            deepLink = "safar://studyplanner"
+        )
     }
 }

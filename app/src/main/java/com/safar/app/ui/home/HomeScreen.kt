@@ -36,6 +36,7 @@ import com.safar.app.data.local.SafarDataStore
 import com.safar.app.ui.drawer.SafarDrawerScaffold
 import com.safar.app.ui.navigation.Routes
 import com.safar.app.ui.theme.*
+import com.safar.app.util.bounceClick
 import com.safar.app.notifications.NotificationPermissionRequest
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -118,7 +119,7 @@ fun HomeScreen(
     // Ask for notification permission once — shows a rationale dialog 1.5s after landing on Home
     NotificationPermissionRequest()
 
-    var currentPage by remember { mutableStateOf(0) }
+    var currentPage by remember { mutableIntStateOf(0) }
     val haptic = LocalHapticFeedback.current
 
     LaunchedEffect(Unit) {
@@ -355,7 +356,7 @@ private fun ToolImageCard(
     val haptic = LocalHapticFeedback.current
 
     Column(
-        modifier = modifier.clickable {
+        modifier = modifier.bounceClick {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             onClick()
         },
@@ -399,7 +400,10 @@ private fun ToolImageCard(
             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
             color = if (isActive) Color.White else Color(0xFFD7E4DC),
             textAlign = TextAlign.Center,
-            modifier = Modifier.scale(if (isActive) 1.05f else 1f)
+            modifier = Modifier.graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+            }
         )
     }
 }

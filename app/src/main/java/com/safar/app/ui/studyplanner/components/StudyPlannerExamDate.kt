@@ -1,4 +1,4 @@
-package com.safar.app.ui.studyplanner
+package com.safar.app.ui.studyplanner.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -29,6 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.safar.app.ui.studyplanner.logic.parsePlannerDate
+import com.safar.app.ui.studyplanner.logic.readableDate
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -92,7 +94,7 @@ fun PlannerExamDateField(
             Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(
-                if (examDateIso.isNotBlank()) readableDate(examDateIso) else "Choose $label",
+                if (examDateIso.isNotBlank()) readableDate(examDateIso) else "Select $label",
                 style = MaterialTheme.typography.bodyLarge,
             )
         }

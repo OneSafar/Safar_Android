@@ -38,6 +38,9 @@ import com.safar.app.R
 import com.safar.app.domain.model.*
 import com.safar.app.ui.drawer.SafarDrawerScaffold
 import com.safar.app.ui.navigation.Routes
+import com.safar.app.ui.components.SafarErrorState
+import com.safar.app.ui.components.SafarPullRefreshBox
+import com.safar.app.ui.components.StatCardSkeleton
 import com.safar.app.ui.theme.*
 
 @Composable
@@ -82,18 +85,32 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
+            if (uiState.error != null && uiState.userName.isEmpty() && !uiState.isLoading) {
+                SafarErrorState(
+                    message = uiState.error!!,
+                    onRetry = { viewModel.onEvent(DashboardEvent.Refresh) },
                     modifier = Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.primary
                 )
+            } else if (uiState.isLoading && uiState.userName.isEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(4) { StatCardSkeleton() }
+                }
             } else {
+                SafarPullRefreshBox(
+                    isRefreshing = uiState.isLoading && uiState.userName.isNotEmpty(),
+                    onRefresh = { viewModel.onEvent(DashboardEvent.Refresh) },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
                 ) {
-                    item { WelcomeBanner(uiState, isDarkTheme) }
+                    item { WelcomeBanner(uiState.userName, isDarkTheme) }
                     item { InspirationCard(isDarkTheme) }
                     if (uiState.activeTitle.isNotEmpty()) {
                         item { ActiveTitleCard(uiState.activeTitle, uiState.activeTitleId, isDarkTheme) }
@@ -111,6 +128,7 @@ fun DashboardScreen(
                     if (uiState.completedGoals.isNotEmpty()) {
                         item { GoalHistoryCard(uiState.completedGoals, isDarkTheme, onNavigate) }
                     }
+                }
                 }
             }
 
@@ -176,7 +194,7 @@ private fun DashboardWelcomeOverlay(userName: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun WelcomeBanner(uiState: DashboardUiState, isDark: Boolean) {
+private fun WelcomeBanner(userName: String, isDark: Boolean) {
     DashCard(isDark) {
         Row(
             Modifier.fillMaxWidth(),
@@ -193,7 +211,7 @@ private fun WelcomeBanner(uiState: DashboardUiState, isDark: Boolean) {
                 Row {
                     Text("Welcome back, ", color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Text(
-                        uiState.userName.replaceFirstChar { it.uppercase() }.ifEmpty { "User" },
+                        userName.replaceFirstChar { it.uppercase() }.ifEmpty { "User" },
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 22.sp, fontWeight = FontWeight.Bold
                     )
@@ -393,28 +411,32 @@ private fun BadgesCard(earned: List<Achievement>, all: List<Achievement>, isDark
                 modifier = Modifier.clickable { onNavigate(Routes.ACHIEVEMENTS) })
         }
         Spacer(Modifier.height(12.dp))
-        val display = if (earned.isNotEmpty()) earned else all.take(3)
+        val display = remember(earned, all) {
+            (if (earned.isNotEmpty()) earned else all.take(3)).take(6)
+        }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(display.take(6)) { achievement ->
+            items(display, key = { it.id }) { achievement ->
+                val onAchievementClick = remember(achievement) { { selectedAchievement = achievement } }
                 Column(
                     modifier = Modifier.width(80.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable { selectedAchievement = achievement }
+                        .clickable(onClick = onAchievementClick)
                         .padding(10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     val imagePath = achievementImages[achievement.id]
                     if (imagePath != null) {
+                        val imageUrl = remember(imagePath) {
+                            val origin = BuildConfig.BASE_URL.trimEnd('/').let {
+                                val uri = android.net.Uri.parse(it)
+                                "${uri.scheme}://${uri.host}"
+                            }
+                            "$origin$imagePath"
+                        }
                         AsyncImage(
-                            model = run {
-                                val origin = BuildConfig.BASE_URL.trimEnd('/').let {
-                                    val uri = android.net.Uri.parse(it)
-                                    "${uri.scheme}://${uri.host}"
-                                }
-                                "$origin$imagePath"
-                            },
+                            model = imageUrl,
                             contentDescription = achievement.name,
                             modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp))
                         )
@@ -562,7 +584,9 @@ private fun AchievementDetailDialog(achievement: Achievement, onDismiss: () -> U
 
 @Composable
 private fun TodayGoalsCard(goals: List<Goal>, isDark: Boolean, onNavigate: (String) -> Unit) {
-    val completed = goals.count { it.completed }
+    val visibleGoals = remember(goals) { goals.take(3) }
+    val completed = remember(goals) { goals.count { it.completed } }
+    val progress = remember(goals, completed) { if (goals.isNotEmpty()) completed.toFloat() / goals.size else 0f }
     DashCard(isDark) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -578,13 +602,13 @@ private fun TodayGoalsCard(goals: List<Goal>, isDark: Boolean, onNavigate: (Stri
             Text("Stay focused and consistent.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), fontSize = 12.sp)
             Spacer(Modifier.height(10.dp))
             LinearProgressIndicator(
-                progress = { if (goals.isNotEmpty()) completed.toFloat() / goals.size else 0f },
+                progress = { progress },
                 modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
             )
             Spacer(Modifier.height(12.dp))
-            goals.take(3).forEach { goal ->
+            visibleGoals.forEach { goal ->
                 Row(
                     modifier = Modifier.fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -687,7 +711,7 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean, onNavigate: (Str
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), fontSize = 12.sp)
         Spacer(Modifier.height(16.dp))
 
-        val intensityValues = moods.take(7).map { it.intensity.toFloat() }
+        val intensityValues = remember(moods) { moods.take(7).map { it.intensity.toFloat() } }
         val primaryColor = MaterialTheme.colorScheme.primary
         val surfaceColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
 

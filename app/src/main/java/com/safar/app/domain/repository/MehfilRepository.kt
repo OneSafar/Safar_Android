@@ -4,6 +4,7 @@ import com.safar.app.domain.model.*
 import com.safar.app.util.Resource
 
 interface MehfilRepository {
+    suspend fun getMeditationVideoUrl(): Resource<String>
     suspend fun getSandesh(): Resource<Pair<Sandesh?, List<Sandesh>>>
     suspend fun reactSandesh(id: String): Resource<Unit>
     suspend fun getSandeshComments(id: String, page: Int): Resource<List<Comment>>

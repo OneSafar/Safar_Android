@@ -242,7 +242,7 @@ class MehfilViewModel @Inject constructor(
 
     fun loadPosts(refresh: Boolean = false) {
         if (refresh) {
-            _uiState.update { it.copy(isLoadingPosts = true, posts = emptyList(), currentPage = 1) }
+            _uiState.update { it.copy(isLoadingPosts = true, currentPage = 1) }
             if (socketManager.isConnected()) {
                 socketManager.joinRoomAndLoad(_uiState.value.selectedSpace)
             } else {

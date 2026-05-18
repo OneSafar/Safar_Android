@@ -5,6 +5,7 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface MehfilApi {
+    @GET("mehfil/meditation-video") suspend fun getMeditationVideo(): Response<MeditationVideoResponse>
     @GET("mehfil/sandesh") suspend fun getSandesh(): Response<SandeshResponse>
     @POST("mehfil/sandesh/{id}/react") suspend fun reactSandesh(@Path("id") id: String): Response<Any>
     @GET("mehfil/sandesh/{id}/comments") suspend fun getSandeshComments(@Path("id") id: String, @Query("page") page: Int = 1): Response<CommentsResponse>

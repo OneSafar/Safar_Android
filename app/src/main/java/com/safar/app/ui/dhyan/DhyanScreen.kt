@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -34,11 +35,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import com.safar.app.util.bounceClick
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.safar.app.ui.components.SafarErrorState
+import com.safar.app.ui.components.StatCardSkeleton
 import com.safar.app.ui.drawer.SafarDrawerScaffold
 import com.safar.app.ui.navigation.Routes
 import com.safar.app.ui.nishtha.checkin.SlimSlider
@@ -107,8 +113,13 @@ fun DhyanScreen(
     // null = no technique chosen (show image), non-null = show animation
     var selectedTechnique   by remember { mutableStateOf<BreathingTechnique?>(null) }
     var tourState           by remember { mutableStateOf<com.safar.app.ui.butterfly.ButterflyTourState?>(null) }
+    var showYoutubeModal    by remember { mutableStateOf(false) }
 
     val themeVm: ThemeViewModel = hiltViewModel()
+    val dhyanVm: DhyanViewModel = hiltViewModel()
+    val meditationVideoUrl by dhyanVm.meditationVideoUrl.collectAsStateWithLifecycle()
+    val isLoadingVideo by dhyanVm.isLoadingVideo.collectAsStateWithLifecycle()
+    val videoError by dhyanVm.videoError.collectAsStateWithLifecycle()
 
     if (showTechniquesSheet) {
         BreathingOptionsSheet(
@@ -126,7 +137,14 @@ fun DhyanScreen(
         )
     }
 
-    Box(Modifier.fillMaxSize()) {
+    if (showYoutubeModal) {
+        DhyanYoutubePromotionDialog(
+            videoUrl = meditationVideoUrl,
+            onDismiss = { showYoutubeModal = false },
+        )
+    }
+
+    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
     SafarDrawerScaffold(
         title    = "Dhyan",
         subtitle = "SAFAR",
@@ -147,6 +165,7 @@ fun DhyanScreen(
         Box(Modifier.fillMaxSize()) {
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.background,
+                contentWindowInsets = WindowInsets.safeDrawing,
                 bottomBar = {
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
                         DhyanTab.entries.forEach { tab ->
@@ -187,7 +206,13 @@ fun DhyanScreen(
                             onShowMusic       = { showMusicSheet = true },
                             onClearTechnique  = { selectedTechnique = null },
                         )
-                        DhyanTab.COURSES   -> CoursesTab()
+                        DhyanTab.COURSES   -> CoursesTab(
+                            meditationVideoUrl = meditationVideoUrl,
+                            isLoadingVideo = isLoadingVideo,
+                            videoError = videoError,
+                            onRetryVideo = { dhyanVm.loadMeditationVideo() },
+                            onOpenYoutubeModal = { showYoutubeModal = true },
+                        )
                     }
                 }
             }
@@ -214,11 +239,11 @@ private fun BreathingTab(
     onShowMusic: () -> Unit,
     onClearTechnique: () -> Unit,
 ) {
-    var sessionLengthMin    by remember { mutableStateOf(5) }
+    var sessionLengthMin    by remember { mutableIntStateOf(5) }
     var isRunning           by remember { mutableStateOf(false) }
     var phase               by remember { mutableStateOf(DhyanBreathPhase.INHALE) }
-    var phaseSecondsLeft    by remember { mutableStateOf(selectedTechnique?.inhale ?: 4) }
-    var sessionSecondsLeft  by remember { mutableStateOf(sessionLengthMin * 60) }
+    var phaseSecondsLeft    by remember { mutableIntStateOf(selectedTechnique?.inhale ?: 4) }
+    var sessionSecondsLeft  by remember { mutableIntStateOf(sessionLengthMin * 60) }
 
     val context = LocalContext.current
     val mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
@@ -302,117 +327,140 @@ private fun BreathingTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text(
             "\"Silence is the language of God.\"",
-            fontSize  = 13.sp,
+            fontSize  = 12.sp,
             color     = MaterialTheme.colorScheme.onSurfaceVariant,
             fontStyle = FontStyle.Italic,
             textAlign = TextAlign.Center,
         )
 
-        // ── Visual area: image OR breathing animation ──────────────────────
-        AnimatedContent(
-            targetState = selectedTechnique,
-            transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(250)) },
-            label = "vizSwitch",
-        ) { technique ->
-            if (technique == null) {
-                // Default pulsing circle image
-                val pulseAnim = rememberInfiniteTransition(label = "pulse")
-                val pulseScale by pulseAnim.animateFloat(
-                    initialValue  = 1f,
-                    targetValue   = 1.05f,
-                    animationSpec = infiniteRepeatable(tween(1600, easing = EaseInOutSine), RepeatMode.Reverse),
-                    label         = "pulseScale",
-                )
-                Box(
-                    modifier = Modifier
-                        .size(220.dp)
-                        .scale(pulseScale)
-                        .clip(CircleShape)
-                        .border(3.dp, MaterialTheme.colorScheme.primary.copy(0.45f), CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    AsyncImage(
-                        model              = MEDITATION_IMAGE_URL,
-                        contentDescription = "Meditate",
-                        modifier           = Modifier.fillMaxSize(),
-                        contentScale       = ContentScale.Crop,
+
+
+        // ── Visual area: image OR breathing animation (Flexible height) ────
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            AnimatedContent(
+                targetState = selectedTechnique,
+                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(250)) },
+                label = "vizSwitch",
+            ) { technique ->
+                if (technique == null) {
+                    // Default pulsing circle image
+                    val pulseAnim = rememberInfiniteTransition(label = "pulse")
+                    val pulseScale by pulseAnim.animateFloat(
+                        initialValue  = 1f,
+                        targetValue   = 1.05f,
+                        animationSpec = infiniteRepeatable(tween(1600, easing = EaseInOutSine), RepeatMode.Reverse),
+                        label         = "pulseScale",
                     )
-                }
-            } else {
-                // Live breathing animation + technique chip
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    BreathingVisualizer(
-                        sessionId   = vizSessionId,
-                        breathPhase = vizPhase,
-                        isActive    = isRunning,
-                        cycle       = vizCycle,
-                        modifier    = Modifier.size(220.dp),
-                    )
-                    if (isRunning) {
-                        Text(
-                            phase.label,
-                            fontSize      = 11.sp,
-                            fontWeight    = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            color         = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Box(
+                        modifier = Modifier
+                            .sizeIn(maxHeight = 200.dp, maxWidth = 200.dp)
+                            .aspectRatio(1f)
+                            .graphicsLayer {
+                                scaleX = pulseScale
+                                scaleY = pulseScale
+                            }
+                            .clip(CircleShape)
+                            .border(3.dp, MaterialTheme.colorScheme.primary.copy(0.45f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        AsyncImage(
+                            model              = MEDITATION_IMAGE_URL,
+                            contentDescription = "Meditate",
+                            modifier           = Modifier.fillMaxSize(),
+                            contentScale       = ContentScale.Crop,
                         )
                     }
-                    Row(
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                } else {
+                    // Live breathing animation + technique chip
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Box(
-                            Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(0.12f))
-                                .padding(horizontal = 12.dp, vertical = 5.dp)
+                        BreathingVisualizer(
+                            sessionId   = vizSessionId,
+                            breathPhase = vizPhase,
+                            isActive    = isRunning,
+                            cycle       = vizCycle,
+                            modifier    = Modifier.sizeIn(maxHeight = 200.dp, maxWidth = 200.dp).aspectRatio(1f),
+                        )
+                        if (isRunning) {
+                            Text(
+                                phase.label,
+                                fontSize      = 11.sp,
+                                fontWeight    = FontWeight.Bold,
+                                letterSpacing = 2.sp,
+                                color         = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(0.12f))
+                                    .padding(horizontal = 12.dp, vertical = 5.dp)
+                            ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Icon(painter = androidx.compose.ui.res.painterResource(id = technique.iconRes), contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                                     Text("${technique.name} · ${technique.pattern}",
-                                fontSize   = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color      = MaterialTheme.colorScheme.primary,
-                            )
+                                        fontSize   = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color      = MaterialTheme.colorScheme.primary,
+                                    )
                                 }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(26.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(0.12f))
-                                .clickable { onClearTechnique(); resetTimer(null) },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Clear technique",
-                                tint     = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp),
-                            )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(0.12f))
+                                    .clickable { onClearTechnique(); resetTimer(null) },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Clear technique",
+                                    tint     = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
+        Spacer(Modifier.height(8.dp))
+
         // Large timer
-        Text(
-            "%02d:%02d".format(sessionSecondsLeft / 60, sessionSecondsLeft % 60),
-            fontSize      = 52.sp,
-            fontWeight    = FontWeight.Bold,
-            letterSpacing = (-2).sp,
-        )
+        val density = LocalDensity.current
+        CompositionLocalProvider(
+            LocalDensity provides Density(
+                density = density.density,
+                fontScale = density.fontScale.coerceAtMost(1.3f)
+            )
+        ) {
+            Text(
+                "%02d:%02d".format(sessionSecondsLeft / 60, sessionSecondsLeft % 60),
+                fontSize      = 48.sp,
+                fontWeight    = FontWeight.Bold,
+                letterSpacing = (-2).sp,
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
 
         // Session length card
         Card(
@@ -422,7 +470,7 @@ private fun BreathingTab(
             elevation = CardDefaults.cardElevation(0.dp),
             border    = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
         ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -437,23 +485,25 @@ private fun BreathingTab(
                     valueRange    = 1f..60f,
                     modifier      = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = 2.dp),
                     activeColor   = MaterialTheme.colorScheme.primary,
                 )
             }
         }
 
+        Spacer(Modifier.height(16.dp))
+
         // Play / Pause / Reset row
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(
                 onClick  = { resetTimer() },
-                modifier = Modifier.size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface),
+                modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface),
             ) {
                 Icon(Icons.Default.Refresh, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Box(
                 modifier = Modifier
-                    .size(68.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
                     .background(if (isRunning) Amber500 else MaterialTheme.colorScheme.primary)
                     .clickable { isRunning = !isRunning },
@@ -463,12 +513,12 @@ private fun BreathingTab(
                     if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                     null,
                     tint     = if (isRunning) Color.Black else MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(34.dp),
+                    modifier = Modifier.size(32.dp),
                 )
             }
             IconButton(
                 onClick  = onShowMusic,
-                modifier = Modifier.size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface),
+                modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface),
             ) {
                 Icon(
                     Icons.Default.VolumeUp,
@@ -478,6 +528,8 @@ private fun BreathingTab(
             }
         }
 
+        Spacer(Modifier.height(16.dp))
+
         // Breathe with me button
         Box(
             modifier = Modifier
@@ -485,7 +537,7 @@ private fun BreathingTab(
                 .clip(RoundedCornerShape(14.dp))
                 .background(Brush.horizontalGradient(listOf(BreathGradientStart, BreathGradientEnd)))
                 .clickable(onClick = onBreatheWithMe)
-                .padding(vertical = 13.dp),
+                .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -495,6 +547,7 @@ private fun BreathingTab(
         }
 
         if (selectedMusic.first != "None") {
+            Spacer(Modifier.height(8.dp))
             Card(
                 shape     = RoundedCornerShape(12.dp),
                 modifier  = Modifier.fillMaxWidth(),
@@ -502,12 +555,12 @@ private fun BreathingTab(
                 elevation = CardDefaults.cardElevation(0.dp),
                 border    = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
             ) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                    Text(selectedMusic.first, fontSize = 13.sp, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                    Text(selectedMusic.first, fontSize = 12.sp, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     Text(
                         if (isRunning) "PLAYING" else "READY",
-                        fontSize   = 10.sp,
+                        fontSize   = 9.sp,
                         fontWeight = FontWeight.Bold,
                         color      = if (isRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -552,7 +605,7 @@ private fun BreathingOptionsSheet(
                 val isSelected = t.name == selectedTechnique?.name
                 Card(
                     shape     = RoundedCornerShape(14.dp),
-                    modifier  = Modifier.fillMaxWidth().clickable { onSelectTechnique(t) },
+                    modifier  = Modifier.fillMaxWidth().bounceClick { onSelectTechnique(t) },
                     colors    = CardDefaults.cardColors(
                         containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(0.1f) else MaterialTheme.colorScheme.background,
                     ),
@@ -611,7 +664,7 @@ private fun MusicSheet(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
                         .background(if (isSel) MaterialTheme.colorScheme.primary.copy(0.1f) else Color.Transparent)
-                        .clickable { onSelect(option) }
+                        .bounceClick { onSelect(option) }
                         .padding(14.dp),
                     verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -628,11 +681,25 @@ private fun MusicSheet(
 // ─── Courses Tab ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun CoursesTab() {
+private fun CoursesTab(
+    meditationVideoUrl: String,
+    isLoadingVideo: Boolean,
+    videoError: String?,
+    onRetryVideo: () -> Unit,
+    onOpenYoutubeModal: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        when {
+            isLoadingVideo -> StatCardSkeleton(modifier = Modifier.height(180.dp))
+            videoError != null -> SafarErrorState(message = videoError, onRetry = onRetryVideo)
+            else -> DhyanLatestVideoCard(
+                videoUrl = meditationVideoUrl,
+                onOpenModal = onOpenYoutubeModal,
+            )
+        }
         Text("Dhyan Learning Tracks", fontWeight = FontWeight.Bold, fontSize = 20.sp)
         Text("Deepen your meditation journey with guided courses, daily structure, and progress checkpoints.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 20.sp)
         Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)), elevation = CardDefaults.cardElevation(0.dp)) {

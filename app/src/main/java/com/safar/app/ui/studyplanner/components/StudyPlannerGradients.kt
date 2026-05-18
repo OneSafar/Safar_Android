@@ -1,4 +1,4 @@
-package com.safar.app.ui.studyplanner
+package com.safar.app.ui.studyplanner.components
 
 
 
@@ -365,5 +365,4 @@ fun ExamDaysCountdownBadge(
     }
 
 }
-
 

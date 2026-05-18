@@ -39,6 +39,7 @@ import com.safar.app.ui.ekagra.TimerService
 import com.safar.app.ui.navigation.SafarNavGraph
 import com.safar.app.ui.theme.SafarTheme
 import com.safar.app.ui.theme.ThemeViewModel
+import com.safar.app.ui.debug.DebugFontScaleOverlay
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
 import javax.inject.Inject
@@ -127,20 +128,22 @@ class MainActivity : ComponentActivity() {
                     Surface(modifier = appContentModifier) {
                         // Provide TimerService to the entire composition tree
                         CompositionLocalProvider(LocalTimerService provides timerService) {
-                            SafarNavGraph(
-                                dataStore          = dataStore,
-                                isDarkTheme        = isDarkTheme,
-                                isNightMode        = isNightMode,
-                                onToggleDarkTheme  = { themeViewModel.toggleDarkTheme() },
-                                onToggleNightMode  = {},
-                                onLanguageToggle   = {
-                                    val next = if (currentLanguage == "en") "hi" else "en"
-                                    themeViewModel.setLanguage(next)
-                                    AppCompatDelegate.setApplicationLocales(
-                                        LocaleListCompat.forLanguageTags(next)
-                                    )
-                                }
-                            )
+                            DebugFontScaleOverlay {
+                                SafarNavGraph(
+                                    dataStore = dataStore,
+                                    isDarkTheme = isDarkTheme,
+                                    isNightMode = isNightMode,
+                                    onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
+                                    onToggleNightMode = { themeViewModel.toggleNightMode() },
+                                    onLanguageToggle = {
+                                        val next = if (currentLanguage == "en") "hi" else "en"
+                                        themeViewModel.setLanguage(next)
+                                        AppCompatDelegate.setApplicationLocales(
+                                            LocaleListCompat.forLanguageTags(next)
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 }

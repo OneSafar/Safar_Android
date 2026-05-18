@@ -1,13 +1,21 @@
 package com.safar.app.data.local
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,6 +25,30 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class SafarDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    private val securePrefs: SharedPreferences by lazy {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            "safar_secure_auth",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
+    }
+
+    private object SecureKeys {
+        const val AUTH_TOKEN = "auth_token"
+        const val REFRESH_TOKEN = "refresh_token"
+    }
+
+    init {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            migratePlainAuthTokensToEncryptedStorage()
+        }
+    }
+
     private object Keys {
         val IS_LOGGED_IN          = booleanPreferencesKey("is_logged_in")
         val AUTH_TOKEN            = stringPreferencesKey("auth_token")
@@ -53,6 +85,8 @@ class SafarDataStore @Inject constructor(
         val FOCUS_SHIELD_EMERGENCY_UNLOCK = booleanPreferencesKey("focus_shield_allow_emergency_unlock")
         val FOCUS_SHIELD_BLOCKED_PACKAGES = stringPreferencesKey("focus_shield_blocked_packages")
         val FOCUS_SHIELD_LAST_BLOCK_COUNT = intPreferencesKey("focus_shield_last_block_count")
+        val FOCUS_SHIELD_EMERGENCY_UNLOCKS_PER_SESSION = intPreferencesKey("focus_shield_emergency_unlocks_per_session")
+        val FOCUS_SHIELD_EMERGENCY_UNLOCK_SECONDS      = intPreferencesKey("focus_shield_emergency_unlock_seconds")
 
         val LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED = booleanPreferencesKey("launch_usage_questionnaire_completed")
         val APP_USAGE_MODE = stringPreferencesKey("app_usage_mode")
@@ -66,11 +100,11 @@ class SafarDataStore @Inject constructor(
 
     val authToken: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
-        .map { it[Keys.AUTH_TOKEN] }
+        .map { prefs -> securePrefs.getString(SecureKeys.AUTH_TOKEN, null) ?: prefs[Keys.AUTH_TOKEN] }
 
     val refreshToken: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
-        .map { it[Keys.REFRESH_TOKEN] }
+        .map { prefs -> securePrefs.getString(SecureKeys.REFRESH_TOKEN, null) ?: prefs[Keys.REFRESH_TOKEN] }
 
     val userId: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -189,6 +223,14 @@ class SafarDataStore @Inject constructor(
             if (raw.isBlank()) emptySet() else raw.split(",").toSet()
         }
 
+    val focusShieldEmergencyUnlocksPerSession: Flow<Int> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCKS_PER_SESSION] ?: 3 }
+
+    val focusShieldEmergencyUnlockSeconds: Flow<Int> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCK_SECONDS] ?: 60 }
+
     val launchUsageQuestionnaireCompleted: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED] ?: false }
@@ -200,8 +242,15 @@ class SafarDataStore @Inject constructor(
     // ── Setters ───────────────────────────────────────────────────────────────
 
     suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
-    suspend fun setAuthToken(token: String) = context.dataStore.edit { it[Keys.AUTH_TOKEN] = token }
-    suspend fun setRefreshToken(token: String) = context.dataStore.edit { it[Keys.REFRESH_TOKEN] = token }
+    suspend fun setAuthToken(token: String) {
+        securePrefs.edit().putString(SecureKeys.AUTH_TOKEN, token).apply()
+        context.dataStore.edit { it.remove(Keys.AUTH_TOKEN) }
+    }
+
+    suspend fun setRefreshToken(token: String) {
+        securePrefs.edit().putString(SecureKeys.REFRESH_TOKEN, token).apply()
+        context.dataStore.edit { it.remove(Keys.REFRESH_TOKEN) }
+    }
     suspend fun setOnboardingDone(done: Boolean) = context.dataStore.edit { it[Keys.IS_ONBOARDING_DONE] = done }
     suspend fun setDarkTheme(enabled: Boolean) = context.dataStore.edit { it[Keys.IS_DARK_THEME] = enabled }
     suspend fun setNightMode(enabled: Boolean) = context.dataStore.edit { it[Keys.IS_NIGHT_MODE] = enabled }
@@ -242,6 +291,8 @@ class SafarDataStore @Inject constructor(
         it[Keys.FOCUS_SHIELD_BLOCKED_PACKAGES] = packages.joinToString(",")
     }
     suspend fun setFocusShieldLastBlockCount(count: Int) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_LAST_BLOCK_COUNT] = count }
+    suspend fun setFocusShieldEmergencyUnlocksPerSession(count: Int) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCKS_PER_SESSION] = count.coerceAtLeast(0) }
+    suspend fun setFocusShieldEmergencyUnlockSeconds(seconds: Int) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCK_SECONDS] = seconds.coerceAtLeast(10) }
 
     suspend fun setLaunchUsageQuestionnaireCompleted(completed: Boolean) = context.dataStore.edit {
         it[Keys.LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED] = completed
@@ -264,11 +315,33 @@ class SafarDataStore @Inject constructor(
     }
 
     suspend fun clearSession() {
+        securePrefs.edit()
+            .remove(SecureKeys.AUTH_TOKEN)
+            .remove(SecureKeys.REFRESH_TOKEN)
+            .apply()
         context.dataStore.edit {
             it.remove(Keys.IS_LOGGED_IN)
             it.remove(Keys.AUTH_TOKEN)
             it.remove(Keys.REFRESH_TOKEN)
             it.remove(Keys.USER_ID)
+        }
+    }
+
+    private suspend fun migratePlainAuthTokensToEncryptedStorage() {
+        val prefs = context.dataStore.data.catch { emit(emptyPreferences()) }.first()
+        val plainAuthToken = prefs[Keys.AUTH_TOKEN]
+        val plainRefreshToken = prefs[Keys.REFRESH_TOKEN]
+        if (!plainAuthToken.isNullOrBlank() && securePrefs.getString(SecureKeys.AUTH_TOKEN, null).isNullOrBlank()) {
+            securePrefs.edit().putString(SecureKeys.AUTH_TOKEN, plainAuthToken).apply()
+        }
+        if (!plainRefreshToken.isNullOrBlank() && securePrefs.getString(SecureKeys.REFRESH_TOKEN, null).isNullOrBlank()) {
+            securePrefs.edit().putString(SecureKeys.REFRESH_TOKEN, plainRefreshToken).apply()
+        }
+        if (!plainAuthToken.isNullOrBlank() || !plainRefreshToken.isNullOrBlank()) {
+            context.dataStore.edit {
+                it.remove(Keys.AUTH_TOKEN)
+                it.remove(Keys.REFRESH_TOKEN)
+            }
         }
     }
 }

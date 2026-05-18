@@ -1,4 +1,4 @@
-package com.safar.app.ui.studyplanner
+package com.safar.app.ui.studyplanner.logic
 
 import com.safar.app.domain.model.studyplanner.PlanProgress
 import com.safar.app.domain.model.studyplanner.StudyChapter
@@ -31,13 +31,11 @@ fun StudyPlan.rollup(): PlanProgress {
     val topics = flattenTopics().map { it.topic }
     val total = topics.size
     val done = topics.count { it.status == TopicStatus.DONE }
-    val inProgress = topics.count { it.status == TopicStatus.IN_PROGRESS }
     val revision = topics.count { it.status == TopicStatus.REVISION_NEEDED }
     val percent = if (total == 0) 0 else ((done.toFloat() / total) * 100).roundToInt()
     return progress ?: PlanProgress(
         totalTopics = total,
         doneTopics = done,
-        inProgressTopics = inProgress,
         revisionTopics = revision,
         completionPercent = percent,
         remainingPercent = 100 - percent,

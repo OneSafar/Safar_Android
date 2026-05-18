@@ -38,12 +38,15 @@ class FocusShieldViewModel @Inject constructor(
 
     // ── Shield settings state ────────────────────────────────────────────────
 
+    private val _permissionRefreshTick = MutableStateFlow(0)
+
     val shieldState: StateFlow<FocusShieldUiState> = combine(
         repo.isEnabled,
         repo.isStrictMode,
         repo.allowEmergencyUnlock,
         repo.blockedPackages,
-    ) { enabled, strict, emergency, packages ->
+        _permissionRefreshTick,
+    ) { enabled, strict, emergency, packages, _ ->
         FocusShieldUiState(
             isEnabled = enabled,
             isStrictMode = strict,
@@ -100,9 +103,31 @@ class FocusShieldViewModel @Inject constructor(
         // to nudge the flow. Easiest: toggle a no-op value and back.
         // Actually, permissions are read inside combine's lambda on each
         // emission of any input. We just re-read them here for immediate UI.
-        val current = shieldState.value
+        _permissionRefreshTick.value += 1
         // No-op — the permissions are re-checked on every emission
     }
 
     fun openAccessibilitySettings() = FocusShieldPermissionHelper.openAccessibilitySettings(app)
+
+    val blockedHitCount: StateFlow<Int> = repo.blockedHitCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val blockedHitsByPackage: StateFlow<Map<String, Int>> = repo.blockedHitsByPackage
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    fun clearSessionStats() = repo.clearSessionStats()
+
+    fun snapshotBlockedAttempts(): List<KavachBlockedAttempt> {
+        val pm = app.packageManager
+        return blockedHitsByPackage.value.entries
+            .sortedByDescending { it.value }
+            .map { (pkg, count) ->
+                val label = runCatching {
+                    val info = pm.getApplicationInfo(pkg, 0)
+                    pm.getApplicationLabel(info).toString()
+                }.getOrDefault(pkg.substringAfterLast('.'))
+                val icon = runCatching { pm.getApplicationIcon(pkg) }.getOrNull()
+                KavachBlockedAttempt(appName = label, attemptCount = count, icon = icon)
+            }
+    }
 }

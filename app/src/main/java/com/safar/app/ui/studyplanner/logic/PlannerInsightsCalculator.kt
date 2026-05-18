@@ -1,4 +1,4 @@
-package com.safar.app.ui.studyplanner
+package com.safar.app.ui.studyplanner.logic
 
 import com.safar.app.domain.model.studyplanner.CalendarTopicItem
 import com.safar.app.domain.model.studyplanner.HeatmapPoint

@@ -7,6 +7,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val LightColorScheme = lightColorScheme(
@@ -51,6 +52,28 @@ private val DarkColorScheme = darkColorScheme(
     error                = SafarError,              // #E11D48
 )
 
+/** Dim warm light scheme for low-light reading without full dark theme. */
+private val NightColorScheme = lightColorScheme(
+    primary              = Teal500,
+    onPrimary            = SafarOnPrimaryLight,
+    primaryContainer     = Color(0xFF1A2E28),
+    onPrimaryContainer   = BrandTeal,
+    secondary            = SafarSecondary,
+    onSecondary          = SafarOnPrimaryLight,
+    secondaryContainer   = Color(0xFF2A2520),
+    onSecondaryContainer = BrandMint,
+    tertiary             = Teal400,
+    onTertiary           = NightModeBackground,
+    background           = NightModeBackground,
+    onBackground         = BrandMint,
+    surface              = NightModeSurface,
+    onSurface            = BrandMint,
+    surfaceVariant       = Color(0xFF22262E),
+    onSurfaceVariant     = FieldHint,
+    outline              = DividerDark,
+    error                = SafarError,
+)
+
 @Composable
 fun SafarTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -59,6 +82,7 @@ fun SafarTheme(
 ) {
     val colorScheme = when {
         darkTheme -> DarkColorScheme
+        nightMode -> NightColorScheme
         else      -> LightColorScheme
     }
 

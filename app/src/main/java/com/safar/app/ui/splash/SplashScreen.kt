@@ -1,6 +1,8 @@
 package com.safar.app.ui.splash
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
@@ -18,6 +20,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -39,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -110,12 +116,14 @@ fun SplashScreen(
     }
 
     var isLogoAnimating by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var isTaglineVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         isLogoAnimating = true
-        // Industry-grade choreography: start entry animations while logo is finishing
-        delay(1300L) 
-        viewModel.onVideoEnded()
+        delay(150L)
+        isTaglineVisible = true
+        delay(1650L) 
+        viewModel.onStartSafar()
     }
     
     // Atmospheric Radial Gradient
@@ -137,128 +145,39 @@ fun SplashScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundBrush)
+            .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Spacer(Modifier.weight(0.4f))
         SafarLogoAnimation(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(4.8f)
-        )
-
-        val letterSpacingAnim by androidx.compose.animation.core.animateFloatAsState(
-            targetValue = if (isLogoAnimating) 0.8f else 4f,
-            animationSpec = tween(1575, easing = FastOutSlowInEasing),
-            label = "letterSpacingAnim"
+                .height(300.dp)
         )
 
         androidx.compose.animation.AnimatedVisibility(
-            visible = isLogoAnimating,
-            enter = fadeIn(tween(1575)) + scaleIn(
-                initialScale = 0.95f,
-                animationSpec = tween(1575, easing = FastOutSlowInEasing)
-            ) + slideInVertically(
-                initialOffsetY = { 40 },
-                animationSpec = tween(1575, easing = FastOutSlowInEasing)
-            ),
+            visible = isTaglineVisible,
+            enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) + 
+                    slideInVertically(
+                        initialOffsetY = { 20 },
+                        animationSpec = spring(stiffness = Spring.StiffnessLow)
+                    ),
         ) {
             Text(
-                text = stringResource(R.string.splash_tagline),
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = letterSpacingAnim.sp,
-                    color = if (isDarkTheme) Color.White else Color(0xFF4A5568),
-                    fontSize = 15.4.sp,
+                text = "Your Marks Matter, But So Does Your Mind",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.9f) else Color(0xFF2D3748),
+                    fontSize = 17.sp,
+                    letterSpacing = 0.4.sp
                 ),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier.padding(bottom = 32.dp)
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp)
+                    .padding(horizontal = 16.dp)
             )
         }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(90.dp),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            androidx.compose.animation.AnimatedVisibility(
-                visible = uiState.videoEnded,
-                enter = fadeIn(tween(1000, delayMillis = 200)) + slideInVertically(
-                    initialOffsetY = { 60 },
-                    animationSpec = tween(1000, delayMillis = 200, easing = FastOutSlowInEasing)
-                ),
-            ) {
-                StartSafarButton(onClick = { viewModel.onStartSafar() })
-            }
-        }
-        Spacer(Modifier.weight(0.55f))
-    }
-}
-
-@Composable
-private fun StartSafarButton(onClick: () -> Unit) {
-    val containerColor = MaterialTheme.colorScheme.primary
-    val contentColor = MaterialTheme.colorScheme.onPrimary
-
-    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "shimmerTransition")
-    val translateAnim by transition.animateFloat(
-        initialValue = -500f,
-        targetValue = 1500f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = tween(1500, easing = androidx.compose.animation.core.LinearEasing, delayMillis = 500),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
-        ),
-        label = "shimmerTranslate"
-    )
-
-    val shimmerBrush = Brush.linearGradient(
-        colors = listOf(
-            Color.Transparent,
-            Color.White.copy(alpha = 0.35f),
-            Color.Transparent
-        ),
-        start = Offset(translateAnim, 0f),
-        end = Offset(translateAnim + 400f, 400f)
-    )
-
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .width(260.dp)
-            .height(56.dp)
-            .graphicsLayer {
-                shadowElevation = 8.dp.toPx()
-                shape = RoundedCornerShape(16.dp)
-                clip = true
-            }
-            .drawWithContent {
-                drawContent()
-                drawRect(brush = shimmerBrush)
-            },
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
-            contentColor = contentColor,
-        ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 2.dp,
-        ),
-    ) {
-        Text(
-            text = stringResource(R.string.splash_start_safar).uppercase(),
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.5.sp,
-            ),
-        )
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = null,
-            modifier = Modifier
-                .padding(start = 12.dp)
-                .size(20.dp),
-        )
     }
 }

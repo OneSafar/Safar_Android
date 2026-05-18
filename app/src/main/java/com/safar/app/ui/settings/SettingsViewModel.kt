@@ -14,7 +14,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.TimeZone
@@ -33,7 +36,7 @@ class SettingsViewModel @Inject constructor(
     private var preferenceSyncJob: Job? = null
 
     init {
-        loadNotificationPreferences()
+        observeNotificationPreferences()
     }
 
     fun onEvent(event: SettingsEvent) {
@@ -48,6 +51,42 @@ class SettingsViewModel @Inject constructor(
             is SettingsEvent.ToggleAnnouncements -> updatePreference { dataStore.setAnnouncementsEnabled(event.enabled) }
             is SettingsEvent.ToggleWeeklySummary -> updatePreference { dataStore.setWeeklySummaryEnabled(event.enabled) }
             is SettingsEvent.UpdateDailyReminderTime -> updateDailyReminderTime(event.time)
+        }
+    }
+
+    private fun observeNotificationPreferences() {
+        viewModelScope.launch {
+            combine(
+                listOf(
+                    dataStore.notificationsEnabled.map { it as Any },
+                    dataStore.focusTimerNotificationsEnabled.map { it as Any },
+                    dataStore.dailyStudyReminderEnabled.map { it as Any },
+                    dataStore.streakReminderEnabled.map { it as Any },
+                    dataStore.courseUpdatesEnabled.map { it as Any },
+                    dataStore.achievementsEnabled.map { it as Any },
+                    dataStore.communityRepliesEnabled.map { it as Any },
+                    dataStore.announcementsEnabled.map { it as Any },
+                    dataStore.weeklySummaryEnabled.map { it as Any },
+                    dataStore.dailyReminderTime.map { it as Any },
+                    dataStore.quietHoursStart.map { it as Any },
+                    dataStore.quietHoursEnd.map { it as Any },
+                ),
+            ) { values ->
+                SettingsUiState(
+                    notificationsEnabled = values[0] as Boolean,
+                    focusTimerNotificationsEnabled = values[1] as Boolean,
+                    dailyStudyReminderEnabled = values[2] as Boolean,
+                    streakReminderEnabled = values[3] as Boolean,
+                    courseUpdatesEnabled = values[4] as Boolean,
+                    achievementsEnabled = values[5] as Boolean,
+                    communityRepliesEnabled = values[6] as Boolean,
+                    announcementsEnabled = values[7] as Boolean,
+                    weeklySummaryEnabled = values[8] as Boolean,
+                    dailyReminderTime = values[9] as String,
+                    quietHoursStart = values[10] as String,
+                    quietHoursEnd = values[11] as String,
+                )
+            }.collect { state -> _uiState.value = state }
         }
     }
 
@@ -75,7 +114,6 @@ class SettingsViewModel @Inject constructor(
     private fun updatePreference(write: suspend () -> Unit) {
         viewModelScope.launch {
             write()
-            loadNotificationPreferences()
             schedulePreferenceSync()
         }
     }
@@ -90,7 +128,6 @@ class SettingsViewModel @Inject constructor(
                 StudyReminderWorker.schedule(appContext, dataStore.dailyReminderTime.first())
                 PlannerAlertsWorker.schedule(appContext, dataStore.dailyReminderTime.first())
             }
-            loadNotificationPreferences()
             schedulePreferenceSync()
         }
     }
@@ -105,7 +142,6 @@ class SettingsViewModel @Inject constructor(
                 StudyReminderWorker.cancel(appContext)
                 PlannerAlertsWorker.cancel(appContext)
             }
-            loadNotificationPreferences()
             schedulePreferenceSync()
         }
     }
@@ -118,7 +154,6 @@ class SettingsViewModel @Inject constructor(
                 StudyReminderWorker.schedule(appContext, time)
                 PlannerAlertsWorker.schedule(appContext, time)
             }
-            loadNotificationPreferences()
             schedulePreferenceSync()
         }
     }

@@ -57,7 +57,7 @@ fun SlimSlider(
     inactiveColor: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
 ) {
     val density = LocalDensity.current
-    var trackWidthPx by remember { mutableStateOf(1f) }
+    var trackWidthPx by remember { mutableFloatStateOf(1f) }
     val thumbSizeDp = 14.dp
     val trackHeightDp = 2.dp
     val thumbSizePx = with(density) { thumbSizeDp.toPx() }
@@ -141,7 +141,7 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
     var selectedMood by remember { mutableStateOf<MoodOption?>(null) }
     // Resolve selected mood label in composable scope
     val selectedMoodLabel = selectedMood?.let { stringResource(it.labelRes) }
-    var intensity by remember { mutableStateOf(0.5f) }
+    var intensity by remember { mutableFloatStateOf(0.5f) }
     var note by remember { mutableStateOf("") }
     var causedBy by remember { mutableStateOf("") }
     var selectedTags by remember { mutableStateOf(setOf<String>()) }

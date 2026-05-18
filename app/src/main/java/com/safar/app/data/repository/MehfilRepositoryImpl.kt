@@ -6,6 +6,7 @@ import com.safar.app.data.remote.dto.*
 import com.safar.app.domain.model.*
 import com.safar.app.domain.repository.MehfilRepository
 import com.safar.app.util.Resource
+import com.safar.app.util.YoutubeUrls
 import com.safar.app.util.safeApiCall
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,6 +16,15 @@ class MehfilRepositoryImpl @Inject constructor(
     private val mehfilApi: MehfilApi,
     private val thoughtsApi: ThoughtsApi,
 ) : MehfilRepository {
+
+    override suspend fun getMeditationVideoUrl(): Resource<String> {
+        val r = safeApiCall { mehfilApi.getMeditationVideo() }
+        return when (r) {
+            is Resource.Success -> Resource.Success(YoutubeUrls.safeVideoUrl(r.data.videoUrl))
+            is Resource.Error -> Resource.Success(YoutubeUrls.DEFAULT_MEDITATION_VIDEO_URL)
+            is Resource.Loading -> Resource.Loading()
+        }
+    }
 
     override suspend fun getSandesh(): Resource<Pair<Sandesh?, List<Sandesh>>> {
         val r = safeApiCall { mehfilApi.getSandesh() }

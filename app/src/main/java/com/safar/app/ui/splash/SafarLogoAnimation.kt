@@ -18,8 +18,8 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
 
-/** Timeline scaled ~30% faster than original (0.7×). */
-private fun splashMs(ms: Int): Int = (ms * 0.7f).toInt()
+/** Timeline scaled ~50% faster than original (0.5×) to increase animation speed by 30%. */
+private fun splashMs(ms: Int): Int = (ms * 0.5f).toInt()
 
 // Default Navy replaced by dynamic theme-aware color
 private val ORANGE = Color(0xFFFE9E2E)

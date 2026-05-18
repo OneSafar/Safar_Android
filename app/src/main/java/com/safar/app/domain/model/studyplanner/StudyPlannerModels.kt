@@ -9,8 +9,6 @@ enum class TopicStatus(val wireValue: String, val label: String) {
     @SerializedName("todo")
     TODO("todo", "Todo"),
 
-    @SerializedName("in_progress")
-    IN_PROGRESS("in_progress", "In Progress"),
 
     @SerializedName("done")
     DONE("done", "Done"),
@@ -56,7 +54,6 @@ data class StudySubject(
 data class PlanProgress(
     val totalTopics: Int = 0,
     val doneTopics: Int = 0,
-    val inProgressTopics: Int = 0,
     val revisionTopics: Int = 0,
     val completionPercent: Int = 0,
     val remainingPercent: Int = 100,

@@ -51,7 +51,7 @@ class ProfileViewModel @Inject constructor(
             is ProfileEvent.ClearError        -> _uiState.update { it.copy(error = null) }
             is ProfileEvent.Logout            -> handleLogout()
             is ProfileEvent.SaveProfile       -> saveProfile()
-            is ProfileEvent.UpdateName        -> _uiState.update { it.copy(editName = event.name) }
+            is ProfileEvent.UpdateName        -> _uiState.update { it.copy(editName = event.name, nameError = null) }
             is ProfileEvent.UpdateExamType    -> _uiState.update { it.copy(editExamType = event.exam) }
             is ProfileEvent.UpdateStage       -> _uiState.update { it.copy(editStage = event.stage) }
             is ProfileEvent.UpdateGender      -> _uiState.update { it.copy(editGender = event.gender) }
@@ -59,9 +59,13 @@ class ProfileViewModel @Inject constructor(
     }
 
     private fun saveProfile() {
+        val s = _uiState.value
+        if (s.editName.isBlank()) {
+            _uiState.update { it.copy(nameError = "Name is required", error = null) }
+            return
+        }
         viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true, error = null) }
-            val s = _uiState.value
+            _uiState.update { it.copy(isSaving = true, error = null, nameError = null) }
             when (val r = authRepository.updateProfile(s.editName.ifBlank { null }, s.editExamType.ifBlank { null }, s.editStage.ifBlank { null }, s.editGender.ifBlank { null }, null)) {
                 is Resource.Success -> _uiState.update { it.copy(isSaving = false, saveSuccess = true, userName = r.data.name, examType = r.data.examType ?: "", preparationStage = r.data.preparationStage ?: "", gender = r.data.gender ?: "") }
                 is Resource.Error   -> _uiState.update { it.copy(isSaving = false, error = r.message) }

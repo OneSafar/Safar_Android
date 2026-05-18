@@ -22,8 +22,15 @@ object Routes {
     const val DM_CHAT = "mehfil/dm_chat"
     const val DHYAN  = "dhyan"
     const val APP_PICKER = "ekagra/app_picker"
+    const val KAVACH_ABOUT = "kavach/about"
+    const val KAVACH_SESSION_SUMMARY = "kavach/session_summary"
     const val LAUNCH_USAGE_QUESTIONNAIRE = "launch_usage_questionnaire"
     const val FOCUS_SHIELD = "focus_shield"
+
+    // Syllabus Drill-Down Routes
+    const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"
+    const val ROUTE_SYLLABUS_CHAPTERS = "syllabus/chapters/{planId}/{subjectId}"
+    const val ROUTE_SYLLABUS_TOPICS   = "syllabus/topics/{planId}/{subjectId}/{chapterId}"
 
     fun ekagraForGoal(goalId: String, goalTitle: String): String =
         "ekagra?goalId=${android.net.Uri.encode(goalId)}&goalTitle=${android.net.Uri.encode(goalTitle)}"

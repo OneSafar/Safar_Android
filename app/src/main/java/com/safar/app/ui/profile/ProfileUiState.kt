@@ -15,7 +15,8 @@ data class ProfileUiState(
     val editGender: String = "",
     val saveSuccess: Boolean = false,
     val showLogoutDialog: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val nameError: String? = null,
 )
 
 sealed class ProfileEvent {

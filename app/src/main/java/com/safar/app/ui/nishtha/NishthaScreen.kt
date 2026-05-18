@@ -67,6 +67,7 @@ fun NishthaScreen(
         Box(Modifier.fillMaxSize()) {
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.background,
+                contentWindowInsets = WindowInsets.safeDrawing,
                 bottomBar = {
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
                         NishthaTab.entries.forEach { tab ->

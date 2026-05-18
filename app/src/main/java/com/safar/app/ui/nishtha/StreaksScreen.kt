@@ -23,11 +23,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.R
+import com.safar.app.ui.components.StatCardSkeleton
 import com.safar.app.ui.theme.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -74,8 +77,10 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
         Text(stringResource(R.string.streaks_header_subtitle), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         if (uiState.isLoadingStreaks) {
-            Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                StatCardSkeleton()
+                StatCardSkeleton()
+                StatCardSkeleton()
             }
         } else {
             StreakCard(
@@ -248,13 +253,21 @@ private fun StreakCard(
                 
                 // Value
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        "$value", 
-                        fontSize = 60.sp, 
-                        fontWeight = FontWeight.Black, 
-                        color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = 60.sp
-                    )
+                    val density = LocalDensity.current
+                    CompositionLocalProvider(
+                        LocalDensity provides Density(
+                            density = density.density,
+                            fontScale = density.fontScale.coerceAtMost(1.3f)
+                        )
+                    ) {
+                        Text(
+                            "$value", 
+                            fontSize = 60.sp, 
+                            fontWeight = FontWeight.Black, 
+                            color = MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 60.sp
+                        )
+                    }
                     Spacer(Modifier.width(8.dp))
                     Text(
                         stringResource(R.string.streaks_days_unit), 
@@ -297,7 +310,13 @@ private fun CalendarSection(loginDates: Set<java.time.LocalDate> = emptySet()) {
                     repeat(7) { col ->
                         val cellIndex = row * 7 + col
                         val day = cellIndex - startDow + 1
-                        Box(modifier = Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .heightIn(min = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             if (day in 1..daysInMonth) {
                                 val date = today.withDayOfMonth(day)
                                 val isToday = day == today.dayOfMonth
@@ -307,7 +326,13 @@ private fun CalendarSection(loginDates: Set<java.time.LocalDate> = emptySet()) {
                                     isLoggedIn -> emerald.copy(alpha = 0.3f)
                                     else       -> surfaceVariant.copy(alpha = 0.4f)
                                 }
-                                Box(modifier = Modifier.size(30.dp).clip(CircleShape).background(bgColor), contentAlignment = Alignment.Center) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize(0.85f)
+                                        .clip(CircleShape)
+                                        .background(bgColor),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Text("$day", fontSize = 11.sp, fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal, color = if (isToday) Color.White else MaterialTheme.colorScheme.onSurface)
                                 }
                             }

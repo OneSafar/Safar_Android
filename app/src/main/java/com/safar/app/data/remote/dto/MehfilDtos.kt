@@ -2,6 +2,8 @@ package com.safar.app.data.remote.dto
 
 import com.google.gson.annotations.SerializedName
 
+data class MeditationVideoResponse(val videoUrl: String? = null)
+
 data class MehfilPostDto(
     @SerializedName("_id")          val mongoId: String? = null,
     val id: String? = null,

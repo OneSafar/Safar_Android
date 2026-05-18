@@ -159,6 +159,7 @@ dependencies {
 
     //offline store
     implementation(libs.datastore.preferences)
+    implementation(libs.androidx.security.crypto)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)

@@ -20,8 +20,10 @@ import com.safar.app.notifications.NotificationDeepLinkHandler
 import com.safar.app.notifications.SafarNotificationChannels
 import com.safar.app.notifications.SafarNotificationManager
 import com.safar.app.ui.ekagra.focusshield.BlockedAppActivity
+import com.safar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safar.app.ui.ekagra.focusshield.FocusShieldRepository
 import com.safar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -117,10 +119,25 @@ class TimerService : Service() {
         _focusShieldActive.value = true
         val strict = _strictMode.value
 
-        // Write to SharedPreferences (survives process death!)
-        FocusShieldRepository.ShieldPrefs.write(
-            this, true, pkgs, strict,
-        )
+        // Read emergency unlock policy synchronously from DataStore so block UI can honour it.
+        scope.launch {
+            val allowEmergency = safarDataStore.focusShieldEmergencyUnlock.first()
+            val unlockLimit = if (allowEmergency && !strict)
+                safarDataStore.focusShieldEmergencyUnlocksPerSession.first()
+            else 0
+            val unlockSeconds = safarDataStore.focusShieldEmergencyUnlockSeconds.first()
+
+            // Write to SharedPreferences (survives process death!). Reset session counters.
+            FocusShieldRepository.ShieldPrefs.write(
+                ctx = this@TimerService,
+                active = true,
+                packages = pkgs,
+                strict = strict,
+                unlockLimit = unlockLimit,
+                unlockSeconds = unlockSeconds,
+                resetUnlocks = true,
+            )
+        }
 
         // Also update volatile snapshot for in-process fast access
         FocusShieldRepository.Snapshot.active = true
@@ -128,12 +145,15 @@ class TimerService : Service() {
         FocusShieldRepository.Snapshot.strict = strict
 
         debugFocusShield("TimerService.enableFocusShieldForSession()")
+        focusShieldRepo().activateForSession()
         showFocusShieldActiveNotification()
     }
 
     fun disableFocusShieldForSession() {
         debugFocusShield("TimerService.disableFocusShieldForSession()")
         _focusShieldActive.value = false
+
+        focusShieldRepo().deactivateSession()
 
         // Clear SharedPreferences
         shieldActivationJob?.cancel()
@@ -309,6 +329,10 @@ class TimerService : Service() {
     private fun debugFocusShield(message: String) {
         if (BuildConfig.DEBUG) android.util.Log.d("FocusShield", message)
     }
+
+    private fun focusShieldRepo(): FocusShieldRepository =
+        EntryPointAccessors.fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
+            .focusShieldRepository()
 
     private fun clearTheme() {
         themePrefs().edit().clear().apply()

@@ -1,4 +1,4 @@
-package com.safar.app.ui.studyplanner
+package com.safar.app.ui.studyplanner.logic
 
 import androidx.compose.runtime.Immutable
 import com.safar.app.domain.model.studyplanner.TopicStatus

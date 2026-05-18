@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -208,7 +209,10 @@ fun WavyPathViz(breathPhase: BreathPhase, isActive: Boolean) {
                 // Emoji + label with vertical nudge
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.offset(y = if (isActive) (if (isInhale) (-4).dp else if (isExhale) 4.dp else 0.dp) else 0.dp)
+                    modifier = Modifier.offset {
+                        val yOffset = if (isActive) (if (isInhale) (-4).dp else if (isExhale) 4.dp else 0.dp) else 0.dp
+                        androidx.compose.ui.unit.IntOffset(0, yOffset.roundToPx())
+                    }
                 ) {
                     Text(
                         text = when (breathPhase) {
@@ -296,7 +300,11 @@ private fun BreathParticle(
             }, RepeatMode.Restart
         ), label = "ps"
     )
-    Canvas(modifier = Modifier.size(8.dp).offset(x = xOffset.dp, y = y.dp)) {
+    Canvas(
+        modifier = Modifier
+            .size(8.dp)
+            .offset { IntOffset(xOffset.dp.roundToPx(), y.dp.roundToPx()) }
+    ) {
         drawCircle(color = color.copy(alpha = alpha), radius = size.minDimension / 2f * sc)
     }
 }
@@ -365,22 +373,12 @@ fun BoxTraceViz(breathPhase: BreathPhase, isActive: Boolean, cycle: BreathCycle)
     }
     val phaseDurMs = phaseDurationMs(breathPhase, cycle)
 
-    var progress by remember { mutableStateOf(0f) }
+    val progress = remember { Animatable(0f) }
     LaunchedEffect(breathPhase, isActive) {
-        progress = 0f
+        progress.snapTo(0f)
         if (!isActive) return@LaunchedEffect
-        val start = System.currentTimeMillis()
-        while (true) {
-            val elapsed = System.currentTimeMillis() - start
-            progress = (elapsed.toFloat() / phaseDurMs).coerceIn(0f, 1f)
-            if (progress >= 1f) break
-            delay(16)
-        }
+        progress.animateTo(1f, tween(phaseDurMs, easing = LinearEasing))
     }
-
-    val from = corners[edgeIndex]; val to = corners[(edgeIndex + 1) % 4]
-    val dotX = from.x + (to.x - from.x) * progress
-    val dotY = from.y + (to.y - from.y) * progress
 
     val inf = rememberInfiniteTransition(label = "ping")
     val pingScale by inf.animateFloat(1f, 1.8f, infiniteRepeatable(tween(800), RepeatMode.Restart), label = "ps")
@@ -388,6 +386,11 @@ fun BoxTraceViz(breathPhase: BreathPhase, isActive: Boolean, cycle: BreathCycle)
 
     Box(modifier = Modifier.size(200.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
+            val from = corners[edgeIndex]
+            val to = corners[(edgeIndex + 1) % 4]
+            val dotProgress = progress.value
+            val dotX = from.x + (to.x - from.x) * dotProgress
+            val dotY = from.y + (to.y - from.y) * dotProgress
             val sx = size.width / 200f; val sy = size.height / 200f
             drawRect(Blue100.copy(if (isActive) 0.3f else 0.1f), Offset(offset * sx, offset * sy), Size(boxSize * sx, boxSize * sy))
             drawRect(Blue500.copy(if (isActive) 0.8f else 0.4f), Offset(offset * sx, offset * sy), Size(boxSize * sx, boxSize * sy), style = Stroke(2.5.dp.toPx()))
@@ -407,18 +410,12 @@ fun BoxTraceViz(breathPhase: BreathPhase, isActive: Boolean, cycle: BreathCycle)
 @Composable
 fun ArcRingViz(breathPhase: BreathPhase, isActive: Boolean, cycle: BreathCycle) {
     val phaseDurMs = phaseDurationMs(breathPhase, cycle)
-    var arcProgress by remember { mutableStateOf(0f) }
+    val arcProgress = remember { Animatable(0f) }
 
     LaunchedEffect(breathPhase, isActive) {
-        arcProgress = 0f
+        arcProgress.snapTo(0f)
         if (!isActive) return@LaunchedEffect
-        val start = System.currentTimeMillis()
-        while (true) {
-            val elapsed = System.currentTimeMillis() - start
-            arcProgress = (elapsed.toFloat() / phaseDurMs).coerceIn(0f, 1f)
-            if (arcProgress >= 1f) break
-            delay(16)
-        }
+        arcProgress.animateTo(1f, tween(phaseDurMs, easing = LinearEasing))
     }
 
     val phaseColor = when (breathPhase) {
@@ -435,7 +432,7 @@ fun ArcRingViz(breathPhase: BreathPhase, isActive: Boolean, cycle: BreathCycle) 
             val radius = size.minDimension / 2f * 0.8f
             val sw = 8.dp.toPx()
             val cx = Offset(size.width / 2f, size.height / 2f)
-            val sweep = 360f * arcProgress
+            val sweep = 360f * arcProgress.value
             drawCircle(Color.Gray.copy(0.1f), radius, cx, style = Stroke(sw))
             if (sweep > 0f) {
                 val tl = Offset(cx.x - radius, cx.y - radius)
@@ -488,15 +485,11 @@ fun NostrilViz() {
         delay(durMs); idx = (idx + 1) % phases.size
     }
 
-    var prog by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(idx, isPlaying) {
-        prog = 0f
+    val phaseProgress = remember { Animatable(0f) }
+    LaunchedEffect(idx, isPlaying, durMs) {
+        phaseProgress.snapTo(0f)
         if (!isPlaying) return@LaunchedEffect
-        val start = System.currentTimeMillis()
-        while (true) {
-            prog = ((System.currentTimeMillis() - start).toFloat() / durMs).coerceIn(0f, 1f)
-            if (prog >= 1f) break; delay(16)
-        }
+        phaseProgress.animateTo(1f, tween(durMs.toInt(), easing = LinearEasing))
     }
 
     val leftFill by animateFloatAsState(
@@ -562,7 +555,7 @@ fun NostrilViz() {
         }
 
         Spacer(Modifier.height(16.dp))
-        LinearProgressIndicator({ prog }, Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = current.colorEnd, trackColor = Slate200)
+        LinearProgressIndicator({ phaseProgress.value }, Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = current.colorEnd, trackColor = Slate200)
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), Arrangement.SpaceBetween) {
             Text("Cycle ${idx / 6 + 1}", fontSize = 11.sp, color = Slate400)
             Text("Phase ${idx + 1}/6", fontSize = 11.sp, color = Slate400)

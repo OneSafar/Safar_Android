@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -146,40 +149,33 @@ private val stageOptions = listOf("Beginner", "Intermediate", "Advanced", "Revis
 private val genderOptions = listOf("Male", "Female", "Other", "Prefer not to say")
 
 @Composable
-private fun lightBg(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) MaterialTheme.colorScheme.background else ProfileDesignColors.Background
+private fun lightBg(isDarkTheme: Boolean): Color = MaterialTheme.colorScheme.background
 
 @Composable
 private fun glassSurface(isDarkTheme: Boolean): Color =
     if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.96f) else Color.White.copy(alpha = 0.85f)
 
 @Composable
-private fun labelCapsColor(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer
+private fun labelCapsColor(isDarkTheme: Boolean): Color = MaterialTheme.colorScheme.primary
 
 @Composable
-private fun iconCircleBg(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else ProfileDesignColors.PrimaryFixed
+private fun iconCircleBg(isDarkTheme: Boolean): Color = MaterialTheme.colorScheme.primaryContainer
 
 @Composable
-private fun iconTint(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer
+private fun iconTint(isDarkTheme: Boolean): Color = MaterialTheme.colorScheme.primary
 
 @Composable
-private fun borderUnfocused(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.55f) else ProfileDesignColors.SurfaceVariant
+private fun borderUnfocused(isDarkTheme: Boolean): Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
 
 @Composable
-private fun borderDisabled(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.35f) else ProfileDesignColors.SurfaceVariant
+private fun borderDisabled(isDarkTheme: Boolean): Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
 
 @Composable
-private fun subtleText(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant else ProfileDesignColors.OnSurfaceVariant
+private fun subtleText(isDarkTheme: Boolean): Color = MaterialTheme.colorScheme.onSurfaceVariant
 
 @Composable
 private fun footerMuted(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f) else ProfileDesignColors.Outline
+    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
 
 @Composable
 private fun GlassCard(modifier: Modifier = Modifier, isDarkTheme: Boolean, content: @Composable () -> Unit) {
@@ -190,7 +186,7 @@ private fun GlassCard(modifier: Modifier = Modifier, isDarkTheme: Boolean, conte
             .shadow(
                 elevation = 10.dp,
                 shape = RoundedCornerShape(24.dp),
-                spotColor = ProfileDesignColors.PrimaryContainer.copy(alpha = 0.06f),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
             )
             .clip(RoundedCornerShape(24.dp))
             .background(glassSurface(isDarkTheme))
@@ -219,7 +215,7 @@ private fun SectionHeader(icon: ImageVector, title: String, isDarkTheme: Boolean
         Text(
             title,
             style = ProfileDesignTypography.HeadlineMd,
-            color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+            color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -234,7 +230,6 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onHome: () -> Unit = {},
-    onOpenSettings: () -> Unit = {},
     onToggleDarkTheme: () -> Unit,
     onLibrary: () -> Unit = {},
     onProgress: () -> Unit = {},
@@ -258,9 +253,10 @@ fun ProfileScreen(
 
     Scaffold(
         containerColor = pageBg,
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             Surface(
-                color = if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.92f) else ProfileDesignColors.SurfaceBright.copy(alpha = 0.9f),
+                color = if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.92f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                 modifier = Modifier.shadow(1.dp, spotColor = Color.Black.copy(alpha = 0.06f)),
             ) {
                 TopAppBar(
@@ -272,14 +268,14 @@ fun ProfileScreen(
                             Text(
                                 "Profile",
                                 style = ProfileDesignTypography.HeadlineMd,
-                                color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                                color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
                                 "Your identity and study",
                                 style = ProfileDesignTypography.BodyMd,
-                                color = if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant else ProfileDesignColors.OnSurfaceVariant,
+                                color = if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -290,14 +286,11 @@ fun ProfileScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
+                                tint = if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                             )
                         }
                     },
                     actions = {
-                        IconButton(onClick = onOpenSettings) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = navIconTint(isDarkTheme))
-                        }
                         IconButton(onClick = onHome) {
                             Icon(Icons.Default.Home, contentDescription = "Home", tint = navIconTint(isDarkTheme))
                         }
@@ -394,7 +387,7 @@ fun ProfileScreen(
 
 @Composable
 private fun navIconTint(isDarkTheme: Boolean): Color =
-    if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.92f) else ProfileDesignColors.OnSurfaceVariant
+    if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.92f) else MaterialTheme.colorScheme.onSurfaceVariant
 
 @Composable
 private fun ProfileHeaderCard(uiState: ProfileUiState, isDarkTheme: Boolean) {
@@ -427,7 +420,7 @@ private fun ProfileHeaderCard(uiState: ProfileUiState, isDarkTheme: Boolean) {
                         .offset(x = 4.dp, y = 4.dp)
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer)
+                        .background(if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary)
                         .border(2.dp, avatarRing, CircleShape)
                         .clickable { /* photo picker TBD */ },
                     contentAlignment = Alignment.Center,
@@ -449,7 +442,7 @@ private fun ProfileHeaderCard(uiState: ProfileUiState, isDarkTheme: Boolean) {
                 Text(
                     uiState.userName.ifEmpty { "User" },
                     style = ProfileDesignTypography.HeadlineLg,
-                    color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                    color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -463,13 +456,13 @@ private fun ProfileHeaderCard(uiState: ProfileUiState, isDarkTheme: Boolean) {
                 Spacer(Modifier.height(6.dp))
                 val onlineBg =
                     if (isDarkTheme) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                    else ProfileDesignColors.SuccessBackground
+                    else MaterialTheme.colorScheme.primaryContainer
                 val onlineDot =
                     if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                    else ProfileDesignColors.Success
+                    else com.safar.app.ui.theme.Emerald600
                 val onlineFg =
                     if (isDarkTheme) MaterialTheme.colorScheme.onPrimaryContainer
-                    else ProfileDesignColors.SuccessLabel
+                    else com.safar.app.ui.theme.Emerald600
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
@@ -501,6 +494,7 @@ private fun PersonalInfoSection(uiState: ProfileUiState, viewModel: ProfileViewM
                 label = "FULL NAME",
                 value = uiState.editName,
                 onValueChange = { viewModel.onEvent(ProfileEvent.UpdateName(it)) },
+                errorText = uiState.nameError,
                 isDarkTheme = isDarkTheme,
             )
             Spacer(Modifier.height(24.dp))
@@ -582,7 +576,7 @@ private fun AccountStatusSection(isDarkTheme: Boolean) {
                     Text(
                         "Account Status",
                         style = ProfileDesignTypography.HeadlineMd,
-                        color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                        color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -617,7 +611,7 @@ private fun ActionsSection(
     onLogoutClick: () -> Unit,
     onSaveClick: () -> Unit,
 ) {
-    val primaryBtn = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer
+    val primaryBtn = if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -651,7 +645,7 @@ private fun ActionsSection(
             modifier = Modifier
                 .weight(1f)
                 .height(56.dp)
-                .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = ProfileDesignColors.PrimaryContainer.copy(alpha = 0.35f)),
+                .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = primaryBtn,
@@ -713,7 +707,7 @@ private fun ProfileBottomNavigation(
     onLibrary: () -> Unit,
     onProgress: () -> Unit,
 ) {
-    val container = if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.92f) else ProfileDesignColors.SurfaceBright.copy(alpha = 0.9f)
+    val container = if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.92f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
     val items = listOf(
         Triple("Home", Icons.Default.Home, onHome),
         Triple("Library", Icons.AutoMirrored.Filled.MenuBook, onLibrary),
@@ -738,7 +732,7 @@ private fun ProfileBottomNavigation(
                         imageVector = icon,
                         contentDescription = label,
                         tint = if (selected) {
-                            if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer
+                            if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary
                         } else {
                             navIconTint(isDarkTheme)
                         },
@@ -755,8 +749,8 @@ private fun ProfileBottomNavigation(
                 },
                 colors = NavigationBarItemDefaults.colors(
                     indicatorColor = ProfileDesignColors.PrimaryFixed.copy(alpha = if (isDarkTheme) 0.35f else 0.5f),
-                    selectedIconColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
-                    selectedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
+                    selectedIconColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
+                    selectedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                     unselectedIconColor = navIconTint(isDarkTheme),
                     unselectedTextColor = navIconTint(isDarkTheme),
                 ),
@@ -773,8 +767,10 @@ private fun CustomTextField(
     onValueChange: (String) -> Unit,
     enabled: Boolean = true,
     helperText: String? = null,
+    errorText: String? = null,
     isDarkTheme: Boolean,
 ) {
+    val hasError = !errorText.isNullOrBlank()
     Column {
         Text(text = label, style = ProfileDesignTypography.LabelCaps, color = labelCapsColor(isDarkTheme))
         Spacer(Modifier.height(8.dp))
@@ -783,23 +779,29 @@ private fun CustomTextField(
             onValueChange = onValueChange,
             readOnly = false,
             enabled = enabled,
+            isError = hasError,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(16.dp),
             textStyle = ProfileDesignTypography.BodyLg,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
-                unfocusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
-                disabledTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant else ProfileDesignColors.OnSurfaceVariant,
+                focusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
+                disabledTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant,
                 cursorColor = MaterialTheme.colorScheme.primary,
-                focusedBorderColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
+                focusedBorderColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = borderUnfocused(isDarkTheme),
+                errorBorderColor = MaterialTheme.colorScheme.error,
                 disabledBorderColor = borderDisabled(isDarkTheme),
-                focusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f) else ProfileDesignColors.SurfaceBright,
-                unfocusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f) else ProfileDesignColors.SurfaceBright,
-                disabledContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else ProfileDesignColors.SurfaceContainerLow,
+                focusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f) else MaterialTheme.colorScheme.surface,
+                disabledContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant,
             ),
         )
+        if (hasError) {
+            Spacer(Modifier.height(6.dp))
+            Text(errorText!!, color = MaterialTheme.colorScheme.error, style = ProfileDesignTypography.BodyMd, modifier = Modifier.heightIn(min = 16.dp))
+        }
         if (helperText != null) {
             Spacer(Modifier.height(8.dp))
             Text(
@@ -845,13 +847,13 @@ private fun CustomDropdownMenu(
                     )
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
-                    unfocusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else ProfileDesignColors.OnBackground,
+                    focusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                     cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedBorderColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else ProfileDesignColors.PrimaryContainer,
+                    focusedBorderColor = if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = borderUnfocused(isDarkTheme),
-                    focusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f) else ProfileDesignColors.SurfaceBright,
-                    unfocusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f) else ProfileDesignColors.SurfaceBright,
+                    focusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f) else MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = if (isDarkTheme) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f) else MaterialTheme.colorScheme.surface,
                 ),
             )
             ExposedDropdownMenu(

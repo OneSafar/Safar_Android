@@ -1,4 +1,4 @@
-package com.safar.app.ui.studyplanner
+package com.safar.app.ui.studyplanner.templates
 
 import com.safar.app.domain.model.studyplanner.ExamTemplate
 import com.safar.app.domain.model.studyplanner.TemplateChapter

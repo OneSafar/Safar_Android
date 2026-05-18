@@ -12,7 +12,12 @@ data class AuthUiState(
     val confirmPassword: String = "",
     val examType: String = "",
     val preparationStage: String = "",
-    val gender: String = ""
+    val gender: String = "",
+    val emailError: String? = null,
+    val passwordError: String? = null,
+    val nameError: String? = null,
+    val confirmPasswordError: String? = null,
+    val genderError: String? = null,
 )
 
 sealed class AuthEvent {

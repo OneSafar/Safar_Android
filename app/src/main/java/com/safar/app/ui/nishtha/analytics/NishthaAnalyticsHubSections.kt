@@ -12,13 +12,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safar.app.domain.model.EkagraAnalyticsStats
@@ -202,7 +205,15 @@ private fun HubMetricCard(icon: ImageVector, label: String, value: String, sub: 
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
             Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+            val density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(
+                    density = density.density,
+                    fontScale = density.fontScale.coerceAtMost(1.3f)
+                )
+            ) {
+                Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+            }
             Text(sub, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -213,7 +224,15 @@ private fun GoalMetricCard(label: String, value: String, sub: String, color: Col
     Card(shape = RoundedCornerShape(18.dp), modifier = modifier.heightIn(min = 130.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = color)
+            val density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(
+                    density = density.density,
+                    fontScale = density.fontScale.coerceAtMost(1.3f)
+                )
+            ) {
+                Text(value, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = color)
+            }
             Text(sub, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -224,7 +243,15 @@ private fun CleanMetricCard(label: String, value: String, sub: String?, accent: 
     Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = modifier.heightIn(min = 118.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(label.uppercase(Locale.US), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+            val density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(
+                    density = density.density,
+                    fontScale = density.fontScale.coerceAtMost(1.3f)
+                )
+            ) {
+                Text(value, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+            }
             if (!sub.isNullOrBlank()) Text(sub, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

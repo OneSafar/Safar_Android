@@ -1,6 +1,11 @@
 package com.safar.app.ui.navigation
 
 import androidx.compose.runtime.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.platform.LocalContext
 import com.safar.app.MainActivity
 import androidx.navigation.compose.NavHost
@@ -26,7 +31,11 @@ import com.safar.app.ui.settings.SettingsScreen
 import com.safar.app.ui.splash.SplashScreen
 import com.safar.app.ui.studyplanner.StudyPlannerScreen
 import com.safar.app.ui.launch.LaunchUsageQuestionnaireScreen
+import com.safar.app.ui.studyplanner.screens.SyllabusSubjectsScreen
+import com.safar.app.ui.studyplanner.screens.SyllabusChaptersScreen
+import com.safar.app.ui.studyplanner.screens.SyllabusTopicsScreen
 import com.safar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
+import com.safar.app.ui.ekagra.focusshield.KavachAboutScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -99,7 +108,22 @@ fun SafarNavGraph(
         activity.resetNotificationRoute()
     }
 
-    NavHost(navController = navController, startDestination = Routes.SPLASH) {
+    NavHost(
+        navController = navController,
+        startDestination = Routes.SPLASH,
+        enterTransition = {
+            slideInHorizontally(animationSpec = tween(240)) { it / 5 } + fadeIn(animationSpec = tween(180))
+        },
+        exitTransition = {
+            slideOutHorizontally(animationSpec = tween(220)) { -it / 8 } + fadeOut(animationSpec = tween(160))
+        },
+        popEnterTransition = {
+            slideInHorizontally(animationSpec = tween(240)) { -it / 5 } + fadeIn(animationSpec = tween(180))
+        },
+        popExitTransition = {
+            slideOutHorizontally(animationSpec = tween(220)) { it / 8 } + fadeOut(animationSpec = tween(160))
+        },
+    ) {
 
         composable(Routes.SPLASH) {
             SplashScreen(
@@ -198,6 +222,69 @@ fun SafarNavGraph(
             )
         }
 
+        composable(
+            route = Routes.ROUTE_SYLLABUS_SUBJECTS,
+            enterTransition = { slideInHorizontally { it } + fadeIn(tween(220)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(tween(220)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
+        ) { entry ->
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER) }
+            val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
+            val planId = entry.arguments?.getString("planId") ?: ""
+            
+            SyllabusSubjectsScreen(
+                viewModel = viewModel,
+                planId = planId,
+                onNavigate = ::navigate,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Routes.ROUTE_SYLLABUS_CHAPTERS,
+            enterTransition = { slideInHorizontally { it } + fadeIn(tween(220)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(tween(220)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
+        ) { entry ->
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER) }
+            val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
+            val planId = entry.arguments?.getString("planId") ?: ""
+            val subjectId = entry.arguments?.getString("subjectId") ?: ""
+            
+            SyllabusChaptersScreen(
+                viewModel = viewModel,
+                planId = planId,
+                subjectId = subjectId,
+                onNavigate = ::navigate,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Routes.ROUTE_SYLLABUS_TOPICS,
+            enterTransition = { slideInHorizontally { it } + fadeIn(tween(220)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(tween(220)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
+        ) { entry ->
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER) }
+            val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
+            val planId = entry.arguments?.getString("planId") ?: ""
+            val subjectId = entry.arguments?.getString("subjectId") ?: ""
+            val chapterId = entry.arguments?.getString("chapterId") ?: ""
+            
+            SyllabusTopicsScreen(
+                viewModel = viewModel,
+                planId = planId,
+                subjectId = subjectId,
+                chapterId = chapterId,
+                onNavigate = ::navigate,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(Routes.MEHFIL) {
             MehfilScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle)
         }
@@ -236,6 +323,10 @@ fun SafarNavGraph(
             )
         }
 
+        composable(Routes.KAVACH_ABOUT) {
+            KavachAboutScreen(onBack = { navController.popBackStack() })
+        }
+
         composable(Routes.ACHIEVEMENTS) {
             val parentEntry = remember(currentEntry) { navController.getBackStackEntry(Routes.DASHBOARD) }
             val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safar.app.ui.dashboard.DashboardViewModel>(parentEntry)
@@ -254,7 +345,6 @@ fun SafarNavGraph(
                     navigateAndClear(Routes.AUTH)
                 },
                 onHome = { navigate(Routes.HOME) },
-                onOpenSettings = { navigate(Routes.SETTINGS) },
                 onToggleDarkTheme = onToggleDarkTheme,
                 onLibrary = { navigate(Routes.DASHBOARD) },
                 onProgress = { navigate(Routes.NISHTHA_ANALYTICS) },
@@ -264,9 +354,11 @@ fun SafarNavGraph(
         composable(Routes.SETTINGS) {
             SettingsScreen(
                 isDarkTheme = isDarkTheme,
+                isNightMode = isNightMode,
                 onBack = { navController.popBackStack() },
                 onHome = { navigate(Routes.HOME) },
                 onToggleDarkTheme = onToggleDarkTheme,
+                onToggleNightMode = onToggleNightMode,
                 dataStore = dataStore,
                 onLanguageClick = onLanguageToggle,
             )

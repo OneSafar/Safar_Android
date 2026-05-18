@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -468,7 +469,7 @@ private fun TooltipCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(
                     onClick = onSkip,
-                    modifier = Modifier.height(30.dp),
+                    modifier = Modifier.heightIn(min = 30.dp),
                     contentPadding =
                         androidx.compose.foundation.layout.PaddingValues(
                             horizontal = 8.dp,
@@ -484,7 +485,7 @@ private fun TooltipCard(
                 Spacer(Modifier.weight(1f))
                 Button(
                     onClick = onNext,
-                    modifier = Modifier.height(30.dp),
+                    modifier = Modifier.heightIn(min = 30.dp),
                     shape = RoundedCornerShape(20.dp),
                     colors =
                         ButtonDefaults.buttonColors(

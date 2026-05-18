@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -44,6 +45,8 @@ import java.time.ZoneId
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import android.net.Uri
@@ -67,6 +70,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.style.TextAlign
+import com.safar.app.util.bounceClick
 
 
 val LocalTimerService = staticCompositionLocalOf<TimerService?> { null }
@@ -314,13 +318,23 @@ fun EkagraScreen(
 
     val shieldState by focusShieldViewModel.shieldState.collectAsStateWithLifecycle()
 
-    val secondsLeft  by (timerService?.secondsLeft  ?: MutableStateFlow(25 * 60)).collectAsStateWithLifecycle()
-    val totalSeconds by (timerService?.totalSeconds ?: MutableStateFlow(25 * 60)).collectAsStateWithLifecycle()
-    val timerRunning by (timerService?.isRunning    ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
-    val timerMode    by (timerService?.timerMode    ?: MutableStateFlow(TimerMode.FOCUS)).collectAsStateWithLifecycle()
-    val focusShieldActive by (timerService?.focusShieldActive ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
+    val fallbackSecondsLeft = remember { MutableStateFlow(25 * 60) }
+    val fallbackTotalSeconds = remember { MutableStateFlow(25 * 60) }
+    val fallbackTimerRunning = remember { MutableStateFlow(false) }
+    val fallbackTimerMode = remember { MutableStateFlow(TimerMode.FOCUS) }
+    val fallbackFocusShieldActive = remember { MutableStateFlow(false) }
+    val secondsLeft by (timerService?.secondsLeft ?: fallbackSecondsLeft).collectAsStateWithLifecycle()
+    val totalSeconds by (timerService?.totalSeconds ?: fallbackTotalSeconds).collectAsStateWithLifecycle()
+    val timerRunning by (timerService?.isRunning ?: fallbackTimerRunning).collectAsStateWithLifecycle()
+    val timerMode by (timerService?.timerMode ?: fallbackTimerMode).collectAsStateWithLifecycle()
+    val focusShieldActive by (timerService?.focusShieldActive ?: fallbackFocusShieldActive).collectAsStateWithLifecycle()
+    val blockedHitCount by focusShieldViewModel.blockedHitCount.collectAsStateWithLifecycle()
 
     var selectedTab      by remember { mutableStateOf(EkagraNavTab.TIMER) }
+    var showKavachActiveSession by remember { mutableStateOf(false) }
+    var showKavachSessionSummary by remember { mutableStateOf(false) }
+    var kavachSummaryMinutes by remember { mutableIntStateOf(0) }
+    var kavachSummaryAttempts by remember { mutableStateOf<List<com.safar.app.ui.ekagra.focusshield.KavachBlockedAttempt>>(emptyList()) }
     var showThemeDialog  by remember { mutableStateOf(false) }
     var showSongSheet    by remember { mutableStateOf(false) }
     var showEkagraGuide  by remember { mutableStateOf(false) }
@@ -342,9 +356,9 @@ fun EkagraScreen(
     var associatedGoalTitle by remember(linkedGoalTitle) { mutableStateOf(linkedGoalTitle) }
     var taskText         by remember(linkedGoalId, linkedGoalTitle) { mutableStateOf(linkedGoalTitle.orEmpty()) }
 
-    var focusMinutes by remember { mutableStateOf(25) }
-    var breakMinutes by remember { mutableStateOf(5) }
-    var longBreakMinutes by remember { mutableStateOf(15) }
+    var focusMinutes by remember { mutableIntStateOf(25) }
+    var breakMinutes by remember { mutableIntStateOf(5) }
+    var longBreakMinutes by remember { mutableIntStateOf(15) }
 
     fun startTimer(mode: TimerMode, minutes: Int) {
         if (
@@ -384,7 +398,16 @@ fun EkagraScreen(
         associatedGoalTitle = null
     }
 
+    fun captureKavachSessionSummary() {
+        if (blockedHitCount <= 0) return
+        val focusedSeconds = (totalSeconds - secondsLeft).coerceAtLeast(0)
+        kavachSummaryMinutes = (focusedSeconds / 60).coerceAtLeast(1)
+        kavachSummaryAttempts = focusShieldViewModel.snapshotBlockedAttempts()
+        showKavachSessionSummary = true
+    }
+
     fun endCurrentSession() {
+        captureKavachSessionSummary()
         val session = activeSession
         if (session != null && timerMode == TimerMode.FOCUS) {
             timerService?.pause()
@@ -518,6 +541,12 @@ fun EkagraScreen(
         if (!timerRunning && secondsLeft == 0 && totalSeconds > 0) {
             val session = activeSession
             if (timerMode != TimerMode.FOCUS) return@LaunchedEffect
+            if (timerMode == TimerMode.FOCUS && blockedHitCount > 0) {
+                val focusedSeconds = totalSeconds.coerceAtLeast(0)
+                kavachSummaryMinutes = (focusedSeconds / 60).coerceAtLeast(1)
+                kavachSummaryAttempts = focusShieldViewModel.snapshotBlockedAttempts()
+                showKavachSessionSummary = true
+            }
             if (timerMode == TimerMode.FOCUS && session != null) {
                 pendingEndedSession = PendingEndedEkagraSession(
                     sessionId = session.id,
@@ -557,10 +586,33 @@ fun EkagraScreen(
         }
     }
 
+    if (showKavachSessionSummary) {
+        com.safar.app.ui.ekagra.focusshield.KavachSessionSummaryScreen(
+            focusedMinutes = kavachSummaryMinutes,
+            blockedAttempts = kavachSummaryAttempts,
+            onBack = { showKavachSessionSummary = false },
+            onDone = {
+                showKavachSessionSummary = false
+                focusShieldViewModel.clearSessionStats()
+            },
+        )
+        return
+    }
+
+    if (showKavachActiveSession && focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS) {
+        com.safar.app.ui.ekagra.focusshield.KavachActiveSessionScreen(
+            secondsLeft = secondsLeft,
+            blockedCount = blockedHitCount,
+            onBack = { showKavachActiveSession = false },
+            onEndSession = { endCurrentSession() },
+        )
+        return
+    }
+
     if (isInPipMode) {
         val shieldActive = focusShieldActive && timerRunning
-        val pipBg = if (shieldActive) Color(0xFF1C1917) else Color(0xFF05070A)
-        val pipAccent = if (shieldActive) Color(0xFFF59E0B) else accent
+        val pipBg = if (shieldActive) com.safar.app.ui.ekagra.focusshield.KavachDesign.Primary else Color(0xFF05070A)
+        val pipAccent = if (shieldActive) Color.White else accent
         Box(
             Modifier
                 .fillMaxSize()
@@ -579,7 +631,7 @@ fun EkagraScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            Icons.Default.WarningAmber,
+                            Icons.Default.Shield,
                             contentDescription = null,
                             tint = pipAccent,
                             modifier = Modifier.size(21.dp),
@@ -684,7 +736,7 @@ fun EkagraScreen(
         )
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
         SafarDrawerScaffold(
             title             = stringResource(R.string.module_ekagra),
             subtitle          = stringResource(R.string.app_name),
@@ -711,6 +763,7 @@ fun EkagraScreen(
             Box(Modifier.fillMaxSize()) {
                 Scaffold(
                     containerColor = Color.Transparent,
+                    contentWindowInsets = WindowInsets.safeDrawing,
                     snackbarHost   = { SnackbarHost(hostState = snackbarHostState) },
                     bottomBar = {
                         EkagraBottomNav(
@@ -734,6 +787,9 @@ fun EkagraScreen(
                                 accent = accent,
                                 progress = progress,
                                 mottoText = mottoText,
+                                kavachActive = focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS,
+                                kavachBlockedCount = blockedHitCount,
+                                onOpenKavachSession = { showKavachActiveSession = true },
                                 onModeChange = { mode ->
                                     val mins = when (mode) {
                                         TimerMode.FOCUS -> focusMinutes
@@ -855,7 +911,7 @@ private fun ModePill(
                         .background(
                             if (isSelected) accent else Color.Transparent,
                         )
-                        .clickable { onSelect(mode) },
+                        .bounceClick { onSelect(mode) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -879,6 +935,9 @@ private fun TimerFocusTab(
     accent: Color,
     progress: Float,
     mottoText: String,
+    kavachActive: Boolean = false,
+    kavachBlockedCount: Int = 0,
+    onOpenKavachSession: () -> Unit = {},
     onModeChange: (TimerMode) -> Unit,
     onPlayPause: () -> Unit,
     canStartBreak: Boolean,
@@ -896,14 +955,18 @@ private fun TimerFocusTab(
     val secondaryText = if (resolvedDark) Color(0xFFABABA8) else scheme.onSurfaceVariant
     val timerTextColor = scheme.onSurface
 
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isCompactHeight = configuration.screenHeightDp < 600
+
     Box(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 20.dp)
+                .then(if (isCompactHeight) Modifier.verticalScroll(rememberScrollState()) else Modifier),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(140.dp))
+            if (isCompactHeight) Spacer(Modifier.height(16.dp)) else Spacer(Modifier.height(64.dp))
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -926,15 +989,62 @@ private fun TimerFocusTab(
                         isDarkTheme = isDarkTheme,
                         onSelect = onModeChange,
                     )
-                    Text(
-                        "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
-                        fontSize = 62.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                        color = timerTextColor,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
+                    val clampedProgress = progress.coerceIn(0f, 1f)
+                    val pulse by animateFloatAsState(
+                        targetValue = if (isRunning) 1f else 0f,
+                        animationSpec = androidx.compose.animation.core.spring(
+                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                        ),
+                        label = "timerPulse",
                     )
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(224.dp)) {
+                        CircularProgressIndicator(
+                            progress = { 1f },
+                            modifier = Modifier.fillMaxSize(),
+                            color = accent.copy(alpha = if (resolvedDark) 0.18f else 0.14f),
+                            strokeWidth = 14.dp,
+                            strokeCap = StrokeCap.Round,
+                        )
+                        CircularProgressIndicator(
+                            progress = { clampedProgress },
+                            modifier = Modifier.fillMaxSize().padding(2.dp),
+                            color = accent,
+                            strokeWidth = 14.dp,
+                            strokeCap = StrokeCap.Round,
+                        )
+                        Box(
+                            Modifier
+                                .size(174.dp + (pulse * 8).dp)
+                                .clip(CircleShape)
+                                .background(accent.copy(alpha = 0.06f + pulse * 0.05f)),
+                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            val density = LocalDensity.current
+                            CompositionLocalProvider(
+                                LocalDensity provides Density(
+                                    density = density.density,
+                                    fontScale = density.fontScale.coerceAtMost(1.3f)
+                                )
+                            ) {
+                                Text(
+                                    "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
+                                    fontSize = 54.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                    color = timerTextColor,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                            Text(
+                                if (isRunning) "Focus running" else "Ready to focus",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = secondaryText,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(
                             modifier = Modifier
@@ -943,7 +1053,7 @@ private fun TimerFocusTab(
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (resolvedDark) 0.35f else 0.62f))
                                 .border(1.dp, controlBorder, RoundedCornerShape(999.dp))
-                                .clickable { onReset() },
+                                .bounceClick { onReset() },
                             contentAlignment = Alignment.Center,
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -957,7 +1067,7 @@ private fun TimerFocusTab(
                                 .height(48.dp)
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(Brush.horizontalGradient(listOf(accent, accent.copy(alpha = 0.9f))))
-                                .clickable { onPlayPause() },
+                                .bounceClick { onPlayPause() },
                             contentAlignment = Alignment.Center,
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -983,9 +1093,10 @@ private fun TimerFocusTab(
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (resolvedDark) 0.28f else 0.55f))
                                 .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(999.dp))
-                                .clickable { onStartBreak() },
+                                .bounceClick { onStartBreak() },
                             contentAlignment = Alignment.Center,
-                        ) {
+                        )
+ {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(Icons.Default.FreeBreakfast, contentDescription = null, tint = accent, modifier = Modifier.size(17.dp))
                                 Text("Take Break", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = accent)
@@ -1007,36 +1118,28 @@ private fun TimerFocusTab(
                 color = secondaryText,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(14.dp))
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
-            ) {
-                val clamped = progress.coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(clamped)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.6f), accent))),
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .offset(x = ((maxWidth - 24.dp) * clamped))
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, accent, CircleShape),
-                    contentAlignment = Alignment.Center,
+            if (kavachActive) {
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    onClick = onOpenKavachSession,
+                    shape = RoundedCornerShape(999.dp),
+                    color = com.safar.app.ui.ekagra.focusshield.KavachDesign.Primary.copy(alpha = 0.92f),
                 ) {
-                    Box(Modifier.size(8.dp).clip(CircleShape).background(accent))
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Text(
+                            text = stringResource(R.string.kavach_active_status, kavachBlockedCount),
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
-
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -1403,7 +1506,15 @@ private fun FocusHistoryTab(
 
         Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(formatMinutes(todayFocusMinutes), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+                val density = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides Density(
+                        density = density.density,
+                        fontScale = density.fontScale.coerceAtMost(1.3f)
+                    )
+                ) {
+                    Text(formatMinutes(todayFocusMinutes), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+                }
                 Text("Total Focus Time", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

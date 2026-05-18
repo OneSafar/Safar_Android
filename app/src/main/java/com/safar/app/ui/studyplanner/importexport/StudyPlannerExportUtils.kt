@@ -1,4 +1,4 @@
-package com.safar.app.ui.studyplanner
+package com.safar.app.ui.studyplanner.importexport
 
 import android.graphics.Canvas
 import android.graphics.Color
@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.safar.app.domain.model.studyplanner.StudyPlan
 import com.safar.app.domain.model.studyplanner.TopicStatus
+import com.safar.app.ui.studyplanner.logic.readableDate
 import java.io.OutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -76,7 +77,6 @@ object StudyPlannerExportUtils {
                     chapter.topics.forEachIndexed { tIdx, topic ->
                         val statusColor = when (topic.status) {
                             TopicStatus.DONE -> Color.parseColor("#10B981")
-                            TopicStatus.IN_PROGRESS -> Color.parseColor("#3B82F6")
                             TopicStatus.REVISION_NEEDED -> Color.parseColor("#F59E0B")
                             else -> Color.parseColor("#9CA3AF")
                         }

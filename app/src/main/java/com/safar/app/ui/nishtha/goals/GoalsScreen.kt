@@ -25,12 +25,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.safar.app.R
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.domain.model.Goal
 import com.safar.app.domain.model.GoalSubtask
+import com.safar.app.ui.components.GoalRowSkeleton
+import com.safar.app.ui.components.SafarEmptyState
+import com.safar.app.ui.components.SafarErrorState
+import com.safar.app.ui.components.SafarPullRefreshBox
 import com.safar.app.ui.nishtha.NishthaEvent
 import com.safar.app.ui.nishtha.NishthaViewModel
 import com.safar.app.ui.navigation.Routes
@@ -421,7 +427,7 @@ fun GoalsScreen(
         ) {
             Column(Modifier.fillMaxWidth()) {
                 Text(
-                    "Command Center",
+                    stringResource(R.string.goals_command_center),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -486,6 +492,8 @@ fun GoalsScreen(
                 rolloverPrompts = uiState.rolloverPrompts,
                 ekagraAnalytics = uiState.ekagraAnalytics,
                 isLoading = uiState.isLoadingGoals,
+                goalError = uiState.goalError,
+                onRefresh = { viewModel.onEvent(com.safar.app.ui.nishtha.NishthaEvent.LoadGoals) },
                 onAddClick = { showAddSheet = true },
                 onComplete = { goal -> completeGoal = goal; studyHours = 0; studyMinutes = 0 },
                 onEdit = { goal ->
@@ -538,6 +546,8 @@ private fun GoalsTab(
     rolloverPrompts: List<Goal>,
     ekagraAnalytics: com.safar.app.domain.model.EkagraAnalyticsStats,
     isLoading: Boolean,
+    goalError: String? = null,
+    onRefresh: () -> Unit = {},
     onAddClick: () -> Unit,
     onComplete: (Goal) -> Unit,
     onEdit: (Goal) -> Unit,
@@ -568,21 +578,35 @@ private fun GoalsTab(
         .sumOf { it.actualMinutes }
     val manualTodayMinutes = manualCompletedGoals.filter { it.completedDateKey() == todayKey }.sumOf { it.studiedMinutes ?: 0 }
     val manualTotalMinutes = manualCompletedGoals.sumOf { it.studiedMinutes ?: 0 }
-    if (isLoading) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }; return }
-    if (goals.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(
-                    painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_target),
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text("No goals yet! Add a goal to get started.", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-                Button(onClick = onAddClick, shape = RoundedCornerShape(12.dp)) { Text("Add Goal") }
-            }
-        }; return
+    if (goalError != null && goals.isEmpty() && !isLoading) {
+        SafarErrorState(message = goalError, onRetry = onRefresh, modifier = Modifier.fillMaxSize())
+        return
     }
+    if (isLoading && goals.isEmpty()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(5) { GoalRowSkeleton() }
+        }
+        return
+    }
+    if (goals.isEmpty()) {
+        SafarEmptyState(
+            title = "No goals yet",
+            message = "Add a goal to get started on your study plan.",
+            primaryActionLabel = "Add Goal",
+            onPrimaryAction = onAddClick,
+            modifier = Modifier.fillMaxSize(),
+        )
+        return
+    }
+    SafarPullRefreshBox(
+        isRefreshing = isLoading && goals.isNotEmpty(),
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize(),
+    ) {
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (pending.isNotEmpty()) {
             item { SectionHeader("Pending", "Only goals that are active today appear here.", "${pending.size} Tasks") }
@@ -612,6 +636,7 @@ private fun GoalsTab(
             )
         }
         item { ProTipCard() }
+    }
     }
 }
 
