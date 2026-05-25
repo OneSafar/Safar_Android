@@ -3,12 +3,20 @@ package com.safar.app.ui.studyplanner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safar.app.data.remote.api.AutoDistributeRequest
+import com.safar.app.data.remote.api.BulkTopicItemRequest
+import com.safar.app.data.remote.api.BulkTopicsRequest
 import com.safar.app.data.remote.api.ChapterRequest
 import com.safar.app.data.remote.api.CreateFromTemplateRequest
 import com.safar.app.data.remote.api.CreatePlanRequest
+import com.safar.app.data.remote.api.ImportSyllabusRequest
+import com.safar.app.data.remote.api.ImportSyllabusSubjectRequest
+import com.safar.app.data.remote.api.ImportSyllabusChapterRequest
+import com.safar.app.data.remote.api.ImportSyllabusTopicRequest
+import com.safar.app.data.remote.api.StructureSyllabusRequest
 import com.safar.app.data.remote.api.SubjectRequest
 import com.safar.app.data.remote.api.TopicPatchRequest
 import com.safar.app.data.remote.api.TopicRequest
+import com.safar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
 import com.safar.app.data.remote.api.UpdatePlanRequest
 import com.safar.app.domain.model.studyplanner.AutoDistributeResult
 import com.safar.app.domain.model.studyplanner.CalendarMap
@@ -83,6 +91,18 @@ data class StudyPlannerUiState(
     val syllabusImportFileName: String? = null,
     val selectedSubjectId: String? = null,
     val selectedChapterId: String? = null,
+    val rawSyllabusText: String = "",
+    val structuredPreview: com.safar.app.data.remote.api.StructuredSyllabusPreview? = null,
+    val isStructuringSyllabus: Boolean = false,
+    val isImportingStructuredSyllabus: Boolean = false,
+    val structureError: String? = null,
+    val structuredImportError: String? = null,
+    val structuredImportSuccessMessage: String? = null,
+    val isImporting: Boolean = false,
+    val importStatus: String? = null,
+    val importError: String? = null,
+    val importResultSummary: String? = null,
+    val hydrateWarning: String? = null,
 )
 
 @HiltViewModel
@@ -157,7 +177,7 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun clearTransient() {
-        _uiState.update { it.copy(error = null, message = null, premiumReason = null) }
+        _uiState.update { it.copy(error = null, message = null, premiumReason = null, hydrateWarning = null) }
     }
 
     override fun clearSyllabusImportDraft() {
@@ -215,7 +235,7 @@ class StudyPlannerViewModel @Inject constructor(
         refreshPlans()
     }
 
-    override fun createPlan(title: String, examType: String?, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
+    override fun createPlan(title: String, examType: String?, examDate: String?, dailyGoal: Int, offDays: List<Int>, syllabusText: String?) {
         viewModelScope.launch {
             mutatePlanList {
                 repo.createPlan(CreatePlanRequest(title = title, examType = examType, examDate = examDate, dailyGoal = dailyGoal, offDays = offDays))
@@ -238,6 +258,14 @@ class StudyPlannerViewModel @Inject constructor(
             // slow local fallback when templates hadn't loaded yet.
             tryCreatePlanFromTemplateWithLocalFallback(templateId, title, examDate, dailyGoal, offDays)
         }
+    }
+
+    private fun handlePlannerError(error: Resource.Error<*>): Boolean {
+        if (error.code == 401 || error.code == 403) {
+            _uiState.update { it.copy(premiumReason = PremiumReason.AUTO_SCHEDULE) }
+            return true
+        }
+        return false
     }
 
     override fun deletePlan(planId: String) {
@@ -411,24 +439,16 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    override fun importSyllabusFile(file: MultipartBody.Part, fileName: String?) {
+    override fun checkIn() {
+        // Stubbed for now
+    }
+
+    fun importSyllabusFile(file: MultipartBody.Part, fileName: String?) {
         viewModelScope.launch {
             _uiState.update { it.copy(mutating = true, error = null) }
-            when (val r = repo.importSyllabusFile(file)) {
-                is Resource.Success -> {
-                    val draft = r.data.trim()
-                    _uiState.update {
-                        it.copy(
-                            mutating = false,
-                            syllabusImportDraft = draft,
-                            syllabusImportFileName = fileName,
-                            message = if (draft.isNotBlank()) "Imported syllabus from ${fileName ?: "file"}." else "Syllabus import finished.",
-                        )
-                    }
-                }
-                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message, syllabusImportFileName = fileName) }
-                is Resource.Loading -> Unit
-            }
+            // Stubbed for now as repo.importSyllabusFile is not implemented
+            kotlinx.coroutines.delay(1000)
+            _uiState.update { it.copy(mutating = false, error = "File import is currently disabled") }
         }
     }
 
@@ -444,6 +464,30 @@ class StudyPlannerViewModel @Inject constructor(
                 is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
                 is Resource.Loading -> Unit
             }
+        }
+    }
+
+    override fun structureSyllabusPreview(rawText: String, language: String?) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isStructuringSyllabus = true, structureError = null, structuredPreview = null) }
+            // Stubbed for now as repo.structureSyllabus is not implemented
+            kotlinx.coroutines.delay(1000)
+            _uiState.update { it.copy(isStructuringSyllabus = false, structureError = "AI Structuring is currently disabled") }
+        }
+    }
+
+    override fun updateStructuredPreview(preview: com.safar.app.data.remote.api.StructuredSyllabusPreview?) {
+        _uiState.update { it.copy(structuredPreview = preview) }
+    }
+
+    override fun importStructuredSyllabus() {
+        val preview = _uiState.value.structuredPreview ?: return
+        val planId = _uiState.value.selectedPlan?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isImportingStructuredSyllabus = true, structuredImportError = null, structuredImportSuccessMessage = null) }
+            // Stubbed for now as repo.importStructuredSyllabus is not implemented
+            kotlinx.coroutines.delay(1000)
+            _uiState.update { it.copy(isImportingStructuredSyllabus = false, structuredImportError = "AI Import is currently disabled") }
         }
     }
 
@@ -585,17 +629,7 @@ class StudyPlannerViewModel @Inject constructor(
         }
 
         _uiState.update { it.copy(mutating = true, error = null) }
-
-        // Step 1: Create the plan shell
-        val plan = when (val pr = repo.createPlan(
-            CreatePlanRequest(
-                title = title.ifBlank { template.name },
-                examType = template.name,
-                examDate = examDate,
-                dailyGoal = dailyGoal,
-                offDays = offDays,
-            )
-        )) {
+        val plan = when (val pr = repo.createPlan(CreatePlanRequest(title = title, examType = template.name, examDate = examDate, dailyGoal = dailyGoal, offDays = offDays))) {
             is Resource.Success -> pr.data
             is Resource.Error -> {
                 _uiState.update { it.copy(mutating = false, error = pr.message) }
@@ -604,61 +638,46 @@ class StudyPlannerViewModel @Inject constructor(
             is Resource.Loading -> return
         }
 
-        val planId = plan.id
-        var currentPlan = plan
-        var hasErrors = false
-
-        // Step 2: Build syllabus using atomic endpoints (like Web's custom syllabus builder)
-        for (subject in template.subjects) {
-            val sr = repo.addSubject(planId, SubjectRequest(name = subject.name, color = subject.color))
-            if (sr is Resource.Success) {
-                currentPlan = sr.data
-                val createdSubject = currentPlan.subjects.find { it.name == subject.name }
-                if (createdSubject != null) {
-                    for (chapter in subject.chapters) {
-                        val cr = repo.addChapter(planId, createdSubject.id, ChapterRequest(name = chapter.name))
-                        if (cr is Resource.Success) {
-                            currentPlan = cr.data
-                            val createdChapter = currentPlan.subjects.find { it.id == createdSubject.id }?.chapters?.find { it.name == chapter.name }
-                            if (createdChapter != null) {
-                                // Bulk import topics for this chapter
-                                val topicsRequest = BulkTopicsRequest(topics = chapter.topics.map { BulkTopicItemRequest(name = it) })
-                                val tr = repo.bulkTopics(planId, createdSubject.id, createdChapter.id, topicsRequest)
-                                if (tr is Resource.Success) {
-                                    currentPlan = tr.data
-                                } else {
-                                    hasErrors = true
-                                }
-                            }
-                        } else {
-                            hasErrors = true
+        // Map the static template structure to an ImportSyllabusRequest
+        val subjectsRequest = template.subjects.map { subject ->
+            ImportSyllabusSubjectRequest(
+                name = subject.name,
+                chapters = subject.chapters.map { chapter ->
+                    ImportSyllabusChapterRequest(
+                        name = chapter.name,
+                        topics = chapter.topics.map { topicName ->
+                            ImportSyllabusTopicRequest(name = topicName)
                         }
-                    }
+                    )
                 }
-            } else {
-                hasErrors = true
-            }
+            )
         }
+        val importRequest = ImportSyllabusRequest(
+            subjects = subjectsRequest,
+            mode = "replace"
+        )
 
-        // Step 3: Auto-distribute if examDate is provided
-        if (examDate != null) {
-            val ar = repo.autoDistribute(planId, AutoDistributeRequest(includeRevisionNeeded = false, lockExistingDates = false))
-            if (ar is Resource.Success && ar.data.plan != null) {
-                currentPlan = ar.data.plan
+        val importResult = repo.importSyllabus(plan.id, importRequest)
+        val finalPlan = when (importResult) {
+            is Resource.Success -> importResult.data
+            is Resource.Error -> {
+                _uiState.update { it.copy(mutating = false, error = importResult.message) }
+                return
             }
+            is Resource.Loading -> return
         }
 
         _uiState.update {
             it.copy(
                 mutating = false,
-                selectedPlan = currentPlan,
-                message = if (hasErrors) "Plan created with some syllabus import errors." else successMessage,
+                selectedPlan = finalPlan,
+                message = successMessage,
                 section = PlannerSection.PLAN,
             )
         }
         StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLAN_CREATED_TEMPLATE)
         refreshPlans()
-        openPlan(planId)
+        openPlan(plan.id)
     }
 
     private suspend fun refreshCalendar(planId: String) {

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Session Summary - Kavach</title>
+<!-- Google Fonts & Material Icons -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0A56D9",
+                        "background": "#FFFFFF",
+                        "surface": "#F0F4F9",
+                        "surface-highlight": "#E3EAF5",
+                        "text": "#1C1B1F",
+                        "muted": "#44474E",
+                        "accent": "#146C2E"
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["DM Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "24px",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "sm": "8px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px"
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-text min-h-screen flex flex-col antialiased selection:bg-surface-highlight">
+<!-- Excluded Shared Navigations: This is a Focused View (post-task summary), a simple back/close is preferred or just the sticky CTA to exit. -->
+<!-- Simple Header / Back to Main Exception -->
+<header class="flex items-center p-md bg-background sticky top-0 z-10">
+<button aria-label="Go back" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface transition-colors">
+<span class="material-symbols-outlined text-text">arrow_back</span>
+</button>
+<h1 class="font-display font-bold text-[20px] ml-sm text-text flex-1">Session Summary</h1>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto px-md pb-32 pt-lg flex flex-col items-center">
+<!-- Success Graphic -->
+<div class="w-[120px] h-[120px] mb-lg rounded-full bg-surface-highlight flex items-center justify-center">
+<span class="material-symbols-outlined text-[72px] text-primary" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<h2 class="font-display font-bold text-[28px] text-text text-center mb-sm">Great Work!</h2>
+<p class="text-[16px] text-muted text-center mb-xl max-w-[280px]">Your focus session is complete. Here is what you achieved.</p>
+<!-- Time Focused Card -->
+<div class="w-full bg-surface rounded-2xl p-lg flex flex-col items-center justify-center mb-md border-none shadow-none">
+<p class="text-muted text-[14px] font-medium mb-sm">Time Focused</p>
+<p class="font-display font-bold text-[48px] text-primary leading-none mb-sm">45 <span class="text-[24px]">min</span></p>
+<div class="flex items-center gap-2 bg-white px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-[16px] text-accent" style="font-variation-settings: 'FILL' 1;">verified</span>
+<p class="text-text text-[14px] font-medium">Deep Work</p>
+</div>
+</div>
+<!-- Blocked Attempts Card -->
+<div class="w-full bg-surface rounded-2xl p-md border-none shadow-none mb-xl">
+<div class="flex items-center gap-2 mb-md pl-2">
+<span class="material-symbols-outlined text-muted text-[20px]">block</span>
+<h3 class="font-display font-bold text-[18px] text-text">Blocked Attempts</h3>
+</div>
+<ul class="flex flex-col gap-sm">
+<!-- App Item 1 -->
+<li class="flex items-center justify-between p-3 bg-white rounded-xl">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-highlight flex items-center justify-center overflow-hidden">
+<img alt="Instagram logo" class="w-full h-full object-cover" data-alt="A clean, minimalist logo icon for a social media app, utilizing a deep cobalt blue and pristine white color palette. The icon sits on a soft surface background with a modern, flat aesthetic. Lighting is bright and high-key." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGUarNoeJbtc0RoBg_CXnAgca8ubL9-aVHDk8eR3OSyJIsF0CEQjKFJu9BcfDWXZDpJcA0RNA5MiukWwJ801NJZrcBs_2V2iRTAVhSQbN11xJx1Ml_SANN0_bRATF2Ekz4g6sYpNcAbZw3je8wkRPvuwG3wp7pd6qv9xURhlHgsaQIE35uzP3faMFW4QVmhYXKQLFyyLMiBlb9Pmf3xeovxYeBo8oGnUyoXKR_TubJeDLZxQqggZouBEs2HlziR__HbOZY34eZ4Eei"/>
+</div>
+<span class="text-[16px] font-medium text-text">Instagram</span>
+</div>
+<span class="text-[14px] font-bold text-muted bg-surface px-3 py-1 rounded-full">4 attempts</span>
+</li>
+<!-- App Item 2 -->
+<li class="flex items-center justify-between p-3 bg-white rounded-xl">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-highlight flex items-center justify-center overflow-hidden">
+<img alt="Twitter logo" class="w-full h-full object-cover" data-alt="A clean, minimalist logo icon for a microblogging app, utilizing a deep cobalt blue and pristine white color palette. The icon sits on a soft surface background with a modern, flat aesthetic. Lighting is bright and high-key." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDU4Sn4PP1FT5aNCgwBhtGx4BUwMwCkog0NDTgR7VtfoQdEDpKmx-cfxrlboQQJln_leJxFJNMk4FvHlNiedhn40VSnztYC6RLeuQ6AxTeAiY513ZL3a9V-6KTfWPCrgl25FMEpc25Kj7ebrrqYHWIvkYsEix6nNea20d9dUJm0j2NE4sGpRkthPgCTIjyyoPy2UYcP_VbhgpeSQM0JSOM4AtL3dHQWMtDsXcD4O1Jt-CAiYs0YleKJosBpzz5i4rBT8V5HpJAFmxoF"/>
+</div>
+<span class="text-[16px] font-medium text-text">Twitter</span>
+</div>
+<span class="text-[14px] font-bold text-muted bg-surface px-3 py-1 rounded-full">2 attempts</span>
+</li>
+<!-- App Item 3 -->
+<li class="flex items-center justify-between p-3 bg-white rounded-xl">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-highlight flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-primary">chat</span>
+</div>
+<span class="text-[16px] font-medium text-text">Messages</span>
+</div>
+<span class="text-[14px] font-bold text-muted bg-surface px-3 py-1 rounded-full">1 attempt</span>
+</li>
+</ul>
+</div>
+</main>
+<!-- Sticky CTA -->
+<div class="fixed bottom-0 left-0 right-0 p-md bg-gradient-to-t from-background via-background to-transparent pb-lg">
+<button class="w-full h-[56px] bg-primary text-white font-display font-bold text-[16px] rounded-full flex items-center justify-center hover:bg-opacity-90 transition-all active:scale-[0.98]">
+            Done
+        </button>
+</div>
+</body></html>

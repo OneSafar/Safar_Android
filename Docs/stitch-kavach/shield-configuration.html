@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shield Configuration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0a57db",
+                        "background-light": "#f5f6f8",
+                        "background-dark": "#101722",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #FFFFFF;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-white text-[#1C1B1F] flex flex-col min-h-screen">
+<!-- Minimal Header with Back Button (Back-to-Main Exception) -->
+<header class="flex items-center px-4 h-14 bg-white sticky top-0 z-20">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors">
+<span class="material-symbols-outlined text-[#1C1B1F]">arrow_back</span>
+</button>
+<h1 class="ml-2 text-xl font-bold">Shield Configuration</h1>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 relative overflow-x-hidden flex flex-col pb-24">
+<!-- Shared SearchBar Component -->
+<div class="relative flex h-auto w-full flex-col bg-white group/design-root overflow-x-hidden" style='font-family: "Plus Jakarta Sans", "Noto Sans", sans-serif;'>
+<div class="px-4 py-3 sticky top-14 bg-white z-10">
+<label class="flex flex-col min-w-40 h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full">
+<div class="text-[#60708a] flex border-none bg-[#f0f2f5] items-center justify-center pl-4 rounded-l-xl border-r-0" data-icon="MagnifyingGlass" data-size="24px" data-weight="regular">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111318] focus:outline-0 focus:ring-0 border-none bg-[#f0f2f5] focus:border-none h-full placeholder:text-[#60708a] px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" placeholder="Search apps..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex items-center gap-4 bg-white px-4 min-h-[64px] justify-between">
+<div class="flex items-center gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10" data-alt="A stylized, modern flat-design icon of a camera for an Instagram-like social media app. The icon uses a vibrant gradient of purple, pink, and orange. The overall lighting is bright and clean, fitting a light-mode Material Design 3 aesthetic." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDTG7TaOms3GHBSma-Af5hInMkjqUEwhA7J9zuIM2CVUhhZDw1Zsb5Bgfb_ox0E1ZJq6djzAQii2qg6U3oRX3OlEnaAHmkxi_usXpUj9u0gSgoP6FRtNCgIn2z2JDjuSBTWtVhyoDVMDn_8SLKnz03g-ZGbfgWgek0PQdf5xPqwIvhBnO0v7NRP0251RrhJbzfPGWzqoVeyZ9nF--n-TpDRKCDq9lRE4Aqpzluowl9x99drsa87g4-U6Eq6WlCVgDxwv2VPTCzklE7z");'></div>
+<p class="text-[#111318] text-base font-normal leading-normal flex-1 truncate">Instagram</p>
+</div>
+<div class="shrink-0">
+<label class="relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none bg-[#f0f2f5] p-0.5 has-[:checked]:justify-end has-[:checked]:bg-[#0a57db]">
+<div class="h-full w-[27px] rounded-full bg-white" style="box-shadow: rgba(0, 0, 0, 0.15) 0px 3px 8px, rgba(0, 0, 0, 0.06) 0px 3px 1px;"></div>
+<input checked="" class="invisible absolute" type="checkbox"/>
+</label>
+</div>
+</div>
+<div class="flex items-center gap-4 bg-white px-4 min-h-[64px] justify-between">
+<div class="flex items-center gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10" data-alt="A minimalist, modern flat-design icon representing a video app like TikTok, featuring a stylized music note or play symbol in cyan and magenta on a dark background, adapted for a light-mode UI context. The style is clean and crisp." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDkXW29uXpuDEwxp3v5T5B4a1k5sIYPI-ty1FVgEdGwDrpEWlPZQjDs1Lyaa9vGidTamhAUJ0bvAVkb04rdtquEVDUPjvQ2UO5rFoTBwYm69QQ4zzAbTUbDI75-g_1GkPfzbN0WcNpuIIHpGs1nMT8ztNiETL7mIsDdYg4dyIzM0BxkG0aW1drorHg8CVoKzlVFw5Zxps1_AedLv1qPBBeyWXFiq0jSJL6-7GncXw39P9zKy1ZzmNcgIddWhPSQezzCZr5O374UtZ0I");'></div>
+<p class="text-[#111318] text-base font-normal leading-normal flex-1 truncate">TikTok</p>
+</div>
+<div class="shrink-0">
+<label class="relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none bg-[#f0f2f5] p-0.5 has-[:checked]:justify-end has-[:checked]:bg-[#0a57db]">
+<div class="h-full w-[27px] rounded-full bg-white" style="box-shadow: rgba(0, 0, 0, 0.15) 0px 3px 8px, rgba(0, 0, 0, 0.06) 0px 3px 1px;"></div>
+<input checked="" class="invisible absolute" type="checkbox"/>
+</label>
+</div>
+</div>
+<!-- Additional Apps to fill the list -->
+<div class="flex items-center gap-4 bg-white px-4 min-h-[64px] justify-between">
+<div class="flex items-center gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10" data-alt="A clean, flat-design icon of a white bird on a light blue background, representing a social media platform like Twitter/X. The design is simple, modern, and fits perfectly within a light-mode Material Design environment." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCUINoM33_J1u26VGfzvPjOFNM-DXh0J98suq4xewxXCUkh-kHxYLMZ352MjiI9g7UHroawOgkLKbYDQp2FssXMH-Vs10A-taDVaN1RZR0i92l0Fd4ASmHQMJ99ZSLClULQXFyRtUMEM7MqwQNOAzU-8qnWE0_i9-tutVOH8yXw8i5i1AcdiUfgiF04CKsL9-zY1uIuo3R6YZY88YuyMKIeMxmr90UezwyrzBxOhxX3meFs-pt39CmMkw9ditPDLFHv4KJxL2j1gBNL");'></div>
+<p class="text-[#111318] text-base font-normal leading-normal flex-1 truncate">X</p>
+</div>
+<div class="shrink-0">
+<label class="relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none bg-[#f0f2f5] p-0.5 has-[:checked]:justify-end has-[:checked]:bg-[#0a57db]">
+<div class="h-full w-[27px] rounded-full bg-white" style="box-shadow: rgba(0, 0, 0, 0.15) 0px 3px 8px, rgba(0, 0, 0, 0.06) 0px 3px 1px;"></div>
+<input checked="" class="invisible absolute" type="checkbox"/>
+</label>
+</div>
+</div>
+<div class="flex items-center gap-4 bg-white px-4 min-h-[64px] justify-between">
+<div class="flex items-center gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10" data-alt="A modern, simple icon of a green speech bubble with a white phone receiver inside, representing a messaging app like WhatsApp. The icon is clean and well-lit, designed for a high-contrast, light-mode interface." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD1AHzIEiJx6aRMXtO21hOhlhGtJmV3HO14qAPjHrjBINXvIauaJCTuGUwVXbYT6Qu7tKQktkF9p_j4Tw6Y_E5NcwQlMP876Oad9ARuBetd7Xx-C2oaOOKTdqrfpJbuxQNSLSnJda1XwpbjO5ZtCxrsYfBblx0Kt3AnK2x1RvKOcUJdG35hCOPZxNlHiNzFPDoXvTpcYy8hb6xX6t2ah-_vUew23ari5gqwM9JaxlxBb6xeRQpjzM8CekAkpUE2opDPaUuIQ88wi3kd");'></div>
+<p class="text-[#111318] text-base font-normal leading-normal flex-1 truncate">WhatsApp</p>
+</div>
+<div class="shrink-0">
+<label class="relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none bg-[#f0f2f5] p-0.5 has-[:checked]:justify-end has-[:checked]:bg-[#0a57db]">
+<div class="h-full w-[27px] rounded-full bg-white" style="box-shadow: rgba(0, 0, 0, 0.15) 0px 3px 8px, rgba(0, 0, 0, 0.06) 0px 3px 1px;"></div>
+<input class="invisible absolute" type="checkbox"/>
+</label>
+</div>
+</div>
+<div class="flex items-center gap-4 bg-white px-4 min-h-[64px] justify-between">
+<div class="flex items-center gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10" data-alt="A minimalist, flat-design icon of a blue paper plane on a white circle background, representing a messaging app like Telegram. The style is sharp and clear, suitable for a refined Material 3 UI design." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuALYahGF3xFAO_g6bimLx_oIAeBH92lJhwkVj7jdwPf980wks6k5lUc_HBxoLnAFb7CVr0IzzyiCCV2Lr3-9sk2dP-12SHV-0EFJM6QwxK4BrH6X-9s9cfVKP4LWB03_eZSWkayjp9s70FGjrYeQzpmcMvOFzpBzPK2oaTelTUPnS-WdA3bN-KHqTQ_FuJz3av8EDgNXeXdi7Ace2DqqDaU7mKVZ0r_VgyTKbKze02eW2DcChQxHvaE1T78Nu18UDtNsQekomQ7oTzl");'></div>
+<p class="text-[#111318] text-base font-normal leading-normal flex-1 truncate">Telegram</p>
+</div>
+<div class="shrink-0">
+<label class="relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none bg-[#f0f2f5] p-0.5 has-[:checked]:justify-end has-[:checked]:bg-[#0a57db]">
+<div class="h-full w-[27px] rounded-full bg-white" style="box-shadow: rgba(0, 0, 0, 0.15) 0px 3px 8px, rgba(0, 0, 0, 0.06) 0px 3px 1px;"></div>
+<input class="invisible absolute" type="checkbox"/>
+</label>
+</div>
+</div>
+<div class="h-5 bg-white"></div>
+</div>
+</main>
+<!-- Sticky CTA Button -->
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-sm border-t border-gray-100 z-30">
+<button class="w-full h-14 bg-primary text-white font-semibold rounded-full shadow-sm hover:bg-[#084bbd] transition-colors flex items-center justify-center">
+            Save Configuration
+        </button>
+</div>
+</body></html>
