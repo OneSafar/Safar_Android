@@ -3,15 +3,20 @@ package com.safar.app.ui.studyplanner.screens
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,7 +34,11 @@ import com.safar.app.ui.studyplanner.PlannerActions
 import com.safar.app.ui.components.SafarErrorState
 import com.safar.app.ui.components.SafarResultSlot
 import com.safar.app.ui.components.SyllabusRowSkeleton
+import com.safar.app.ui.components.SafarExpressiveHeader
+import com.safar.app.ui.components.SafarExpressiveFabMenu
+import com.safar.app.ui.components.FabMenuItem
 import com.safar.app.ui.studyplanner.StudyPlannerViewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,8 +53,6 @@ fun SyllabusChaptersScreen(
     val chapters by viewModel.chapters.collectAsStateWithLifecycle()
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val actions: PlannerActions = viewModel
-
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
 
     var addChapter by remember { mutableStateOf(false) }
     var renameChapter by remember { mutableStateOf<ChapterUiModel?>(null) }
@@ -81,59 +88,30 @@ fun SyllabusChaptersScreen(
     }
 
     Scaffold(
+        floatingActionButton = {
+            SafarExpressiveFabMenu(
+                items = listOf(
+                    FabMenuItem(
+                        label = "Add Chapter",
+                        icon = Icons.Default.Add,
+                        onClick = { addChapter = true }
+                    )
+                )
+            )
+        },
         contentWindowInsets = WindowInsets.safeDrawing,
-        containerColor = if (isDark) MaterialTheme.colorScheme.background else Color(0xFFF8F9F7)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = if (isDark) Color.White else Color(0xFF0F172A)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Column {
-                        Text(
-                            text = "Syllabus > ${currentSubject?.name ?: "Chapters"}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = currentSubject?.name ?: "Chapters",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
-                            color = if (isDark) Color.White else Color(0xFF0F172A),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                IconButton(onClick = { addChapter = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Chapter",
-                        tint = if (isDark) Color.White else Color(0xFF0F172A)
-                    )
-                }
-            }
+            SafarExpressiveHeader(
+                title = currentSubject?.name ?: "Chapters",
+                subtitle = "Syllabus > Chapters",
+                onBackClick = onBack
+            )
 
             if (state.error != null && chapters.isEmpty() && !state.loading) {
                 SafarResultSlot(modifier = Modifier.fillMaxSize()) {
@@ -165,72 +143,134 @@ fun SyllabusChaptersScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                items(chapters, key = { it.id }) { chapter ->
-                    val onChapterClick = remember(chapter.id, planId, subjectId, onNavigate) {
-                        {
-                            viewModel.selectChapter(chapter.id)
-                            onNavigate(
-                                Routes.ROUTE_SYLLABUS_TOPICS
-                                    .replace("{planId}", planId)
-                                    .replace("{subjectId}", subjectId)
-                                    .replace("{chapterId}", chapter.id)
-                            )
+                    items(chapters, key = { it.id }) { chapter ->
+                        val onChapterClick = remember(chapter.id, planId, subjectId, onNavigate) {
+                            {
+                                viewModel.selectChapter(chapter.id)
+                                onNavigate(
+                                    Routes.ROUTE_SYLLABUS_TOPICS
+                                        .replace("{planId}", planId)
+                                        .replace("{subjectId}", subjectId)
+                                        .replace("{chapterId}", chapter.id)
+                                )
+                            }
                         }
-                    }
-                    val onRenameChapter = remember(chapter) { { renameChapter = chapter } }
-                    val onDeleteChapter = remember(chapter) { { deleteChapter = chapter } }
-                    val onAddTopic = remember(chapter) { { addTopicFor = chapter } }
-                    val onBulkAdd = remember(chapter) { { bulkFor = chapter } }
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onChapterClick),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(1.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        val onRenameChapter = remember(chapter) { { renameChapter = chapter } }
+                        val onDeleteChapter = remember(chapter) { { deleteChapter = chapter } }
+                        val onAddTopic = remember(chapter) { { addTopicFor = chapter } }
+                        val onBulkAdd = remember(chapter) { { bulkFor = chapter } }
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = onChapterClick),
+                            shape = MaterialTheme.shapes.large,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                // Squircle Icon Badge
+                                val completion = chapter.completionPercentage
+                                val badgeBg = when {
+                                    completion == 100 -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                    completion > 0 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                                    else -> MaterialTheme.colorScheme.surfaceVariant
+                                }
+                                val iconColor = when {
+                                    completion == 100 -> MaterialTheme.colorScheme.primary
+                                    completion > 0 -> MaterialTheme.colorScheme.secondary
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                                val badgeIcon = when {
+                                    completion == 100 -> Icons.Default.Check
+                                    completion > 0 -> Icons.Default.Book
+                                    else -> Icons.Default.MenuBook
+                                }
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(MaterialTheme.shapes.medium)
+                                        .background(badgeBg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = badgeIcon,
+                                        contentDescription = null,
+                                        tint = iconColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.width(16.dp))
+                                
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
                                     Text(
                                         text = chapter.name,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
+                                        overflow = TextOverflow.Ellipsis
                                     )
+                                    
+                                    val progressPercent = chapter.completionPercentage / 100f
+                                    
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        LinearProgressIndicator(
+                                            progress = { progressPercent },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(6.dp)
+                                                .clip(CircleShape),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
+                                        )
+                                        Text(
+                                            text = "${chapter.completionPercentage}%",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (completion == 100) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    
+                                    Text(
+                                        text = "${chapter.topicCount} topics",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.width(8.dp))
+                                
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
                                     ChapterOverflowMenu(
                                         onRename = onRenameChapter,
                                         onDelete = onDeleteChapter,
                                         onAddTopic = onAddTopic,
                                         onBulkAdd = onBulkAdd,
                                     )
-                                }
-                                
-                                val progressPercent = chapter.completionPercentage / 100f
-                                
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    LinearProgressIndicator(
-                                        progress = { progressPercent },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(6.dp)
-                                            .clip(RoundedCornerShape(99.dp))
-                                    )
-                                    Text(
-                                        text = "${chapter.completionPercentage}% • ${chapter.topicCount} topics",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                        contentDescription = "Navigate to topics",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(14.dp)
                                     )
                                 }
                             }
@@ -241,13 +281,12 @@ fun SyllabusChaptersScreen(
         }
     }
 }
-}
 
 @Composable
 private fun ChapterOverflowMenu(onRename: () -> Unit, onDelete: () -> Unit, onAddTopic: () -> Unit, onBulkAdd: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { expanded = true }, modifier = Modifier.size(24.dp)) {
+        IconButton(onClick = { expanded = true }) {
             Icon(Icons.Default.MoreVert, contentDescription = "More")
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

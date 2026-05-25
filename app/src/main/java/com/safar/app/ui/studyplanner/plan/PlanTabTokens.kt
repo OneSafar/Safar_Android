@@ -1,6 +1,8 @@
 package com.safar.app.ui.studyplanner.plan
 
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
 object PlanSpacing {
@@ -10,9 +12,9 @@ object PlanSpacing {
 }
 
 object PlanShapes {
-    val banner = RoundedCornerShape(12.dp)
-    val panel = RoundedCornerShape(16.dp)
-    val field = RoundedCornerShape(10.dp)
+    val banner: Shape @Composable get() = MaterialTheme.shapes.medium
+    val panel: Shape @Composable get() = MaterialTheme.shapes.large
+    val field: Shape @Composable get() = MaterialTheme.shapes.small
 }
 
 /** Max fraction of screen height for the scrollable config panel. */

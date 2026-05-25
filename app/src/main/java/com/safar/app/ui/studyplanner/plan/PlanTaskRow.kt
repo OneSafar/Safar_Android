@@ -46,7 +46,7 @@ fun PlanTaskRow(
     val scheme = MaterialTheme.colorScheme
     val dotColor = when (accent) {
         PlanTaskRowAccent.Overdue -> scheme.error
-        PlanTaskRowAccent.Done -> Color(0xFF16A34A)
+        PlanTaskRowAccent.Done -> MaterialTheme.colorScheme.tertiary
         PlanTaskRowAccent.Planned -> scheme.outline
     }
 
@@ -91,8 +91,8 @@ fun PlanTaskRow(
                 onCheckedChange = { checked -> if (checked) onDone() },
                 modifier = Modifier.size(40.dp),
                 colors = CheckboxDefaults.colors(
-                    checkedColor = Color(0xFF16A34A),
-                    checkmarkColor = Color.White,
+                    checkedColor = scheme.tertiary,
+                    checkmarkColor = scheme.onTertiary,
                 ),
             )
         }

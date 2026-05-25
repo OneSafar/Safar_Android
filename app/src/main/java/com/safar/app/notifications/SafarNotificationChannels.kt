@@ -36,7 +36,7 @@ object SafarNotificationChannels {
             },
             NotificationChannel(
                 FOCUS_SHIELD_ALERTS,
-                "Kavach alerts",
+                "KAVACH alerts",
                 // Lower than HIGH to avoid heads-up banners; background activity starts are not user-initiated.
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
@@ -45,15 +45,15 @@ object SafarNotificationChannels {
             },
             NotificationChannel(
                 FOCUS_SHIELD_STATUS,
-                "Kavach status",
+                "KAVACH status",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Ongoing Kavach status during an active focus session or Study Session"
+                description = "Ongoing KAVACH status during an active focus session or Study Session"
                 setShowBadge(false)
             },
             NotificationChannel(
                 FOCUS_SHIELD_BLOCKED,
-                "Kavach blocked app",
+                "KAVACH blocked app",
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
                 description = "Shown when a blocked app is opened during an active focus session or Study Session"

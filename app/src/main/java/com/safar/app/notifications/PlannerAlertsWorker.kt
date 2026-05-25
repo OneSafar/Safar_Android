@@ -1,6 +1,8 @@
 package com.safar.app.notifications
 
 import android.content.Context
+import android.util.Log
+import com.safar.app.BuildConfig
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -65,13 +67,17 @@ class PlannerAlertsWorker(
                 }
 
                 if (overdueTopics.isNotEmpty() && !notified) {
-                    notificationManager.show(
-                        title = "Overdue Tasks: ${plan.title}",
-                        body = "You have ${overdueTopics.size} tasks that need your attention.",
-                        channelId = SafarNotificationChannels.STUDY_REMINDERS,
-                        deepLink = "safar://studyplanner",
-                    )
-                    notified = true
+                    val dedupeKey = PlannerAlertDedupe.overdueKey(plan.id, today)
+                    if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
+                        notificationManager.show(
+                            title = "Overdue Tasks: ${plan.title}",
+                            body = "You have ${overdueTopics.size} tasks that need your attention.",
+                            channelId = SafarNotificationChannels.STUDY_REMINDERS,
+                            deepLink = "safar://studyplanner",
+                        )
+                        dataStore.addPlannerAlertDedupeKey(dedupeKey)
+                        notified = true
+                    }
                 }
 
                 // 2. Exam Countdown
@@ -80,13 +86,17 @@ class PlannerAlertsWorker(
                     if (examDate != null) {
                         val daysUntil = ChronoUnit.DAYS.between(today, examDate)
                         if (daysUntil == 30L || daysUntil == 7L || daysUntil == 1L) {
-                            notificationManager.show(
-                                title = "Exam approaching!",
-                                body = "Your exam for ${plan.title} is in $daysUntil days.",
-                                channelId = SafarNotificationChannels.STUDY_REMINDERS,
-                                deepLink = "safar://studyplanner",
-                            )
-                            notified = true
+                            val dedupeKey = PlannerAlertDedupe.examCountdownKey(plan.id, daysUntil)
+                            if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
+                                notificationManager.show(
+                                    title = "Exam approaching!",
+                                    body = "Your exam for ${plan.title} is in $daysUntil days.",
+                                    channelId = SafarNotificationChannels.STUDY_REMINDERS,
+                                    deepLink = "safar://studyplanner",
+                                )
+                                dataStore.addPlannerAlertDedupeKey(dedupeKey)
+                                notified = true
+                            }
                         }
                     }
                 }
@@ -97,15 +107,20 @@ class PlannerAlertsWorker(
                     val examDate = runCatching { LocalDate.parse(plan.examDate.substring(0, 10)) }.getOrNull()
                     if (examDate != null && examDate.isAfter(today) && remainingTopics > 0) {
                         val daysUntil = ChronoUnit.DAYS.between(today, examDate)
+                        if (daysUntil <= 0L) continue
                         val requiredPace = remainingTopics.toDouble() / daysUntil
                         if (requiredPace > plan.dailyGoal) {
-                            notificationManager.show(
-                                title = plan.title,
-                                body = "You're behind schedule, Time to catch up!",
-                                channelId = SafarNotificationChannels.STUDY_REMINDERS,
-                                deepLink = "safar://studyplanner",
-                            )
-                            notified = true
+                            val dedupeKey = PlannerAlertDedupe.paceWarningKey(plan.id, today)
+                            if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
+                                notificationManager.show(
+                                    title = plan.title,
+                                    body = "You're behind schedule, time to catch up!",
+                                    channelId = SafarNotificationChannels.STUDY_REMINDERS,
+                                    deepLink = "safar://studyplanner",
+                                )
+                                dataStore.addPlannerAlertDedupeKey(dedupeKey)
+                                notified = true
+                            }
                         }
                     }
                 }
@@ -118,14 +133,23 @@ class PlannerAlertsWorker(
     companion object {
         private const val WORK_NAME = "planner_alerts_worker"
 
-        fun schedule(context: Context, reminderTime: String) {
+        fun schedule(
+            context: Context,
+            reminderTime: String,
+            policy: ExistingPeriodicWorkPolicy = ExistingPeriodicWorkPolicy.KEEP,
+        ) {
+            val delay = initialDelayMinutes(reminderTime)
             val request = PeriodicWorkRequestBuilder<PlannerAlertsWorker>(24, TimeUnit.HOURS)
-                .setInitialDelay(initialDelayMinutes(reminderTime), TimeUnit.MINUTES)
+                .setInitialDelay(delay, TimeUnit.MINUTES)
                 .build()
+
+            if (BuildConfig.DEBUG) {
+                Log.d("SAFAR_WORK", "schedule $WORK_NAME policy=$policy delayMin=$delay")
+            }
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORK_NAME,
-                ExistingPeriodicWorkPolicy.UPDATE,
+                policy,
                 request,
             )
         }

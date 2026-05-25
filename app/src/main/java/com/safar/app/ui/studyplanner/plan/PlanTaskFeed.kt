@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -54,14 +54,14 @@ fun PlanTaskFeed(
             FilledTonalButton(
                 onClick = onAddTopics,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
+                shape = ButtonDefaults.shape,
             ) {
                 Text("Add Topics", maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             TextButton(
                 onClick = onSchedule,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
+                shape = ButtonDefaults.shape,
             ) {
                 Text("Schedule", maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -172,7 +172,7 @@ private fun PlanSectionHeader(
             .then(
                 if (onToggle != null) {
                     Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(MaterialTheme.shapes.small)
                         .clickable(onClick = onToggle)
                 } else {
                     Modifier

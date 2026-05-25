@@ -57,7 +57,7 @@ fun DhyanLatestVideoCard(
     val scheme = MaterialTheme.colorScheme
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = scheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
@@ -100,7 +100,7 @@ fun DhyanYoutubeThumbnailLink(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             .clickable(onClick = onClick)
             .padding(10.dp),
@@ -147,7 +147,7 @@ private fun DhyanYoutubeThumbnail(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(if (showPlayOverlay) 0.dp else 10.dp))
+            .clip(if (showPlayOverlay) RoundedCornerShape(0.dp) else MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -204,7 +204,7 @@ fun DhyanYoutubePromotionDialog(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .padding(horizontal = 4.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = scheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         ) {

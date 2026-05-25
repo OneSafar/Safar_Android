@@ -4,6 +4,7 @@ import android.content.Context
 import com.safar.app.BuildConfig
 import com.safar.app.data.remote.api.*
 import com.safar.app.data.remote.socket.MehfilSocketManager
+import com.safar.app.feature.live.data.LiveSessionApi
 import com.safar.app.util.AuthInterceptor
 import com.google.gson.Gson
 import dagger.Module
@@ -133,6 +134,8 @@ object NetworkModule {
     @Provides @Singleton fun provideThoughtsApi(r: Retrofit): ThoughtsApi = r.create(ThoughtsApi::class.java)
     @Provides @Singleton fun provideNotificationApi(r: Retrofit): NotificationApi = r.create(NotificationApi::class.java)
     @Provides @Singleton fun providePlannerApi(r: Retrofit): PlannerApi = r.create(PlannerApi::class.java)
+    @Provides @Singleton fun provideSyllabusApi(r: Retrofit): SyllabusApi = r.create(SyllabusApi::class.java)
+    @Provides @Singleton fun provideLiveSessionApi(r: Retrofit): LiveSessionApi = r.create(LiveSessionApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
     @Provides @Singleton fun provideMehfilSocketManager(gson: Gson): MehfilSocketManager = MehfilSocketManager(gson)
 }

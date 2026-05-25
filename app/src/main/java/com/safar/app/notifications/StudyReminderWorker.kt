@@ -1,6 +1,8 @@
 package com.safar.app.notifications
 
 import android.content.Context
+import android.util.Log
+import com.safar.app.BuildConfig
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -35,14 +37,23 @@ class StudyReminderWorker(
     companion object {
         private const val WORK_NAME = "daily_study_reminder"
 
-        fun schedule(context: Context, reminderTime: String) {
+        fun schedule(
+            context: Context,
+            reminderTime: String,
+            policy: ExistingPeriodicWorkPolicy = ExistingPeriodicWorkPolicy.KEEP,
+        ) {
+            val delay = initialDelayMinutes(reminderTime)
             val request = PeriodicWorkRequestBuilder<StudyReminderWorker>(24, TimeUnit.HOURS)
-                .setInitialDelay(initialDelayMinutes(reminderTime), TimeUnit.MINUTES)
+                .setInitialDelay(delay, TimeUnit.MINUTES)
                 .build()
+
+            if (BuildConfig.DEBUG) {
+                Log.d("SAFAR_WORK", "schedule $WORK_NAME policy=$policy delayMin=$delay")
+            }
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORK_NAME,
-                ExistingPeriodicWorkPolicy.UPDATE,
+                policy,
                 request,
             )
         }

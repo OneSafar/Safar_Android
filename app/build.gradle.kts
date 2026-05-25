@@ -8,6 +8,8 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+import java.util.Properties
+
 val releaseStoreFile = providers.gradleProperty("SAFAR_RELEASE_STORE_FILE")
     .orElse(providers.environmentVariable("SAFAR_RELEASE_STORE_FILE"))
 val releaseStorePassword = providers.gradleProperty("SAFAR_RELEASE_STORE_PASSWORD")
@@ -23,11 +25,27 @@ val hasReleaseSigning = listOf(
     releaseKeyPassword,
 ).all { it.isPresent }
 
+fun normalizeBaseUrl(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return trimmed
+    return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
+}
+
+val localProps = Properties()
+val localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localPropsFile.inputStream().use { localProps.load(it) }
+}
+
 gradle.taskGraph.whenReady {
+    // Only "real" release APK/AAB tasks need keystore — not intermediate `bundle*Release*Jar`
+    // tasks (e.g. `bundleQaReleaseClassesToRuntimeJar`) that also match `bundle*`.
     val requiresReleaseSigning = allTasks.any { task ->
         task.path.startsWith(":app:") &&
             task.name.contains("Release") &&
-            (task.name.startsWith("assemble") || task.name.startsWith("bundle"))
+            !task.name.contains("UnitTest") &&
+            (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
+            task.name.endsWith("Release")
     }
     if (requiresReleaseSigning && !hasReleaseSigning) {
         throw GradleException(
@@ -41,8 +59,15 @@ gradle.taskGraph.whenReady {
 android {
     namespace = "com.safar.app"
     compileSdk = 35
-    val qaBaseUrl = providers.gradleProperty("SAFAR_QA_BASE_URL")
-        .orElse("https://safar.parmarssc.in/api/")
+    val qaBaseUrl = normalizeBaseUrl(
+        providers.gradleProperty("SAFAR_QA_BASE_URL").orNull
+            ?: providers.environmentVariable("SAFAR_QA_BASE_URL").orNull
+            ?: localProps.getProperty("SAFAR_QA_BASE_URL")
+            ?: "https://safar.parmarssc.in/api/",
+    )
+    val aiSyllabusImportEnabled = providers.gradleProperty("AI_SYLLABUS_IMPORT_ENABLED")
+        .map { it.equals("true", ignoreCase = true).toString() }
+        .orElse("true")
         .get()
 
     defaultConfig {
@@ -62,6 +87,7 @@ android {
             applicationIdSuffix = ".qa"
             versionNameSuffix = "-qa"
             buildConfigField("String", "BASE_URL", "\"$qaBaseUrl\"")
+            buildConfigField("boolean", "AI_SYLLABUS_IMPORT_ENABLED", aiSyllabusImportEnabled)
             manifestPlaceholders["allowBackup"] = "false"
             manifestPlaceholders["usesCleartextTraffic"] = "true"
             resValue("string", "app_name", "Safar QA")
@@ -69,6 +95,7 @@ android {
         create("prod") {
             dimension = "env"
             buildConfigField("String", "BASE_URL", "\"https://safar.parmarssc.in/api/\"")
+            buildConfigField("boolean", "AI_SYLLABUS_IMPORT_ENABLED", aiSyllabusImportEnabled)
             manifestPlaceholders["allowBackup"] = "false"
             manifestPlaceholders["usesCleartextTraffic"] = "false"
             resValue("string", "app_name", "Safar")
@@ -129,6 +156,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation(libs.google.material)
 
     //socket
     implementation("io.socket:socket.io-client:2.1.0")

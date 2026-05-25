@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,6 +46,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -90,7 +92,7 @@ internal fun CommentsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape = MaterialTheme.shapes.extraLarge,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
@@ -200,7 +202,7 @@ private fun CommentInputRow(
             placeholder = { Text("Add a comment...", fontSize = 13.sp) },
             modifier = Modifier.weight(1f),
             singleLine = true,
-            shape = RoundedCornerShape(24.dp),
+            shape = OutlinedTextFieldDefaults.shape,
         )
         IconButton(
             onClick = { if (value.isNotBlank()) onPost() },
@@ -245,7 +247,7 @@ internal fun SandeshBottomSheet(
     ModalBottomSheet(
         onDismissRequest = { if (showComments && initialCommentTargetId == null) commentTargetId = null else onDismiss() },
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape = MaterialTheme.shapes.extraLarge,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         AnimatedContent(
@@ -336,7 +338,7 @@ private fun SandeshCommentsPane(
                 placeholder = { Text("Add a comment...", fontSize = 13.sp) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
-                shape = RoundedCornerShape(24.dp),
+                shape = OutlinedTextFieldDefaults.shape,
             )
             IconButton(
                 onClick = onPostComment,
@@ -366,7 +368,8 @@ private fun SandeshListPane(
         sandeshes.forEach { sandesh ->
             val isReacted = sandesh.id in reactedSandeshIds
             Card(
-                shape = RoundedCornerShape(14.dp),
+                shape = MaterialTheme.shapes.medium,
+                border = CardDefaults.outlinedCardBorder(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
                 elevation = CardDefaults.cardElevation(0.dp),
@@ -405,7 +408,7 @@ internal fun CreatePostSheet(selectedSpace: String, onPost: (String, String, Boo
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape = MaterialTheme.shapes.extraLarge,
     ) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("New Post", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -415,7 +418,7 @@ internal fun CreatePostSheet(selectedSpace: String, onPost: (String, String, Boo
                 placeholder = { Text("What's on your mind?") },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                 minLines = 4,
-                shape = RoundedCornerShape(12.dp),
+                shape = OutlinedTextFieldDefaults.shape,
             )
             Text("Space", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -432,7 +435,7 @@ internal fun CreatePostSheet(selectedSpace: String, onPost: (String, String, Boo
                 onClick = { if (content.isNotBlank()) onPost(content, space, isAnonymous) },
                 enabled = content.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = ButtonDefaults.shape,
             ) {
                 Text(if (isAnonymous) "Post Anonymously" else "Post", fontWeight = FontWeight.SemiBold)
             }
@@ -444,7 +447,7 @@ internal fun CreatePostSheet(selectedSpace: String, onPost: (String, String, Boo
 private fun AnonymousPostToggle(isAnonymous: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         color = if (isAnonymous) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         border = BorderStroke(1.dp, if (isAnonymous) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
     ) {
@@ -480,7 +483,7 @@ internal fun GuidelinesSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape = MaterialTheme.shapes.extraLarge,
     ) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Community Guidelines", fontWeight = FontWeight.Bold, fontSize = 18.sp)

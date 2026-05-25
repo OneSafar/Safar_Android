@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -29,6 +28,10 @@ import com.safar.app.ui.theme.isLightBackground
 import com.safar.app.ui.components.SafarErrorState
 import com.safar.app.ui.components.SafarResultSlot
 import com.safar.app.ui.components.SyllabusRowSkeleton
+import com.safar.app.ui.components.SafarExpressiveHeader
+import com.safar.app.ui.components.SafarExpressiveFabMenu
+import com.safar.app.ui.components.FabMenuItem
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.safar.app.ui.studyplanner.logic.TopicRef
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,8 +49,6 @@ fun SyllabusTopicsScreen(
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val chapters by viewModel.chapters.collectAsStateWithLifecycle()
     val actions: PlannerActions = viewModel
-
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
 
     var addTopic by remember { mutableStateOf(false) }
     var renameTopic by remember { mutableStateOf<TopicUiModel?>(null) }
@@ -86,59 +87,30 @@ fun SyllabusTopicsScreen(
     }
 
     Scaffold(
+        floatingActionButton = {
+            SafarExpressiveFabMenu(
+                items = listOf(
+                    FabMenuItem(
+                        label = "Add Topic",
+                        icon = Icons.Default.Add,
+                        onClick = { addTopic = true }
+                    )
+                )
+            )
+        },
         contentWindowInsets = WindowInsets.safeDrawing,
-        containerColor = if (isDark) MaterialTheme.colorScheme.background else Color(0xFFF8F9F7)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = if (isDark) Color.White else Color(0xFF0F172A)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Column {
-                        Text(
-                            text = "${currentSubject?.name ?: "Subject"} > ${currentChapter?.name ?: "Chapter"}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = currentChapter?.name ?: "Topics",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
-                            color = if (isDark) Color.White else Color(0xFF0F172A),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                IconButton(onClick = { addTopic = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Topic",
-                        tint = if (isDark) Color.White else Color(0xFF0F172A)
-                    )
-                }
-            }
+            SafarExpressiveHeader(
+                title = currentChapter?.name ?: "Topics",
+                subtitle = "${currentSubject?.name ?: "Subject"} > Topics",
+                onBackClick = onBack
+            )
 
             if (state.error != null && topics.isEmpty() && !state.loading) {
                 SafarResultSlot(modifier = Modifier.fillMaxSize()) {
@@ -186,15 +158,17 @@ fun SyllabusTopicsScreen(
                     }
                     val onRenameTopic = remember(topic) { { renameTopic = topic } }
                     val onDeleteTopic = remember(topic) { { deleteTopic = topic } }
-                    
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onTopicClick),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = CardDefaults.outlinedCardBorder()
-                    ) {
+                     Card(
+                         modifier = Modifier
+                             .fillMaxWidth()
+                             .clickable(onClick = onTopicClick),
+                         shape = MaterialTheme.shapes.large,
+                         colors = CardDefaults.cardColors(
+                             containerColor = MaterialTheme.colorScheme.surface
+                         ),
+                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -204,15 +178,15 @@ fun SyllabusTopicsScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = topic.name,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 15.sp,
                                     textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
                                     color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
                                 )
                                 if (plannedDate != null) {
                                     Text(
                                         text = "Scheduled: $plannedDate",
-                                        fontSize = 12.sp,
+                                        style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -234,7 +208,7 @@ fun SyllabusTopicsScreen(
 private fun TopicOverflowMenu(onRename: () -> Unit, onDelete: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { expanded = true }, modifier = Modifier.size(24.dp)) {
+        IconButton(onClick = { expanded = true }) {
             Icon(Icons.Default.MoreVert, contentDescription = "More")
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

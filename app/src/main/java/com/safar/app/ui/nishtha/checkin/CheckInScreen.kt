@@ -230,32 +230,21 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.checkin_low), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             // ── SlimSlider replaces the old M3 Slider ──────────────────────
-                            val intensityInt = (intensity * 5).toInt().coerceIn(1, 5)
-                            val sliderColor = when (intensityInt) {
-                                1, 2 -> Color(0xFF232A8D)
-                                3    -> Color(0xFFF08B0F)
-                                else -> Color(0xFFED254B)
-                            }
                             SlimSlider(
                                 value = intensity,
                                 onValueChange = { intensity = it },
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(horizontal = 12.dp),
-                                activeColor = sliderColor,
+                                activeColor = MaterialTheme.colorScheme.primary,
                             )
                             Text(stringResource(R.string.checkin_high), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         val intensityInt = (intensity * 5).toInt().coerceIn(1, 5)
-                        val numberColor = when (intensityInt) {
-                            1, 2 -> Color(0xFF232A8D)
-                            3    -> Color(0xFFF08B0F)
-                            else -> Color(0xFFED254B)
-                        }
                         Text(
                             "$intensityInt/5",
                             fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                            color = numberColor,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
                     }
@@ -315,8 +304,7 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                     },
                     enabled = selectedMood != null && !uiState.isCheckingIn,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Emerald600)
+                    shape = ButtonDefaults.shape,
                 ) {
                     if (uiState.isCheckingIn) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
@@ -337,7 +325,7 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                    shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                    shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(R.string.checkin_history_title), style = MaterialTheme.typography.titleSmall)
                         uiState.moods.take(5).forEach { mood ->
@@ -406,7 +394,6 @@ private fun moodEmoji(mood: String) = when (mood.lowercase()) {
 @Composable
 private fun MoodChip(mood: MoodOption, selected: Boolean, onClick: () -> Unit) {
     val label = stringResource(mood.labelRes)
-    val primary = MaterialTheme.colorScheme.primary
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
@@ -435,14 +422,6 @@ private fun MoodChip(mood: MoodOption, selected: Boolean, onClick: () -> Unit) {
                 fontSize = 11.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (selected) mood.color else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-            )
-        }
-        if (selected) {
-            Icon(
-                Icons.Default.CheckCircle,
-                contentDescription = null,
-                tint = primary,
-                modifier = Modifier.size(18.dp).align(Alignment.TopEnd)
             )
         }
     }

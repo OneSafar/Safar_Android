@@ -1,6 +1,8 @@
 package com.safar.app.notifications
 
 import android.content.Context
+import android.util.Log
+import com.safar.app.BuildConfig
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -22,7 +24,7 @@ class MorningNudgeWorker(
             val dataStore = SafarDataStore(context)
             
             // Respect the user's notification settings
-            if (!dataStore.notificationsEnabled.first()) {
+            if (!dataStore.notificationsEnabled.first() || !dataStore.dailyStudyReminderEnabled.first()) {
                 return Result.success()
             }
 
@@ -74,18 +76,31 @@ class MorningNudgeWorker(
     companion object {
         private const val WORK_NAME = "daily_morning_nudge"
 
-        fun schedule(context: Context, targetHour: Int = 6, targetMinute: Int = 30) {
+        fun schedule(
+            context: Context,
+            targetHour: Int = 6,
+            targetMinute: Int = 30,
+            policy: ExistingPeriodicWorkPolicy = ExistingPeriodicWorkPolicy.KEEP,
+        ) {
             val delay = calculateInitialDelayMinutes(targetHour, targetMinute)
 
             val request = PeriodicWorkRequestBuilder<MorningNudgeWorker>(24, TimeUnit.HOURS)
                 .setInitialDelay(delay, TimeUnit.MINUTES)
                 .build()
 
+            if (BuildConfig.DEBUG) {
+                Log.d("SAFAR_WORK", "schedule $WORK_NAME policy=$policy delayMin=$delay")
+            }
+
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORK_NAME,
-                ExistingPeriodicWorkPolicy.UPDATE,
-                request
+                policy,
+                request,
             )
+        }
+
+        fun cancel(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
         }
 
         private fun calculateInitialDelayMinutes(targetHour: Int, targetMinute: Int): Long {

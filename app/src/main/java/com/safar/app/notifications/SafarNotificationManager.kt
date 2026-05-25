@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.safar.app.R
 import com.safar.app.data.local.SafarDataStore
@@ -16,15 +17,50 @@ import kotlinx.coroutines.flow.first
 import java.time.LocalTime
 import kotlin.random.Random
 
+enum class NotificationAvailabilityReason {
+    permission_not_granted,
+    app_notifications_blocked,
+    channel_missing,
+    channel_blocked,
+    allowed,
+}
+
+data class NotificationAvailability(
+    val allowed: Boolean,
+    val reason: NotificationAvailabilityReason,
+)
+
 class SafarNotificationManager(
     private val context: Context,
 ) {
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
 
     fun canPostNotifications(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+        evaluateNotificationAvailability().allowed
+
+    fun evaluateNotificationAvailability(channelId: String? = null): NotificationAvailability {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
+        ) {
+            return NotificationAvailability(false, NotificationAvailabilityReason.permission_not_granted)
+        }
+
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            return NotificationAvailability(false, NotificationAvailabilityReason.app_notifications_blocked)
+        }
+
+        val normalizedChannel = channelId?.let { SafarNotificationChannels.normalize(it) }
+        if (normalizedChannel != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = notificationManager.getNotificationChannel(normalizedChannel)
+                ?: return NotificationAvailability(false, NotificationAvailabilityReason.channel_missing)
+            if (channel.importance == NotificationManager.IMPORTANCE_NONE) {
+                return NotificationAvailability(false, NotificationAvailabilityReason.channel_blocked)
+            }
+        }
+
+        return NotificationAvailability(true, NotificationAvailabilityReason.allowed)
+    }
 
     fun buildNotification(
         title: String,
@@ -46,9 +82,6 @@ class SafarNotificationManager(
         return NotificationCompat.Builder(context, normalizedChannel)
             .setSmallIcon(SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationStyle.brandColor(context))
-            // Intentionally NOT calling setLargeIcon(...) — like Gmail/YouTube,
-            // we rely on the small icon (white sparkle + [brandColor] in shade) to brand the
-            // status bar AND the shade entry, so users see exactly ONE logo.
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -60,15 +93,6 @@ class SafarNotificationManager(
             .build()
     }
 
-    /**
-     * Centralizes the brand styling for SAFAR notifications.
-     *
-     * Android automatically renders the small icon as a white silhouette in
-     * the status bar and tints it with [brandColor] in the shade. We rely on
-     * that single icon for branding (no `setLargeIcon`) so users see ONE
-     * SAFAR logo in both the status bar and the expanded notification — the
-     * same pattern Gmail, YouTube, and Slack use.
-     */
     object SafarNotificationStyle {
         private const val NOTIFICATION_SPARKLE_WHITE = 0xFFFFFFFF.toInt()
 
@@ -77,18 +101,9 @@ class SafarNotificationManager(
             return mode == Configuration.UI_MODE_NIGHT_YES
         }
 
-        /** White accent for notification shade small-icon tint (see [smallIconRes]). */
-        fun brandColor(context: Context): Int =
-            NOTIFICATION_SPARKLE_WHITE
+        fun brandColor(context: Context): Int = NOTIFICATION_SPARKLE_WHITE
 
-        /**
-         * Small icon must be a white-on-transparent silhouette for system pipeline.
-         * We use a sparkle glyph so:
-         * - Status bar remains monochrome (system behavior)
-         * - Notification panel tints the icon with [brandColor] (white)
-         */
-        fun smallIconRes(context: Context): Int =
-            R.drawable.ic_safar_notification_sparkle
+        fun smallIconRes(context: Context): Int = R.drawable.ic_safar_notification_sparkle
     }
 
     suspend fun show(
@@ -99,14 +114,17 @@ class SafarNotificationManager(
         notificationId: Int = Random.nextInt(10_000, 99_999),
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
     ) {
-        if (!canPostNotifications()) return
-        if (shouldSuppressByQuietHours(channelId)) return
+        val normalizedChannel = SafarNotificationChannels.normalize(channelId)
+        if (evaluateNotificationAvailability(normalizedChannel).reason != NotificationAvailabilityReason.allowed) {
+            return
+        }
+        if (shouldSuppressByQuietHours(normalizedChannel)) return
         notificationManager.notify(
             notificationId,
             buildNotification(
                 title = title,
                 body = body,
-                channelId = channelId,
+                channelId = normalizedChannel,
                 deepLink = deepLink,
                 priority = priority,
             ),
@@ -114,24 +132,15 @@ class SafarNotificationManager(
     }
 
     private suspend fun shouldSuppressByQuietHours(channelId: String): Boolean {
-        // Never suppress critical account/system alerts.
-        if (channelId == SafarNotificationChannels.ACCOUNT_SYSTEM) return false
-
         val dataStore = SafarDataStore(context)
         val startRaw = dataStore.quietHoursStart.first()
         val endRaw = dataStore.quietHoursEnd.first()
         val start = runCatching { LocalTime.parse(startRaw) }.getOrNull() ?: return false
         val end = runCatching { LocalTime.parse(endRaw) }.getOrNull() ?: return false
-        val now = LocalTime.now()
-
-        val inQuietHours = if (start == end) {
-            false
-        } else if (start < end) {
-            now >= start && now < end
-        } else {
-            // Window crosses midnight, e.g. 22:00..07:00.
-            now >= start || now < end
-        }
-        return inQuietHours
+        return QuietHoursEvaluator.shouldSuppress(
+            channelId = channelId,
+            quietStart = start,
+            quietEnd = end,
+        )
     }
 }

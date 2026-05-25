@@ -26,7 +26,9 @@ class AuthViewModelTest {
 
         viewModel.onEvent(AuthEvent.Login)
 
-        assertEquals("Email and password are required", viewModel.uiState.value.error)
+        assertEquals("Email is required", viewModel.uiState.value.emailError)
+        assertEquals("Password is required", viewModel.uiState.value.passwordError)
+        assertEquals(null, viewModel.uiState.value.error)
     }
 
     @Test
@@ -41,7 +43,8 @@ class AuthViewModelTest {
         viewModel.onEvent(AuthEvent.GenderChanged("Male"))
         viewModel.onEvent(AuthEvent.Signup)
 
-        assertEquals("Please use a valid email (gmail / outlook)", viewModel.uiState.value.error)
+        assertEquals("Please use a valid email (gmail / outlook)", viewModel.uiState.value.emailError)
+        assertEquals(null, viewModel.uiState.value.error)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

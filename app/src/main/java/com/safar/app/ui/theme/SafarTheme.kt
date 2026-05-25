@@ -10,6 +10,28 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.dp
+
+val ExpressiveCardShape = RoundedCornerShape(32.dp)
+val ExpressiveButtonShape = RoundedCornerShape(24.dp)
+
+// Expressive Gradients
+val LightExpressiveGradient = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFFE0E7FF), // Indigo100 / PrimaryContainer light
+        Color(0xFFFDFDFB)  // SafarSurfaceLight
+    )
+)
+
+val DarkExpressiveGradient = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFF272C35), // SafarSurfaceVariantDark / PrimaryContainer dark
+        Color(0xFF181B20)  // SafarSurfaceDark
+    )
+)
+
 private val LightColorScheme = lightColorScheme(
     primary              = PrimaryLight,            // #2E3F9E indigo
     onPrimary            = SafarOnPrimaryLight,     // #FFFFFF

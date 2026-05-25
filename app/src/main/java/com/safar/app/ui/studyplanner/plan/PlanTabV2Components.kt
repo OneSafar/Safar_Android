@@ -23,7 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
@@ -82,6 +82,8 @@ import com.safar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safar.app.ui.studyplanner.logic.TopicRef
 import com.safar.app.ui.studyplanner.logic.daysUntil
+import com.safar.app.ui.studyplanner.logic.plannerExamCountdownCaption
+import com.safar.app.ui.studyplanner.logic.plannerExamCountdownHeroNumber
 import com.safar.app.ui.studyplanner.logic.readableDate
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -122,7 +124,7 @@ fun PlanStatusCard(
         // Main Banner Gradient Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
@@ -137,7 +139,7 @@ fun PlanStatusCard(
                                 listOf(Color(0xFF0A1931), Color(0xFF15305B))
                             }
                         ),
-                        shape = RoundedCornerShape(24.dp)
+                        shape = MaterialTheme.shapes.large
                     )
                     .padding(20.dp)
             ) {
@@ -206,25 +208,26 @@ fun PlanStatusCard(
                     )
 
                     // Countdown Box
+                    val examDays = daysUntil(plan.examDate)
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "${daysUntil(plan.examDate)}",
+                            text = plannerExamCountdownHeroNumber(examDays),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Black,
                             color = Color(0xFFF59E0B),
                             fontSize = 28.sp
                         )
                         Text(
-                            text = "Days Left",
+                            text = plannerExamCountdownCaption(examDays),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                         Text(
-                            text = "Until Exam",
+                            text = if (examDays == null || examDays <= 0L) "" else "Until Exam",
                             fontSize = 8.sp,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -243,14 +246,6 @@ fun PlanStatusCard(
                             )
                         }
                         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Export PDF") },
-                                leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onExportClick()
-                                },
-                            )
                             DropdownMenuItem(
                                 text = { Text("Plan settings") },
                                 leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
@@ -321,7 +316,7 @@ private fun StatCard(
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         border = if (hasBorder) BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)) else null,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -370,7 +365,7 @@ fun TodayMissionCard(
     if (topics.isEmpty()) {
         Card(
             modifier = modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
@@ -385,7 +380,7 @@ fun TodayMissionCard(
                                 listOf(Color(0xFFFFF7ED), Color(0xFFFED7AA))
                             }
                         ),
-                        shape = RoundedCornerShape(24.dp)
+                        shape = MaterialTheme.shapes.large
                     )
                     .padding(horizontal = 20.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -418,7 +413,7 @@ fun TodayMissionCard(
                             containerColor = if (isDark) Color(0xFFF97316) else Color.White,
                             contentColor = if (isDark) Color.White else Color(0xFF7C2D12)
                         ),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = ButtonDefaults.shape,
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                     ) {
@@ -430,7 +425,7 @@ fun TodayMissionCard(
     } else {
         Card(
             modifier = modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = scheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             border = BorderStroke(1.dp, scheme.outline.copy(alpha = 0.12f)),
@@ -475,7 +470,7 @@ fun PlanActionRow(
                 containerColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A),
                 contentColor = if (isDark) Color(0xFF0F172A) else Color.White
             ),
-            shape = RoundedCornerShape(16.dp),
+            shape = ButtonDefaults.shape,
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
@@ -502,7 +497,7 @@ fun PlanActionRow(
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A)
             ),
-            shape = RoundedCornerShape(16.dp),
+            shape = ButtonDefaults.outlinedShape,
         ) {
             Icon(
                 imageVector = Icons.Default.CalendarMonth,
@@ -547,7 +542,7 @@ fun PlannerTaskRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = cardBgColor),
         border = borderStroke,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -638,7 +633,7 @@ fun PlanSettingsEntryCard(
     val scheme = MaterialTheme.colorScheme
     Card(
         modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(22.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = scheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, scheme.outline.copy(alpha = 0.12f)),
@@ -744,7 +739,7 @@ fun PlanSettingsSheet(
                         onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = ButtonDefaults.shape,
                 ) {
                     Text("Save details")
                 }
@@ -754,21 +749,11 @@ fun PlanSettingsSheet(
                 OutlinedButton(
                     onClick = onExport,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = ButtonDefaults.outlinedShape,
                 ) {
                     Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text("Export PDF")
-                }
-            }
-            item {
-                TextButton(
-                    onClick = onReset,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Reset plan", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             }
         }

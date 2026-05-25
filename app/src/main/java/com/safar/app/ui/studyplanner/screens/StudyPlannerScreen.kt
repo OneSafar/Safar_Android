@@ -108,13 +108,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -127,6 +131,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -135,6 +140,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.rounded.Whatshot
+import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
@@ -161,7 +171,12 @@ import kotlin.math.sin
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.R
+import com.safar.app.BuildConfig
 import com.safar.app.data.remote.api.UpdatePlanRequest
+import com.safar.app.data.remote.api.StructuredChapter
+import com.safar.app.data.remote.api.StructuredSubject
+import com.safar.app.data.remote.api.StructuredSyllabusPreview
+import com.safar.app.data.remote.api.SyllabusStats
 import com.safar.app.domain.model.studyplanner.CalendarMap
 import com.safar.app.domain.model.studyplanner.PlannerSection
 import com.safar.app.domain.model.studyplanner.PremiumReason
@@ -203,6 +218,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okio.source
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -212,10 +228,16 @@ import kotlin.math.max
 private val plannerTopicStatusFilterChips = listOf(
     TopicStatus.TODO,
     TopicStatus.DONE,
+)
+
+private val plannerTopicStatusSheetChips = listOf(
+    TopicStatus.TODO,
+    TopicStatus.IN_PROGRESS,
+    TopicStatus.DONE,
     TopicStatus.REVISION_NEEDED,
 )
 
-private fun plannerTopicStatusDisplayLabel(status: TopicStatus): String =
+internal fun plannerTopicStatusDisplayLabel(status: TopicStatus): String =
     status.label
 
 private fun syllabusTopicMatchesFilter(topicStatus: TopicStatus, filter: TopicStatus?): Boolean {
@@ -271,6 +293,18 @@ private data class StudyPlannerDetailState(
     val analytics: PlannerAnalytics? = null,
     val syllabusImportDraft: String = "",
     val syllabusImportFileName: String? = null,
+    val isImporting: Boolean = false,
+    val importStatus: String? = null,
+    val importError: String? = null,
+    val importResultSummary: String? = null,
+    val rawSyllabusText: String = "",
+    val isStructuringSyllabus: Boolean = false,
+    val structureError: String? = null,
+    val structuredPreview: StructuredSyllabusPreview? = null,
+    val isImportingStructuredSyllabus: Boolean = false,
+    val structuredImportError: String? = null,
+    val structuredImportSuccessMessage: String? = null,
+    val hydrateWarning: String? = null,
 )
 
 @Immutable
@@ -402,6 +436,18 @@ fun StudyPlannerScreen(
                     analytics = state.analytics,
                     syllabusImportDraft = state.syllabusImportDraft,
                     syllabusImportFileName = state.syllabusImportFileName,
+                    isImporting = state.isImporting,
+                    importStatus = state.importStatus,
+                    importError = state.importError,
+                    importResultSummary = state.importResultSummary,
+                    rawSyllabusText = state.rawSyllabusText,
+                    isStructuringSyllabus = state.isStructuringSyllabus,
+                    structureError = state.structureError,
+                    structuredPreview = state.structuredPreview,
+                    isImportingStructuredSyllabus = state.isImportingStructuredSyllabus,
+                    structuredImportError = state.structuredImportError,
+                    structuredImportSuccessMessage = state.structuredImportSuccessMessage,
+                    hydrateWarning = state.hydrateWarning,
                 )
             }
             .distinctUntilChanged()
@@ -409,9 +455,16 @@ fun StudyPlannerScreen(
     val actions: PlannerActions = viewModel
     val snackbar = remember { SnackbarHostState() }
 
-    LaunchedEffect(chromeState.error, chromeState.message) {
+    LaunchedEffect(chromeState.error, chromeState.message, detailState.hydrateWarning, detailState.importError, detailState.importResultSummary, detailState.importStatus, detailState.structureError, detailState.structuredImportError, detailState.structuredImportSuccessMessage) {
         chromeState.error?.let { snackbar.showSnackbar(it); actions.clearTransient() }
         chromeState.message?.let { snackbar.showSnackbar(it); actions.clearTransient() }
+        detailState.hydrateWarning?.let { snackbar.showSnackbar(it); actions.clearTransient() }
+        detailState.importStatus?.let { snackbar.showSnackbar(it) }
+        detailState.importResultSummary?.let { snackbar.showSnackbar(it) }
+        detailState.importError?.let { snackbar.showSnackbar(it) }
+        detailState.structureError?.let { snackbar.showSnackbar(it) }
+        detailState.structuredImportError?.let { snackbar.showSnackbar(it) }
+        detailState.structuredImportSuccessMessage?.let { snackbar.showSnackbar(it) }
     }
 
     val premiumReason = chromeState.premiumReason
@@ -423,9 +476,19 @@ fun StudyPlannerScreen(
         )
     }
 
+    val drawerTitle = when {
+        chromeState.selectedPlan != null &&
+            chromeState.section != PlannerSection.YOUR_EXAMS &&
+            chromeState.section != PlannerSection.SYLLABUS ->
+            chromeState.section.label
+        chromeState.section == PlannerSection.YOUR_EXAMS -> PlannerSection.YOUR_EXAMS.label
+        else -> "Study Planner"
+    }
+    val drawerSubtitle: String? = null
+
     SafarDrawerScaffold(
-        title = "Study Planner",
-        subtitle = chromeState.selectedPlan?.title?.takeIf { it.isNotBlank() },
+        title = drawerTitle,
+        subtitle = drawerSubtitle,
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
@@ -449,6 +512,17 @@ fun StudyPlannerScreen(
                             actions.setSection(section)
                         }
                     })
+                }
+            },
+            floatingActionButton = {
+                if (chromeState.selectedPlan != null && chromeState.section == PlannerSection.PLAN) {
+                    androidx.compose.material3.ExtendedFloatingActionButton(
+                        onClick = { actions.checkIn() },
+                        icon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.CheckCircle, contentDescription = null) },
+                        text = { androidx.compose.material3.Text("Check In") },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
             },
         ) { innerPadding ->
@@ -502,17 +576,36 @@ fun StudyPlannerScreen(
 @Composable
 private fun StudyPlansScreen(
     state: StudyPlansListState,
+    importState: StudyPlannerDetailState,
     actions: PlannerActions,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     var showCreate by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<StudyPlan?>(null) }
-    val quickStartState = remember(state.templates, state.loading) {
-        StudyPlannerUiState(templates = state.templates, loading = state.loading)
+    val quickStartState = remember(state.templates, state.loading, importState.isImporting, importState.importStatus, importState.importError) {
+        StudyPlannerUiState(
+            templates = state.templates,
+            loading = state.loading,
+            isImporting = importState.isImporting,
+            importStatus = importState.importStatus,
+            importError = importState.importError,
+        )
     }
 
-    if (showCreate) QuickStartSheet(quickStartState, actions, onDismiss = { showCreate = false })
+    LaunchedEffect(importState.isImporting, importState.importResultSummary, importState.importError) {
+        if (showCreate && !importState.isImporting && (importState.importResultSummary != null || importState.importError != null)) {
+            showCreate = false
+        }
+    }
+
+    if (showCreate) {
+        QuickStartSheet(
+            state = quickStartState,
+            actions = actions,
+            onDismiss = { if (!quickStartState.isImporting) showCreate = false },
+        )
+    }
     pendingDelete?.let { plan ->
         ConfirmActionDialog(
             title = "Delete plan?",
@@ -522,13 +615,10 @@ private fun StudyPlansScreen(
         )
     }
 
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val screenBg = if (isDark) Color(0xFF0F172A) else Color(0xFFFAF8F5)
-
     SafarPullRefreshBox(
         isRefreshing = state.loading && state.plans.isNotEmpty(),
         onRefresh = { actions.refreshPlans() },
-        modifier = Modifier.fillMaxSize().background(screenBg),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -543,21 +633,19 @@ private fun StudyPlansScreen(
                 ) {
                     Text(
                         text = "Your Exams",
-                        style = androidx.compose.ui.text.TextStyle(
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) Color.White else Color(0xFF1A1E29)
-                        )
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Button(
                         onClick = { showCreate = true },
-                        shape = RoundedCornerShape(percent = 50),
+                        shape = ButtonDefaults.shape,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isDark) Color(0xFF2542A5).copy(alpha = 0.3f) else Color(0xFF2542A5).copy(alpha = 0.15f),
-                            contentColor = if (isDark) Color(0xFF93A8F4) else Color(0xFF2542A5)
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         ),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        modifier = Modifier.height(40.dp)
+                        modifier = Modifier.heightIn(min = 40.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -567,7 +655,7 @@ private fun StudyPlansScreen(
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = "New",
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -596,7 +684,7 @@ private fun StudyPlansScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showCreate = true },
-                        shape = RoundedCornerShape(24.dp),
+                        shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                     ) {
                         Box(
@@ -617,27 +705,21 @@ private fun StudyPlansScreen(
                                 Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                                     Text(
                                         text = "Focus: Plan your success today!",
-                                        style = androidx.compose.ui.text.TextStyle(
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
-                                        )
+                                        style = MaterialTheme.typography.titleLarge.copy(color = Color.White),
+                                        fontWeight = FontWeight.Bold
                                     )
                                     Spacer(Modifier.height(4.dp))
                                     Text(
                                         text = "Select an exam to begin.",
-                                        style = androidx.compose.ui.text.TextStyle(
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.White.copy(alpha = 0.8f)
-                                        )
+                                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.8f)),
+                                        fontWeight = FontWeight.Medium
                                     )
                                 }
                                 Box(
                                     modifier = Modifier
                                         .size(72.dp)
-                                        .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)), RoundedCornerShape(12.dp)),
+                                        .background(Color.White.copy(alpha = 0.2f), MaterialTheme.shapes.medium)
+                                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)), MaterialTheme.shapes.medium),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -705,7 +787,7 @@ private fun PlannerSectionHeader(
             Text(
                 subtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodySmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -722,7 +804,7 @@ private fun PlannerCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)),
@@ -741,8 +823,8 @@ private fun PlannerEmptyState(title: String, body: String, action: String, onAct
                 Icon(Icons.Default.School, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(12.dp).size(26.dp))
             }
             Text(title, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, textAlign = TextAlign.Center)
-            Button(onClick = onAction, shape = RoundedCornerShape(12.dp)) {
+            Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+            Button(onClick = onAction, modifier = Modifier.heightIn(min = 40.dp), shape = ButtonDefaults.shape) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(action)
@@ -769,16 +851,13 @@ private fun PlanCardSimplified(
             animatedVisibilityScope = animatedVisibilityScope,
         )
     }
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val cardBg = if (isDark) Color(0xFF1E293B) else Color.White
-    val cardBorder = if (isDark) Color(0xFF334155) else Color.Black.copy(alpha = 0.06f)
     Card(
         modifier = sharedModifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = BorderStroke(1.dp, cardBorder),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
@@ -792,9 +871,9 @@ private fun PlanCardSimplified(
             ) {
                 Text(
                     text = plan.title,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = if (isDark) Color.White else Color(0xFF1A1E29)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -808,22 +887,17 @@ private fun PlanCardSimplified(
                         examDays <= 14 -> Brush.horizontalGradient(listOf(Color(0xFFF97316), Color(0xFFFBBF24)))
                         else -> Brush.horizontalGradient(listOf(Color(0xFF22C55E), Color(0xFF10B981)))
                     }
-                    val badgeText = when {
-                        examDays == null -> "—"
-                        examDays < 0 -> "Ended"
-                        examDays == 0L -> "Today"
-                        else -> "$examDays days left"
-                    }
+                    val badgeText = examBadgeLabel(examDays)
                     Box(
                         modifier = Modifier
-                            .background(badgeBrush, RoundedCornerShape(16.dp))
+                            .background(badgeBrush, CircleShape)
                             .padding(horizontal = 14.dp, vertical = 6.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = badgeText,
                             color = Color.White,
-                            fontSize = 13.sp,
+                            style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -832,7 +906,7 @@ private fun PlanCardSimplified(
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "Plan actions",
-                                tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
@@ -850,18 +924,18 @@ private fun PlanCardSimplified(
             }
             Text(
                 text = "${plan.subjectCount ?: plan.subjects.size} subjects / ${progress.totalTopics} topics",
-                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium
             )
             LinearProgressIndicator(
                 progress = { progress.completionPercent / 100f },
-                color = if (isDark) Color(0xFF7C8EFF) else Color(0xFF2542A5),
-                trackColor = if (isDark) Color(0xFF334155) else Color(0xFFEAE8E4),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
+                    .clip(CircleShape)
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -870,14 +944,14 @@ private fun PlanCardSimplified(
             ) {
                 Text(
                     text = "${progress.completionPercent}% complete",
-                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "Open",
-                    color = if (isDark) Color(0xFF93A8F4) else Color(0xFF2542A5),
-                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable(onClick = onOpen)
                 )
@@ -904,16 +978,13 @@ private fun PlanCardCompact(
             animatedVisibilityScope = animatedVisibilityScope,
         )
     }
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val cardBg = if (isDark) Color(0xFF1E293B) else Color.White
-    val cardBorder = if (isDark) Color(0xFF334155) else Color.Black.copy(alpha = 0.06f)
     Card(
         modifier = sharedModifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = BorderStroke(1.dp, cardBorder),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
@@ -929,9 +1000,9 @@ private fun PlanCardCompact(
             ) {
                 Text(
                     text = plan.title,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = if (isDark) Color.White else Color(0xFF1A1E29),
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -944,7 +1015,7 @@ private fun PlanCardCompact(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "Plan actions",
-                            tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -969,30 +1040,25 @@ private fun PlanCardCompact(
                 examDays <= 14 -> Brush.horizontalGradient(listOf(Color(0xFFF97316), Color(0xFFFBBF24)))
                 else -> Brush.horizontalGradient(listOf(Color(0xFF22C55E), Color(0xFF10B981)))
             }
-            val badgeText = when {
-                examDays == null -> "—"
-                examDays < 0 -> "Ended"
-                examDays == 0L -> "Today"
-                else -> "$examDays days left"
-            }
+            val badgeText = examBadgeLabel(examDays)
             Box(
                 modifier = Modifier
-                    .background(badgeBrush, RoundedCornerShape(16.dp))
+                    .background(badgeBrush, CircleShape)
                     .padding(horizontal = 10.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = badgeText,
                     color = Color.White,
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             Text(
                 text = "${plan.subjectCount ?: plan.subjects.size} subjects",
-                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium
             )
 
@@ -1003,17 +1069,17 @@ private fun PlanCardCompact(
             ) {
                 LinearProgressIndicator(
                     progress = { progress.completionPercent / 100f },
-                    color = if (isDark) Color(0xFF7C8EFF) else Color(0xFF2542A5),
-                    trackColor = if (isDark) Color(0xFF334155) else Color(0xFFEAE8E4),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                        .clip(CircleShape)
                 )
                 Text(
                     text = "${progress.completionPercent}% complete",
-                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -1060,20 +1126,20 @@ private fun QuickStartSheet(state: StudyPlannerUiState, actions: PlannerActions,
                 }
             } else {
                 OutlinedTextField(value = examType, onValueChange = { examType = it }, label = { Text("Exam name") }, modifier = Modifier.fillMaxWidth())
-                OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = RoundedCornerShape(12.dp)) {
+                OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = ButtonDefaults.outlinedShape) {
                     Icon(if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
                     Text("Paste syllabus (optional)")
                 }
                 if (showAdvanced) {
                     OutlinedTextField(value = pasteSyllabus, onValueChange = { pasteSyllabus = it }, label = { Text("Paste syllabus") }, minLines = 4, modifier = Modifier.fillMaxWidth())
-                    Text("${parseBulkSyllabus(pasteSyllabus).sumOf { it.second.size }} topics detected", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${parseBulkSyllabus(pasteSyllabus).sumOf { it.second.size }} topics detected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Plan title") }, modifier = Modifier.fillMaxWidth())
             PlannerExamDateField(examDateIso = examDate, onExamDateChange = { examDate = it })
             OutlinedTextField(value = dailyGoal, onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) }, label = { Text("Topics per day") }, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = RoundedCornerShape(12.dp)) {
+            OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = ButtonDefaults.outlinedShape) {
                 Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(if (showAdvanced) "Hide weekly off days" else "Weekly off days")
@@ -1083,18 +1149,56 @@ private fun QuickStartSheet(state: StudyPlannerUiState, actions: PlannerActions,
                     offDays.value = if (day in offDays.value) offDays.value - day else offDays.value + day
                 })
             }
+            if (state.isImporting) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Text(
+                    text = state.importStatus ?: "Importing syllabus...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            }
+            state.importError?.let { err ->
+                Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                if (mode == "custom" && pasteSyllabus.isNotBlank()) {
+                    TextButton(
+                        onClick = {
+                            val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
+                            actions.createPlan(
+                                title = title.ifBlank { "Study Plan" },
+                                examType = examType.ifBlank { null },
+                                examDate = examDate.ifBlank { null },
+                                dailyGoal = goal,
+                                offDays = offDays.value.toList(),
+                                syllabusText = pasteSyllabus,
+                            )
+                        },
+                        enabled = !state.isImporting,
+                    ) { Text("Retry syllabus import") }
+                }
+            }
             Button(
                 onClick = {
                     val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
+                    val hasSyllabusImport = mode == "custom" && pasteSyllabus.isNotBlank()
                     if (mode == "template" && templateId.isNotBlank()) {
                         actions.createFromTemplate(templateId, title.ifBlank { "Study Plan" }, examDate.ifBlank { null }, goal, offDays.value.toList())
+                        onDismiss()
                     } else {
-                        actions.createPlan(title.ifBlank { "Study Plan" }, examType.ifBlank { null }, examDate.ifBlank { null }, goal, offDays.value.toList())
+                        actions.createPlan(
+                            title = title.ifBlank { "Study Plan" },
+                            examType = examType.ifBlank { null },
+                            examDate = examDate.ifBlank { null },
+                            dailyGoal = goal,
+                            offDays = offDays.value.toList(),
+                            syllabusText = pasteSyllabus,
+                        )
+                        if (!hasSyllabusImport) onDismiss()
                     }
-                    onDismiss()
                 },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                shape = ButtonDefaults.shape,
+                enabled = !state.isImporting,
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
@@ -1116,7 +1220,7 @@ private fun PlannerActionRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(MaterialTheme.shapes.medium)
             .background(if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f))
             .clickable(onClick = onClick)
             .padding(12.dp),
@@ -1126,7 +1230,7 @@ private fun PlannerActionRow(
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f).widthIn(min = 0.dp)) {
             Text(title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (selected) Icon(Icons.Default.Check, contentDescription = null)
     }
@@ -1165,11 +1269,22 @@ private fun PlannerHome(
             premiumReason = chromeState.premiumReason,
             syllabusImportDraft = detailState.syllabusImportDraft,
             syllabusImportFileName = detailState.syllabusImportFileName,
+            isImporting = detailState.isImporting,
+            importStatus = detailState.importStatus,
+            importError = detailState.importError,
+            importResultSummary = detailState.importResultSummary,
+            rawSyllabusText = detailState.rawSyllabusText,
+            isStructuringSyllabus = detailState.isStructuringSyllabus,
+            structureError = detailState.structureError,
+            structuredPreview = detailState.structuredPreview,
+            isImportingStructuredSyllabus = detailState.isImportingStructuredSyllabus,
+            structuredImportError = detailState.structuredImportError,
+            structuredImportSuccessMessage = detailState.structuredImportSuccessMessage,
         )
     }
 
     Column(Modifier.fillMaxSize()) {
-        if (plan != null) {
+        if (plan != null && chromeState.section != PlannerSection.INSIGHTS) {
             SelectedExamStrip(
                 plan = plan,
                 onChangeExam = { actions.setSection(PlannerSection.YOUR_EXAMS) },
@@ -1179,6 +1294,7 @@ private fun PlannerHome(
             when (chromeState.section) {
                 PlannerSection.YOUR_EXAMS -> StudyPlansScreen(
                     state = plansState,
+                    importState = detailState,
                     actions = actions,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
@@ -1218,7 +1334,7 @@ private fun SelectedExamStrip(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         tonalElevation = 1.dp,
@@ -1242,7 +1358,7 @@ private fun SelectedExamStrip(
                 )
                 Text(
                     text = plan.examType?.takeIf { it.isNotBlank() } ?: "Selected exam",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -1362,7 +1478,7 @@ private fun PlannerExamPickerLanding(
                     Text(
                         landingError,
                         color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 18.dp)
                     )
@@ -1387,7 +1503,7 @@ private fun PlannerExamPickerLanding(
                 Text(
                     "Use a template or make your own plan.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Start,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
@@ -1492,12 +1608,12 @@ private fun PlannerTemplateCard(
     Box(
         modifier = modifier
             .heightIn(min = 132.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .clip(MaterialTheme.shapes.large)
             .background(background)
             .border(
                 if (selected) 2.5.dp else 1.dp,
                 if (selected) Color.White else Color.White.copy(alpha = 0.18f),
-                RoundedCornerShape(24.dp),
+                MaterialTheme.shapes.large,
             )
             .clickable(onClick = onClick)
             .padding(18.dp),
@@ -1526,13 +1642,12 @@ private fun PlannerTemplateCard(
                         }
                     }
                 }
-                Surface(color = Color(0xFF2D4B8C).copy(alpha = 0.88f), shape = RoundedCornerShape(99.dp)) {
+                Surface(color = Color(0xFF2D4B8C).copy(alpha = 0.88f), shape = CircleShape) {
                     Text(
                         template.categoryLabel,
                         color = Color(0xFFD6E4FF),
-                        fontSize = 10.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.8.sp,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                     )
                 }
@@ -1541,14 +1656,14 @@ private fun PlannerTemplateCard(
                 template.title,
                 color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 18.sp,
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 template.description ?: "Pre-loaded syllabus template",
                 color = Color.White.copy(alpha = 0.82f),
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1556,21 +1671,21 @@ private fun PlannerTemplateCard(
                 Text(
                     "${template.estimatedTopics} topics",
                     color = Color.White.copy(alpha = 0.92f),
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text("•", color = Color.White.copy(alpha = 0.7f))
                 Text(
                     template.examBody,
                     color = Color.White.copy(alpha = 0.92f),
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text("•", color = Color.White.copy(alpha = 0.7f))
                 Text(
                     "${template.recommendedDailyGoal}/day",
                     color = Color.White.copy(alpha = 0.92f),
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -1584,20 +1699,22 @@ private fun PlannerCustomPlanCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val cardShape = MaterialTheme.shapes.large
     Box(
         modifier = modifier
             .heightIn(min = 132.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .clip(cardShape)
             .background(Color(0xFF111827))
             .drawBehind {
                 val stroke = Stroke(
                     width = if (selected) 2.5.dp.toPx() else 1.5.dp.toPx(),
                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 10f), 0f),
                 )
+                val cornerSizePx = cardShape.topStart.toPx(size, this)
                 drawRoundRect(
                     color = if (selected) Color(0xFF93C5FD) else Color(0xFF64748B),
                     style = stroke,
-                    cornerRadius = CornerRadius(24.dp.toPx(), 24.dp.toPx()),
+                    cornerRadius = CornerRadius(cornerSizePx, cornerSizePx),
                 )
             }
             .clickable(onClick = onClick)
@@ -1632,19 +1749,19 @@ private fun PlannerCustomPlanCard(
                 "Custom Plan",
                 color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 19.sp,
+                style = MaterialTheme.typography.titleMedium,
             )
             Text(
                 "Build your own plan from scratch. Paste your syllabus or set it up manually.",
                 color = Color.White.copy(alpha = 0.8f),
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 "Any exam • Your syllabus",
                 color = Color(0xFFCBD5E1),
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -1669,7 +1786,7 @@ private fun PlannerQuickCreateForm(
 ) {
     PlannerSurface {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Set Up Plan", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text("Set Up Plan", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = title,
                 onValueChange = onTitleChange,
@@ -1682,7 +1799,7 @@ private fun PlannerQuickCreateForm(
                 label = { Text("Exam name") },
                 modifier = Modifier.fillMaxWidth(),
             )
-            Text("Exam date", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = if (isDateError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Exam date", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = if (isDateError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
             PlannerExamDateField(examDateIso = examDate, onExamDateChange = onExamDateChange, isError = isDateError)
             OutlinedTextField(
                 value = dailyGoal,
@@ -1693,8 +1810,8 @@ private fun PlannerQuickCreateForm(
             OffDayPicker(selected = offDays, onToggle = onToggleOffDay)
             Button(
                 onClick = onConfirm,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                shape = ButtonDefaults.shape,
             ) {
                 Text(confirmLabel)
             }
@@ -1704,752 +1821,35 @@ private fun PlannerQuickCreateForm(
 
 
 @Composable
-private fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: PlannerActions) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val todayK = todayKey()
-    var visibleMonth by remember { mutableStateOf(YearMonth.now()) }
-    val locale = Locale.getDefault()
-    val monthSlots = remember(visibleMonth) { monthCalendarSlots(visibleMonth) }
-    val weeks = remember(monthSlots) { monthSlots.chunked(7) }
-    var sheetDay by remember { mutableStateOf<String?>(null) }
-
-    sheetDay?.let { day ->
-        SelectedDayLogSheet(
-            dateIso = day,
-            plan = plan,
-            items = state.calendar[day].orEmpty(),
-            actions = actions,
-            onDismiss = { sheetDay = null },
-        )
-    }
-
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/pdf"),
-        onResult = { uri ->
-            uri?.let {
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                            StudyPlannerExportUtils.generateStudyPlanPdf(plan, outputStream)
-                        }
-                    } catch (e: Exception) {
-                        actions.setError("PDF export failed: ${e.localizedMessage}")
-                    }
-                }
-            }
-        }
-    )
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        item {
-            // Days Left Stacked Card Deck
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, bottom = 12.dp)
-            ) {
-                // Stacked layer 2 (shadow)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.92f)
-                        .height(130.dp)
-                        .align(Alignment.BottomCenter)
-                        .offset(y = 12.dp)
-                        .background(if (isDark) Color.Black.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.03f), RoundedCornerShape(24.dp))
-                )
-                // Stacked layer 1 (shadow border)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.96f)
-                        .height(130.dp)
-                        .align(Alignment.BottomCenter)
-                        .offset(y = 6.dp)
-                        .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.9f) else Color.White.copy(alpha = 0.9f), RoundedCornerShape(24.dp))
-                        .border(1.dp, if (isDark) Color(0xFF334155) else Color.Black.copy(alpha = 0.04f), RoundedCornerShape(24.dp))
-                )
-                // Top Main Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(130.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF1E293B) else Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Small export button in the top right of the card
-                        IconButton(
-                            onClick = { exportLauncher.launch("${plan.title.replace(" ", "_")}_Syllabus.pdf") },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
-                                .size(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.FileDownload,
-                                contentDescription = "Export PDF",
-                                tint = if (isDark) Color.White.copy(alpha = 0.8f) else Color.Gray.copy(alpha = 0.8f)
-                            )
-                        }
-
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = "${daysUntil(plan.examDate)}",
-                                    style = androidx.compose.ui.text.TextStyle(
-                                        fontSize = 64.sp,
-                                        fontWeight = FontWeight.Black,
-                                        fontStyle = FontStyle.Italic,
-                                        color = if (isDark) Color.White else Color.Black
-                                    )
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        text = "DAYS",
-                                        style = androidx.compose.ui.text.TextStyle(
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Black,
-                                            fontStyle = FontStyle.Italic,
-                                            color = if (isDark) Color.White else Color.Black
-                                        )
-                                    )
-                                    Text(
-                                        text = "LEFT",
-                                        style = androidx.compose.ui.text.TextStyle(
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Black,
-                                            fontStyle = FontStyle.Italic,
-                                            color = if (isDark) Color.White else Color.Black
-                                        )
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = readableDate(plan.examDate).takeIf { it.isNotBlank() } ?: "May 31, 2026",
-                                style = androidx.compose.ui.text.TextStyle(
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = if (isDark) Color(0xFF94A3B8) else Color.Gray
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            // Month navigation with chevron icons
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.ChevronLeft,
-                        contentDescription = "Previous month",
-                        tint = Color.Gray
-                    )
-                }
-                Text(
-                    text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale).uppercase(locale)} ${visibleMonth.year}",
-                    style = androidx.compose.ui.text.TextStyle(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        color = if (isDark) Color.White else Color.Black
-                    )
-                )
-                IconButton(onClick = { visibleMonth = visibleMonth.plusMonths(1) }) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
-                        contentDescription = "Next month",
-                        tint = Color.Gray
-                    )
-                }
-            }
-        }
-
-        item {
-            // Days of the week row
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-            ) {
-                listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
-                    Text(
-                        text = label,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isDark) Color(0xFF64748B) else Color(0xFF9CA3AF),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.width(36.dp)
-                    )
-                }
-            }
-        }
-
-        item {
-            // Grid of elevated day slots
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                weeks.forEach { week ->
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround,
-                    ) {
-                        week.forEach { date ->
-                            Box(
-                                Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .padding(2.dp),
-                            ) {
-                                if (date != null) {
-                                    val dateIso = date.toString()
-                                    val dayItems = state.calendar[dateIso].orEmpty()
-                                    CalendarDayChip(
-                                        dateIso = dateIso,
-                                        items = dayItems,
-                                        selected = sheetDay == dateIso,
-                                        isToday = dateIso == todayK,
-                                        isOff = jsDayOfWeek(date) in plan.offDays.toSet(),
-                                        dense = true,
-                                        onClick = { sheetDay = dateIso },
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            // Legend
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CalendarLegendDot(Color(0xFF2563EB), "Planned")
-                Spacer(Modifier.width(16.dp))
-                CalendarLegendDot(Color(0xFF22C55E), "Done")
-                Spacer(Modifier.width(16.dp))
-                CalendarLegendDot(Color(0xFFEF4444), "Overdue")
-                Spacer(Modifier.width(16.dp))
-                CalendarLegendDot(Color(0xFFF59E0B), "Off")
-            }
-        }
-
-
-    }
-}
-
-@Composable
-private fun InsightsTab(plan: StudyPlan, state: StudyPlannerUiState, actions: PlannerActions) {
-    val insights = remember(plan, state.calendar, state.analytics) {
-        PlannerInsightsCalculator.compute(plan, state.calendar, state.analytics)
-    }
-    val rollup = remember(plan.id, plan.subjects) { plan.rollup() }
-    val subjectIndexById = remember(plan.subjects) {
-        plan.subjects.sortedBy { it.id }.mapIndexed { index, s -> s.id to index }.toMap()
-    }
-    val subjectCount = max(1, plan.subjects.size)
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/pdf"),
-        onResult = { uri ->
-            uri?.let {
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                            StudyPlannerExportUtils.generateStudyPlanPdf(plan, outputStream)
-                        }
-                    } catch (e: Exception) {
-                        actions.setError("PDF export failed: ${e.localizedMessage}")
-                    }
-                }
-            }
-        }
-    )
-
-    val days: Int? = daysUntil(plan.examDate)?.toInt()
-    val s = insights.summary
-    val totalTopics = rollup.totalTopics
-    val doneTopics = rollup.doneTopics
-    val remaining = (totalTopics - doneTopics).coerceAtLeast(0)
-    val pace = s.requiredTopicsPerStudyDay?.let { kotlin.math.ceil(it.toDouble()).toInt() } ?: 0
-    val dailyGoal = plan.dailyGoal?.takeIf { it > 0 } ?: pace
-    val paceBannerMessage = remember(s, insights.backlog, dailyGoal, pace) {
-        buildInsightsPaceMessage(s, insights.backlog, dailyGoal, pace)
-    }
-
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item {
-            InsightsTopHeader(
-                plan = plan,
-                days = days,
-                onExport = { exportLauncher.launch("${plan.title.replace(" ", "_")}_Syllabus.pdf") },
-            )
-        }
-
-        paceBannerMessage?.let { message ->
-            item { InsightsPaceBanner(message) }
-        }
-
-        item {
-            OverallProgressCard(
-                completionPercent = s.completionPercent,
-                doneTopics = doneTopics,
-                totalTopics = totalTopics,
-                remaining = remaining,
-                days = days,
-                dailyGoal = dailyGoal,
-            )
-        }
-
-        item {
-            SubjectProgressCard(
-                rows = insights.subjectRows,
-                subjectCount = subjectCount,
-                subjectIndexById = subjectIndexById,
-            )
-        }
-
-        item {
-            AddTopicsToPlanButton(onClick = { actions.setSection(PlannerSection.SYLLABUS) })
-        }
-    }
-}
-
-private fun buildInsightsPaceMessage(
-    summary: PlannerInsightSummary,
-    backlog: PlannerInsightBacklog,
-    dailyGoal: Int,
-    requiredPace: Int,
-): String? {
-    if (summary.remainingTopics <= 0) return null
-    if (summary.onTrackStatus != InsightTrackStatus.BEHIND && summary.onTrackStatus != InsightTrackStatus.AT_RISK) return null
-
-    val targetPace = requiredPace.takeIf { it > 0 } ?: dailyGoal.coerceAtLeast(1)
-    val targetTopicText = "Try $targetPace topic${if (targetPace == 1) "" else "s"} per day"
-    val overflowStudyDays = summary.daysBuffer?.takeIf { it < 0 }?.let { -it } ?: 0
-
-    return when {
-        summary.daysUntilExam != null && summary.daysUntilExam < 0 ->
-            "This exam date has passed. Update the exam date or archive this plan."
-
-        backlog.overdueTotal > 0 && overflowStudyDays > 0 ->
-            "${backlog.overdueTotal} topic${if (backlog.overdueTotal == 1) " is" else "s are"} overdue, and you may not finish before the exam. $targetTopicText, remove some topics, or change the exam date."
-
-        backlog.overdueTotal > 0 ->
-            "${backlog.overdueTotal} topic${if (backlog.overdueTotal == 1) " is" else "s are"} overdue. $targetTopicText to recover."
-
-        overflowStudyDays > 0 ->
-            "This plan needs more time. At ${dailyGoal.coerceAtLeast(1)} topic${if (dailyGoal == 1) "" else "s"} per day, you may not finish before the exam. $targetTopicText, remove some topics, or change the exam date."
-
-        else ->
-            "This plan is tight. $targetTopicText to stay on track."
-    }
-}
-
-@Composable
-private fun InsightsTopHeader(
-    plan: StudyPlan,
-    days: Int?,
-    onExport: () -> Unit,
-) {
-    val examDays = daysUntil(plan.examDate)
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                plan.title,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                buildString {
-                    if (!plan.examDate.isNullOrBlank()) append(readableDate(plan.examDate))
-                    if (days != null) {
-                        if (isNotEmpty()) append(" · ")
-                        append("$days days remaining")
-                    }
-                    if (isEmpty()) append("Set exam date in Plan")
-                },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 13.sp,
-            )
-        }
-        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ExamDaysCountdownBadge(days = examDays)
-            PlannerExportButton(onClick = onExport)
-        }
-    }
-}
-
-/** Navy → teal → cyan for Insights overall progress (matches product gradient). */
-private fun insightsOverallProgressFillBrush(): Brush = Brush.horizontalGradient(
-    colors = listOf(
-        Color(0xFF050F1F),
-        Color(0xFF0C2540),
-        Color(0xFF0D5C5C),
-        Color(0xFF0891B2),
-        Color(0xFF22D3EE),
-        Color(0xFF5AF5E5),
-    ),
-)
-
-@Composable
-private fun InsightsLiquidOverallProgressBar(
-    completionPercent: Int,
-    modifier: Modifier = Modifier,
-    height: Dp = 12.dp,
-) {
-    val target = (completionPercent / 100f).coerceIn(0f, 1f)
-    val animatedFraction by animateFloatAsState(
-        targetValue = target,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
-        ),
-        label = "insightsLiquidFill",
-    )
-    val infinite = rememberInfiniteTransition(label = "insightsLiquidShimmer")
-    val shimmerPhase by infinite.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2600, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmerPhase",
-    )
-    val shimmerWave by infinite.animateFloat(
-        initialValue = 0f,
-        targetValue = (kotlin.math.PI * 2).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3800, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "liquidWave",
-    )
-
-    val shape = RoundedCornerShape(999.dp)
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f)
-    val description = "Overall syllabus progress, $completionPercent percent"
-
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height)
-            .clip(shape)
-            .background(trackColor)
-            .semantics { contentDescription = description },
-    ) {
-        if (animatedFraction > 0.001f) {
-            BoxWithConstraints(
-                Modifier
-                    .fillMaxHeight()
-                    .width(maxWidth * animatedFraction)
-                    .clip(shape)
-                    .graphicsLayer {
-                        scaleY = 0.94f + sin(shimmerWave.toDouble()).toFloat() * 0.06f
-                    },
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(insightsOverallProgressFillBrush()),
-                )
-                Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.55f)
-                        .graphicsLayer { alpha = 0.85f }
-                        .offset {
-                            val wPx = maxWidth.roundToPx().toFloat().coerceAtLeast(1f)
-                            val x = (shimmerPhase - 0.35f) * wPx * 1.6f
-                            IntOffset(x.roundToInt(), 0)
-                        }
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = 0.24f),
-                                    Color.White.copy(alpha = 0.10f),
-                                    Color.Transparent,
-                                ),
-                            ),
-                        ),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InsightsPaceBanner(message: String) {
-    val amber = Color(0xFFF59E0B)
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = amber.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, amber.copy(alpha = 0.35f)),
+internal fun AddTopicsToPlanButton(onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
+        shape = CircleShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        contentPadding = PaddingValues(vertical = 16.dp)
     ) {
         Row(
-            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Icon(
-                Icons.Default.Warning,
-                contentDescription = null,
-                tint = amber,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                message,
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun OverallProgressCard(
-    completionPercent: Int,
-    doneTopics: Int,
-    totalTopics: Int,
-    remaining: Int,
-    days: Int?,
-    dailyGoal: Int,
-) {
-    PlannerSurface {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Overall progress", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                val density = LocalDensity.current
-                CompositionLocalProvider(
-                    LocalDensity provides Density(
-                        density = density.density,
-                        fontScale = density.fontScale.coerceAtMost(1.3f)
-                    )
-                ) {
-                    Text(
-                        "$completionPercent%",
-                        fontSize = 42.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        "$doneTopics of $totalTopics topics complete",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        "$remaining topics remaining",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            InsightsLiquidOverallProgressBar(completionPercent = completionPercent)
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                InsightsInnerStat(
-                    label = "Exam in",
-                    value = days?.let { "$it days" } ?: "—",
-                    valueColor = if (days != null && days <= 30) Color(0xFFB91C1C) else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                InsightsInnerStat(
-                    label = "Topics per day",
-                    value = if (dailyGoal > 0) "$dailyGoal topic${if (dailyGoal == 1) "" else "s"}" else "—",
-                    valueColor = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InsightsInnerStat(
-    label: String,
-    value: String,
-    valueColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        modifier = modifier,
-    ) {
-        Column(
-            Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = valueColor)
-        }
-    }
-}
-
-@Composable
-private fun SubjectProgressCard(
-    rows: List<PlannerInsightSubjectRow>,
-    subjectCount: Int,
-    subjectIndexById: Map<String, Int>,
-) {
-    PlannerSurface {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Subject progress",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    "${rows.size} subject${if (rows.size == 1) "" else "s"}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (rows.isEmpty()) {
-                Text(
-                    "Add topics to see subject progress.",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                rows.forEachIndexed { idx, row ->
-                    val colorIdx = subjectIndexById[row.subjectId] ?: 0
-                    SubjectProgressRow(row, colorIdx, max(1, subjectCount))
-                    if (idx < rows.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SubjectProgressRow(
-    row: PlannerInsightSubjectRow,
-    subjectColorIndex: Int,
-    subjectColorCount: Int,
-) {
-    Column(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f).widthIn(min = 0.dp)) {
-                Text(
-                    row.subjectName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    "${row.remainingTopics} topic${if (row.remainingTopics == 1) "" else "s"} remaining",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Text(
-                "${row.completionPercent}%",
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .clip(RoundedCornerShape(99.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-        ) {
-            if (row.completionPercent > 0) {
-                Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth((row.completionPercent / 100f).coerceIn(0f, 1f))
-                        .background(brush = subjectMeterBrush(subjectColorIndex, subjectColorCount)),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AddTopicsToPlanButton(onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
-        modifier = Modifier.fillMaxWidth().bounceClick(onClick = onClick)
-        ) {
-        Row(
-
-            Modifier.padding(vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Add topics to plan", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Spacer(Modifier.width(6.dp))
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Add topics to plan", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(8.dp))
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun PlannerTopicDetailSheet(ref: TopicRef, openNonce: Int, actions: PlannerActions, onDismiss: () -> Unit) {
     var name by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.name) }
@@ -2458,24 +1858,33 @@ internal fun PlannerTopicDetailSheet(ref: TopicRef, openNonce: Int, actions: Pla
     var status by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.status) }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(ref.chapter.name, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Text(ref.chapter.name, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(name, { name = it }, label = { Text("Topic") }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                plannerTopicStatusFilterChips.forEach { st ->
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                plannerTopicStatusSheetChips.forEach { st ->
                     FilterChip(selected = status == st, onClick = { status = st }, label = { Text(st.label) })
                 }
             }
             OutlinedTextField(date, { date = it }, label = { Text("Planned date") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, minLines = 3, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(onClick = { actions.deleteTopic(ref.topic.id); onDismiss() }, modifier = Modifier.weight(1f)) { Text("Delete") }
+                OutlinedButton(
+                    onClick = { actions.deleteTopic(ref.topic.id); onDismiss() },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                ) {
+                    Text("Delete")
+                }
                 Button(
                     onClick = {
                         actions.updateTopic(ref.topic.id, status, name, date.ifBlank { "" }, notes)
                         onDismiss()
                     },
                     modifier = Modifier.weight(1f),
-                ) { Text("Save") }
+                ) {
+                    Text("Save", fontWeight = FontWeight.Bold)
+                }
             }
             Spacer(Modifier.height(20.dp))
         }
@@ -2491,34 +1900,10 @@ internal fun BulkAddSheet(
     onDismiss: () -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
-    val count = parseBulkSyllabus(text).flatMap { it.second }.size
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val mimeTypes = arrayOf(
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "text/plain",
-    )
-    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val part = withContext(Dispatchers.IO) { buildSyllabusUploadPart(context, uri) }
-            if (part == null) {
-                actions.setError("Could not read the selected file.")
-                return@launch
-            }
-            actions.importSyllabusFile(part.first, part.second)
+    val count by produceState(0, text) {
+        value = withContext(Dispatchers.Default) {
+            parseBulkSyllabus(text).flatMap { it.second }.size
         }
-    }
-    LaunchedEffect(state.syllabusImportDraft) {
-        if (state.syllabusImportDraft.isBlank()) return@LaunchedEffect
-        val extracted = extractBulkTopicsFromSyllabusCode(state.syllabusImportDraft)
-        if (extracted.isNotBlank()) {
-            text = extracted
-        } else {
-                actions.setError("No topics found in this file.")
-        }
-        actions.clearSyllabusImportDraft()
     }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2526,17 +1911,9 @@ internal fun BulkAddSheet(
             Text("${target.first.name} • ${target.second.name}", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AssistChip(onClick = {}, label = { Text("Paste Text") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, Modifier.size(16.dp)) })
-                AssistChip(
-                    onClick = { filePicker.launch(mimeTypes) },
-                    label = { Text("Import File") },
-                    leadingIcon = { Icon(Icons.Default.UploadFile, null, Modifier.size(16.dp)) },
-                )
             }
             OutlinedTextField(text, { text = it }, label = { Text("Paste topics or chapter lines") }, minLines = 6, modifier = Modifier.fillMaxWidth())
-            state.syllabusImportFileName?.let { name ->
-                Text("Imported: $name", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text("$count topics detected", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$count topics detected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(onClick = { actions.bulkAdd(target.first.id, target.second.id, text); onDismiss() }, modifier = Modifier.fillMaxWidth(), enabled = count > 0) { Text("Add Topics") }
             Spacer(Modifier.height(20.dp))
         }
@@ -2566,7 +1943,7 @@ private fun SubjectBlock(
 
     PlannerSurface {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            val subjectHeaderShape = RoundedCornerShape(12.dp)
+            val subjectHeaderShape = MaterialTheme.shapes.medium
             val subjectHeaderColors = Modifier
                 .fillMaxWidth()
                 .clip(subjectHeaderShape)
@@ -2583,11 +1960,11 @@ private fun SubjectBlock(
                     Text(
                         subject.name,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
+                        style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
                         "${subject.chapters.size} chapters • ${subject.percentDone()}%",
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -2621,7 +1998,7 @@ private fun SubjectBlock(
                     val chExpanded = chapterExpanded[chapter.id] ?: false
                     var chapterMenuExpanded by remember(chapter.id) { mutableStateOf(false) }
                     val isPlaceholderChapter = isBulkPlaceholderChapter(chapter)
-                    val chapterShape = RoundedCornerShape(14.dp)
+                    val chapterShape = MaterialTheme.shapes.medium
                     Column(
                         Modifier
                             .fillMaxWidth()
@@ -2681,7 +2058,7 @@ private fun SubjectBlock(
                             }
                             Text(
                                 "${chapter.percentDone()}%",
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 maxLines = 1,
                             )
@@ -2735,7 +2112,7 @@ private fun SubjectBlock(
                                     useSyllabusHierarchyBackground = true,
                                 )
                             }
-                            if (topics.isEmpty()) Text("No topics found.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (topics.isEmpty()) Text("No topics found.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -2756,11 +2133,11 @@ private fun PlanCard(plan: StudyPlan, onOpen: () -> Unit, onDelete: () -> Unit) 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f).widthIn(min = 0.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                                Text(plan.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(plan.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                                 Text(
                                     "${plan.subjectCount ?: plan.subjects.size} subjects • ${progress.totalTopics} topics",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 12.sp,
+                                    style = MaterialTheme.typography.bodySmall,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -2774,11 +2151,11 @@ private fun PlanCard(plan: StudyPlan, onOpen: () -> Unit, onDelete: () -> Unit) 
                 } else {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f).widthIn(min = 0.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                            Text(plan.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(plan.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                             Text(
                                 "${plan.subjectCount ?: plan.subjects.size} subjects • ${progress.totalTopics} topics",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.bodySmall,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -2788,7 +2165,7 @@ private fun PlanCard(plan: StudyPlan, onOpen: () -> Unit, onDelete: () -> Unit) 
                     }
                 }
             }
-            LinearProgressIndicator(progress = { progress.completionPercent / 100f }, modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(99.dp)))
+            LinearProgressIndicator(progress = { progress.completionPercent / 100f }, modifier = Modifier.fillMaxWidth().height(7.dp).clip(CircleShape))
         }
     }
 }
@@ -2806,7 +2183,7 @@ private fun TopicRow(
         Modifier.background(MaterialTheme.colorScheme.surface)
     }
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).then(rowBg).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(12.dp),
+        Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).then(rowBg).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), MaterialTheme.shapes.medium).clickable(onClick = onClick).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -2815,11 +2192,11 @@ private fun TopicRow(
             Text(
                 ref.topic.name,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
             )
             Text(
                 "${ref.subject.name} • ${ref.chapter.name}",
-                fontSize = 11.sp,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -2837,84 +2214,64 @@ private fun TopicRow(
 }
 
 @Composable
-private fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSection) -> Unit) {
+internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSection) -> Unit) {
+    val sections = listOf(
+        PlannerSection.PLAN,
+        PlannerSection.SYLLABUS,
+        PlannerSection.CALENDAR,
+        PlannerSection.INSIGHTS,
+    )
     val icons = mapOf(
-        PlannerSection.YOUR_EXAMS to Icons.Default.School,
+        PlannerSection.PLAN to Icons.Default.Today,
         PlannerSection.SYLLABUS to Icons.AutoMirrored.Filled.FactCheck,
         PlannerSection.CALENDAR to Icons.Default.CalendarMonth,
-        PlannerSection.PLAN to Icons.Default.Today,
         PlannerSection.INSIGHTS to Icons.Default.Insights,
     )
-    
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
+    val scheme = MaterialTheme.colorScheme
+
+    NavigationBar(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = scheme.surface,
         tonalElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
     ) {
-        val density = LocalDensity.current
-        val stableDensity = Density(
-            density = density.density,
-            fontScale = density.fontScale.coerceAtMost(1.05f)
-        )
-        CompositionLocalProvider(LocalDensity provides stableDensity) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .height(72.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PlannerSection.entries.forEach { section ->
-                    val isSelected = selected == section
-                    val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clickable { onSelect(section) },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                                .padding(horizontal = 20.dp, vertical = 4.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                icons.getValue(section),
-                                contentDescription = section.label,
-                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else tint,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = if (section == PlannerSection.YOUR_EXAMS) "Exams" else section.label,
-                            fontSize = 11.sp,
-                            lineHeight = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                            color = tint,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
+        sections.forEach { section ->
+            val isSelected = selected == section
+            NavigationBarItem(
+                selected = isSelected,
+                onClick = { onSelect(section) },
+                icon = {
+                    Icon(
+                        imageVector = icons.getValue(section),
+                        contentDescription = section.label,
+                    )
+                },
+                label = {
+                    Text(
+                        text = section.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = scheme.onSecondaryContainer,
+                    selectedTextColor = scheme.onSurface,
+                    unselectedIconColor = scheme.onSurfaceVariant,
+                    unselectedTextColor = scheme.onSurfaceVariant,
+                    indicatorColor = scheme.secondaryContainer,
+                ),
+            )
         }
     }
 }
 
 @Composable
-private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     OutlinedButton(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = ButtonDefaults.outlinedShape,
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Icon(
@@ -2923,7 +2280,7 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(6.dp))
-        Text("Export", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Export", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -2942,9 +2299,9 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
             }
         }
         Text(
-            if (days != null) "$days days left • ${readableDate(plan.examDate)}" else "Set exam date in Plan",
+            plannerExamSubtitle(plan.examDate),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.bodyMedium,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
         )
@@ -2957,7 +2314,7 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     "$percent%",
-                    fontSize = 34.sp,
+                    style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
@@ -2965,9 +2322,9 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
                 Spacer(Modifier.width(8.dp))
                 Text("complete", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth().height(9.dp).clip(RoundedCornerShape(99.dp)))
+            LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth().height(9.dp).clip(CircleShape))
             Text(main, fontWeight = FontWeight.SemiBold, maxLines = 3, overflow = TextOverflow.Ellipsis)
-            Text(sub, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, maxLines = 4, overflow = TextOverflow.Ellipsis)
+            Text(sub, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, maxLines = 4, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -2987,19 +2344,19 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
 }
 
 @Composable private fun GuideStep(label: String, done: Boolean, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable(onClick = onClick).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(if (done) Icons.Default.Check else Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (done) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.width(8.dp))
-        Text(label, modifier = Modifier.weight(1f), fontSize = 13.sp)
-        Text(if (done) "Done" else "Next", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Text(if (done) "Done" else "Next", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable private fun PlannerActionButton(text: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
-    Button(onClick = onClick, modifier = modifier.height(52.dp), shape = RoundedCornerShape(14.dp)) {
+    Button(onClick = onClick, modifier = modifier.heightIn(min = 52.dp), shape = ButtonDefaults.shape) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))
-        Text(text, fontSize = 12.sp)
+        Text(text, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -3008,12 +2365,12 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
         Text(
             title,
             fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
+            style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.weight(1f).widthIn(min = 0.dp),
         )
         Text(
             subtitle,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f).widthIn(min = 0.dp),
             textAlign = TextAlign.End,
@@ -3024,8 +2381,8 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
 @Composable private fun MetricCard(label: String, value: String, modifier: Modifier) {
     PlannerSurface(modifier = modifier) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(value, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -3033,7 +2390,7 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
 @Composable private fun SettingsCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     PlannerSurface {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             content()
         }
     }
@@ -3050,7 +2407,7 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
 @Composable private fun OffDayPicker(selected: Set<Int>, onToggle: (Int) -> Unit) {
     val days = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("My Rest Days", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("My Rest Days", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             days.forEachIndexed { index, label ->
                 FilterChip(selected = index in selected, onClick = { onToggle(index) }, label = { Text(label) })
@@ -3062,17 +2419,18 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
 @Composable internal fun StatusDot(status: TopicStatus) {
     val color = when (status) {
         TopicStatus.TODO -> MaterialTheme.colorScheme.outline
-        TopicStatus.DONE -> Color(0xFF16A34A)
-        TopicStatus.REVISION_NEEDED -> Color(0xFFF59E0B)
+        TopicStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
+        TopicStatus.DONE -> MaterialTheme.colorScheme.tertiary
+        TopicStatus.REVISION_NEEDED -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.outline
     }
     Box(Modifier.size(12.dp).clip(CircleShape).background(color))
 }
 
-@Composable private fun PlannerSurface(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
+@Composable internal fun PlannerSurface(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
     Card(
         modifier = modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        shape = RoundedCornerShape(18.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
@@ -3080,7 +2438,7 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
 }
 
 @Composable private fun PlannerRow(title: String, subtitle: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)).clickable(onClick = onClick).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)).clickable(onClick = onClick).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
@@ -3097,7 +2455,7 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
             Icon(Icons.Default.School, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
             Text(title, fontWeight = FontWeight.Bold)
             Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-            Button(onClick = onAction, shape = RoundedCornerShape(14.dp)) { Text(action) }
+            Button(onClick = onAction, shape = ButtonDefaults.shape) { Text(action) }
         }
     }
 }
@@ -3118,332 +2476,323 @@ private fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modifi
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(body) },
-        confirmButton = { Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Confirm") } },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) {
+                Text("Confirm", fontWeight = FontWeight.Bold)
+            }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SyllabusFullImportCard(state: StudyPlannerUiState, actions: PlannerActions) {
-    var text by remember { mutableStateOf("") }
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val mimeTypes = arrayOf(
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "text/plain",
-    )
-    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val part = withContext(Dispatchers.IO) { buildSyllabusUploadPart(context, uri) }
-            if (part == null) {
-                actions.setError("Could not read the selected file.")
-                return@launch
-            }
-            actions.importSyllabusFile(part.first, part.second)
-        }
-    }
+    var text by remember { mutableStateOf(state.rawSyllabusText) }
+    val aiImportEnabled = BuildConfig.AI_SYLLABUS_IMPORT_ENABLED
+    var mode by remember(aiImportEnabled) { mutableStateOf(if (aiImportEnabled) "ai" else "manual") }
     LaunchedEffect(state.syllabusImportDraft) {
         if (state.syllabusImportDraft.isBlank()) return@LaunchedEffect
         text = state.syllabusImportDraft.trim()
+        mode = "manual"
         actions.clearSyllabusImportDraft()
     }
     val parsed = remember(text) { parseBulkSubjectsFromTxt(text) }
     val groups = parsed.getOrNull()
     val topicCount = groups?.let { countBulkSubjectsTopics(it) } ?: 0
     val chapterCount = groups?.let { countBulkSubjectsChapters(it) } ?: 0
-    PlannerSurface {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Import Syllabus", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-            OutlinedButton(onClick = { filePicker.launch(mimeTypes) }, shape = RoundedCornerShape(12.dp)) {
-                Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Import File")
-            }
-            state.syllabusImportFileName?.let { name ->
-                Text("Imported: $name", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            OutlinedTextField(
-                text,
-                { text = it },
-                placeholder = {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            "Paste the Syllabus",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            "Use - for subject, _ for chapter, and > for topic.",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                minLines = 5,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-            )
-            when {
-                text.isBlank() -> Unit
-                parsed.isSuccess && groups != null ->
-                    Text("$topicCount topics / $chapterCount chapters / ${groups.size} subjects", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else ->
-                    Text(parsed.exceptionOrNull()?.message ?: "Invalid format", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
-            }
-            Button(
-                onClick = { actions.importFullSyllabusFromTxt(text); text = "" },
-                enabled = chapterCount > 0 && parsed.isSuccess,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-            ) {
-                Text("Add to Plan")
-            }
-        }
-    }
-}
-
-private fun buildSyllabusUploadPart(context: Context, uri: Uri): Pair<MultipartBody.Part, String>? {
-    val resolver = context.contentResolver
-    val rawName = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-        val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-        if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
-    }
-    val name = rawName?.takeIf { it.isNotBlank() } ?: "syllabus.pdf"
-    val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
-
-    // The Express backend (`SAFAR/server/routes/syllabus-import.ts`) rejects anything outside
-    // the allow-list { application/pdf, application/vnd...wordprocessingml.document, text/plain }.
-    // Some Storage Access Framework providers report `null` or `application/octet-stream`, which
-    // would fail that check, so resolve the MIME from the file extension as a fallback.
-    val resolverMime = resolver.getType(uri)?.lowercase(Locale.US)
-    val extensionMime = when (name.substringAfterLast('.', missingDelimiterValue = "").lowercase(Locale.US)) {
-        "pdf" -> "application/pdf"
-        "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        "txt" -> "text/plain"
-        else -> null
-    }
-    val mimeType = when {
-        !resolverMime.isNullOrBlank() && resolverMime != "application/octet-stream" -> resolverMime
-        extensionMime != null -> extensionMime
-        else -> "application/octet-stream"
-    }
-
-    val body = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
-    val part = MultipartBody.Part.createFormData("file", name, body)
-    return part to name
-}
-
-@Composable
-private fun CalendarDayChip(
-    dateIso: String,
-    items: List<CalendarTopicItem>,
-    selected: Boolean,
-    isToday: Boolean,
-    isOff: Boolean,
-    dense: Boolean = false,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier.width(54.dp),
-) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val todayK = todayKey()
-    val planned = items.size
-    val done = items.count { it.status == TopicStatus.DONE }
-    val overdue = if (dateIso < todayK) items.count { it.status != TopicStatus.DONE } else 0
-    val dayNum = LocalDate.parse(dateIso).dayOfMonth.toString()
-
-    val backgroundColor = when {
-        isToday -> if (isDark) Color(0xFF1E293B) else Color.White
-        planned > 0 && done == planned -> if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7) // Soft green for Completed
-        planned > 0 && overdue > 0 -> if (isDark) Color(0xFF7F1D1D) else Color(0xFFFEE2E2) // Soft red for Overdue
-        isOff && planned > 0 -> if (isDark) Color(0xFF78350F) else Color(0xFFFEF3C7) // Soft yellow
-        else -> if (isDark) Color(0xFF1E293B) else Color.White // Normal days or empty off days
-    }
-
-    val contentColor = if (isDark) Color.White else Color.Black
-
-    val borderStroke = when {
-        isToday -> BorderStroke(2.dp, Color(0xFF2563EB))
-        selected -> BorderStroke(2.dp, Color(0xFF2563EB))
-        else -> BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color.Black.copy(alpha = 0.05f))
-    }
+    val preview = state.structuredPreview
+    val scheme = MaterialTheme.colorScheme
 
     Card(
-        modifier = modifier
-            .shadow(
-                elevation = if (isToday) 6.dp else 2.dp,
-                shape = RoundedCornerShape(12.dp),
-                ambientColor = if (isToday) Color(0xFF2563EB) else Color.Black,
-                spotColor = if (isToday) Color(0xFF2563EB) else Color.Black
-            )
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        border = borderStroke
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, scheme.surfaceContainerHighest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 4.dp, horizontal = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (isToday) {
-                Text(
-                    text = "TODAY",
-                    fontSize = 7.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color(0xFF2563EB),
-                    maxLines = 1
-                )
-            }
             Text(
-                text = dayNum,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = contentColor,
-                maxLines = 1
+                "Import Syllabus",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = scheme.onSurface,
             )
-            if (isOff && planned == 0) {
-                Text(
-                    text = "off",
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFF59E0B),
-                    maxLines = 1
-                )
-            } else {
-                // Topic Dots (max 4)
-                val dots = items.take(4).map { item ->
-                    when {
-                        item.status == TopicStatus.DONE -> Color(0xFF22C55E) // Green for completed
-                        dateIso < todayK && item.status != TopicStatus.DONE -> Color(0xFFEF4444) // Red for overdue
-                        isOff -> Color(0xFFF59E0B) // Orange for off
-                        else -> Color(0xFF2563EB) // Blue for planned
-                    }
-                }
-                if (dots.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        dots.forEach { dotColor ->
-                            Box(
-                                modifier = Modifier
-                                    .size(5.dp)
-                                    .clip(CircleShape)
-                                    .background(dotColor)
+            if (aiImportEnabled) {
+                val selectedTabIndex = if (mode == "ai") 0 else 1
+                SecondaryTabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = Color.Transparent,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Tab(
+                        selected = mode == "ai",
+                        onClick = { mode = "ai" },
+                        text = {
+                            Text(
+                                "AI Import",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
                             )
-                        }
-                    }
+                        },
+                        selectedContentColor = scheme.primary,
+                        unselectedContentColor = scheme.onSurfaceVariant
+                    )
+                    Tab(
+                        selected = mode == "manual",
+                        onClick = { mode = "manual" },
+                        text = {
+                            Text(
+                                "Manual Setup",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        },
+                        selectedContentColor = scheme.primary,
+                        unselectedContentColor = scheme.onSurfaceVariant
+                    )
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun CalendarLegendDot(color: Color, label: String) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (isDark) Color(0xFF94A3B8) else Color.DarkGray)
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SelectedDayLogSheet(
-    dateIso: String,
-    plan: StudyPlan,
-    items: List<CalendarTopicItem>,
-    actions: PlannerActions,
-    onDismiss: () -> Unit,
-) {
-    val todayK = todayKey()
-    val planned = items.size
-    val done = items.count { it.status == TopicStatus.DONE }
-    val missed = if (dateIso < todayK) items.count { it.status != TopicStatus.DONE } else 0
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            Modifier
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text("Day Plan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(readableDate(dateIso), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("Planned $planned", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text("Done $done", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
-                Text("Missed $missed", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-            }
-            HorizontalDivider()
-            if (items.isEmpty()) {
-                Text(
-                    "No topics planned for this day.",
-                    modifier = Modifier.padding(vertical = 24.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            if (aiImportEnabled && mode == "ai") {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = {
+                        text = it
+                        if (preview != null) actions.updateStructuredPreview(null)
+                    },
+                    placeholder = {
+                        Text(
+                            "Paste your syllabus text...",
+                            color = scheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    minLines = 8,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 160.dp),
+                    shape = OutlinedTextFieldDefaults.shape,
+                    enabled = !state.isStructuringSyllabus && !state.isImportingStructuredSyllabus,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = scheme.onSurface,
+                        unfocusedTextColor = scheme.onSurface,
+                        cursorColor = scheme.primary,
+                        focusedBorderColor = scheme.primary,
+                        unfocusedBorderColor = scheme.outline,
+                        focusedContainerColor = scheme.surface,
+                        unfocusedContainerColor = scheme.surface,
+                    )
                 )
-            } else {
-                items.forEach { item ->
-                    PlannerSurface {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(item.topicName, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                Text(plannerTopicStatusDisplayLabel(item.status), fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
-                            }
-                            Text("${item.subjectName} · ${item.chapterName}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                TextButton(onClick = { actions.updateTopic(item.topicId, status = TopicStatus.DONE) }) { Text("Done") }
-                                TextButton(onClick = { actions.updateTopic(item.topicId, status = TopicStatus.REVISION_NEEDED) }) { Text("Revision") }
-                            }
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                TextButton(
-                                    onClick = {
-                                        val next = findNextAvailablePlannedDateIso(dateIso, plan.offDays)
-                                        actions.updateTopic(item.topicId, plannedDate = next)
-                                    },
-                                ) {
-                                    Text("Move")
-                                }
-                                TextButton(onClick = { actions.updateTopic(item.topicId, plannedDate = "") }) { Text("Remove Date") }
-                            }
+                Button(
+                    onClick = { actions.structureSyllabusPreview(text) },
+                    enabled = text.isNotBlank() && !state.isStructuringSyllabus && !state.isImportingStructuredSyllabus,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = scheme.primary,
+                        contentColor = scheme.onPrimary,
+                        disabledContainerColor = scheme.onSurface.copy(alpha = 0.12f),
+                        disabledContentColor = scheme.onSurface.copy(alpha = 0.38f),
+                    )
+                ) {
+                    if (state.isStructuringSyllabus) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = scheme.onPrimary,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Organizing your syllabus...", style = MaterialTheme.typography.labelLarge)
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.AutoAwesome,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Structure with AI", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+                state.structureError?.let {
+                    Text("We could not organize this syllabus. You can try again or use manual format.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                if (preview != null) {
+                    StructuredSyllabusPreviewEditor(
+                        preview = preview,
+                        isImporting = state.isImportingStructuredSyllabus,
+                        onPreviewChange = actions::updateStructuredPreview,
+                    )
+                    Button(
+                        onClick = { actions.importStructuredSyllabus() },
+                        enabled = preview.subjects.isNotEmpty() && !state.isImportingStructuredSyllabus,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = ButtonDefaults.shape,
+                    ) {
+                        if (state.isImportingStructuredSyllabus) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Adding syllabus to your plan...")
+                        } else {
+                            Text("Add to Plan")
                         }
                     }
                 }
-                HorizontalDivider()
+                state.structuredImportError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            } else {
+                OutlinedTextField(
+                    text,
+                    { text = it },
+                    placeholder = {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Use Manual", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("- Subject, _ Chapter, > Topic", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    },
+                    minLines = 5,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = OutlinedTextFieldDefaults.shape,
+                )
+                when {
+                    text.isBlank() -> Unit
+                    parsed.isSuccess && groups != null -> Text("$topicCount topics / $chapterCount chapters / ${groups.size} subjects", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    else -> Text(parsed.exceptionOrNull()?.message ?: "Invalid format", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
                 Button(
-                    onClick = {
-                        val next = findNextAvailablePlannedDateIso(dateIso, plan.offDays)
-                        actions.moveTopicsToDate(items.map { it.topicId }, next)
-                        onDismiss()
-                    },
+                    onClick = { actions.importFullSyllabusFromTxt(text); text = "" },
+                    enabled = chapterCount > 0 && parsed.isSuccess && !state.isImporting,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text("Move all to next study day")
-                }
-                OutlinedButton(
-                    onClick = {
-                        actions.clearTopicDates(items.map { it.topicId })
-                        onDismiss()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text("Clear Day")
-                }
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = scheme.primary,
+                        contentColor = scheme.onPrimary,
+                    ),
+                ) { Text("Add Manual Format to Plan") }
             }
         }
     }
 }
+
+@Composable
+private fun SyllabusModeToggleButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    outlined: Boolean = false,
+) {
+    val scheme = MaterialTheme.colorScheme
+    if (outlined && !selected) {
+        OutlinedButton(
+            onClick = onClick,
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, scheme.outlineVariant),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.onSurfaceVariant),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Text(label, style = MaterialTheme.typography.labelLarge)
+        }
+    } else {
+        Button(
+            onClick = onClick,
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (selected) scheme.surfaceContainerHigh else scheme.surfaceContainerLowest,
+                contentColor = scheme.onSurface,
+            ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Text(label, style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+@Composable
+private fun StructuredSyllabusPreviewEditor(
+    preview: StructuredSyllabusPreview,
+    isImporting: Boolean,
+    onPreviewChange: (StructuredSyllabusPreview?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("${preview.stats.subjectCount} subjects � ${preview.stats.chapterCount} chapters � ${preview.stats.topicCount} topics", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        if (preview.warnings.isNotEmpty()) {
+            PlannerSurface {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Warnings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                    preview.warnings.forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+            }
+        }
+        if (preview.subjects.isEmpty()) {
+            Text("No syllabus structure was detected. Edit the text and try again, or use manual format.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        preview.subjects.forEachIndexed { subjectIndex, subject ->
+            PlannerSurface {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(value = subject.name, onValueChange = { onPreviewChange(preview.renameSubject(subjectIndex, it)) }, label = { Text("Subject") }, modifier = Modifier.weight(1f), singleLine = true, enabled = !isImporting)
+                        IconButton(onClick = { onPreviewChange(preview.deleteSubject(subjectIndex)) }, enabled = !isImporting) { Icon(Icons.Default.Delete, contentDescription = "Delete subject") }
+                    }
+                    subject.chapters.forEachIndexed { chapterIndex, chapter ->
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(value = chapter.name, onValueChange = { onPreviewChange(preview.renameChapter(subjectIndex, chapterIndex, it)) }, label = { Text("Chapter") }, modifier = Modifier.weight(1f), singleLine = true, enabled = !isImporting)
+                                IconButton(onClick = { onPreviewChange(preview.deleteChapter(subjectIndex, chapterIndex)) }, enabled = !isImporting) { Icon(Icons.Default.Delete, contentDescription = "Delete chapter") }
+                            }
+                            chapter.topics.forEachIndexed { topicIndex, topic ->
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 8.dp)) {
+                                    OutlinedTextField(value = topic, onValueChange = { onPreviewChange(preview.renameTopic(subjectIndex, chapterIndex, topicIndex, it)) }, label = { Text("Topic") }, modifier = Modifier.weight(1f), singleLine = true, enabled = !isImporting)
+                                    IconButton(onClick = { onPreviewChange(preview.deleteTopic(subjectIndex, chapterIndex, topicIndex)) }, enabled = !isImporting) { Icon(Icons.Default.Close, contentDescription = "Delete topic") }
+                                }
+                            }
+                            var newTopic by remember(subjectIndex, chapterIndex, preview.stats.topicCount) { mutableStateOf("") }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(start = 8.dp)) {
+                                OutlinedTextField(value = newTopic, onValueChange = { newTopic = it }, label = { Text("Add missing topic") }, modifier = Modifier.weight(1f), singleLine = true, enabled = !isImporting)
+                                TextButton(onClick = { onPreviewChange(preview.addTopic(subjectIndex, chapterIndex, newTopic)); newTopic = "" }, enabled = newTopic.isNotBlank() && !isImporting) { Text("Add") }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        TextButton(onClick = { onPreviewChange(null) }, enabled = !isImporting) { Text("Back to raw text") }
+    }
+}
+
+private fun StructuredSyllabusPreview.withRecomputedStats(): StructuredSyllabusPreview {
+    val chapters = subjects.sumOf { it.chapters.size }
+    val topics = subjects.sumOf { subject -> subject.chapters.sumOf { it.topics.size } }
+    return copy(stats = SyllabusStats(subjects.size, chapters, topics))
+}
+
+private fun StructuredSyllabusPreview.renameSubject(subjectIndex: Int, name: String) = copy(subjects = subjects.mapIndexed { index, subject -> if (index == subjectIndex) subject.copy(name = name) else subject }).withRecomputedStats()
+
+private fun StructuredSyllabusPreview.renameChapter(subjectIndex: Int, chapterIndex: Int, name: String) = copy(subjects = subjects.mapIndexed { sIndex, subject -> if (sIndex != subjectIndex) subject else subject.copy(chapters = subject.chapters.mapIndexed { cIndex, chapter -> if (cIndex == chapterIndex) chapter.copy(name = name) else chapter }) }).withRecomputedStats()
+
+private fun StructuredSyllabusPreview.renameTopic(subjectIndex: Int, chapterIndex: Int, topicIndex: Int, name: String) = copy(subjects = subjects.mapIndexed { sIndex, subject -> if (sIndex != subjectIndex) subject else subject.copy(chapters = subject.chapters.mapIndexed { cIndex, chapter -> if (cIndex != chapterIndex) chapter else chapter.copy(topics = chapter.topics.mapIndexed { tIndex, topic -> if (tIndex == topicIndex) name else topic }) }) }).withRecomputedStats()
+
+private fun StructuredSyllabusPreview.deleteSubject(subjectIndex: Int) = copy(subjects = subjects.filterIndexed { index, _ -> index != subjectIndex }).withRecomputedStats()
+
+private fun StructuredSyllabusPreview.deleteChapter(subjectIndex: Int, chapterIndex: Int) = copy(subjects = subjects.mapIndexed { sIndex, subject -> if (sIndex != subjectIndex) subject else subject.copy(chapters = subject.chapters.filterIndexed { cIndex, _ -> cIndex != chapterIndex }) }.filter { it.chapters.isNotEmpty() }).withRecomputedStats()
+
+private fun StructuredSyllabusPreview.deleteTopic(subjectIndex: Int, chapterIndex: Int, topicIndex: Int) = copy(subjects = subjects.mapIndexed { sIndex, subject -> if (sIndex != subjectIndex) subject else subject.copy(chapters = subject.chapters.mapIndexed { cIndex, chapter -> if (cIndex != chapterIndex) chapter else chapter.copy(topics = chapter.topics.filterIndexed { tIndex, _ -> tIndex != topicIndex }) }.filter { it.topics.isNotEmpty() }) }.filter { it.chapters.isNotEmpty() }).withRecomputedStats()
+
+private fun StructuredSyllabusPreview.addTopic(subjectIndex: Int, chapterIndex: Int, name: String): StructuredSyllabusPreview {
+    val clean = name.trim()
+    if (clean.isBlank()) return this
+    return copy(subjects = subjects.mapIndexed { sIndex, subject -> if (sIndex != subjectIndex) subject else subject.copy(chapters = subject.chapters.mapIndexed { cIndex, chapter -> if (cIndex != chapterIndex) chapter else chapter.copy(topics = chapter.topics + clean) }) }).withRecomputedStats()
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun PremiumGateSheet(reason: PremiumReason, onDismiss: () -> Unit, onUpgrade: () -> Unit) {
@@ -3452,9 +2801,13 @@ private fun SelectedDayLogSheet(
             Icon(Icons.Default.Analytics, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(42.dp))
             Text(reason.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(reason.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(onClick = onUpgrade, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("Unlock Premium") }
+            Button(onClick = onUpgrade, modifier = Modifier.fillMaxWidth(), shape = ButtonDefaults.shape) { Text("Unlock Premium") }
             TextButton(onClick = onDismiss) { Text("Not now") }
             Spacer(Modifier.height(18.dp))
         }
     }
 }
+
+
+
+

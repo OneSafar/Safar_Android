@@ -88,9 +88,9 @@ fun SafarDrawerScaffold(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         val shouldShowSubtitle = subtitle != null &&
-                            !subtitle.equals("SAFAR", ignoreCase = true) &&
-                            !subtitle.equals(appName, ignoreCase = true) &&
-                            !subtitle.startsWith("Safar", ignoreCase = true) &&
+                            !subtitle.contains("SAFAR", ignoreCase = true) &&
+                            !subtitle.contains("Safar", ignoreCase = true) &&
+                            !subtitle.contains(appName, ignoreCase = true) &&
                             subtitle.isNotBlank()
                         if (shouldShowSubtitle) {
                             Text(

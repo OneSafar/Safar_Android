@@ -41,6 +41,7 @@ import com.safar.app.ui.navigation.Routes
 import com.safar.app.ui.components.SafarErrorState
 import com.safar.app.ui.components.SafarPullRefreshBox
 import com.safar.app.ui.components.StatCardSkeleton
+import com.safar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
 import com.safar.app.ui.theme.*
 
 @Composable
@@ -111,7 +112,7 @@ fun DashboardScreen(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
                 ) {
                     item { WelcomeBanner(uiState.userName, isDarkTheme) }
-                    item { InspirationCard(isDarkTheme) }
+                    item { TodayStudyPlanCard(uiState.studyPlan, isDarkTheme, onNavigate) }
                     if (uiState.activeTitle.isNotEmpty()) {
                         item { ActiveTitleCard(uiState.activeTitle, uiState.activeTitleId, isDarkTheme) }
                     }
@@ -196,47 +197,174 @@ private fun DashboardWelcomeOverlay(userName: String, onDismiss: () -> Unit) {
 @Composable
 private fun WelcomeBanner(userName: String, isDark: Boolean) {
     DashCard(isDark) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.size(8.dp).clip(CircleShape).background(Green500))
-                    Text("ONLINE", fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                        color = Green500, letterSpacing = 1.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row {
+                Text("Welcome back, ", color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    userName.replaceFirstChar { it.uppercase() }.ifEmpty { "User" },
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 22.sp, fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.FormatQuote, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    Text("DAILY INSPIRATION", fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), letterSpacing = 1.sp)
                 }
-                Spacer(Modifier.height(4.dp))
-                Row {
-                    Text("Welcome back, ", color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text(
-                        userName.replaceFirstChar { it.uppercase() }.ifEmpty { "User" },
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 22.sp, fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    "\"Your limit is mostly your imagination.\"",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }
 }
 
 @Composable
-private fun InspirationCard(isDark: Boolean) {
-    DashCard(isDark) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Default.FormatQuote, contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-            Text("DAILY INSPIRATION", fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), letterSpacing = 1.sp)
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "\"Your limit is mostly your imagination.\"",
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-            fontSize = 13.sp,
-            style = MaterialTheme.typography.bodyMedium
+private fun TodayStudyPlanCard(
+    state: DashboardStudyPlanState,
+    isDark: Boolean,
+    onNavigate: (String) -> Unit,
+) {
+    LaunchedEffect(state.status, state.planId) {
+        StudyPlannerAnalytics.track(
+            StudyPlannerAnalytics.DASHBOARD_TODAY_CARD_VIEWED,
+            mapOf("state" to state.status.name.lowercase()),
         )
+    }
+
+    fun openPlanner() {
+        StudyPlannerAnalytics.track(
+            StudyPlannerAnalytics.DASHBOARD_TODAY_CARD_CLICKED,
+            mapOf("state" to state.status.name.lowercase(), "plan_id" to state.planId.orEmpty()),
+        )
+        onNavigate(Routes.STUDY_PLANNER)
+    }
+
+    DashCard(isDark) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.Default.Today, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                CardTitle("Today's Study Plan", isDark)
+            }
+            if (state.status == DashboardStudyPlanStatus.HAS_TOPICS) {
+                Text(
+                    "${state.doneCount}/${state.totalCount} done",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+
+        when (state.status) {
+            DashboardStudyPlanStatus.NO_ACTIVE_PLAN -> {
+                Text(
+                    "Create a study plan to know what to study today.",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    fontSize = 13.sp,
+                )
+                Spacer(Modifier.height(12.dp))
+                Button(onClick = ::openPlanner, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                    Text("Create Plan", fontWeight = FontWeight.SemiBold)
+                }
+            }
+            DashboardStudyPlanStatus.NO_TOPICS_TODAY -> {
+                Text(
+                    state.planTitle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    state.errorMessage ?: "No topics planned for today.",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    fontSize = 13.sp,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = ::openPlanner, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                    Text("Open Planner", fontWeight = FontWeight.SemiBold)
+                }
+            }
+            DashboardStudyPlanStatus.HAS_TOPICS -> {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            state.planTitle,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            state.daysLeftText,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                            fontSize = 12.sp,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                state.visibleTopics.forEach { topic ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Box(
+                            Modifier
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .border(1.5.dp, if (topic.done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape)
+                                .background(if (topic.done) MaterialTheme.colorScheme.primary else Color.Transparent),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (topic.done) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                            }
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(topic.title, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (topic.subtitle.isNotBlank()) {
+                                Text(topic.subtitle, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+                if (state.moreCount > 0) {
+                    Text(
+                        "+${state.moreCount} more",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = ::openPlanner, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                    Text("Open Planner", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
     }
 }
 
@@ -815,15 +943,19 @@ private fun GoalHistoryCard(goals: List<Goal>, isDark: Boolean, onNavigate: (Str
 
 @Composable
 private fun DashCard(isDark: Boolean, content: @Composable ColumnScope.() -> Unit) {
+    val gradient = if (isDark) DarkExpressiveGradient else LightExpressiveGradient
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        shape = ExpressiveCardShape,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
     ) {
-        Column(modifier = Modifier.padding(16.dp), content = content)
+        Column(
+            modifier = Modifier
+                .background(gradient)
+                .padding(20.dp),
+            content = content
+        )
     }
 }
 

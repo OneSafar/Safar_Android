@@ -519,14 +519,14 @@ class StudyPlannerViewModel @Inject constructor(
                 hydratePlanFromServerBestEffort(r.data.id)
             }
             is Resource.Error -> {
-                if (r.code == 429 && getLocalExamTemplate(templateId) != null) {
+                if (getLocalExamTemplate(templateId) != null) {
                     createPlanFromLocalTemplate(
                         templateId,
                         title,
                         examDate,
                         dailyGoal,
                         offDays,
-                        successMessage = "Plan created from saved template (server busy — try again online later).",
+                        successMessage = "Plan created from saved template.",
                     )
                 } else {
                     _uiState.update { it.copy(mutating = false, error = r.message) }
@@ -585,7 +585,17 @@ class StudyPlannerViewModel @Inject constructor(
         }
 
         _uiState.update { it.copy(mutating = true, error = null) }
-        val plan = when (val pr = repo.createPlan(CreatePlanRequest(title = title, examType = template.name, examDate = examDate, dailyGoal = dailyGoal, offDays = offDays))) {
+
+        // Step 1: Create the plan shell
+        val plan = when (val pr = repo.createPlan(
+            CreatePlanRequest(
+                title = title.ifBlank { template.name },
+                examType = template.name,
+                examDate = examDate,
+                dailyGoal = dailyGoal,
+                offDays = offDays,
+            )
+        )) {
             is Resource.Success -> pr.data
             is Resource.Error -> {
                 _uiState.update { it.copy(mutating = false, error = pr.message) }
@@ -595,43 +605,58 @@ class StudyPlannerViewModel @Inject constructor(
         }
 
         val planId = plan.id
+        var currentPlan = plan
+        var hasErrors = false
+
+        // Step 2: Build syllabus using atomic endpoints (like Web's custom syllabus builder)
         for (subject in template.subjects) {
-            val subjectPlan = when (val sr = repo.addSubject(planId, SubjectRequest(name = subject.name, color = subject.color))) {
-                is Resource.Success -> sr.data
-                is Resource.Error -> {
-                    _uiState.update { it.copy(mutating = false, error = sr.message) }
-                    return
-                }
-                is Resource.Loading -> return
-            }
-
-            val subjectId = subjectPlan.subjects.find { it.name == subject.name }?.id ?: continue
-            for (chapter in subject.chapters) {
-                val chapterPlan = when (val cr = repo.addChapter(planId, subjectId, ChapterRequest(chapter.name))) {
-                    is Resource.Success -> cr.data
-                    is Resource.Error -> {
-                        _uiState.update { it.copy(mutating = false, error = cr.message) }
-                        return
-                    }
-                    is Resource.Loading -> return
-                }
-
-                val chapterId = chapterPlan.subjects.find { it.id == subjectId }
-                    ?.chapters?.find { it.name == chapter.name }?.id ?: continue
-                for (topic in chapter.topics) {
-                    when (val tr = repo.addTopic(planId, subjectId, chapterId, TopicRequest(topic))) {
-                        is Resource.Success -> Unit
-                        is Resource.Error -> {
-                            _uiState.update { it.copy(mutating = false, error = tr.message) }
-                            return
+            val sr = repo.addSubject(planId, SubjectRequest(name = subject.name, color = subject.color))
+            if (sr is Resource.Success) {
+                currentPlan = sr.data
+                val createdSubject = currentPlan.subjects.find { it.name == subject.name }
+                if (createdSubject != null) {
+                    for (chapter in subject.chapters) {
+                        val cr = repo.addChapter(planId, createdSubject.id, ChapterRequest(name = chapter.name))
+                        if (cr is Resource.Success) {
+                            currentPlan = cr.data
+                            val createdChapter = currentPlan.subjects.find { it.id == createdSubject.id }?.chapters?.find { it.name == chapter.name }
+                            if (createdChapter != null) {
+                                // Bulk import topics for this chapter
+                                val topicsRequest = BulkTopicsRequest(topics = chapter.topics.map { BulkTopicItemRequest(name = it) })
+                                val tr = repo.bulkTopics(planId, createdSubject.id, createdChapter.id, topicsRequest)
+                                if (tr is Resource.Success) {
+                                    currentPlan = tr.data
+                                } else {
+                                    hasErrors = true
+                                }
+                            }
+                        } else {
+                            hasErrors = true
                         }
-                        is Resource.Loading -> return
                     }
                 }
+            } else {
+                hasErrors = true
             }
         }
 
-        _uiState.update { it.copy(mutating = false, message = successMessage) }
+        // Step 3: Auto-distribute if examDate is provided
+        if (examDate != null) {
+            val ar = repo.autoDistribute(planId, AutoDistributeRequest(includeRevisionNeeded = false, lockExistingDates = false))
+            if (ar is Resource.Success && ar.data.plan != null) {
+                currentPlan = ar.data.plan
+            }
+        }
+
+        _uiState.update {
+            it.copy(
+                mutating = false,
+                selectedPlan = currentPlan,
+                message = if (hasErrors) "Plan created with some syllabus import errors." else successMessage,
+                section = PlannerSection.PLAN,
+            )
+        }
+        StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLAN_CREATED_TEMPLATE)
         refreshPlans()
         openPlan(planId)
     }

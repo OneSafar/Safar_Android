@@ -340,7 +340,7 @@ fun PermissionGuideSheet(
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    "Made for focused study sessions. You choose what Kavach blocks.",
+                    "Made for focused study sessions. You choose what KAVACH blocks.",
                     fontSize = 12.sp,
                     color = scheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
@@ -452,34 +452,34 @@ private data class PermissionGuideContent(
             PermissionTarget.USAGE_STATS -> PermissionGuideContent(
                 icon = Icons.Default.BarChart,
                 title = "App Usage Permission",
-                subtitle = "Helps Kavach notice opened apps during focus sessions.",
+                subtitle = "Helps KAVACH notice opened apps during focus sessions.",
                 steps = listOf(
                     "Find SAFAR in the list of apps.",
                     "Tap Allow usage access (or Permit usage access).",
                     "Press back to return to SAFAR.",
                 ),
-                reassurance = "SAFAR does not read what is inside any app. The open app name is enough for Kavach to match your blocked list.",
+                reassurance = "SAFAR does not read what is inside any app. The open app name is enough for KAVACH to match your blocked list.",
             )
             PermissionTarget.ACCESSIBILITY -> PermissionGuideContent(
                 icon = Icons.Default.Info,
-                title = "Ekagra Mode Accessibility",
+                title = "KAVACH Block Screen",
                 subtitle = "Shows the block screen when a chosen app opens.",
                 steps = listOf(
                     "Scroll to Downloaded apps (or Installed apps).",
-                    "Tap SAFAR Ekagra Mode.",
+                    "Tap Safar KAVACH block screen.",
                     "Toggle the switch on and confirm.",
                 ),
-                reassurance = "SAFAR does not read messages, passwords, typed text, photos, or screen content. It only helps Kavach react to apps you selected.",
+                reassurance = "SAFAR does not read messages, passwords, typed text, photos, or screen content. It only helps KAVACH react to apps you selected.",
             )
             PermissionTarget.NOTIFICATIONS -> PermissionGuideContent(
                 icon = Icons.Default.NotificationsActive,
                 title = "Notifications",
-                subtitle = "Used for focus timer progress and active Kavach status.",
+                subtitle = "Used for focus timer progress and active KAVACH status.",
                 steps = listOf(
                     "Tap Allow on the system prompt that follows.",
                     "(If no prompt appears, toggle Notifications on for SAFAR.)",
                 ),
-                reassurance = "Notifications are optional. Kavach and study timers still work without them.",
+                reassurance = "Notifications are optional. KAVACH and study timers still work without them.",
             )
         }
     }

@@ -32,14 +32,14 @@ import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safar.app.data.local.SafarDataStore
-import com.google.firebase.messaging.FirebaseMessaging
 import com.safar.app.notifications.NotificationDeepLinkHandler
 import com.safar.app.ui.ekagra.LocalTimerService
 import com.safar.app.ui.ekagra.TimerService
 import com.safar.app.ui.navigation.SafarNavGraph
+import com.safar.app.ui.navigation.Routes
+import com.safar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
 import com.safar.app.ui.theme.SafarTheme
 import com.safar.app.ui.theme.ThemeViewModel
-import com.safar.app.ui.debug.DebugFontScaleOverlay
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
 import javax.inject.Inject
@@ -76,17 +76,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyOrientationPolicy()
-
-        FirebaseMessaging.getInstance().token
-            .addOnSuccessListener {
-                if (BuildConfig.DEBUG) Log.d("SAFAR_FCM", "FCM token fetched")
-            }
-            .addOnFailureListener {
-                if (BuildConfig.DEBUG) Log.e("SAFAR_FCM", "FCM token fetch failed", it)
-            }
-            .addOnCompleteListener { task ->
-                if (BuildConfig.DEBUG) Log.d("SAFAR_FCM", "FCM token task complete. success=${task.isSuccessful}")
-            }
 
         // Bind (and start) the TimerService so it survives navigation
         Intent(this, TimerService::class.java).also { intent ->
@@ -126,24 +115,21 @@ class MainActivity : ComponentActivity() {
                         }
 
                     Surface(modifier = appContentModifier) {
-                        // Provide TimerService to the entire composition tree
                         CompositionLocalProvider(LocalTimerService provides timerService) {
-                            DebugFontScaleOverlay {
-                                SafarNavGraph(
-                                    dataStore = dataStore,
-                                    isDarkTheme = isDarkTheme,
-                                    isNightMode = isNightMode,
-                                    onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
-                                    onToggleNightMode = { themeViewModel.toggleNightMode() },
-                                    onLanguageToggle = {
-                                        val next = if (currentLanguage == "en") "hi" else "en"
-                                        themeViewModel.setLanguage(next)
-                                        AppCompatDelegate.setApplicationLocales(
-                                            LocaleListCompat.forLanguageTags(next)
-                                        )
-                                    }
-                                )
-                            }
+                            SafarNavGraph(
+                                dataStore = dataStore,
+                                isDarkTheme = isDarkTheme,
+                                isNightMode = isNightMode,
+                                onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
+                                onToggleNightMode = { themeViewModel.toggleNightMode() },
+                                onLanguageToggle = {
+                                    val next = if (currentLanguage == "en") "hi" else "en"
+                                    themeViewModel.setLanguage(next)
+                                    AppCompatDelegate.setApplicationLocales(
+                                        LocaleListCompat.forLanguageTags(next)
+                                    )
+                                }
+                            )
                         }
                     }
                 }
@@ -193,6 +179,9 @@ class MainActivity : ComponentActivity() {
         val route = intent?.getStringExtra(NotificationDeepLinkHandler.EXTRA_ROUTE)
             ?: intent?.dataString?.let(NotificationDeepLinkHandler::routeFor)
         if (!route.isNullOrBlank()) {
+            if (route == Routes.STUDY_PLANNER) {
+                StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLANNER_NOTIFICATION_OPENED)
+            }
             notificationRoute = route
         }
     }

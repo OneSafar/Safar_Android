@@ -126,7 +126,10 @@ fun DmChatScreen(
 
 @Composable
 private fun DmChatTopBar(peerName: String, onBack: () -> Unit, onLeave: () -> Unit) {
-    Surface(tonalElevation = 2.dp) {
+    Surface(
+        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
         Row(
             Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -145,7 +148,7 @@ private fun DmChatTopBar(peerName: String, onBack: () -> Unit, onLeave: () -> Un
             }
             OutlinedButton(
                 onClick = onLeave,
-                shape = RoundedCornerShape(10.dp),
+                shape = ButtonDefaults.outlinedShape,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(0.5f)),
@@ -159,7 +162,10 @@ private fun DmChatTopBar(peerName: String, onBack: () -> Unit, onLeave: () -> Un
 
 @Composable
 private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSend: () -> Unit) {
-    Surface(tonalElevation = 2.dp) {
+    Surface(
+        tonalElevation = 3.dp,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
         Row(
             Modifier.navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -171,7 +177,7 @@ private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSen
                 placeholder = { Text("Message...", fontSize = 14.sp) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
-                shape = RoundedCornerShape(24.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 textStyle = TextStyle(fontSize = 14.sp),
             )
             IconButton(
@@ -214,11 +220,11 @@ private fun DmMessageBubble(text: String, isMine: Boolean) {
                         bottomEnd = if (isMine) 4.dp else 16.dp,
                     ),
                 )
-                .background(if (isMine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                .background(if (isMine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
                 .padding(horizontal = 14.dp, vertical = 9.dp)
                 .widthIn(max = 280.dp),
         ) {
-            Text(text, fontSize = 14.sp, color = if (isMine) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
+            Text(text, fontSize = 14.sp, color = if (isMine) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

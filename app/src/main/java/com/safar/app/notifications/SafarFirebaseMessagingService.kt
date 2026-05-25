@@ -1,13 +1,9 @@
 package com.safar.app.notifications
 
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.safar.app.BuildConfig
 import com.safar.app.data.local.SafarDataStore
-import com.safar.app.data.remote.api.NotificationApi
-import com.safar.app.data.remote.dto.DeviceTokenRequest
 import com.safar.app.di.IoDispatcher
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,7 +16,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class SafarFirebaseMessagingService : FirebaseMessagingService() {
     @Inject lateinit var dataStore: SafarDataStore
-    @Inject lateinit var notificationApi: NotificationApi
+    @Inject lateinit var notificationTokenRegistrar: NotificationTokenRegistrar
     @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
     private val scope by lazy { CoroutineScope(SupervisorJob() + ioDispatcher) }
@@ -28,8 +24,7 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         scope.launch {
-            dataStore.setFcmToken(token)
-            registerToken(token)
+            notificationTokenRegistrar.saveAndRegister(token, force = true)
         }
     }
 
@@ -66,33 +61,10 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
                 dataStore.streakReminderEnabled.first()
             SafarNotificationChannels.COURSE_UPDATES -> dataStore.courseUpdatesEnabled.first()
             SafarNotificationChannels.ACHIEVEMENTS -> dataStore.achievementsEnabled.first()
-            SafarNotificationChannels.COMMUNITY -> false // Disabled per user request
+            SafarNotificationChannels.COMMUNITY -> dataStore.communityRepliesEnabled.first()
             SafarNotificationChannels.ANNOUNCEMENTS -> dataStore.announcementsEnabled.first()
             SafarNotificationChannels.ACCOUNT_SYSTEM -> true
             else -> true
-        }
-    }
-
-    private suspend fun registerToken(token: String) {
-        val isLoggedIn = dataStore.isLoggedIn.first()
-        val authToken = dataStore.authToken.first()
-        if (!isLoggedIn || authToken.isNullOrBlank()) return
-
-        runCatching {
-            notificationApi.registerDeviceToken(
-                DeviceTokenRequest(
-                    userId = dataStore.userId.first(),
-                    deviceToken = token,
-                    appVersion = BuildConfig.VERSION_NAME,
-                    flavor = BuildConfig.FLAVOR,
-                    language = dataStore.language.first(),
-                    notificationsEnabled = dataStore.notificationsEnabled.first(),
-                ),
-            )
-        }.onSuccess {
-            dataStore.setDeviceTokenLastSyncAt(System.currentTimeMillis())
-        }.onFailure {
-            Log.w("SafarFCM", "Failed to register FCM token", it)
         }
     }
 }

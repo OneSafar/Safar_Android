@@ -53,7 +53,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.R
-import com.safar.app.ui.theme.AuthLoginButtonTokens
 import com.safar.app.ui.theme.Orange500
 import com.safar.app.ui.theme.Slate300
 import com.safar.app.ui.theme.Slate700

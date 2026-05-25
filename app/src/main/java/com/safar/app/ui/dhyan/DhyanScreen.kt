@@ -408,7 +408,7 @@ private fun BreathingTab(
                         ) {
                             Box(
                                 Modifier
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(MaterialTheme.shapes.small)
                                     .background(MaterialTheme.colorScheme.primary.copy(0.12f))
                                     .padding(horizontal = 12.dp, vertical = 5.dp)
                             ) {
@@ -464,11 +464,11 @@ private fun BreathingTab(
 
         // Session length card
         Card(
-            shape     = RoundedCornerShape(16.dp),
+            shape     = MaterialTheme.shapes.large,
             modifier  = Modifier.fillMaxWidth(),
             colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(0.dp),
-            border    = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+            border    = CardDefaults.outlinedCardBorder(),
         ) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(
@@ -495,35 +495,41 @@ private fun BreathingTab(
 
         // Play / Pause / Reset row
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
+            FilledTonalIconButton(
                 onClick  = { resetTimer() },
-                modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface),
+                modifier = Modifier.size(48.dp),
+                colors   = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor   = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             ) {
-                Icon(Icons.Default.Refresh, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Default.Refresh, null)
             }
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(if (isRunning) Amber500 else MaterialTheme.colorScheme.primary)
-                    .clickable { isRunning = !isRunning },
-                contentAlignment = Alignment.Center,
+            FilledIconButton(
+                onClick  = { isRunning = !isRunning },
+                modifier = Modifier.size(64.dp),
+                colors   = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = if (isRunning) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                    contentColor   = if (isRunning) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onPrimary
+                )
             ) {
                 Icon(
-                    if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    null,
-                    tint     = if (isRunning) Color.Black else MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(32.dp),
+                    imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp)
                 )
             }
-            IconButton(
+            FilledTonalIconButton(
                 onClick  = onShowMusic,
-                modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface),
+                modifier = Modifier.size(48.dp),
+                colors   = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = if (selectedMusic.first != "None") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor   = if (selectedMusic.first != "None") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             ) {
                 Icon(
                     Icons.Default.VolumeUp,
-                    null,
-                    tint = if (selectedMusic.first != "None") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    null
                 )
             }
         }
@@ -534,7 +540,7 @@ private fun BreathingTab(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(MaterialTheme.shapes.large)
                 .background(Brush.horizontalGradient(listOf(BreathGradientStart, BreathGradientEnd)))
                 .clickable(onClick = onBreatheWithMe)
                 .padding(vertical = 12.dp),
@@ -549,11 +555,11 @@ private fun BreathingTab(
         if (selectedMusic.first != "None") {
             Spacer(Modifier.height(8.dp))
             Card(
-                shape     = RoundedCornerShape(12.dp),
+                shape     = MaterialTheme.shapes.medium,
                 modifier  = Modifier.fillMaxWidth(),
                 colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(0.dp),
-                border    = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                border    = CardDefaults.outlinedCardBorder(),
             ) {
                 Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
@@ -582,7 +588,7 @@ private fun BreathingOptionsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor   = MaterialTheme.colorScheme.surface,
-        shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape            = MaterialTheme.shapes.extraLarge,
         sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(
@@ -604,7 +610,7 @@ private fun BreathingOptionsSheet(
             techniques.forEach { t ->
                 val isSelected = t.name == selectedTechnique?.name
                 Card(
-                    shape     = RoundedCornerShape(14.dp),
+                    shape     = MaterialTheme.shapes.medium,
                     modifier  = Modifier.fillMaxWidth().bounceClick { onSelectTechnique(t) },
                     colors    = CardDefaults.cardColors(
                         containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(0.1f) else MaterialTheme.colorScheme.background,
@@ -623,7 +629,7 @@ private fun BreathingOptionsSheet(
                         }
                         Box(
                             Modifier
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(MaterialTheme.shapes.small)
                                 .background(MaterialTheme.colorScheme.primary.copy(0.12f))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
@@ -649,7 +655,7 @@ private fun MusicSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor   = MaterialTheme.colorScheme.surface,
-        shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape            = MaterialTheme.shapes.extraLarge,
     ) {
         Column(
             Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 40.dp),
@@ -662,7 +668,7 @@ private fun MusicSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(MaterialTheme.shapes.medium)
                         .background(if (isSel) MaterialTheme.colorScheme.primary.copy(0.1f) else Color.Transparent)
                         .bounceClick { onSelect(option) }
                         .padding(14.dp),
@@ -702,7 +708,7 @@ private fun CoursesTab(
         }
         Text("Dhyan Learning Tracks", fontWeight = FontWeight.Bold, fontSize = 20.sp)
         Text("Deepen your meditation journey with guided courses, daily structure, and progress checkpoints.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 20.sp)
-        Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)), elevation = CardDefaults.cardElevation(0.dp)) {
+        Card(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)), elevation = CardDefaults.cardElevation(0.dp)) {
             Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_leaf), contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -711,17 +717,17 @@ private fun CoursesTab(
                 }
             }
         }
-        Card(shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
+        Card(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = CardDefaults.outlinedCardBorder()) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primary.copy(0.1f)), contentAlignment = Alignment.Center) { Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_person_standing), contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary) }
+                    Box(Modifier.size(48.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.primary.copy(0.1f)), contentAlignment = Alignment.Center) { Icon(painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_person_standing), contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary) }
                     Text("SAFAR 30-Day Meditation Course", fontWeight = FontWeight.Bold, fontSize = 14.sp, lineHeight = 18.sp, modifier = Modifier.weight(1f))
                 }
                 Text("A 30-day guided meditation journey to build a consistent practice, reduce stress, and deepen self-awareness.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 19.sp)
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(0.1f)).padding(horizontal = 8.dp, vertical = 3.dp)) { Text("Status", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold) }
+                        Box(Modifier.clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(0.1f)).padding(horizontal = 8.dp, vertical = 3.dp)) { Text("Status", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold) }
                         Text("Coming soon", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Text("It will be available soon", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)

@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Clear
@@ -87,7 +87,7 @@ fun PlannerExamDateField(
         OutlinedButton(
             onClick = { showPicker = true },
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(12.dp),
+            shape = ButtonDefaults.outlinedShape,
             border = if (isError) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error) else androidx.compose.material3.ButtonDefaults.outlinedButtonBorder,
             colors = if (isError) androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error) else androidx.compose.material3.ButtonDefaults.outlinedButtonColors(),
         ) {

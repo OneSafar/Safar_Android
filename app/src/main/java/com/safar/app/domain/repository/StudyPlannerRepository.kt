@@ -5,6 +5,11 @@ import com.safar.app.data.remote.api.ChapterRequest
 import com.safar.app.data.remote.api.CreateFromTemplateRequest
 import com.safar.app.data.remote.api.CreatePlanRequest
 import com.safar.app.data.remote.api.SubjectRequest
+import com.safar.app.data.remote.api.BulkImportResponse
+import com.safar.app.data.remote.api.BulkTopicsRequest
+import com.safar.app.data.remote.api.ImportSyllabusRequest
+import com.safar.app.data.remote.api.StructureSyllabusRequest
+import com.safar.app.data.remote.api.StructuredSyllabusPreview
 import com.safar.app.data.remote.api.TopicPatchRequest
 import com.safar.app.data.remote.api.TopicRequest
 import com.safar.app.data.remote.api.UpdatePlanRequest
@@ -38,7 +43,16 @@ interface StudyPlannerRepository {
     suspend fun renameChapter(planId: String, subjectId: String, chapterId: String, request: ChapterRequest): Resource<StudyPlan>
     suspend fun deleteChapter(planId: String, subjectId: String, chapterId: String): Resource<StudyPlan>
     suspend fun addTopic(planId: String, subjectId: String, chapterId: String, request: TopicRequest): Resource<StudyPlan>
+    suspend fun bulkTopics(
+        planId: String,
+        subjectId: String,
+        chapterId: String,
+        request: BulkTopicsRequest,
+    ): Resource<StudyPlan>
+    suspend fun importSyllabus(planId: String, request: ImportSyllabusRequest): Resource<StudyPlan>
     suspend fun updateTopic(planId: String, topicId: String, request: TopicPatchRequest): Resource<StudyPlan>
     suspend fun deleteTopic(planId: String, topicId: String): Resource<StudyPlan>
-    suspend fun importSyllabusFile(file: MultipartBody.Part): Resource<String>
+    suspend fun bulkImportSyllabus(planId: String, text: String): Resource<BulkImportResponse>
+    suspend fun structureSyllabusPreview(request: StructureSyllabusRequest): Resource<StructuredSyllabusPreview>
+    suspend fun applySyllabusAi(planId: String, preview: StructuredSyllabusPreview): Resource<StudyPlan>
 }

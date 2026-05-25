@@ -24,6 +24,7 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -129,14 +131,11 @@ internal fun MehfilContent(
                     if (selectedTab == MehfilTab.COMMUNITY) {
                         FloatingActionButton(
                             onClick = onCreatePostClick,
-                            containerColor = when (uiState.selectedSpace) {
-                                "ACADEMIC" -> Blue500
-                                "REFLECTIVE" -> Violet500
-                                else -> MaterialTheme.colorScheme.primary
-                            },
-                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            shape = FloatingActionButtonDefaults.shape,
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
+                            Icon(Icons.Default.Add, contentDescription = null)
                         }
                     }
                 },
@@ -251,7 +250,11 @@ private fun MehfilSearchBar(
             },
             modifier = modifier.weight(1f),
             singleLine = true,
-            shape = RoundedCornerShape(24.dp),
+            shape = MaterialTheme.shapes.medium,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+            ),
             textStyle = TextStyle(fontSize = 13.sp),
         )
     }

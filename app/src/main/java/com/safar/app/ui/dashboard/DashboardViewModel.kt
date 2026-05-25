@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.domain.model.*
 import com.safar.app.domain.repository.HomeRepository
+import com.safar.app.domain.repository.StudyPlannerRepository
 import com.safar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -23,6 +24,7 @@ import com.safar.app.notifications.SafarNotificationChannels
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
+    private val studyPlannerRepository: StudyPlannerRepository,
     private val dataStore: SafarDataStore,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -55,6 +57,7 @@ class DashboardViewModel @Inject constructor(
             val titleD        = async { homeRepository.getActiveTitle() }
             val achievementsD = async { homeRepository.getAchievements() }
             val historyD      = async { homeRepository.getLoginHistory() }
+            val studyPlanD    = async { loadStudyPlanCard() }
 
             val userName      = runCatching { dataStore.userName.first() }.getOrDefault("")
             val userAvatar    = runCatching { dataStore.userAvatar.first() }.getOrDefault(null)
@@ -67,6 +70,7 @@ class DashboardViewModel @Inject constructor(
             val title        = (titleD.await()        as? Resource.Success)?.data
             val achievements = (achievementsD.await() as? Resource.Success)?.data ?: emptyList()
             val loginHistory = (historyD.await()      as? Resource.Success)?.data ?: emptyList()
+            val studyPlan    = studyPlanD.await()
 
             val today          = LocalDate.now().toString()          // "2026-03-29"
             val todayGoals     = goals.filter { it.scheduledDate?.startsWith(today) == true }
@@ -108,9 +112,36 @@ class DashboardViewModel @Inject constructor(
                     earnedAchievements = achievements.filter { a -> a.earned },
                     allAchievements    = achievements,
                     loginHistory          = loginHistory,
+                    studyPlan             = studyPlan,
                     showWelcomeOverlay    = !welcomeSeen
                 )
             }
+        }
+    }
+
+    private suspend fun loadStudyPlanCard(): DashboardStudyPlanState {
+        return try {
+            when (val plansResult = studyPlannerRepository.listPlans()) {
+                is Resource.Success -> {
+                    val activePlan = plansResult.data.firstOrNull()
+                    if (activePlan == null) {
+                        DashboardStudyPlanState()
+                    } else {
+                        val calendarResult = studyPlannerRepository.getCalendar(activePlan.id)
+                        val calendar = when (calendarResult) {
+                            is Resource.Success -> calendarResult.data
+                            is Resource.Error -> emptyMap()
+                            is Resource.Loading -> emptyMap()
+                        }
+                        val calendarError = (calendarResult as? Resource.Error)?.message
+                        buildDashboardStudyPlanState(activePlan, calendar, errorMessage = calendarError)
+                    }
+                }
+                is Resource.Error -> DashboardStudyPlanState(errorMessage = plansResult.message)
+                is Resource.Loading -> DashboardStudyPlanState()
+            }
+        } catch (e: Exception) {
+            DashboardStudyPlanState(errorMessage = e.localizedMessage ?: "Could not load study planner.")
         }
     }
 }

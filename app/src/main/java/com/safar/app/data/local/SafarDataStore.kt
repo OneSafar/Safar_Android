@@ -78,6 +78,7 @@ class SafarDataStore @Inject constructor(
         val TOUR_DONE             = booleanPreferencesKey("tour_done")
         val WELCOME_SEEN          = booleanPreferencesKey("welcome_seen")
         val NOTIFIED_ACHIEVEMENTS = stringSetPreferencesKey("notified_achievements")
+        val PLANNER_ALERT_DEDUPE_KEYS = stringSetPreferencesKey("planner_alert_dedupe_keys")
 
         // Focus Shield
         val FOCUS_SHIELD_ENABLED          = booleanPreferencesKey("focus_shield_enabled")
@@ -239,6 +240,10 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.APP_USAGE_MODE] }
 
+    val plannerAlertDedupeKeys: Flow<Set<String>> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PLANNER_ALERT_DEDUPE_KEYS] ?: emptySet() }
+
     // ── Setters ───────────────────────────────────────────────────────────────
 
     suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
@@ -280,6 +285,22 @@ class SafarDataStore @Inject constructor(
     suspend fun addNotifiedAchievement(achievementId: String) = context.dataStore.edit { prefs ->
         val current = prefs[Keys.NOTIFIED_ACHIEVEMENTS] ?: emptySet()
         prefs[Keys.NOTIFIED_ACHIEVEMENTS] = current + achievementId
+    }
+
+    suspend fun hasPlannerAlertDedupeKey(key: String): Boolean {
+        val keys = plannerAlertDedupeKeys.first()
+        return key in keys
+    }
+
+    suspend fun addPlannerAlertDedupeKey(key: String, maxKeys: Int = 500) = context.dataStore.edit { prefs ->
+        val current = (prefs[Keys.PLANNER_ALERT_DEDUPE_KEYS] ?: emptySet()).toMutableSet()
+        current += key
+        if (current.size > maxKeys) {
+            val trimmed = current.toList().takeLast(maxKeys).toSet()
+            prefs[Keys.PLANNER_ALERT_DEDUPE_KEYS] = trimmed
+        } else {
+            prefs[Keys.PLANNER_ALERT_DEDUPE_KEYS] = current
+        }
     }
 
     // ── Focus Shield Setters ─────────────────────────────────────────────────

@@ -28,7 +28,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LockOpen
@@ -113,7 +112,7 @@ fun KavachCompactIntro(
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             Text(
-                text = "Study Without Distractions",
+                text = stringResource(R.string.kavach_hero_title),
                 fontSize = 22.sp,
                 lineHeight = 28.sp,
                 fontWeight = FontWeight.Bold,
@@ -121,7 +120,7 @@ fun KavachCompactIntro(
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Kavach blocks the apps you choose while you study.",
+                text = stringResource(R.string.kavach_hero_body),
                 fontSize = 15.sp,
                 lineHeight = 22.sp,
                 color = KavachDesign.HubTextMuted,
@@ -161,7 +160,7 @@ fun KavachIntroHeroCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 176.dp),
+            .heightIn(min = 120.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = scheme.primaryContainer.copy(alpha = 0.72f),
@@ -172,48 +171,22 @@ fun KavachIntroHeroCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .width(96.dp)
-                    .height(142.dp)
-                    .clip(RoundedCornerShape(24.dp))
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(20.dp))
                     .background(scheme.surface)
-                    .border(1.dp, scheme.outline.copy(alpha = 0.16f), RoundedCornerShape(24.dp))
-                    .padding(10.dp),
+                    .border(1.dp, scheme.outline.copy(alpha = 0.16f), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center,
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(22.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(scheme.surfaceVariant.copy(alpha = 0.72f))
-                        .align(Alignment.TopCenter),
-                )
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    KavachBlockedAppGlyph(Icons.AutoMirrored.Filled.Chat)
-                    KavachBlockedAppGlyph(Icons.Default.Block)
-                    KavachBlockedAppGlyph(Icons.Default.Apps)
-                }
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(scheme.primary),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -221,18 +194,24 @@ fun KavachIntroHeroCard(
                         Icons.Default.Shield,
                         contentDescription = null,
                         tint = scheme.onPrimary,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(30.dp),
                     )
                 }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 Text(
-                    text = "Kavach Is On",
+                    text = stringResource(R.string.kavach_intro_hero_title),
                     fontSize = 18.sp,
                     lineHeight = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onPrimaryContainer,
                 )
                 Text(
-                    text = "Your selected apps stay paused during study time.",
+                    text = stringResource(R.string.kavach_intro_hero_subtitle),
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
                     color = scheme.onPrimaryContainer.copy(alpha = 0.78f),
@@ -243,38 +222,20 @@ fun KavachIntroHeroCard(
 }
 
 @Composable
-private fun KavachBlockedAppGlyph(icon: ImageVector) {
-    Box(
-        modifier = Modifier
-            .size(34.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(19.dp),
-        )
-    }
-}
-
-@Composable
 fun KavachIntroCopy(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "Study Without Distractions",
+            text = stringResource(R.string.kavach_hero_title),
             fontSize = 28.sp,
             lineHeight = 34.sp,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
-            text = "Choose the apps that waste your time. Kavach will help block them while you study.",
+            text = stringResource(R.string.kavach_intro_copy_body),
             fontSize = 16.sp,
             lineHeight = 23.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -290,18 +251,18 @@ fun KavachBenefitCards(modifier: Modifier = Modifier) {
     ) {
         KavachFeatureCard(
             icon = Icons.Default.Apps,
-            title = "Choose Apps",
-            body = "Pick the apps that distract you.",
+            title = stringResource(R.string.kavach_benefit_choose_title),
+            body = stringResource(R.string.kavach_benefit_choose_body),
         )
         KavachFeatureCard(
             icon = Icons.Default.Timer,
-            title = "Start Studying",
-            body = "Run your focus timer and Kavach will help.",
+            title = stringResource(R.string.kavach_benefit_start_title),
+            body = stringResource(R.string.kavach_benefit_start_body),
         )
         KavachFeatureCard(
             icon = Icons.Default.Tune,
-            title = "You Control It",
-            body = "Change apps or turn Kavach off anytime.",
+            title = stringResource(R.string.kavach_benefit_control_title),
+            body = stringResource(R.string.kavach_benefit_control_body),
         )
     }
 }
@@ -404,13 +365,13 @@ fun KavachPermissionDisclosureCard(
                 )
             }
             Text(
-                text = "Android asks for permission before Kavach can block apps.",
+                text = "Android asks for permission before KAVACH can block apps.",
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = scheme.onSurface,
             )
             Text(
-                text = "SAFAR only uses this for Kavach. We do not read chats, passwords, photos, or private content.",
+                text = "SAFAR only uses this for KAVACH. We do not read chats, passwords, photos, or private content.",
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = scheme.onSurfaceVariant,
@@ -425,21 +386,24 @@ fun KavachPermissionDisclosureCard(
                 )
                 KavachPermissionStatusRow(
                     title = "Block Screen",
-                    body = "Shows Kavach when a blocked app opens.",
+                    body = "Shows KAVACH when a blocked app opens.",
                     granted = hasAccessibilityService,
                     required = true,
                     onClick = onOpenAccessibility,
                 )
                 KavachPermissionStatusRow(
                     title = "Notifications",
-                    body = "Shows study timer updates.",
+                    body = "Shows Ekagra timer updates.",
                     granted = hasNotifications,
                     required = false,
                     onClick = onOpenNotifications,
                 )
             }
             Text(
-                text = if (requiredReady) "Kavach is ready to block apps." else "Allow the two required permissions to use Kavach.",
+                text = stringResource(
+                    if (requiredReady) R.string.kavach_permissions_ready
+                    else R.string.kavach_permissions_needed,
+                ),
                 fontSize = 13.sp,
                 lineHeight = 18.sp,
                 fontWeight = FontWeight.Medium,
@@ -538,7 +502,7 @@ fun KavachEnabledSummaryCard(
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = "Kavach is on",
+                    text = "KAVACH is on",
                     fontSize = 18.sp,
                     lineHeight = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -550,6 +514,14 @@ fun KavachEnabledSummaryCard(
                     lineHeight = 20.sp,
                     color = KavachDesign.HubTextMuted,
                 )
+                if (enabled) {
+                    Text(
+                        text = stringResource(R.string.kavach_enabled_ekagra_hint),
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        color = KavachDesign.HubTextMuted,
+                    )
+                }
             }
             KavachStitchPillToggle(
                 checked = enabled,

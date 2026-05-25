@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.Icon
@@ -125,7 +125,7 @@ fun PlanHeaderBanner(
             progress = { progress.completionPercent / 100f },
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(99.dp)),
+                .clip(CircleShape),
             color = scheme.primary,
             trackColor = scheme.surfaceVariant,
         )

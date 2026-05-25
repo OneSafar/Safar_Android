@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -98,7 +99,9 @@ fun KavachStitchPrimaryButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
+            // heightIn instead of height: button grows when system font is Large
+            // but never shrinks below the M3 comfortable touch-target baseline.
+            .heightIn(min = 56.dp),
         shape = RoundedCornerShape(999.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = KavachDesign.Primary,
@@ -107,7 +110,12 @@ fun KavachStitchPrimaryButton(
             disabledContentColor = Color.White.copy(alpha = 0.7f),
         ),
     ) {
-        Text(text = text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text(
+            text = text,
+            fontWeight = FontWeight.SemiBold,
+            // No hard-coded sp — let M3 typography scale with system font size
+            style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+        )
     }
 }
 

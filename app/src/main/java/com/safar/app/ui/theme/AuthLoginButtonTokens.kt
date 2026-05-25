@@ -1,16 +1,20 @@
 package com.safar.app.ui.theme
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 /**
  * Matches [com.safar.app.ui.auth.AuthScreen] login primary action (Sign in).
+ * Derives colors from the active Material 3 color scheme so that light/dark
+ * theme switches are handled automatically — no hard-coded hex values needed.
  */
 object AuthLoginButtonTokens {
-    fun container(isDark: Boolean): Color =
-        if (isDark) Color(0xFF1FE0BA) else Color(0xFF2E3F9E)
+    val container: Color
+        @Composable get() = MaterialTheme.colorScheme.primary
 
-    fun content(isDark: Boolean): Color =
-        if (isDark) Color(0xFF0F1115) else Color(0xFFFFFFFF)
+    val content: Color
+        @Composable get() = MaterialTheme.colorScheme.onPrimary
 }
 
 /** Same luminance heuristic as the auth screen for light vs dark UI. */

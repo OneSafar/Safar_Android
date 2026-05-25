@@ -9,8 +9,8 @@ val BrandMidnightLight = Color(0xFF181B20)
 val BrandPlumDark      = Color(0xFF272C35)
 val BrandPurpleDeep    = Color(0xFF1E2229)
 
-val PrimaryDark        = Color(0xFF1FE0BA)
-val PrimaryLight       = Color(0xFF2E3F9E)
+val PrimaryDark        = Color(0xFF3B82F6)
+val PrimaryLight       = Color(0xFF0A56D9)
 
 val BgDark             = Color(0xFF0F1115)
 val BgLight            = Color(0xFFF8F6F2)
@@ -23,7 +23,7 @@ val SafarOnSurfaceLight      = Color(0xFF1B212D)
 
 val SafarSurfaceDark         = Color(0xFF181B20)
 val SafarSurfaceVariantDark  = Color(0xFF272C35)
-val SafarOnPrimaryDark       = Color(0xFF0F1115)
+val SafarOnPrimaryDark       = Color(0xFFFFFFFF)
 val SafarOnBackgroundDark    = Color(0xFFE7EBEF)
 val SafarOnSurfaceDark       = Color(0xFFE7EBEF)
 

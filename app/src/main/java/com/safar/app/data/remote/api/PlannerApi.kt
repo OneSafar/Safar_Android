@@ -121,6 +121,20 @@ interface PlannerApi {
         @Body request: TopicRequest,
     ): Response<StudyPlan>
 
+    @POST("plans/{planId}/subjects/{subjectId}/chapters/{chapterId}/bulk-topics")
+    suspend fun bulkTopics(
+        @Path("planId") planId: String,
+        @Path("subjectId") subjectId: String,
+        @Path("chapterId") chapterId: String,
+        @Body request: BulkTopicsRequest,
+    ): Response<StudyPlan>
+
+    @POST("plans/{planId}/import-syllabus")
+    suspend fun importSyllabus(
+        @Path("planId") planId: String,
+        @Body request: ImportSyllabusRequest,
+    ): Response<StudyPlan>
+
     @PATCH("plans/{planId}/topics/{topicId}")
     suspend fun updateTopic(
         @Path("planId") planId: String,
@@ -134,14 +148,11 @@ interface PlannerApi {
         @Path("topicId") topicId: String,
     ): Response<StudyPlan>
 
-    // The syllabus import goes through the VPS Express backend, which forwards to the
-    // Railway-hosted Python agent (PyMuPDF extraction + Groq Llama-4-Scout). The full
-    // round trip can easily exceed 60s on a cold start, so we tag this call so the
-    // OkHttp interceptor in NetworkModule bumps connect/read/write timeouts to 180s.
-    @Multipart
-    @Headers("X-Timeout-Seconds: 180")
-    @POST("syllabus/import")
-    suspend fun importSyllabusFile(@Part file: MultipartBody.Part): Response<SyllabusImportResponse>
+    @POST("plans/{planId}/syllabus-ai")
+    suspend fun applySyllabusAi(
+        @Path("planId") planId: String,
+        @Body request: SyllabusAiRequest,
+    ): Response<SyllabusAiResponse>
 }
 
 data class BasicPlannerResponse(
@@ -198,11 +209,154 @@ data class TopicRequest(
     val notes: String? = null,
 )
 
+data class BulkTopicsRequest(
+    val topics: List<BulkTopicItemRequest>,
+)
+
+data class BulkTopicItemRequest(
+    val name: String,
+    val plannedDate: String? = null,
+    val notes: String? = null,
+)
+
+data class ImportSyllabusRequest(
+    val subjects: List<ImportSyllabusSubjectRequest>,
+    val mode: String? = null,
+)
+
+data class ImportSyllabusSubjectRequest(
+    val name: String,
+    val chapters: List<ImportSyllabusChapterRequest>,
+)
+
+data class ImportSyllabusChapterRequest(
+    val name: String,
+    val topics: List<ImportSyllabusTopicRequest>,
+)
+
+data class ImportSyllabusTopicRequest(
+    val name: String,
+)
+
 data class TopicPatchRequest(
     val name: String? = null,
     val status: TopicStatus? = null,
     val plannedDate: String? = null,
     val notes: String? = null,
+)
+
+data class BulkImportRequest(
+    val subjects: List<BulkImportSubjectRequest>,
+)
+
+data class BulkImportSubjectRequest(
+    val name: String,
+    val chapters: List<BulkImportChapterRequest>,
+)
+
+data class BulkImportChapterRequest(
+    val name: String,
+    val topics: List<String>,
+)
+
+data class BulkImportResponse(
+    val success: Boolean = false,
+    val subjects: Int = 0,
+    val chapters: Int = 0,
+    val topics: Int = 0,
+    val subjectsCreated: Int? = null,
+    val chaptersCreated: Int? = null,
+    val topicsCreated: Int? = null,
+    val message: String? = null,
+    val errorCode: String? = null,
+)
+
+data class StructureSyllabusRequest(
+    val rawText: String,
+    val examType: String? = null,
+    val planTitle: String? = null,
+    val language: String? = null,
+)
+
+data class StructureSyllabusResponse(
+    val success: Boolean = false,
+    val subjects: List<StructuredSubject>? = null,
+    val warnings: List<String>? = null,
+    val stats: SyllabusStats? = null,
+    /** Legacy nested shape (unused by current server). */
+    val data: StructuredSyllabusPreview? = null,
+    val errorCode: String? = null,
+    val message: String? = null,
+)
+
+fun StructureSyllabusResponse.toPreview(): StructuredSyllabusPreview? {
+    data?.let { return it }
+    val subjectList = subjects ?: return null
+    return StructuredSyllabusPreview(
+        subjects = subjectList,
+        warnings = warnings.orEmpty(),
+        stats = stats ?: SyllabusStats(),
+    )
+}
+
+data class StructuredSyllabusPreview(
+    val subjects: List<StructuredSubject> = emptyList(),
+    val warnings: List<String> = emptyList(),
+    val stats: SyllabusStats = SyllabusStats(),
+)
+
+data class StructuredSubject(
+    val name: String,
+    val chapters: List<StructuredChapter> = emptyList(),
+)
+
+data class StructuredChapter(
+    val name: String,
+    val topics: List<String> = emptyList(),
+)
+
+data class SyllabusStats(
+    val subjectCount: Int = 0,
+    val chapterCount: Int = 0,
+    val topicCount: Int = 0,
+)
+
+data class SyllabusAiRequest(
+    val aiPreview: SyllabusAiPreview,
+)
+
+data class SyllabusAiPreview(
+    val subjects: List<SyllabusAiSubject>,
+)
+
+data class SyllabusAiSubject(
+    val name: String,
+    val chapters: List<SyllabusAiChapter> = emptyList(),
+)
+
+data class SyllabusAiChapter(
+    val name: String,
+    val topics: List<String> = emptyList(),
+)
+
+fun StructuredSyllabusPreview.toSyllabusAiPreview(): SyllabusAiPreview = SyllabusAiPreview(
+    subjects = subjects.map { subject ->
+        SyllabusAiSubject(
+            name = subject.name,
+            chapters = subject.chapters.map { chapter ->
+                SyllabusAiChapter(
+                    name = chapter.name,
+                    topics = chapter.topics.map { it.trim() }.filter { it.isNotBlank() },
+                )
+            },
+        )
+    },
+)
+
+data class SyllabusAiResponse(
+    val success: Boolean = false,
+    val plan: StudyPlan? = null,
+    val message: String? = null,
 )
 
 data class SyllabusImportResponse(
@@ -212,4 +366,5 @@ data class SyllabusImportResponse(
     val errors: List<String>? = null,
     val detail: String? = null,
     val error: String? = null,
+    val errorCode: String? = null,
 )

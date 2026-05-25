@@ -204,7 +204,7 @@ fun GoalsScreen(
                             Toast.makeText(context, "Goal completed!", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = ButtonDefaults.shape,
                     ) { Text("Done", fontWeight = FontWeight.SemiBold) }
                     TextButton(
                         onClick = {
@@ -217,7 +217,7 @@ fun GoalsScreen(
                     OutlinedButton(
                         onClick = { completeGoal = null; studyHours = 0; studyMinutes = 0 },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = ButtonDefaults.outlinedShape
                     ) { Text("Cancel") }
                 }
             },
@@ -306,7 +306,7 @@ fun GoalsScreen(
                     },
                     enabled = editTitle.isNotBlank() && !uiState.isSavingGoal,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = ButtonDefaults.shape,
                 ) { Text("Save Changes") }
             }
         }
@@ -395,7 +395,7 @@ fun GoalsScreen(
                     },
                     enabled = newTitle.isNotBlank() && !uiState.isSavingGoal,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = ButtonDefaults.shape,
                 ) {
                     if (uiState.isSavingGoal) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                     else { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Create Goal") }
@@ -449,9 +449,9 @@ fun GoalsScreen(
             ) {
                 OutlinedButton(
                     onClick = { showStatusSheet = true },
-                    shape = RoundedCornerShape(20.dp),
+                    shape = ButtonDefaults.outlinedShape,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    modifier = Modifier.height(44.dp)
+                    modifier = Modifier.heightIn(min = 44.dp)
                 ) {
                     Icon(Icons.Default.BarChart, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
@@ -459,9 +459,9 @@ fun GoalsScreen(
                 }
                 OutlinedButton(
                     onClick = { onNavigate(Routes.nishthaAnalytics("goals")) },
-                    shape = RoundedCornerShape(20.dp),
+                    shape = ButtonDefaults.outlinedShape,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    modifier = Modifier.height(44.dp)
+                    modifier = Modifier.heightIn(min = 44.dp)
                 ) {
                     Icon(Icons.Default.TrendingUp, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
@@ -469,17 +469,13 @@ fun GoalsScreen(
                 }
                 Button(
                     onClick = { showAddSheet = true },
-                    shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.height(44.dp),
+                    shape = ButtonDefaults.shape,
+                    modifier = Modifier.heightIn(min = 44.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = Color.White
-                    )
                 ) {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp), tint = Color.White)
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Add Goal", fontSize = 13.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Clip)
+                    Text("Add Goal", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Clip)
                 }
             }
         }

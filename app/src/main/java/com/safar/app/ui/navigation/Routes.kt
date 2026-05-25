@@ -26,6 +26,9 @@ object Routes {
     const val KAVACH_SESSION_SUMMARY = "kavach/session_summary"
     const val LAUNCH_USAGE_QUESTIONNAIRE = "launch_usage_questionnaire"
     const val FOCUS_SHIELD = "focus_shield"
+    const val LIVE_SESSIONS_ROOT = "live/sessions"
+    const val LIVE_SESSIONS = "live/sessions?courseId={courseId}"
+    const val LIVE_SESSION = "live/session/{sessionId}"
 
     // Syllabus Drill-Down Routes
     const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"
@@ -39,4 +42,11 @@ object Routes {
         "nishtha/analytics?section=${android.net.Uri.encode(section)}"
 
     fun ekagraAnalytics(): String = nishthaAnalytics("focus")
+
+    fun liveSessions(courseId: String? = null): String =
+        if (courseId.isNullOrBlank()) LIVE_SESSIONS_ROOT
+        else "live/sessions?courseId=${android.net.Uri.encode(courseId)}"
+
+    fun liveSession(sessionId: String): String =
+        "live/session/${android.net.Uri.encode(sessionId)}"
 }

@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.safar.app" />
+                  <option name="mobileSdkAppId" value="1:513808201301:android:86769949fb67c6e278c6dc" />
+                  <option name="projectId" value="safar-e2fe5" />
+                  <option name="projectNumber" value="513808201301" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

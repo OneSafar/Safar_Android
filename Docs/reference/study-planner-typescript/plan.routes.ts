@@ -101,6 +101,61 @@ function countAllTopics(plan: StudyPlan): number {
   return total;
 }
 
+function normalizeSyllabusName(value: unknown): string {
+  return String(value || "").trim();
+}
+
+function normalizeSyllabusKey(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function mergeSyllabusSubjects(
+  existing: StudySubject[],
+  incoming: StudySubject[],
+): StudySubject[] {
+  const subjectMap = new Map<string, StudySubject>();
+  for (const subject of existing) {
+    subjectMap.set(normalizeSyllabusKey(subject.name), subject);
+  }
+
+  for (const incomingSubject of incoming) {
+    const subjectKey = normalizeSyllabusKey(incomingSubject.name);
+    const targetSubject = subjectMap.get(subjectKey);
+    if (!targetSubject) {
+      existing.push(incomingSubject);
+      subjectMap.set(subjectKey, incomingSubject);
+      continue;
+    }
+
+    const chapterMap = new Map<string, StudyChapter>();
+    for (const chapter of targetSubject.chapters) {
+      chapterMap.set(normalizeSyllabusKey(chapter.name), chapter);
+    }
+
+    for (const incomingChapter of incomingSubject.chapters) {
+      const chapterKey = normalizeSyllabusKey(incomingChapter.name);
+      const targetChapter = chapterMap.get(chapterKey);
+      if (!targetChapter) {
+        targetSubject.chapters.push(incomingChapter);
+        chapterMap.set(chapterKey, incomingChapter);
+        continue;
+      }
+
+      const topicSeen = new Set(
+        targetChapter.topics.map((topic) => normalizeSyllabusKey(topic.name)),
+      );
+      for (const incomingTopic of incomingChapter.topics) {
+        const topicKey = normalizeSyllabusKey(incomingTopic.name);
+        if (topicSeen.has(topicKey)) continue;
+        topicSeen.add(topicKey);
+        targetChapter.topics.push(incomingTopic);
+      }
+    }
+  }
+
+  return existing;
+}
+
 async function canUsePremiumPlanner(userId: string): Promise<boolean> {
   const projection = {
     id: 1,
@@ -386,6 +441,164 @@ router.get("/:planId", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("[PLANNER] Fetch plan failed:", error);
     return res.status(500).json({ message: "Failed to fetch plan" });
+  }
+});
+
+router.post("/:planId/import-syllabus", async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    const { planId } = req.params;
+
+    const plan = await plansCollection().findOne({ id: planId, userId });
+    if (!plan) {
+      return res.status(404).json({ message: "Plan not found" });
+    }
+
+    const rawSubjects = Array.isArray(req.body?.subjects)
+      ? req.body.subjects
+      : [];
+    if (rawSubjects.length === 0) {
+      return res.status(400).json({ message: "Subjects are required" });
+    }
+
+    const modeRaw = String(req.body?.mode || "replace").toLowerCase();
+    const mode = modeRaw === "merge" ? "merge" : modeRaw === "replace" ? "replace" : null;
+    if (!mode) {
+      return res.status(400).json({ message: "Invalid import mode" });
+    }
+
+    const subjectMap = new Map<
+      string,
+      {
+        subject: StudySubject;
+        chapters: Map<string, StudyChapter>;
+        topicSeen: Map<string, Set<string>>;
+      }
+    >();
+
+    for (const rawSubject of rawSubjects) {
+      const subjectName = normalizeSyllabusName(rawSubject?.name);
+      if (!subjectName) {
+        return res.status(400).json({ message: "Subject name is required" });
+      }
+
+      const rawChapters = Array.isArray(rawSubject?.chapters)
+        ? rawSubject.chapters
+        : [];
+      if (rawChapters.length === 0) {
+        return res.status(400).json({ message: "Chapters are required" });
+      }
+
+      const subjectKey = normalizeSyllabusKey(subjectName);
+      let subjectEntry = subjectMap.get(subjectKey);
+      if (!subjectEntry) {
+        const subject: StudySubject = {
+          id: uuidv4(),
+          name: subjectName,
+          color: "#0ea5e9",
+          chapters: [],
+        };
+        subjectEntry = {
+          subject,
+          chapters: new Map<string, StudyChapter>(),
+          topicSeen: new Map<string, Set<string>>(),
+        };
+        subjectMap.set(subjectKey, subjectEntry);
+      }
+
+      for (const rawChapter of rawChapters) {
+        const chapterName = normalizeSyllabusName(rawChapter?.name);
+        if (!chapterName) {
+          return res.status(400).json({ message: "Chapter name is required" });
+        }
+
+        const rawTopics = Array.isArray(rawChapter?.topics)
+          ? rawChapter.topics
+          : [];
+        if (rawTopics.length === 0) {
+          return res.status(400).json({ message: "Topics are required" });
+        }
+
+        const chapterKey = normalizeSyllabusKey(chapterName);
+        let chapter = subjectEntry.chapters.get(chapterKey);
+        if (!chapter) {
+          chapter = {
+            id: uuidv4(),
+            name: chapterName,
+            topics: [],
+          };
+          subjectEntry.subject.chapters.push(chapter);
+          subjectEntry.chapters.set(chapterKey, chapter);
+          subjectEntry.topicSeen.set(chapterKey, new Set());
+        }
+
+        const topicSeen = subjectEntry.topicSeen.get(chapterKey) || new Set();
+        for (const rawTopic of rawTopics) {
+          const topicName = normalizeSyllabusName(rawTopic?.name);
+          if (!topicName) {
+            return res.status(400).json({ message: "Topic name is required" });
+          }
+          const topicKey = normalizeSyllabusKey(topicName);
+          if (topicSeen.has(topicKey)) continue;
+          topicSeen.add(topicKey);
+          chapter.topics.push({
+            id: uuidv4(),
+            name: topicName,
+            status: "todo",
+          });
+        }
+        subjectEntry.topicSeen.set(chapterKey, topicSeen);
+      }
+    }
+
+    const newSubjects = Array.from(subjectMap.values()).map(
+      (entry) => entry.subject,
+    );
+    if (newSubjects.length === 0) {
+      return res.status(400).json({ message: "Subjects are required" });
+    }
+
+    const resolvedSubjects =
+      mode === "merge" ? mergeSyllabusSubjects(plan.subjects, newSubjects) : newSubjects;
+    const resolvedPlan: StudyPlan = { ...plan, subjects: resolvedSubjects };
+
+    const isPremium = await canUsePremiumPlanner(userId);
+    if (!(plan.features?.isPremium || isPremium)) {
+      const totalTopics = countAllTopics(resolvedPlan);
+      if (totalTopics > FREE_TIER_TOPIC_LIMIT) {
+        return res.status(403).json({
+          code: "TOPIC_LIMIT",
+          message: `Free plans support up to ${FREE_TIER_TOPIC_LIMIT} topics. Upgrade to Premium for unlimited topics.`,
+          currentCount: totalTopics,
+          limit: FREE_TIER_TOPIC_LIMIT,
+        });
+      }
+    }
+
+    const nextUpdatedAt = new Date().toISOString();
+    const result = await plansCollection().updateOne(
+      { id: planId, userId, updatedAt: plan.updatedAt },
+      {
+        $set: {
+          subjects: resolvedSubjects,
+          updatedAt: nextUpdatedAt,
+        },
+      },
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(409).json({ message: "Conflict" });
+    }
+
+    const updatedPlan = await plansCollection().findOne({ id: planId, userId });
+    if (!updatedPlan) {
+      return res.status(404).json({ message: "Plan not found" });
+    }
+
+    return res.status(200).json(updatedPlan);
+  } catch (error) {
+    console.error("[PLANNER] Import syllabus failed:", error);
+    return res.status(500).json({ message: "Failed to import syllabus" });
   }
 });
 

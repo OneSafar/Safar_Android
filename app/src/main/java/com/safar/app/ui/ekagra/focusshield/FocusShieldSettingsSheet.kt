@@ -81,7 +81,7 @@ fun FocusShieldSettingsContent(
 
     val requiredPermissionsGranted = hasUsageStats && hasAccessibilityService
     val primaryCtaLabel = when {
-        !state.isEnabled -> "Turn On Kavach"
+        !state.isEnabled -> "Turn On KAVACH"
         !hasUsageStats -> "Allow App Check"
         !hasAccessibilityService -> "Allow Block Screen"
         state.blockedPackages.isEmpty() -> "Choose Apps"
@@ -247,8 +247,8 @@ fun FocusShieldSettingsContent(
                     KavachStepRow(
                         stepNumber = 1,
                         title = "App Check",
-                        subtitle = "Helps Kavach know when a blocked app opens",
-                        rationale = "SAFAR only checks the app name, so Kavach can stop apps you picked. It does not read anything inside your apps.",
+                        subtitle = "Helps KAVACH know when a blocked app opens",
+                        rationale = "SAFAR only checks the app name, so KAVACH can stop apps you picked. It does not read anything inside your apps.",
                         optional = false,
                         granted = hasUsageStats,
                         accent = accent,
@@ -262,8 +262,8 @@ fun FocusShieldSettingsContent(
                     KavachStepRow(
                         stepNumber = 2,
                         title = "Block Screen",
-                        subtitle = "Shows the Kavach screen when a blocked app opens",
-                        rationale = "This is only used for Kavach during focus time. SAFAR does not read chats, passwords, typing, photos, or your screen.",
+                        subtitle = "Shows the KAVACH screen when a blocked app opens",
+                        rationale = "This is only used for KAVACH during focus time. SAFAR does not read chats, passwords, typing, photos, or your screen.",
                         optional = false,
                         granted = hasAccessibilityService,
                         accent = accent,
@@ -278,7 +278,7 @@ fun FocusShieldSettingsContent(
                         stepNumber = 3,
                         title = "Notifications",
                         subtitle = "Shows focus timer updates",
-                        rationale = "This is optional. Kavach still works without notifications.",
+                        rationale = "This is optional. KAVACH still works without notifications.",
                         optional = true,
                         granted = hasNotifications,
                         accent = accent,

@@ -258,7 +258,7 @@ private fun MonthlyReviewSection(
                         )
                         Button(
                             onClick = onGenerate,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = ButtonDefaults.shape
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))

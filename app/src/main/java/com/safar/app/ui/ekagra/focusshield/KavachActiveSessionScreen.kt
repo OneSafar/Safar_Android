@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -154,13 +155,15 @@ fun KavachActiveSessionScreen(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 24.dp)
-                .height(56.dp),
+                // heightIn: grows with Large font, never shrinks below comfortable tap target
+                .heightIn(min = 56.dp),
             shape = RoundedCornerShape(999.dp),
             border = androidx.compose.foundation.BorderStroke(2.dp, Color.White.copy(alpha = 0.3f)),
         ) {
             Text(
                 text = stringResource(R.string.kavach_end_session),
-                fontSize = 16.sp,
+                // M3 labelLarge scales with system font — no hard-coded sp
+                style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
             )

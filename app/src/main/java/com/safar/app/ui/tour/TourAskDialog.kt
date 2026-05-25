@@ -1,72 +1,133 @@
 package com.safar.app.ui.tour
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.safar.app.R
+
+private val TourBrandBlue = Color(0xFF2E5BFF)
+private val TourModalNavy = Color(0xFF1A2236)
+private val TourBodyGray = Color(0xFFD1D5DB)
 
 @Composable
 fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
-    Dialog(onDismissRequest = onNo) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
-            modifier = Modifier.fillMaxWidth(),
+    Dialog(
+        onDismissRequest = onNo,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF0A0C10).copy(alpha = 0.72f)),
+            contentAlignment = Alignment.Center,
         ) {
-            Column(
-                modifier = Modifier.padding(28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+                shape = RoundedCornerShape(8.dp),
+                color = TourModalNavy,
+                shadowElevation = 12.dp,
             ) {
-                Icon(
-                    painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_sparkle),
-                    contentDescription = null,
-                    modifier = Modifier.size(44.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    "Hi, I'm Nishtha!",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    "Would you like me to show you around? I'll highlight the main features — you can skip or close the tour any time.",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 20.sp,
-                )
-                Spacer(Modifier.height(4.dp))
-                Button(
-                    onClick = onYes,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
+                Column(
+                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Yes, show me around!", fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.width(8.dp))
-                        Icon(
-                            painter = androidx.compose.ui.res.painterResource(id = com.safar.app.R.drawable.ic_party_popper),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                    Text(
+                        text = stringResource(R.string.tour_ask_title),
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center,
+                        letterSpacing = (-0.25).sp,
+                        modifier = Modifier.padding(bottom = 24.dp),
+                    )
+
+                    Text(
+                        text = stringResource(R.string.tour_ask_body_primary),
+                        color = TourBodyGray,
+                        fontSize = 17.sp,
+                        lineHeight = 26.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+
+                    Text(
+                        text = buildAnnotatedString {
+                            append(stringResource(R.string.tour_ask_body_secondary_prefix))
+                            withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.Bold)) {
+                                append(stringResource(R.string.tour_ask_body_secondary_highlight))
+                            }
+                            append(stringResource(R.string.tour_ask_body_secondary_suffix))
+                        },
+                        color = TourBodyGray,
+                        fontSize = 17.sp,
+                        lineHeight = 26.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 32.dp),
+                    )
+
+                    Button(
+                        onClick = onYes,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = TourBrandBlue,
+                            contentColor = Color.White,
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.tour_ask_accept),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
                         )
                     }
-                }
-                OutlinedButton(
-                    onClick = onNo,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Text("No thanks, I'll explore myself")
+
+                    Spacer(Modifier.height(16.dp))
+
+                    TextButton(
+                        onClick = onNo,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.tour_ask_decline),
+                            color = TourBrandBlue,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp,
+                        )
+                    }
                 }
             }
         }

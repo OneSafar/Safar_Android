@@ -60,9 +60,53 @@ fun parsePlannerDate(value: String?): LocalDate? {
     return runCatching { LocalDate.parse(value.take(10)) }.getOrNull()
 }
 
-fun daysUntil(value: String?): Long? {
+fun daysUntil(value: String?, today: LocalDate = LocalDate.now(ZoneId.systemDefault())): Long? {
     val date = parsePlannerDate(value) ?: return null
-    return ChronoUnit.DAYS.between(LocalDate.now(ZoneId.systemDefault()), date)
+    return ChronoUnit.DAYS.between(today, date)
+}
+
+/**
+ * Single-line exam context for headers (never interpolates Kotlin `null` as the string "null").
+ */
+fun plannerExamSubtitle(examDateIso: String?, today: LocalDate = LocalDate.now(ZoneId.systemDefault())): String {
+    val days = daysUntil(examDateIso, today) ?: return "Set exam date"
+    val datePart = readableDate(examDateIso).takeUnless { it == "Not set" }.orEmpty()
+    return when {
+        days < 0 -> listOf("Exam passed", datePart).filter { it.isNotBlank() }.joinToString(" • ")
+        days == 0L -> listOf("Exam today!", datePart).filter { it.isNotBlank() }.joinToString(" • ")
+        else -> {
+            val lead = if (days == 1L) "1 day left" else "$days days left"
+            listOf(lead, datePart).filter { it.isNotBlank() }.joinToString(" • ")
+        }
+    }
+}
+
+/** Large numeric area for calendar-style hero cards (non-positive uses supportive caption via [plannerExamCountdownCaption]). */
+fun plannerExamCountdownHeroNumber(days: Long?): String = when {
+    days == null || days < 0L -> "—"
+    else -> days.toString()
+}
+
+fun plannerExamCountdownCaption(days: Long?): String = when {
+    days == null -> "Set exam date"
+    days < 0L -> "Exam passed"
+    days == 0L -> "Exam today!"
+    else -> "DAYS"
+}
+
+fun plannerExamCountdownCaptionSecondary(days: Long?): String = when {
+    days == null || days < 0L || days == 0L -> ""
+    else -> "LEFT"
+}
+
+/** Compact badge / chip copy for exam countdown. */
+fun examBadgeLabel(days: Long?): String = when {
+    days == null -> "Set exam date"
+    days < 0 -> "Exam passed"
+    days == 0L -> "Exam today!"
+    days == 1L -> "1 day left"
+    days > 999 -> "999+ days left"
+    else -> "$days days left"
 }
 
 fun readableDate(value: String?): String {

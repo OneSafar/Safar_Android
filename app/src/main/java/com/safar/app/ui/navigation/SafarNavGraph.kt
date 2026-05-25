@@ -36,6 +36,8 @@ import com.safar.app.ui.studyplanner.screens.SyllabusChaptersScreen
 import com.safar.app.ui.studyplanner.screens.SyllabusTopicsScreen
 import com.safar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
 import com.safar.app.ui.ekagra.focusshield.KavachAboutScreen
+import com.safar.app.feature.live.presentation.LiveSessionScreen
+import com.safar.app.feature.live.presentation.LiveSessionsScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -101,7 +103,7 @@ fun SafarNavGraph(
     val notificationRoute = activity?.notificationRoute
     LaunchedEffect(notificationRoute, isLoggedIn) {
         val route = notificationRoute ?: return@LaunchedEffect
-        if (isLoggedIn == false) return@LaunchedEffect
+        if (isLoggedIn != true) return@LaunchedEffect
         if (currentRoute != route) {
             navController.navigate(route) { launchSingleTop = true; restoreState = true }
         }
@@ -237,7 +239,16 @@ fun SafarNavGraph(
                 viewModel = viewModel,
                 planId = planId,
                 onNavigate = ::navigate,
-                onBack = { navController.popBackStack() }
+                onBack = {
+                    viewModel.setSection(com.safar.app.domain.model.studyplanner.PlannerSection.PLAN)
+                    navController.popBackStack()
+                },
+                onPlannerSectionSelect = { section ->
+                    viewModel.setSection(section)
+                    if (section != com.safar.app.domain.model.studyplanner.PlannerSection.SYLLABUS) {
+                        navController.popBackStack(Routes.STUDY_PLANNER, false)
+                    }
+                },
             )
         }
 
@@ -325,6 +336,35 @@ fun SafarNavGraph(
 
         composable(Routes.KAVACH_ABOUT) {
             KavachAboutScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Routes.LIVE_SESSIONS,
+            arguments = listOf(
+                navArgument("courseId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = ""
+                }
+            )
+        ) { entry ->
+            val courseId = entry.arguments?.getString("courseId").orEmpty()
+            LiveSessionsScreen(
+                courseId = courseId,
+                onBack = { navController.popBackStack() },
+                onOpenSession = { sessionId -> navigate(Routes.liveSession(sessionId)) }
+            )
+        }
+
+        composable(
+            route = Routes.LIVE_SESSION,
+            arguments = listOf(navArgument("sessionId") { type = NavType.StringType })
+        ) { entry ->
+            val sessionId = entry.arguments?.getString("sessionId").orEmpty()
+            LiveSessionScreen(
+                sessionId = sessionId,
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(Routes.ACHIEVEMENTS) {

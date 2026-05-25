@@ -8,18 +8,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.safar.app.R
 
-val PoppinsFontFamily = FontFamily(
-    Font(R.font.poppins_regular,  FontWeight.Normal),
-    Font(R.font.poppins_light,    FontWeight.Light),
-    Font(R.font.poppins_medium,   FontWeight.Medium),
-    Font(R.font.poppins_semibold, FontWeight.SemiBold),
-    Font(R.font.poppins_bold,     FontWeight.Bold),
-)
+val PoppinsFontFamily = FontFamily.Default
 
-val LoraFontFamily = FontFamily(
-    Font(R.font.lora_regular, FontWeight.Normal),
-    Font(R.font.lora_medium,  FontWeight.Medium),
-)
+val LoraFontFamily = FontFamily.Default
 
 val SafarTypography = Typography(
     displayLarge  = TextStyle(fontFamily = LoraFontFamily, fontWeight = FontWeight.Bold,     fontSize = 57.sp, lineHeight = 64.sp, letterSpacing = (-0.25).sp),
@@ -38,3 +29,22 @@ val SafarTypography = Typography(
     labelMedium   = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Medium,   fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp),
     labelSmall    = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Medium,   fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp),
 )
+
+val SafarExpressiveTypography = Typography(
+    displayLarge  = TextStyle(fontFamily = LoraFontFamily, fontWeight = FontWeight.Medium,    fontSize = 57.sp, lineHeight = 64.sp, letterSpacing = (-0.25).sp),
+    displayMedium = TextStyle(fontFamily = LoraFontFamily, fontWeight = FontWeight.Medium,    fontSize = 45.sp, lineHeight = 52.sp),
+    displaySmall  = TextStyle(fontFamily = LoraFontFamily, fontWeight = FontWeight.Medium,    fontSize = 36.sp, lineHeight = 44.sp),
+    headlineLarge = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp),
+    headlineMedium= TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 36.sp),
+    headlineSmall = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 32.sp),
+    titleLarge    = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 28.sp),
+    titleMedium   = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Bold,   fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.15.sp),
+    titleSmall    = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Bold,   fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp),
+    bodyLarge     = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Medium,   fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.5.sp),
+    bodyMedium    = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Medium,   fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.25.sp),
+    bodySmall     = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Medium,   fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.4.sp),
+    labelLarge    = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Bold,   fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp),
+    labelMedium   = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Bold,   fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp),
+    labelSmall    = TextStyle(fontFamily = PoppinsFontFamily, fontWeight = FontWeight.Bold,   fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp),
+)
+

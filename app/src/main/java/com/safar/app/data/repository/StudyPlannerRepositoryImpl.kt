@@ -1,22 +1,34 @@
 package com.safar.app.data.repository
 
 import com.safar.app.data.remote.api.AutoDistributeRequest
+import com.safar.app.data.remote.api.BulkImportResponse
+import com.safar.app.data.remote.api.BulkTopicsRequest
 import com.safar.app.data.remote.api.ChapterRequest
 import com.safar.app.data.remote.api.CreateFromTemplateRequest
 import com.safar.app.data.remote.api.CreatePlanRequest
+import com.safar.app.data.remote.api.ImportSyllabusChapterRequest
+import com.safar.app.data.remote.api.ImportSyllabusRequest
+import com.safar.app.data.remote.api.ImportSyllabusSubjectRequest
+import com.safar.app.data.remote.api.ImportSyllabusTopicRequest
 import com.safar.app.data.remote.api.PlannerApi
+import com.safar.app.data.remote.api.StructureSyllabusRequest
+import com.safar.app.data.remote.api.StructureSyllabusResponse
+import com.safar.app.data.remote.api.StructuredSyllabusPreview
 import com.safar.app.data.remote.api.SubjectRequest
+import com.safar.app.data.remote.api.SyllabusAiRequest
+import com.safar.app.data.remote.api.SyllabusApi
 import com.safar.app.data.remote.api.SyllabusImportResponse
+import com.safar.app.data.remote.api.SyllabusStats
 import com.safar.app.data.remote.api.TopicPatchRequest
 import com.safar.app.data.remote.api.TopicRequest
 import com.safar.app.data.remote.api.UpdatePlanRequest
+import com.safar.app.data.remote.api.toPreview
+import com.safar.app.data.remote.api.toSyllabusAiPreview
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
-import java.io.EOFException
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import java.util.concurrent.CancellationException
 import com.safar.app.domain.model.studyplanner.AutoDistributeResult
 import com.safar.app.domain.model.studyplanner.CalendarMap
 import com.safar.app.domain.model.studyplanner.ExamTemplate
@@ -25,15 +37,21 @@ import com.safar.app.domain.model.studyplanner.PlannerAnalytics
 import com.safar.app.domain.model.studyplanner.StudyPlan
 import com.safar.app.domain.model.studyplanner.UpgradePlannerResult
 import com.safar.app.domain.repository.StudyPlannerRepository
+import com.safar.app.ui.studyplanner.logic.BulkSubjectParsed
+import com.safar.app.ui.studyplanner.logic.countBulkSubjectsChapters
+import com.safar.app.ui.studyplanner.logic.countBulkSubjectsTopics
+import com.safar.app.ui.studyplanner.logic.parseBulkSubjectsFromTxt
 import com.safar.app.util.Resource
+import com.safar.app.util.parseApiErrorBody
 import com.safar.app.util.safeApiCall
 import javax.inject.Inject
 import javax.inject.Singleton
-import okhttp3.MultipartBody
+import kotlinx.coroutines.CancellationException
 
 @Singleton
 class StudyPlannerRepositoryImpl @Inject constructor(
     private val api: PlannerApi,
+    private val syllabusApi: SyllabusApi,
 ) : StudyPlannerRepository {
     private val gson = Gson()
 
@@ -56,53 +74,120 @@ class StudyPlannerRepositoryImpl @Inject constructor(
     override suspend fun renameChapter(planId: String, subjectId: String, chapterId: String, request: ChapterRequest): Resource<StudyPlan> = safeApiCall { api.renameChapter(planId, subjectId, chapterId, request) }
     override suspend fun deleteChapter(planId: String, subjectId: String, chapterId: String): Resource<StudyPlan> = safeApiCall { api.deleteChapter(planId, subjectId, chapterId) }
     override suspend fun addTopic(planId: String, subjectId: String, chapterId: String, request: TopicRequest): Resource<StudyPlan> = safeApiCall { api.addTopic(planId, subjectId, chapterId, request) }
+    override suspend fun bulkTopics(
+        planId: String,
+        subjectId: String,
+        chapterId: String,
+        request: BulkTopicsRequest,
+    ): Resource<StudyPlan> = safeApiCall { api.bulkTopics(planId, subjectId, chapterId, request) }
+    override suspend fun importSyllabus(planId: String, request: ImportSyllabusRequest): Resource<StudyPlan> =
+        safeApiCall { api.importSyllabus(planId, request) }
     override suspend fun updateTopic(planId: String, topicId: String, request: TopicPatchRequest): Resource<StudyPlan> = safeApiCall { api.updateTopic(planId, topicId, request) }
     override suspend fun deleteTopic(planId: String, topicId: String): Resource<StudyPlan> = safeApiCall { api.deleteTopic(planId, topicId) }
-    /**
-     * Mirrors the website `runBulkFileImport` flow in `StudyPlanner.tsx`:
-     *  - On HTTP 200 with `success: true` → return the formatted syllabus code.
-     *  - On HTTP 422 (agent-side validation failure) → still surface the partial
-     *    `syllabusCode` so the user can fix it in the bulk-add editor, exactly like
-     *    the website's `setBulkTopicsText(String(payload?.syllabusCode || ""))`.
-     *  - On any other error → return a friendly Resource.Error.
-     */
-    override suspend fun importSyllabusFile(file: MultipartBody.Part): Resource<String> {
-        return try {
-            val response = api.importSyllabusFile(file)
-            val rawBody: SyllabusImportResponse? = response.body() ?: parseErrorBody(response.errorBody()?.string())
-            val code = response.code()
 
+    override suspend fun bulkImportSyllabus(planId: String, text: String): Resource<BulkImportResponse> {
+        val parsed = parseBulkSubjectsFromTxt(text).getOrElse {
+            return Resource.Error(it.message ?: "Invalid syllabus format.")
+        }
+        if (parsed.isEmpty()) return Resource.Error("No syllabus content found.")
+        val request = buildImportRequestFromParsed(parsed)
+        if (request.subjects.isEmpty()) return Resource.Error("No syllabus content found.")
+
+        val subjectCount = request.subjects.size
+        val chapterCount = countBulkSubjectsChapters(parsed)
+        val topicCount = countBulkSubjectsTopics(parsed)
+
+        return when (val result = importSyllabus(planId, request)) {
+            is Resource.Success -> Resource.Success(
+                BulkImportResponse(
+                    success = true,
+                    subjects = subjectCount,
+                    chapters = chapterCount,
+                    topics = topicCount,
+                    subjectsCreated = subjectCount,
+                    chaptersCreated = chapterCount,
+                    topicsCreated = topicCount,
+                    message = "Imported $subjectCount subjects, $chapterCount chapters, $topicCount topics",
+                ),
+            )
+            is Resource.Error -> Resource.Error(result.message, result.code, result.errorCode)
+            is Resource.Loading -> Resource.Error("Import interrupted.")
+        }
+    }
+
+    override suspend fun structureSyllabusPreview(request: StructureSyllabusRequest): Resource<StructuredSyllabusPreview> {
+        return try {
+            val response = syllabusApi.structureSyllabusPreview(request)
+            val body = response.body()
             when {
-                response.isSuccessful && rawBody?.success != false -> {
-                    Resource.Success(rawBody?.syllabusCode.orEmpty())
-                }
-                code == 422 && !rawBody?.syllabusCode.isNullOrBlank() -> {
-                    // Agent produced output but it failed the strict `- _ >` validator.
-                    // Hand the draft back so the user can correct it in the textarea.
-                    Resource.Success(rawBody!!.syllabusCode.orEmpty())
+                response.isSuccessful && body != null -> {
+                    val preview = body.toPreview()
+                    if (preview != null && (preview.subjects.isNotEmpty() || body.success)) {
+                        Resource.Success(preview)
+                    } else {
+                        Resource.Error(
+                            messageForSyllabusError(body.errorCode, body.message ?: "We could not organize this syllabus."),
+                            response.code(),
+                            body.errorCode,
+                        )
+                    }
                 }
                 else -> {
-                    val message = rawBody?.message
-                        ?: rawBody?.detail
-                        ?: rawBody?.error
-                        ?: rawBody?.errors?.joinToString("; ")
-                        ?: "Could not import syllabus file."
-                    Resource.Error(message, code)
+                    val err = parseErrorBody(response.errorBody()?.string(), StructureSyllabusResponse::class.java)
+                        ?: parseErrorBody(response.errorBody()?.string(), SyllabusImportResponse::class.java)
+                    Resource.Error(
+                        messageForSyllabusError(err?.errorCode, err?.message ?: "We could not organize this syllabus."),
+                        response.code(),
+                        err?.errorCode,
+                    )
                 }
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: SocketTimeoutException) {
-            Resource.Error("The syllabus AI agent is taking longer than expected. Try again in a moment.")
+            Resource.Error("Organizing your syllabus is taking longer than expected. Try again.")
         } catch (e: UnknownHostException) {
             Resource.Error("Could not reach SAFAR. Please check your internet connection.")
-        } catch (e: EOFException) {
-            Resource.Error("Connection to SAFAR was interrupted. Please try again.")
         } catch (e: IOException) {
             Resource.Error("Could not connect to SAFAR. Please try again.")
         } catch (e: Exception) {
-            Resource.Error(e.message ?: "Syllabus import failed.")
+            Resource.Error(e.message ?: "Syllabus organization failed.")
         }
+    }
+
+    override suspend fun applySyllabusAi(planId: String, preview: StructuredSyllabusPreview): Resource<StudyPlan> {
+        return when (val r = safeApiCall {
+            api.applySyllabusAi(planId, SyllabusAiRequest(aiPreview = preview.toSyllabusAiPreview()))
+        }) {
+            is Resource.Success -> {
+                val plan = r.data.plan
+                if (plan != null) Resource.Success(plan)
+                else Resource.Error(r.data.message ?: "Syllabus import failed.")
+            }
+            is Resource.Error -> Resource.Error(r.message, r.code, r.errorCode)
+            is Resource.Loading -> Resource.Error("Syllabus import failed.")
+        }
+    }
+
+    private fun buildImportRequestFromParsed(groups: List<BulkSubjectParsed>): ImportSyllabusRequest {
+        val subjects = groups.mapNotNull { subject ->
+            val subjectName = subject.subjectName.trim()
+            if (subjectName.isBlank()) return@mapNotNull null
+            val chapters = subject.chapters.mapNotNull { chapter ->
+                val chapterName = chapter.chapterName.trim()
+                if (chapterName.isBlank()) return@mapNotNull null
+                val topics = chapter.topics
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .map { ImportSyllabusTopicRequest(name = it) }
+                if (topics.isEmpty()) return@mapNotNull null
+                ImportSyllabusChapterRequest(name = chapterName, topics = topics)
+            }
+            if (chapters.isEmpty()) return@mapNotNull null
+            ImportSyllabusSubjectRequest(name = subjectName, chapters = chapters)
+        }
+
+        return ImportSyllabusRequest(subjects = subjects, mode = "replace")
     }
 
     private fun parseErrorBody(raw: String?): SyllabusImportResponse? {
@@ -110,13 +195,33 @@ class StudyPlannerRepositoryImpl @Inject constructor(
         return try {
             gson.fromJson(raw, SyllabusImportResponse::class.java)
         } catch (e: JsonSyntaxException) {
+            val parsed = parseApiErrorBody(raw)
+            SyllabusImportResponse(message = parsed.message, error = parsed.error, errorCode = parsed.code)
+        }
+    }
+
+    private fun <T> parseErrorBody(raw: String?, klass: Class<T>): StructureSyllabusResponse? {
+        if (raw.isNullOrBlank()) return null
+        return try {
+            gson.fromJson(raw, klass) as? StructureSyllabusResponse
+        } catch (_: JsonSyntaxException) {
             null
+        }
+    }
+
+    private fun messageForSyllabusError(errorCode: String?, fallback: String): String {
+        return when (errorCode) {
+            "INPUT_TOO_LARGE" -> "This syllabus is too large. Shorten it and try again."
+            "TOPIC_LIMIT_EXCEEDED", "TOPIC_LIMIT" -> "This syllabus exceeds your current topic limit."
+            "RATE_LIMITED" -> "You have reached today's AI syllabus limit. Try again later."
+            "SYLLABUS_PARSE_FAILED" -> "We could not organize this syllabus. Try editing it or use manual format."
+            else -> fallback
         }
     }
 }
 
 private inline fun <T, R> Resource<T>.map(transform: (T) -> R): Resource<R> = when (this) {
     is Resource.Success -> Resource.Success(transform(data))
-    is Resource.Error -> Resource.Error(message, code)
+    is Resource.Error -> Resource.Error(message, code, errorCode)
     is Resource.Loading -> Resource.Loading()
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -161,7 +162,7 @@ fun FocusShieldConsentDialog(
                         onClick = onConfirm,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp),
+                            .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = scheme.primary,
@@ -185,7 +186,7 @@ fun FocusShieldConsentDialog(
                         onClick = onDismiss,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp),
+                            .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Text(
@@ -313,9 +314,9 @@ fun NotificationConsentDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 BulletItem("Timer progress")
-                BulletItem("Active Kavach status")
+                BulletItem("Active KAVACH status")
                 Text(
-                    "Notifications are optional.\nKavach and study timers still work without them.",
+                    "Notifications are optional.\nKAVACH and study timers still work without them.",
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -351,7 +352,7 @@ fun AccessibilityConsentDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    "Kavach uses Accessibility only to notice when a selected app opens during a focus session.",
+                    "KAVACH uses Accessibility only to notice when a selected app opens during a focus session.",
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -359,7 +360,7 @@ fun AccessibilityConsentDialog(
 
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        "Kavach can:",
+                        "KAVACH can:",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -370,7 +371,7 @@ fun AccessibilityConsentDialog(
 
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        "Kavach does not:",
+                        "KAVACH does not:",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -381,7 +382,7 @@ fun AccessibilityConsentDialog(
                 }
 
                 Text(
-                    "This is optional. Without it, Kavach blocking stays off, and the rest of SAFAR continues to work.",
+                    "This is optional. Without it, KAVACH blocking stays off, and the rest of SAFAR continues to work.",
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -390,7 +391,7 @@ fun AccessibilityConsentDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("I understand, open settings", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.kavach_consent_agree), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {

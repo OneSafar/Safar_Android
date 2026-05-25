@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
@@ -71,7 +71,7 @@ fun PlanConfigPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(MaterialTheme.shapes.small)
                     .clickable(onClick = onToggleSettings)
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -142,42 +142,11 @@ fun PlanConfigPanel(
                 Button(
                     onClick = onSave,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = ButtonDefaults.shape,
                 ) {
                     Text("Save Details", fontWeight = FontWeight.SemiBold)
                 }
 
-                HorizontalDivider(color = scheme.outline.copy(alpha = 0.12f))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onToggleDanger)
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "More Options",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Icon(
-                        imageVector = if (dangerExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        tint = scheme.onSurfaceVariant,
-                    )
-                }
-                if (dangerExpanded) {
-                    Button(
-                        onClick = onResetPlan,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = scheme.error),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text("Reset Plan")
-                    }
-                }
             } else {
                 TextButton(
                     onClick = onToggleSettings,

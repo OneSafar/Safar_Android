@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.safar.app.data.local.SafarDataStore
 import com.safar.app.data.remote.api.NotificationApi
 import com.safar.app.data.remote.dto.NotificationPreferencesRequest
+import androidx.work.ExistingPeriodicWorkPolicy
+import com.safar.app.notifications.MorningNudgeWorker
 import com.safar.app.notifications.PlannerAlertsWorker
 import com.safar.app.notifications.StudyReminderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -124,9 +126,9 @@ class SettingsViewModel @Inject constructor(
             if (!enabled) {
                 StudyReminderWorker.cancel(appContext)
                 PlannerAlertsWorker.cancel(appContext)
+                MorningNudgeWorker.cancel(appContext)
             } else if (dataStore.dailyStudyReminderEnabled.first()) {
-                StudyReminderWorker.schedule(appContext, dataStore.dailyReminderTime.first())
-                PlannerAlertsWorker.schedule(appContext, dataStore.dailyReminderTime.first())
+                rescheduleNotificationWorkers()
             }
             schedulePreferenceSync()
         }
@@ -136,11 +138,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             dataStore.setDailyStudyReminderEnabled(enabled)
             if (enabled) {
-                StudyReminderWorker.schedule(appContext, dataStore.dailyReminderTime.first())
-                PlannerAlertsWorker.schedule(appContext, dataStore.dailyReminderTime.first())
+                rescheduleNotificationWorkers()
             } else {
                 StudyReminderWorker.cancel(appContext)
                 PlannerAlertsWorker.cancel(appContext)
+                MorningNudgeWorker.cancel(appContext)
             }
             schedulePreferenceSync()
         }
@@ -151,11 +153,18 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             dataStore.setDailyReminderTime(time)
             if (dataStore.dailyStudyReminderEnabled.first()) {
-                StudyReminderWorker.schedule(appContext, time)
-                PlannerAlertsWorker.schedule(appContext, time)
+                rescheduleNotificationWorkers(reminderTime = time)
             }
             schedulePreferenceSync()
         }
+    }
+
+    private suspend fun rescheduleNotificationWorkers(reminderTime: String? = null) {
+        val update = ExistingPeriodicWorkPolicy.UPDATE
+        val time = reminderTime ?: dataStore.dailyReminderTime.first()
+        StudyReminderWorker.schedule(appContext, time, update)
+        PlannerAlertsWorker.schedule(appContext, time, update)
+        MorningNudgeWorker.schedule(appContext, 6, 30, update)
     }
 
     private fun isValidReminderTime(time: String): Boolean {

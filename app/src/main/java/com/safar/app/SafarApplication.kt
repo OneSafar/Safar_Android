@@ -1,13 +1,17 @@
 package com.safar.app
 
 import android.app.Application
+import android.util.Log
+import com.google.firebase.messaging.FirebaseMessaging
+import com.safar.app.BuildConfig
 import com.safar.app.data.local.SafarDataStore
-import com.safar.app.data.remote.api.NotificationApi
-import com.safar.app.data.remote.dto.DeviceTokenRequest
 import com.safar.app.di.IoDispatcher
 import com.safar.app.notifications.SafarNotificationChannels
+import androidx.work.ExistingPeriodicWorkPolicy
 import com.safar.app.notifications.PlannerAlertsWorker
 import com.safar.app.notifications.MorningNudgeWorker
+import com.safar.app.notifications.NotificationTokenRegistrar
+import com.safar.app.notifications.StudyReminderWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +24,7 @@ import javax.inject.Inject
 class SafarApplication : Application() {
 
     @Inject lateinit var dataStore: SafarDataStore
-    @Inject lateinit var notificationApi: NotificationApi
+    @Inject lateinit var notificationTokenRegistrar: NotificationTokenRegistrar
     @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
     private val appScope by lazy { CoroutineScope(SupervisorJob() + ioDispatcher) }
@@ -28,43 +32,46 @@ class SafarApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         SafarNotificationChannels.createAll(this)
+        fetchAndStoreFcmToken()
         appScope.launch {
-            registerStoredTokenIfNeeded()
+            notificationTokenRegistrar.registerStoredTokenIfNeeded()
             if (dataStore.notificationsEnabled.first() && dataStore.dailyStudyReminderEnabled.first()) {
-                PlannerAlertsWorker.schedule(this@SafarApplication, dataStore.dailyReminderTime.first())
-                // Morning Nudge at 6:30 AM
-                MorningNudgeWorker.schedule(this@SafarApplication, 6, 30)
+                val keep = ExistingPeriodicWorkPolicy.KEEP
+                StudyReminderWorker.schedule(
+                    this@SafarApplication,
+                    dataStore.dailyReminderTime.first(),
+                    keep,
+                )
+                PlannerAlertsWorker.schedule(
+                    this@SafarApplication,
+                    dataStore.dailyReminderTime.first(),
+                    keep,
+                )
+                MorningNudgeWorker.schedule(this@SafarApplication, 6, 30, keep)
+            } else {
+                StudyReminderWorker.cancel(this@SafarApplication)
+                PlannerAlertsWorker.cancel(this@SafarApplication)
+                MorningNudgeWorker.cancel(this@SafarApplication)
             }
         }
     }
 
-    private suspend fun registerStoredTokenIfNeeded() {
-        val isLoggedIn = dataStore.isLoggedIn.first()
-        val authToken = dataStore.authToken.first()
-        if (!isLoggedIn || authToken.isNullOrBlank()) return
-
-        val token = dataStore.fcmToken.first() ?: return
-        if (token.isBlank()) return
-
-        val now = System.currentTimeMillis()
-        val lastSync = dataStore.deviceTokenLastSyncAt.first()
-        val minIntervalMs = 6 * 60 * 60 * 1000L
-        if (lastSync > 0 && now - lastSync < minIntervalMs) return
-
-        runCatching {
-            notificationApi.registerDeviceToken(
-                DeviceTokenRequest(
-                    userId = dataStore.userId.first(),
-                    deviceToken = token,
-                    appVersion = BuildConfig.VERSION_NAME,
-                    flavor = BuildConfig.FLAVOR,
-                    language = dataStore.language.first(),
-                    notificationsEnabled = dataStore.notificationsEnabled.first(),
-                ),
-            )
-        }.onSuccess {
-            dataStore.setDeviceTokenLastSyncAt(now)
-        }
+    private fun fetchAndStoreFcmToken() {
+        FirebaseMessaging.getInstance().token
+            .addOnSuccessListener { token ->
+                if (BuildConfig.DEBUG) Log.d("SAFAR_FCM", "FCM token fetched")
+                appScope.launch {
+                    notificationTokenRegistrar.saveAndRegister(token)
+                }
+            }
+            .addOnFailureListener {
+                if (BuildConfig.DEBUG) Log.e("SAFAR_FCM", "FCM token fetch failed", it)
+            }
+            .addOnCompleteListener { task ->
+                if (BuildConfig.DEBUG) {
+                    Log.d("SAFAR_FCM", "FCM token task complete. success=${task.isSuccessful}")
+                }
+            }
     }
 
 }

@@ -265,7 +265,7 @@ class TimerService : Service() {
         val notification = NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_BLOCKED)
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
-            .setContentTitle("Kavach is active")
+            .setContentTitle("KAVACH is active")
             .setContentText("$appName is blocked until your focus timer or Study Session ends.")
             .setStyle(
                 NotificationCompat.BigTextStyle()
@@ -298,7 +298,7 @@ class TimerService : Service() {
         val notification = NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
-            .setContentTitle("Kavach is active")
+            .setContentTitle("KAVACH is active")
             .setContentText("Selected distracting apps are blocked until your focus timer or Study Session ends.")
             .setStyle(
                 NotificationCompat.BigTextStyle()
@@ -550,7 +550,7 @@ class TimerService : Service() {
         val time = "%02d:%02d".format(s / 60, s % 60)
         val notificationText = when {
             _isRunning.value && _timerMode.value == TimerMode.FOCUS -> "Focus in progress"
-            _isRunning.value -> "Break in progress - Kavach paused"
+            _isRunning.value -> "Break in progress - KAVACH paused"
             else -> "Timer paused"
         }
 

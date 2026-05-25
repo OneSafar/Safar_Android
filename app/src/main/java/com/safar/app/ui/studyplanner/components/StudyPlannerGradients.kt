@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 
 import androidx.compose.foundation.layout.widthIn
 
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 
 import androidx.compose.material3.Text
 
@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 import androidx.compose.ui.unit.sp
+import com.safar.app.ui.studyplanner.logic.examBadgeLabel
 
 import kotlin.math.max
 
@@ -296,24 +297,6 @@ fun examBadgeContentColor(days: Long?): Color = when {
 
 
 
-fun examBadgeLabel(days: Long?): String = when {
-
-    days == null -> "—"
-
-    days < 0 -> "Ended"
-
-    days == 0L -> "Today"
-
-    days == 1L -> "1 day left"
-
-    days > 999 -> "999+ days left"
-
-    else -> "$days days left"
-
-}
-
-
-
 @Composable
 
 fun ExamDaysCountdownBadge(
@@ -324,7 +307,7 @@ fun ExamDaysCountdownBadge(
 
 ) {
 
-    val shape = RoundedCornerShape(12.dp)
+    val shape = MaterialTheme.shapes.small
 
     val label = examBadgeLabel(days)
 

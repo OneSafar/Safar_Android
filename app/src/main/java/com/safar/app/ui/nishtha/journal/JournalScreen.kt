@@ -115,7 +115,11 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                 OutlinedTextField(value = bodyInput, onValueChange = { bodyInput = it }, label = { Text("What's on your mind?") }, placeholder = { Text("Start writing...", fontStyle = FontStyle.Italic) }, modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp), minLines = 5, shape = RoundedCornerShape(12.dp))
                 if (uiState.journalError != null) Text(uiState.journalError!!, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = { showWriteSheet = false }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("Cancel") }
+                    OutlinedButton(
+                        onClick = { showWriteSheet = false },
+                        modifier = Modifier.weight(1f),
+                        shape = ButtonDefaults.outlinedShape
+                    ) { Text("Cancel") }
                     Button(
                         onClick = {
                             val html = buildString {
@@ -126,8 +130,7 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                         },
                         enabled = bodyInput.isNotBlank() && !uiState.isSavingJournal,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Emerald600),
+                        shape = ButtonDefaults.shape,
                     ) {
                         if (uiState.isSavingJournal) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                         else Text("Save Entry")
@@ -185,11 +188,10 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                                 }
                                 Button(
                                     onClick = { val prompt = journalPrompts[page]; promptContext = prompt; titleInput = prompt; showWriteSheet = true },
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = ButtonDefaults.shape,
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Teal600),
                                 ) {
-                                    Text("Answer", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                                    Text("Answer", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }

@@ -5,6 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import com.safar.app.MainActivity
 import com.safar.app.ui.navigation.Routes
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 object NotificationDeepLinkHandler {
     const val EXTRA_ROUTE = "notification_route"
@@ -19,11 +21,18 @@ object NotificationDeepLinkHandler {
         }
 
     fun routeFor(deepLink: String?): String {
-        val uri = deepLink?.let { runCatching { Uri.parse(it) }.getOrNull() } ?: return Routes.HOME
-        if (uri.scheme != "safar") return Routes.HOME
+        val trimmed = deepLink?.trim().orEmpty()
+        if (!trimmed.startsWith("safar://")) return Routes.HOME
 
-        val host = uri.host.orEmpty()
-        val segments = uri.pathSegments
+        val parts = trimmed
+            .removePrefix("safar://")
+            .trimStart('/')
+            .split('/')
+            .filter { it.isNotEmpty() }
+        if (parts.isEmpty()) return Routes.HOME
+
+        val host = parts[0]
+        val segments = parts.drop(1)
         val firstSegment = segments.firstOrNull().orEmpty()
 
         return when (host) {
@@ -39,7 +48,17 @@ object NotificationDeepLinkHandler {
             "mehfil" -> Routes.MEHFIL
             "profile" -> Routes.PROFILE
             "course" -> Routes.NISHTHA
+            "studyplanner" -> Routes.STUDY_PLANNER
+            "live" -> when (firstSegment) {
+                "session" -> segments.getOrNull(1)?.let { sessionId ->
+                    "live/session/${decodePathSegment(sessionId)}"
+                } ?: Routes.LIVE_SESSIONS_ROOT
+                else -> Routes.LIVE_SESSIONS_ROOT
+            }
             else -> Routes.HOME
         }
     }
+
+    private fun decodePathSegment(value: String): String =
+        URLDecoder.decode(value, StandardCharsets.UTF_8.name())
 }

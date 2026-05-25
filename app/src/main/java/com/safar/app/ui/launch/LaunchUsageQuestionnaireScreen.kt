@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -282,7 +283,7 @@ fun LaunchUsageQuestionnaireScreen(
                             end = 20.dp, 
                             bottom = if (isCompactLayout) 16.dp else 32.dp
                         ),
-                    contentAlignment = if (isCompactLayout) Alignment.BottomCenter else Alignment.BottomEnd,
+                    contentAlignment = Alignment.BottomCenter,
                 ) {
                     Button(
                         onClick = {
@@ -339,7 +340,7 @@ fun LaunchUsageQuestionnaireScreen(
                         modifier = Modifier
                             .widthIn(max = 380.dp)
                             .fillMaxWidth()
-                            .height(48.dp),
+                            .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = scheme.primary,
@@ -567,7 +568,7 @@ private fun ModeSelectionCompactList(
         item {
             ModeSelectionCompactCard(
                 title = "Beast Mode",
-                description = "Kavach with clear App Usage Permission, Ekagra Mode Accessibility, and notification prompts. You decide what to grant.",
+                description = "KAVACH with clear App Usage Permission, KAVACH Block Screen accessibility, and notification prompts. You decide what to grant.",
                 icon = Icons.Default.Shield,
                 selected = selectedMode == AppUsageMode.FOCUSED,
                 primaryStyle = true,
@@ -577,7 +578,7 @@ private fun ModeSelectionCompactList(
         item {
             ModeSelectionCompactCard(
                 title = "Normal",
-                description = "Notifications only. You can enable Kavach later from the menu.",
+                description = "Notifications only. You can enable KAVACH later from the menu.",
                 icon = Icons.Default.Notifications,
                 selected = selectedMode == AppUsageMode.STANDARD,
                 primaryStyle = false,
@@ -686,7 +687,7 @@ private fun ModeSelectionSplitScreenLarge(
     Column(modifier = modifier) {
         ModeSelectionHalf(
             title = "Beast Mode",
-            description = "Kavach with clear App Usage Permission, Ekagra Mode Accessibility, and notification prompts. You decide what to grant.",
+            description = "KAVACH with clear App Usage Permission, KAVACH Block Screen accessibility, and notification prompts. You decide what to grant.",
             icon = Icons.Default.Shield,
             selected = selectedMode == AppUsageMode.FOCUSED,
             primaryStyle = true,
@@ -696,7 +697,7 @@ private fun ModeSelectionSplitScreenLarge(
         )
         ModeSelectionHalf(
             title = "Normal",
-            description = "Notifications only. You can enable Kavach later from the menu.",
+            description = "Notifications only. You can enable KAVACH later from the menu.",
             icon = Icons.Default.Notifications,
             selected = selectedMode == AppUsageMode.STANDARD,
             primaryStyle = false,
@@ -976,7 +977,7 @@ private fun FocusSetupBottomActions(
     ) {
         Button(
             onClick = onOpenSettings,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             shape = RoundedCornerShape(12.dp),
         ) {
             Text("Open Settings", fontWeight = FontWeight.Bold)
@@ -985,7 +986,7 @@ private fun FocusSetupBottomActions(
         }
         TextButton(
             onClick = onCancel,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             shape = RoundedCornerShape(12.dp),
         ) {
             Text("Cancel", fontWeight = FontWeight.SemiBold, color = scheme.primary)

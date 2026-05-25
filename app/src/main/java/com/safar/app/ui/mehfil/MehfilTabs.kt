@@ -43,10 +43,10 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.HourglassEmpty
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -218,20 +218,12 @@ internal fun CommunityTab(
                         val onLike = remember(post, onLikePost) { { onLikePost(post) } }
                         val onComment = remember(post, onCommentClick) { { onCommentClick(post) } }
                         val onSave = remember(post.id, onSavePost) { { onSavePost(post.id) } }
-                        val onConnectPost = remember(post, uiState.currentUserId, onConnect) {
-                            if (post.userId.isNotEmpty() && post.userId != uiState.currentUserId) {
-                                { onConnect(post) }
-                            } else {
-                                null
-                            }
-                        }
                         PostCard(
                             post = post,
                             isSaved = isSaved,
                             onLike = onLike,
                             onComment = onComment,
                             onSave = onSave,
-                            onConnect = onConnectPost,
                         )
                     }
                     if (uiState.isLoadingPosts && uiState.posts.isNotEmpty()) {
@@ -302,7 +294,7 @@ private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
-            .clip(RoundedCornerShape(50.dp))
+            .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .padding(4.dp),
     ) {
@@ -316,7 +308,7 @@ private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(50.dp))
+                    .clip(CircleShape)
                     .background(if (selected) color else Color.Transparent)
                     .clickable { onJoinRoom(room) }
                     .padding(vertical = 8.dp),
@@ -377,11 +369,11 @@ private fun CollapsibleSandeshCard(
     var expanded by remember { mutableStateOf(false) }
 
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        border = CardDefaults.outlinedCardBorder(),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -436,14 +428,14 @@ private fun SandeshAnnouncementCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), MaterialTheme.shapes.medium)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), MaterialTheme.shapes.medium)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Box(
-                modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF4F46E5)),
+                modifier = Modifier.size(34.dp).clip(MaterialTheme.shapes.medium).background(Color(0xFF4F46E5)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Default.VerifiedUser, contentDescription = "Admin", tint = Color.White, modifier = Modifier.size(16.dp))
@@ -451,7 +443,7 @@ private fun SandeshAnnouncementCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Parmar Sir's Corner", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                    Box(Modifier.background(Color(0xFFE0E7FF), RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                    Box(Modifier.background(Color(0xFFE0E7FF), MaterialTheme.shapes.extraSmall).padding(horizontal = 6.dp, vertical = 2.dp)) {
                         Text("Faculty", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4338CA))
                     }
                 }
@@ -500,7 +492,7 @@ private fun SandeshMedia(sandesh: Sandesh) {
         val thumbUrl = "https://img.youtube.com/vi/$youtubeVideoId/hqdefault.jpg"
         val videoUrl = "https://www.youtube.com/watch?v=$youtubeVideoId"
         Box(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable {
+            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl)))
             },
             contentAlignment = Alignment.Center,
@@ -523,7 +515,7 @@ private fun SandeshMedia(sandesh: Sandesh) {
         AsyncImage(
             model = directImageUrl,
             contentDescription = "Attached image",
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).heightIn(max = 220.dp),
+            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).heightIn(max = 220.dp),
             contentScale = ContentScale.Crop,
         )
     }
@@ -536,14 +528,13 @@ private fun PostCard(
     onLike: () -> Unit,
     onComment: () -> Unit,
     onSave: () -> Unit,
-    onConnect: (() -> Unit)?,
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        border = CardDefaults.outlinedCardBorder(),
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -555,16 +546,8 @@ private fun PostCard(
                     Text(formatPostDate(post.createdAt), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (post.space.isNotEmpty()) {
-                    Box(Modifier.clip(RoundedCornerShape(6.dp)).background(spaceColor(post.space).copy(0.15f)).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                    Box(Modifier.clip(MaterialTheme.shapes.small).background(spaceColor(post.space).copy(0.15f)).padding(horizontal = 8.dp, vertical = 3.dp)) {
                         Text(post.space, fontSize = 9.sp, color = spaceColor(post.space), fontWeight = FontWeight.Bold)
-                    }
-                }
-                if (onConnect != null) {
-                    Box(
-                        modifier = Modifier.size(26.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(0.12f)).clickable(onClick = onConnect),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = "Connect", modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -626,7 +609,7 @@ internal fun SavedTab(
                     val onLike = remember(post, onLikePost) { { onLikePost(post) } }
                     val onComment = remember(post, onCommentClick) { { onCommentClick(post) } }
                     val onUnsave = remember(post.id, onUnsavePost) { { onUnsavePost(post.id) } }
-                    PostCard(post = post, isSaved = true, onLike = onLike, onComment = onComment, onSave = onUnsave, onConnect = null)
+                    PostCard(post = post, isSaved = true, onLike = onLike, onComment = onComment, onSave = onUnsave)
                 }
             }
         }
@@ -681,11 +664,11 @@ internal fun AnalyticsTab(uiState: MehfilUiState) {
 @Composable
 private fun ActivityStatCard(label: String, value: String, icon: ImageVector, modifier: Modifier) {
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        border = CardDefaults.outlinedCardBorder(),
     ) {
         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
@@ -698,11 +681,11 @@ private fun ActivityStatCard(label: String, value: String, icon: ImageVector, mo
 @Composable
 private fun ActivityRow(item: ActivityItem) {
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        border = CardDefaults.outlinedCardBorder(),
     ) {
         Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -758,11 +741,11 @@ internal fun ConnectionsTab(
             }
             is DmState.IncomingRequest -> IncomingRequestCard(dmState = dmState, onAcceptDm = onAcceptDm, onDeclineDm = onDeclineDm)
             is DmState.Open -> Card(
-                shape = RoundedCornerShape(14.dp),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().clickable { onNavigateToDmChat() },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(0.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                border = CardDefaults.outlinedCardBorder(),
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.size(8.dp).clip(CircleShape).background(Green500))
@@ -782,11 +765,11 @@ private fun PendingRequestsCard(
     onDeclineDm: (String) -> Unit,
 ) {
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        border = CardDefaults.outlinedCardBorder(),
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -814,15 +797,15 @@ private fun PendingRequestsCard(
 @Composable
 private fun ConnectIdleCard() {
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        border = CardDefaults.outlinedCardBorder(),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Connect with someone", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-            Text("Tap Connect on any post to start a private chat.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
+            Text("Connection requests appear here for private chats.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
         }
     }
 }
@@ -834,11 +817,11 @@ private fun IncomingRequestCard(
     onDeclineDm: (String) -> Unit,
 ) {
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        border = CardDefaults.outlinedCardBorder(),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -847,10 +830,10 @@ private fun IncomingRequestCard(
                 Text("${dmState.fromUserName} wants to connect", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onAcceptDm(dmState.fromUserId) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(vertical = 6.dp)) {
+                Button(onClick = { onAcceptDm(dmState.fromUserId) }, modifier = Modifier.weight(1f), shape = ButtonDefaults.shape, contentPadding = PaddingValues(vertical = 6.dp)) {
                     Text("Accept", fontSize = 13.sp)
                 }
-                OutlinedButton(onClick = { onDeclineDm(dmState.fromUserId) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(vertical = 6.dp)) {
+                OutlinedButton(onClick = { onDeclineDm(dmState.fromUserId) }, modifier = Modifier.weight(1f), shape = ButtonDefaults.outlinedShape, contentPadding = PaddingValues(vertical = 6.dp)) {
                     Text("Decline", fontSize = 13.sp)
                 }
             }

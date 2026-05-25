@@ -13,8 +13,30 @@ import retrofit2.Response
 
 sealed class Resource<T> {
     data class Success<T>(val data: T) : Resource<T>()
-    data class Error<T>(val message: String, val code: Int? = null) : Resource<T>()
+    /** [code] = HTTP status; [errorCode] = API body `code` (e.g. CONFLICT, TOPIC_LIMIT). */
+    data class Error<T>(val message: String, val code: Int? = null, val errorCode: String? = null) : Resource<T>()
     class Loading<T> : Resource<T>()
+}
+
+data class ApiErrorBody(
+    val message: String? = null,
+    val error: String? = null,
+    val code: String? = null,
+)
+
+fun parseApiErrorBody(raw: String?): ApiErrorBody {
+    if (raw.isNullOrBlank()) return ApiErrorBody()
+    return try {
+        val json = JSONObject(raw)
+        ApiErrorBody(
+            message = json.optString("message").ifBlank { null }
+                ?: json.optString("error").ifBlank { null },
+            error = json.optString("error").ifBlank { null },
+            code = json.optString("code").ifBlank { null },
+        )
+    } catch (_: Exception) {
+        ApiErrorBody()
+    }
 }
 
 private const val MAX_RATE_LIMIT_RETRIES = 1
@@ -47,14 +69,15 @@ suspend fun <T> safeApiCall(call: suspend () -> Response<T>): Resource<T> {
                 continue
             }
 
-            val errorMessage = try {
-                val errorBody = response.errorBody()?.string()
-                val json = JSONObject(errorBody ?: "")
-                json.optString("message")
-                    .ifBlank { json.optString("error") }
-                    .ifBlank { "Unknown error" }
-            } catch (e: Exception) {
-                "Unknown error"
+            val errorBodyRaw = response.errorBody()?.string()
+            val parsed = parseApiErrorBody(errorBodyRaw)
+            val isHtml = errorBodyRaw?.trimStart()?.startsWith("<") == true
+            val errorMessage = parsed.message?.ifBlank { parsed.error }
+                ?: parsed.error
+                ?: if (isHtml) "Server error HTTP $code (HTML response)" else "Unknown error"
+            
+            if (errorMessage == "Unknown error" || isHtml) {
+                Log.e(TAG_API, "Unknown/HTML error HTTP $code: ${errorBodyRaw?.take(500)}")
             }
             if (code == 429 && BuildConfig.DEBUG) {
                 Log.w(
@@ -62,7 +85,7 @@ suspend fun <T> safeApiCall(call: suspend () -> Response<T>): Resource<T> {
                     "HTTP 429 Too Many Requests (final): ${response.raw().request.url} — $errorMessage",
                 )
             }
-            return Resource.Error(errorMessage, code)
+            return Resource.Error(errorMessage, code, parsed.code)
         } catch (e: CancellationException) {
             throw e
         } catch (e: UnknownHostException) {
@@ -74,7 +97,8 @@ suspend fun <T> safeApiCall(call: suspend () -> Response<T>): Resource<T> {
         } catch (e: IOException) {
             return Resource.Error("Could not connect to SAFAR. Please try again.")
         } catch (e: Exception) {
-            return Resource.Error("Something went wrong. Please try again.")
+            Log.e(TAG_API, "SafeApiCall caught exception", e)
+            return Resource.Error(e.message ?: "Unknown error")
         }
     }
 }

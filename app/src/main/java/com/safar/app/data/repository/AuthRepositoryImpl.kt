@@ -8,6 +8,7 @@ import com.safar.app.data.remote.dto.*
 import com.safar.app.domain.model.User
 import com.safar.app.domain.model.UserProfile
 import com.safar.app.domain.repository.AuthRepository
+import com.safar.app.notifications.NotificationTokenRegistrar
 import com.safar.app.util.Resource
 import com.safar.app.util.safeApiCall
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +20,8 @@ import javax.inject.Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
     private val notificationApi: NotificationApi,
-    private val dataStore: SafarDataStore
+    private val dataStore: SafarDataStore,
+    private val notificationTokenRegistrar: NotificationTokenRegistrar,
 ) : AuthRepository {
 
     override val isLoggedIn: Flow<Boolean> = dataStore.isLoggedIn
@@ -36,6 +38,7 @@ class AuthRepositoryImpl @Inject constructor(
                 dataStore.setUserId(u?.id)
                 dataStore.setUserName(u?.name ?: "")
                 dataStore.setUserAvatar(u?.avatar)
+                notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true)
                 Resource.Success(User(id = u?.id ?: "", name = u?.name ?: "", email = u?.email ?: "", photoUrl = u?.avatar, exam = u?.examType, stage = u?.preparationStage, gender = u?.gender))
             }
             is Resource.Error   -> Resource.Error(r.message)
@@ -55,6 +58,7 @@ class AuthRepositoryImpl @Inject constructor(
                 dataStore.setUserId(u?.id)
                 dataStore.setUserName(u?.name ?: "")
                 dataStore.setUserAvatar(u?.avatar)
+                notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true)
                 Resource.Success(User(id = u?.id ?: "", name = u?.name ?: "", email = u?.email ?: "", photoUrl = u?.avatar, exam = u?.examType, stage = u?.preparationStage, gender = u?.gender))
             }
             is Resource.Error   -> Resource.Error(r.message)
