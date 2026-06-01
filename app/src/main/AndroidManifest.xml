@@ -19,9 +19,9 @@
         android:name=".SafarApplication"
         android:allowBackup="${allowBackup}"
         android:usesCleartextTraffic="${usesCleartextTraffic}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/ic_safar_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_safar_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Safar"
         android:hardwareAccelerated="true">
@@ -29,6 +29,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:theme="@style/Theme.App.Starting"
             android:windowSoftInputMode="adjustResize"
             android:supportsPictureInPicture="true"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
@@ -53,6 +54,16 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- FCM default icon: ensures the monochrome sparkle is used on ALL phones,
+             even when FCM auto-displays the notification (background/killed state).
+             Without this, OEMs fall back to the launcher icon → pitch-black square. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_safar_notification_sparkle" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/safar_notification_color" />
 
         <service
             android:name=".ui.ekagra.TimerService"

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand teal used as the FCM notification accent color -->
+    <color name="safar_notification_color">#1ABFBF</color>
+</resources>

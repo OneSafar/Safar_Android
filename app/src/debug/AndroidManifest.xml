@@ -11,7 +11,7 @@
             android:name=".ui.debug.NotificationDebugReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.safar.app.ACTION_TRIGGER_DEBUG_NOTIFICATION" />
+                <action android:name="com.safarparmar.app.ACTION_TRIGGER_DEBUG_NOTIFICATION" />
             </intent-filter>
         </receiver>
     </application>

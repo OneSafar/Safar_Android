@@ -60,6 +60,7 @@
     <string name="nav_next">Next</string>
     <string name="nav_focus_shield">KAVACH</string>
     <string name="nav_live_classes">Live Classes</string>
+    <string name="nav_admin_notifications">Admin Notifications</string>
 
     <!-- KAVACH -->
     <string name="kavach_hero_title">Your shield against distraction</string>

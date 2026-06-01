@@ -1318,26 +1318,4 @@ router.post("/:planId/upgrade", async (req: Request, res: Response) => {
 
 // ── Daily Check-in ──
 
-router.post("/:planId/checkin", async (req: Request, res: Response) => {
-  try {
-    const userId = getUserId(req);
-    const plan = await plansCollection().findOne({
-      id: req.params.planId,
-      userId,
-    });
-    if (!plan) {
-      return res.status(404).json({ message: "Plan not found" });
-    }
-
-    logPlannerEvent(userId, plan.id, "daily_checkin", {
-      date: new Date().toISOString().split("T")[0],
-    });
-
-    return res.json({ ok: true, message: "Check-in recorded" });
-  } catch (error) {
-    console.error("[PLANNER] Daily checkin failed:", error);
-    return res.status(500).json({ message: "Failed to record check-in" });
-  }
-});
-
 export default router;

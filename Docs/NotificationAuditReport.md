@@ -19,14 +19,14 @@ All notifications (except the ongoing timer service notifications) are processed
 
 | Notification Name / Type | File Path (Definition) | Trigger Location & Condition | Notification Class & Trigger Type | Channel ID | ID Logic | Screen Opened & Deep Link | Foreground / Background / Killed / Reboot | Permissions Required |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Focus Timer Ongoing** | [TimerService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/ui/ekagra/TimerService.kt) | `TimerService.start()` / `updateNotification()`. Triggered when a focus or break session is active. | Local / Foreground Service (`startForeground` / `notify`) | `focus_timer` | `1001` (constant) | `safar://ekagra` (Ekagra Screen) | FG: Yes / BG: Yes / Killed: No / Reboot: No | `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` |
-| **Focus Shield Status** | [TimerService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/ui/ekagra/TimerService.kt) | `enableFocusShieldForSession()`. Triggered when Focus Shield is turned on. | Local / Service Direct (`notify`) | `focus_shield_status` | `1004` (constant) | `safar://ekagra` (Ekagra Screen) | FG: Yes / BG: Yes / Killed: No / Reboot: No | `POST_NOTIFICATIONS` |
-| **Focus Shield Blocked App** | [TimerService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/ui/ekagra/TimerService.kt) | `handleFocusShieldBlockedIntent()`. Triggered when blocked package is opened. | Local / Service Direct (`notify`) | `focus_shield_blocked` | `1003` (constant) | `safar://ekagra` (Ekagra Screen with Return Action) | FG: Yes / BG: Yes / Killed: No / Reboot: No | `POST_NOTIFICATIONS` |
-| **Focus Timer Completion** | [TimerService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/ui/ekagra/TimerService.kt) | `showCompletionNotification()`. Triggered when focus or break countdown ends. | Local / `SafarNotificationManager.show` | `focus_timer` | `1002` (constant) | `safar://ekagra` (Ekagra Screen) | FG: Yes / BG: Yes / Killed: No / Reboot: No | `POST_NOTIFICATIONS` |
-| **Morning Nudge** | [MorningNudgeWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/MorningNudgeWorker.kt) | `MorningNudgeWorker.doWork()`. Runs daily at 6:30 AM. | Local WorkManager / `SafarNotificationManager.show` | `study_reminders` | Random (`10000-99999`) | `safar://dashboard` (Dashboard Screen) | FG: Yes / BG: Yes / Killed: Yes / Reboot: Yes | `POST_NOTIFICATIONS` |
-| **Planner Alerts** | [PlannerAlertsWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/PlannerAlertsWorker.kt) | `PlannerAlertsWorker.doWork()`. Runs daily at custom time (e.g. 19:00). Checks for overdue tasks, exam countdowns, pace. | Local WorkManager / `SafarNotificationManager.show` | `study_reminders` | Random (`10000-99999`) | `safar://studyplanner` (Study Planner Screen) | FG: Yes / BG: Yes / Killed: Yes / Reboot: Yes | `POST_NOTIFICATIONS` |
-| **Daily Study Reminder** | [StudyReminderWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/StudyReminderWorker.kt) | `StudyReminderWorker.doWork()`. Runs daily at custom time. | Local WorkManager / `SafarNotificationManager.show` | `study_reminders` | Random (`10000-99999`) | `safar://ekagra` (Ekagra Screen) | FG: Yes / BG: Yes / Killed: Yes / Reboot: Yes | `POST_NOTIFICATIONS` |
-| **FCM Push Notifications** | [SafarFirebaseMessagingService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/SafarFirebaseMessagingService.kt) | Server-triggered message delivered to `onMessageReceived`. | FCM Remote Push / `SafarNotificationManager.show` | Dynamic (normalized) | Random (`10000-99999`) | Dynamic (via `deepLink` data) | FG: Yes / BG: Yes / Killed: Yes / Reboot: Yes (if online) | `POST_NOTIFICATIONS` |
+| **Focus Timer Ongoing** | [TimerService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt) | `TimerService.start()` / `updateNotification()`. Triggered when a focus or break session is active. | Local / Foreground Service (`startForeground` / `notify`) | `focus_timer` | `1001` (constant) | `safar://ekagra` (Ekagra Screen) | FG: Yes / BG: Yes / Killed: No / Reboot: No | `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` |
+| **Focus Shield Status** | [TimerService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt) | `enableFocusShieldForSession()`. Triggered when Focus Shield is turned on. | Local / Service Direct (`notify`) | `focus_shield_status` | `1004` (constant) | `safar://ekagra` (Ekagra Screen) | FG: Yes / BG: Yes / Killed: No / Reboot: No | `POST_NOTIFICATIONS` |
+| **Focus Shield Blocked App** | [TimerService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt) | `handleFocusShieldBlockedIntent()`. Triggered when blocked package is opened. | Local / Service Direct (`notify`) | `focus_shield_blocked` | `1003` (constant) | `safar://ekagra` (Ekagra Screen with Return Action) | FG: Yes / BG: Yes / Killed: No / Reboot: No | `POST_NOTIFICATIONS` |
+| **Focus Timer Completion** | [TimerService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/ui/ekagra/TimerService.kt) | `showCompletionNotification()`. Triggered when focus or break countdown ends. | Local / `SafarNotificationManager.show` | `focus_timer` | `1002` (constant) | `safar://ekagra` (Ekagra Screen) | FG: Yes / BG: Yes / Killed: No / Reboot: No | `POST_NOTIFICATIONS` |
+| **Morning Nudge** | [MorningNudgeWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/MorningNudgeWorker.kt) | `MorningNudgeWorker.doWork()`. Runs daily at 6:30 AM. | Local WorkManager / `SafarNotificationManager.show` | `study_reminders` | Random (`10000-99999`) | `safar://dashboard` (Dashboard Screen) | FG: Yes / BG: Yes / Killed: Yes / Reboot: Yes | `POST_NOTIFICATIONS` |
+| **Planner Alerts** | [PlannerAlertsWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/PlannerAlertsWorker.kt) | `PlannerAlertsWorker.doWork()`. Runs daily at custom time (e.g. 19:00). Checks for overdue tasks, exam countdowns, pace. | Local WorkManager / `SafarNotificationManager.show` | `study_reminders` | Random (`10000-99999`) | `safar://studyplanner` (Study Planner Screen) | FG: Yes / BG: Yes / Killed: Yes / Reboot: Yes | `POST_NOTIFICATIONS` |
+| **Daily Study Reminder** | [StudyReminderWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/StudyReminderWorker.kt) | `StudyReminderWorker.doWork()`. Runs daily at custom time. | Local WorkManager / `SafarNotificationManager.show` | `study_reminders` | Random (`10000-99999`) | `safar://ekagra` (Ekagra Screen) | FG: Yes / BG: Yes / Killed: Yes / Reboot: Yes | `POST_NOTIFICATIONS` |
+| **FCM Push Notifications** | [SafarFirebaseMessagingService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/SafarFirebaseMessagingService.kt) | Server-triggered message delivered to `onMessageReceived`. | FCM Remote Push / `SafarNotificationManager.show` | Dynamic (normalized) | Random (`10000-99999`) | Dynamic (via `deepLink` data) | FG: Yes / BG: Yes / Killed: Yes / Reboot: Yes (if online) | `POST_NOTIFICATIONS` |
 
 ---
 
@@ -34,16 +34,16 @@ All notifications (except the ongoing timer service notifications) are processed
 
 * **[AndroidManifest.xml](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/AndroidManifest.xml)**: Inspected declarations of permissions, activities, services, accessibility configs, and deep link intent filters.
 * **[build.gradle.kts](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/build.gradle.kts)**: Audited product flavors (`qa`, `prod`), applicationIdSuffix (`.qa`), build types, targetSdk, dependencies (WorkManager, FCM).
-* **[SafarNotificationChannels.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/SafarNotificationChannels.kt)**: Checked channel IDs, names, importance, and normalization logic.
-* **[SafarNotificationManager.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/SafarNotificationManager.kt)**: Analyzed notification construction, small icon styling, and quiet hours suppression code.
-* **[SafarFirebaseMessagingService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/SafarFirebaseMessagingService.kt)**: Audited incoming FCM message parsing and user preferences checking (`isChannelEnabled`).
-* **[MorningNudgeWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/MorningNudgeWorker.kt)**: Inspected random quote assets loading and WorkManager daily scheduling calculation.
-* **[PlannerAlertsWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/PlannerAlertsWorker.kt)**: Checked Hilt entry point injection, database queries for tasks/exams, and custom scheduling delay logic.
-* **[StudyReminderWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/StudyReminderWorker.kt)**: Inspected basic enqueuing logic.
-* **[MainActivity.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/MainActivity.kt)**: Checked intent parameters parsing and route interception.
-* **[SafarNavGraph.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/ui/navigation/SafarNavGraph.kt)**: Checked route consumption and redirection rules.
-* **[SettingsViewModel.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/ui/settings/SettingsViewModel.kt)**: Audited scheduling/canceling of workers when toggling settings.
-* **[SafarDataStore.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/data/local/SafarDataStore.kt)**: Examined default preference values (e.g. default quiet hours `"22:00"` to `"07:00"`).
+* **[SafarNotificationChannels.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/SafarNotificationChannels.kt)**: Checked channel IDs, names, importance, and normalization logic.
+* **[SafarNotificationManager.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/SafarNotificationManager.kt)**: Analyzed notification construction, small icon styling, and quiet hours suppression code.
+* **[SafarFirebaseMessagingService.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/SafarFirebaseMessagingService.kt)**: Audited incoming FCM message parsing and user preferences checking (`isChannelEnabled`).
+* **[MorningNudgeWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/MorningNudgeWorker.kt)**: Inspected random quote assets loading and WorkManager daily scheduling calculation.
+* **[PlannerAlertsWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/PlannerAlertsWorker.kt)**: Checked Hilt entry point injection, database queries for tasks/exams, and custom scheduling delay logic.
+* **[StudyReminderWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/StudyReminderWorker.kt)**: Inspected basic enqueuing logic.
+* **[MainActivity.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/MainActivity.kt)**: Checked intent parameters parsing and route interception.
+* **[SafarNavGraph.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/ui/navigation/SafarNavGraph.kt)**: Checked route consumption and redirection rules.
+* **[SettingsViewModel.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/ui/settings/SettingsViewModel.kt)**: Audited scheduling/canceling of workers when toggling settings.
+* **[SafarDataStore.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/data/local/SafarDataStore.kt)**: Examined default preference values (e.g. default quiet hours `"22:00"` to `"07:00"`).
 
 ---
 
@@ -126,8 +126,8 @@ WorkManager.getInstance(context).enqueueUniquePeriodicWork(
   * It maps payload properties (`title`, `body`, `channel`, `deepLink`, `priority`) to a local notification.
   * Checks user preferences via `isChannelEnabled(channel)` before displaying.
 * **Google Services Configuration**: `google-services.json` contains two clients matching the configurations:
-  * Client 1: Package `com.safar.app` (prod)
-  * Client 2: Package `com.safar.app.qa` (qa)
+  * Client 1: Package `com.safarparmar.app` (prod)
+  * Client 2: Package `com.safarparmar.app.qa` (qa)
 
 ---
 
@@ -171,7 +171,7 @@ WorkManager.getInstance(context).enqueueUniquePeriodicWork(
 To verify all notifications immediately, we can implement a debug-only UI panel in the `debug` source set. This keeps it completely out of release builds.
 
 ### 1. Panel Location
-* Code file: `app/src/debug/java/com/safar/app/ui/debug/NotificationTestPanel.kt`
+* Code file: `app/src/debug/java/com/safarparmar/app/ui/debug/NotificationTestPanel.kt`
 * Manifest configuration: Create `app/src/debug/AndroidManifest.xml` to declare debug-only routes or receivers.
 
 ### 2. Manifest Setup (Debug-Only)
@@ -179,14 +179,14 @@ Create `app/src/debug/AndroidManifest.xml`:
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.safar.app">
+    package="com.safarparmar.app">
     <application>
         <!-- Debug Receiver to trigger notifications via ADB -->
         <receiver
             android:name=".ui.debug.NotificationDebugReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.safar.app.ACTION_TRIGGER_DEBUG_NOTIFICATION" />
+                <action android:name="com.safarparmar.app.ACTION_TRIGGER_DEBUG_NOTIFICATION" />
             </intent-filter>
         </receiver>
     </application>
@@ -194,22 +194,22 @@ Create `app/src/debug/AndroidManifest.xml`:
 ```
 
 ### 3. Debug Receiver Code
-Add `app/src/debug/java/com/safar/app/ui/debug/NotificationDebugReceiver.kt`:
+Add `app/src/debug/java/com/safarparmar/app/ui/debug/NotificationDebugReceiver.kt`:
 ```kotlin
-package com.safar.app.ui.debug
+package com.safarparmar.app.ui.debug
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.safar.app.notifications.SafarNotificationManager
-import com.safar.app.notifications.SafarNotificationChannels
+import com.safarparmar.app.notifications.SafarNotificationManager
+import com.safarparmar.app.notifications.SafarNotificationChannels
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class NotificationDebugReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == "com.safar.app.ACTION_TRIGGER_DEBUG_NOTIFICATION") {
+        if (intent.action == "com.safarparmar.app.ACTION_TRIGGER_DEBUG_NOTIFICATION") {
             val type = intent.getStringExtra("type") ?: "nudge"
             val title = intent.getStringExtra("title") ?: "Debug Notification"
             val body = intent.getStringExtra("body") ?: "This is a debug test."
@@ -230,9 +230,9 @@ class NotificationDebugReceiver : BroadcastReceiver() {
 ```
 
 ### 4. Compose UI Panel Code Structure
-Add `app/src/debug/java/com/safar/app/ui/debug/NotificationTestPanel.kt`:
+Add `app/src/debug/java/com/safarparmar/app/ui/debug/NotificationTestPanel.kt`:
 ```kotlin
-package com.safar.app.ui.debug
+package com.safarparmar.app.ui.debug
 
 import android.app.NotificationManager
 import android.content.Context
@@ -246,7 +246,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.safar.app.notifications.*
+import com.safarparmar.app.notifications.*
 import kotlinx.coroutines.launch
 
 @Composable
@@ -377,7 +377,7 @@ fun NotificationTestPanel(onBack: () -> Unit) {
 
 Generate ADB testing commands for both build configurations.
 
-### 1. Product Build Flavor (Prod) — `com.safar.app`
+### 1. Product Build Flavor (Prod) — `com.safarparmar.app`
 
 * **List installed app packages**:
   ```bash
@@ -385,19 +385,19 @@ Generate ADB testing commands for both build configurations.
   ```
 * **Grant POST_NOTIFICATIONS**:
   ```bash
-  adb shell pm grant com.safar.app android.permission.POST_NOTIFICATIONS
+  adb shell pm grant com.safarparmar.app android.permission.POST_NOTIFICATIONS
   ```
 * **Revoke POST_NOTIFICATIONS**:
   ```bash
-  adb shell pm revoke com.safar.app android.permission.POST_NOTIFICATIONS
+  adb shell pm revoke com.safarparmar.app android.permission.POST_NOTIFICATIONS
   ```
 * **Force-stop App**:
   ```bash
-  adb shell am force-stop com.safar.app
+  adb shell am force-stop com.safarparmar.app
   ```
 * **Clear App Data**:
   ```bash
-  adb shell pm clear com.safar.app
+  adb shell pm clear com.safarparmar.app
   ```
 * **View Logcat Logs**:
   ```bash
@@ -405,10 +405,10 @@ Generate ADB testing commands for both build configurations.
   ```
 * **Trigger Debug Broadcast Receiver**:
   ```bash
-  adb shell am broadcast -a com.safar.app.ACTION_TRIGGER_DEBUG_NOTIFICATION --es type "morning_nudge" --es title "ADB Nudge" --es body "Good Morning from ADB!"
+  adb shell am broadcast -a com.safarparmar.app.ACTION_TRIGGER_DEBUG_NOTIFICATION --es type "morning_nudge" --es title "ADB Nudge" --es body "Good Morning from ADB!"
   ```
 
-### 2. QA Build Flavor (QA) — `com.safar.app.qa`
+### 2. QA Build Flavor (QA) — `com.safarparmar.app.qa`
 
 * **List installed app packages**:
   ```bash
@@ -416,19 +416,19 @@ Generate ADB testing commands for both build configurations.
   ```
 * **Grant POST_NOTIFICATIONS**:
   ```bash
-  adb shell pm grant com.safar.app.qa android.permission.POST_NOTIFICATIONS
+  adb shell pm grant com.safarparmar.app.qa android.permission.POST_NOTIFICATIONS
   ```
 * **Revoke POST_NOTIFICATIONS**:
   ```bash
-  adb shell pm revoke com.safar.app.qa android.permission.POST_NOTIFICATIONS
+  adb shell pm revoke com.safarparmar.app.qa android.permission.POST_NOTIFICATIONS
   ```
 * **Force-stop App**:
   ```bash
-  adb shell am force-stop com.safar.app.qa
+  adb shell am force-stop com.safarparmar.app.qa
   ```
 * **Clear App Data**:
   ```bash
-  adb shell pm clear com.safar.app.qa
+  adb shell pm clear com.safarparmar.app.qa
   ```
 * **View Logcat Logs**:
   ```bash
@@ -436,7 +436,7 @@ Generate ADB testing commands for both build configurations.
   ```
 * **Trigger Debug Broadcast Receiver**:
   ```bash
-  adb shell am broadcast -a com.safar.app.qa.ACTION_TRIGGER_DEBUG_NOTIFICATION --es type "morning_nudge" --es title "ADB Nudge" --es body "Good Morning from ADB!" -n com.safar.app.qa/com.safar.app.ui.debug.NotificationDebugReceiver
+  adb shell am broadcast -a com.safarparmar.app.qa.ACTION_TRIGGER_DEBUG_NOTIFICATION --es type "morning_nudge" --es title "ADB Nudge" --es body "Good Morning from ADB!" -n com.safarparmar.app.qa/com.safarparmar.app.ui.debug.NotificationDebugReceiver
   ```
 
 ---
@@ -447,19 +447,19 @@ Suggesting automated tests to protect notification integrity over time.
 
 ### 1. Unit Tests for Quiet Hours Logic
 * **Test Name**: `quietHoursSuppression_respectsWindowRange`
-* **File Path**: `app/src/test/java/com/safar/app/notifications/QuietHoursTest.kt`
+* **File Path**: `app/src/test/java/com/safarparmar/app/notifications/QuietHoursTest.kt`
 * **Verifies**: Verifies that `shouldSuppressByQuietHours` correctly flags current times falling inside/outside quiet windows (especially windows spanning midnight, e.g., 22:00 to 07:00).
 * **Mock/Fake Dependencies**: Mock/fake `SafarDataStore` to inject custom quiet hours values, and inject a fake `Clock` dependency to mock the current time.
 
 ### 2. Deep Link Mapping Test
 * **Test Name**: `deepLinkMapping_mapsStudyPlannerRoute`
-* **File Path**: `app/src/test/java/com/safar/app/notifications/NotificationDeepLinkHandlerTest.kt`
+* **File Path**: `app/src/test/java/com/safarparmar/app/notifications/NotificationDeepLinkHandlerTest.kt`
 * **Verifies**: Verifies that `safar://studyplanner` matches `Routes.STUDY_PLANNER`.
 * **Mock/Fake Dependencies**: None (pure utility unit test).
 
 ### 3. WorkManager Worker Execution Test
 * **Test Name**: `studyReminderWorker_postsNotificationOnDoWork`
-* **File Path**: `app/src/test/java/com/safar/app/notifications/StudyReminderWorkerTest.kt`
+* **File Path**: `app/src/test/java/com/safarparmar/app/notifications/StudyReminderWorkerTest.kt`
 * **Verifies**: Verifies that when the worker executes, it builds the notification with correct fields and schedules it to run.
 * **Mock/Fake Dependencies**: Use `WorkManagerTestInitHelper` (WorkManager testing library) and mock `SafarNotificationManager`.
 
@@ -472,7 +472,7 @@ To fix the critical bugs identified during the audit, we recommend implementing 
 ### 1. Fix Missing Deep Link Mapping
 Add the `"studyplanner"` host to `NotificationDeepLinkHandler.routeFor()` so clicking planner notifications navigates to the Study Planner screen.
 
-* **Target File**: [NotificationDeepLinkHandler.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/NotificationDeepLinkHandler.kt)
+* **Target File**: [NotificationDeepLinkHandler.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/NotificationDeepLinkHandler.kt)
 * **Changes**:
 ```kotlin
 // ...
@@ -486,7 +486,7 @@ Add the `"studyplanner"` host to `NotificationDeepLinkHandler.routeFor()` so cli
 ### 2. Fix Quiet Hours Suppressing Ongoing/Critical Alerts
 Exempt focus timer alerts and active focus shield events from quiet hours. Only external push/pull reminders should be suppressed.
 
-* **Target File**: [SafarNotificationManager.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/SafarNotificationManager.kt)
+* **Target File**: [SafarNotificationManager.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/SafarNotificationManager.kt)
 * **Changes**:
 ```kotlin
     private suspend fun shouldSuppressByQuietHours(channelId: String): Boolean {
@@ -502,7 +502,7 @@ Exempt focus timer alerts and active focus shield events from quiet hours. Only 
 ### 3. Fix App Startup Reschedule-Loop
 Modify `SafarApplication.kt` to use `ExistingPeriodicWorkPolicy.KEEP` instead of `ExistingPeriodicWorkPolicy.UPDATE` on startup. This prevents enqueued periodic alarms from constantly having their initial delay reset every time the app is opened.
 
-* **Target File**: [MorningNudgeWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/MorningNudgeWorker.kt), [StudyReminderWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/StudyReminderWorker.kt), and [PlannerAlertsWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safar/app/notifications/PlannerAlertsWorker.kt)
+* **Target File**: [MorningNudgeWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/MorningNudgeWorker.kt), [StudyReminderWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/StudyReminderWorker.kt), and [PlannerAlertsWorker.kt](file:///d:/SAFAR_PARENT/Safar_Android/Safar_Android/app/src/main/java/com/safarparmar/app/notifications/PlannerAlertsWorker.kt)
 * **Changes** (Change `ExistingPeriodicWorkPolicy.UPDATE` to `ExistingPeriodicWorkPolicy.KEEP` in the companions of all workers, or check if the work is enqueued first).
 * Also, in `SettingsViewModel.kt`, we can continue using `ExistingPeriodicWorkPolicy.UPDATE` to dynamically apply new schedules when the user explicitly updates settings.
 

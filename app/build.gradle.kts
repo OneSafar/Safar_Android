@@ -10,14 +10,24 @@ plugins {
 
 import java.util.Properties
 
+val localProps = Properties()
+val localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localPropsFile.inputStream().use { localProps.load(it) }
+}
+
 val releaseStoreFile = providers.gradleProperty("SAFAR_RELEASE_STORE_FILE")
     .orElse(providers.environmentVariable("SAFAR_RELEASE_STORE_FILE"))
+    .orElse(providers.provider { localProps.getProperty("SAFAR_RELEASE_STORE_FILE") })
 val releaseStorePassword = providers.gradleProperty("SAFAR_RELEASE_STORE_PASSWORD")
     .orElse(providers.environmentVariable("SAFAR_RELEASE_STORE_PASSWORD"))
+    .orElse(providers.provider { localProps.getProperty("SAFAR_RELEASE_STORE_PASSWORD") })
 val releaseKeyAlias = providers.gradleProperty("SAFAR_RELEASE_KEY_ALIAS")
     .orElse(providers.environmentVariable("SAFAR_RELEASE_KEY_ALIAS"))
+    .orElse(providers.provider { localProps.getProperty("SAFAR_RELEASE_KEY_ALIAS") })
 val releaseKeyPassword = providers.gradleProperty("SAFAR_RELEASE_KEY_PASSWORD")
     .orElse(providers.environmentVariable("SAFAR_RELEASE_KEY_PASSWORD"))
+    .orElse(providers.provider { localProps.getProperty("SAFAR_RELEASE_KEY_PASSWORD") })
 val hasReleaseSigning = listOf(
     releaseStoreFile,
     releaseStorePassword,
@@ -26,15 +36,14 @@ val hasReleaseSigning = listOf(
 ).all { it.isPresent }
 
 fun normalizeBaseUrl(raw: String): String {
-    val trimmed = raw.trim()
+    var trimmed = raw.trim()
     if (trimmed.isEmpty()) return trimmed
-    return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
-}
-
-val localProps = Properties()
-val localPropsFile = rootProject.file("local.properties")
-if (localPropsFile.exists()) {
-    localPropsFile.inputStream().use { localProps.load(it) }
+    if (!trimmed.endsWith("/")) trimmed += "/"
+    // Retrofit uses BASE_URL + "plans/..." — must end with api/
+    if (!trimmed.endsWith("api/", ignoreCase = true)) {
+        trimmed += "api/"
+    }
+    return trimmed
 }
 
 gradle.taskGraph.whenReady {
@@ -57,26 +66,33 @@ gradle.taskGraph.whenReady {
 }
 
 android {
-    namespace = "com.safar.app"
+    namespace = "com.safarparmar.app"
     compileSdk = 35
     val qaBaseUrl = normalizeBaseUrl(
         providers.gradleProperty("SAFAR_QA_BASE_URL").orNull
             ?: providers.environmentVariable("SAFAR_QA_BASE_URL").orNull
             ?: localProps.getProperty("SAFAR_QA_BASE_URL")
-            ?: "https://safar.parmarssc.in/api/",
+            ?: "https://safar-c4ny.onrender.com/api/",
     )
+    // Production API — main production server with real MongoDB + Firebase credentials.
+    val prodBaseUrl = normalizeBaseUrl("https://safar.parmarssc.in/")
     val aiSyllabusImportEnabled = providers.gradleProperty("AI_SYLLABUS_IMPORT_ENABLED")
         .map { it.equals("true", ignoreCase = true).toString() }
         .orElse("true")
         .get()
 
     defaultConfig {
-        applicationId = "com.safar.app"
+        applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.5"
+        versionCode = 2
+        versionName = "1.5.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // KAVACH (FocusShield) accessibility service is a digital wellbeing feature.
+        // It MUST remain in the prod manifest so Google can review & whitelist it.
+        // Note: sideloaded installs may trigger Play Protect warnings — this is expected
+        // for accessibility services from unknown sources and resolves after Play Store review.
+        buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "false")
     }
 
     flavorDimensions += "env"
@@ -87,6 +103,7 @@ android {
             applicationIdSuffix = ".qa"
             versionNameSuffix = "-qa"
             buildConfigField("String", "BASE_URL", "\"$qaBaseUrl\"")
+            buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "true")
             buildConfigField("boolean", "AI_SYLLABUS_IMPORT_ENABLED", aiSyllabusImportEnabled)
             manifestPlaceholders["allowBackup"] = "false"
             manifestPlaceholders["usesCleartextTraffic"] = "true"
@@ -94,7 +111,8 @@ android {
         }
         create("prod") {
             dimension = "env"
-            buildConfigField("String", "BASE_URL", "\"https://safar.parmarssc.in/api/\"")
+            buildConfigField("String", "BASE_URL", "\"$prodBaseUrl\"")
+            buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "true")
             buildConfigField("boolean", "AI_SYLLABUS_IMPORT_ENABLED", aiSyllabusImportEnabled)
             manifestPlaceholders["allowBackup"] = "false"
             manifestPlaceholders["usesCleartextTraffic"] = "false"
@@ -144,6 +162,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -215,4 +234,24 @@ dependencies {
     testImplementation(libs.turbine)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+val copyApksToOutputs = tasks.register<Copy>("copyApksToOutputs") {
+    group = "build"
+    description = "Copy built APKs into Safar_Android/Outputs/"
+    from(layout.buildDirectory.dir("outputs/apk"))
+    include("**/*.apk")
+    into(rootProject.file("Outputs"))
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+listOf(
+    "assembleProdRelease",
+    "assembleQaRelease",
+    "assembleProdDebug",
+    "assembleQaDebug",
+).forEach { taskName ->
+    tasks.matching { it.name == taskName }.configureEach {
+        finalizedBy(copyApksToOutputs)
+    }
 }
