@@ -207,6 +207,7 @@ internal fun MehfilContent(
                             onLikePost = onLikePost,
                             onCommentClick = onCommentClick,
                             onUnsavePost = onUnsavePost,
+                            onConnect = onConnect,
                         )
                         MehfilTab.ANALYTICS -> AnalyticsTab(uiState = uiState)
                         MehfilTab.CONNECTIONS -> ConnectionsTab(

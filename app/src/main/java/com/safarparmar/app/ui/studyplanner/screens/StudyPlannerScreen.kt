@@ -190,7 +190,7 @@ import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
-import com.safarparmar.app.ui.theme.isLightBackground
+import com.safarparmar.app.ui.theme.*
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
@@ -471,77 +471,86 @@ fun StudyPlannerScreen(
         else -> "Study Planner"
     }
     val drawerSubtitle: String? = null
+    val currentDensity = LocalDensity.current
+    val clampedDensity = remember(currentDensity) {
+        Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
 
-    SafarDrawerScaffold(
-        title = drawerTitle,
-        subtitle = drawerSubtitle,
-        currentRoute = currentRoute,
-        isDarkTheme = isDarkTheme,
-        onNavigate = onNavigate,
-        onToggleDarkTheme = onToggleDarkTheme,
-        onLanguageClick = onLanguageClick,
-    ) { padding ->
-        Scaffold(
-            modifier = Modifier.padding(top = padding.calculateTopPadding()),
-            containerColor = MaterialTheme.colorScheme.background,
-            contentWindowInsets = WindowInsets.safeDrawing.only(
-                androidx.compose.foundation.layout.WindowInsetsSides.Horizontal
-            ),
-            snackbarHost = { SnackbarHost(snackbar) },
-            bottomBar = {
-                if (chromeState.selectedPlan != null) {
-                    PlannerBottomBar(selected = chromeState.section, onSelect = { section ->
-                        val activePlan = chromeState.selectedPlan
-                        if (section == PlannerSection.SYLLABUS && activePlan != null) {
-                            onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", activePlan.id))
-                        } else {
-                            actions.setSection(section)
-                        }
-                    })
-                }
-            },
-        ) { innerPadding ->
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .consumeWindowInsets(innerPadding)
-            ) {
-                SharedTransitionLayout {
-                    AnimatedContent(
-                        targetState = StudyPlannerHomeTarget(
-                            section = chromeState.section,
-                            selectedPlanId = chromeState.selectedPlan?.id,
-                        ),
-                        transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
-                        label = "StudyPlannerHome",
-                    ) { target ->
-                        val targetPlan = remember(target.selectedPlanId, chromeState.selectedPlan, plansState.plans) {
-                            when (target.selectedPlanId) {
-                                null -> null
-                                chromeState.selectedPlan?.id -> chromeState.selectedPlan
-                                else -> plansState.plans.firstOrNull { it.id == target.selectedPlanId }
+    CompositionLocalProvider(LocalDensity provides clampedDensity) {
+        SafarDrawerScaffold(
+            title = drawerTitle,
+            subtitle = drawerSubtitle,
+            currentRoute = currentRoute,
+            isDarkTheme = isDarkTheme,
+            onNavigate = onNavigate,
+            onToggleDarkTheme = onToggleDarkTheme,
+            onLanguageClick = onLanguageClick,
+        ) { padding ->
+            Scaffold(
+                modifier = Modifier.padding(top = padding.calculateTopPadding()),
+                containerColor = MaterialTheme.colorScheme.background,
+                contentWindowInsets = WindowInsets.safeDrawing.only(
+                    androidx.compose.foundation.layout.WindowInsetsSides.Horizontal
+                ),
+                snackbarHost = { SnackbarHost(snackbar) },
+                bottomBar = {
+                    if (chromeState.selectedPlan != null) {
+                        PlannerBottomBar(selected = chromeState.section, onSelect = { section ->
+                            val activePlan = chromeState.selectedPlan
+                            if (section == PlannerSection.SYLLABUS && activePlan != null) {
+                                onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", activePlan.id))
+                            } else {
+                                actions.setSection(section)
                             }
-                        }
-                        PlannerHome(
-                            chromeState = chromeState.copy(
-                                section = target.section,
-                                selectedPlan = targetPlan,
-                            ),
-                            plansState = plansState,
-                            detailState = detailState,
-                            actions = actions,
-                            onNavigate = onNavigate,
-                            sharedTransitionScope = this@SharedTransitionLayout,
-                            animatedVisibilityScope = this,
-                        )
+                        })
                     }
+                },
+            ) { innerPadding ->
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .consumeWindowInsets(innerPadding)
+                ) {
+                    SharedTransitionLayout {
+                        AnimatedContent(
+                            targetState = StudyPlannerHomeTarget(
+                                section = chromeState.section,
+                                selectedPlanId = chromeState.selectedPlan?.id,
+                            ),
+                            transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
+                            label = "StudyPlannerHome",
+                        ) { target ->
+                            val targetPlan = remember(target.selectedPlanId, chromeState.selectedPlan, plansState.plans) {
+                                when (target.selectedPlanId) {
+                                    null -> null
+                                    chromeState.selectedPlan?.id -> chromeState.selectedPlan
+                                    else -> plansState.plans.firstOrNull { it.id == target.selectedPlanId }
+                                }
+                            }
+                            PlannerHome(
+                                chromeState = chromeState.copy(
+                                    section = target.section,
+                                    selectedPlan = targetPlan,
+                                ),
+                                plansState = plansState,
+                                detailState = detailState,
+                                actions = actions,
+                                onNavigate = onNavigate,
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedVisibilityScope = this,
+                            )
+                        }
+                    }
+                    val hasCachedContent = plansState.plans.isNotEmpty() || chromeState.selectedPlan != null
+                    SafarInlineRefreshIndicator(
+                        isRefreshing = chromeState.loading && hasCachedContent,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
                 }
-                val hasCachedContent = plansState.plans.isNotEmpty() || chromeState.selectedPlan != null
-                SafarInlineRefreshIndicator(
-                    isRefreshing = chromeState.loading && hasCachedContent,
-                    modifier = Modifier.align(Alignment.TopCenter),
-                )
             }
         }
     }
@@ -590,10 +599,26 @@ private fun StudyPlansScreen(
         )
     }
 
+    val isDark = isSystemInDarkTheme()
+    val baseBgColor = MaterialTheme.colorScheme.background
+    val gradientStartColor = if (isDark) {
+        Color(0xFF1B212D)
+    } else {
+        Color(0xFFD6E9FF)
+    }
+    val dynamicGradient = remember(gradientStartColor, baseBgColor) {
+        Brush.verticalGradient(
+            colors = listOf(
+                gradientStartColor,
+                baseBgColor
+            )
+        )
+    }
+
     SafarPullRefreshBox(
         isRefreshing = state.loading && state.plans.isNotEmpty(),
         onRefresh = { actions.refreshPlans() },
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        modifier = Modifier.fillMaxSize().background(dynamicGradient),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -777,13 +802,19 @@ private fun PlannerCard(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val cardGradient = if (isDark) DarkExpressiveGradient else LightExpressiveGradient
     Card(
         modifier = modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)),
-    ) { content() }
+    ) {
+        Box(modifier = Modifier.background(cardGradient)) {
+            content()
+        }
+    }
 }
 
 @Composable
@@ -826,17 +857,25 @@ private fun PlanCardSimplified(
             animatedVisibilityScope = animatedVisibilityScope,
         )
     }
+    val isDark = isSystemInDarkTheme()
+    val cardGradient = if (isDark) {
+        Brush.linearGradient(colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B)))
+    } else {
+        Brush.linearGradient(colors = listOf(Color(0xFF0A1931), Color(0xFF15305B)))
+    }
     Card(
         modifier = sharedModifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .background(cardGradient)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
@@ -848,7 +887,7 @@ private fun PlanCardSimplified(
                     text = plan.title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color.White
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -881,7 +920,7 @@ private fun PlanCardSimplified(
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "Plan actions",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = Color.White.copy(alpha = 0.7f)
                             )
                         }
                         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
@@ -899,14 +938,14 @@ private fun PlanCardSimplified(
             }
             Text(
                 text = "${plan.subjectCount ?: plan.subjects.size} subjects / ${progress.totalTopics} topics",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium
             )
             LinearProgressIndicator(
                 progress = { progress.completionPercent / 100f },
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                color = Color(0xFF3B82F6),
+                trackColor = Color.White.copy(alpha = 0.15f),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
@@ -919,13 +958,13 @@ private fun PlanCardSimplified(
             ) {
                 Text(
                     text = "${progress.completionPercent}% complete",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "Open",
-                    color = MaterialTheme.colorScheme.primary,
+                    color = Color(0xFF60A5FA),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable(onClick = onOpen)
@@ -953,17 +992,24 @@ private fun PlanCardCompact(
             animatedVisibilityScope = animatedVisibilityScope,
         )
     }
+    val isDark = isSystemInDarkTheme()
+    val cardGradient = if (isDark) {
+        Brush.linearGradient(colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B)))
+    } else {
+        Brush.linearGradient(colors = listOf(Color(0xFF0A1931), Color(0xFF15305B)))
+    }
     Card(
         modifier = sharedModifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier
+                .background(cardGradient)
                 .padding(16.dp)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -977,7 +1023,7 @@ private fun PlanCardCompact(
                     text = plan.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -990,7 +1036,7 @@ private fun PlanCardCompact(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "Plan actions",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = Color.White.copy(alpha = 0.7f),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -1032,7 +1078,7 @@ private fun PlanCardCompact(
 
             Text(
                 text = "${plan.subjectCount ?: plan.subjects.size} subjects",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium
             )
@@ -1044,8 +1090,8 @@ private fun PlanCardCompact(
             ) {
                 LinearProgressIndicator(
                     progress = { progress.completionPercent / 100f },
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    color = Color(0xFF3B82F6),
+                    trackColor = Color.White.copy(alpha = 0.15f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
@@ -1053,7 +1099,7 @@ private fun PlanCardCompact(
                 )
                 Text(
                     text = "${progress.completionPercent}% complete",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium
                 )
@@ -1075,70 +1121,100 @@ private fun QuickStartSheet(state: StudyPlannerUiState, actions: PlannerActions,
     var showAdvanced by remember { mutableStateOf(false) }
     val offDays = remember { mutableStateOf(setOf<Int>()) }
 
+    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+    val clampedDensity = remember(currentDensity) {
+        androidx.compose.ui.unit.Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            PlannerSectionHeader(
-                title = "Create plan",
-                subtitle = "Select exam and exam date.",
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = mode == "template", onClick = { mode = "template" }, label = { Text("Template") })
-                FilterChip(selected = mode == "custom", onClick = { mode = "custom" }, label = { Text("Custom") })
-            }
-            if (mode == "template") {
-                Text("Exam template", fontWeight = FontWeight.SemiBold)
-                state.templates.take(8).forEach { template ->
-                    PlannerActionRow(
-                        title = template.name,
-                        subtitle = "${template.subjectCount ?: 0} subjects • ${template.topicCount ?: 0} topics",
-                        icon = Icons.Default.School,
-                        selected = templateId == template.id,
-                        onClick = {
-                            templateId = template.id
-                            if (title.isBlank()) title = template.name
-                        },
-                    )
+        androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+            Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                PlannerSectionHeader(
+                    title = "Create plan",
+                    subtitle = "Select exam and exam date.",
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = mode == "template", onClick = { mode = "template" }, label = { Text("Template") })
+                    FilterChip(selected = mode == "custom", onClick = { mode = "custom" }, label = { Text("Custom") })
                 }
-            } else {
-                OutlinedTextField(value = examType, onValueChange = { examType = it }, label = { Text("Exam name") }, modifier = Modifier.fillMaxWidth())
+                if (mode == "template") {
+                    Text("Exam template", fontWeight = FontWeight.SemiBold)
+                    state.templates.take(8).forEach { template ->
+                        PlannerActionRow(
+                            title = template.name,
+                            subtitle = "${template.subjectCount ?: 0} subjects • ${template.topicCount ?: 0} topics",
+                            icon = Icons.Default.School,
+                            selected = templateId == template.id,
+                            onClick = {
+                                templateId = template.id
+                                if (title.isBlank()) title = template.name
+                            },
+                        )
+                    }
+                } else {
+                    OutlinedTextField(value = examType, onValueChange = { examType = it }, label = { Text("Exam name") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = ButtonDefaults.outlinedShape) {
+                        Icon(if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Paste syllabus (optional)")
+                    }
+                    if (showAdvanced) {
+                        OutlinedTextField(value = pasteSyllabus, onValueChange = { pasteSyllabus = it }, label = { Text("Paste syllabus") }, minLines = 4, modifier = Modifier.fillMaxWidth())
+                        Text("${parseBulkSyllabus(pasteSyllabus).sumOf { it.second.size }} topics detected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Plan title") }, modifier = Modifier.fillMaxWidth())
+                PlannerExamDateField(examDateIso = examDate, onExamDateChange = { examDate = it })
+                OutlinedTextField(value = dailyGoal, onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) }, label = { Text("Topics per day") }, modifier = Modifier.fillMaxWidth())
                 OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = ButtonDefaults.outlinedShape) {
-                    Icon(if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
+                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Paste syllabus (optional)")
+                    Text(if (showAdvanced) "Hide weekly off days" else "Weekly off days")
                 }
                 if (showAdvanced) {
-                    OutlinedTextField(value = pasteSyllabus, onValueChange = { pasteSyllabus = it }, label = { Text("Paste syllabus") }, minLines = 4, modifier = Modifier.fillMaxWidth())
-                    Text("${parseBulkSyllabus(pasteSyllabus).sumOf { it.second.size }} topics detected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OffDayPicker(selected = offDays.value, onToggle = { day ->
+                        offDays.value = if (day in offDays.value) offDays.value - day else offDays.value + day
+                    })
                 }
-            }
-            OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Plan title") }, modifier = Modifier.fillMaxWidth())
-            PlannerExamDateField(examDateIso = examDate, onExamDateChange = { examDate = it })
-            OutlinedTextField(value = dailyGoal, onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) }, label = { Text("Topics per day") }, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = ButtonDefaults.outlinedShape) {
-                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(if (showAdvanced) "Hide weekly off days" else "Weekly off days")
-            }
-            if (showAdvanced) {
-                OffDayPicker(selected = offDays.value, onToggle = { day ->
-                    offDays.value = if (day in offDays.value) offDays.value - day else offDays.value + day
-                })
-            }
-            if (state.isImporting) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Text(
-                    text = state.importStatus ?: "Importing syllabus...",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 4.dp),
-                )
-            }
-            state.importError?.let { err ->
-                Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                if (mode == "custom" && pasteSyllabus.isNotBlank()) {
-                    TextButton(
-                        onClick = {
-                            val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
+                if (state.isImporting) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Text(
+                        text = state.importStatus ?: "Importing syllabus...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
+                }
+                state.importError?.let { err ->
+                    Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    if (mode == "custom" && pasteSyllabus.isNotBlank()) {
+                        TextButton(
+                            onClick = {
+                                val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
+                                actions.createPlan(
+                                    title = title.ifBlank { "Study Plan" },
+                                    examType = examType.ifBlank { null },
+                                    examDate = examDate.ifBlank { null },
+                                    dailyGoal = goal,
+                                    offDays = offDays.value.toList(),
+                                    syllabusText = pasteSyllabus,
+                                )
+                            },
+                            enabled = !state.isImporting,
+                        ) { Text("Retry syllabus import") }
+                    }
+                }
+                Button(
+                    onClick = {
+                        val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
+                        val hasSyllabusImport = mode == "custom" && pasteSyllabus.isNotBlank()
+                        if (mode == "template" && templateId.isNotBlank()) {
+                            actions.createFromTemplate(templateId, title.ifBlank { "Study Plan" }, examDate.ifBlank { null }, goal, offDays.value.toList())
+                            onDismiss()
+                        } else {
                             actions.createPlan(
                                 title = title.ifBlank { "Study Plan" },
                                 examType = examType.ifBlank { null },
@@ -1147,39 +1223,19 @@ private fun QuickStartSheet(state: StudyPlannerUiState, actions: PlannerActions,
                                 offDays = offDays.value.toList(),
                                 syllabusText = pasteSyllabus,
                             )
-                        },
-                        enabled = !state.isImporting,
-                    ) { Text("Retry syllabus import") }
+                            if (!hasSyllabusImport) onDismiss()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    shape = ButtonDefaults.shape,
+                    enabled = !state.isImporting,
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Create Plan")
                 }
+                Spacer(Modifier.height(16.dp))
             }
-            Button(
-                onClick = {
-                    val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
-                    val hasSyllabusImport = mode == "custom" && pasteSyllabus.isNotBlank()
-                    if (mode == "template" && templateId.isNotBlank()) {
-                        actions.createFromTemplate(templateId, title.ifBlank { "Study Plan" }, examDate.ifBlank { null }, goal, offDays.value.toList())
-                        onDismiss()
-                    } else {
-                        actions.createPlan(
-                            title = title.ifBlank { "Study Plan" },
-                            examType = examType.ifBlank { null },
-                            examDate = examDate.ifBlank { null },
-                            dailyGoal = goal,
-                            offDays = offDays.value.toList(),
-                            syllabusText = pasteSyllabus,
-                        )
-                        if (!hasSyllabusImport) onDismiss()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                shape = ButtonDefaults.shape,
-                enabled = !state.isImporting,
-            ) {
-                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Create Plan")
-            }
-            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -1380,82 +1436,91 @@ private fun PlannerExamPickerLanding(
             onDismissRequest = { showSetupSheet = false },
             containerColor = MaterialTheme.colorScheme.surface,
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-                    .navigationBarsPadding()
-            ) {
-                if (useCustomPlan) {
-                    PlannerQuickCreateForm(
-                        title = title,
-                        onTitleChange = { title = it },
-                        examType = examType,
-                        onExamTypeChange = { examType = it },
-                        examDate = examDate,
-                        onExamDateChange = { examDate = it },
-                        dailyGoal = dailyGoal,
-                        onDailyGoalChange = { dailyGoal = it.filter(Char::isDigit).take(2) },
-                        offDays = offDays.value,
-                        onToggleOffDay = { day -> offDays.value = if (day in offDays.value) offDays.value - day else offDays.value + day },
-                        confirmLabel = if (state.mutating) "Creating..." else "Create Plan",
-                        onConfirm = {
-                            if (examDate.isBlank()) {
-                                landingError = "Please select exam date."
-                                return@PlannerQuickCreateForm
-                            }
-                            landingError = ""
-                            actions.createPlan(
-                                title.ifBlank { "Study Plan" },
-                                examType.ifBlank { null },
-                                examDate,
-                                dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3,
-                                offDays.value.toList(),
-                            )
-                            showSetupSheet = false
-                        },
-                        isDateError = landingError.isNotBlank() && examDate.isBlank(),
-                    )
-                } else if (selectedTemplate != null) {
-                    PlannerQuickCreateForm(
-                        title = title,
-                        onTitleChange = { title = it },
-                        examType = examType,
-                        onExamTypeChange = { examType = it },
-                        examDate = examDate,
-                        onExamDateChange = { examDate = it },
-                        dailyGoal = dailyGoal,
-                        onDailyGoalChange = { dailyGoal = it.filter(Char::isDigit).take(2) },
-                        offDays = offDays.value,
-                        onToggleOffDay = { day -> offDays.value = if (day in offDays.value) offDays.value - day else offDays.value + day },
-                        confirmLabel = if (state.mutating) "Creating..." else "Create Plan",
-                        onConfirm = {
-                            if (examDate.isBlank()) {
-                                landingError = "Please select exam date."
-                                return@PlannerQuickCreateForm
-                            }
-                            landingError = ""
-                            actions.createFromTemplateOrLocal(
-                                selectedTemplate.id,
-                                title.ifBlank { selectedTemplate.title },
-                                examDate,
-                                dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: selectedTemplate.recommendedDailyGoal,
-                                offDays.value.toList(),
-                            )
-                            showSetupSheet = false
-                        },
-                        isDateError = landingError.isNotBlank() && examDate.isBlank(),
-                    )
-                }
-                
-                if (landingError.isNotBlank()) {
-                    Text(
-                        landingError,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 18.dp)
-                    )
+            val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+            val clampedDensity = remember(currentDensity) {
+                androidx.compose.ui.unit.Density(
+                    density = currentDensity.density,
+                    fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+                )
+            }
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                        .navigationBarsPadding()
+                ) {
+                    if (useCustomPlan) {
+                        PlannerQuickCreateForm(
+                            title = title,
+                            onTitleChange = { title = it },
+                            examType = examType,
+                            onExamTypeChange = { examType = it },
+                            examDate = examDate,
+                            onExamDateChange = { examDate = it },
+                            dailyGoal = dailyGoal,
+                            onDailyGoalChange = { dailyGoal = it.filter(Char::isDigit).take(2) },
+                            offDays = offDays.value,
+                            onToggleOffDay = { day -> offDays.value = if (day in offDays.value) offDays.value - day else offDays.value + day },
+                            confirmLabel = if (state.mutating) "Creating..." else "Create Plan",
+                            onConfirm = {
+                                if (examDate.isBlank()) {
+                                    landingError = "Please select exam date."
+                                    return@PlannerQuickCreateForm
+                                }
+                                landingError = ""
+                                actions.createPlan(
+                                    title.ifBlank { "Study Plan" },
+                                    examType.ifBlank { null },
+                                    examDate,
+                                    dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3,
+                                    offDays.value.toList(),
+                                )
+                                showSetupSheet = false
+                            },
+                            isDateError = landingError.isNotBlank() && examDate.isBlank(),
+                        )
+                    } else if (selectedTemplate != null) {
+                        PlannerQuickCreateForm(
+                            title = title,
+                            onTitleChange = { title = it },
+                            examType = examType,
+                            onExamTypeChange = { examType = it },
+                            examDate = examDate,
+                            onExamDateChange = { examDate = it },
+                            dailyGoal = dailyGoal,
+                            onDailyGoalChange = { dailyGoal = it.filter(Char::isDigit).take(2) },
+                            offDays = offDays.value,
+                            onToggleOffDay = { day -> offDays.value = if (day in offDays.value) offDays.value - day else offDays.value + day },
+                            confirmLabel = if (state.mutating) "Creating..." else "Create Plan",
+                            onConfirm = {
+                                if (examDate.isBlank()) {
+                                    landingError = "Please select exam date."
+                                    return@PlannerQuickCreateForm
+                                }
+                                landingError = ""
+                                actions.createFromTemplateOrLocal(
+                                    selectedTemplate.id,
+                                    title.ifBlank { selectedTemplate.title },
+                                    examDate,
+                                    dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: selectedTemplate.recommendedDailyGoal,
+                                    offDays.value.toList(),
+                                )
+                                showSetupSheet = false
+                            },
+                            isDateError = landingError.isNotBlank() && examDate.isBlank(),
+                        )
+                    }
+                    
+                    if (landingError.isNotBlank()) {
+                        Text(
+                            landingError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -1829,36 +1894,45 @@ internal fun PlannerTopicDetailSheet(ref: TopicRef, openNonce: Int, actions: Pla
     var name by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.name) }
     var notes by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.notes.orEmpty()) }
     var status by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.status) }
+    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+    val clampedDensity = remember(currentDensity) {
+        androidx.compose.ui.unit.Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(ref.chapter.name, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-            OutlinedTextField(name, { name = it }, label = { Text("Topic") }, modifier = Modifier.fillMaxWidth())
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                plannerTopicStatusSheetChips.forEach { st ->
-                    FilterChip(selected = status == st, onClick = { status = st }, label = { Text(st.label) })
+        androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(ref.chapter.name, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(name, { name = it }, label = { Text("Topic") }, modifier = Modifier.fillMaxWidth())
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    plannerTopicStatusSheetChips.forEach { st ->
+                        FilterChip(selected = status == st, onClick = { status = st }, label = { Text(st.label) })
+                    }
                 }
+                OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { actions.deleteTopic(ref.topic.id); onDismiss() },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                    ) {
+                        Text("Delete")
+                    }
+                    Button(
+                        onClick = {
+                            actions.updateTopic(ref.topic.id, status, name, notes = notes)
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Save", fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
             }
-            OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(
-                    onClick = { actions.deleteTopic(ref.topic.id); onDismiss() },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
-                ) {
-                    Text("Delete")
-                }
-                Button(
-                    onClick = {
-                        actions.updateTopic(ref.topic.id, status, name, notes = notes)
-                        onDismiss()
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Save", fontWeight = FontWeight.Bold)
-                }
-            }
-            Spacer(Modifier.height(20.dp))
         }
     }
 }
@@ -1877,17 +1951,26 @@ internal fun BulkAddSheet(
             parseBulkSyllabus(text).flatMap { it.second }.size
         }
     }
+    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+    val clampedDensity = remember(currentDensity) {
+        androidx.compose.ui.unit.Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Add Many Topics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("${target.first.name} • ${target.second.name}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = {}, label = { Text("Paste Text") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, Modifier.size(16.dp)) })
+        androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Add Many Topics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("${target.first.name} • ${target.second.name}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AssistChip(onClick = {}, label = { Text("Paste Text") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, Modifier.size(16.dp)) })
+                }
+                OutlinedTextField(text, { text = it }, label = { Text("Paste topics or chapter lines") }, minLines = 6, modifier = Modifier.fillMaxWidth())
+                Text("$count topics detected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Button(onClick = { actions.bulkAdd(target.first.id, target.second.id, text); onDismiss() }, modifier = Modifier.fillMaxWidth(), enabled = count > 0) { Text("Add Topics") }
+                Spacer(Modifier.height(20.dp))
             }
-            OutlinedTextField(text, { text = it }, label = { Text("Paste topics or chapter lines") }, minLines = 6, modifier = Modifier.fillMaxWidth())
-            Text("$count topics detected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(onClick = { actions.bulkAdd(target.first.id, target.second.id, text); onDismiss() }, modifier = Modifier.fillMaxWidth(), enabled = count > 0) { Text("Add Topics") }
-            Spacer(Modifier.height(20.dp))
         }
     }
 }
@@ -2434,32 +2517,64 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
 
 @Composable internal fun TextInputDialog(title: String, label: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
+    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+    val clampedDensity = remember(currentDensity) {
+        androidx.compose.ui.unit.Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { OutlinedTextField(text, { text = it }, label = { Text(label) }, modifier = Modifier.fillMaxWidth()) },
-        confirmButton = { TextButton(enabled = text.trim().length >= 2, onClick = { onConfirm(text.trim()) }) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        title = { androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) { Text(title) } },
+        text = {
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+                OutlinedTextField(text, { text = it }, label = { Text(label) }, modifier = Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = {
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+                TextButton(enabled = text.trim().length >= 2, onClick = { onConfirm(text.trim()) }) { Text("Save") }
+            }
+        },
+        dismissButton = {
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        },
     )
 }
 
 @Composable internal fun ConfirmActionDialog(title: String, body: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+    val clampedDensity = remember(currentDensity) {
+        androidx.compose.ui.unit.Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(body) },
+        title = { androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) { Text(title) } },
+        text = { androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) { Text(body) } },
         confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                )
-            ) {
-                Text("Confirm", fontWeight = FontWeight.Bold)
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+                Button(
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text("Confirm", fontWeight = FontWeight.Bold)
+                }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        },
     )
 }
 

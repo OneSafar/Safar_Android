@@ -152,6 +152,16 @@ fun MehfilScreen(
         GuidelinesSheet(onDismiss = { showGuidelinesSheet = false })
     }
 
+    if (uiState.showPremiumGate) {
+        PremiumGateSheet(
+            onDismiss = viewModel::dismissPremiumGate,
+            onViewPlans = {
+                viewModel.dismissPremiumGate()
+                Toast.makeText(context, "Plans coming soon", Toast.LENGTH_SHORT).show()
+            },
+        )
+    }
+
     MehfilContent(
         uiState = uiState,
         selectedTab = selectedTab,
@@ -188,13 +198,15 @@ fun MehfilScreen(
         },
         onConnect = { post ->
             dmChatNavigated.value = false
-            viewModel.sendDmRequest(
+            val sent = viewModel.sendDmRequest(
                 targetUserId = post.userId,
                 targetUserName = post.authorName,
                 contextPostId = post.id,
                 contextPreview = post.content.take(60),
             )
-            selectedTab = MehfilTab.CONNECTIONS
+            if (sent) {
+                selectedTab = MehfilTab.CONNECTIONS
+            }
         },
         onAcceptDm = { userId ->
             dmChatNavigated.value = false

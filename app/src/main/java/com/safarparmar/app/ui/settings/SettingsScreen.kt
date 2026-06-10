@@ -58,6 +58,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import com.safarparmar.app.ui.components.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -167,154 +169,164 @@ fun SettingsScreen(
         )
     }
 
+    val scheme = MaterialTheme.colorScheme
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
-            Surface(
-                modifier = Modifier.shadow(8.dp, spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                color = MaterialTheme.colorScheme.background,
-            ) {
-                TopAppBar(
-                    title = {
-                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                            Text("Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                            Text("Appearance, notifications, and permissions.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f))
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.primary)
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = onHome) {
-                            Icon(Icons.Default.Home, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        IconButton(onClick = onToggleDarkTheme) {
-                            Icon(
-                                if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.Nightlight,
-                                null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                )
-            }
+            TopAppBar(
+                title = {
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text("Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                        Text("Appearance, notifications, and permissions.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f))
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.primary)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onHome) {
+                        Icon(Icons.Default.Home, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    IconButton(onClick = onToggleDarkTheme) {
+                        Icon(
+                            if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.Nightlight,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            )
         },
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+                .background(scheme.background)
         ) {
-            ProfileSectionCard(title = "Appearance & about", icon = Icons.Default.Tune) {
-                Text(
-                    "Sun/moon toggles light and dark. Dim mode is a warm low-light theme for reading.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                NotificationToggleRow(
-                    title = "Dim mode (night reading)",
-                    subtitle = if (isNightMode) "On — warm dim surfaces" else "Off",
-                    checked = isNightMode,
-                    onCheckedChange = { onToggleNightMode() },
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Language, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
-                        Column {
-                            Text("Language", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                            Text(languageDisplay(currentLanguage), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    TextButton(onClick = onLanguageClick) {
-                        Text("Change")
-                    }
-                }
-                Text(
-                    "Version ${BuildConfig.VERSION_NAME.substringBefore('-')}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            val gradientStart = if (isDarkTheme) Color(0xFF1B212D) else Color(0xFFD6E9FF)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(gradientStart, Color.Transparent)
+                        )
+                    )
+            )
 
-            ProfileSectionCard(title = "Notifications", icon = Icons.Default.Notifications) {
-                Text(
-                    "Helpful alerts for focus sessions, streaks, and important class updates.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                NotificationToggleRow(
-                    title = "Notifications",
-                    subtitle = "Master switch for SAFAR alerts.",
-                    checked = uiState.notificationsEnabled,
-                    onCheckedChange = {
-                        if (!it) {
-                            viewModel.onEvent(SettingsEvent.ToggleNotifications(false))
-                        } else {
-                            pendingMasterEnable = true
-                            requestNotificationPermission()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                ProfileSectionCard(title = "Appearance & about", icon = Icons.Default.Tune) {
+                    Text(
+                        "Sun/moon toggles light and dark. Dim mode is a warm low-light theme for reading.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NotificationToggleRow(
+                        title = "Dark Mode",
+                        subtitle = if (isDarkTheme) "On — dark theme enabled" else "Off",
+                        checked = isDarkTheme,
+                        onCheckedChange = { onToggleDarkTheme() },
+                    )
+                    NotificationToggleRow(
+                        title = "Dim mode (night reading)",
+                        subtitle = if (isNightMode) "On — warm dim surfaces" else "Off",
+                        checked = isNightMode,
+                        onCheckedChange = { onToggleNightMode() },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Language, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                            Column {
+                                Text("Language", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                Text(languageDisplay(currentLanguage), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
-                    },
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
-                NotificationToggleRow(
-                    title = "Focus timer updates",
-                    subtitle = "Timer running, session complete, and break status.",
-                    checked = uiState.focusTimerNotificationsEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Daily study reminders",
-                    subtitle = "A planned reminder for your Ekagra study block.",
-                    checked = uiState.dailyStudyReminderEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = {
-                        if (!it) {
-                            viewModel.onEvent(SettingsEvent.ToggleDailyStudyReminder(false))
-                        } else {
-                            pendingDailyEnable = true
-                            requestNotificationPermission()
+                        TextButton(onClick = onLanguageClick) {
+                            Text("Change")
                         }
-                    },
-                )
-                OutlinedTextField(
-                    value = reminderDraft,
-                    onValueChange = { value ->
-                        if (value.length <= 5 && value.all { it.isDigit() || it == ':' }) {
-                            reminderDraft = value
-                        }
-                        if (isValidReminderTimeInput(value)) {
-                            viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(value))
-                        }
-                    },
-                    enabled = uiState.notificationsEnabled && uiState.dailyStudyReminderEnabled,
-                    label = { Text("Daily reminder time") },
-                    placeholder = { Text("19:00") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = OutlinedTextFieldDefaults.shape,
-                    supportingText = {
-                        if (reminderDraft.isNotBlank() && !isValidReminderTimeInput(reminderDraft)) {
-                            Text("Use 24-hour time in HH:mm format (e.g., 07:30, 19:00).")
-                        }
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
-                    ),
-                )
+                    }
+                    Text(
+                        "Version ${BuildConfig.VERSION_NAME.substringBefore('-')}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                ProfileSectionCard(title = "Notifications", icon = Icons.Default.Notifications) {
+                    Text(
+                        "Helpful alerts for focus sessions, streaks, and important class updates.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NotificationToggleRow(
+                        title = "Notifications",
+                        subtitle = "Master switch for SAFAR alerts.",
+                        checked = uiState.notificationsEnabled,
+                        onCheckedChange = {
+                            if (!it) {
+                                viewModel.onEvent(SettingsEvent.ToggleNotifications(false))
+                            } else {
+                                pendingMasterEnable = true
+                                requestNotificationPermission()
+                            }
+                        },
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
+                    NotificationToggleRow(
+                        title = "Focus timer updates",
+                        subtitle = "Timer running, session complete, and break status.",
+                        checked = uiState.focusTimerNotificationsEnabled,
+                        enabled = uiState.notificationsEnabled,
+                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
+                    )
+                    NotificationToggleRow(
+                        title = "Daily study reminders",
+                        subtitle = "A planned reminder for your Ekagra study block.",
+                        checked = uiState.dailyStudyReminderEnabled,
+                        enabled = uiState.notificationsEnabled,
+                        onCheckedChange = {
+                            if (!it) {
+                                viewModel.onEvent(SettingsEvent.ToggleDailyStudyReminder(false))
+                            } else {
+                                pendingDailyEnable = true
+                                requestNotificationPermission()
+                            }
+                        },
+                    )
+                    SafarCustomTextField(
+                        label = "DAILY REMINDER TIME",
+                        value = reminderDraft,
+                        onValueChange = { value ->
+                            if (value.length <= 5 && value.all { it.isDigit() || it == ':' }) {
+                                reminderDraft = value
+                            }
+                            if (isValidReminderTimeInput(value)) {
+                                viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(value))
+                            }
+                        },
+                        enabled = uiState.notificationsEnabled && uiState.dailyStudyReminderEnabled,
+                        placeholder = "19:00",
+                        errorText = if (reminderDraft.isNotBlank() && !isValidReminderTimeInput(reminderDraft)) {
+                            "Use 24-hour time in HH:mm format (e.g., 07:30, 19:00)."
+                        } else null,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 NotificationToggleRow(
                     title = "Streak reminders",
                     subtitle = "Evening warning before your streak expires.",
@@ -437,6 +449,7 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(24.dp))
+        }
         }
     }
 }

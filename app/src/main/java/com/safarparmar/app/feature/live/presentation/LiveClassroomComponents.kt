@@ -6,6 +6,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -76,7 +79,6 @@ import java.time.format.DateTimeParseException
 
 /** M3 filter tabs — maps to [assets/chips/chips-filter.png]. */
 enum class LiveSessionFilter(val label: String, val backendStatus: String?) {
-    ALL("All", null),
     /** Matches web `LiveSessions` (`status=active` → scheduled + live). */
     LIVE("Live", "active"),
     COMPLETED("Completed", "ended"),
@@ -481,6 +483,33 @@ fun LiveUpNextListItem(
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .background(containerColor),
+        leadingContent = {
+            val placeholder = com.safarparmar.app.R.drawable.dhyan_session_placeholder
+            val hasThumb = !session.thumbnailUrl.isNullOrBlank()
+            Box(
+                modifier = Modifier
+                    .size(width = 80.dp, height = 45.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (hasThumb) {
+                    AsyncImage(
+                        model = session.thumbnailUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(placeholder),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+            }
+        },
         headlineContent = {
             Text(
                 session.title.ifBlank { "Untitled session" },
@@ -548,21 +577,94 @@ fun LiveClassroomEmptyState(
     }
 }
 
-/**
- * Teacher FAB — [assets/fabs/fab-regular.png] (tertiary container).
- */
 @Composable
-fun LiveClassroomTeacherFab(
+fun CompletedSessionCard(
+    session: LiveSession,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isNowPlaying: Boolean = false,
 ) {
-    FloatingActionButton(
-        onClick = onClick,
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.tertiary,
-        contentColor = MaterialTheme.colorScheme.onTertiary,
-        shape = RoundedCornerShape(16.dp),
+    val containerColor = if (isNowPlaying) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
+    val cardModifier = if (isNowPlaying) {
+        modifier
+            .fillMaxWidth()
+            .height(96.dp)
+            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+    } else {
+        modifier
+            .fillMaxWidth()
+            .height(96.dp)
+            .clickable(onClick = onClick)
+    }
+
+    ElevatedCard(
+        modifier = cardModifier,
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = if (isNowPlaying) 0.dp else 2.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = containerColor
+        )
     ) {
-        Icon(Icons.Default.Add, contentDescription = "Teacher actions")
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left Side: Placeholder Image
+            val placeholder = com.safarparmar.app.R.drawable.dhyan_session_placeholder
+            Box(
+                modifier = Modifier
+                    .width(120.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(placeholder),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            // Right Side: Content
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (isNowPlaying) {
+                    Text(
+                        text = "NOW PLAYING",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                }
+                Text(
+                    text = session.title.ifBlank { "Untitled session" },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                val dateStr = formatLiveScheduledAt(session.scheduledStartAt)
+                Text(
+                    text = "Date: $dateStr",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
+
+
+

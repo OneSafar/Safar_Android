@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (C) 2024 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<resources>
+  <declare-styleable name="LoadingIndicator">
+    <attr name="indicatorColor" />
+    <attr name="containerColor" format="color" />
+    <attr name="indicatorSize" />
+    <attr name="containerWidth" format="dimension" />
+    <attr name="containerHeight" format="dimension" />
+    <!--
+      The time, in milliseconds, that the loading indicator will wait to show
+      once show() is called. If set to zero or negative values (-1 as default),
+      the show action will start immediately.
+    -->
+    <attr name="showDelay" />
+    <!--
+      The minimum time, in milliseconds, that the requested hide action will
+      wait to start once show action is started. If set to zero or negative
+      values (-1 as default), the requested hide action will start immediately.
+      This value is capped to a limit defined in LoadingIndicator class.
+    -->
+    <attr name="minHideDelay" />
+  </declare-styleable>
+
+  <attr name="loadingIndicatorStyle" format="reference"/>
+</resources>

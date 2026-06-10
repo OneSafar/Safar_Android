@@ -1,11 +1,14 @@
 package com.safarparmar.app.feature.live
 
 import app.cash.turbine.test
+import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.data.remote.socket.MehfilSocketManager
 import com.safarparmar.app.feature.live.data.LiveSessionRepositoryContract
 import com.safarparmar.app.feature.live.model.LiveSession
 import com.safarparmar.app.feature.live.presentation.LiveSessionViewModel
 import com.safarparmar.app.ui.auth.MainDispatcherRule
 import com.safarparmar.app.util.Resource
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,7 +22,11 @@ class LiveSessionViewModelTest {
 
     @Test
     fun `sessions success state`() = runTest {
-        val vm = LiveSessionViewModel(FakeRepo(Resource.Success(listOf(sampleSession()))))
+        val vm = LiveSessionViewModel(
+            repository = FakeRepo(Resource.Success(listOf(sampleSession()))),
+            socketManager = mockk(relaxed = true),
+            dataStore = mockk(relaxed = true),
+        )
         vm.liveSessionsState.test {
             assertTrue(awaitItem().isLoading)
             vm.loadSessions("course-1", "live")
@@ -31,7 +38,11 @@ class LiveSessionViewModelTest {
 
     @Test
     fun `sessions error state`() = runTest {
-        val vm = LiveSessionViewModel(FakeRepo(Resource.Error("forbidden", 403)))
+        val vm = LiveSessionViewModel(
+            repository = FakeRepo(Resource.Error("forbidden", 403)),
+            socketManager = mockk(relaxed = true),
+            dataStore = mockk(relaxed = true),
+        )
         vm.liveSessionsState.test {
             awaitItem()
             vm.loadSessions("course-1", "live")
@@ -46,11 +57,6 @@ private class FakeRepo(
 ) : LiveSessionRepositoryContract {
     override suspend fun listByCourse(courseId: String, status: String?) = listResult
     override suspend fun getById(id: String): Resource<LiveSession> = Resource.Success(sampleSession())
-    override suspend fun startLiveSession(id: String, youtubeUrl: String): Resource<LiveSession> =
-        Resource.Success(sampleSession().copy(status = "live", youtubeWatchUrl = youtubeUrl))
-
-    override suspend fun endLiveSession(id: String, recordingVideoId: String?): Resource<LiveSession> =
-        Resource.Success(sampleSession().copy(status = "ended", recordingVideoId = recordingVideoId))
 }
 
 private fun sampleSession() = LiveSession(

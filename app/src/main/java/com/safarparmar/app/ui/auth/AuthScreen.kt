@@ -1,46 +1,63 @@
 package com.safarparmar.app.ui.auth
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.safarparmar.app.R
-import com.safarparmar.app.ui.theme.*
+import com.safarparmar.app.ui.theme.isLightBackground
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
 
 @Composable
 fun AuthScreen(
     onNavigateToHome: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val snackbarHostState = remember { SnackbarHostState() }
     val scheme = MaterialTheme.colorScheme
+    val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) onNavigateToHome()
@@ -62,37 +79,41 @@ fun AuthScreen(
                     containerColor = scheme.inverseSurface,
                     contentColor = scheme.inverseOnSurface,
                     actionColor = scheme.inversePrimary,
-                    shape = MaterialTheme.shapes.medium
+                    shape = MaterialTheme.shapes.medium,
                 )
             }
         },
-        containerColor = scheme.background
+        containerColor = scheme.background,
     ) { padding ->
-        if (uiState.isSignupMode) {
-            SignupScreenFromDesign(
-                padding = padding,
-                isDark = isDark,
-                uiState = uiState,
-                onEvent = viewModel::onEvent,
-                onSwitchToLogin = { viewModel.onEvent(AuthEvent.SwitchMode) }
-            )
-        } else {
-            LoginScreenFromDesign(
-                padding = padding,
-                isDark = isDark,
-                uiState = uiState,
-                onEvent = viewModel::onEvent,
-                onSwitchToSignup = { viewModel.onEvent(AuthEvent.SwitchMode) }
+        AuthStitchScaffold(
+            isDark = isDark,
+            isSignupMode = uiState.isSignupMode,
+            logoRes = logoRes,
+            modifier = Modifier.padding(padding),
+        ) {
+            AuthStitchModeCrossfade(
+                isSignupMode = uiState.isSignupMode,
+                loginContent = {
+                    LoginForm(
+                        uiState = uiState,
+                        onEvent = viewModel::onEvent,
+                        onSwitchToSignup = { viewModel.onEvent(AuthEvent.SwitchMode) },
+                    )
+                },
+                signupContent = {
+                    SignupForm(
+                        uiState = uiState,
+                        onEvent = viewModel::onEvent,
+                        onSwitchToLogin = { viewModel.onEvent(AuthEvent.SwitchMode) },
+                    )
+                },
             )
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LoginScreenFromDesign(
-    padding: PaddingValues,
-    isDark: Boolean,
+private fun LoginForm(
     uiState: AuthUiState,
     onEvent: (AuthEvent) -> Unit,
     onSwitchToSignup: () -> Unit,
@@ -101,212 +122,69 @@ private fun LoginScreenFromDesign(
     var passwordVisible by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
 
-    val scheme = MaterialTheme.colorScheme
-    val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
-
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(scheme.background)
-            .padding(padding),
-        contentAlignment = Alignment.Center
+            .verticalScroll(scroll),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 448.dp)
-                .fillMaxHeight()
-                .verticalScroll(scroll)
-                .padding(horizontal = 24.dp, vertical = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Logo Section
-            AsyncImage(
-                model = logoRes,
-                contentDescription = "SAFAR Logo",
-                modifier = Modifier
-                    .padding(bottom = 24.dp)
-                    .size(80.dp),
-                contentScale = ContentScale.Fit,
-            )
-            
-            Text(
-                text = "Welcome back",
-                color = scheme.onSurface,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.5).sp
-                ),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "Sign in to continue your journey",
-                color = scheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(bottom = 40.dp)
-            )
-
-            // Sign In Card
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(scheme.surface)
-                    .padding(24.dp),
-            ) {
-                Text(
-                    text = "Sign in to continue",
-                    color = scheme.onSurface,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    modifier = Modifier.padding(bottom = 24.dp)
-                )
-
-                // Email Field
-                Text(
-                    text = "EMAIL",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
-                    ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                )
-                OutlinedTextField(
+        AuthStitchFormCard {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                AuthStitchFieldLabel("EMAIL")
+                AuthStitchTextField(
                     value = uiState.email,
                     onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-                    placeholder = { Text("you@gmail.com") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = OutlinedTextFieldDefaults.shape,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = scheme.primary,
-                        unfocusedBorderColor = scheme.outline,
-                        focusedTextColor = scheme.onSurface,
-                        unfocusedTextColor = scheme.onSurface,
-                        cursorColor = scheme.primary,
-                        focusedContainerColor = scheme.surface,
-                        unfocusedContainerColor = scheme.surface,
-                    )
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                // Password Field
-                Text(
-                    text = "PASSWORD",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
+                    placeholder = "you@gmail.com",
+                    leadingIcon = Icons.Default.Email,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
                     ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
-                OutlinedTextField(
+
+                AuthStitchFieldLabel("PASSWORD")
+                AuthStitchPasswordField(
                     value = uiState.password,
                     onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
-                    placeholder = { Text("••••••••") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = OutlinedTextFieldDefaults.shape,
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null,
-                                tint = scheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    placeholder = "Enter your password",
+                    passwordVisible = passwordVisible,
+                    onToggleVisibility = { passwordVisible = !passwordVisible },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
                     keyboardActions = KeyboardActions(onDone = {
                         focusManager.clearFocus()
                         onEvent(AuthEvent.Login)
                     }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = scheme.primary,
-                        unfocusedBorderColor = scheme.outline,
-                        focusedTextColor = scheme.onSurface,
-                        unfocusedTextColor = scheme.onSurface,
-                        cursorColor = scheme.primary,
-                        focusedContainerColor = scheme.surface,
-                        unfocusedContainerColor = scheme.surface,
-                    )
                 )
 
-                // Forgot Password
-                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { onEvent(AuthEvent.ForgotPassword) }, contentPadding = PaddingValues(0.dp)) {
-                        Text(
-                            text = "Forgot password?",
-                            color = scheme.primary,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                        )
-                    }
-                }
+                AuthStitchRememberRow(
+                    checked = uiState.rememberMe,
+                    onToggle = { onEvent(AuthEvent.RememberMeToggled) },
+                    onForgotPassword = { onEvent(AuthEvent.ForgotPassword) },
+                )
 
-                Spacer(Modifier.height(16.dp))
-
-                // Submit Button
-                Button(
+                AuthStitchPrimaryButton(
+                    text = if (uiState.isLoading) "Signing in..." else "Sign In",
                     onClick = { onEvent(AuthEvent.Login) },
                     enabled = !uiState.isLoading,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    shape = ButtonDefaults.shape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = scheme.primary,
-                        contentColor = scheme.onPrimary,
-                        disabledContainerColor = scheme.onSurface.copy(alpha = 0.12f),
-                        disabledContentColor = scheme.onSurface.copy(alpha = 0.38f),
-                    )
-                ) {
-                    Text(
-                        text = if (uiState.isLoading) "Signing in..." else "Sign In",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            // Secondary Actions
-            FlowRow(
-                modifier = Modifier.padding(top = 32.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Don't have an account? ",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = "Sign Up",
-                    color = scheme.secondary,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                    modifier = Modifier.clickable(onClick = onSwitchToSignup)
                 )
             }
-
-            Text(
-                text = "KAVACH • WELLNESS FOR EVERY ASPIRANT",
-                color = scheme.onSurfaceVariant.copy(alpha = 0.4f),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp
-                ),
-                modifier = Modifier.padding(top = 32.dp)
-            )
         }
+
+        AuthStitchModeSwitch(
+            prompt = "Don't have an account?",
+            actionLabel = "Sign Up",
+            onAction = onSwitchToSignup,
+        )
+        AuthStitchFooterTagline()
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SignupScreenFromDesign(
-    padding: PaddingValues,
-    isDark: Boolean,
+private fun SignupForm(
     uiState: AuthUiState,
     onEvent: (AuthEvent) -> Unit,
     onSwitchToLogin: () -> Unit,
@@ -314,374 +192,119 @@ private fun SignupScreenFromDesign(
     val focusManager = LocalFocusManager.current
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-    val examOptions      = listOf("SSC CGL", "SSC CHSL", "SSC MTS", "SSC CPO", "Other")
+    val examOptions = listOf("SSC CGL", "SSC CHSL", "SSC MTS", "SSC CPO", "Other")
     val prepStageOptions = listOf("Just Started", "1-3 Months", "3-6 Months", "6+ Months", "Final Stage")
-    val genderOptions    = listOf("Male", "Female", "Other", "Prefer not to say")
+    val genderOptions = listOf("Male", "Female", "Other", "Prefer not to say")
     val scroll = rememberScrollState()
 
-    val scheme = MaterialTheme.colorScheme
-    val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
-
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(scheme.background)
-            .padding(padding),
-        contentAlignment = Alignment.Center
+            .verticalScroll(scroll),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 448.dp)
-                .fillMaxHeight()
-                .verticalScroll(scroll)
-                .padding(horizontal = 24.dp, vertical = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Logo Section
-            AsyncImage(
-                model = logoRes,
-                contentDescription = "SAFAR Logo",
-                modifier = Modifier
-                    .padding(bottom = 24.dp)
-                    .size(80.dp),
-                contentScale = ContentScale.Fit,
-            )
-            
-            Text(
-                text = "Create account",
-                color = scheme.onSurface,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.5).sp
-                ),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "Start your study journey with SAFAR",
-                color = scheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(bottom = 40.dp)
-            )
-
-            // Sign Up Card
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(scheme.surface)
-                    .padding(24.dp),
-            ) {
-                Text(
-                    text = "Sign up to begin",
-                    color = scheme.onSurface,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    modifier = Modifier.padding(bottom = 24.dp)
-                )
-
-                // Full Name
-                Text(
-                    text = "FULL NAME",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
-                    ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                )
-                OutlinedTextField(
+        AuthStitchFormCard {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                AuthStitchFieldLabel("FULL NAME")
+                AuthStitchTextField(
                     value = uiState.name,
                     onValueChange = { onEvent(AuthEvent.NameChanged(it)) },
-                    placeholder = { Text("John Doe") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    placeholder = "John Doe",
+                    leadingIcon = Icons.Default.Person,
                     isError = !uiState.nameError.isNullOrBlank(),
-                    shape = OutlinedTextFieldDefaults.shape,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = scheme.primary,
-                        unfocusedBorderColor = scheme.outline,
-                        errorBorderColor = scheme.error,
-                        focusedTextColor = scheme.onSurface,
-                        unfocusedTextColor = scheme.onSurface,
-                        cursorColor = scheme.primary,
-                        focusedContainerColor = scheme.surface,
-                        unfocusedContainerColor = scheme.surface,
-                    )
                 )
-                if (!uiState.nameError.isNullOrBlank()) {
-                    Text(
-                        text = uiState.nameError,
-                        color = scheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                    )
-                }
+                AuthFieldError(uiState.nameError)
 
-                Spacer(Modifier.height(16.dp))
-
-                // Email Field
-                Text(
-                    text = "EMAIL",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
-                    ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                )
-                OutlinedTextField(
+                AuthStitchFieldLabel("EMAIL")
+                AuthStitchTextField(
                     value = uiState.email,
                     onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-                    placeholder = { Text("you@gmail.com") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    placeholder = "you@gmail.com",
+                    leadingIcon = Icons.Default.Email,
                     isError = !uiState.emailError.isNullOrBlank(),
-                    shape = OutlinedTextFieldDefaults.shape,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = scheme.primary,
-                        unfocusedBorderColor = scheme.outline,
-                        errorBorderColor = scheme.error,
-                        focusedTextColor = scheme.onSurface,
-                        unfocusedTextColor = scheme.onSurface,
-                        cursorColor = scheme.primary,
-                        focusedContainerColor = scheme.surface,
-                        unfocusedContainerColor = scheme.surface,
-                    )
-                )
-                if (!uiState.emailError.isNullOrBlank()) {
-                    Text(
-                        text = uiState.emailError,
-                        color = scheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                    )
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // Password Field
-                Text(
-                    text = "PASSWORD",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
                     ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
-                OutlinedTextField(
+                AuthFieldError(uiState.emailError)
+
+                AuthStitchFieldLabel("PASSWORD")
+                AuthStitchPasswordField(
                     value = uiState.password,
                     onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
-                    placeholder = { Text("••••••••") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    placeholder = "At least 8 characters",
+                    passwordVisible = passwordVisible,
+                    onToggleVisibility = { passwordVisible = !passwordVisible },
                     isError = !uiState.passwordError.isNullOrBlank(),
-                    shape = OutlinedTextFieldDefaults.shape,
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null,
-                                tint = scheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = scheme.primary,
-                        unfocusedBorderColor = scheme.outline,
-                        errorBorderColor = scheme.error,
-                        focusedTextColor = scheme.onSurface,
-                        unfocusedTextColor = scheme.onSurface,
-                        cursorColor = scheme.primary,
-                        focusedContainerColor = scheme.surface,
-                        unfocusedContainerColor = scheme.surface,
-                    )
-                )
-                if (!uiState.passwordError.isNullOrBlank()) {
-                    Text(
-                        text = uiState.passwordError,
-                        color = scheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                    )
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // Confirm Password Field
-                Text(
-                    text = "CONFIRM PASSWORD",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next,
                     ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
-                OutlinedTextField(
+                AuthFieldError(uiState.passwordError)
+
+                AuthStitchFieldLabel("CONFIRM PASSWORD")
+                AuthStitchPasswordField(
                     value = uiState.confirmPassword,
                     onValueChange = { onEvent(AuthEvent.ConfirmPasswordChanged(it)) },
-                    placeholder = { Text("••••••••") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    placeholder = "Re-enter password",
+                    passwordVisible = confirmPasswordVisible,
+                    onToggleVisibility = { confirmPasswordVisible = !confirmPasswordVisible },
                     isError = !uiState.confirmPasswordError.isNullOrBlank(),
-                    shape = OutlinedTextFieldDefaults.shape,
-                    visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                            Icon(
-                                imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null,
-                                tint = scheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = scheme.primary,
-                        unfocusedBorderColor = scheme.outline,
-                        errorBorderColor = scheme.error,
-                        focusedTextColor = scheme.onSurface,
-                        unfocusedTextColor = scheme.onSurface,
-                        cursorColor = scheme.primary,
-                        focusedContainerColor = scheme.surface,
-                        unfocusedContainerColor = scheme.surface,
-                    )
-                )
-                if (!uiState.confirmPasswordError.isNullOrBlank()) {
-                    Text(
-                        text = uiState.confirmPasswordError,
-                        color = scheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                    )
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // Target Exam
-                Text(
-                    text = "TARGET EXAM",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next,
                     ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
+                AuthFieldError(uiState.confirmPasswordError)
+
+                AuthStitchFieldLabel("TARGET EXAM")
                 AuthDropdownM3(
                     value = uiState.examType,
                     placeholder = "Select Target Exam",
                     options = examOptions,
-                    onSelect = { onEvent(AuthEvent.ExamTypeChanged(it)) }
+                    onSelect = { onEvent(AuthEvent.ExamTypeChanged(it)) },
                 )
 
-                Spacer(Modifier.height(16.dp))
-
-                // Prep Stage
-                Text(
-                    text = "PREPARATION STAGE",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
-                    ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                )
+                AuthStitchFieldLabel("PREPARATION STAGE")
                 AuthDropdownM3(
                     value = uiState.preparationStage,
                     placeholder = "Select Preparation Stage",
                     options = prepStageOptions,
-                    onSelect = { onEvent(AuthEvent.PreparationStageChanged(it)) }
+                    onSelect = { onEvent(AuthEvent.PreparationStageChanged(it)) },
                 )
 
-                Spacer(Modifier.height(16.dp))
-
-                // Gender
-                Text(
-                    text = "GENDER",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
-                    ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                )
+                AuthStitchFieldLabel("GENDER")
                 AuthDropdownM3(
                     value = uiState.gender,
                     placeholder = "Select Gender",
                     options = genderOptions,
-                    onSelect = { onEvent(AuthEvent.GenderChanged(it)) }
+                    onSelect = { onEvent(AuthEvent.GenderChanged(it)) },
                 )
-                if (!uiState.genderError.isNullOrBlank()) {
-                    Text(
-                        text = uiState.genderError,
-                        color = scheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                    )
-                }
+                AuthFieldError(uiState.genderError)
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(4.dp))
 
-                // Submit Button
-                Button(
+                AuthStitchPrimaryButton(
+                    text = if (uiState.isLoading) "Creating account..." else "Create Account",
                     onClick = { onEvent(AuthEvent.Signup) },
                     enabled = !uiState.isLoading,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    shape = ButtonDefaults.shape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = scheme.primary,
-                        contentColor = scheme.onPrimary,
-                        disabledContainerColor = scheme.onSurface.copy(alpha = 0.12f),
-                        disabledContentColor = scheme.onSurface.copy(alpha = 0.38f),
-                    )
-                ) {
-                    Text(
-                        text = if (uiState.isLoading) "Creating account..." else "Create Account",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // Secondary Actions
-            FlowRow(
-                modifier = Modifier.padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Already have an account? ",
-                    color = scheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = "Sign In",
-                    color = scheme.secondary,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                    modifier = Modifier.clickable(onClick = onSwitchToLogin)
                 )
             }
-
-            Text(
-                text = "KAVACH • WELLNESS FOR EVERY ASPIRANT",
-                color = scheme.onSurfaceVariant.copy(alpha = 0.4f),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp
-                ),
-                modifier = Modifier.padding(top = 32.dp)
-            )
         }
+
+        AuthStitchModeSwitch(
+            prompt = "Already have an account?",
+            actionLabel = "Sign In",
+            onAction = onSwitchToLogin,
+        )
+        AuthStitchFooterTagline()
     }
 }
 
@@ -691,14 +314,16 @@ private fun AuthDropdownM3(
     value: String,
     placeholder: String,
     options: List<String>,
-    onSelect: (String) -> Unit
+    onSelect: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
+    val fieldShape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+
     Box(Modifier.fillMaxWidth()) {
         ExposedDropdownMenuBox(
             expanded = expanded,
-            onExpandedChange = { expanded = it }
+            onExpandedChange = { expanded = it },
         ) {
             OutlinedTextField(
                 value = value,
@@ -709,29 +334,35 @@ private fun AuthDropdownM3(
                     .fillMaxWidth()
                     .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                shape = OutlinedTextFieldDefaults.shape,
+                shape = fieldShape,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = scheme.onSurface,
                     unfocusedTextColor = scheme.onSurface,
                     cursorColor = scheme.primary,
-                    focusedBorderColor = scheme.primary,
-                    unfocusedBorderColor = scheme.outline,
-                    focusedContainerColor = scheme.surface,
-                    unfocusedContainerColor = scheme.surface,
-                )
+                    focusedBorderColor = scheme.primary.copy(alpha = 0.55f),
+                    unfocusedBorderColor = scheme.outline.copy(alpha = 0.45f),
+                    focusedContainerColor = scheme.surfaceVariant.copy(alpha = 0.45f),
+                    unfocusedContainerColor = scheme.surfaceVariant.copy(alpha = 0.35f),
+                ),
             )
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.background(scheme.surface)
+                modifier = Modifier.background(scheme.surface),
             ) {
                 options.forEach { opt ->
                     DropdownMenuItem(
-                        text = { Text(opt, style = MaterialTheme.typography.bodyLarge, color = scheme.onSurface) },
+                        text = {
+                            Text(
+                                opt,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = scheme.onSurface,
+                            )
+                        },
                         onClick = {
                             onSelect(opt)
                             expanded = false
-                        }
+                        },
                     )
                 }
             }

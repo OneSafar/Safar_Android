@@ -586,291 +586,296 @@ fun EkagraScreen(
         }
     }
 
-    if (showKavachSessionSummary) {
-        com.safarparmar.app.ui.ekagra.focusshield.KavachSessionSummaryScreen(
-            focusedMinutes = kavachSummaryMinutes,
-            blockedAttempts = kavachSummaryAttempts,
-            onBack = { showKavachSessionSummary = false },
-            onDone = {
-                showKavachSessionSummary = false
-                focusShieldViewModel.clearSessionStats()
-            },
-        )
-        return
-    }
-
-    if (showKavachActiveSession && focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS) {
-        com.safarparmar.app.ui.ekagra.focusshield.KavachActiveSessionScreen(
-            secondsLeft = secondsLeft,
-            blockedCount = blockedHitCount,
-            onBack = { showKavachActiveSession = false },
-            onEndSession = { endCurrentSession() },
-        )
-        return
-    }
-
-    if (isInPipMode) {
-        val shieldActive = focusShieldActive && timerRunning
-        val pipBg = if (shieldActive) com.safarparmar.app.ui.ekagra.focusshield.KavachDesign.Primary else Color(0xFF05070A)
-        val pipAccent = if (shieldActive) Color.White else accent
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(pipBg)
-                .padding(14.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                if (shieldActive) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(pipAccent.copy(alpha = 0.18f))
-                            .border(1.dp, pipAccent.copy(alpha = 0.55f), CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Default.Shield,
-                            contentDescription = null,
-                            tint = pipAccent,
-                            modifier = Modifier.size(21.dp),
-                        )
-                    }
-                }
-                Text(
-                    "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
-                    fontSize = if (shieldActive) 36.sp else 42.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
-                )
-                Box(Modifier.fillMaxWidth(0.82f).height(4.dp).clip(RoundedCornerShape(999.dp)).background(Color.White.copy(0.16f))) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth(progress.coerceIn(0f, 1f))
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(pipAccent),
-                    )
-                }
-                Text(
-                    when {
-                        shieldActive -> "SHIELD ACTIVE"
-                        timerRunning -> "FOCUSING"
-                        else -> "PAUSED"
-                    },
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.sp,
-                    color = if (shieldActive) pipAccent else Color.White.copy(0.65f),
-                )
-            }
-        }
-        return
-    }
-
-    if (showThemeDialog) {
-        VisualThemeDialog(current = selectedTheme, onSelect = { selectedTheme = it; showThemeDialog = false }, onDismiss = { showThemeDialog = false })
-    }
-    if (showSongSheet) {
-        SongPickerSheet(current = selectedSong, onSelect = { selectedSong = it; showSongSheet = false }, onDismiss = { showSongSheet = false })
-    }
-    if (showEkagraGuide) {
-        EkagraGuideDialog(onDismiss = { showEkagraGuide = false }, accent = accent)
-    }
-    if (showOrganizeSheet) {
-        val pending = pendingEndedSession
-        OrganizeFreeFocusSheet(
-            pending = pending,
-            goals = openGoals,
-            titleInput = titleInput,
-            onTitleChange = { titleInput = it },
-            accent = accent,
-            onDismiss = { showOrganizeSheet = false },
-            onSaveFree = {
-                if (pending != null) {
-                    viewModel.completeSession(
-                        sessionId = pending.sessionId,
-                        totalSeconds = pending.totalSeconds,
-                        secondsLeft = pending.secondsLeft,
-                        mode = pending.mode,
-                        startedAt = pending.startedAt,
-                        taskTitle = titleInput.ifBlank { "Free Focus" },
-                        goalId = null,
-                        goalTitle = null,
-                    )
-                    timerService?.reset()
-                    associatedGoalId = null
-                    associatedGoalTitle = null
-                    pendingEndedSession = null
-                    showOrganizeSheet = false
-                }
-            },
-            onLinkGoal = { goal ->
-                if (pending != null) {
-                    viewModel.linkGoalAndCompleteSession(
-                        sessionId = pending.sessionId,
-                        goal = goal,
-                        totalSeconds = pending.totalSeconds,
-                        secondsLeft = pending.secondsLeft,
-                        mode = pending.mode,
-                        startedAt = pending.startedAt,
-                    )
-                    timerService?.reset()
-                    associatedGoalId = null
-                    associatedGoalTitle = null
-                    pendingEndedSession = null
-                    showOrganizeSheet = false
-                }
-            },
-            onDiscard = {
-                if (pending != null) {
-                    viewModel.discardSession(pending.sessionId)
-                    timerService?.reset()
-                    associatedGoalId = null
-                    associatedGoalTitle = null
-                    pendingEndedSession = null
-                    showOrganizeSheet = false
-                }
-            },
+    val displayMetrics = LocalContext.current.resources.displayMetrics
+    val systemDensity = displayMetrics.density
+    val systemFontScale = LocalContext.current.resources.configuration.fontScale
+    val originalDensity = remember(systemDensity, systemFontScale) {
+        Density(
+            density = systemDensity,
+            fontScale = systemFontScale.coerceIn(0.75f, 1.25f)
         )
     }
 
-    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
-        SafarDrawerScaffold(
-            title             = stringResource(R.string.module_ekagra),
-            subtitle          = stringResource(R.string.app_name),
-            currentRoute      = currentRoute,
-            isDarkTheme       = isDarkTheme,
-            onNavigate        = onNavigate,
-            onToggleDarkTheme = onToggleNightMode,
-            onLanguageClick   = onLanguageClick,
-            topBarContentColor = topBarColor,
-            topBarActions     = {
-                IconButton(onClick = { showEkagraGuide = true }) { Icon(Icons.Default.HelpOutline, contentDescription = "Ekagra Usage Guide") }
-                IconButton(onClick = { showThemeDialog = true }) { Icon(Icons.Default.Palette, contentDescription = "Theme") }
-                IconButton(onClick = { showSongSheet = true }) { Icon(Icons.Default.MusicNote, contentDescription = "Song") }
-            },
-        ) { padding ->
-
-            val isTimerTab = selectedTab == EkagraNavTab.TIMER
-            if (isTimerTab) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (isDarkTheme) 0.55f else 0.38f)))
-                EkagraVideoBackground(videoUrl = selectedTheme.videoUrl, modifier = Modifier.fillMaxSize())
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (isDarkTheme) 0.55f else 0.38f)))
-            }
-
-            Box(Modifier.fillMaxSize()) {
-                Scaffold(
-                    containerColor = Color.Transparent,
-                    contentWindowInsets = WindowInsets.safeDrawing,
-                    snackbarHost   = { SnackbarHost(hostState = snackbarHostState) },
-                    bottomBar = {
-                        EkagraBottomNav(
-                            selectedTab = selectedTab,
-                            onSelect = { selectedTab = it },
-                            accent = accent,
-                        )
-                    },
-                ) { innerPadding ->
-
-                    when (selectedTab) {
-
-                        EkagraNavTab.TIMER -> {
-                            TimerFocusTab(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(top = padding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding()),
-                                timerMode = timerMode,
-                                secondsLeft = secondsLeft,
-                                isRunning = timerRunning,
-                                accent = accent,
-                                progress = progress,
-                                mottoText = mottoText,
-                                kavachActive = focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS,
-                                kavachBlockedCount = blockedHitCount,
-                                onOpenKavachSession = { showKavachActiveSession = true },
-                                onModeChange = { mode ->
-                                    val mins = when (mode) {
-                                        TimerMode.FOCUS -> focusMinutes
-                                        TimerMode.BREAK -> breakMinutes
-                                        TimerMode.LONG_BREAK -> longBreakMinutes
-                                    }
-                                    val service = timerService
-                                    if (
-                                        mode != TimerMode.FOCUS &&
-                                        timerMode == TimerMode.FOCUS &&
-                                        service?.isActive() == true
-                                    ) {
-                                        service.startBreak(mode, mins * 60)
-                                    } else {
-                                        service?.setDuration(mode, mins * 60)
-                                    }
-                                },
-                                onPlayPause = {
-                                    val wasRunning = timerRunning
-                                    val wasInactive = timerService?.isActive() == false
-                                    if (wasInactive) requestNotificationPermission()
-                                    timerService?.togglePlayPause()
-                                    if (wasInactive && timerMode == TimerMode.FOCUS) {
-                                        viewModel.onSessionStarted(
-                                            taskText = taskText,
-                                            totalSeconds = totalSeconds,
-                                            goalId = if (timerMode == TimerMode.FOCUS) associatedGoalId else null,
-                                            goalTitle = if (timerMode == TimerMode.FOCUS) associatedGoalTitle else null,
-                                            mode = timerMode.toApiMode(),
-                                        )
-                                    } else if (wasRunning && timerMode == TimerMode.FOCUS) {
-                                        viewModel.pauseActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(), associatedGoalTitle)
-                                    } else if (timerMode == TimerMode.FOCUS) {
-                                        viewModel.syncActiveSession(
-                                            totalSeconds = totalSeconds,
-                                            secondsLeft = secondsLeft,
-                                            mode = timerMode.toApiMode(),
-                                            isRunning = true,
-                                            goalTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
-                                        )
-                                    }
-                                },
-                                canStartBreak = timerMode == TimerMode.FOCUS && timerService?.isActive() == true,
-                                onStartBreak = {
-                                    timerService?.startBreak(TimerMode.BREAK, breakMinutes * 60)
-                                },
-                                onReset = { endCurrentSession() },
-                                isDarkTheme = isDarkTheme,
-                            )
-                        }
-
-                        EkagraNavTab.DURATION -> {
-                            DurationTab(
-                                modifier      = Modifier.padding(top = padding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding()),
-                                focusMinutes  = focusMinutes,
-                                breakMinutes  = breakMinutes,
-                                accent        = accent,
-                                onFocusChange = { focusMinutes = it },
-                                onBreakChange = { breakMinutes = it; longBreakMinutes = it },
-                                onStartFocusSession = { startTimer(TimerMode.FOCUS, focusMinutes) },
-                            )
-                        }
-
-                        EkagraNavTab.HISTORY -> {
-                            FocusHistoryTab(
-                                modifier = Modifier.padding(top = padding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding()),
-                                analytics = ekagraAnalytics,
-                                accent = accent,
+    CompositionLocalProvider(LocalDensity provides originalDensity) {
+        if (showKavachSessionSummary) {
+            com.safarparmar.app.ui.ekagra.focusshield.KavachSessionSummaryScreen(
+                focusedMinutes = kavachSummaryMinutes,
+                blockedAttempts = kavachSummaryAttempts,
+                onBack = { showKavachSessionSummary = false },
+                onDone = {
+                    showKavachSessionSummary = false
+                    focusShieldViewModel.clearSessionStats()
+                },
+            )
+        } else if (showKavachActiveSession && focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS) {
+            com.safarparmar.app.ui.ekagra.focusshield.KavachActiveSessionScreen(
+                secondsLeft = secondsLeft,
+                blockedCount = blockedHitCount,
+                onBack = { showKavachActiveSession = false },
+                onEndSession = { endCurrentSession() },
+            )
+        } else if (isInPipMode) {
+            val shieldActive = focusShieldActive && timerRunning
+            val pipBg = if (shieldActive) com.safarparmar.app.ui.ekagra.focusshield.KavachDesign.Primary else Color(0xFF05070A)
+            val pipAccent = if (shieldActive) Color.White else accent
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(pipBg)
+                    .padding(14.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    if (shieldActive) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(pipAccent.copy(alpha = 0.18f))
+                                .border(1.dp, pipAccent.copy(alpha = 0.55f), CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Default.Shield,
+                                contentDescription = null,
+                                tint = pipAccent,
+                                modifier = Modifier.size(21.dp),
                             )
                         }
                     }
+                    Text(
+                        "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
+                        fontSize = if (shieldActive) 36.sp else 42.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                    )
+                    Box(Modifier.fillMaxWidth(0.82f).height(4.dp).clip(RoundedCornerShape(999.dp)).background(Color.White.copy(0.16f))) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(pipAccent),
+                        )
+                    }
+                    Text(
+                        when {
+                            shieldActive -> "SHIELD ACTIVE"
+                            timerRunning -> "FOCUSING"
+                            else -> "PAUSED"
+                        },
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.sp,
+                        color = if (shieldActive) pipAccent else Color.White.copy(0.65f),
+                    )
                 }
             }
-        }
+        } else {
+            if (showThemeDialog) {
+                VisualThemeDialog(current = selectedTheme, onSelect = { selectedTheme = it; showThemeDialog = false }, onDismiss = { showThemeDialog = false })
+            }
+            if (showSongSheet) {
+                SongPickerSheet(current = selectedSong, onSelect = { selectedSong = it; showSongSheet = false }, onDismiss = { showSongSheet = false })
+            }
+            if (showEkagraGuide) {
+                EkagraGuideDialog(onDismiss = { showEkagraGuide = false }, accent = accent)
+            }
+            if (showOrganizeSheet) {
+                val pending = pendingEndedSession
+                OrganizeFreeFocusSheet(
+                    pending = pending,
+                    goals = openGoals,
+                    titleInput = titleInput,
+                    onTitleChange = { titleInput = it },
+                    accent = accent,
+                    onDismiss = { showOrganizeSheet = false },
+                    onSaveFree = {
+                        if (pending != null) {
+                            viewModel.completeSession(
+                                sessionId = pending.sessionId,
+                                totalSeconds = pending.totalSeconds,
+                                secondsLeft = pending.secondsLeft,
+                                mode = pending.mode,
+                                startedAt = pending.startedAt,
+                                taskTitle = titleInput.ifBlank { "Free Focus" },
+                                goalId = null,
+                                goalTitle = null,
+                            )
+                            timerService?.reset()
+                            associatedGoalId = null
+                            associatedGoalTitle = null
+                            pendingEndedSession = null
+                            showOrganizeSheet = false
+                        }
+                    },
+                    onLinkGoal = { goal ->
+                        if (pending != null) {
+                            viewModel.linkGoalAndCompleteSession(
+                                sessionId = pending.sessionId,
+                                goal = goal,
+                                totalSeconds = pending.totalSeconds,
+                                secondsLeft = pending.secondsLeft,
+                                mode = pending.mode,
+                                startedAt = pending.startedAt,
+                            )
+                            timerService?.reset()
+                            associatedGoalId = null
+                            associatedGoalTitle = null
+                            pendingEndedSession = null
+                            showOrganizeSheet = false
+                        }
+                    },
+                    onDiscard = {
+                        if (pending != null) {
+                            viewModel.discardSession(pending.sessionId)
+                            timerService?.reset()
+                            associatedGoalId = null
+                            associatedGoalTitle = null
+                            pendingEndedSession = null
+                            showOrganizeSheet = false
+                        }
+                    },
+                )
+            }
 
-        com.safarparmar.app.ui.tour.TourManager(
-            dataStore        = viewModel.dataStore,
-            steps            = com.safarparmar.app.ui.tour.ekagraTourSteps,
-            askOnFirstVisit  = false,
-            onTourStateReady = { tourState = it },
-        )
+            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
+                SafarDrawerScaffold(
+                    title             = stringResource(R.string.module_ekagra),
+                    subtitle          = stringResource(R.string.app_name),
+                    currentRoute      = currentRoute,
+                    isDarkTheme       = isDarkTheme,
+                    onNavigate        = onNavigate,
+                    onToggleDarkTheme = onToggleNightMode,
+                    onLanguageClick   = onLanguageClick,
+                    topBarContentColor = topBarColor,
+                    topBarActions     = {
+                        IconButton(onClick = { showEkagraGuide = true }) { Icon(Icons.Default.HelpOutline, contentDescription = "Ekagra Usage Guide") }
+                        IconButton(onClick = { showThemeDialog = true }) { Icon(Icons.Default.Palette, contentDescription = "Theme") }
+                        IconButton(onClick = { showSongSheet = true }) { Icon(Icons.Default.MusicNote, contentDescription = "Song") }
+                    },
+                ) { padding ->
+
+                    val isTimerTab = selectedTab == EkagraNavTab.TIMER
+                    if (isTimerTab) {
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (isDarkTheme) 0.55f else 0.38f)))
+                        EkagraVideoBackground(videoUrl = selectedTheme.videoUrl, modifier = Modifier.fillMaxSize())
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (isDarkTheme) 0.55f else 0.38f)))
+                    }
+
+                    Box(Modifier.fillMaxSize()) {
+                        Scaffold(
+                            containerColor = Color.Transparent,
+                            contentWindowInsets = WindowInsets.safeDrawing,
+                            snackbarHost   = { SnackbarHost(hostState = snackbarHostState) },
+                            bottomBar = {
+                                EkagraBottomNav(
+                                    selectedTab = selectedTab,
+                                    onSelect = { selectedTab = it },
+                                    accent = accent,
+                                )
+                            },
+                        ) { innerPadding ->
+
+                            when (selectedTab) {
+
+                                EkagraNavTab.TIMER -> {
+                                    TimerFocusTab(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(top = padding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding()),
+                                        timerMode = timerMode,
+                                        secondsLeft = secondsLeft,
+                                        isRunning = timerRunning,
+                                        accent = accent,
+                                        progress = progress,
+                                        mottoText = mottoText,
+                                        kavachActive = focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS,
+                                        kavachBlockedCount = blockedHitCount,
+                                        onOpenKavachSession = { showKavachActiveSession = true },
+                                        onModeChange = { mode ->
+                                            val mins = when (mode) {
+                                                TimerMode.FOCUS -> focusMinutes
+                                                TimerMode.BREAK -> breakMinutes
+                                                TimerMode.LONG_BREAK -> longBreakMinutes
+                                            }
+                                            val service = timerService
+                                            if (
+                                                mode != TimerMode.FOCUS &&
+                                                timerMode == TimerMode.FOCUS &&
+                                                service?.isActive() == true
+                                            ) {
+                                                service.startBreak(mode, mins * 60)
+                                            } else {
+                                                service?.setDuration(mode, mins * 60)
+                                            }
+                                        },
+                                        onPlayPause = {
+                                            val wasRunning = timerRunning
+                                            val wasInactive = timerService?.isActive() == false
+                                            if (wasInactive) requestNotificationPermission()
+                                            timerService?.togglePlayPause()
+                                            if (wasInactive && timerMode == TimerMode.FOCUS) {
+                                                viewModel.onSessionStarted(
+                                                    taskText = taskText,
+                                                    totalSeconds = totalSeconds,
+                                                    goalId = if (timerMode == TimerMode.FOCUS) associatedGoalId else null,
+                                                    goalTitle = if (timerMode == TimerMode.FOCUS) associatedGoalTitle else null,
+                                                    mode = timerMode.toApiMode(),
+                                                )
+                                            } else if (wasRunning && timerMode == TimerMode.FOCUS) {
+                                                viewModel.pauseActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(), associatedGoalTitle)
+                                            } else if (timerMode == TimerMode.FOCUS) {
+                                                viewModel.syncActiveSession(
+                                                    totalSeconds = totalSeconds,
+                                                    secondsLeft = secondsLeft,
+                                                    mode = timerMode.toApiMode(),
+                                                    isRunning = true,
+                                                    goalTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
+                                                )
+                                            }
+                                        },
+                                        canStartBreak = timerMode == TimerMode.FOCUS && timerService?.isActive() == true,
+                                        onStartBreak = {
+                                            timerService?.startBreak(TimerMode.BREAK, breakMinutes * 60)
+                                        },
+                                        onReset = { endCurrentSession() },
+                                        isDarkTheme = isDarkTheme,
+                                    )
+                                }
+
+                                EkagraNavTab.DURATION -> {
+                                    DurationTab(
+                                        modifier      = Modifier.padding(top = padding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding()),
+                                        focusMinutes  = focusMinutes,
+                                        breakMinutes  = breakMinutes,
+                                        accent        = accent,
+                                        onFocusChange = { focusMinutes = it },
+                                        onBreakChange = { breakMinutes = it; longBreakMinutes = it },
+                                        onStartFocusSession = { startTimer(TimerMode.FOCUS, focusMinutes) },
+                                    )
+                                }
+
+                                EkagraNavTab.HISTORY -> {
+                                    FocusHistoryTab(
+                                        modifier = Modifier.padding(top = padding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding()),
+                                        analytics = ekagraAnalytics,
+                                        accent = accent,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            com.safarparmar.app.ui.tour.TourManager(
+                dataStore        = viewModel.dataStore,
+                steps            = com.safarparmar.app.ui.tour.ekagraTourSteps,
+                askOnFirstVisit  = false,
+                onTourStateReady = { tourState = it },
+            )
+        }
     }
 }
 

@@ -100,9 +100,40 @@ class MehfilSocketManager @Inject constructor(
     val reactionUpdated = _reactionUpdated.asSharedFlow()
 
     // DM events
-    data class DmEvent(val type: String, val fromUserId: String = "", val fromUserName: String = "", val roomId: String = "", val requestId: String = "", val message: String = "", val pendingList: List<String> = emptyList())
+    data class DmEvent(
+        val type: String,
+        val fromUserId: String = "",
+        val fromUserName: String = "",
+        val roomId: String = "",
+        val requestId: String = "",
+        val message: String = "",
+        val pendingList: List<String> = emptyList(),
+        val errorCode: String = "",
+    )
     private val _dmEvent = MutableSharedFlow<DmEvent>(extraBufferCapacity = 16)
     val dmEvent = _dmEvent.asSharedFlow()
+
+    // Live session events
+    data class LiveChatMessage(
+        val name: String,
+        val text: String,
+        val sentAt: String,
+    )
+    data class LiveStatusChange(
+        val sessionId: String,
+        val status: String, // "live" | "ended"
+        val youtubeEmbedUrl: String?,
+        val youtubeVideoId: String?,
+        val recordingVideoId: String?,
+    )
+    private val _liveMessage = MutableSharedFlow<LiveChatMessage>(extraBufferCapacity = 64)
+    val liveMessage = _liveMessage.asSharedFlow()
+
+    private val _liveStatusChanged = MutableSharedFlow<LiveStatusChange>(extraBufferCapacity = 8)
+    val liveStatusChanged = _liveStatusChanged.asSharedFlow()
+
+    private val _liveError = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val liveError = _liveError.asSharedFlow()
 
     private val _connected = MutableStateFlow(false)
     val connected = _connected.asStateFlow()
@@ -282,9 +313,53 @@ class MehfilSocketManager @Inject constructor(
                 on("dm:error") { args ->
                     try {
                         val raw = args.firstOrNull()?.toString() ?: return@on
-                        val msg = JSONObject(raw).optString("message")
+                        val obj = JSONObject(raw)
+                        val msg = obj.optString("message")
+                        val code = obj.optString("code")
                         android.util.Log.w("MehfilSocket", "dm:error ← $msg")
-                        _dmEvent.tryEmit(DmEvent("error", message = msg))
+                        _dmEvent.tryEmit(DmEvent("error", message = msg, errorCode = code))
+                    } catch (_: Exception) {}
+                }
+
+                // Live session events
+                on("live:message") { args ->
+                    try {
+                        val raw = args.firstOrNull()?.toString() ?: return@on
+                        val obj = JSONObject(raw)
+                        val name = obj.optString("name").ifBlank { "Student" }
+                        val text = obj.optString("text")
+                        val sentAt = obj.optString("sentAt")
+                        android.util.Log.d("MehfilSocket", "live:message ← $name: $text")
+                        _liveMessage.tryEmit(LiveChatMessage(name = name, text = text, sentAt = sentAt))
+                    } catch (_: Exception) {}
+                }
+
+                on("live:status_changed") { args ->
+                    try {
+                        val raw = args.firstOrNull()?.toString() ?: return@on
+                        val obj = JSONObject(raw)
+                        val sessionId = obj.optString("sessionId")
+                        val status = obj.optString("status")
+                        val embedUrl = obj.optString("youtubeEmbedUrl").takeIf { it.isNotBlank() }
+                        val videoId = obj.optString("youtubeVideoId").takeIf { it.isNotBlank() }
+                        val recordingId = obj.optString("recordingVideoId").takeIf { it.isNotBlank() }
+                        android.util.Log.d("MehfilSocket", "live:status_changed ← sessionId=$sessionId status=$status")
+                        _liveStatusChanged.tryEmit(LiveStatusChange(
+                            sessionId = sessionId,
+                            status = status,
+                            youtubeEmbedUrl = embedUrl,
+                            youtubeVideoId = videoId,
+                            recordingVideoId = recordingId,
+                        ))
+                    } catch (_: Exception) {}
+                }
+
+                on("live:error") { args ->
+                    try {
+                        val raw = args.firstOrNull()?.toString() ?: return@on
+                        val msg = JSONObject(raw).optString("message")
+                        android.util.Log.w("MehfilSocket", "live:error ← $msg")
+                        _liveError.tryEmit(msg)
                     } catch (_: Exception) {}
                 }
 
@@ -382,6 +457,31 @@ class MehfilSocketManager @Inject constructor(
         val s = socket ?: return
         if (!s.connected()) return
         s.emit("dm:decline", JSONObject().put("fromUserId", fromUserId))
+    }
+
+    fun emitLiveJoin(sessionId: String) {
+        val s = socket ?: return
+        if (!s.connected()) return
+        android.util.Log.d("MehfilSocket", "live:join → sessionId=$sessionId")
+        s.emit("live:join", JSONObject().put("sessionId", sessionId))
+    }
+
+    fun emitLiveMessage(sessionId: String, name: String, text: String) {
+        val s = socket ?: return
+        if (!s.connected()) return
+        android.util.Log.d("MehfilSocket", "live:message → sessionId=$sessionId name=$name")
+        s.emit("live:message", JSONObject().apply {
+            put("sessionId", sessionId)
+            put("name", name)
+            put("text", text)
+        })
+    }
+
+    fun emitLiveLeave(sessionId: String) {
+        val s = socket ?: return
+        if (!s.connected()) return
+        android.util.Log.d("MehfilSocket", "live:leave → sessionId=$sessionId")
+        s.emit("live:leave", JSONObject().put("sessionId", sessionId))
     }
 
     fun isConnected() = socket?.connected() == true

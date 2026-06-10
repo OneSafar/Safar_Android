@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.home
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -137,12 +138,33 @@ fun HomeScreen(
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
         onLanguageClick = onLanguageClick,
-        topBarContentColor = Color.White,
+        topBarContentColor = if (isDarkTheme) Color.White else Color.Black,
         emphasizeTopBar = true,
     ) { padding ->
         val ctaPrimary = MaterialTheme.colorScheme.primary
         val ctaOnPrimary = MaterialTheme.colorScheme.onPrimary
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+
+        val currentSlide = slides[currentPage]
+        val animateColor by animateColorAsState(
+            targetValue = currentSlide.accentColor,
+            animationSpec = tween(durationMillis = 1000),
+            label = "bg_color"
+        )
+        val baseBgColor = if (isDarkTheme) Color(0xFF0F1115) else Color(0xFFF8F6F2)
+        val dynamicGradient = remember(animateColor, baseBgColor) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    animateColor.copy(alpha = if (isDarkTheme) 0.25f else 0.35f),
+                    baseBgColor
+                )
+            )
+        }
+
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(dynamicGradient)
+        ) {
             val screenWidth = maxWidth
             val screenHeight = maxHeight
             val isCompactHeight = screenHeight < 760.dp
@@ -150,115 +172,67 @@ fun HomeScreen(
             val descriptionFrameHeight = (screenHeight * if (isCompactHeight) 0.235f else 0.2376f)
                 .coerceIn(if (isCompactHeight) 164.dp else 176.dp, if (isCompactHeight) 198.dp else 228.dp)
             val descriptionFrameWidth = if (isNarrow) 0.78f else 0.8f
-            val frameTextTopOffset = descriptionFrameHeight * if (isCompactHeight) 0.07f else 0.085f
-            val frameTextVerticalPadding = if (isCompactHeight) 20.dp else 26.dp
-            val headlineSize = if (isCompactHeight) 23.sp else 27.sp
-            val headlineLineHeight = if (isCompactHeight) 26.sp else 30.sp
+            val frameTextVerticalPadding = if (isCompactHeight) 16.dp else 22.dp
+            val headlineSize = if (isCompactHeight) 22.sp else 26.sp
+            val headlineLineHeight = if (isCompactHeight) 25.sp else 29.sp
             val bottomPanelOffset = (screenHeight * if (isCompactHeight) 0.065f else 0.09f).coerceIn(52.dp, 104.dp)
             val bottomPanelSpacing = if (isCompactHeight) 12.dp else 16.dp
             val toolHorizontalPadding = if (isNarrow) 14.dp else 20.dp
             val ctaHorizontalPadding = if (isNarrow) 32.dp else 44.dp
 
-            // Full-screen crossfade (no slide effect) with Ken Burns on each slide
-            Crossfade(
-                targetState = currentPage,
-                animationSpec = tween(800),
-                modifier = Modifier.fillMaxSize(),
-                label = "slide_cf",
-            ) { page ->
-                val slide = slides[page]
-                // Ken Burns: gentler range so portrait assets aren’t over-cropped on phones
-                // (slightly zoomed out vs 1f..1.1f; may show thin edges — acceptable per design)
-                val startScale = if (page % 2 == 0) 1.0f else 1.06f
-                val endScale = if (page % 2 == 0) 1.06f else 1.0f
-                val bgScale = remember { Animatable(startScale) }
-                LaunchedEffect(Unit) {
-                    bgScale.animateTo(endScale, tween(5000, easing = LinearEasing))
-                }
-
-                Box(Modifier.fillMaxSize().clickable { onNavigate(slide.route) }) {
-                    AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current).data("file:///android_asset/${slide.bgImageUrl}") .build(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize().scale(bgScale.value),
-                    )
-                    // Black film overlay to make UI elements distinct
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
-                    // Dark vignette
-                    Box(
-                        Modifier.fillMaxSize().background(
-                            Brush.verticalGradient(
-                                0.0f to Color.Black.copy(alpha = 0.4f),
-                                0.5f to Color.Black.copy(alpha = 0.2f),
-                                1.0f to Color.Black.copy(alpha = 0.7f),
-                            )
-                        )
-                    )
-                    // Card background replacement
-                    val topOffset = padding.calculateTopPadding() + 16.dp
-
-                    Box(
+            // Description card box container matching Go to Dashboard CTA button color
+            val topOffset = padding.calculateTopPadding() + 24.dp
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = topOffset)
+                    .fillMaxWidth(descriptionFrameWidth)
+                    .height(descriptionFrameHeight)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(ctaPrimary)
+                    .border(2.dp, ctaOnPrimary.copy(alpha = 0.2f), RoundedCornerShape(20.dp))
+                    .clickable { onNavigate(currentSlide.route) }
+            ) {
+                Crossfade(
+                    targetState = currentPage,
+                    animationSpec = tween(durationMillis = 800),
+                    label = "text_fade"
+                ) { page ->
+                    val slide = slides[page]
+                    Column(
                         modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = topOffset)
-                            .fillMaxWidth(descriptionFrameWidth)
-                            .height(descriptionFrameHeight)
-                            .clip(RoundedCornerShape(20.dp))
+                            .fillMaxSize()
+                            .padding(horizontal = 20.dp, vertical = frameTextVerticalPadding),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        // Frosted glass pane inside the frame (drawn behind the frame)
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .padding(start = 14.dp, end = 14.dp, top = 18.dp, bottom = 34.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(if (isDarkTheme) Color.Transparent else Color.Black.copy(alpha = 0.5f))
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(
-                                            Color.White.copy(alpha = 0.2f),
-                                            Color.White.copy(alpha = 0.1f),
-                                        )
-                                    )
-                                )
+                        Text(
+                            text = stringResource(slide.titleRes).uppercase(),
+                            fontSize = if (isCompactHeight) 10.sp else 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp,
+                            color = ctaOnPrimary.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(bottom = if (isCompactHeight) 8.dp else 12.dp)
                         )
-
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(if (isDarkTheme) "file:///android_asset/Description_Box_Frame.png" else "file:///android_asset/WEEE.png")
-                                .build(),
-                            contentDescription = null,
-                            contentScale = ContentScale.FillBounds,
-                            modifier = Modifier.matchParentSize()
+                        Text(
+                            text = slide.headline,
+                            fontFamily = LoraFontFamily,
+                            fontSize = headlineSize,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ctaOnPrimary,
+                            textAlign = TextAlign.Center,
+                            lineHeight = headlineLineHeight,
+                            modifier = Modifier.padding(bottom = if (isCompactHeight) 6.dp else 10.dp)
                         )
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = frameTextTopOffset)
-                                .padding(horizontal = 20.dp, vertical = frameTextVerticalPadding),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                stringResource(slide.titleRes).uppercase(),
-                                fontSize = if (isCompactHeight) 9.sp else 10.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 2.sp,
-                                color = Color.White.copy(alpha = 0.82f),
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(bottom = if (isCompactHeight) 8.dp else 10.dp),
-                            )
-                            Text(
-                                slide.headline,
-                                fontFamily = LoraFontFamily,
-                                fontSize = headlineSize,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White,
-                                textAlign = TextAlign.Center,
-                                lineHeight = headlineLineHeight,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
+                        Text(
+                            text = slide.body,
+                            fontSize = if (isCompactHeight) 11.sp else 12.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = ctaOnPrimary.copy(alpha = 0.85f),
+                            textAlign = TextAlign.Center,
+                            lineHeight = if (isCompactHeight) 14.sp else 16.sp
+                        )
                     }
                 }
             }
@@ -289,6 +263,7 @@ fun HomeScreen(
                             ToolImageCard(
                                 tool = tool,
                                 isActive = isActive,
+                                isDarkTheme = isDarkTheme,
                                 borderColor = ctaPrimary,
                                 onClick = { onNavigate(tool.route) },
                                 modifier = Modifier.fillMaxWidth(0.902f), // +10% vs 0.82f
@@ -332,6 +307,7 @@ fun HomeScreen(
 private fun ToolImageCard(
     tool: ToolCard,
     isActive: Boolean,
+    isDarkTheme: Boolean,
     borderColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -394,11 +370,16 @@ private fun ToolImageCard(
         }
 
         // Text below the image
+        val labelColor = if (isDarkTheme) {
+            if (isActive) Color.White else Color(0xFFD7E4DC)
+        } else {
+            if (isActive) borderColor else Color.Black.copy(alpha = 0.6f)
+        }
         Text(
             stringResource(tool.labelRes),
             fontSize = 13.2.sp, // +20% vs 11.sp
             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-            color = if (isActive) Color.White else Color(0xFFD7E4DC),
+            color = labelColor,
             textAlign = TextAlign.Center,
             modifier = Modifier.graphicsLayer {
                 scaleX = cardScale

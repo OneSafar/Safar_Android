@@ -104,39 +104,7 @@ fun SafarDrawer(
                 }
             }
 
-            HorizontalDivider()
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-            ) {
-                NavigationDrawerItem(
-                    label = {
-                        Text(
-                            if (isDarkTheme) "Light Mode" else "Dark Mode",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    icon = {
-                        Icon(
-                            if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.Nightlight,
-                            contentDescription = null,
-                        )
-                    },
-                    selected = false,
-                    badge = {
-                        Switch(
-                            checked = isDarkTheme,
-                            onCheckedChange = { onToggleDarkTheme() },
-                        )
-                    },
-                    onClick = { onToggleDarkTheme() },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                )
-            }
         }
     }
 }

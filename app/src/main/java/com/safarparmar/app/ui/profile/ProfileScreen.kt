@@ -8,11 +8,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
@@ -21,6 +24,8 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,16 +33,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.theme.*
+import com.safarparmar.app.ui.components.*
 
 private val examOptions = listOf("UPSC", "SSC", "IBPS", "RRB", "NEET", "JEE", "12th Boards", "State PSC", "CAT", "GATE", "Other")
 private val stageOptions = listOf("Beginner", "Intermediate", "Advanced", "Revision", "Mock Tests")
@@ -69,7 +80,7 @@ private fun SectionHeader(icon: ImageVector, title: String) {
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             color = scheme.onSurface,
             modifier = Modifier.weight(1f),
             maxLines = 2,
@@ -106,31 +117,38 @@ fun ProfileScreen(
         }
     }
 
-    Scaffold(
-        containerColor = scheme.background,
-        contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = {
-            Surface(
-                color = scheme.surface,
-                tonalElevation = 1.dp,
-                modifier = Modifier.shadow(1.dp, spotColor = Color.Black.copy(alpha = 0.06f)),
-            ) {
+    val currentDensity = LocalDensity.current
+    CompositionLocalProvider(
+        LocalDensity provides Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets.safeDrawing,
+            topBar = {
                 TopAppBar(
                     title = {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                            verticalArrangement = Arrangement.spacedBy(1.dp),
                         ) {
                             Text(
                                 text = "Profile",
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp
+                                ),
                                 color = scheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
                                 text = "Your identity and study",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 12.sp
+                                ),
                                 color = scheme.onSurfaceVariant,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
@@ -138,7 +156,10 @@ fun ProfileScreen(
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.padding(start = 4.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
@@ -147,100 +168,107 @@ fun ProfileScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onHome) {
-                            Icon(
-                                imageVector = Icons.Default.Home,
-                                contentDescription = "Home",
-                                tint = scheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(onClick = onToggleDarkTheme) {
-                            Icon(
-                                imageVector = if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.Nightlight,
-                                contentDescription = "Theme",
-                                tint = scheme.onSurfaceVariant,
-                            )
-                        }
+                        Switch(
+                            checked = isDarkTheme,
+                            onCheckedChange = { onToggleDarkTheme() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF1D61D1),
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = scheme.outline.copy(alpha = 0.3f)
+                            ),
+                            modifier = Modifier.padding(end = 16.dp)
+                        )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 )
-            }
-        },
-        bottomBar = {
-            ProfileBottomNavigation(
-                isDarkTheme = isDarkTheme,
-                onHome = onHome,
-                onLibrary = onLibrary,
-                onProgress = onProgress,
-            )
-        },
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            ProfileHeaderCard(uiState = uiState)
+            },
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(scheme.background)
+            ) {
+                val gradientStart = if (isDarkTheme) Color(0xFF1B212D) else Color(0xFFD6E9FF)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(gradientStart, Color.Transparent)
+                            )
+                        )
+                )
 
-            PersonalInfoSection(uiState = uiState, viewModel = viewModel)
-
-            ExamFocusSection(uiState = uiState, viewModel = viewModel)
-
-            AccountStatusSection()
-
-            if (uiState.error != null) {
-                Surface(
-                    color = scheme.errorContainer,
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth(),
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    Text(
-                        text = uiState.error!!,
-                        color = scheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(14.dp),
-                        maxLines = 6,
-                        overflow = TextOverflow.Ellipsis,
+                    ProfileHeaderCard(uiState = uiState)
+
+                    PersonalInfoSection(uiState = uiState, viewModel = viewModel)
+
+                    ExamFocusSection(uiState = uiState, viewModel = viewModel)
+
+                    AccountStatusSection()
+
+                    if (uiState.error != null) {
+                        Surface(
+                            color = scheme.errorContainer,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = uiState.error!!,
+                                color = scheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(14.dp),
+                                maxLines = 6,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
+                    ActionsSection(
+                        isSaving = uiState.isSaving,
+                        onLogoutClick = { viewModel.onEvent(ProfileEvent.ShowLogoutDialog) },
+                        onSaveClick = { viewModel.onEvent(ProfileEvent.SaveProfile) },
                     )
+
+                    FooterSection()
+
+                    Spacer(Modifier.height(8.dp))
                 }
             }
-
-            ActionsSection(
-                isSaving = uiState.isSaving,
-                onLogoutClick = { viewModel.onEvent(ProfileEvent.ShowLogoutDialog) },
-                onSaveClick = { viewModel.onEvent(ProfileEvent.SaveProfile) },
-            )
-
-            FooterSection()
-
-            Spacer(Modifier.height(8.dp))
         }
-    }
 
-    if (uiState.showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) },
-            icon = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = scheme.error) },
-            title = { Text("Confirm Logout", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
-            text = { Text("Are you sure you want to logout? You will need to sign in again to access your sanctuary.") },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.logout { onLogout() } },
-                    colors = ButtonDefaults.buttonColors(containerColor = scheme.error),
-                ) {
-                    Text("Logout", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) }) {
-                    Text("Stay Here", fontWeight = FontWeight.SemiBold)
-                }
-            },
-            shape = MaterialTheme.shapes.extraLarge,
-        )
+        if (uiState.showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) },
+                icon = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = scheme.error) },
+                title = { Text("Confirm Logout", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
+                text = { Text("Are you sure you want to logout? You will need to sign in again to access your sanctuary.") },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.logout { onLogout() } },
+                        colors = ButtonDefaults.buttonColors(containerColor = scheme.error),
+                    ) {
+                        Text("Logout", fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) }) {
+                        Text("Stay Here", fontWeight = FontWeight.SemiBold)
+                    }
+                },
+                shape = MaterialTheme.shapes.extraLarge,
+            )
+        }
     }
 }
 
@@ -248,12 +276,12 @@ fun ProfileScreen(
 private fun ProfileHeaderCard(uiState: ProfileUiState) {
     val scheme = MaterialTheme.colorScheme
     GlassCard {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Box(contentAlignment = Alignment.BottomEnd) {
                 val avatarRing = scheme.surface
@@ -267,7 +295,10 @@ private fun ProfileHeaderCard(uiState: ProfileUiState) {
                 ) {
                     Text(
                         text = uiState.userName.firstOrNull()?.uppercase() ?: "U",
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 32.sp
+                        ),
                         color = scheme.primary,
                     )
                 }
@@ -290,47 +321,30 @@ private fun ProfileHeaderCard(uiState: ProfileUiState) {
                 }
             }
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .wrapContentHeight(),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = uiState.userName.ifEmpty { "User" },
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    ),
                     color = scheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
                 Text(
                     text = uiState.userEmail,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 15.sp
+                    ),
                     color = scheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
-                Spacer(Modifier.height(6.dp))
-                
-                Row(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(scheme.primaryContainer)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Box(
-                        Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(scheme.primary),
-                    )
-                    Text(
-                        text = "ONLINE",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = scheme.onPrimaryContainer
-                    )
-                }
             }
         }
     }
@@ -338,55 +352,70 @@ private fun ProfileHeaderCard(uiState: ProfileUiState) {
 
 @Composable
 private fun PersonalInfoSection(uiState: ProfileUiState, viewModel: ProfileViewModel) {
-    GlassCard {
-        Column(modifier = Modifier.padding(24.dp)) {
-            SectionHeader(Icons.Default.Person, "Personal Information")
-            Spacer(Modifier.height(24.dp))
-            CustomTextField(
-                label = "FULL NAME",
-                value = uiState.editName,
-                onValueChange = { viewModel.onEvent(ProfileEvent.UpdateName(it)) },
-                errorText = uiState.nameError,
-            )
-            Spacer(Modifier.height(24.dp))
-            CustomTextField(
-                label = "EMAIL ADDRESS",
-                value = uiState.userEmail,
-                onValueChange = {},
-                enabled = false,
-                helperText = "Contact support to update your primary email address.",
-            )
-            Spacer(Modifier.height(24.dp))
-            CustomDropdownMenu(
-                label = "GENDER",
-                options = genderOptions,
-                selectedOption = uiState.editGender.ifEmpty { "Select gender" },
-                onSelect = { viewModel.onEvent(ProfileEvent.UpdateGender(it)) },
-            )
-        }
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Personal Information",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            ),
+            color = scheme.onSurface,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        SafarCustomTextField(
+            label = "FULL NAME",
+            value = uiState.editName,
+            onValueChange = { viewModel.onEvent(ProfileEvent.UpdateName(it)) },
+            errorText = uiState.nameError,
+        )
+        SafarCustomTextField(
+            label = "EMAIL ADDRESS",
+            value = uiState.userEmail,
+            onValueChange = {},
+            enabled = false,
+            helperText = "Contact support to update your primary email address.",
+        )
+        SafarCustomDropdownMenu(
+            label = "GENDER",
+            options = genderOptions,
+            selectedOption = uiState.editGender.ifEmpty { "Select gender" },
+            onSelect = { viewModel.onEvent(ProfileEvent.UpdateGender(it)) },
+        )
     }
 }
 
 @Composable
 private fun ExamFocusSection(uiState: ProfileUiState, viewModel: ProfileViewModel) {
-    GlassCard {
-        Column(modifier = Modifier.padding(24.dp)) {
-            SectionHeader(Icons.Default.School, "Exam Focus")
-            Spacer(Modifier.height(24.dp))
-            CustomDropdownMenu(
-                label = "TARGET EXAM",
-                options = examOptions,
-                selectedOption = uiState.editExamType.ifEmpty { "Select exam" },
-                onSelect = { viewModel.onEvent(ProfileEvent.UpdateExamType(it)) },
-            )
-            Spacer(Modifier.height(24.dp))
-            CustomDropdownMenu(
-                label = "PREPARATION STAGE",
-                options = stageOptions,
-                selectedOption = uiState.editStage.ifEmpty { "Select stage" },
-                onSelect = { viewModel.onEvent(ProfileEvent.UpdateStage(it)) },
-            )
-        }
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Exam Focus",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            ),
+            color = scheme.onSurface,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        SafarCustomDropdownMenu(
+            label = "TARGET EXAM",
+            options = examOptions,
+            selectedOption = uiState.editExamType.ifEmpty { "Select exam" },
+            onSelect = { viewModel.onEvent(ProfileEvent.UpdateExamType(it)) },
+        )
+        SafarCustomDropdownMenu(
+            label = "PREPARATION STAGE",
+            options = stageOptions,
+            selectedOption = uiState.editStage.ifEmpty { "Select stage" },
+            onSelect = { viewModel.onEvent(ProfileEvent.UpdateStage(it)) },
+        )
     }
 }
 
@@ -397,57 +426,42 @@ private fun AccountStatusSection() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(scheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
+            Column {
+                Text(
+                    text = "Account Status",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = scheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = scheme.primary,
-                        modifier = Modifier.size(26.dp),
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF22C55E)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(10.dp)
+                        )
+                    }
                     Text(
-                        text = "Account Status",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = scheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "Your account is verified and secured.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
+                        text = "Verified Student",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = Color(0xFF15803D)
                     )
                 }
             }
-            Text(
-                text = "VERIFIED",
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = scheme.onPrimaryContainer,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.small)
-                    .background(scheme.primaryContainer)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            )
         }
     }
 }
@@ -459,6 +473,7 @@ private fun ActionsSection(
     onSaveClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val brandBlue = Color(0xFF1D61D1)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -469,16 +484,16 @@ private fun ActionsSection(
             onClick = onLogoutClick,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 56.dp),
-            shape = ButtonDefaults.outlinedShape,
+                .height(56.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.error),
-            border = BorderStroke(1.dp, scheme.error.copy(alpha = 0.5f)),
+            border = BorderStroke(1.5.dp, scheme.error),
         ) {
             Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
             Text(
                 text = "Logout",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -488,12 +503,11 @@ private fun ActionsSection(
             enabled = !isSaving,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 56.dp)
-                .shadow(8.dp, ButtonDefaults.shape, spotColor = scheme.primary.copy(alpha = 0.35f)),
-            shape = ButtonDefaults.shape,
+                .height(56.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = scheme.primary,
-                contentColor = scheme.onPrimary,
+                containerColor = brandBlue,
+                contentColor = Color.White,
                 disabledContainerColor = scheme.surfaceVariant,
             ),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
@@ -501,18 +515,18 @@ private fun ActionsSection(
             if (isSaving) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(22.dp),
-                    color = scheme.onPrimary,
+                    color = Color.White,
                     strokeWidth = 2.dp,
                 )
             } else {
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Save Changes",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "Save",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = scheme.onPrimary,
+                    color = Color.White,
                 )
             }
         }
@@ -595,143 +609,6 @@ private fun ProfileBottomNavigation(
                     unselectedTextColor = scheme.onSurfaceVariant,
                 ),
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CustomTextField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    enabled: Boolean = true,
-    helperText: String? = null,
-    errorText: String? = null,
-) {
-    val hasError = !errorText.isNullOrBlank()
-    val scheme = MaterialTheme.colorScheme
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = scheme.primary
-        )
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            readOnly = false,
-            enabled = enabled,
-            isError = hasError,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = OutlinedTextFieldDefaults.shape,
-            textStyle = MaterialTheme.typography.bodyLarge,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = scheme.onSurface,
-                unfocusedTextColor = scheme.onSurface,
-                disabledTextColor = scheme.onSurfaceVariant,
-                cursorColor = scheme.primary,
-                focusedBorderColor = scheme.primary,
-                unfocusedBorderColor = scheme.outline,
-                errorBorderColor = scheme.error,
-                disabledBorderColor = scheme.outline.copy(alpha = 0.38f),
-                focusedContainerColor = scheme.surface,
-                unfocusedContainerColor = scheme.surface,
-                disabledContainerColor = scheme.surfaceVariant,
-            ),
-        )
-        if (hasError) {
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = errorText!!,
-                color = scheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.heightIn(min = 16.dp)
-            )
-        }
-        if (helperText != null) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = helperText,
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.outline,
-                maxLines = 4,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CustomDropdownMenu(
-    label: String,
-    options: List<String>,
-    selectedOption: String,
-    onSelect: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val scheme = MaterialTheme.colorScheme
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = scheme.primary
-        )
-        Spacer(Modifier.height(8.dp))
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-        ) {
-            OutlinedTextField(
-                value = selectedOption,
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
-                shape = OutlinedTextFieldDefaults.shape,
-                textStyle = MaterialTheme.typography.bodyLarge,
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(
-                        expanded = expanded,
-                    )
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = scheme.onSurface,
-                    unfocusedTextColor = scheme.onSurface,
-                    cursorColor = scheme.primary,
-                    focusedBorderColor = scheme.primary,
-                    unfocusedBorderColor = scheme.outline,
-                    focusedContainerColor = scheme.surface,
-                    unfocusedContainerColor = scheme.surface,
-                ),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.background(scheme.surface),
-            ) {
-                options.forEach { option ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = option,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = scheme.onSurface,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        onClick = {
-                            onSelect(option)
-                            expanded = false
-                        },
-                    )
-                }
-            }
         }
     }
 }

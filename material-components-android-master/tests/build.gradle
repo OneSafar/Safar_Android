@@ -1,0 +1,40 @@
+apply plugin: 'com.android.test'
+
+dependencies {
+  implementation libs.androidx.test.core
+  implementation libs.androidx.test.runner
+  implementation libs.androidx.test.rules
+  implementation libs.androidx.espresso.accessibility
+  implementation libs.androidx.espresso.core
+  implementation libs.androidx.espresso.contrib
+  implementation libs.mockito.core
+  implementation libs.dexmaker
+  implementation libs.dexmaker.mokito
+}
+
+android {
+  defaultConfig {
+    testApplicationId "com.google.android.material.tests"
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    minSdkVersion 23
+    targetSdkVersion 33
+  }
+
+  targetProjectPath getTransformedProjectPath('testing/java/com/google/android/material/testapp')
+
+  sourceSets {
+    main.setRoot('./')
+    main.java.srcDir 'javatests'
+    main.java.excludes = [
+      '**/animation/**',
+      '**/build/**',
+      '**/theme/**',
+    ]
+    main.manifest.srcFile 'javatests/com/google/android/material/AndroidManifest.xml'
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+}

@@ -68,14 +68,15 @@ gradle.taskGraph.whenReady {
 android {
     namespace = "com.safarparmar.app"
     compileSdk = 35
+    val defaultApiRoot = "https://safar.parmarssc.in/"
+    val apiBaseUrl = normalizeBaseUrl(defaultApiRoot)
     val qaBaseUrl = normalizeBaseUrl(
         providers.gradleProperty("SAFAR_QA_BASE_URL").orNull
             ?: providers.environmentVariable("SAFAR_QA_BASE_URL").orNull
             ?: localProps.getProperty("SAFAR_QA_BASE_URL")
-            ?: "https://safar-c4ny.onrender.com/api/",
+            ?: defaultApiRoot,
     )
-    // Production API — main production server with real MongoDB + Firebase credentials.
-    val prodBaseUrl = normalizeBaseUrl("https://safar.parmarssc.in/")
+    val prodBaseUrl = apiBaseUrl
     val aiSyllabusImportEnabled = providers.gradleProperty("AI_SYLLABUS_IMPORT_ENABLED")
         .map { it.equals("true", ignoreCase = true).toString() }
         .orElse("true")
@@ -232,6 +233,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.mockk)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

@@ -11,7 +11,12 @@ import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 
 val ExpressiveCardShape = RoundedCornerShape(32.dp)
@@ -108,6 +113,24 @@ fun SafarTheme(
         else      -> LightColorScheme
     }
 
+    val currentDensity = LocalDensity.current
+    val displayMetrics = androidx.compose.ui.platform.LocalContext.current.resources.displayMetrics
+    val screenHeightPx = displayMetrics.heightPixels.toFloat()
+    val screenWidthPx = displayMetrics.widthPixels.toFloat()
+    val targetLogicalHeightDp = 820f
+    val customDensityValue = screenHeightPx / targetLogicalHeightDp
+    val maxAllowedDensity = screenWidthPx / 360f
+    val systemDensity = currentDensity.density
+    val densityLimit = systemDensity.coerceAtMost(maxAllowedDensity)
+    val finalDensityValue = customDensityValue.coerceAtMost(densityLimit) * 0.85f
+    
+    val customDensity = remember(finalDensityValue, currentDensity.fontScale) {
+        Density(
+            density = finalDensityValue,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
+
     val systemUiController = rememberSystemUiController()
     SideEffect {
         systemUiController.setSystemBarsColor(
@@ -116,13 +139,15 @@ fun SafarTheme(
         )
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography  = SafarTypography,
-    ) {
-        ProvideTextStyle(
-            value = SafarTypography.bodyMedium,
-            content = content
-        )
+    CompositionLocalProvider(LocalDensity provides customDensity) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography  = SafarTypography,
+        ) {
+            ProvideTextStyle(
+                value = SafarTypography.bodyMedium,
+                content = content
+            )
+        }
     }
 }

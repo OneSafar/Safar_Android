@@ -101,6 +101,7 @@ class BlockedAppActivity : ComponentActivity() {
     }
 
     private fun returnToFocus() {
+        FocusShieldRepository.ShieldPrefs.beginReturnToFocusGrace(this, 5_000L)
         startActivity(
             Intent(this, MainActivity::class.java).apply {
                 data = Uri.parse("safar://ekagra")

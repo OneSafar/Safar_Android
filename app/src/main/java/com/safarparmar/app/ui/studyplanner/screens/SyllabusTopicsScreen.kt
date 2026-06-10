@@ -20,6 +20,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
@@ -86,122 +89,132 @@ fun SyllabusTopicsScreen(
         PlannerTopicDetailSheet(ref, detailNonce, actions, onDismiss = { selectedTopicRef = null })
     }
 
-    Scaffold(
-        floatingActionButton = {
-            SafarExpressiveFabMenu(
-                items = listOf(
-                    FabMenuItem(
-                        label = "Add Topic",
-                        icon = Icons.Default.Add,
-                        onClick = { addTopic = true }
+    val currentDensity = LocalDensity.current
+    val clampedDensity = remember(currentDensity) {
+        Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
+
+    CompositionLocalProvider(LocalDensity provides clampedDensity) {
+        Scaffold(
+            floatingActionButton = {
+                SafarExpressiveFabMenu(
+                    items = listOf(
+                        FabMenuItem(
+                            label = "Add Topic",
+                            icon = Icons.Default.Add,
+                            onClick = { addTopic = true }
+                        )
                     )
                 )
-            )
-        },
-        contentWindowInsets = WindowInsets.safeDrawing,
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            SafarExpressiveHeader(
-                title = currentChapter?.name ?: "Topics",
-                subtitle = "${currentSubject?.name ?: "Subject"} > Topics",
-                onBackClick = onBack
-            )
+            },
+            contentWindowInsets = WindowInsets.safeDrawing,
+            containerColor = MaterialTheme.colorScheme.background
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                SafarExpressiveHeader(
+                    title = currentChapter?.name ?: "Topics",
+                    subtitle = "${currentSubject?.name ?: "Subject"} > Topics",
+                    onBackClick = onBack
+                )
 
-            if (state.error != null && topics.isEmpty() && !state.loading) {
-                SafarResultSlot(modifier = Modifier.fillMaxSize()) {
-                    SafarErrorState(message = state.error!!, onRetry = { actions.refreshPlans() })
-                }
-            } else if (state.loading && topics.isEmpty()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(6) {
-                        SyllabusRowSkeleton()
+                if (state.error != null && topics.isEmpty() && !state.loading) {
+                    SafarResultSlot(modifier = Modifier.fillMaxSize()) {
+                        SafarErrorState(message = state.error!!, onRetry = { actions.refreshPlans() })
                     }
-                }
-            } else if (topics.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    EmptyPlannerCard(
-                        title = "No topics yet",
-                        body = "Add topics to start making progress.",
-                        action = "Add Topic",
-                        onAction = { addTopic = true }
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                items(topics, key = { it.id }) { topic ->
-                    val isDone = topic.status == TopicStatus.DONE
-                    val plannedDate = remember(topic.plannedDate) { topic.plannedDate?.take(10) }
-                    val onTopicClick = remember(topic.id, currentSubjectRaw, currentChapterRaw) {
-                        {
-                            if (currentSubjectRaw != null && currentChapterRaw != null) {
-                                val topicRaw = currentChapterRaw.topics.find { it.id == topic.id }
-                                if (topicRaw != null) {
-                                    selectedTopicRef = TopicRef(currentSubjectRaw, currentChapterRaw, topicRaw)
-                                    detailNonce++
-                                }
-                            }
+                } else if (state.loading && topics.isEmpty()) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(6) {
+                            SyllabusRowSkeleton()
                         }
                     }
-                    val onRenameTopic = remember(topic) { { renameTopic = topic } }
-                    val onDeleteTopic = remember(topic) { { deleteTopic = topic } }
-                     Card(
-                         modifier = Modifier
-                             .fillMaxWidth()
-                             .clickable(onClick = onTopicClick),
-                         shape = MaterialTheme.shapes.large,
-                         colors = CardDefaults.cardColors(
-                             containerColor = MaterialTheme.colorScheme.surface
-                         ),
-                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                     ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            StatusDot(topic.status)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = topic.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
-                                    color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-                                )
-                                if (plannedDate != null) {
-                                    Text(
-                                        text = "Scheduled: $plannedDate",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                } else if (topics.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        EmptyPlannerCard(
+                            title = "No topics yet",
+                            body = "Add topics to start making progress.",
+                            action = "Add Topic",
+                            onAction = { addTopic = true }
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(topics, key = { it.id }) { topic ->
+                            val isDone = topic.status == TopicStatus.DONE
+                            val plannedDate = remember(topic.plannedDate) { topic.plannedDate?.take(10) }
+                            val onTopicClick = remember(topic.id, currentSubjectRaw, currentChapterRaw) {
+                                {
+                                    if (currentSubjectRaw != null && currentChapterRaw != null) {
+                                        val topicRaw = currentChapterRaw.topics.find { it.id == topic.id }
+                                        if (topicRaw != null) {
+                                            selectedTopicRef = TopicRef(currentSubjectRaw, currentChapterRaw, topicRaw)
+                                            detailNonce++
+                                        }
+                                    }
+                                }
+                            }
+                            val onRenameTopic = remember(topic) { { renameTopic = topic } }
+                            val onDeleteTopic = remember(topic) { { deleteTopic = topic } }
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onTopicClick),
+                                shape = MaterialTheme.shapes.large,
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    StatusDot(topic.status)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = topic.name,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
+                                            color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (plannedDate != null) {
+                                            Text(
+                                                text = "Scheduled: $plannedDate",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    TopicOverflowMenu(
+                                        onRename = onRenameTopic,
+                                        onDelete = onDeleteTopic,
                                     )
                                 }
                             }
-                            TopicOverflowMenu(
-                                onRename = onRenameTopic,
-                                onDelete = onDeleteTopic,
-                            )
                         }
                     }
                 }
             }
         }
     }
-}
 }
 
 @Composable

@@ -1,8 +1,6 @@
 package com.safarparmar.app.feature.live.data
 
 import com.safarparmar.app.feature.live.model.LiveSession
-import com.safarparmar.app.feature.live.model.EndLiveSessionRequest
-import com.safarparmar.app.feature.live.model.StartLiveSessionRequest
 import com.safarparmar.app.feature.live.model.toDomain
 import com.safarparmar.app.util.Resource
 import com.safarparmar.app.util.safeApiCall
@@ -28,27 +26,11 @@ class LiveSessionRepository @Inject constructor(
                 dto.liveSession?.toDomain()
                     ?: throw IllegalStateException("Live session payload missing")
             }
-
-    override suspend fun startLiveSession(id: String, youtubeUrl: String): Resource<LiveSession> =
-        safeApiCall { api.startLiveSession(id, StartLiveSessionRequest(youtubeUrl)) }
-            .map { dto ->
-                dto.liveSession?.toDomain()
-                    ?: throw IllegalStateException("Live session payload missing")
-            }
-
-    override suspend fun endLiveSession(id: String, recordingVideoId: String?): Resource<LiveSession> =
-        safeApiCall { api.endLiveSession(id, EndLiveSessionRequest(recordingVideoId)) }
-            .map { dto ->
-                dto.liveSession?.toDomain()
-                    ?: throw IllegalStateException("Live session payload missing")
-            }
 }
 
 interface LiveSessionRepositoryContract {
     suspend fun listByCourse(courseId: String, status: String?): Resource<List<LiveSession>>
     suspend fun getById(id: String): Resource<LiveSession>
-    suspend fun startLiveSession(id: String, youtubeUrl: String): Resource<LiveSession>
-    suspend fun endLiveSession(id: String, recordingVideoId: String?): Resource<LiveSession>
 }
 
 private fun <T, R> Resource<T>.map(transform: (T) -> R): Resource<R> = when (this) {
@@ -56,3 +38,4 @@ private fun <T, R> Resource<T>.map(transform: (T) -> R): Resource<R> = when (thi
     is Resource.Error -> Resource.Error(message, code)
     is Resource.Loading -> Resource.Loading()
 }
+

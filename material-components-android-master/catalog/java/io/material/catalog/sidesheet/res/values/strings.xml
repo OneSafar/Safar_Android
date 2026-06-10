@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  Copyright 2022 The Android Open Source Project
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+<resources>
+  <string name="cat_sidesheet_title" description="Title of the Side Sheet Catalog demo. The term Side Sheet is a product term. [CHAR_LIMIT=NONE]">Side Sheet</string>
+  <string name="cat_sidesheet_description" description="Description of the Side Sheet Catalog Demo. The term Side Sheet is a product term. [CHAR_LIMIT=NONE]">
+    Displays a demo of Side Sheets.
+  </string>
+  <string name="cat_sidesheet_switch_text" description="Label of switch that enables and disables fullscreen mode. [CHAR_LIMIT=NONE]">
+    fullscreen mode
+  </string>
+  <string name="cat_sidesheet_expansion_switch_text" description="Label of switch that restricts and unrestricts sheet expansion. [CHAR_LIMIT=NONE]">
+    restrict expansion
+  </string>
+
+  <string name="cat_sidesheet_state_collapsed" translatable="false">
+    STATE_COLLAPSED
+  </string>
+  <string name="cat_sidesheet_state_dragging" translatable="false">
+    STATE_DRAGGING
+  </string>
+  <string name="cat_sidesheet_state_settling" translatable="false">
+    STATE_SETTLING
+  </string>
+  <string name="cat_sidesheet_state_expanded" translatable="false">
+    STATE_EXPANDED
+  </string>
+
+  <string name="cat_sidesheet_slide_offset_text" description="Text that describes the slide offset value. [CHAR_LIMIT=NONE]">Slide offset is %f</string>
+  <string name="cat_sidesheet_button_label_enabled" description="Label of button when enabled. [CHAR_LIMIT=NONE]">Enabled</string>
+  <string name="cat_sidesheet_button_label_disabled" description="Label of button when disabled. [CHAR_LIMIT=NONE]">Disabled</string>
+  <string name="cat_sidesheet_button_clicked" description="Text shown when the button is clicked. [CHAR_LIMIT=NONE]">Button clicked</string>
+
+  <string name="cat_sidesheet_standard_title" description="Title of the standard side sheet. [CHAR_LIMIT=NONE]">
+    Standard Side Sheet
+  </string>
+  <string name="cat_sidesheet_standard_button_show_text" description="Label of button which shows the standard side sheet. [CHAR_LIMIT=NONE]">
+    Show Standard Side Sheet
+  </string>
+
+  <string name="cat_sidesheet_standard_detached_title" description="Title of the detached standard side sheet. [CHAR_LIMIT=NONE]">
+    Detached Standard Side Sheet
+  </string>
+  <string name="cat_sidesheet_standard_detached_button_show_text" description="Label of button which shows the detached standard side sheet. [CHAR_LIMIT=NONE]">
+    Show Detached Standard Side Sheet
+  </string>
+
+  <string name="cat_sidesheet_standard_vertically_scrolling_button_show_text" description="Label of button which shows the standard side sheet. [CHAR_LIMIT=NONE]">
+    Show Vertically Scrolling Standard Side Sheet
+  </string>
+
+  <string name="cat_sidesheet_modal_title" description="Title of the modal side sheet. [CHAR_LIMIT=NONE]">
+    Modal Side Sheet
+  </string>
+  <string name="cat_sidesheet_modal_button_show_text" description="Label of button which shows the modal side sheet. [CHAR_LIMIT=NONE]">
+    Show Modal Side Sheet
+  </string>
+
+  <string name="cat_sidesheet_modal_detached_title" description="Title of the detached modal side sheet. [CHAR_LIMIT=NONE]">
+    Detached Modal Side Sheet
+  </string>
+  <string name="cat_sidesheet_modal_detached_button_show_text" description="Label of button which shows the detached modal side sheet. [CHAR_LIMIT=NONE]">
+    Show Detached Modal Side Sheet
+  </string>
+
+  <string name="cat_sidesheet_coplanar_title" description="Title of the coplanar side sheet. [CHAR_LIMIT=NONE]">
+    Coplanar Side Sheet
+  </string>
+  <string name="cat_sidesheet_coplanar_button_show_text" description="Label of button which shows the modal side sheet. [CHAR_LIMIT=NONE]">
+    Show Coplanar Side Sheet
+  </string>
+
+  <string name="cat_sidesheet_coplanar_detached_title" description="Title of the detached coplanar side sheet. [CHAR_LIMIT=NONE]">
+    Detached Coplanar Side Sheet
+  </string>
+  <string name="cat_sidesheet_coplanar_detached_button_show_text" description="Label of button which shows the detached coplanar side sheet. [CHAR_LIMIT=NONE]">
+    Show Detached Coplanar Side Sheet
+  </string>
+
+  <string name="cat_sidesheet_close_button_content_desc" description="Content description for the button to hide the side sheet. [CHAR_LIMIT=NONE]">
+    Close sheet
+  </string>
+
+  <string name="cat_sidesheet_button_text_left" description="Label of button which sets the side sheet's layout_gravity to left. [CHAR_LIMIT=NONE]">
+    Left
+  </string>
+  <string name="cat_sidesheet_button_text_right" description="Label of button which sets the side sheet's layout_gravity to right. [CHAR_LIMIT=NONE]">
+    Right
+  </string>
+  <string name="cat_sidesheet_button_text_start" description="Label of button which sets the side sheet's layout_gravity to start. [CHAR_LIMIT=NONE]">
+    Start
+  </string>
+  <string name="cat_sidesheet_button_text_end" description="Label of button which sets the side sheet's layout_gravity to end. [CHAR_LIMIT=NONE]">
+    End
+  </string>
+</resources>

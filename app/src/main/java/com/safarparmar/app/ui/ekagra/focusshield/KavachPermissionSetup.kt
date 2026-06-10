@@ -433,7 +433,7 @@ fun PermissionGrantedBanner(
         )
         Text(
             text,
-            color = granted,
+            color = Color.Black,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
         )

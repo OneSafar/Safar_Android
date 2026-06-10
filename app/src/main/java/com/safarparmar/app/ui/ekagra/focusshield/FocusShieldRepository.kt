@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.ekagra.focusshield
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.SystemClock
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.local.SafarDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -183,6 +184,7 @@ class FocusShieldRepository @Inject constructor(
         private const val KEY_UNLOCK_SECONDS = "unlock_seconds"
         private const val KEY_UNLOCKS_USED = "unlocks_used"
         private const val KEY_GRACE_UNTIL_MS = "grace_until_ms"
+        private const val KEY_RETURN_GRACE_UNTIL_ELAPSED = "return_grace_until_elapsed"
 
         private fun prefs(ctx: Context): SharedPreferences =
             ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -250,6 +252,20 @@ class FocusShieldRepository @Inject constructor(
             if (BuildConfig.DEBUG) {
                 android.util.Log.d(TAG, "ShieldPrefs.applyEmergencyUnlock(graceUntilMs=$graceUntilMs, unlocksUsed=$unlocksUsed)")
             }
+        }
+
+        /** Suppress re-blocking briefly after the user taps "Back to focus" on the block screen. */
+        fun beginReturnToFocusGrace(ctx: Context, durationMs: Long) {
+            prefs(ctx).edit()
+                .putLong(KEY_RETURN_GRACE_UNTIL_ELAPSED, SystemClock.elapsedRealtime() + durationMs)
+                .apply()
+        }
+
+        fun isInReturnToFocusGrace(ctx: Context): Boolean =
+            SystemClock.elapsedRealtime() < prefs(ctx).getLong(KEY_RETURN_GRACE_UNTIL_ELAPSED, 0L)
+
+        fun clearReturnToFocusGrace(ctx: Context) {
+            prefs(ctx).edit().putLong(KEY_RETURN_GRACE_UNTIL_ELAPSED, 0L).apply()
         }
     }
 

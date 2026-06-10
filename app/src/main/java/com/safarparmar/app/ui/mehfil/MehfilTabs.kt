@@ -43,6 +43,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
@@ -218,12 +220,17 @@ internal fun CommunityTab(
                         val onLike = remember(post, onLikePost) { { onLikePost(post) } }
                         val onComment = remember(post, onCommentClick) { { onCommentClick(post) } }
                         val onSave = remember(post.id, onSavePost) { { onSavePost(post.id) } }
+                        val onConnectPost = remember(post, onConnect) { { onConnect(post) } }
                         PostCard(
                             post = post,
                             isSaved = isSaved,
+                            currentUserId = uiState.currentUserId,
+                            mehfilDm = uiState.mehfilDm,
+                            isLoadingPremiumFeatures = uiState.isLoadingPremiumFeatures,
                             onLike = onLike,
                             onComment = onComment,
                             onSave = onSave,
+                            onConnect = onConnectPost,
                         )
                     }
                     if (uiState.isLoadingPosts && uiState.posts.isNotEmpty()) {
@@ -525,10 +532,16 @@ private fun SandeshMedia(sandesh: Sandesh) {
 private fun PostCard(
     post: MehfilPost,
     isSaved: Boolean,
+    currentUserId: String,
+    mehfilDm: Boolean,
+    isLoadingPremiumFeatures: Boolean,
     onLike: () -> Unit,
     onComment: () -> Unit,
     onSave: () -> Unit,
+    onConnect: () -> Unit,
 ) {
+    val canConnect = post.userId.isNotBlank() && post.userId != currentUserId
+    val isConnectLocked = canConnect && !mehfilDm && !isLoadingPremiumFeatures
     Card(
         shape = MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth(),
@@ -562,6 +575,26 @@ private fun PostCard(
                     Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(17.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("${post.commentCount}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                if (canConnect) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.clickable(onClick = onConnect),
+                    ) {
+                        Icon(
+                            if (isConnectLocked) Icons.Default.Lock else Icons.Default.PersonAdd,
+                            contentDescription = "Connect",
+                            modifier = Modifier.size(16.dp),
+                            tint = if (isConnectLocked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            "Connect",
+                            fontSize = 12.sp,
+                            color = if (isConnectLocked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
                 Spacer(Modifier.weight(1f))
                 Icon(
                     if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
@@ -580,6 +613,7 @@ internal fun SavedTab(
     onLikePost: (MehfilPost) -> Unit,
     onCommentClick: (MehfilPost) -> Unit,
     onUnsavePost: (String) -> Unit,
+    onConnect: (MehfilPost) -> Unit,
 ) {
     when {
         uiState.isLoadingSaved -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -609,7 +643,18 @@ internal fun SavedTab(
                     val onLike = remember(post, onLikePost) { { onLikePost(post) } }
                     val onComment = remember(post, onCommentClick) { { onCommentClick(post) } }
                     val onUnsave = remember(post.id, onUnsavePost) { { onUnsavePost(post.id) } }
-                    PostCard(post = post, isSaved = true, onLike = onLike, onComment = onComment, onSave = onUnsave)
+                    val onConnectPost = remember(post, onConnect) { { onConnect(post) } }
+                    PostCard(
+                        post = post,
+                        isSaved = true,
+                        currentUserId = uiState.currentUserId,
+                        mehfilDm = uiState.mehfilDm,
+                        isLoadingPremiumFeatures = uiState.isLoadingPremiumFeatures,
+                        onLike = onLike,
+                        onComment = onComment,
+                        onSave = onUnsave,
+                        onConnect = onConnectPost,
+                    )
                 }
             }
         }

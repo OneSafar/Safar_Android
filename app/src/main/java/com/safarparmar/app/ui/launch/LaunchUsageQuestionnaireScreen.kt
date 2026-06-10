@@ -535,7 +535,7 @@ private fun ModeSelectionScreen(
 ) {
     androidx.compose.foundation.layout.BoxWithConstraints(modifier = modifier) {
         val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
-        val constrainedHeight = maxHeight < 700.dp
+        val constrainedHeight = maxHeight < 500.dp
         val largeFont = fontScale > 1.15f
 
         if (constrainedHeight || largeFont) {

@@ -36,14 +36,6 @@ data class LiveSessionResponseDto(
     val liveSession: LiveSessionDto? = null,
 )
 
-data class StartLiveSessionRequest(
-    val youtubeUrl: String,
-)
-
-data class EndLiveSessionRequest(
-    val recordingVideoId: String? = null,
-)
-
 data class LiveSessionResource(
     val label: String,
     val url: String,

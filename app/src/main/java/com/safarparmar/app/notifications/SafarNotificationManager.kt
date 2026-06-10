@@ -15,7 +15,6 @@ import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
 import kotlinx.coroutines.flow.first
 import java.time.LocalTime
-import kotlin.random.Random
 
 enum class NotificationAvailabilityReason {
     permission_not_granted,
@@ -106,27 +105,37 @@ class SafarNotificationManager(
         fun smallIconRes(context: Context): Int = R.drawable.ic_safar_notification_sparkle
     }
 
+    fun stableNotificationId(type: String?, deepLink: String?, title: String): Int {
+        val key = listOfNotNull(type?.takeIf { it.isNotBlank() }, deepLink?.takeIf { it.isNotBlank() }, title)
+            .joinToString("|")
+        val hash = key.hashCode().let { if (it == Int.MIN_VALUE) 0 else kotlin.math.abs(it) }
+        return (hash % 80_000) + 10_000
+    }
+
     suspend fun show(
         title: String,
         body: String,
         channelId: String,
         deepLink: String? = null,
-        notificationId: Int = Random.nextInt(10_000, 99_999),
+        notificationId: Int? = null,
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
+        onlyAlertOnce: Boolean = false,
     ) {
+        val resolvedId = notificationId ?: stableNotificationId(type = null, deepLink = deepLink, title = title)
         val normalizedChannel = SafarNotificationChannels.normalize(channelId)
         if (evaluateNotificationAvailability(normalizedChannel).reason != NotificationAvailabilityReason.allowed) {
             return
         }
         // if (shouldSuppressByQuietHours(normalizedChannel)) return
         notificationManager.notify(
-            notificationId,
+            resolvedId,
             buildNotification(
                 title = title,
                 body = body,
                 channelId = normalizedChannel,
                 deepLink = deepLink,
                 priority = priority,
+                onlyAlertOnce = onlyAlertOnce,
             ),
         )
     }

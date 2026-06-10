@@ -43,12 +43,19 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
 
         scope.launch {
             if (!isChannelEnabled(channel)) return@launch
-            SafarNotificationManager(applicationContext).show(
+            val manager = SafarNotificationManager(applicationContext)
+            manager.show(
                 title = title,
                 body = body,
                 channelId = channel,
                 deepLink = deepLink,
                 priority = priority,
+                onlyAlertOnce = true,
+                notificationId = manager.stableNotificationId(
+                    type = data["type"],
+                    deepLink = deepLink,
+                    title = title,
+                ),
             )
         }
     }

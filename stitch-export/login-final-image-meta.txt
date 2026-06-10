@@ -1,0 +1,10 @@
+﻿node.exe : {
+At line:1 char:1
++ & "D:\Node_JS/node.exe" "C:\Users\kumar\AppData\Roaming\npm/node_modu ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ({:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  "success": false,
+  "error": "Virtual tool execution failed: Tool Call Failed [get_screen]: The caller does not have permission"
+}

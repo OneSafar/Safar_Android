@@ -34,20 +34,21 @@ fun GlassCard(
     content: @Composable () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
+    val glassShape = RoundedCornerShape(24.dp)
     Card(
-        shape = MaterialTheme.shapes.large,
+        shape = glassShape,
         modifier = modifier
             .fillMaxWidth()
             .shadow(
                 elevation = 8.dp,
-                shape = MaterialTheme.shapes.large,
-                spotColor = scheme.primary.copy(alpha = 0.10f),
-                ambientColor = scheme.primary.copy(alpha = 0.06f),
+                shape = glassShape,
+                spotColor = scheme.primary.copy(alpha = 0.04f),
+                ambientColor = scheme.primary.copy(alpha = 0.04f),
             ),
         colors = CardDefaults.cardColors(
-            containerColor = scheme.surface,
+            containerColor = scheme.surface.copy(alpha = 0.85f),
         ),
-        border = BorderStroke(1.dp, scheme.outline.copy(alpha = 0.35f)),
+        border = BorderStroke(1.dp, scheme.outline.copy(alpha = 0.15f)),
     ) {
         content()
     }

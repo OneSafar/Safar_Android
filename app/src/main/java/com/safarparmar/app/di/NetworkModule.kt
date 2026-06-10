@@ -136,6 +136,7 @@ object NetworkModule {
     @Provides @Singleton fun providePlannerApi(r: Retrofit): PlannerApi = r.create(PlannerApi::class.java)
     @Provides @Singleton fun provideSyllabusApi(r: Retrofit): SyllabusApi = r.create(SyllabusApi::class.java)
     @Provides @Singleton fun provideLiveSessionApi(r: Retrofit): LiveSessionApi = r.create(LiveSessionApi::class.java)
+    @Provides @Singleton fun providePremiumApi(r: Retrofit): PremiumApi = r.create(PremiumApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
     @Provides @Singleton fun provideMehfilSocketManager(gson: Gson): MehfilSocketManager = MehfilSocketManager(gson)
 }

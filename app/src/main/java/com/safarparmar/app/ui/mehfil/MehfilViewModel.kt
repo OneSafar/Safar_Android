@@ -6,6 +6,7 @@ import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.data.remote.socket.MehfilSocketManager
 import com.safarparmar.app.data.remote.socket.toDomain
 import com.safarparmar.app.domain.model.*
+import com.safarparmar.app.data.remote.api.PremiumApi
 import com.safarparmar.app.domain.repository.MehfilRepository
 import com.safarparmar.app.domain.repository.AuthRepository
 import com.safarparmar.app.util.Resource
@@ -71,6 +72,9 @@ data class MehfilUiState(
     val localLikeOverrides: Map<String, Boolean> = emptyMap(),
     val localReactionOverrides: Map<String, Int> = emptyMap(),
     val reactedSandeshIds: Set<String> = emptySet(),
+    val mehfilDm: Boolean = false,
+    val isLoadingPremiumFeatures: Boolean = true,
+    val showPremiumGate: Boolean = false,
 )
 
 @HiltViewModel
@@ -79,6 +83,7 @@ class MehfilViewModel @Inject constructor(
     private val socketManager: MehfilSocketManager,
     val dataStore: SafarDataStore,
     private val authRepo: AuthRepository,
+    private val premiumApi: PremiumApi,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MehfilUiState())
@@ -86,7 +91,37 @@ class MehfilViewModel @Inject constructor(
 
     init {
         loadSandesh()
+        loadPremiumFeatures()
         initSocket()
+    }
+
+    private fun loadPremiumFeatures() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingPremiumFeatures = true) }
+            try {
+                val response = premiumApi.getFeatures()
+                if (response.isSuccessful) {
+                    _uiState.update {
+                        it.copy(
+                            mehfilDm = response.body()?.mehfilDm == true,
+                            isLoadingPremiumFeatures = false,
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoadingPremiumFeatures = false) }
+                }
+            } catch (_: Exception) {
+                _uiState.update { it.copy(isLoadingPremiumFeatures = false) }
+            }
+        }
+    }
+
+    fun dismissPremiumGate() {
+        _uiState.update { it.copy(showPremiumGate = false) }
+    }
+
+    fun openPremiumGate() {
+        _uiState.update { it.copy(showPremiumGate = true) }
     }
 
     private fun initSocket() {
@@ -202,7 +237,14 @@ class MehfilViewModel @Inject constructor(
                                 }
                             }
                         }
-                        "error" -> _uiState.update { it.copy(dmError = event.message) }
+                        "error" -> _uiState.update {
+                            val showGate = event.errorCode == "PREMIUM_REQUIRED"
+                            it.copy(
+                                dmError = event.message,
+                                dmState = if (showGate) DmState.Idle else it.dmState,
+                                showPremiumGate = showGate || it.showPremiumGate,
+                            )
+                        }
                     }
                 }
             }
@@ -473,20 +515,30 @@ class MehfilViewModel @Inject constructor(
         }
     }
     fun clearPostSuccess() { _uiState.update { it.copy(postSuccess = false) } }
-    fun sendDmRequest(targetUserId: String, targetUserName: String = "", contextPostId: String = "", contextPreview: String = "") {
+    fun sendDmRequest(
+        targetUserId: String,
+        targetUserName: String = "",
+        contextPostId: String = "",
+        contextPreview: String = "",
+    ): Boolean {
         if (targetUserId.isBlank()) {
             _uiState.update { it.copy(dmError = "Cannot connect: user ID is missing") }
-            return
+            return false
         }
         if (targetUserId == _uiState.value.currentUserId) {
             _uiState.update { it.copy(dmError = "You cannot connect with yourself") }
-            return
+            return false
+        }
+        if (!_uiState.value.mehfilDm && !_uiState.value.isLoadingPremiumFeatures) {
+            _uiState.update { it.copy(showPremiumGate = true, dmError = null) }
+            return false
         }
         _uiState.update { it.copy(dmState = DmState.Waiting, dmError = null, dmTargetUserId = targetUserId, dmTargetUserName = targetUserName) }
         val s = socketManager
         if (s.isConnected()) {
             s.emitDmRequest(targetUserId, contextPostId, contextPreview)
         }
+        return true
     }
     fun acceptDm(fromUserId: String) {
         val pending = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }

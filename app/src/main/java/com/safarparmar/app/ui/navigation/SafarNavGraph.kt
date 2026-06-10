@@ -377,6 +377,11 @@ fun SafarNavGraph(
             LiveSessionScreen(
                 sessionId = sessionId,
                 onBack = { navController.popBackStack() },
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                onLanguageClick = onLanguageToggle,
             )
         }
 

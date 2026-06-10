@@ -23,6 +23,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarResultSlot
@@ -93,104 +96,114 @@ fun SyllabusSubjectsScreen(
 
     val totalTopics = subjects.sumOf { it.topicCount }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
-        ),
-        bottomBar = {
-            PlannerBottomBar(
-                selected = PlannerSection.SYLLABUS,
-                onSelect = onPlannerSectionSelect,
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            SyllabusScreenTopBar(
-                onBack = onBack,
-                subtitle = state.selectedPlan?.title?.takeIf { it.isNotBlank() },
-            )
+    val currentDensity = LocalDensity.current
+    val clampedDensity = remember(currentDensity) {
+        Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
 
-            when {
-                state.error != null && subjects.isEmpty() && !state.loading -> {
-                    SafarResultSlot(modifier = Modifier.fillMaxSize()) {
-                        SafarErrorState(message = state.error!!, onRetry = { actions.refreshPlans() })
+    CompositionLocalProvider(LocalDensity provides clampedDensity) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.safeDrawing.only(
+                WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
+            ),
+            bottomBar = {
+                PlannerBottomBar(
+                    selected = PlannerSection.SYLLABUS,
+                    onSelect = onPlannerSectionSelect,
+                )
+            },
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            ) {
+                SyllabusScreenTopBar(
+                    onBack = onBack,
+                    subtitle = state.selectedPlan?.title?.takeIf { it.isNotBlank() },
+                )
+
+                when {
+                    state.error != null && subjects.isEmpty() && !state.loading -> {
+                        SafarResultSlot(modifier = Modifier.fillMaxSize()) {
+                            SafarErrorState(message = state.error!!, onRetry = { actions.refreshPlans() })
+                        }
                     }
-                }
-                state.loading && subjects.isEmpty() -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        items(4) { SyllabusRowSkeleton() }
+                    state.loading && subjects.isEmpty() -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            items(4) { SyllabusRowSkeleton() }
+                        }
                     }
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 8.dp,
-                            bottom = 96.dp,
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(24.dp),
-                    ) {
-                        item {
-                            SyllabusFullImportCard(state = state, actions = actions)
-                        }
-
-                        item {
-                            PlanActionRow(
-                                onAddTopics = { dialogState = SyllabusDialogState.AddSubject },
-                                onSchedule = { actions.autoDistribute(includeRevision = false, lockExisting = true) },
-                            )
-                        }
-
-                        item {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(
-                                    text = "Subjects",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                                Text(
-                                    text = "${subjects.size} subjects • $totalTopics topics",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-
-                        if (subjects.isEmpty()) {
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 8.dp,
+                                bottom = 96.dp,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(24.dp),
+                        ) {
                             item {
-                                SyllabusEmptySubjectsCard(
-                                    onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
+                                SyllabusFullImportCard(state = state, actions = actions)
+                            }
+
+                            item {
+                                PlanActionRow(
+                                    onAddTopics = { dialogState = SyllabusDialogState.AddSubject },
+                                    onSchedule = { actions.autoDistribute(includeRevision = false, lockExisting = true) },
                                 )
                             }
-                        } else {
-                            items(subjects, key = { it.id }) { subject ->
-                                SyllabusSubjectListCard(
-                                    subject = subject,
-                                    onClick = {
-                                        viewModel.selectSubject(subject.id)
-                                        onNavigate(
-                                            Routes.ROUTE_SYLLABUS_CHAPTERS
-                                                .replace("{planId}", planId)
-                                                .replace("{subjectId}", subject.id),
-                                        )
-                                    },
-                                    onRename = { dialogState = SyllabusDialogState.RenameSubject(subject) },
-                                    onDelete = { dialogState = SyllabusDialogState.DeleteSubject(subject) },
-                                    onAddChapter = { dialogState = SyllabusDialogState.AddChapter(subject) },
-                                )
+
+                            item {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        text = "Subjects",
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Text(
+                                        text = "${subjects.size} subjects • $totalTopics topics",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+
+                            if (subjects.isEmpty()) {
+                                item {
+                                    SyllabusEmptySubjectsCard(
+                                        onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
+                                    )
+                                }
+                            } else {
+                                items(subjects, key = { it.id }) { subject ->
+                                    SyllabusSubjectListCard(
+                                        subject = subject,
+                                        onClick = {
+                                            viewModel.selectSubject(subject.id)
+                                            onNavigate(
+                                                Routes.ROUTE_SYLLABUS_CHAPTERS
+                                                    .replace("{planId}", planId)
+                                                    .replace("{subjectId}", subject.id),
+                                            )
+                                        },
+                                        onRename = { dialogState = SyllabusDialogState.RenameSubject(subject) },
+                                        onDelete = { dialogState = SyllabusDialogState.DeleteSubject(subject) },
+                                        onAddChapter = { dialogState = SyllabusDialogState.AddChapter(subject) },
+                                    )
+                                }
                             }
                         }
                     }

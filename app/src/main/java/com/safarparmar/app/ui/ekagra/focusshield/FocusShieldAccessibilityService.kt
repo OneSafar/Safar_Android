@@ -31,8 +31,6 @@ class FocusShieldAccessibilityService : AccessibilityService() {
     private var lastBlockedAt: Long = 0L
     /** Package for which we already counted one distraction this foreground visit. */
     private var countedDistractionPackage: String? = null
-    // Timestamp (elapsedRealtime) after which blocking is suppressed due to user returning to focus.
-    private var returnToFocusGraceUntil: Long = 0L
     private var overlayController: FocusShieldOverlayController? = null
     private val handler = Handler(Looper.getMainLooper())
     private val foregroundMonitor = object : Runnable {
@@ -85,6 +83,8 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             return
         }
 
+        if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) return
+
         scheduleBlockScreen(packageName)
     }
 
@@ -107,7 +107,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
         }
 
         // Suppress blocking during the grace period after the user tapped "Return to Focus".
-        if (SystemClock.elapsedRealtime() < returnToFocusGraceUntil) return
+        if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) return
         // Also honour the emergency-unlock grace window (wall-clock based, survives reboots).
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
             overlayController?.hide()
@@ -121,8 +121,9 @@ class FocusShieldAccessibilityService : AccessibilityService() {
         if (foregroundPackage in blockedPackages) {
             scheduleBlockScreen(foregroundPackage)
         } else {
-            if (countedDistractionPackage != null) {
+            if (countedDistractionPackage != null && shouldHideForPackage(foregroundPackage)) {
                 countedDistractionPackage = null
+                FocusShieldRepository.ShieldPrefs.clearReturnToFocusGrace(this)
             }
             if (shouldHideForPackage(foregroundPackage)) {
                 overlayController?.hide()
@@ -136,6 +137,11 @@ class FocusShieldAccessibilityService : AccessibilityService() {
     }
 
     private fun launchBlockScreen(blockedPackage: String) {
+        if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) {
+            debugLog("Skipping block during return-to-focus grace for $blockedPackage")
+            return
+        }
+
         val now = SystemClock.elapsedRealtime()
         if (
             lastBlockedPackage == blockedPackage &&
@@ -264,10 +270,10 @@ class FocusShieldAccessibilityService : AccessibilityService() {
 
     /** Called by the overlay when the user taps "Return to Focus" — suppresses re-blocking. */
     fun onUserReturnedToFocus() {
-        returnToFocusGraceUntil = SystemClock.elapsedRealtime() + RETURN_GRACE_MS
+        FocusShieldRepository.ShieldPrefs.beginReturnToFocusGrace(this, RETURN_GRACE_MS)
         lastBlockedPackage = null
         lastBlockedAt = 0L
-        countedDistractionPackage = null
+        // Keep countedDistractionPackage so the same visit does not increment distraction count again.
         overlayController?.hide()
     }
 
@@ -300,7 +306,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
         private const val FOREGROUND_POLL_MS = 250L
         private const val FOREGROUND_LOOKBACK_MS = 2_000L
         private const val BLOCK_DEBOUNCE_MS = 750L
-        private const val RETURN_GRACE_MS = 2_000L
+        private const val RETURN_GRACE_MS = 5_000L
     }
 
     private class FocusShieldOverlayController(

@@ -98,40 +98,49 @@ class MainActivity : ComponentActivity() {
             val currentLanguage by themeViewModel.language.collectAsStateWithLifecycle()
             val configuration = LocalConfiguration.current
 
-            SafarTheme(darkTheme = isDarkTheme, nightMode = isNightMode) {
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(androidx.compose.material3.MaterialTheme.colorScheme.background),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    val isTablet = configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP
-                    val isTabletLandscape = isTablet && maxWidth > maxHeight
-                    val appContentModifier =
-                        if (isTabletLandscape) {
-                            Modifier
-                                .width(maxHeight * 9f / 16f)
-                                .fillMaxHeight()
-                        } else {
-                            Modifier.fillMaxSize()
-                        }
+            // Clamp font scale globally across the app to prevent broken layouts on large display settings
+            val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+            val customDensity = androidx.compose.ui.unit.Density(
+                density = currentDensity.density,
+                fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f) // Allow +/- 25% font scaling range
+            )
 
-                    Surface(modifier = appContentModifier) {
-                        CompositionLocalProvider(LocalTimerService provides timerService) {
-                            SafarNavGraph(
-                                dataStore = dataStore,
-                                isDarkTheme = isDarkTheme,
-                                isNightMode = isNightMode,
-                                onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
-                                onToggleNightMode = { themeViewModel.toggleNightMode() },
-                                onLanguageToggle = {
-                                    val next = if (currentLanguage == "en") "hi" else "en"
-                                    themeViewModel.setLanguage(next)
-                                    AppCompatDelegate.setApplicationLocales(
-                                        LocaleListCompat.forLanguageTags(next)
-                                    )
-                                }
-                            )
+            CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides customDensity) {
+                SafarTheme(darkTheme = isDarkTheme, nightMode = isNightMode) {
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(androidx.compose.material3.MaterialTheme.colorScheme.background),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        val isTablet = configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP
+                        val isTabletLandscape = isTablet && maxWidth > maxHeight
+                        val appContentModifier =
+                            if (isTabletLandscape) {
+                                Modifier
+                                    .width(maxHeight * 9f / 16f)
+                                    .fillMaxHeight()
+                            } else {
+                                Modifier.fillMaxSize()
+                            }
+
+                        Surface(modifier = appContentModifier) {
+                            CompositionLocalProvider(LocalTimerService provides timerService) {
+                                SafarNavGraph(
+                                    dataStore = dataStore,
+                                    isDarkTheme = isDarkTheme,
+                                    isNightMode = isNightMode,
+                                    onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
+                                    onToggleNightMode = { themeViewModel.toggleNightMode() },
+                                    onLanguageToggle = {
+                                        val next = if (currentLanguage == "en") "hi" else "en"
+                                        themeViewModel.setLanguage(next)
+                                        AppCompatDelegate.setApplicationLocales(
+                                            LocaleListCompat.forLanguageTags(next)
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -143,12 +152,15 @@ class MainActivity : ComponentActivity() {
     fun resetNotificationRoute() { notificationRoute = null }
 
     private fun applyOrientationPolicy() {
-        requestedOrientation =
-            if (resources.configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP) {
-                ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-            } else {
-                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            }
+        val currentRequest = requestedOrientation
+        if (currentRequest == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE ||
+            currentRequest == ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE ||
+            currentRequest == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE ||
+            currentRequest == ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE) {
+            return
+        }
+
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     }
 
     /** Called on logout — stops PiP and prevents any pending Ekagra navigation. */

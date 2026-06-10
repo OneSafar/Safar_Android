@@ -946,7 +946,7 @@ private fun DashCard(isDark: Boolean, content: @Composable ColumnScope.() -> Uni
     val gradient = if (isDark) DarkExpressiveGradient else LightExpressiveGradient
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = ExpressiveCardShape,
+        shape = RoundedCornerShape(16.dp),
         color = Color.Transparent,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
     ) {
