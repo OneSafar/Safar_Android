@@ -52,8 +52,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.safarparmar.app.ui.theme.Green500
-
 @Composable
 fun DmChatScreen(
     viewModel: MehfilViewModel,
@@ -142,7 +140,7 @@ private fun DmChatTopBar(peerName: String, onBack: () -> Unit, onLeave: () -> Un
             Column(Modifier.weight(1f)) {
                 Text(peerName, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(Modifier.size(6.dp).clip(CircleShape).background(Green500))
+                    Box(Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiary))
                     Text("Ephemeral - Connected", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

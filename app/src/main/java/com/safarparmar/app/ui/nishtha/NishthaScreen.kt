@@ -37,8 +37,7 @@ fun NishthaScreen(
     currentRoute: String = Routes.NISHTHA,
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
-    onToggleNightMode: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
+    onToggleDarkTheme: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     initialTab: Int = 0,
     analyticsInitialSection: String = "overview",
@@ -54,8 +53,7 @@ fun NishthaScreen(
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
-        onToggleDarkTheme = onToggleNightMode,
-        onLanguageClick = onLanguageClick,
+        onToggleDarkTheme = onToggleDarkTheme,
         topBarActions = {
             IconButton(onClick = { tourState?.start() }) {
                 Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Guide")

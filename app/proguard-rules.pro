@@ -15,3 +15,7 @@
 # Keep Socket.IO and OkHttp for reflection to prevent release crashes
 -keep class io.socket.** { *; }
 -keep class okhttp3.** { *; }
+
+# Suppress warnings for missing proguard.annotation classes used by Razorpay SDK
+-dontwarn proguard.annotation.Keep
+-dontwarn proguard.annotation.KeepClassMembers

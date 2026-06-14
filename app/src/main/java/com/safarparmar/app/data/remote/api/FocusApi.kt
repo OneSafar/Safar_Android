@@ -12,6 +12,7 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface FocusApi {
 
@@ -19,7 +20,10 @@ interface FocusApi {
     suspend fun getStats(): Response<FocusStatsResponse>
 
     @GET("ekagra-sessions")
-    suspend fun getSessions(): Response<EkagraSessionsResponse>
+    suspend fun getSessions(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 50,
+    ): Response<EkagraSessionsResponse>
 
     @GET("ekagra-sessions/analytics")
     suspend fun getEkagraAnalytics(): Response<EkagraAnalyticsStatsDto>

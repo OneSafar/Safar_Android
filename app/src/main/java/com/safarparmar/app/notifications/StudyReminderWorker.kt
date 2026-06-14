@@ -25,10 +25,9 @@ class StudyReminderWorker(
             return Result.success()
         }
 
-        SafarNotificationManager(applicationContext).show(
+        SafarNotificationManager(applicationContext).showStudyReminder(
             title = "Your study time is ready",
             body = "Start a 25-minute Ekagra session.",
-            channelId = SafarNotificationChannels.STUDY_REMINDERS,
             deepLink = "safar://ekagra",
         )
         return Result.success()

@@ -12,6 +12,8 @@ interface LiveSessionApi {
     suspend fun listLiveSessions(
         @Query("courseId") courseId: String? = null,
         @Query("status") status: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 50,
     ): Response<LiveSessionsResponseDto>
 
     @GET("live-sessions/{id}")
@@ -19,4 +21,3 @@ interface LiveSessionApi {
         @Path("id") id: String,
     ): Response<LiveSessionResponseDto>
 }
-

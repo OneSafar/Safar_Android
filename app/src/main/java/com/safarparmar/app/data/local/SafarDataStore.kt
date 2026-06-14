@@ -60,8 +60,6 @@ class SafarDataStore @Inject constructor(
         val IS_ADMIN              = booleanPreferencesKey("is_admin")
         val IS_ONBOARDING_DONE    = booleanPreferencesKey("is_onboarding_done")
         val IS_DARK_THEME         = booleanPreferencesKey("is_dark_theme")
-        val IS_NIGHT_MODE         = booleanPreferencesKey("is_night_mode")
-        val LANGUAGE              = stringPreferencesKey("language")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val DAILY_REMINDER_TIME   = stringPreferencesKey("daily_reminder_time")
         val FCM_TOKEN             = stringPreferencesKey("fcm_token")
@@ -137,14 +135,6 @@ class SafarDataStore @Inject constructor(
     val isDarkTheme: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.IS_DARK_THEME] ?: false }
-
-    val isNightMode: Flow<Boolean> = context.dataStore.data
-        .catch { emit(emptyPreferences()) }
-        .map { it[Keys.IS_NIGHT_MODE] ?: false }
-
-    val language: Flow<String> = context.dataStore.data
-        .catch { emit(emptyPreferences()) }
-        .map { it[Keys.LANGUAGE] ?: "en" }
 
     val notificationsEnabled: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -273,8 +263,6 @@ class SafarDataStore @Inject constructor(
     }
     suspend fun setOnboardingDone(done: Boolean) = context.dataStore.edit { it[Keys.IS_ONBOARDING_DONE] = done }
     suspend fun setDarkTheme(enabled: Boolean) = context.dataStore.edit { it[Keys.IS_DARK_THEME] = enabled }
-    suspend fun setNightMode(enabled: Boolean) = context.dataStore.edit { it[Keys.IS_NIGHT_MODE] = enabled }
-    suspend fun setLanguage(lang: String) = context.dataStore.edit { it[Keys.LANGUAGE] = lang }
     suspend fun setNotificationsEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.NOTIFICATIONS_ENABLED] = enabled }
     suspend fun setFcmToken(token: String) = context.dataStore.edit { it[Keys.FCM_TOKEN] = token }
     suspend fun setDailyReminderTime(time: String) = context.dataStore.edit { it[Keys.DAILY_REMINDER_TIME] = time }

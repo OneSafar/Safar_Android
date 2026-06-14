@@ -7,7 +7,10 @@ import retrofit2.http.*
 interface NishthaApi {
     // GET /moods
     @GET("moods")
-    suspend fun getMoods(): Response<List<MoodDto>>
+    suspend fun getMoods(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 30,
+    ): Response<List<MoodDto>>
 
     // POST /moods → 201 Created
     @POST("moods")

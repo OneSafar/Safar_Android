@@ -45,7 +45,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import okhttp3.MultipartBody
 import java.util.Locale
 import javax.inject.Inject
 
@@ -85,8 +84,6 @@ data class StudyPlannerUiState(
     val error: String? = null,
     val message: String? = null,
     val onboardingSkipped: Boolean = false,
-    val syllabusImportDraft: String = "",
-    val syllabusImportFileName: String? = null,
     val selectedSubjectId: String? = null,
     val selectedChapterId: String? = null,
     val rawSyllabusText: String = "",
@@ -176,10 +173,6 @@ class StudyPlannerViewModel @Inject constructor(
 
     override fun clearTransient() {
         _uiState.update { it.copy(error = null, message = null, hydrateWarning = null) }
-    }
-
-    override fun clearSyllabusImportDraft() {
-        _uiState.update { it.copy(syllabusImportDraft = "", syllabusImportFileName = null) }
     }
 
     override fun setError(message: String) {
@@ -414,15 +407,6 @@ class StudyPlannerViewModel @Inject constructor(
                 "Imported $totalChapterCount empty chapters"
             }
             reloadSelected(message)
-        }
-    }
-
-    fun importSyllabusFile(file: MultipartBody.Part, fileName: String?) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(mutating = true, error = null) }
-            // Stubbed for now as repo.importSyllabusFile is not implemented
-            kotlinx.coroutines.delay(1000)
-            _uiState.update { it.copy(mutating = false, error = "File import is currently disabled") }
         }
     }
 

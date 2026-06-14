@@ -63,15 +63,13 @@ fun FocusShieldSettingsContent(
     var hasNotifications by remember { mutableStateOf(state.hasNotifications) }
     var hasUsageStats by remember { mutableStateOf(state.hasUsageStats) }
     val scheme = MaterialTheme.colorScheme
-    val isDark = scheme.background.luminance() < 0.5f
-    val screenBackground = if (isDark) Color(0xFF0F172A) else KavachDesign.Background
-    val card = if (isDark) Color(0xFF1E293B) else KavachDesign.Surface
-    val border = if (isDark) Color(0xFF334155) else KavachDesign.Border
+    val screenBackground = scheme.background
+    val card = scheme.surfaceContainerHigh
+    val border = scheme.outlineVariant
     val textPrimary = scheme.onBackground
-    val textSecondary = if (isDark) Color(0xFF9CA3AF) else Color(0xFF64748B)
+    val textSecondary = scheme.onSurfaceVariant
     var pendingEnableAfterUsage by remember { mutableStateOf(false) }
     var pendingEnableAfterAccessibility by remember { mutableStateOf(false) }
-    var showNotificationDisclosure by remember { mutableStateOf(false) }
     var showLearnMore by remember { mutableStateOf(false) }
     var guideTarget by remember { mutableStateOf<PermissionTarget?>(null) }
     var grantedBannerText by remember { mutableStateOf<String?>(null) }
@@ -222,78 +220,10 @@ fun FocusShieldSettingsContent(
                     hasNotifications = hasNotifications,
                     onOpenUsageAccess = { guideTarget = PermissionTarget.USAGE_STATS },
                     onOpenAccessibility = { guideTarget = PermissionTarget.ACCESSIBILITY },
-                    onOpenNotifications = { showNotificationDisclosure = true },
+                    onOpenNotifications = { requestNotificationPermission() },
                 )
             }
 
-            AnimatedVisibility(
-                visible = state.isEnabled && !requiredPermissionsGranted,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = stringResource(R.string.kavach_setup_heading),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textSecondary,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.kavach_setup_intro),
-                        fontSize = 13.sp,
-                        color = textSecondary,
-                        lineHeight = 18.sp,
-                    )
-
-                    KavachStepRow(
-                        stepNumber = 1,
-                        title = "App Check",
-                        subtitle = "Helps KAVACH know when a blocked app opens",
-                        rationale = "SAFAR only checks the app name, so KAVACH can stop apps you picked. It does not read anything inside your apps.",
-                        optional = false,
-                        granted = hasUsageStats,
-                        accent = accent,
-                        cardColor = card,
-                        borderColor = border,
-                        titleColor = textPrimary,
-                        subtitleColor = textSecondary,
-                        onAllow = { guideTarget = PermissionTarget.USAGE_STATS },
-                    )
-
-                    if (accessibilityRequired) {
-                        KavachStepRow(
-                            stepNumber = 2,
-                            title = "Block Screen",
-                            subtitle = "Shows the KAVACH screen when a blocked app opens",
-                            rationale = "This is only used for KAVACH during focus time. SAFAR does not read chats, passwords, typing, photos, or your screen.",
-                            optional = false,
-                            granted = hasAccessibilityService,
-                            accent = accent,
-                            cardColor = card,
-                            borderColor = border,
-                            titleColor = textPrimary,
-                            subtitleColor = textSecondary,
-                            onAllow = { guideTarget = PermissionTarget.ACCESSIBILITY },
-                        )
-                    }
-
-                    KavachStepRow(
-                        stepNumber = if (accessibilityRequired) 3 else 2,
-                        title = "Notifications",
-                        subtitle = "Shows focus timer updates",
-                        rationale = "This is optional. KAVACH still works without notifications.",
-                        optional = true,
-                        granted = hasNotifications,
-                        accent = accent,
-                        cardColor = card,
-                        borderColor = border,
-                        titleColor = textPrimary,
-                        subtitleColor = textSecondary,
-                        onAllow = { showNotificationDisclosure = true },
-                    )
-                }
-            }
 
             Spacer(Modifier.height(20.dp))
         }
@@ -322,7 +252,7 @@ fun FocusShieldSettingsContent(
             hasNotifications = hasNotifications,
             onOpenUsageAccess = { guideTarget = PermissionTarget.USAGE_STATS },
             onOpenAccessibility = { guideTarget = PermissionTarget.ACCESSIBILITY },
-            onOpenNotifications = { showNotificationDisclosure = true },
+            onOpenNotifications = { requestNotificationPermission() },
             onDismiss = { showLearnMore = false },
         )
     }
@@ -348,16 +278,6 @@ fun FocusShieldSettingsContent(
                     PermissionTarget.NOTIFICATIONS ->
                         requestNotificationPermission()
                 }
-            },
-        )
-    }
-
-    if (showNotificationDisclosure) {
-        NotificationConsentDialog(
-            onDismiss = { showNotificationDisclosure = false },
-            onConfirm = {
-                showNotificationDisclosure = false
-                requestNotificationPermission()
             },
         )
     }

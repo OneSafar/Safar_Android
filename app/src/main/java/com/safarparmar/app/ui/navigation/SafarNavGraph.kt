@@ -37,8 +37,10 @@ import com.safarparmar.app.ui.studyplanner.screens.SyllabusChaptersScreen
 import com.safarparmar.app.ui.studyplanner.screens.SyllabusTopicsScreen
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
 import com.safarparmar.app.ui.ekagra.focusshield.KavachAboutScreen
+import com.safarparmar.app.ui.ekagra.focusshield.KavachOnboardingScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionsScreen
+import com.safarparmar.app.ui.premium.PremiumPaywallScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -55,10 +57,7 @@ private val ADMIN_NOTIFICATION_ALLOWED_EMAILS = setOf(
 fun SafarNavGraph(
     dataStore: SafarDataStore,
     isDarkTheme       : Boolean = false,
-    isNightMode       : Boolean = false,
     onToggleDarkTheme : () -> Unit = {},
-    onToggleNightMode : () -> Unit = {},
-    onLanguageToggle  : () -> Unit = {},
 ) {
     val navController = rememberNavController()
     val currentEntry by navController.currentBackStackEntryAsState()
@@ -153,35 +152,38 @@ fun SafarNavGraph(
         composable(Routes.LAUNCH_USAGE_QUESTIONNAIRE) {
             LaunchUsageQuestionnaireScreen(
                 dataStore = dataStore,
-                onNavigateHome = { navigateAndClear(Routes.HOME) },
+                onNavigateHome = { 
+                    navigateAndClear(Routes.HOME)
+                    navigate(Routes.PREMIUM)
+                },
                 onUnauthorized = { navigateAndClear(Routes.AUTH) },
             )
         }
 
-        composable(Routes.HOME) { HomeScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle, onNavigateToAuth = { navigateAndClear(Routes.AUTH) }, dataStore = dataStore) }
+        composable(Routes.HOME) { HomeScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onNavigateToAuth = { navigateAndClear(Routes.AUTH) }, dataStore = dataStore) }
 
         composable(Routes.DASHBOARD) {
-            DashboardScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) })
+            DashboardScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) })
         }
 
         composable(Routes.NISHTHA) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) })
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) })
         }
 
         composable(Routes.NISHTHA_CHECKIN) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 0)
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 0)
         }
 
         composable(Routes.NISHTHA_GOALS) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 2)
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 2)
         }
 
         composable(Routes.NISHTHA_STREAKS) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 3)
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 3)
         }
 
         composable(Routes.NISHTHA_ANALYTICS) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 4)
+            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 4)
         }
 
         composable(
@@ -194,8 +196,7 @@ fun SafarNavGraph(
                 currentRoute = Routes.NISHTHA_ANALYTICS,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
-                onToggleNightMode = onToggleNightMode,
-                onLanguageClick = onLanguageToggle,
+                onToggleDarkTheme = onToggleDarkTheme,
                 onProfileClick = { navigate(Routes.PROFILE) },
                 initialTab = 4,
                 analyticsInitialSection = entry.arguments?.getString("section") ?: "overview",
@@ -203,7 +204,7 @@ fun SafarNavGraph(
         }
 
         composable(Routes.EKAGRA) {
-            EkagraScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleNightMode, onLanguageClick = onLanguageToggle)
+            EkagraScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleDarkTheme)
         }
 
         composable(
@@ -218,8 +219,7 @@ fun SafarNavGraph(
                 currentRoute = Routes.EKAGRA,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
-                onToggleNightMode = onToggleNightMode,
-                onLanguageClick = onLanguageToggle,
+                onToggleNightMode = onToggleDarkTheme,
                 linkedGoalId = entry.arguments?.getString("goalId"),
                 linkedGoalTitle = entry.arguments?.getString("goalTitle"),
                 initialView = entry.arguments?.getString("view"),
@@ -233,7 +233,6 @@ fun SafarNavGraph(
                 onNavigate = ::navigate,
                 onBack = { navController.popBackStack() },
                 onToggleDarkTheme = onToggleDarkTheme,
-                onLanguageClick = onLanguageToggle,
             )
         }
 
@@ -310,7 +309,7 @@ fun SafarNavGraph(
         }
 
         composable(Routes.MEHFIL) {
-            MehfilScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle)
+            MehfilScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme)
         }
 
         composable(Routes.DM_CHAT) {
@@ -328,7 +327,7 @@ fun SafarNavGraph(
         }
 
         composable(Routes.DHYAN) {
-            DhyanScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onLanguageClick = onLanguageToggle)
+            DhyanScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme)
         }
 
         composable(Routes.FOCUS_SHIELD) {
@@ -337,7 +336,6 @@ fun SafarNavGraph(
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
                 onToggleDarkTheme = onToggleDarkTheme,
-                onLanguageClick = onLanguageToggle,
             )
         }
 
@@ -349,6 +347,13 @@ fun SafarNavGraph(
 
         composable(Routes.KAVACH_ABOUT) {
             KavachAboutScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.KAVACH_PERMISSION_ONBOARDING) {
+            KavachOnboardingScreen(
+                onFinished = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(
@@ -381,7 +386,6 @@ fun SafarNavGraph(
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
                 onToggleDarkTheme = onToggleDarkTheme,
-                onLanguageClick = onLanguageToggle,
             )
         }
 
@@ -406,19 +410,17 @@ fun SafarNavGraph(
                 onToggleDarkTheme = onToggleDarkTheme,
                 onLibrary = { navigate(Routes.DASHBOARD) },
                 onProgress = { navigate(Routes.NISHTHA_ANALYTICS) },
+                onPremium = { navigate(Routes.PREMIUM) },
             )
         }
 
         composable(Routes.SETTINGS) {
             SettingsScreen(
                 isDarkTheme = isDarkTheme,
-                isNightMode = isNightMode,
                 onBack = { navController.popBackStack() },
                 onHome = { navigate(Routes.HOME) },
                 onToggleDarkTheme = onToggleDarkTheme,
-                onToggleNightMode = onToggleNightMode,
                 dataStore = dataStore,
-                onLanguageClick = onLanguageToggle,
                 canAccessAdminComposer = canAccessAdminComposer,
                 onOpenAdminNotificationComposer = {
                     if (canAccessAdminComposer) {
@@ -437,9 +439,15 @@ fun SafarNavGraph(
                     isDarkTheme = isDarkTheme,
                     onNavigate = ::navigate,
                     onToggleDarkTheme = onToggleDarkTheme,
-                    onLanguageClick = onLanguageToggle,
                 )
             }
+        }
+
+        composable(Routes.PREMIUM) {
+            PremiumPaywallScreen(
+                onBack = { navController.popBackStack() },
+                onNavigate = ::navigate
+            )
         }
     }
 }

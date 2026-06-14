@@ -53,7 +53,6 @@
     <string name="nav_study_planner">Study Planner</string>
     <string name="nav_profile">Profile</string>
     <string name="nav_night_mode">Night Mode</string>
-    <string name="nav_language">Language</string>
     <string name="nav_toggle_night">Toggle night mode</string>
     <string name="nav_open_menu">Open menu</string>
     <string name="nav_previous">Previous</string>
@@ -79,7 +78,7 @@
     <string name="kavach_how_it_works_learn_more">Learn more</string>
     <string name="kavach_how_it_works_show_less">Show less</string>
     <string name="kavach_how_it_works_intro">KAVACH blocks only the apps you choose, only while your Ekagra timer is running.</string>
-    <string name="kavach_status_pill">Ready- You\'re all set for 100% focus.</string>
+    <string name="kavach_status_pill">Ready- You\'re all set for 100%% focus.</string>
     <string name="kavach_enable_title">Use KAVACH</string>
     <string name="kavach_enable_subtitle">Blocks chosen apps while your Ekagra timer is on</string>
     <string name="kavach_off_hint">Turn on KAVACH, pick apps, then start Ekagra to block distractions.</string>
@@ -107,18 +106,21 @@
     <string name="kavach_info_how_body">KAVACH blocks only the apps you choose while your Ekagra timer runs. It does not read messages, passwords, photos, or typed text.</string>
     <string name="kavach_info_permissions_title">Permissions are your choice</string>
     <string name="kavach_info_permissions_body">App Check sees when an app opens. Block Screen shows KAVACH. Notifications show study timer updates.</string>
-    <string name="kavach_setup_heading">Complete setup</string>
-    <string name="kavach_setup_intro">Allow the permissions you want, then start your Ekagra timer to use KAVACH.</string>
-    <string name="kavach_permissions_ready">KAVACH is ready. Start your Ekagra timer to begin blocking.</string>
-    <string name="kavach_permissions_needed">Allow the two required permissions to use KAVACH.</string>
+    <string name="kavach_setup_heading">Almost ready!</string>
+    <string name="kavach_setup_intro">Two quick steps and KAVACH is ready to protect your focus.</string>
+    <string name="kavach_permissions_ready">KAVACH is ready. Start Ekagra to begin blocking.</string>
+    <string name="kavach_permissions_needed">Allow two quick permissions to start blocking distractions.</string>
     <string name="kavach_info_content_description">About KAVACH</string>
-    <string name="kavach_consent_title">Enable KAVACH?</string>
-    <string name="kavach_consent_description">KAVACH is optional. It blocks chosen apps while your Ekagra timer runs.</string>
+    <string name="kavach_consent_title">Block distracting apps</string>
+    <string name="kavach_consent_description">KAVACH keeps you on track by blocking the apps you choose — only while your Ekagra timer is running.</string>
     <string name="kavach_consent_how_label">How it works</string>
-    <string name="kavach_consent_how_body">SAFAR uses this only while your Ekagra timer runs, to show the KAVACH block screen.</string>
+    <string name="kavach_consent_how_body">KAVACH only acts while your Ekagra timer runs. It shows a block screen when you open a chosen app.</string>
     <string name="kavach_consent_privacy_label">Your privacy</string>
-    <string name="kavach_consent_privacy_body">We do not read messages, passwords, photos, screen content, or typed text.</string>
-    <string name="kavach_consent_agree">I understand</string>
+    <string name="kavach_consent_privacy_body">KAVACH does not read messages, passwords, photos, or any screen content.</string>
+    <string name="kavach_consent_agree">Enable KAVACH</string>
+    <string name="kavach_privacy_badge">Runs on your device \u00b7 No data collected</string>
+    <string name="kavach_setup_guide_title">Quick setup — 2 steps</string>
+    <string name="kavach_setup_guide_subtitle">You\'ll be back in SAFAR in under a minute.</string>
     <string name="kavach_consent_cancel">Not now</string>
     <string name="kavach_about_title">About KAVACH</string>
     <string name="kavach_about_description">KAVACH acts as a shield, blocking only the apps you choose while your Ekagra timer runs.</string>
@@ -413,5 +415,9 @@
     <string name="focus_shield_emergency_unlock">Emergency Unlock</string>
     <string name="focus_shield_return_to_timer">Return to Timer</string>
     <string name="focus_shield_accessibility_label">SAFAR KAVACH Block Screen</string>
-    <string name="focus_shield_accessibility_description">KAVACH helps block only the apps you choose during a focus timer or Study Session. SAFAR does not read your screen, chats, passwords, or typing, and it does not control your phone outside KAVACH.</string>
+    <string name="focus_shield_accessibility_description">KAVACH blocks only the apps you choose while your Ekagra focus timer is running. SAFAR does not read your screen, messages, passwords, or typed text, and does not control your phone in any other way.</string>
+
+    <!-- Notification action buttons -->
+    <string name="notification_action_start_now">Start Now</string>
+
 </resources>

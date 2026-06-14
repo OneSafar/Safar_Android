@@ -39,11 +39,11 @@ class MorningNudgeWorker(
             val quote = getRandomQuote(context)
 
             // 3. Trigger the notification using Safar's existing UI standards
-            notificationManager.show(
+            notificationManager.showStudyReminder(
                 title = quote.first,
                 body = greeting + quote.second,
-                channelId = SafarNotificationChannels.STUDY_REMINDERS,
-                deepLink = "safar://dashboard" 
+                deepLink = "safar://dashboard",
+                dedupeType = SafarNotificationManager.DedupeType.MORNING_NUDGE,
             )
 
             Result.success()

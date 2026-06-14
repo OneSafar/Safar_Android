@@ -2,6 +2,7 @@ package com.safarparmar.app.di
 
 import android.content.Context
 import com.safarparmar.app.BuildConfig
+import com.safarparmar.app.data.local.PersistentCookieStore
 import com.safarparmar.app.data.remote.api.*
 import com.safarparmar.app.data.remote.socket.MehfilSocketManager
 import com.safarparmar.app.feature.live.data.LiveSessionApi
@@ -21,6 +22,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
 import java.net.CookieManager
 import java.net.CookiePolicy
+import java.net.URI
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -30,8 +32,17 @@ object NetworkModule {
 
     @Singleton
     @Provides
-    fun provideCookieManager(): CookieManager =
-        CookieManager().also { it.setCookiePolicy(CookiePolicy.ACCEPT_ALL) }
+    fun provideCookieManager(cookieStore: PersistentCookieStore): CookieManager {
+        val apiHost = runCatching { URI(BuildConfig.BASE_URL).host.lowercase() }.getOrNull()
+        return CookieManager(cookieStore, CookiePolicy { uri, cookie ->
+            val requestHost = uri?.host?.lowercase() ?: return@CookiePolicy false
+            val cookieHost = cookie.domain?.lowercase()?.removePrefix(".") ?: requestHost
+            val apiMatches = apiHost == null ||
+                requestHost == apiHost ||
+                requestHost.endsWith(".$apiHost")
+            apiMatches && (requestHost == cookieHost || requestHost.endsWith(".$cookieHost"))
+        })
+    }
 
     // 5 MB shared HTTP cache for safe-to-cache GETs. Endpoints opt in by
     // declaring `@Headers("X-Cache-Max-Age: <seconds>")` on their Retrofit
@@ -137,6 +148,7 @@ object NetworkModule {
     @Provides @Singleton fun provideSyllabusApi(r: Retrofit): SyllabusApi = r.create(SyllabusApi::class.java)
     @Provides @Singleton fun provideLiveSessionApi(r: Retrofit): LiveSessionApi = r.create(LiveSessionApi::class.java)
     @Provides @Singleton fun providePremiumApi(r: Retrofit): PremiumApi = r.create(PremiumApi::class.java)
+    @Provides @Singleton fun providePaymentApi(r: Retrofit): PaymentApi = r.create(PaymentApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
     @Provides @Singleton fun provideMehfilSocketManager(gson: Gson): MehfilSocketManager = MehfilSocketManager(gson)
 }

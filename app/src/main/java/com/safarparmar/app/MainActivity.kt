@@ -14,7 +14,6 @@ import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -29,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.data.local.SafarDataStore
@@ -45,8 +43,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
 import javax.inject.Inject
 
+import com.razorpay.PaymentData
+import com.razorpay.PaymentResultWithDataListener
+import com.safarparmar.app.ui.premium.PaymentEventBus
+
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     @Inject
     lateinit var dataStore: SafarDataStore
@@ -94,8 +96,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeViewModel: ThemeViewModel = hiltViewModel()
             val isDarkTheme by themeViewModel.isDarkTheme.collectAsStateWithLifecycle()
-            val isNightMode by themeViewModel.isNightMode.collectAsStateWithLifecycle()
-            val currentLanguage by themeViewModel.language.collectAsStateWithLifecycle()
             val configuration = LocalConfiguration.current
 
             // Clamp font scale globally across the app to prevent broken layouts on large display settings
@@ -106,7 +106,7 @@ class MainActivity : ComponentActivity() {
             )
 
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides customDensity) {
-                SafarTheme(darkTheme = isDarkTheme, nightMode = isNightMode) {
+                SafarTheme(darkTheme = isDarkTheme) {
                     BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxSize()
@@ -129,16 +129,7 @@ class MainActivity : ComponentActivity() {
                                 SafarNavGraph(
                                     dataStore = dataStore,
                                     isDarkTheme = isDarkTheme,
-                                    isNightMode = isNightMode,
                                     onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
-                                    onToggleNightMode = { themeViewModel.toggleNightMode() },
-                                    onLanguageToggle = {
-                                        val next = if (currentLanguage == "en") "hi" else "en"
-                                        themeViewModel.setLanguage(next)
-                                        AppCompatDelegate.setApplicationLocales(
-                                            LocaleListCompat.forLanguageTags(next)
-                                        )
-                                    }
                                 )
                             }
                         }
@@ -157,6 +148,13 @@ class MainActivity : ComponentActivity() {
             currentRequest == ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE ||
             currentRequest == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE ||
             currentRequest == ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE) {
+            return
+        }
+
+        val configuration = resources.configuration
+        val isTablet = configuration.smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP
+        if (!isTablet) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             return
         }
 
@@ -268,4 +266,11 @@ class MainActivity : ComponentActivity() {
 
     // Required so Ekagra PiP overlay renders correctly
 
+    override fun onPaymentSuccess(razorpayPaymentId: String?, paymentData: PaymentData?) {
+        PaymentEventBus.postSuccess(paymentData)
+    }
+
+    override fun onPaymentError(code: Int, description: String?, paymentData: PaymentData?) {
+        PaymentEventBus.postError(code, description, paymentData)
+    }
 }

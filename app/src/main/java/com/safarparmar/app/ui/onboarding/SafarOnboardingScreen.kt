@@ -45,7 +45,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.R
-import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.SafarTheme
 import com.safarparmar.app.ui.theme.shimmer
 
@@ -282,7 +281,6 @@ private fun StartSafarPrimaryButton(onClick: () -> Unit) {
             text = stringResource(R.string.splash_start_safar),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            fontFamily = LoraFontFamily,
             letterSpacing = 0.5.sp,
         )
         Icon(

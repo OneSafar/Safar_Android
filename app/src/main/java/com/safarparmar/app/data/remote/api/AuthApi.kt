@@ -12,5 +12,9 @@ interface AuthApi {
     @POST("auth/reset-password/confirm") suspend fun resetPasswordConfirm(@Body request: ResetPasswordConfirmRequest): Response<MessageResponse>
     @GET("auth/me") suspend fun getMe(): Response<MeResponse>
     @PATCH("auth/profile") suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<UserDto>
-    @GET("auth/login-history") suspend fun getLoginHistory(): Response<List<LoginHistoryItemDto>>
+    @GET("auth/login-history")
+    suspend fun getLoginHistory(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 30,
+    ): Response<List<LoginHistoryItemDto>>
 }

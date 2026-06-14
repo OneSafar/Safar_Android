@@ -14,6 +14,7 @@ import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.domain.model.EkagraTimerDurationUsage
 import com.safarparmar.app.domain.repository.EkagraRepository
 import com.safarparmar.app.util.Resource
+import com.safarparmar.app.util.safeApiCall
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,13 +24,7 @@ class EkagraRepositoryImpl @Inject constructor(
 ) : EkagraRepository {
 
     override suspend fun getStats(): Resource<FocusStatsResponse> {
-        return try {
-            val res = focusApi.getStats()
-            if (res.isSuccessful) Resource.Success(res.body()!!)
-            else Resource.Error("Error ${res.code()}")
-        } catch (e: Exception) {
-            Resource.Error("Network error: ${e.message}")
-        }
+        return safeApiCall { focusApi.getStats() }
     }
 
     override suspend fun getEkagraAnalytics(): Resource<EkagraAnalyticsStats> {
@@ -67,8 +62,13 @@ class EkagraRepositoryImpl @Inject constructor(
                     markGoalComplete = markGoalComplete,
                 ),
             )
-            if (res.isSuccessful) Resource.Success(res.body()!!.session.normalized())
-            else Resource.Error("Save failed: ${res.code()}")
+            if (res.isSuccessful) {
+                val session = res.body()?.session
+                    ?: return Resource.Error("Save failed: empty response body")
+                Resource.Success(session.normalized())
+            } else {
+                Resource.Error("Save failed: ${res.code()}")
+            }
         } catch (e: Exception) {
             Resource.Error("Network error: ${e.message}")
         }

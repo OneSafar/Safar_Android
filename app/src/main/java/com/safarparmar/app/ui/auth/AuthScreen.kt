@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
@@ -119,7 +120,7 @@ private fun LoginForm(
     onSwitchToSignup: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
-    var passwordVisible by remember { mutableStateOf(false) }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
     val scroll = rememberScrollState()
 
     Column(
@@ -136,12 +137,14 @@ private fun LoginForm(
                     onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
                     placeholder = "you@gmail.com",
                     leadingIcon = Icons.Default.Email,
+                    isError = !uiState.emailError.isNullOrBlank(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next,
                     ),
                     keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
+                AuthFieldError(uiState.emailError)
 
                 AuthStitchFieldLabel("PASSWORD")
                 AuthStitchPasswordField(
@@ -150,6 +153,7 @@ private fun LoginForm(
                     placeholder = "Enter your password",
                     passwordVisible = passwordVisible,
                     onToggleVisibility = { passwordVisible = !passwordVisible },
+                    isError = !uiState.passwordError.isNullOrBlank(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done,
@@ -159,6 +163,7 @@ private fun LoginForm(
                         onEvent(AuthEvent.Login)
                     }),
                 )
+                AuthFieldError(uiState.passwordError)
 
                 AuthStitchRememberRow(
                     checked = uiState.rememberMe,
@@ -190,8 +195,8 @@ private fun SignupForm(
     onSwitchToLogin: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
-    var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
     val examOptions = listOf("SSC CGL", "SSC CHSL", "SSC MTS", "SSC CPO", "Other")
     val prepStageOptions = listOf("Just Started", "1-3 Months", "3-6 Months", "6+ Months", "Final Stage")
     val genderOptions = listOf("Male", "Female", "Other", "Prefer not to say")

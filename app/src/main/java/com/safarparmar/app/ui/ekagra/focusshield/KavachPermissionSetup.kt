@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -27,8 +29,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -41,11 +41,15 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,10 +57,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.R
 
 /**
  * Permissions Kavach needs from the user. Drives the step list + per-permission guide sheet.
@@ -177,7 +185,7 @@ fun KavachStepRow(
                             tint = grantedColor,
                             modifier = Modifier.size(13.dp),
                         )
-                        Text("Granted", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = grantedColor)
+                        Text("Done", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = grantedColor)
                     }
                 } else {
                     Button(
@@ -206,7 +214,7 @@ fun KavachStepRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    "Why this permission?",
+                    "Why this?",
                     fontSize = 12.sp,
                     color = accent,
                     fontWeight = FontWeight.SemiBold,
@@ -236,8 +244,11 @@ fun KavachStepRow(
 }
 
 /**
- * Modal bottom sheet shown right before deep-linking the user into Android Settings. Mimics
- * Regain's "what to tap next" coaching: mascot, numbered steps, social proof, primary CTA.
+ * Unified permission guide sheet — combines Usage Stats + Accessibility into ONE sheet
+ * with numbered steps. No longer shows two separate sheets. User sees everything they
+ * need to do in one place, taps "Open Settings" per step, and returns each time.
+ *
+ * For NOTIFICATIONS: shows a compact single-step sheet (system prompt follows immediately).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -248,8 +259,7 @@ fun PermissionGuideSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scheme = MaterialTheme.colorScheme
-
-    val content = remember(permission) { PermissionGuideContent.forTarget(permission) }
+    val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -261,8 +271,9 @@ fun PermissionGuideSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 22.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -270,27 +281,34 @@ fun PermissionGuideSheet(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(scheme.primary.copy(alpha = 0.14f)),
+                        .background(scheme.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        content.icon,
+                        when (permission) {
+                            PermissionTarget.USAGE_STATS, PermissionTarget.ACCESSIBILITY -> Icons.Default.Shield
+                            PermissionTarget.NOTIFICATIONS -> Icons.Default.Shield
+                        },
                         contentDescription = null,
                         tint = scheme.primary,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                     )
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
-                        content.title,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp,
+                        when (permission) {
+                            PermissionTarget.USAGE_STATS -> if (accessibilityRequired) stringResource(R.string.kavach_setup_guide_title) else "Allow App Check"
+                            PermissionTarget.ACCESSIBILITY -> "Allow Block Screen"
+                            PermissionTarget.NOTIFICATIONS -> "Allow Notifications"
+                        },
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
                         color = scheme.onSurface,
                     )
                     Text(
-                        content.subtitle,
+                        stringResource(R.string.kavach_setup_guide_subtitle),
                         fontSize = 13.sp,
                         color = scheme.onSurfaceVariant,
                         lineHeight = 17.sp,
@@ -298,52 +316,89 @@ fun PermissionGuideSheet(
                 }
             }
 
+            // Steps box
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(scheme.primary.copy(alpha = 0.06f))
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text(
-                    "On the next screen:",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.onSurfaceVariant,
-                )
-                content.steps.forEachIndexed { index, step ->
-                    GuideStepRow(number = index + 1, text = step, accent = scheme.primary)
+                when (permission) {
+                    PermissionTarget.USAGE_STATS -> {
+                        // Step 1 — App Check (Usage Stats)
+                        GuideStepGroup(
+                            stepNumber = 1,
+                            title = "App Check",
+                            subtitle = "Lets KAVACH see which app you opened",
+                            steps = listOf(
+                                "Find SAFAR in the list of apps",
+                                "Tap Allow usage access",
+                                "Press back to return to SAFAR",
+                            ),
+                            accent = scheme.primary,
+                        )
+
+                        // Step 2 — Block Screen (Accessibility) — only if required
+                        if (accessibilityRequired) {
+                            GuideStepGroup(
+                                stepNumber = 2,
+                                title = "Block Screen",
+                                subtitle = "Shows the KAVACH screen when a blocked app opens",
+                                steps = listOf(
+                                    "Scroll down to find SAFAR KAVACH",
+                                    "Tap it and toggle the switch on",
+                                    "Confirm and press back to return",
+                                ),
+                                accent = scheme.primary,
+                            )
+                        }
+                    }
+                    PermissionTarget.ACCESSIBILITY -> {
+                        GuideStepGroup(
+                            stepNumber = 1,
+                            title = "Block Screen",
+                            subtitle = "Shows the KAVACH screen when a blocked app opens",
+                            steps = listOf(
+                                "Scroll down to find SAFAR KAVACH",
+                                "Tap it and toggle the switch on",
+                                "Confirm and press back to return",
+                            ),
+                            accent = scheme.primary,
+                        )
+                    }
+                    PermissionTarget.NOTIFICATIONS -> {
+                        GuideStepGroup(
+                            stepNumber = 1,
+                            title = "Notifications",
+                            subtitle = "For focus timer progress and KAVACH status",
+                            steps = listOf(
+                                "Tap Allow on the prompt that follows",
+                                "(This is optional — KAVACH works without it)",
+                            ),
+                            accent = scheme.primary,
+                        )
+                    }
                 }
             }
 
-            Text(
-                content.reassurance,
-                fontSize = 12.sp,
-                color = scheme.onSurfaceVariant,
-                lineHeight = 17.sp,
-            )
-
+            // Privacy badge
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(scheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.Center,
             ) {
-                Icon(
-                    Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = scheme.primary,
-                    modifier = Modifier.size(16.dp),
-                )
                 Text(
-                    "Made for focused study sessions. You choose what KAVACH blocks.",
+                    stringResource(R.string.kavach_privacy_badge),
                     fontSize = 12.sp,
                     color = scheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
                 )
             }
 
@@ -360,49 +415,81 @@ fun PermissionGuideSheet(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Open Settings", fontWeight = FontWeight.Bold)
+                Text(
+                    when (permission) {
+                        PermissionTarget.USAGE_STATS -> if (accessibilityRequired) "Open Settings — Step 1" else "Open Settings"
+                        PermissionTarget.ACCESSIBILITY -> "Open Accessibility Settings"
+                        PermissionTarget.NOTIFICATIONS -> "Allow Notifications"
+                    },
+                    fontWeight = FontWeight.Bold,
+                )
             }
-            OutlinedButton(
+            TextButton(
                 onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
                 shape = RoundedCornerShape(14.dp),
             ) {
-                Text("Cancel", color = scheme.onSurfaceVariant)
+                Text("Maybe later", color = scheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(8.dp))
         }
     }
 }
 
+/**
+ * A grouped step section inside the guide sheet. Shows a label, subtitle, and numbered steps.
+ */
 @Composable
-private fun GuideStepRow(number: Int, text: String, accent: Color) {
-    Row(
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(accent),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "$number",
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.ExtraBold,
-            )
+private fun GuideStepGroup(
+    stepNumber: Int,
+    title: String,
+    subtitle: String,
+    steps: List<String>,
+    accent: Color,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(accent),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("$stepNumber", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+            }
+            Column {
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = scheme.onSurface)
+                Text(subtitle, fontSize = 12.sp, color = scheme.onSurfaceVariant, lineHeight = 16.sp)
+            }
         }
-        Text(
-            text,
-            modifier = Modifier.weight(1f),
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-            lineHeight = 18.sp,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
+        Column(
+            modifier = Modifier.padding(start = 30.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            steps.forEachIndexed { index, step ->
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        "${index + 1}.",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = accent,
+                        modifier = Modifier.width(18.dp),
+                    )
+                    Text(
+                        step,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 13.sp,
+                        color = scheme.onSurface,
+                        lineHeight = 18.sp,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -440,47 +527,133 @@ fun PermissionGrantedBanner(
     }
 }
 
-private data class PermissionGuideContent(
-    val icon: ImageVector,
-    val title: String,
-    val subtitle: String,
-    val steps: List<String>,
-    val reassurance: String,
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun KavachPermissionSetup(
+    onBack: () -> Unit,
+    onGranted: () -> Unit
 ) {
-    companion object {
-        fun forTarget(target: PermissionTarget): PermissionGuideContent = when (target) {
-            PermissionTarget.USAGE_STATS -> PermissionGuideContent(
-                icon = Icons.Default.BarChart,
-                title = "App Usage Permission",
-                subtitle = "Helps KAVACH notice opened apps during focus sessions.",
-                steps = listOf(
-                    "Find SAFAR in the list of apps.",
-                    "Tap Allow usage access (or Permit usage access).",
-                    "Press back to return to SAFAR.",
-                ),
-                reassurance = "SAFAR does not read what is inside any app. The open app name is enough for KAVACH to match your blocked list.",
+    val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+    val scheme = MaterialTheme.colorScheme
+
+    ModalBottomSheet(
+        onDismissRequest = onBack,
+        sheetState = sheetState,
+        containerColor = scheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(scheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Shield,
+                    contentDescription = null,
+                    tint = scheme.primary,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Text(
+                text = "Block distracting apps",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface,
+                textAlign = TextAlign.Center
             )
-            PermissionTarget.ACCESSIBILITY -> PermissionGuideContent(
-                icon = Icons.Default.Info,
-                title = "KAVACH Block Screen",
-                subtitle = "Shows the block screen when a chosen app opens.",
-                steps = listOf(
-                    "Scroll to Downloaded apps (or Installed apps).",
-                    "Tap Safar KAVACH block screen.",
-                    "Toggle the switch on and confirm.",
-                ),
-                reassurance = "SAFAR does not read messages, passwords, typed text, photos, or screen content. It only helps KAVACH react to apps you selected.",
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = "KAVACH blocks only the apps you choose, only while your timer is running.",
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
-            PermissionTarget.NOTIFICATIONS -> PermissionGuideContent(
-                icon = Icons.Default.NotificationsActive,
-                title = "Notifications",
-                subtitle = "Used for focus timer progress and active KAVACH status.",
-                steps = listOf(
-                    "Tap Allow on the system prompt that follows.",
-                    "(If no prompt appears, toggle Notifications on for SAFAR.)",
-                ),
-                reassurance = "Notifications are optional. KAVACH and study timers still work without them.",
-            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Compact privacy badge — no long legal paragraph
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(scheme.surfaceVariant.copy(alpha = 0.5f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    stringResource(R.string.kavach_privacy_badge),
+                    fontSize = 12.sp,
+                    color = scheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        sheetState.hide()
+                        if (!FocusShieldPermissionHelper.hasUsageStatsPermission(context)) {
+                            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            context.startActivity(intent)
+                        } else {
+                            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            context.startActivity(intent)
+                        }
+                        onBack()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = scheme.primary,
+                    contentColor = scheme.onPrimary
+                )
+            ) {
+                Text(
+                    text = "Let's set it up →",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            TextButton(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth().height(44.dp)
+            ) {
+                Text(
+                    text = "Maybe later",
+                    color = scheme.onSurfaceVariant,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

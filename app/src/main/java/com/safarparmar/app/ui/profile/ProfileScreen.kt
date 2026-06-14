@@ -99,6 +99,7 @@ fun ProfileScreen(
     onToggleDarkTheme: () -> Unit,
     onLibrary: () -> Unit = {},
     onProgress: () -> Unit = {},
+    onPremium: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -173,7 +174,7 @@ fun ProfileScreen(
                             onCheckedChange = { onToggleDarkTheme() },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFF1D61D1),
+                                checkedTrackColor = scheme.primary,
                                 uncheckedThumbColor = Color.White,
                                 uncheckedTrackColor = scheme.outline.copy(alpha = 0.3f)
                             ),
@@ -215,7 +216,7 @@ fun ProfileScreen(
 
                     ExamFocusSection(uiState = uiState, viewModel = viewModel)
 
-                    AccountStatusSection()
+                    AccountStatusSection(onPremiumClick = onPremium)
 
                     if (uiState.error != null) {
                         Surface(
@@ -252,7 +253,7 @@ fun ProfileScreen(
                 onDismissRequest = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) },
                 icon = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = scheme.error) },
                 title = { Text("Confirm Logout", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
-                text = { Text("Are you sure you want to logout? You will need to sign in again to access your sanctuary.") },
+                text = { Text("Are you sure you want to logout ? You will need to sign in again to access Safar Features . ") },
                 confirmButton = {
                     Button(
                         onClick = { viewModel.logout { onLogout() } },
@@ -420,7 +421,7 @@ private fun ExamFocusSection(uiState: ProfileUiState, viewModel: ProfileViewMode
 }
 
 @Composable
-private fun AccountStatusSection() {
+private fun AccountStatusSection(onPremiumClick: () -> Unit = {}) {
     val scheme = MaterialTheme.colorScheme
     GlassCard {
         Row(
@@ -462,6 +463,16 @@ private fun AccountStatusSection() {
                     )
                 }
             }
+            Button(
+                onClick = onPremiumClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = scheme.primaryContainer,
+                    contentColor = scheme.onPrimaryContainer
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("View Plans", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -473,7 +484,6 @@ private fun ActionsSection(
     onSaveClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val brandBlue = Color(0xFF1D61D1)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -506,8 +516,8 @@ private fun ActionsSection(
                 .height(56.dp),
             shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = brandBlue,
-                contentColor = Color.White,
+                containerColor = scheme.primary,
+                contentColor = scheme.onPrimary,
                 disabledContainerColor = scheme.surfaceVariant,
             ),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
@@ -526,7 +536,7 @@ private fun ActionsSection(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = Color.White,
+                    color = scheme.onPrimary,
                 )
             }
         }

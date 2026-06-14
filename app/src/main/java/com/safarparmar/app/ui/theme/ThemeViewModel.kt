@@ -18,17 +18,9 @@ class ThemeViewModel @Inject constructor(
     private val _isDarkTheme = MutableStateFlow(false)
     val isDarkTheme = _isDarkTheme.asStateFlow()
 
-    private val _isNightMode = MutableStateFlow(false)
-    val isNightMode = _isNightMode.asStateFlow()
-
-    private val _language = MutableStateFlow("en")
-    val language = _language.asStateFlow()
-
     init {
         viewModelScope.launch {
             _isDarkTheme.value = dataStore.isDarkTheme.first()
-            _isNightMode.value = dataStore.isNightMode.first()
-            _language.value    = dataStore.language.first()
         }
     }
 
@@ -38,19 +30,4 @@ class ThemeViewModel @Inject constructor(
         viewModelScope.launch { dataStore.setDarkTheme(newValue) }
     }
 
-    fun toggleNightMode() {
-        val newValue = !_isNightMode.value
-        _isNightMode.value = newValue
-        viewModelScope.launch { dataStore.setNightMode(newValue) }
-    }
-
-    fun setNightMode(enabled: Boolean) {
-        _isNightMode.value = enabled
-        viewModelScope.launch { dataStore.setNightMode(enabled) }
-    }
-
-    fun setLanguage(lang: String) {
-        _language.value = lang
-        viewModelScope.launch { dataStore.setLanguage(lang) }
-    }
 }

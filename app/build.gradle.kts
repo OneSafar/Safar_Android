@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.firebase.crashlytics)
 
     id("com.google.gms.google-services")
 }
@@ -221,11 +222,16 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
 
     //firebase
+    implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.crashlytics)
 
     //system
     implementation(libs.accompanist.systemuicontroller)
     implementation(libs.accompanist.permissions)
+    
+    //payments
+    implementation("com.razorpay:checkout:1.6.38")
 
     //testing
     debugImplementation(libs.androidx.ui.tooling)

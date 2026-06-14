@@ -1,5 +1,8 @@
 package com.safarparmar.app.domain.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class User(
     val id: String = "",
     val name: String = "",
@@ -10,6 +13,7 @@ data class User(
     val gender: String? = null
 )
 
+@Immutable
 data class UserProfile(
     val id: String = "",
     val name: String = "",

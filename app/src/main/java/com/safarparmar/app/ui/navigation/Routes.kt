@@ -24,12 +24,14 @@ object Routes {
     const val APP_PICKER = "ekagra/app_picker"
     const val KAVACH_ABOUT = "kavach/about"
     const val KAVACH_SESSION_SUMMARY = "kavach/session_summary"
+    const val KAVACH_PERMISSION_ONBOARDING = "kavach/permission_onboarding"
     const val LAUNCH_USAGE_QUESTIONNAIRE = "launch_usage_questionnaire"
     const val FOCUS_SHIELD = "focus_shield"
     const val LIVE_SESSIONS_ROOT = "live/sessions"
     const val LIVE_SESSIONS = "live/sessions?courseId={courseId}"
     const val LIVE_SESSION = "live/session/{sessionId}"
     const val ADMIN_NOTIFICATIONS = "admin/notifications"
+    const val PREMIUM = "premium"
 
     // Syllabus Drill-Down Routes
     const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"

@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,6 +57,7 @@ fun LiveSessionsScreen(
     var selectedFilter by remember { mutableStateOf(LiveSessionFilter.LIVE) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedSessionId by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     val uiState by viewModel.liveSessionsState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -204,7 +206,28 @@ fun LiveSessionsScreen(
                     if (isCompleted) {
                         CompletedSessionCard(
                             session = session,
-                            onClick = { onOpenSession(session.id) },
+                            onClick = {
+                                // Resolve the best YouTube embed URL from data already in the list.
+                                // Priority: youtubeEmbedUrl > recordingVideoId > youtubeVideoId
+                                val embedUrl = session.youtubeEmbedUrl?.takeIf { it.isNotBlank() }
+                                    ?: session.recordingVideoId?.takeIf { it.isNotBlank() }
+                                        ?.let { "https://www.youtube.com/embed/$it" }
+                                    ?: session.youtubeVideoId?.takeIf { it.isNotBlank() }
+                                        ?.let { "https://www.youtube.com/embed/$it" }
+
+                                if (embedUrl != null) {
+                                    // Open the in-app fullscreen WebView player directly.
+                                    // Skips the intermediate CompletedSessionPlayback screen entirely.
+                                    VideoPlayerActivity.start(
+                                        context = context,
+                                        embedUrl = embedUrl,
+                                        videoTitle = session.title,
+                                    )
+                                } else {
+                                    // No video URL — fall back to the session screen
+                                    onOpenSession(session.id)
+                                }
+                            },
                         )
                     } else {
                         LiveUpNextListItem(

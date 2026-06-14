@@ -7,7 +7,10 @@ import retrofit2.http.*
 interface JournalApi {
     // GET /journal → list
     @GET("journal")
-    suspend fun getJournals(): Response<List<JournalDto>>
+    suspend fun getJournals(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 50,
+    ): Response<List<JournalDto>>
 
     // POST /journal
     @POST("journal")

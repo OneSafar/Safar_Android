@@ -58,11 +58,11 @@ internal fun AnalyticsOverviewSection(
         Text("Quick read across goals, focus, and the monthly review.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HubMetricCard(Icons.Default.Timer, "Focus Today", formatStudyTime(focusToday), "Ekagra focus completed today", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-            HubMetricCard(Icons.Default.Flag, "Goals Today", "$completedToday/${todayGoals.size}", "Completed against today's goals", Color(0xFF10A968), Modifier.weight(1f))
+            HubMetricCard(Icons.Default.Flag, "Goals Today", "$completedToday/${todayGoals.size}", "Completed against today's goals", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            HubMetricCard(Icons.Default.Bolt, "Consistency", report?.let { "${it.consistencyScore.toInt()}%" } ?: "-", "Monthly review preview", Color(0xFFFFB300), Modifier.weight(1f))
-            HubMetricCard(Icons.Default.TrackChanges, "Focus Depth", report?.let { "${it.totalFocusMinutes}m/day" } ?: "-", "From Monthly Review", Color(0xFF4F46E5), Modifier.weight(1f))
+            HubMetricCard(Icons.Default.Bolt, "Consistency", report?.let { "${it.consistencyScore.toInt()}%" } ?: "-", "Monthly review preview", MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
+            HubMetricCard(Icons.Default.TrackChanges, "Focus Depth", report?.let { "${it.totalFocusMinutes}m/day" } ?: "-", "From Monthly Review", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
         }
         Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -106,17 +106,17 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
         Text("Goal Insights", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
         Text("Completion insights and goal progress from Nishtha goals.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            GoalMetricCard("COMPLETION RATE", "$rate%", "${manualCompletedGoals.size} of $total active manual goals completed", Color(0xFF10A968), Modifier.weight(1f))
-            GoalMetricCard("AVERAGE PROGRESS", "$avgProgress%", "Future scheduled goals stay excluded until their date arrives.", Color(0xFF0EA5E9), Modifier.weight(1f))
+            GoalMetricCard("COMPLETION RATE", "$rate%", "${manualCompletedGoals.size} of $total active manual goals completed", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
+            GoalMetricCard("AVERAGE PROGRESS", "$avgProgress%", "Future scheduled goals stay excluded until their date arrives.", MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            GoalMetricCard("CONSISTENCY (7 DAYS)", "$consistencyDays/7", "Days with at least one completed manual goal", Color(0xFF8B5CF6), Modifier.weight(1f))
-            GoalMetricCard("CURRENT STREAK", "${currentStreak}d", "Consecutive days with completions", Color(0xFFFFB300), Modifier.weight(1f))
+            GoalMetricCard("CONSISTENCY (7 DAYS)", "$consistencyDays/7", "Days with at least one completed manual goal", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+            GoalMetricCard("CURRENT STREAK", "${currentStreak}d", "Consecutive days with completions", MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
         }
         Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = Color(0xFF10A968), modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp))
                     Column {
                         Text("Goal Consistency Trend", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Text("Your goal completion over the last 7 days", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -292,7 +292,7 @@ private fun GoalConsistencyChart(days: List<GoalAnalyticsDay>) {
                         Modifier.fillMaxWidth(0.72f)
                             .fillMaxHeight((score.toFloat() / 100f).coerceIn(0.04f, 1f))
                             .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                            .background(if (day.completed > 0) Color(0xFF10A968) else MaterialTheme.colorScheme.surfaceVariant)
+                            .background(if (day.completed > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceVariant)
                     )
                 }
                 Spacer(Modifier.height(6.dp))
@@ -310,7 +310,7 @@ private fun WeeklyGrowthRow(entry: GoalAnalyticsDay) {
             Text(entry.dayLabel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Text("${entry.completed}/${entry.total} done", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        LinearProgressIndicator(progress = { pct / 100f }, modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(4.dp)), color = Color(0xFF10A968), trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
+        LinearProgressIndicator(progress = { pct / 100f }, modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(4.dp)), color = MaterialTheme.colorScheme.tertiary, trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
         Text("Average progress: ${entry.avgProgress}%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

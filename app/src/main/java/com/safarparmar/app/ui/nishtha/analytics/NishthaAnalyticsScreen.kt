@@ -5,6 +5,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.draw.alpha
 import coil.compose.AsyncImage
@@ -21,10 +23,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -159,21 +164,31 @@ fun NishthaAnalyticsScreen(
         }
 
         Box(Modifier.fillMaxSize()) {
-            when (selectedSection) {
-                "goals" -> GoalInsightsSection(uiState.goals)
-                "focus" -> FocusInsightsSection(uiState.ekagraAnalytics)
-                "sessions" -> SessionHistorySection(uiState.ekagraAnalytics)
-                "monthly" -> MonthlyReviewSection(
-                    selectedMonthLabel = months.first { it.first == selectedMonth }.second,
-                    onMonthClick = { showMonthPicker = true },
-                    isLoading = uiState.isLoadingReport,
-                    report = report,
-                    achievements = achievements,
-                    onNavigate = onNavigate,
-                    onGenerate = { viewModel.onEvent(NishthaEvent.LoadMonthlyReport) },
-                )
-                else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
+            // Content rendered at full height, faded and unscrollable by the overlay
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (selectedSection) {
+                    "goals" -> GoalInsightsSection(uiState.goals)
+                    "focus" -> FocusInsightsSection(uiState.ekagraAnalytics)
+                    "sessions" -> SessionHistorySection(uiState.ekagraAnalytics)
+                    "monthly" -> MonthlyReviewSection(
+                        selectedMonthLabel = months.first { it.first == selectedMonth }.second,
+                        onMonthClick = { showMonthPicker = true },
+                        isLoading = uiState.isLoadingReport,
+                        report = report,
+                        achievements = achievements,
+                        onNavigate = onNavigate,
+                        onGenerate = { viewModel.onEvent(NishthaEvent.LoadMonthlyReport) },
+                    )
+                    else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
+                }
             }
+            // Gradient fade + premium lock gate
+            AnalyticsPremiumLockOverlay(
+                modifier = Modifier.fillMaxSize(),
+                onUpgradeClick = { onNavigate(com.safarparmar.app.ui.navigation.Routes.PREMIUM) }
+            )
         }
     }
 }
@@ -274,9 +289,9 @@ private fun MonthlyReviewSection(
 
 @Composable
 private fun ReportContent(report: MonthlyReport, achievements: List<com.safarparmar.app.domain.model.Achievement> = emptyList(), onNavigate: (String) -> Unit = {}) {
-    ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, Amber500)
-    ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, Emerald500)
-    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.totalFocusMinutes}m/day", report.focusMessage, Indigo500)
+    ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, MaterialTheme.colorScheme.secondary)
+    ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, MaterialTheme.colorScheme.tertiary)
+    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.totalFocusMinutes}m/day", report.focusMessage, MaterialTheme.colorScheme.primary)
 
     // Skill Radar — rendered as horizontal progress bars
     if (report.radar.isNotEmpty()) {
@@ -298,7 +313,7 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safarpar
                         LinearProgressIndicator(
                             progress = { (item.score / 100.0).toFloat().coerceIn(0f, 1f) },
                             modifier = Modifier.weight(1f).height(7.dp),
-                            color = ChartLine,
+                            color = MaterialTheme.colorScheme.primary,
                             trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                         )
                         Text(
@@ -460,7 +475,7 @@ private fun AchievementsSection(achievements: List<com.safarparmar.app.domain.mo
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             // Header row
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_trophy), contentDescription = null, modifier = Modifier.size(18.dp), tint = Amber500)
+                Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_trophy), contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)
                 Text("Achievements", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 Text(
                     "See All",
@@ -498,7 +513,7 @@ private fun AchievementsSection(achievements: List<com.safarparmar.app.domain.mo
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Amber500.copy(alpha = 0.15f)),
+                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
                             if (imageUrl != null) {
@@ -508,14 +523,14 @@ private fun AchievementsSection(achievements: List<com.safarparmar.app.domain.mo
                                     modifier = Modifier.size(38.dp).clip(RoundedCornerShape(8.dp))
                                 )
                             } else {
-                                Icon(painter = androidx.compose.ui.res.painterResource(id = if (ach.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(22.dp), tint = Amber500)
+                                Icon(painter = androidx.compose.ui.res.painterResource(id = if (ach.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.secondary)
                             }
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(ach.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                Surface(shape = RoundedCornerShape(20.dp), color = Emerald500.copy(alpha = 0.15f)) {
-                                    Text("Earned", fontSize = 9.sp, color = Emerald600, fontWeight = FontWeight.Bold,
+                                Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)) {
+                                    Text("Earned", fontSize = 9.sp, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                 }
                             }
@@ -580,9 +595,9 @@ private fun InsightRow(iconRes: Int, title: String, message: String) {
 
 @Composable
 private fun LineChart(values: List<Float>, modifier: Modifier = Modifier) {
-    val lineColor = ChartLine
-    val dotColor  = ChartLine
-    val fillColor = ChartLine.copy(alpha = 0.12f)
+    val lineColor = MaterialTheme.colorScheme.primary
+    val dotColor  = MaterialTheme.colorScheme.primary
+    val fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
 
     Canvas(modifier = modifier) {
         if (values.size < 2) return@Canvas
@@ -628,6 +643,107 @@ private fun LineChart(values: List<Float>, modifier: Modifier = Modifier) {
         pts.forEach { pt ->
             drawCircle(color = lineColor,  radius = 6f, center = pt)
             drawCircle(color = Color.White, radius = 3f, center = pt)
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsPremiumLockOverlay(
+    modifier: Modifier = Modifier,
+    onUpgradeClick: () -> Unit = {}
+) {
+    val scheme = MaterialTheme.colorScheme
+    val bg = scheme.background
+    // Gradient: transparent at top -> background color at ~30% -> fully opaque background for lock card
+    val gradient = Brush.verticalGradient(
+        colorStops = arrayOf(
+            0.00f to Color.Transparent,
+            0.25f to bg.copy(alpha = 0.85f),
+            0.45f to bg,
+        )
+    )
+    Box(
+        modifier = modifier
+            .background(gradient)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures { _, _ -> }
+            }
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null,
+                onClick = onUpgradeClick
+            )
+    ) {
+        // Lock card centered in lower portion
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center)
+                .padding(horizontal = 32.dp)
+                .padding(top = 60.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Lock icon in a glowing circle
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                scheme.primary.copy(alpha = 0.25f),
+                                scheme.primary.copy(alpha = 0.08f),
+                                Color.Transparent,
+                            )
+                        ),
+                        androidx.compose.foundation.shape.CircleShape,
+                    )
+                    .border(
+                        width = 1.5.dp,
+                        brush = Brush.linearGradient(
+                            listOf(scheme.primary.copy(alpha = 0.6f), scheme.secondary.copy(alpha = 0.3f))
+                        ),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Premium feature",
+                    tint = scheme.primary,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+            Text(
+                text = "Premium Feature",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = scheme.onBackground,
+            )
+            Text(
+                text = "See goal progress, focus history,\nsession history and monthly review.",
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                color = scheme.onSurfaceVariant,
+                lineHeight = 19.sp,
+            )
+            Button(
+                onClick = onUpgradeClick,
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = scheme.primary,
+                    contentColor = scheme.onPrimary,
+                ),
+                modifier = Modifier.fillMaxWidth(0.75f),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Upgrade to Premium", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

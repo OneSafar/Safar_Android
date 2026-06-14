@@ -78,9 +78,16 @@ fun YouTubePlayerWebView(
                 cookieManager.setAcceptCookie(true)
 
                 WebView(ctx).apply {
-                    // Required for smooth video decoding — without this,
-                    // video rendering falls back to software and may appear black.
-                    setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                    // NOTE: Do NOT set LAYER_TYPE_HARDWARE here.
+                    // LAYER_TYPE_HARDWARE forces the WebView to composite its entire
+                    // content tree into a single off-screen FBO (GPU texture).
+                    // YouTube's internal SurfaceView for video decoding renders to its
+                    // OWN separate hardware surface — it cannot participate in FBO
+                    // compositing. The result: audio plays and controls render (they are
+                    // HTML, drawn via the FBO), but video frames are never composited
+                    // into the FBO → the video area appears blank/white.
+                    // The default LAYER_TYPE_NONE lets SurfaceFlinger composite each
+                    // surface independently and correctly. No explicit call needed.
 
                     settings.apply {
                         javaScriptEnabled = true

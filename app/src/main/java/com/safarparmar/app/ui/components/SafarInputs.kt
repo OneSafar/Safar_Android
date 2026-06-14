@@ -39,21 +39,21 @@ fun SafarCustomTextField(
     val isDark = scheme.background == Color(0xFF0F1115)
 
     val containerBg = if (enabled) {
-        if (isDark) Slate800 else Slate100
+        scheme.surfaceVariant
     } else {
-        if (isDark) Slate900 else Slate200.copy(alpha = 0.6f)
+        scheme.surfaceVariant.copy(alpha = 0.6f)
     }
 
     val borderColor = if (hasError) {
         scheme.error
     } else {
-        if (isDark) Slate700 else Slate200
+        scheme.outlineVariant
     }
 
     val labelColor = if (hasError) {
         scheme.error
     } else {
-        if (isDark) Slate400 else Slate500
+        scheme.onSurfaceVariant
     }
 
     val textColor = if (enabled) {
@@ -157,9 +157,9 @@ fun SafarCustomDropdownMenu(
     val scheme = MaterialTheme.colorScheme
     val isDark = scheme.background == Color(0xFF0F1115)
 
-    val containerBg = if (isDark) Slate800 else Slate100
-    val borderColor = if (isDark) Slate700 else Slate200
-    val labelColor = if (isDark) Slate400 else Slate500
+    val containerBg = scheme.surfaceVariant
+    val borderColor = scheme.outlineVariant
+    val labelColor = scheme.onSurfaceVariant
 
     Column(modifier = modifier.fillMaxWidth()) {
         ExposedDropdownMenuBox(

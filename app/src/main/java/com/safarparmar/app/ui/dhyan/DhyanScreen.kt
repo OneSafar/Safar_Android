@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.StatCardSkeleton
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
@@ -105,7 +107,6 @@ fun DhyanScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
 ) {
     var selectedTab         by remember { mutableStateOf(DhyanTab.BREATHING) }
     var showMusicSheet      by remember { mutableStateOf(false) }
@@ -153,19 +154,35 @@ fun DhyanScreen(
         isDarkTheme       = isDarkTheme,
         onNavigate        = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        onLanguageClick   = onLanguageClick,
         topBarActions = {
             IconButton(onClick = { tourState?.start() }) {
                 Icon(Icons.Default.HelpOutline, contentDescription = "Guide")
             }
-            IconButton(onClick = { showMusicSheet = true }) {
-                Icon(Icons.Default.MusicNote, contentDescription = "Music")
-            }
         },
     ) { padding ->
         Box(Modifier.fillMaxSize()) {
+            val bgImageRes = if (isDarkTheme) {
+                com.safarparmar.app.R.drawable.dark_dhyan
+            } else {
+                com.safarparmar.app.R.drawable.dhyan_liight
+            }
+            Image(
+                painter = painterResource(id = bgImageRes),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        if (isDarkTheme) Color.Black.copy(alpha = 0.55f)
+                        else Color.White.copy(alpha = 0.65f)
+                    )
+            )
+
             Scaffold(
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = Color.Transparent,
                 contentWindowInsets = WindowInsets.safeDrawing,
                 bottomBar = {
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
@@ -387,13 +404,29 @@ private fun BreathingTab(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        BreathingVisualizer(
-                            sessionId   = vizSessionId,
-                            breathPhase = vizPhase,
-                            isActive    = isRunning,
-                            cycle       = vizCycle,
-                            modifier    = Modifier.sizeIn(maxHeight = 200.dp, maxWidth = 200.dp).aspectRatio(1f),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .sizeIn(maxHeight = 200.dp, maxWidth = 200.dp)
+                                .aspectRatio(1f)
+                                .background(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            BreathingVisualizer(
+                                sessionId   = vizSessionId,
+                                breathPhase = vizPhase,
+                                isActive    = isRunning,
+                                cycle       = vizCycle,
+                                modifier    = Modifier.fillMaxSize(),
+                            )
+                        }
                         if (isRunning) {
                             Text(
                                 phase.label,
@@ -542,14 +575,14 @@ private fun BreathingTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.large)
-                .background(Brush.horizontalGradient(listOf(BreathGradientStart, BreathGradientEnd)))
+                .background(MaterialTheme.colorScheme.primaryContainer)
                 .clickable(onClick = onBreatheWithMe)
                 .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Air, null, modifier = Modifier.size(18.dp), tint = Color.Black)
-                Text("Breathe with me", fontWeight = FontWeight.SemiBold, color = Color.Black)
+                Icon(Icons.Default.Air, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text("Breathe with me", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
             }
         }
 

@@ -3,6 +3,7 @@ package com.safarparmar.app.ui.tour
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,9 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,14 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.safarparmar.app.R
-
-private val TourBrandBlue = Color(0xFF2E5BFF)
-private val TourModalNavy = Color(0xFF1A2236)
-private val TourBodyGray = Color(0xFFD1D5DB)
 
 @Composable
 fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
@@ -45,77 +41,73 @@ fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF0A0C10).copy(alpha = 0.72f)),
+                .background(Color.Black.copy(alpha = 0.56f)), // Standard scrim background
             contentAlignment = Alignment.Center,
         ) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
-                shape = RoundedCornerShape(8.dp),
-                color = TourModalNavy,
-                shadowElevation = 12.dp,
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.extraLarge),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shadowElevation = 6.dp,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 32.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(0.dp),
                 ) {
                     Text(
                         text = stringResource(R.string.tour_ask_title),
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        textAlign = TextAlign.Center,
-                        letterSpacing = (-0.25).sp,
-                        modifier = Modifier.padding(bottom = 24.dp),
-                    )
-
-                    Text(
-                        text = stringResource(R.string.tour_ask_body_primary),
-                        color = TourBodyGray,
-                        fontSize = 17.sp,
-                        lineHeight = 26.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
 
                     Text(
+                        text = stringResource(R.string.tour_ask_body_primary),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+
+                    Text(
                         text = buildAnnotatedString {
                             append(stringResource(R.string.tour_ask_body_secondary_prefix))
-                            withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.Bold)) {
+                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
                                 append(stringResource(R.string.tour_ask_body_secondary_highlight))
                             }
                             append(stringResource(R.string.tour_ask_body_secondary_suffix))
                         },
-                        color = TourBodyGray,
-                        fontSize = 17.sp,
-                        lineHeight = 26.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(bottom = 32.dp),
+                        modifier = Modifier.padding(bottom = 24.dp),
                     )
 
                     Button(
                         onClick = onYes,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(8.dp),
+                            .height(48.dp),
+                        shape = CircleShape, // pill shape for M3 button
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = TourBrandBlue,
-                            contentColor = Color.White,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                     ) {
                         Text(
                             text = stringResource(R.string.tour_ask_accept),
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.labelLarge,
                         )
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(8.dp))
 
                     TextButton(
                         onClick = onNo,
@@ -123,9 +115,9 @@ fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
                     ) {
                         Text(
                             text = stringResource(R.string.tour_ask_decline),
-                            color = TourBrandBlue,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.labelLarge,
                         )
                     }
                 }

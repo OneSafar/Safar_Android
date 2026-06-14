@@ -6,10 +6,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,7 +22,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -41,6 +46,11 @@ import com.safarparmar.app.util.bounceClick
 import com.safarparmar.app.notifications.NotificationPermissionRequest
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 
 private data class HomeSlide(
     val titleRes: Int,
@@ -49,6 +59,7 @@ private data class HomeSlide(
     val bgImageUrl: String,
     val route: String,
     val accentColor: Color,
+    val uiColor: Color,
 )
 
 private data class ToolCard(
@@ -57,41 +68,44 @@ private data class ToolCard(
     val route: String,
 )
 
-private val slides =
-        listOf(
-                HomeSlide(
-                        R.string.module_ekagra,
-                        "Boost Your\nProductivity",
-                        "Stay focused with your own Pomodoro\ntimer and track your work sessions",
-                        "img_ekagara.webp",
-                        Routes.EKAGRA,
-                        Sky600
-                ),
-                HomeSlide(
-                        R.string.module_nishtha,
-                        "Build Daily\nHabits",
-                        "Track consistency, journal, reflect\non your emotional state",
-                        "img_nishtha.webp",
-                        Routes.NISHTHA,
-                        Teal400
-                ),
-                HomeSlide(
-                        R.string.module_mehfil,
-                        "Capture Your\nThoughts",
-                        "Notes, ideas and reminders\n— All in one place",
-                        "img_mehefil.webp",
-                        Routes.MEHFIL,
-                        Orange500
-                ),
-                HomeSlide(
-                        R.string.module_dhyan,
-                        "Find Your\nInner Peace",
-                        "Meditation sessions with Parmar sir",
-                        "img_dhyan.webp",
-                        Routes.DHYAN,
-                        Violet600
-                ),
-        )
+private val slides = listOf(
+    HomeSlide(
+        R.string.module_ekagra,
+        "Boost Your\nProductivity",
+        "Stay focused with your own Pomodoro\ntimer and track your work sessions",
+        "img_ekagara.webp",
+        Routes.EKAGRA,
+        Color(0xFFAAC7FF),
+        Color(0xFF0A305F)
+    ),
+    HomeSlide(
+        R.string.module_nishtha,
+        "Build Daily\nHabits",
+        "Track consistency, journal, reflect\non your emotional state",
+        "img_nishtha.webp",
+        Routes.NISHTHA,
+        Color(0xFFA9D0B3),
+        Color(0xFF143723)
+    ),
+    HomeSlide(
+        R.string.module_mehfil,
+        "Capture Your\nThoughts",
+        "Notes, ideas and reminders\n— All in one place",
+        "img_mehefil.webp",
+        Routes.MEHFIL,
+        Color(0xFFFFB5A0),
+        Color(0xFF561F0F)
+    ),
+    HomeSlide(
+        R.string.module_dhyan,
+        "Find Your\nInner Peace",
+        "Meditation sessions with Parmar sir",
+        "img_dhyan.webp",
+        Routes.DHYAN,
+        Color(0xFFDDBCE0),
+        Color(0xFF3F2844)
+    ),
+)
 
 
 private val toolCards = listOf(
@@ -107,7 +121,6 @@ fun HomeScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     onNavigateToAuth: () -> Unit = {},
     dataStore: SafarDataStore? = null,
 ) {
@@ -130,6 +143,180 @@ fun HomeScreen(
         }
     }
 
+    var showBellDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // Fetch active notifications currently in the system tray for our app
+    val activeNotifications = remember(showBellDialog) {
+        if (showBellDialog) {
+            val notificationManager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+            try {
+                notificationManager?.activeNotifications?.mapNotNull { sbn ->
+                    val extras = sbn.notification.extras
+                    val title = extras.getString(android.app.Notification.EXTRA_TITLE)
+                    val text = extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+                    if (!title.isNullOrBlank() && !text.isNullOrBlank()) {
+                        title to text
+                    } else null
+                } ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    val appVersion = remember {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            packageInfo.versionName ?: "1.5.1"
+        } catch (e: Exception) {
+            "1.5.1"
+        }
+    }
+
+    if (showBellDialog) {
+        AlertDialog(
+            onDismissRequest = { showBellDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = null,
+                        tint = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Notifications",
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = LoraFontFamily,
+                        fontSize = 18.sp
+                    )
+                }
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Unseen Notifications Section
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Unseen Notifications:",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
+                        )
+
+                        if (activeNotifications.isEmpty()) {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "You're all caught up! No unseen alerts.",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 240.dp)
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                activeNotifications.forEach { (title, body) ->
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = title,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp
+                                            )
+                                            Text(
+                                                text = body,
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Divider line
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant)
+                    )
+
+                    // App Version Section
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "App Version",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "v$appVersion",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showBellDialog = false
+                        onNavigate(Routes.SETTINGS)
+                    }
+                ) {
+                    Text("Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBellDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
     SafarDrawerScaffold(
         title = "Home",
         subtitle = stringResource(R.string.app_name),
@@ -137,25 +324,33 @@ fun HomeScreen(
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        onLanguageClick = onLanguageClick,
         topBarContentColor = if (isDarkTheme) Color.White else Color.Black,
         emphasizeTopBar = true,
+        topBarActions = {
+            IconButton(onClick = { showBellDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Notifications & Updates",
+                    tint = if (isDarkTheme) Color.White else Color.Black
+                )
+            }
+        }
     ) { padding ->
-        val ctaPrimary = MaterialTheme.colorScheme.primary
-        val ctaOnPrimary = MaterialTheme.colorScheme.onPrimary
-
         val currentSlide = slides[currentPage]
-        val animateColor by animateColorAsState(
-            targetValue = currentSlide.accentColor,
-            animationSpec = tween(durationMillis = 1000),
-            label = "bg_color"
-        )
-        val baseBgColor = if (isDarkTheme) Color(0xFF0F1115) else Color(0xFFF8F6F2)
-        val dynamicGradient = remember(animateColor, baseBgColor) {
+        val ekagraSlide = slides[0]
+        val buttonColor = ekagraSlide.uiColor
+        val buttonTextColor = ekagraSlide.accentColor
+        
+        val descriptionTextColor = if (isDarkTheme) Color.White else buttonColor
+        val descriptionBorderColor = if (isDarkTheme) Color.White else buttonColor
+
+        val baseBgColor = MaterialTheme.colorScheme.background
+        val ekagraAccent = ekagraSlide.accentColor
+        val dynamicGradient = remember(baseBgColor) {
             Brush.verticalGradient(
                 colors = listOf(
-                    animateColor.copy(alpha = if (isDarkTheme) 0.25f else 0.35f),
-                    baseBgColor
+                    ekagraAccent.copy(alpha = if (isDarkTheme) 0.25f else 0.35f),
+                    baseBgColor.copy(alpha = if (isDarkTheme) 0.6f else 0.7f)
                 )
             )
         }
@@ -163,35 +358,65 @@ fun HomeScreen(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(dynamicGradient)
+                .background(baseBgColor)
         ) {
+            val bgImageRes = if (isDarkTheme) {
+                when (slides[currentPage].route) {
+                    Routes.EKAGRA -> R.drawable.ekagra_dark
+                    Routes.MEHFIL -> R.drawable.dark_mehfil
+                    Routes.DHYAN -> R.drawable.dark_dhyan
+                    else -> R.drawable.bg_home_dark
+                }
+            } else {
+                when (slides[currentPage].route) {
+                    Routes.EKAGRA -> R.drawable.ekagra_light
+                    Routes.MEHFIL -> R.drawable.light_mehfil
+                    Routes.DHYAN -> R.drawable.dhyan_liight
+                    else -> R.drawable.bg_home_light
+                }
+            }
+            Crossfade(
+                targetState = bgImageRes,
+                animationSpec = tween(durationMillis = 800),
+                label = "bg_image_fade"
+            ) { targetRes ->
+                Image(
+                    painter = painterResource(id = targetRes),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            if (isDarkTheme) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.35f))
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(dynamicGradient)
+            )
             val screenWidth = maxWidth
             val screenHeight = maxHeight
             val isCompactHeight = screenHeight < 760.dp
             val isNarrow = screenWidth < 380.dp
-            val descriptionFrameHeight = (screenHeight * if (isCompactHeight) 0.235f else 0.2376f)
-                .coerceIn(if (isCompactHeight) 164.dp else 176.dp, if (isCompactHeight) 198.dp else 228.dp)
-            val descriptionFrameWidth = if (isNarrow) 0.78f else 0.8f
-            val frameTextVerticalPadding = if (isCompactHeight) 16.dp else 22.dp
-            val headlineSize = if (isCompactHeight) 22.sp else 26.sp
-            val headlineLineHeight = if (isCompactHeight) 25.sp else 29.sp
-            val bottomPanelOffset = (screenHeight * if (isCompactHeight) 0.065f else 0.09f).coerceIn(52.dp, 104.dp)
+            val bottomPanelOffset = (screenHeight * if (isCompactHeight) 0.03f else 0.05f).coerceIn(24.dp, 64.dp)
             val bottomPanelSpacing = if (isCompactHeight) 12.dp else 16.dp
             val toolHorizontalPadding = if (isNarrow) 14.dp else 20.dp
             val ctaHorizontalPadding = if (isNarrow) 32.dp else 44.dp
 
-            // Description card box container matching Go to Dashboard CTA button color
-            val topOffset = padding.calculateTopPadding() + 24.dp
-            Box(
+            // Plain Description text overlay (no box container)
+            val topOffset = padding.calculateTopPadding() + 32.dp
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = topOffset)
-                    .fillMaxWidth(descriptionFrameWidth)
-                    .height(descriptionFrameHeight)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(ctaPrimary)
-                    .border(2.dp, ctaOnPrimary.copy(alpha = 0.2f), RoundedCornerShape(20.dp))
-                    .clickable { onNavigate(currentSlide.route) }
+                    .fillMaxWidth(if (isNarrow) 0.85f else 0.9f)
+                    .clickable { onNavigate(currentSlide.route) },
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Crossfade(
                     targetState = currentPage,
@@ -199,39 +424,47 @@ fun HomeScreen(
                     label = "text_fade"
                 ) { page ->
                     val slide = slides[page]
+                    val glowColor = if (isDarkTheme) {
+                        slide.accentColor
+                    } else {
+                        slide.accentColor.copy(alpha = 0.8f)
+                    }
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 20.dp, vertical = frameTextVerticalPadding),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = stringResource(slide.titleRes).uppercase(),
-                            fontSize = if (isCompactHeight) 10.sp else 11.sp,
+                            fontSize = if (isCompactHeight) 12.1.sp else 13.2.sp,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            color = ctaOnPrimary.copy(alpha = 0.8f),
+                            letterSpacing = 3.sp,
+                            color = descriptionTextColor.copy(alpha = 0.85f),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                shadow = Shadow(
+                                    color = glowColor.copy(alpha = 0.6f),
+                                    offset = Offset(0f, 0f),
+                                    blurRadius = 12f
+                                )
+                            ),
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = if (isCompactHeight) 8.dp else 12.dp)
+                            modifier = Modifier.padding(bottom = if (isCompactHeight) 4.dp else 6.dp)
                         )
                         Text(
                             text = slide.headline,
                             fontFamily = LoraFontFamily,
-                            fontSize = headlineSize,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ctaOnPrimary,
+                            fontSize = if (isCompactHeight) 24.sp else 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = descriptionTextColor,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                shadow = Shadow(
+                                    color = glowColor,
+                                    offset = Offset(0f, 0f),
+                                    blurRadius = 16f
+                                )
+                            ),
                             textAlign = TextAlign.Center,
-                            lineHeight = headlineLineHeight,
-                            modifier = Modifier.padding(bottom = if (isCompactHeight) 6.dp else 10.dp)
-                        )
-                        Text(
-                            text = slide.body,
-                            fontSize = if (isCompactHeight) 11.sp else 12.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = ctaOnPrimary.copy(alpha = 0.85f),
-                            textAlign = TextAlign.Center,
-                            lineHeight = if (isCompactHeight) 14.sp else 16.sp
+                            lineHeight = if (isCompactHeight) 28.sp else 32.sp
                         )
                     }
                 }
@@ -246,57 +479,60 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(bottomPanelSpacing),
             ) {
-                // 4 tool cards — each card wrapped in a weight Box so scale overflow
-                // stays within the allocated slot (no cross-card overlap)
-                Row(
+                // 2x2 grid of tools (cube formation)
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = toolHorizontalPadding),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    toolCards.forEach { tool ->
-                        val isActive = slides[currentPage].route == tool.route
-                        Box(
-                            modifier = Modifier.weight(1f),
-                            contentAlignment = Alignment.Center,
+                    val rows = toolCards.chunked(2)
+                    rows.forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(if (isNarrow) 0.82f else 0.78f),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            ToolImageCard(
-                                tool = tool,
-                                isActive = isActive,
-                                isDarkTheme = isDarkTheme,
-                                borderColor = ctaPrimary,
-                                onClick = { onNavigate(tool.route) },
-                                modifier = Modifier.fillMaxWidth(0.902f), // +10% vs 0.82f
-                            )
+                            rowItems.forEach { tool ->
+                                val isActive = slides[currentPage].route == tool.route
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    ToolImageCard(
+                                        tool = tool,
+                                        isActive = isActive,
+                                        isDarkTheme = isDarkTheme,
+                                        borderColor = buttonColor,
+                                        onClick = { onNavigate(tool.route) },
+                                        modifier = Modifier.fillMaxWidth(0.92f),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                Box(
+                Button(
+                    onClick = { onNavigate(Routes.DASHBOARD) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = ctaHorizontalPadding)
                         .height(if (isCompactHeight) 48.dp else 50.dp),
-                    contentAlignment = Alignment.Center
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = buttonColor,
+                        contentColor = buttonTextColor
+                    ),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, buttonColor.copy(alpha = 0.85f)),
+                    contentPadding = PaddingValues(0.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clip(RoundedCornerShape(50))
-                            .background(ctaPrimary)
-                            .border(1.dp, ctaPrimary.copy(alpha = 0.85f), RoundedCornerShape(50))
-                            .semantics { role = Role.Button }
-                            .clickable { onNavigate(Routes.DASHBOARD) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "✦   GO TO DASHBOARD   ✦",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            letterSpacing = 2.sp,
-                            color = ctaOnPrimary,
-                        )
-                    }
+                    Text(
+                        "✦   GO TO DASHBOARD   ✦",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        letterSpacing = 2.sp,
+                    )
                 }
             }
         }

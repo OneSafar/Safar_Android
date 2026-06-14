@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Allow PackageManager to resolve launchable apps for the app picker. -->
     <queries>
         <intent>
@@ -32,6 +33,7 @@
             android:theme="@style/Theme.App.Starting"
             android:windowSoftInputMode="adjustResize"
             android:supportsPictureInPicture="true"
+            android:screenOrientation="portrait"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -46,6 +48,17 @@
                 <data android:scheme="safar" />
             </intent-filter>
         </activity>
+
+        <!-- Dedicated full-screen video player Activity.
+             Plain Android Activity (no Compose) so the WebView's SurfaceView
+             can composite video frames correctly without any Compose layering conflicts. -->
+        <activity
+            android:name=".feature.live.presentation.VideoPlayerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Safar"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden" />
+
+
 
         <service
             android:name=".notifications.SafarFirebaseMessagingService"
@@ -70,25 +83,26 @@
             android:foregroundServiceType="mediaPlayback"
             android:exported="false" />
 
-        <service
-            android:name=".ui.ekagra.focusshield.FocusShieldAccessibilityService"
-            android:exported="true"
-            android:label="@string/focus_shield_accessibility_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/focus_shield_accessibility_service" />
-        </service>
-
         <activity
             android:name=".ui.ekagra.focusshield.BlockedAppActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleTop"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Safar" />
+
+        <!-- Reschedule notification workers after device boot or app update.
+             Cat-7 P1 fix: ensures study reminders, planner alerts, and morning nudges
+             survive device reboots and app updates without waiting for cold launch. -->
+        <receiver
+            android:name=".notifications.NotificationRescheduleReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

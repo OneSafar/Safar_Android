@@ -3,6 +3,7 @@ package com.safarparmar.app.ui.ekagra.focusshield
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -335,83 +336,82 @@ fun KavachPermissionDisclosureCard(
 ) {
     val scheme = MaterialTheme.colorScheme
     val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
-    val requiredReady = hasUsageStats && (!accessibilityRequired || hasAccessibilityService)
 
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = KavachDesign.Surface),
+        colors = CardDefaults.cardColors(containerColor = scheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, scheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Icon(
-                    Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = KavachDesign.Primary,
-                    modifier = Modifier.size(24.dp),
-                )
-                Text(
-                    text = "Small Setup Needed",
-                    fontSize = 17.sp,
-                    lineHeight = 22.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = scheme.onSurface,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(scheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = scheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Column {
+                    Text(
+                        text = "Almost ready! 🎯",
+                        fontSize = 17.sp,
+                        lineHeight = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.kavach_permissions_needed),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = scheme.onSurfaceVariant,
+                    )
+                }
             }
-            Text(
-                text = "Android asks for permission before KAVACH can block apps.",
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = scheme.onSurface,
-            )
-            Text(
-                text = "SAFAR only uses this for KAVACH. We do not read chats, passwords, photos, or private content.",
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = scheme.onSurfaceVariant,
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.5f), thickness = 1.dp)
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 KavachPermissionStatusRow(
                     title = "App Check",
-                    body = "Checks when a selected app opens.",
+                    body = "Detects when blocked apps open.",
                     granted = hasUsageStats,
                     required = true,
                     onClick = onOpenUsageAccess,
                 )
                 if (accessibilityRequired) {
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
                     KavachPermissionStatusRow(
                         title = "Block Screen",
-                        body = "Shows KAVACH when a blocked app opens.",
+                        body = "Shows block screen over distractions.",
                         granted = hasAccessibilityService,
                         required = true,
                         onClick = onOpenAccessibility,
                     )
                 }
+                HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
                 KavachPermissionStatusRow(
                     title = "Notifications",
-                    body = "Shows Ekagra timer updates.",
+                    body = "Shows timer progress on lock screen.",
                     granted = hasNotifications,
                     required = false,
                     onClick = onOpenNotifications,
                 )
             }
-            Text(
-                text = stringResource(
-                    if (requiredReady) R.string.kavach_permissions_ready
-                    else R.string.kavach_permissions_needed,
-                ),
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (requiredReady) KavachStatusText else scheme.onSurfaceVariant,
-            )
         }
     }
 }
@@ -436,34 +436,57 @@ private fun KavachPermissionStatusRow(
         Column(Modifier.weight(1f)) {
             Text(
                 text = title,
-                fontSize = 16.sp,
-                lineHeight = 20.sp,
-                fontWeight = FontWeight.Medium,
-                color = KavachDesign.TextMain,
+                fontSize = 15.sp,
+                lineHeight = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface,
             )
             Text(
                 text = body,
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
-                color = KavachDesign.TextMuted,
+                color = scheme.onSurfaceVariant,
             )
         }
-        Text(
-            text = when {
-                granted -> "Ready"
-                required -> "Needed"
-                else -> "Optional"
-            },
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(
-                    if (granted) KavachDesign.SuccessBg else KavachDesign.SurfaceHighlight,
+        if (granted) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(KavachDesign.SuccessBg)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = KavachDesign.SuccessText,
+                    modifier = Modifier.size(14.dp),
                 )
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (granted) KavachDesign.SuccessText else KavachDesign.TextMuted,
-        )
+                Text(
+                    text = "Ready",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KavachDesign.SuccessText,
+                )
+            }
+        } else {
+            Button(
+                onClick = onClick,
+                shape = RoundedCornerShape(999.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    horizontal = 14.dp,
+                    vertical = 4.dp,
+                ),
+                modifier = Modifier.heightIn(min = 32.dp),
+            ) {
+                Text(
+                    text = if (required) "Allow" else "Optional",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
     }
 }
 

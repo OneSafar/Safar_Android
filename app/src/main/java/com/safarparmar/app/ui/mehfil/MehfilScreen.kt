@@ -26,7 +26,6 @@ fun MehfilScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     viewModel: MehfilViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -157,7 +156,7 @@ fun MehfilScreen(
             onDismiss = viewModel::dismissPremiumGate,
             onViewPlans = {
                 viewModel.dismissPremiumGate()
-                Toast.makeText(context, "Plans coming soon", Toast.LENGTH_SHORT).show()
+                onNavigate(Routes.PREMIUM)
             },
         )
     }
@@ -171,7 +170,6 @@ fun MehfilScreen(
         searchQuery = searchQuery,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        onLanguageClick = onLanguageClick,
         onTabSelected = { selectedTab = it },
         onSearchActiveChange = {
             searchActive = it

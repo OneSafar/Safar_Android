@@ -24,6 +24,7 @@ fun SafarEmptyState(
     modifier: Modifier = Modifier,
     message: String? = null,
     icon: ImageVector? = null,
+    iconContentDescription: String? = null,
     primaryActionLabel: String? = null,
     onPrimaryAction: (() -> Unit)? = null,
     secondaryActionLabel: String? = null,
@@ -39,7 +40,7 @@ fun SafarEmptyState(
         if (icon != null) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = iconContentDescription,
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )

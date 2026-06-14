@@ -35,7 +35,6 @@ import com.safarparmar.app.ui.nishtha.NishthaEvent
 import com.safarparmar.app.ui.nishtha.NishthaViewModel
 import com.safarparmar.app.ui.components.GoalRowSkeleton
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
-import com.safarparmar.app.ui.theme.*
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -97,7 +96,7 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                 if (promptContext != null) {
                     Box(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .background(Violet500.copy(alpha = 0.10f))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
                             .padding(horizontal = 12.dp, vertical = 10.dp)
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -105,9 +104,9 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                                 painter = androidx.compose.ui.res.painterResource(id = com.safarparmar.app.R.drawable.ic_sparkle),
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
-                                tint = Violet600
+                                tint = MaterialTheme.colorScheme.primary
                             )
-                            Text(promptContext!!, fontSize = 13.sp, color = Violet600, fontStyle = FontStyle.Italic, lineHeight = 19.sp)
+                            Text(promptContext!!, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary, fontStyle = FontStyle.Italic, lineHeight = 19.sp)
                         }
                     }
                 }
@@ -173,7 +172,7 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                                 journalPrompts[page],
                                 fontSize = 14.sp,
                                 lineHeight = 20.sp,
-                                color = Violet600,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontStyle = FontStyle.Italic,
                             )
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -264,7 +263,7 @@ private fun JournalCard(entry: JournalEntry) {
 
     Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(dateStr, fontSize = 11.sp, color = Emerald500, fontWeight = FontWeight.Medium)
+            Text(dateStr, fontSize = 11.sp, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Medium)
             if (title != null) Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold))
             Text(preview, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, lineHeight = 19.sp)
         }

@@ -69,8 +69,13 @@ class SafarNotificationManager(
         ongoing: Boolean = false,
         onlyAlertOnce: Boolean = false,
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
+        // P2 fix: accept optional action buttons (used by study reminder "Start Now")
+        actions: List<NotificationCompat.Action> = emptyList(),
     ): Notification {
         val normalizedChannel = SafarNotificationChannels.normalize(channelId)
+        // P2 fix: tag every notification with its channel-scoped group key so that
+        // Android can automatically collapse stacked notifications in the shade.
+        val groupKey = groupKeyForChannel(normalizedChannel)
         val contentIntent = PendingIntent.getActivity(
             context,
             deepLink.hashCode(),
@@ -78,7 +83,7 @@ class SafarNotificationManager(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        return NotificationCompat.Builder(context, normalizedChannel)
+        val builder = NotificationCompat.Builder(context, normalizedChannel)
             .setSmallIcon(SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationStyle.brandColor(context))
             .setContentTitle(title)
@@ -89,8 +94,46 @@ class SafarNotificationManager(
             .setOngoing(ongoing)
             .setOnlyAlertOnce(onlyAlertOnce)
             .setPriority(priority)
-            .build()
+            .setGroup(groupKey)
+
+        actions.forEach { builder.addAction(it) }
+
+        return builder.build()
     }
+
+    /**
+     * Posts an invisible group-summary notification for the given channel.
+     * This is required by Android to actually collapse multiple child notifications
+     * into a single grouped bundle in the notification shade.
+     *
+     * Must be called AFTER posting the individual child notification.
+     */
+    private fun postGroupSummary(channelId: String) {
+        val normalizedChannel = SafarNotificationChannels.normalize(channelId)
+        val groupKey = groupKeyForChannel(normalizedChannel)
+        val summaryId = groupSummaryIdForChannel(normalizedChannel)
+
+        val summaryNotification = NotificationCompat.Builder(context, normalizedChannel)
+            .setSmallIcon(SafarNotificationStyle.smallIconRes(context))
+            .setColor(SafarNotificationStyle.brandColor(context))
+            .setGroup(groupKey)
+            .setGroupSummary(true)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(summaryId, summaryNotification)
+    }
+
+    /** Channel-scoped group key for the notification shade bundling. */
+    private fun groupKeyForChannel(channelId: String): String = "safar_group_$channelId"
+
+    /**
+     * Deterministic, channel-scoped summary ID.
+     * Reserved range [1_000..1_999] — well outside the [10_000..90_000] range
+     * used by [stableNotificationId] for regular notifications.
+     */
+    private fun groupSummaryIdForChannel(channelId: String): Int =
+        1_000 + (channelId.hashCode() and 0x7FFF) % 999
 
     object SafarNotificationStyle {
         private const val NOTIFICATION_SPARKLE_WHITE = 0xFFFFFFFF.toInt()
@@ -112,6 +155,18 @@ class SafarNotificationManager(
         return (hash % 80_000) + 10_000
     }
 
+    /**
+     * Well-known notification type constants.
+     * The server FCM payload MUST use the same `type` string so that
+     * [stableNotificationId] produces identical IDs for both local and
+     * remote notifications — enabling automatic deduplication.
+     */
+    object DedupeType {
+        const val STUDY_REMINDER = "study_reminder"
+        const val MORNING_NUDGE = "morning_nudge"
+        const val PLANNER_ALERT = "planner_alert"
+    }
+
     suspend fun show(
         title: String,
         body: String,
@@ -120,8 +175,12 @@ class SafarNotificationManager(
         notificationId: Int? = null,
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
         onlyAlertOnce: Boolean = false,
+        actions: List<NotificationCompat.Action> = emptyList(),
+        /** Optional dedup type — ensures FCM and local notifications for the same
+         *  logical event produce the same [stableNotificationId]. */
+        dedupeType: String? = null,
     ) {
-        val resolvedId = notificationId ?: stableNotificationId(type = null, deepLink = deepLink, title = title)
+        val resolvedId = notificationId ?: stableNotificationId(type = dedupeType, deepLink = deepLink, title = title)
         val normalizedChannel = SafarNotificationChannels.normalize(channelId)
         if (evaluateNotificationAvailability(normalizedChannel).reason != NotificationAvailabilityReason.allowed) {
             return
@@ -136,7 +195,50 @@ class SafarNotificationManager(
                 deepLink = deepLink,
                 priority = priority,
                 onlyAlertOnce = onlyAlertOnce,
+                actions = actions,
             ),
+        )
+        // P2 fix: post group summary so Android collapses stacked channel notifications
+        postGroupSummary(normalizedChannel)
+    }
+
+    /**
+     * Convenience wrapper that attaches a **"Start Now"** action button to study-reminder
+     * notifications so users can jump directly into the Ekagra focus timer with one tap.
+     *
+     * Uses [DedupeType.STUDY_REMINDER] so that if the server also sends an FCM push
+     * with `type: "study_reminder"` for the same deep link, both produce the same
+     * notification ID and Android shows only one instead of duplicates.
+     */
+    suspend fun showStudyReminder(
+        title: String,
+        body: String,
+        deepLink: String? = "safar://ekagra",
+        notificationId: Int? = null,
+        priority: Int = NotificationCompat.PRIORITY_DEFAULT,
+        dedupeType: String = DedupeType.STUDY_REMINDER,
+    ) {
+        val startNowIntent = PendingIntent.getActivity(
+            context,
+            "start_now_$deepLink".hashCode(),
+            NotificationDeepLinkHandler.activityIntent(context, deepLink ?: "safar://ekagra"),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val startNowAction = NotificationCompat.Action(
+            R.drawable.ic_safar_notification_sparkle,
+            context.getString(R.string.notification_action_start_now),
+            startNowIntent,
+        )
+
+        show(
+            title = title,
+            body = body,
+            channelId = SafarNotificationChannels.STUDY_REMINDERS,
+            deepLink = deepLink,
+            notificationId = notificationId,
+            priority = priority,
+            actions = listOf(startNowAction),
+            dedupeType = dedupeType,
         )
     }
 

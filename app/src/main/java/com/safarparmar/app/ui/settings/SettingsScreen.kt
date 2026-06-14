@@ -24,7 +24,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -95,28 +94,19 @@ private fun isValidReminderTimeInput(value: String): Boolean {
     return hour in 0..23 && minute in 0..59
 }
 
-private fun languageDisplay(code: String): String = when (code) {
-    "hi" -> "हिन्दी"
-    else -> "English"
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     isDarkTheme: Boolean = false,
-    isNightMode: Boolean = false,
     onBack: () -> Unit,
     onHome: () -> Unit = {},
     onToggleDarkTheme: () -> Unit,
-    onToggleNightMode: () -> Unit = {},
     dataStore: SafarDataStore,
-    onLanguageClick: () -> Unit = {},
     canAccessAdminComposer: Boolean = false,
     onOpenAdminNotificationComposer: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentLanguage by dataStore.language.collectAsStateWithLifecycle(initialValue = "en")
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -229,7 +219,7 @@ fun SettingsScreen(
             ) {
                 ProfileSectionCard(title = "Appearance & about", icon = Icons.Default.Tune) {
                     Text(
-                        "Sun/moon toggles light and dark. Dim mode is a warm low-light theme for reading.",
+                        "Sun/moon toggles light and dark theme.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -239,28 +229,6 @@ fun SettingsScreen(
                         checked = isDarkTheme,
                         onCheckedChange = { onToggleDarkTheme() },
                     )
-                    NotificationToggleRow(
-                        title = "Dim mode (night reading)",
-                        subtitle = if (isNightMode) "On — warm dim surfaces" else "Off",
-                        checked = isNightMode,
-                        onCheckedChange = { onToggleNightMode() },
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.Language, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
-                            Column {
-                                Text("Language", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                                Text(languageDisplay(currentLanguage), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                        TextButton(onClick = onLanguageClick) {
-                            Text("Change")
-                        }
-                    }
                     Text(
                         "Version ${BuildConfig.VERSION_NAME.substringBefore('-')}",
                         style = MaterialTheme.typography.bodySmall,

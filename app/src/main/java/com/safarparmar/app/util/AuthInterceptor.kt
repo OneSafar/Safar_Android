@@ -19,10 +19,9 @@ class AuthInterceptor @Inject constructor(
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val token    = runBlocking { dataStore.authToken.first() }
-        val language = runBlocking { dataStore.language.first() }
         val request  = chain.request().newBuilder().apply {
             token?.let { addHeader("Authorization", "Bearer $it") }
-            addHeader("Accept-Language", language)
+            addHeader("Accept-Language", "en")
         }.build()
         var response = chain.proceed(request)
         if (response.code == 401 && shouldAttemptRefresh(request.url.encodedPath)) {

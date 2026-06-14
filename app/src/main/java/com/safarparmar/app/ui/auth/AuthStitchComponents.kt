@@ -56,8 +56,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.safarparmar.app.ui.theme.DarkExpressiveGradient
-import com.safarparmar.app.ui.theme.LightExpressiveGradient
 import com.safarparmar.app.ui.theme.isLightBackground
 
 @Composable
@@ -69,13 +67,10 @@ fun AuthStitchScaffold(
     content: @Composable () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val gradient = if (isDark) DarkExpressiveGradient else LightExpressiveGradient
-
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(gradient)
-            .background(scheme.background.copy(alpha = if (isDark) 0.72f else 0.55f)),
+            .background(scheme.background),
     ) {
         Column(
             modifier = Modifier
@@ -189,6 +184,7 @@ fun AuthStitchTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     leadingIcon: ImageVector,
+    leadingIconDescription: String? = null,
     modifier: Modifier = Modifier,
     isError: Boolean = false,
     singleLine: Boolean = true,
@@ -212,7 +208,7 @@ fun AuthStitchTextField(
         leadingIcon = {
             Icon(
                 imageVector = leadingIcon,
-                contentDescription = null,
+                contentDescription = leadingIconDescription,
                 tint = scheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
@@ -256,6 +252,7 @@ fun AuthStitchPasswordField(
         onValueChange = onValueChange,
         placeholder = placeholder,
         leadingIcon = Icons.Default.Lock,
+        leadingIconDescription = "Password",
         modifier = modifier,
         isError = isError,
         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -263,7 +260,7 @@ fun AuthStitchPasswordField(
             IconButton(onClick = onToggleVisibility) {
                 Icon(
                     imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                    contentDescription = null,
+                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
                     tint = scheme.onSurfaceVariant,
                 )
             }

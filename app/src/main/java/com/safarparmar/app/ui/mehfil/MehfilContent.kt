@@ -73,7 +73,6 @@ internal fun MehfilContent(
     searchQuery: String,
     onNavigate: (String) -> Unit,
     onToggleDarkTheme: () -> Unit,
-    onLanguageClick: () -> Unit,
     onTabSelected: (MehfilTab) -> Unit,
     onSearchActiveChange: (Boolean) -> Unit,
     onSearchQueryChange: (String) -> Unit,
@@ -103,7 +102,6 @@ internal fun MehfilContent(
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        onLanguageClick = onLanguageClick,
         topBarActions = {
             IconButton(onClick = { onSearchActiveChange(!searchActive) }) {
                 Icon(if (searchActive) Icons.Default.Close else Icons.Default.Search, contentDescription = "Search")

@@ -10,7 +10,6 @@ fun StudyPlannerScreen(
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     viewModel: StudyPlannerViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     com.safarparmar.app.ui.studyplanner.screens.StudyPlannerScreen(
@@ -19,7 +18,6 @@ fun StudyPlannerScreen(
         onNavigate = onNavigate,
         onBack = onBack,
         onToggleDarkTheme = onToggleDarkTheme,
-        onLanguageClick = onLanguageClick,
         viewModel = viewModel,
     )
 }

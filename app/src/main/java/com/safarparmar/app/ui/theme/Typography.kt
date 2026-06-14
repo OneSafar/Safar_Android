@@ -7,10 +7,24 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.R
+import androidx.compose.ui.text.googlefonts.GoogleFont
 
-val PoppinsFontFamily = FontFamily.Default
+val provider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs
+)
 
-val LoraFontFamily = FontFamily.Default
+val MulishFontFamily = FontFamily(
+    androidx.compose.ui.text.googlefonts.Font(
+        googleFont = GoogleFont("Mulish"),
+        fontProvider = provider,
+    )
+)
+
+val PoppinsFontFamily = MulishFontFamily
+
+val LoraFontFamily = MulishFontFamily
 
 val SafarTypography = Typography(
     displayLarge  = TextStyle(fontFamily = LoraFontFamily, fontWeight = FontWeight.Bold,     fontSize = 57.sp, lineHeight = 64.sp, letterSpacing = (-0.25).sp),

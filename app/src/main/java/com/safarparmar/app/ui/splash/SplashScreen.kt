@@ -126,19 +126,11 @@ fun SplashScreen(
     }
     
     // Atmospheric Radial Gradient
-    val backgroundBrush = if (isDarkTheme) {
-        Brush.radialGradient(
-            colors = listOf(Color(0xFF131A26), Color.Black), // Deep Slate/Navy to Black
-            center = Offset(0.5f, 0.4f),
-            radius = 2000f
-        )
-    } else {
-        Brush.radialGradient(
-            colors = listOf(Color(0xFFFCF9F2), Color(0xFFF8F6F2)), // Faint Cream to BgLight
-            center = Offset(0.5f, 0.4f),
-            radius = 2000f
-        )
-    }
+    val backgroundBrush = Brush.radialGradient(
+        colors = listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.background),
+        center = Offset(0.5f, 0.4f),
+        radius = 2000f
+    )
 
     Column(
         modifier = Modifier
@@ -167,7 +159,7 @@ fun SplashScreen(
                 text = "Your Marks Matter, But So Does Your Mind",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isDarkTheme) Color.White.copy(alpha = 0.9f) else Color(0xFF2D3748),
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 17.sp,
                     letterSpacing = 0.4.sp
                 ),

@@ -290,7 +290,6 @@ fun AdminNotificationComposerScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     viewModel: AdminNotificationComposerViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -337,7 +336,6 @@ fun AdminNotificationComposerScreen(
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        onLanguageClick = onLanguageClick,
     ) { padding ->
         ComposerContent(
             padding = padding,

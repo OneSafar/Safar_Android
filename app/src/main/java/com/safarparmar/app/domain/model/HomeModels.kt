@@ -1,5 +1,8 @@
 package com.safarparmar.app.domain.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class Streaks(
     val loginStreak: Int = 0,
     val checkInStreak: Int = 0,
@@ -7,6 +10,7 @@ data class Streaks(
     val lastActiveDate: String? = null
 )
 
+@Immutable
 data class Mood(
     val id: String = "",
     val mood: String = "",
@@ -15,6 +19,7 @@ data class Mood(
     val timestamp: String = ""
 )
 
+@Immutable
 data class Goal(
     val id: String = "",
     val userId: String = "",
@@ -49,38 +54,45 @@ data class Goal(
     val subtasks: List<GoalSubtask> = emptyList()
 )
 
+@Immutable
 data class GoalSubtask(
     val id: String = "",
     val text: String = "",
     val done: Boolean = false
 )
 
+@Immutable
 data class GoalFocusSummary(
     val allTime: Map<String, GoalFocusStats> = emptyMap(),
     val forDay: Map<String, GoalFocusStats> = emptyMap()
 )
 
+@Immutable
 data class GoalFocusStats(
     val totalMinutes: Int = 0,
     val sessionCount: Int = 0
 )
 
+@Immutable
 data class GoalRolloverResult(
     val message: String = "",
     val goal: Goal? = null
 )
 
+@Immutable
 data class RepeatPlanResult(
     val message: String = "",
     val goals: List<Goal> = emptyList()
 )
 
+@Immutable
 data class JournalEntry(
     val id: String = "",
     val content: String = "",
     val timestamp: String = ""
 )
 
+@Immutable
 data class MonthlyReport(
     val month: String = "",
     val generatedAt: String = "",
@@ -102,10 +114,14 @@ data class MonthlyReport(
     val heatmap: List<HeatmapDay> = emptyList()
 )
 
+@Immutable
 data class RadarItem(val subject: String = "", val score: Double = 0.0, val fullMark: Int = 100)
+@Immutable
 data class HeatmapDay(val date: String = "", val dayOfWeek: String = "", val value: Int = 0, val intensity: Int = 0)
+@Immutable
 data class ActiveTitle(val title: String = "", val selectedId: String = "")
 
+@Immutable
 data class Achievement(
     val id: String = "",
     val name: String = "",
@@ -122,8 +138,10 @@ data class Achievement(
     val targetValue: Int = 0
 )
 
+@Immutable
 data class LoginHistoryEntry(val timestamp: String = "")
 
+@Immutable
 data class EkagraAnalyticsStats(
     val totalFocusMinutes: Int = 0,
     val totalBreakMinutes: Int = 0,
@@ -147,12 +165,14 @@ data class EkagraAnalyticsStats(
     val timerDurationUsage: List<EkagraTimerDurationUsage> = emptyList()
 )
 
+@Immutable
 data class EkagraTimerDurationUsage(
     val durationMinutes: Int = 0,
     val count: Int = 0,
     val sessionType: String = "focus"
 )
 
+@Immutable
 data class EkagraAnalyticsRecentSession(
     val id: String = "",
     val startedAt: String? = null,
@@ -166,6 +186,7 @@ data class EkagraAnalyticsRecentSession(
     val sessionType: String = "focus"
 )
 
+@Immutable
 data class EkagraAnalyticsFocusSession(
     val id: String = "",
     val startedAt: String? = null,

@@ -26,6 +26,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -75,12 +76,14 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Warning
@@ -130,6 +133,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -220,7 +224,12 @@ import java.util.Locale
 import kotlin.math.max
 
 @Composable
-internal fun InsightsTab(plan: StudyPlan, state: StudyPlannerUiState, actions: PlannerActions) {
+internal fun InsightsTab(
+    plan: StudyPlan,
+    state: StudyPlannerUiState,
+    actions: PlannerActions,
+    onUpgrade: () -> Unit = {},
+) {
     val insights = remember(plan, state.calendar, state.analytics) {
         PlannerInsightsCalculator.compute(plan, state.calendar, state.analytics)
     }
@@ -259,64 +268,132 @@ internal fun InsightsTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
         buildInsightsPaceMessage(s, insights.backlog, dailyGoal, pace)
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            InsightsTopHeader(
-                plan = plan,
-                days = days
-            )
-        }
-
-        item {
-            NextBestActionsPanel(
-                plan = plan,
-                insights = insights,
-                days = days,
-                actions = actions
-            )
-        }
-
-        paceBannerMessage?.let { message ->
-            item { InsightsPaceBanner(message) }
-        }
-
-        item {
-            ConsistencyStreakCard(consistency = insights.consistency)
-        }
-
-
-
-        if (insights.laggingChapters.isNotEmpty()) {
-            item {
-                InsightsLaggingSubjectsCard(chapters = insights.laggingChapters.take(5))
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Show first ~40% of the screen: header + next actions + pace banner hint
+        Column(
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
+                    InsightsTopHeader(plan = plan, days = days)
+                }
+                item {
+                    NextBestActionsPanel(
+                        plan = plan,
+                        insights = insights,
+                        days = days,
+                        actions = actions
+                    )
+                }
+                paceBannerMessage?.let { message ->
+                    item { InsightsPaceBanner(message) }
+                }
+                item {
+                    ConsistencyStreakCard(consistency = insights.consistency)
+                }
             }
         }
-
-        item {
-            OverallProgressCard(
-                completionPercent = s.completionPercent,
-                doneTopics = doneTopics,
-                totalTopics = totalTopics,
-                remaining = remaining,
-                days = days,
-                dailyGoal = dailyGoal,
-            )
-        }
-
-        item {
-            SubjectProgressCard(
-                rows = insights.subjectRows,
-                subjectCount = subjectCount,
-                subjectIndexById = subjectIndexById,
-            )
-        }
+        // Premium lock overlay — gradient fade + lock gate
+        InsightsPremiumLockOverlay(
+            onUpgrade = onUpgrade,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
+@Composable
+private fun InsightsPremiumLockOverlay(
+    onUpgrade: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val bg = scheme.background
+    val gradient = Brush.verticalGradient(
+        colorStops = arrayOf(
+            0.00f to Color.Transparent,
+            0.25f to bg.copy(alpha = 0.88f),
+            0.45f to bg,
+        )
+    )
+    Box(
+        modifier = modifier
+            .background(gradient)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures { _, _ -> }
+            }
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null,
+                onClick = onUpgrade
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center)
+                .padding(horizontal = 32.dp)
+                .padding(top = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                scheme.primary.copy(alpha = 0.28f),
+                                scheme.primary.copy(alpha = 0.08f),
+                                Color.Transparent,
+                            )
+                        ),
+                        CircleShape,
+                    )
+                    .border(1.5.dp, Brush.linearGradient(
+                        listOf(scheme.primary.copy(alpha = 0.6f), scheme.secondary.copy(alpha = 0.3f))
+                    ), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Premium feature",
+                    tint = scheme.primary,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+            Text(
+                text = "Premium Feature",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = scheme.onBackground,
+            )
+            Text(
+                text = "See chapters that need attention, overdue topics,\nand topics per day needed before your exam.",
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                color = scheme.onSurfaceVariant,
+                lineHeight = 19.sp,
+            )
+            Button(
+                onClick = onUpgrade,
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = scheme.primary,
+                    contentColor = scheme.onPrimary,
+                ),
+                modifier = Modifier.fillMaxWidth(0.75f),
+            ) {
+                Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Upgrade to Premium", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
 
 internal fun buildInsightsPaceMessage(
     summary: PlannerInsightSummary,

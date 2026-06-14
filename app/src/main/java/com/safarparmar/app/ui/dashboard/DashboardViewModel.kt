@@ -17,9 +17,12 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 import android.content.Context
+import android.util.Log
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.safarparmar.app.notifications.SafarNotificationManager
 import com.safarparmar.app.notifications.SafarNotificationChannels
+import kotlinx.coroutines.CoroutineExceptionHandler
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
@@ -31,6 +34,16 @@ class DashboardViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState = _uiState.asStateFlow()
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e("DashboardViewModel", "Dashboard load failed", throwable)
+        FirebaseCrashlytics.getInstance().recordException(throwable)
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                error = throwable.localizedMessage ?: "Dashboard could not load. Pull to refresh.",
+            )
+        }
+    }
 
     init { loadAll() }
 
@@ -47,7 +60,7 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun loadAll() {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             val streaksD      = async { homeRepository.getStreaks() }

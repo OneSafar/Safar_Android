@@ -51,7 +51,6 @@ fun DashboardScreen(
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
     onToggleNightMode: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -64,7 +63,6 @@ fun DashboardScreen(
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        onLanguageClick = onLanguageClick,
         topBarActions = {
             IconButton(onClick = onProfileClick) {
                 Box(
@@ -380,12 +378,12 @@ private fun ActiveTitleCard(title: String, titleId: String, isDark: Boolean) {
     }
     Box(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
-            .background(BgDark)
+            .background(MaterialTheme.colorScheme.primaryContainer)
             .padding(20.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text("CURRENT TITLE", fontSize = 10.sp, letterSpacing = 2.sp,
-                color = Color.White.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(12.dp))
             if (imageUrl != null) {
                 AsyncImage(
@@ -396,14 +394,14 @@ private fun ActiveTitleCard(title: String, titleId: String, isDark: Boolean) {
             } else {
                 Box(
                     Modifier.size(72.dp).clip(CircleShape)
-                        .background(Brush.radialGradient(listOf(BrandTeal, BgDark))),
+                        .background(Brush.radialGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer))),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_zap), contentDescription = null, modifier = Modifier.size(28.dp), tint = BrandTeal)
+                    Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_zap), contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -569,7 +567,7 @@ private fun BadgesCard(earned: List<Achievement>, all: List<Achievement>, isDark
                             modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp))
                         )
                     } else {
-                        Icon(painter = androidx.compose.ui.res.painterResource(id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(26.dp), tint = Amber500)
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(26.dp), tint = MaterialTheme.colorScheme.tertiary)
                     }
                     Text(
                         achievement.name,
@@ -625,7 +623,7 @@ private fun AchievementDetailDialog(achievement: Achievement, onDismiss: () -> U
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(painter = androidx.compose.ui.res.painterResource(id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(36.dp), tint = Amber500)
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.tertiary)
                     }
                 }
 
@@ -772,7 +770,7 @@ private fun TodayGoalsCard(goals: List<Goal>, isDark: Boolean, onNavigate: (Stri
             onClick = { onNavigate(Routes.NISHTHA_GOALS) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
-            border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
         ) {
             Text("Manage Goals →", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
@@ -943,17 +941,14 @@ private fun GoalHistoryCard(goals: List<Goal>, isDark: Boolean, onNavigate: (Str
 
 @Composable
 private fun DashCard(isDark: Boolean, content: @Composable ColumnScope.() -> Unit) {
-    val gradient = if (isDark) DarkExpressiveGradient else LightExpressiveGradient
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
-            modifier = Modifier
-                .background(gradient)
-                .padding(20.dp),
+            modifier = Modifier.padding(20.dp),
             content = content
         )
     }

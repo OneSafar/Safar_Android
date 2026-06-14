@@ -58,7 +58,6 @@ fun SafarDrawer(
     isAdmin: Boolean,
     onNavigate: (String) -> Unit,
     onToggleDarkTheme: () -> Unit,
-    onLanguageClick: () -> Unit,
     onCloseDrawer: () -> Unit,
 ) {
     ModalDrawerSheet(

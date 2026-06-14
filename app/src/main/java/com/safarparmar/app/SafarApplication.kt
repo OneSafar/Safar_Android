@@ -1,7 +1,9 @@
 package com.safarparmar.app
 
 import android.app.Application
+import android.os.StrictMode
 import android.util.Log
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.messaging.FirebaseMessaging
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.local.SafarDataStore
@@ -14,6 +16,7 @@ import com.safarparmar.app.notifications.NotificationTokenRegistrar
 import com.safarparmar.app.notifications.StudyReminderWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
@@ -27,10 +30,17 @@ class SafarApplication : Application() {
     @Inject lateinit var notificationTokenRegistrar: NotificationTokenRegistrar
     @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
-    private val appScope by lazy { CoroutineScope(SupervisorJob() + ioDispatcher) }
+    private val appExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e("SAFAR_APP", "Unhandled application coroutine exception", throwable)
+        FirebaseCrashlytics.getInstance().recordException(throwable)
+    }
+
+    private val appScope by lazy { CoroutineScope(SupervisorJob() + ioDispatcher + appExceptionHandler) }
 
     override fun onCreate() {
         super.onCreate()
+        configureDebugStrictMode()
+        configureCrashReporting()
         SafarNotificationChannels.createAll(this)
         fetchAndStoreFcmToken()
         appScope.launch {
@@ -52,6 +62,34 @@ class SafarApplication : Application() {
                 StudyReminderWorker.cancel(this@SafarApplication)
                 PlannerAlertsWorker.cancel(this@SafarApplication)
                 MorningNudgeWorker.cancel(this@SafarApplication)
+            }
+        }
+    }
+
+    private fun configureDebugStrictMode() {
+        if (!BuildConfig.DEBUG) return
+        StrictMode.setThreadPolicy(
+            StrictMode.ThreadPolicy.Builder()
+                .detectAll()
+                .penaltyLog()
+                .build(),
+        )
+        StrictMode.setVmPolicy(
+            StrictMode.VmPolicy.Builder()
+                .detectActivityLeaks()
+                .detectLeakedClosableObjects()
+                .detectLeakedRegistrationObjects()
+                .penaltyLog()
+                .build(),
+        )
+    }
+
+    private fun configureCrashReporting() {
+        val crashlytics = FirebaseCrashlytics.getInstance()
+        crashlytics.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
+        appScope.launch {
+            dataStore.userId.collect { userId ->
+                crashlytics.setUserId(userId.orEmpty())
             }
         }
     }

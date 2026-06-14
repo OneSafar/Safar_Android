@@ -5,6 +5,7 @@ import com.safarparmar.app.data.remote.api.AuthApi
 import com.safarparmar.app.data.remote.api.NotificationApi
 import com.safarparmar.app.data.remote.dto.DeviceTokenRevokeRequest
 import com.safarparmar.app.data.remote.dto.*
+import com.safarparmar.app.di.IoDispatcher
 import com.safarparmar.app.domain.model.User
 import com.safarparmar.app.domain.model.UserProfile
 import com.safarparmar.app.domain.repository.AuthRepository
@@ -12,8 +13,12 @@ import com.safarparmar.app.notifications.NotificationTokenRegistrar
 import com.safarparmar.app.util.decodeIsAdminClaim
 import com.safarparmar.app.util.Resource
 import com.safarparmar.app.util.safeApiCall
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,6 +28,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val notificationApi: NotificationApi,
     private val dataStore: SafarDataStore,
     private val notificationTokenRegistrar: NotificationTokenRegistrar,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthRepository {
 
     override val isLoggedIn: Flow<Boolean> = dataStore.isLoggedIn
@@ -42,7 +48,9 @@ class AuthRepositoryImpl @Inject constructor(
                 dataStore.setUserAvatar(u?.avatar)
                 dataStore.setIsAdmin(u?.isAdmin ?: decodeIsAdminClaim(token))
                 // Do not block sign-in on FCM registration — network can be slow after cold start.
-                runCatching { notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true) }
+                CoroutineScope(SupervisorJob() + ioDispatcher).launch {
+                    runCatching { notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true) }
+                }
                 Resource.Success(User(id = u?.id ?: "", name = u?.name ?: "", email = u?.email ?: "", photoUrl = u?.avatar, exam = u?.examType, stage = u?.preparationStage, gender = u?.gender))
             }
             is Resource.Error   -> Resource.Error(r.message)
@@ -65,7 +73,9 @@ class AuthRepositoryImpl @Inject constructor(
                 dataStore.setUserAvatar(u?.avatar)
                 dataStore.setIsAdmin(u?.isAdmin ?: decodeIsAdminClaim(token))
                 // Do not block sign-in on FCM registration — network can be slow after cold start.
-                runCatching { notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true) }
+                CoroutineScope(SupervisorJob() + ioDispatcher).launch {
+                    runCatching { notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true) }
+                }
                 Resource.Success(User(id = u?.id ?: "", name = u?.name ?: "", email = u?.email ?: "", photoUrl = u?.avatar, exam = u?.examType, stage = u?.preparationStage, gender = u?.gender))
             }
             is Resource.Error   -> Resource.Error(r.message)

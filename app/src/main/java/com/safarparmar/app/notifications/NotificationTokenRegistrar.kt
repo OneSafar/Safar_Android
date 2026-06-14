@@ -1,16 +1,19 @@
 package com.safarparmar.app.notifications
 
+import android.content.Context
 import android.util.Log
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.data.remote.api.NotificationApi
 import com.safarparmar.app.data.remote.dto.DeviceTokenRequest
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class NotificationTokenRegistrar @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val dataStore: SafarDataStore,
     private val notificationApi: NotificationApi,
 ) {
@@ -30,7 +33,7 @@ class NotificationTokenRegistrar @Inject constructor(
         val now = System.currentTimeMillis()
         val lastSync = dataStore.deviceTokenLastSyncAt.first()
         val minIntervalMs = 6 * 60 * 60 * 1000L
-        
+
         val needsSync = force || token != lastRegistered || lastSync <= 0 || (now - lastSync >= minIntervalMs)
         if (!needsSync) return
 
@@ -41,15 +44,18 @@ class NotificationTokenRegistrar @Inject constructor(
                     deviceToken = token,
                     appVersion = BuildConfig.VERSION_NAME,
                     flavor = BuildConfig.FLAVOR,
-                    language = dataStore.language.first(),
+                    language = "en",
                     notificationsEnabled = dataStore.notificationsEnabled.first(),
                 ),
             )
         }.onSuccess {
             dataStore.setDeviceTokenLastSyncAt(now)
             dataStore.setLastRegisteredFcmToken(token)
-        }.onFailure {
-            Log.w("SafarFCM", "Failed to register FCM token", it)
+        }.onFailure { error ->
+            Log.w("SafarFCM", "Failed to register FCM token — scheduling WorkManager retry", error)
+            // P1 fix: if the network is down when onNewToken fires, queue a retry that
+            // will fire as soon as connectivity is restored (exponential back-off).
+            FcmTokenSyncWorker.enqueue(context)
         }
     }
 }

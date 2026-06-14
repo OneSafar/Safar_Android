@@ -88,7 +88,7 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
             StreakCard(
                 label     = stringResource(R.string.streaks_checkin_label),
                 value     = streaks.checkInStreak,
-                accent    = Emerald500,
+                accent    = MaterialTheme.colorScheme.tertiary,
                 iconRes   = R.drawable.ic_zap,
                 bgIconRes = R.drawable.ic_heart_straight,
                 bgIconRotation = 12f,
@@ -101,7 +101,7 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                     ) {
                         Text(
                             stringResource(R.string.streaks_start_today), 
-                            color = Emerald500, 
+                            color = MaterialTheme.colorScheme.tertiary, 
                             fontWeight = FontWeight.Bold, 
                             fontSize = 14.sp
                         )
@@ -109,7 +109,7 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowForward, 
                             contentDescription = null, 
-                            tint = Emerald500,
+                            tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -119,7 +119,7 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
             StreakCard(
                 label     = stringResource(R.string.streaks_login_label),
                 value     = streaks.loginStreak,
-                accent    = Orange500,
+                accent    = MaterialTheme.colorScheme.error,
                 iconRes   = R.drawable.ic_zap,
                 bgIconRes = R.drawable.ic_flame,
                 bgIconRotation = -12f,
@@ -128,8 +128,8 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                 bottomContent = {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Orange500.copy(alpha = 0.1f),
-                        border = BorderStroke(1.dp, Orange500.copy(alpha = 0.1f))
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
                     ) {
                         Row(
                             Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -139,12 +139,12 @@ fun StreaksScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                                 androidx.compose.ui.res.painterResource(R.drawable.ic_sparkle), 
                                 contentDescription = null, 
                                 modifier = Modifier.size(16.dp), 
-                                tint = Orange500
+                                tint = MaterialTheme.colorScheme.error
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 stringResource(R.string.streaks_amazing), 
-                                color = Orange500.copy(alpha = 0.8f), 
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f), 
                                 fontWeight = FontWeight.Bold, 
                                 fontSize = 14.sp
                             )
@@ -305,7 +305,7 @@ private fun CalendarSection(loginDates: Set<java.time.LocalDate> = emptySet()) {
             }
             val totalCells = startDow + daysInMonth
             val rows = (totalCells + 6) / 7
-            val emerald    = Emerald500
+            val emerald    = MaterialTheme.colorScheme.tertiary
             val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
             repeat(rows) { row ->
                 Row(Modifier.fillMaxWidth()) {
@@ -358,7 +358,7 @@ private fun CalendarSection(loginDates: Set<java.time.LocalDate> = emptySet()) {
 
 @Composable
 private fun StreakLineChart(values: List<Float>, modifier: Modifier = Modifier) {
-    val lineColor = ChartLine
+    val lineColor = MaterialTheme.colorScheme.primary
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height

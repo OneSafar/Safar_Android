@@ -84,7 +84,6 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Today
-import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -287,8 +286,6 @@ private data class StudyPlansListState(
 private data class StudyPlannerDetailState(
     val calendar: CalendarMap = emptyMap(),
     val analytics: PlannerAnalytics? = null,
-    val syllabusImportDraft: String = "",
-    val syllabusImportFileName: String? = null,
     val isImporting: Boolean = false,
     val importStatus: String? = null,
     val importError: String? = null,
@@ -395,7 +392,6 @@ fun StudyPlannerScreen(
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     viewModel: StudyPlannerViewModel = hiltViewModel(),
 ) {
     val chromeState by remember(viewModel) {
@@ -429,8 +425,6 @@ fun StudyPlannerScreen(
                 StudyPlannerDetailState(
                     calendar = state.calendar,
                     analytics = state.analytics,
-                    syllabusImportDraft = state.syllabusImportDraft,
-                    syllabusImportFileName = state.syllabusImportFileName,
                     isImporting = state.isImporting,
                     importStatus = state.importStatus,
                     importError = state.importError,
@@ -487,7 +481,6 @@ fun StudyPlannerScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
-            onLanguageClick = onLanguageClick,
         ) { padding ->
             Scaffold(
                 modifier = Modifier.padding(top = padding.calculateTopPadding()),
@@ -685,50 +678,51 @@ private fun StudyPlansScreen(
                             .fillMaxWidth()
                             .clickable { showCreate = true },
                         shape = MaterialTheme.shapes.large,
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     ) {
-                        Box(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(Color(0xFF7C8EFF), Color(0xFF2D449E))
-                                    )
-                                )
-                                .padding(20.dp)
+                                .padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                Text(
+                                    text = "Focus: Plan your success today!",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Select an exam to begin.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
+                                        shape = MaterialTheme.shapes.medium
+                                    )
+                                    .border(
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.24f)),
+                                        shape = MaterialTheme.shapes.medium
+                                    ),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                                    Text(
-                                        text = "Focus: Plan your success today!",
-                                        style = MaterialTheme.typography.titleLarge.copy(color = Color.White),
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        text = "Select an exam to begin.",
-                                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.8f)),
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .size(72.dp)
-                                        .background(Color.White.copy(alpha = 0.2f), MaterialTheme.shapes.medium)
-                                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)), MaterialTheme.shapes.medium),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CalendarMonth,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(36.dp)
+                                )
                             }
                         }
                     }
@@ -857,24 +851,19 @@ private fun PlanCardSimplified(
             animatedVisibilityScope = animatedVisibilityScope,
         )
     }
-    val isDark = isSystemInDarkTheme()
-    val cardGradient = if (isDark) {
-        Brush.linearGradient(colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B)))
-    } else {
-        Brush.linearGradient(colors = listOf(Color(0xFF0A1931), Color(0xFF15305B)))
-    }
-    Card(
+    androidx.compose.material3.ElevatedCard(
         modifier = sharedModifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier
-                .background(cardGradient)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -887,30 +876,44 @@ private fun PlanCardSimplified(
                     text = plan.title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val badgeBrush = when {
-                        examDays == null -> Brush.horizontalGradient(listOf(Color(0xFFE2E8F0), Color(0xFFF1F5F9)))
-                        examDays < 0 -> Brush.horizontalGradient(listOf(Color(0xFF94A3B8), Color(0xFFCBD5E1)))
-                        examDays <= 7 -> Brush.horizontalGradient(listOf(Color(0xFFEF4444), Color(0xFFB91C1C)))
-                        examDays <= 13 -> Brush.horizontalGradient(listOf(Color(0xFFEF4444), Color(0xFFF97316)))
-                        examDays <= 14 -> Brush.horizontalGradient(listOf(Color(0xFFF97316), Color(0xFFFBBF24)))
-                        else -> Brush.horizontalGradient(listOf(Color(0xFF22C55E), Color(0xFF10B981)))
+                    val badgeColors = when {
+                        examDays == null -> CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        examDays < 0 -> CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        examDays <= 7 -> CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        examDays <= 14 -> CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        else -> CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                     val badgeText = examBadgeLabel(examDays)
                     Box(
                         modifier = Modifier
-                            .background(badgeBrush, CircleShape)
+                            .background(badgeColors.containerColor, CircleShape)
                             .padding(horizontal = 14.dp, vertical = 6.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = badgeText,
-                            color = Color.White,
+                            color = badgeColors.contentColor,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -920,7 +923,7 @@ private fun PlanCardSimplified(
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "Plan actions",
-                                tint = Color.White.copy(alpha = 0.7f)
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
                         }
                         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
@@ -938,14 +941,14 @@ private fun PlanCardSimplified(
             }
             Text(
                 text = "${plan.subjectCount ?: plan.subjects.size} subjects / ${progress.totalTopics} topics",
-                color = Color.White.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium
             )
             LinearProgressIndicator(
                 progress = { progress.completionPercent / 100f },
-                color = Color(0xFF3B82F6),
-                trackColor = Color.White.copy(alpha = 0.15f),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
@@ -958,13 +961,13 @@ private fun PlanCardSimplified(
             ) {
                 Text(
                     text = "${progress.completionPercent}% complete",
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "Open",
-                    color = Color(0xFF60A5FA),
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable(onClick = onOpen)
@@ -992,24 +995,19 @@ private fun PlanCardCompact(
             animatedVisibilityScope = animatedVisibilityScope,
         )
     }
-    val isDark = isSystemInDarkTheme()
-    val cardGradient = if (isDark) {
-        Brush.linearGradient(colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B)))
-    } else {
-        Brush.linearGradient(colors = listOf(Color(0xFF0A1931), Color(0xFF15305B)))
-    }
-    Card(
+    androidx.compose.material3.ElevatedCard(
         modifier = sharedModifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier
-                .background(cardGradient)
                 .padding(16.dp)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -1023,7 +1021,7 @@ private fun PlanCardCompact(
                     text = plan.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -1036,7 +1034,7 @@ private fun PlanCardCompact(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "Plan actions",
-                            tint = Color.White.copy(alpha = 0.7f),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -1053,24 +1051,38 @@ private fun PlanCardCompact(
                 }
             }
 
-            val badgeBrush = when {
-                examDays == null -> Brush.horizontalGradient(listOf(Color(0xFFE2E8F0), Color(0xFFF1F5F9)))
-                examDays < 0 -> Brush.horizontalGradient(listOf(Color(0xFF94A3B8), Color(0xFFCBD5E1)))
-                examDays <= 7 -> Brush.horizontalGradient(listOf(Color(0xFFEF4444), Color(0xFFB91C1C)))
-                examDays <= 13 -> Brush.horizontalGradient(listOf(Color(0xFFEF4444), Color(0xFFF97316)))
-                examDays <= 14 -> Brush.horizontalGradient(listOf(Color(0xFFF97316), Color(0xFFFBBF24)))
-                else -> Brush.horizontalGradient(listOf(Color(0xFF22C55E), Color(0xFF10B981)))
+            val badgeColors = when {
+                examDays == null -> CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                examDays < 0 -> CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                examDays <= 7 -> CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+                examDays <= 14 -> CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                else -> CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             }
             val badgeText = examBadgeLabel(examDays)
             Box(
                 modifier = Modifier
-                    .background(badgeBrush, CircleShape)
+                    .background(badgeColors.containerColor, CircleShape)
                     .padding(horizontal = 10.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = badgeText,
-                    color = Color.White,
+                    color = badgeColors.contentColor,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -1078,7 +1090,7 @@ private fun PlanCardCompact(
 
             Text(
                 text = "${plan.subjectCount ?: plan.subjects.size} subjects",
-                color = Color.White.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium
             )
@@ -1090,8 +1102,8 @@ private fun PlanCardCompact(
             ) {
                 LinearProgressIndicator(
                     progress = { progress.completionPercent / 100f },
-                    color = Color(0xFF3B82F6),
-                    trackColor = Color.White.copy(alpha = 0.15f),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
@@ -1099,7 +1111,7 @@ private fun PlanCardCompact(
                 )
                 Text(
                     text = "${progress.completionPercent}% complete",
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium
                 )
@@ -1297,8 +1309,6 @@ private fun PlannerHome(
             mutating = chromeState.mutating,
             error = chromeState.error,
             message = chromeState.message,
-            syllabusImportDraft = detailState.syllabusImportDraft,
-            syllabusImportFileName = detailState.syllabusImportFileName,
             isImporting = detailState.isImporting,
             importStatus = detailState.importStatus,
             importError = detailState.importError,
@@ -1349,7 +1359,20 @@ private fun PlannerHome(
                     PlannerExamPickerLanding(state = landingState, actions = actions, onOpenExams = { actions.setSection(PlannerSection.YOUR_EXAMS) })
                 }
                 PlannerSection.CALENDAR -> if (plan != null) CalendarTab(plan, activePlanState, actions) else PlannerExamPickerLanding(state = landingState, actions = actions, onOpenExams = { actions.setSection(PlannerSection.YOUR_EXAMS) })
-                PlannerSection.INSIGHTS -> if (plan != null) InsightsTab(plan, activePlanState, actions) else PlannerExamPickerLanding(state = landingState, actions = actions, onOpenExams = { actions.setSection(PlannerSection.YOUR_EXAMS) })
+                PlannerSection.INSIGHTS -> if (plan != null) {
+                    InsightsTab(
+                        plan = plan,
+                        state = activePlanState,
+                        actions = actions,
+                        onUpgrade = { onNavigate(Routes.PREMIUM) },
+                    )
+                } else {
+                    PlannerExamPickerLanding(
+                        state = landingState,
+                        actions = actions,
+                        onOpenExams = { actions.setSection(PlannerSection.YOUR_EXAMS) },
+                    )
+                }
             }
         }
     }
@@ -2584,12 +2607,6 @@ internal fun SyllabusFullImportCard(state: StudyPlannerUiState, actions: Planner
     var text by remember { mutableStateOf(state.rawSyllabusText) }
     val aiImportEnabled = BuildConfig.AI_SYLLABUS_IMPORT_ENABLED
     var mode by remember(aiImportEnabled) { mutableStateOf(if (aiImportEnabled) "ai" else "manual") }
-    LaunchedEffect(state.syllabusImportDraft) {
-        if (state.syllabusImportDraft.isBlank()) return@LaunchedEffect
-        text = state.syllabusImportDraft.trim()
-        mode = "manual"
-        actions.clearSyllabusImportDraft()
-    }
     val parsed = remember(text) { parseBulkSubjectsFromTxt(text) }
     val groups = parsed.getOrNull()
     val topicCount = groups?.let { countBulkSubjectsTopics(it) } ?: 0
@@ -2879,5 +2896,3 @@ private fun StructuredSyllabusPreview.addTopic(subjectIndex: Int, chapterIndex: 
     if (clean.isBlank()) return this
     return copy(subjects = subjects.mapIndexed { sIndex, subject -> if (sIndex != subjectIndex) subject else subject.copy(chapters = subject.chapters.mapIndexed { cIndex, chapter -> if (cIndex != chapterIndex) chapter else chapter.copy(topics = chapter.topics + clean) }) }).withRecomputedStats()
 }
-
-

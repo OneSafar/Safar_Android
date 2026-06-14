@@ -25,7 +25,6 @@ fun FocusShieldStandaloneScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     viewModel: FocusShieldViewModel = hiltViewModel(),
 ) {
     val state by viewModel.shieldState.collectAsStateWithLifecycle()
@@ -39,7 +38,6 @@ fun FocusShieldStandaloneScreen(
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        onLanguageClick = onLanguageClick,
         emphasizeTopBar = true,
         topBarActions = {
             IconButton(

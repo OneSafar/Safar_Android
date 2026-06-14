@@ -69,11 +69,11 @@ class PlannerAlertsWorker(
                 if (overdueTopics.isNotEmpty() && !notified) {
                     val dedupeKey = PlannerAlertDedupe.overdueKey(plan.id, today)
                     if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
-                        notificationManager.show(
+                        notificationManager.showStudyReminder(
                             title = "Overdue Tasks: ${plan.title}",
                             body = "You have ${overdueTopics.size} tasks that need your attention.",
-                            channelId = SafarNotificationChannels.STUDY_REMINDERS,
                             deepLink = "safar://studyplanner",
+                            dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
                         )
                         dataStore.addPlannerAlertDedupeKey(dedupeKey)
                         notified = true
@@ -88,11 +88,11 @@ class PlannerAlertsWorker(
                         if (daysUntil == 30L || daysUntil == 7L || daysUntil == 1L) {
                             val dedupeKey = PlannerAlertDedupe.examCountdownKey(plan.id, daysUntil)
                             if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
-                                notificationManager.show(
+                                notificationManager.showStudyReminder(
                                     title = "Exam approaching!",
                                     body = "Your exam for ${plan.title} is in $daysUntil days.",
-                                    channelId = SafarNotificationChannels.STUDY_REMINDERS,
                                     deepLink = "safar://studyplanner",
+                                    dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
                                 )
                                 dataStore.addPlannerAlertDedupeKey(dedupeKey)
                                 notified = true
@@ -112,11 +112,11 @@ class PlannerAlertsWorker(
                         if (requiredPace > plan.dailyGoal) {
                             val dedupeKey = PlannerAlertDedupe.paceWarningKey(plan.id, today)
                             if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
-                                notificationManager.show(
+                                notificationManager.showStudyReminder(
                                     title = plan.title,
                                     body = "You're behind schedule, time to catch up!",
-                                    channelId = SafarNotificationChannels.STUDY_REMINDERS,
                                     deepLink = "safar://studyplanner",
+                                    dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
                                 )
                                 dataStore.addPlannerAlertDedupeKey(dedupeKey)
                                 notified = true

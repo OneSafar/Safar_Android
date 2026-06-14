@@ -88,13 +88,6 @@ import com.safarparmar.app.domain.model.Sandesh
 import com.safarparmar.app.ui.components.PostCardSkeleton
 import com.safarparmar.app.ui.components.SafarEmptyState
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
-import com.safarparmar.app.ui.theme.Blue500
-import com.safarparmar.app.ui.theme.Green500
-import com.safarparmar.app.ui.theme.Red500
-import com.safarparmar.app.ui.theme.Rose900
-import com.safarparmar.app.ui.theme.Teal600
-import com.safarparmar.app.ui.theme.Violet500
-import com.safarparmar.app.ui.theme.Violet600
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -284,8 +277,8 @@ private fun CommunityHeader(
         )
         when {
             onlineCount > 0 -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Box(Modifier.size(6.dp).clip(CircleShape).background(Green500))
-                Text("$onlineCount online", fontSize = 11.sp, color = Green500)
+                Box(Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiary))
+                Text("$onlineCount online", fontSize = 11.sp, color = MaterialTheme.colorScheme.tertiary)
             }
             !socketConnected -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 CircularProgressIndicator(modifier = Modifier.size(10.dp), strokeWidth = 1.5.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -306,17 +299,18 @@ private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
             .padding(4.dp),
     ) {
         val rooms = listOf(
-            Triple("ALL", "All", Rose900),
-            Triple("ACADEMIC", "Academic Hall", Teal600),
-            Triple("REFLECTIVE", "Thoughts", Violet600),
+            Triple("ALL", "All", MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary),
+            Triple("ACADEMIC", "Academic Hall", MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary),
+            Triple("REFLECTIVE", "Thoughts", MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.onTertiary),
         )
-        rooms.forEach { (room, label, color) ->
+        rooms.forEach { (room, label, colors) ->
+            val (bgColor, onColor) = colors
             val selected = selectedSpace == room
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(CircleShape)
-                    .background(if (selected) color else Color.Transparent)
+                    .background(if (selected) bgColor else Color.Transparent)
                     .clickable { onJoinRoom(room) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
@@ -325,7 +319,7 @@ private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
                     label,
                     fontSize = 11.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (selected) Color.White else color,
+                    color = if (selected) onColor else bgColor,
                     maxLines = 1,
                 )
             }
@@ -470,9 +464,9 @@ private fun SandeshAnnouncementCard(
                     if (isReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = if (isReacted) Red500 else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isReacted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text("${sandesh.reactionCount}", fontSize = 11.sp, color = if (isReacted) Red500 else MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${sandesh.reactionCount}", fontSize = 11.sp, color = if (isReacted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(Modifier.clickable { onCommentClick(sandesh.id) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
@@ -568,7 +562,7 @@ private fun PostCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.clickable(onClick = onLike)) {
-                    Icon(if (post.userLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, contentDescription = null, modifier = Modifier.size(17.dp), tint = if (post.userLiked) Red500 else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(if (post.userLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, contentDescription = null, modifier = Modifier.size(17.dp), tint = if (post.userLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("${post.reactionCount}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.clickable(onClick = onComment)) {
@@ -793,7 +787,7 @@ internal fun ConnectionsTab(
                 border = CardDefaults.outlinedCardBorder(),
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.size(8.dp).clip(CircleShape).background(Green500))
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiary))
                     Text("Chat with ${dmState.peerName}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(1f))
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                 }
@@ -888,8 +882,8 @@ private fun IncomingRequestCard(
 
 @Composable
 private fun spaceColor(space: String): Color = when (space.uppercase()) {
-    "ACADEMIC" -> Blue500
-    "REFLECTIVE" -> Violet500
+    "ACADEMIC" -> MaterialTheme.colorScheme.secondary
+    "REFLECTIVE" -> MaterialTheme.colorScheme.tertiary
     else -> MaterialTheme.colorScheme.primary
 }
 

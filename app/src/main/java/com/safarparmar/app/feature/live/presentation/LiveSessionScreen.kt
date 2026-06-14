@@ -87,7 +87,6 @@ fun LiveSessionScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     viewModel: LiveSessionViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.liveSessionState.collectAsStateWithLifecycle()
@@ -150,7 +149,6 @@ fun LiveSessionScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
-            onLanguageClick = onLanguageClick,
         topBarActions = {
             IconButton(onClick = { viewModel.loadSession(sessionId) }) {
                 Icon(Icons.Default.Refresh, contentDescription = "Refresh")
@@ -177,6 +175,7 @@ fun LiveSessionScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(innerPadding)
                         .padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {

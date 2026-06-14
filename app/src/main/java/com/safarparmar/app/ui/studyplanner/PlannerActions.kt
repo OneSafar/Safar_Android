@@ -3,12 +3,10 @@ package com.safarparmar.app.ui.studyplanner
 import com.safarparmar.app.data.remote.api.UpdatePlanRequest
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
-import okhttp3.MultipartBody
 
 interface PlannerActions {
     fun setSection(section: PlannerSection)
     fun clearTransient()
-    fun clearSyllabusImportDraft()
     fun setError(message: String)
     fun refreshPlans()
     fun openPlan(planId: String)

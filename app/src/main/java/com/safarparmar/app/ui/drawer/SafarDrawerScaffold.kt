@@ -31,7 +31,6 @@ fun SafarDrawerScaffold(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     topBarActions: @Composable RowScope.() -> Unit = {},
     topBarContentColor: Color? = null,
     emphasizeTopBar: Boolean = false,
@@ -65,7 +64,6 @@ fun SafarDrawerScaffold(
                 isAdmin           = isAdmin,
                 onNavigate        = onNavigate,
                 onToggleDarkTheme = { themeVm.toggleDarkTheme() },
-                onLanguageClick   = onLanguageClick,
                 onCloseDrawer     = { scope.launch { drawerState.close() } },
             )
         },

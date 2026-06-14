@@ -49,7 +49,7 @@ fun SafarSkeletonBox(
     Box(
         modifier = modifier
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha)),
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha * 0.25f)),
     )
 }
 
@@ -66,27 +66,24 @@ fun SafarSkeletonBar(
             .fillMaxWidth(fraction)
             .height(height)
             .clip(RoundedCornerShape(cornerRadius))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha)),
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha * 0.25f)),
     )
 }
 
 @Composable
 fun PostCardSkeleton(modifier: Modifier = Modifier) {
-    val alpha = rememberSkeletonAlpha()
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            SafarSkeletonBox(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(20.dp) // CircleShape
             )
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SafarSkeletonBar(fraction = 0.5f, height = 14.dp)
@@ -100,12 +97,11 @@ fun PostCardSkeleton(modifier: Modifier = Modifier) {
 
 @Composable
 fun PlanCardSkeleton(modifier: Modifier = Modifier) {
-    val alpha = rememberSkeletonAlpha()
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -121,20 +117,17 @@ fun PlanCardSkeleton(modifier: Modifier = Modifier) {
 
 @Composable
 fun GoalRowSkeleton(modifier: Modifier = Modifier) {
-    val alpha = rememberSkeletonAlpha()
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            Modifier
-                .size(24.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+        SafarSkeletonBox(
+            modifier = Modifier.size(24.dp),
+            shape = RoundedCornerShape(6.dp)
         )
         Column(
             modifier = Modifier.weight(1f),
@@ -148,12 +141,11 @@ fun GoalRowSkeleton(modifier: Modifier = Modifier) {
 
 @Composable
 fun StatCardSkeleton(modifier: Modifier = Modifier) {
-    val alpha = rememberSkeletonAlpha()
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -164,12 +156,11 @@ fun StatCardSkeleton(modifier: Modifier = Modifier) {
 
 @Composable
 fun SyllabusRowSkeleton(modifier: Modifier = Modifier) {
-    val alpha = rememberSkeletonAlpha()
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -180,11 +171,9 @@ fun SyllabusRowSkeleton(modifier: Modifier = Modifier) {
             SafarSkeletonBar(fraction = 0.55f, height = 16.dp)
             SafarSkeletonBar(fraction = 0.35f, height = 12.dp)
         }
-        Box(
-            Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+        SafarSkeletonBox(
+            modifier = Modifier.size(32.dp),
+            shape = RoundedCornerShape(8.dp)
         )
     }
 }

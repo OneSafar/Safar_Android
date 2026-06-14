@@ -51,14 +51,14 @@ fun PremiumGateSheet(
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Connect is Premium",
+                    text = "Private Connect is Premium",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                 )
             }
 
             Text(
-                text = "Start private 1:1 chats with fellow Safarites from Mehfil posts. Upgrade to send connection requests and reach out directly.",
+                text = "Upgrade to send connection requests and start private chats from Mehfil posts.",
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

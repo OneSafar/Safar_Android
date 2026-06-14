@@ -1,8 +1,14 @@
 package com.safarparmar.app.notifications
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -32,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
 
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.shimmer
@@ -43,9 +50,15 @@ fun rememberNotificationPermissionRequester(
     onResult: (Boolean) -> Unit = {},
 ): () -> Unit {
     val context = LocalContext.current
+    val activity = context.findActivity()
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = onResult,
+        onResult = { granted ->
+            if (!granted && activity != null && !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.POST_NOTIFICATIONS)) {
+                context.openAppNotificationSettings()
+            }
+            onResult(granted)
+        },
     )
 
     return remember(context, launcher) {
@@ -59,6 +72,8 @@ fun rememberNotificationPermissionRequester(
                 PackageManager.PERMISSION_GRANTED
             ) {
                 onResult(true)
+            } else if (activity != null && !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.POST_NOTIFICATIONS)) {
+                context.openAppNotificationSettings()
             } else {
                 launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
@@ -81,6 +96,7 @@ fun NotificationPermissionRequest() {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
 
     val context = LocalContext.current
+    val activity = context.findActivity()
 
     // Already granted — nothing to do
     val alreadyGranted = ContextCompat.checkSelfPermission(
@@ -89,9 +105,14 @@ fun NotificationPermissionRequest() {
     if (alreadyGranted) return
 
     var showDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { /* nothing extra needed; OS dialog handles the result */ },
+        onResult = { granted ->
+            if (!granted && activity != null && !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.POST_NOTIFICATIONS)) {
+                showSettingsDialog = true
+            }
+        },
     )
 
     // Show the rationale dialog after a short delay so the home screen renders first
@@ -113,6 +134,20 @@ fun NotificationPermissionRequest() {
             onDismiss = {
                 showDialog = false
             },
+        )
+    }
+
+    AnimatedVisibility(
+        visible = showSettingsDialog,
+        enter = fadeIn(tween(300)) + scaleIn(tween(300), initialScale = 0.92f),
+        exit = fadeOut(tween(200)) + scaleOut(tween(200)),
+    ) {
+        NotificationSettingsDialog(
+            onOpenSettings = {
+                showSettingsDialog = false
+                context.openAppNotificationSettings()
+            },
+            onDismiss = { showSettingsDialog = false },
         )
     }
 }
@@ -257,4 +292,51 @@ private fun NotificationRationaleDialog(
             }
         }
     }
+}
+
+@Composable
+private fun NotificationSettingsDialog(
+    onOpenSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.NotificationsActive,
+                contentDescription = null,
+            )
+        },
+        title = { Text("Notifications are off") },
+        text = {
+            Text("To receive study reminders and focus-session alerts, enable notifications from Android settings.")
+        },
+        confirmButton = {
+            TextButton(onClick = onOpenSettings) {
+                Text("Open settings")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Not now")
+            }
+        },
+    )
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+private fun Context.openAppNotificationSettings() {
+    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+    } else {
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(Uri.parse("package:$packageName"))
+    }
+    startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
