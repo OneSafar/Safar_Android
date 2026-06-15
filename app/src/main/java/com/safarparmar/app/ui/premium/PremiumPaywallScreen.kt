@@ -102,7 +102,7 @@ fun PremiumPaywallScreen(
                 
                 val options = JSONObject()
                 options.put("name", "Safar")
-                options.put("description", "Safar Premium Access")
+                options.put("description", "Safar Premium")
                 options.put("theme.color", "#0A4E70")
                 options.put("currency", state.order.currency)
                 options.put("amount", state.order.amount)
@@ -266,7 +266,7 @@ fun PremiumPaywallScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "Unlock Premium",
+                        text = "Unlock Safar Premium",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = textPrimaryColor
                     )
@@ -545,7 +545,7 @@ fun PremiumPaywallScreen(
                     if (uiState is PremiumUiState.PaymentSuccess) {
                         val status = (uiState as PremiumUiState.PaymentSuccess).status
                         Text(
-                            text = "Premium is active${status.expiresAt?.let { " until $it" }.orEmpty()}.",
+                            text = "Safar Premium is active${status.expiresAt?.let { " until $it" }.orEmpty()}.",
                             color = Color(0xFF4CAF50),
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -615,7 +615,7 @@ fun PremiumPaywallScreen(
                         enabled = uiState !is PremiumUiState.Loading,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Restore Premium")
+                        Text("Restore Safar Premium")
                     }
                 }
             }

@@ -51,14 +51,14 @@ fun PremiumGateSheet(
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Private Connect is Premium",
+                    text = "Private Connect is in Safar Premium",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                 )
             }
 
             Text(
-                text = "Upgrade to send connection requests and start private chats from Mehfil posts.",
+                text = "Safar Plus includes normal Mehfil. Upgrade to Safar Premium to send connection requests and start private chats.",
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

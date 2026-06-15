@@ -71,6 +71,7 @@ private data class BreathingTechnique(
 
 private val techniques = listOf(
     BreathingTechnique("Diaphragmatic", com.safarparmar.app.R.drawable.ic_wind, "Belly breathing for full oxygen exchange", 4, 0, 6, 0, "4-6"),
+    BreathingTechnique("Pursed Lip", com.safarparmar.app.R.drawable.ic_wind, "Slows breathing and keeps airways open", 2, 0, 4, 0, "2-4"),
     BreathingTechnique("Box Breathing", com.safarparmar.app.R.drawable.ic_square, "Rhythmic 4-4-4-4 for stress reduction", 4, 4, 4, 4, "4-4-4-4"),
     BreathingTechnique("4-7-8 Breathing", com.safarparmar.app.R.drawable.ic_moon, "Deep relaxation for anxiety and sleep", 4, 7, 8, 0, "4-7-8"),
     BreathingTechnique("6-7-8 Breathing", com.safarparmar.app.R.drawable.ic_yin_yang, "Slower inhale variation for deeper calm", 6, 7, 8, 0, "6-7-8"),
@@ -82,7 +83,10 @@ private enum class DhyanBreathPhase(val label: String) {
     INHALE("INHALE"), HOLD("HOLD"), EXHALE("EXHALE"), HOLD_AFTER("REST")
 }
 
+private const val DEFAULT_DHYAN_AUDIO = "android.resource://dhyan_processed"
+
 private val musicOptions = listOf(
+    "Dhyan"            to DEFAULT_DHYAN_AUDIO,
     "None"             to "",
     "Serene Flow"      to "https://del1.vultrobjects.com/qms-images/Safar/music_1.mp3",
     "Nostalgia Breeze" to "https://del1.vultrobjects.com/qms-images/Safar/relaxingtime-sleep-music-vol16-195422.mp3",
@@ -162,6 +166,28 @@ fun DhyanScreen(
             askOnFirstVisit  = false,
             onTourStateReady = { tourState = it },
         )
+
+        if (showTechniquesSheet) {
+            BreathingOptionsSheet(
+                selectedTechnique = selectedTechnique,
+                onSelectTechnique = {
+                    selectedTechnique = it
+                    showTechniquesSheet = false
+                },
+                onDismiss = { showTechniquesSheet = false },
+            )
+        }
+
+        if (showMusicSheet) {
+            MusicSheet(
+                selected = selectedMusic,
+                onSelect = {
+                    selectedMusic = it
+                    showMusicSheet = false
+                },
+                onDismiss = { showMusicSheet = false },
+            )
+        }
     } // end outer Box
 }
 
@@ -199,8 +225,14 @@ private fun BreathingTab(
         if (isRunning && selectedMusic.second.isNotBlank()) {
             releasePlayer()
             try {
+                val audioUri =
+                    if (selectedMusic.second == DEFAULT_DHYAN_AUDIO) {
+                        Uri.parse("android.resource://${context.packageName}/${com.safarparmar.app.R.raw.dhyan_processed}")
+                    } else {
+                        Uri.parse(selectedMusic.second)
+                    }
                 val mp = MediaPlayer().apply {
-                    setDataSource(context, Uri.parse(selectedMusic.second))
+                    setDataSource(context, audioUri)
                     isLooping = true
                     setVolume(0.7f, 0.7f)
                     prepareAsync()

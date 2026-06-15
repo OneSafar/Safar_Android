@@ -433,7 +433,7 @@ private fun AccountStatusSection(onPremiumClick: () -> Unit = {}) {
         ) {
             Column {
                 Text(
-                    text = "Account Status",
+                    text = "Safar Plus",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = scheme.onSurface
                 )
@@ -457,7 +457,7 @@ private fun AccountStatusSection(onPremiumClick: () -> Unit = {}) {
                         )
                     }
                     Text(
-                        text = "Verified Student",
+                        text = "Normal Safar access",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                         color = Color(0xFF15803D)
                     )

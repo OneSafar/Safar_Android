@@ -96,11 +96,11 @@ class PremiumViewModel @Inject constructor(
                                     _premiumStatus.value = status
                                     _uiState.value = PremiumUiState.PaymentSuccess(status)
                                 } else {
-                                    _uiState.value = PremiumUiState.Error("Payment verified, but Premium is not active yet. Please use Restore Premium in a moment.")
+                                    _uiState.value = PremiumUiState.Error("Payment verified, but Safar Premium is not active yet. Please use Restore Safar Premium in a moment.")
                                 }
                             },
                             onFailure = { error ->
-                                _uiState.value = PremiumUiState.Error(error.message ?: "Payment verified, but Premium status could not be restored")
+                                _uiState.value = PremiumUiState.Error(error.message ?: "Payment verified, but Safar Premium status could not be restored")
                             },
                         )
                     },
@@ -119,12 +119,12 @@ class PremiumViewModel @Inject constructor(
                 onSuccess = { status ->
                     _premiumStatus.value = status
                     if (showLoading) {
-                        _uiState.value = if (status.isPremium) PremiumUiState.PaymentSuccess(status) else PremiumUiState.Error("No active Premium plan found.")
+                        _uiState.value = if (status.isPremium) PremiumUiState.PaymentSuccess(status) else PremiumUiState.Error("No active Safar Premium plan found.")
                     }
                 },
                 onFailure = { error ->
                     if (showLoading) {
-                        _uiState.value = PremiumUiState.Error(error.message ?: "Could not restore premium status")
+                        _uiState.value = PremiumUiState.Error(error.message ?: "Could not restore Safar Premium status")
                     }
                 },
             )

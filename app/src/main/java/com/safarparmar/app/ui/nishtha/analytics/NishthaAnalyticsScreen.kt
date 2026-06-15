@@ -713,23 +713,23 @@ private fun AnalyticsPremiumLockOverlay(
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Premium feature",
+                    contentDescription = "Safar Premium feature",
                     tint = scheme.primary,
                     modifier = Modifier.size(32.dp),
                 )
             }
             Text(
-                text = "Premium Feature",
+                text = "Safar Premium Feature",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = scheme.onBackground,
             )
             Text(
-                text = "See goal progress, ekagra history,\nsession history and monthly review.",
-                style = MaterialTheme.typography.bodySmall,
+                text = "Upgrade to see your goal progress, Ekagra history, session history, and monthly review.",
+                style = MaterialTheme.typography.bodyMedium,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = scheme.onSurfaceVariant,
-                lineHeight = 19.sp,
+                lineHeight = 20.sp,
             )
             Button(
                 onClick = onUpgradeClick,
@@ -746,7 +746,7 @@ private fun AnalyticsPremiumLockOverlay(
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Upgrade to Premium", fontWeight = FontWeight.Bold)
+                Text("Upgrade to Safar Premium", fontWeight = FontWeight.Bold)
             }
         }
     }
