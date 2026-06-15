@@ -3,7 +3,8 @@ package com.safarparmar.app.ui.premium
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.data.repository.PaymentRepository
-import com.safarparmar.app.data.remote.dto.CreateOrderResponseDto
+import com.safarparmar.app.data.repository.PremiumRepository
+import com.safarparmar.app.domain.model.PremiumStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,19 +16,29 @@ sealed class PremiumUiState {
     object Idle : PremiumUiState()
     object Loading : PremiumUiState()
     data class OrderCreated(val order: com.safarparmar.app.data.remote.dto.CreateOrderResponseDto, val planType: String, val keyId: String?) : PremiumUiState()
-    object PaymentSuccess : PremiumUiState()
+    data class PaymentSuccess(val status: PremiumStatus) : PremiumUiState()
     data class Error(val message: String) : PremiumUiState()
 }
 
 @HiltViewModel
 class PremiumViewModel @Inject constructor(
-    private val paymentRepository: PaymentRepository
+    private val paymentRepository: PaymentRepository,
+    private val premiumRepository: PremiumRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PremiumUiState>(PremiumUiState.Idle)
     val uiState: StateFlow<PremiumUiState> = _uiState.asStateFlow()
 
+    private val _premiumStatus = MutableStateFlow(PremiumStatus())
+    val premiumStatus: StateFlow<PremiumStatus> = _premiumStatus.asStateFlow()
+
     init {
+        viewModelScope.launch {
+            premiumRepository.cachedStatus.collect { status ->
+                _premiumStatus.value = status
+            }
+        }
+        refreshPremiumStatus(showLoading = false)
         viewModelScope.launch {
             PaymentEventBus.paymentEvents.collect { event ->
                 when (event) {
@@ -72,14 +83,51 @@ class PremiumViewModel @Inject constructor(
         viewModelScope.launch {
             paymentRepository.verifyPayment(orderId, paymentId, signature).collect { result ->
                 result.fold(
-                    onSuccess = {
-                        _uiState.value = PremiumUiState.PaymentSuccess
+                    onSuccess = { verification ->
+                        val embeddedStatus = premiumRepository.cacheVerifiedStatus(verification.premium)
+                        val statusResult = if (embeddedStatus?.isPremium == true) {
+                            Result.success(embeddedStatus)
+                        } else {
+                            premiumRepository.refreshStatus()
+                        }
+                        statusResult.fold(
+                            onSuccess = { status ->
+                                if (status.isPremium) {
+                                    _premiumStatus.value = status
+                                    _uiState.value = PremiumUiState.PaymentSuccess(status)
+                                } else {
+                                    _uiState.value = PremiumUiState.Error("Payment verified, but Premium is not active yet. Please use Restore Premium in a moment.")
+                                }
+                            },
+                            onFailure = { error ->
+                                _uiState.value = PremiumUiState.Error(error.message ?: "Payment verified, but Premium status could not be restored")
+                            },
+                        )
                     },
                     onFailure = { error ->
                         _uiState.value = PremiumUiState.Error(error.message ?: "Payment verification failed")
                     }
                 )
             }
+        }
+    }
+
+    fun refreshPremiumStatus(showLoading: Boolean = true) {
+        if (showLoading) _uiState.value = PremiumUiState.Loading
+        viewModelScope.launch {
+            premiumRepository.refreshStatus().fold(
+                onSuccess = { status ->
+                    _premiumStatus.value = status
+                    if (showLoading) {
+                        _uiState.value = if (status.isPremium) PremiumUiState.PaymentSuccess(status) else PremiumUiState.Error("No active Premium plan found.")
+                    }
+                },
+                onFailure = { error ->
+                    if (showLoading) {
+                        _uiState.value = PremiumUiState.Error(error.message ?: "Could not restore premium status")
+                    }
+                },
+            )
         }
     }
 

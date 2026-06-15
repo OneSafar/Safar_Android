@@ -29,7 +29,7 @@ interface HomeApi {
         @Query("limit") limit: Int = 20,
     ): Response<List<GoalDto>>
     @POST("goals/{id}/rollover-action") suspend fun rolloverAction(@Path("id") id: String, @Body request: RolloverActionRequest): Response<RolloverActionResponse>
-    @POST("goals/focus-summary") suspend fun getGoalFocusSummary(@Body request: FocusSummaryRequest): Response<GoalFocusSummaryResponse>
+    @POST("goals/ekagra-summary") suspend fun getGoalFocusSummary(@Body request: FocusSummaryRequest): Response<GoalFocusSummaryResponse>
     @GET("ekagra-sessions/analytics") suspend fun getEkagraAnalytics(): Response<EkagraAnalyticsStatsDto>
     @GET("analytics/monthly-report") suspend fun getMonthlyReport(): Response<MonthlyReportDto>
     @POST("analytics/monthly-report/generate") suspend fun generateMonthlyReport(@Body request: GenerateReportRequest): Response<MonthlyReportDto>

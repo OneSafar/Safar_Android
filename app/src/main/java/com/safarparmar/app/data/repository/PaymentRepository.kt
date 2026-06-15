@@ -3,6 +3,7 @@ package com.safarparmar.app.data.repository
 import com.safarparmar.app.data.remote.api.PaymentApi
 import com.safarparmar.app.data.remote.dto.CreateOrderRequestDto
 import com.safarparmar.app.data.remote.dto.VerifyPaymentRequestDto
+import com.safarparmar.app.data.remote.dto.VerifyPaymentResponseDto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -23,7 +24,7 @@ class PaymentRepository @Inject constructor(
         }
     }
 
-    fun verifyPayment(orderId: String, paymentId: String, signature: String): Flow<Result<Boolean>> = flow {
+    fun verifyPayment(orderId: String, paymentId: String, signature: String): Flow<Result<VerifyPaymentResponseDto>> = flow {
         try {
             val response = api.verifyPayment(
                 VerifyPaymentRequestDto(
@@ -32,10 +33,11 @@ class PaymentRepository @Inject constructor(
                     razorpay_signature = signature
                 )
             )
-            if (response.isSuccessful && response.body()?.success == true) {
-                emit(Result.success(true))
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true) {
+                emit(Result.success(body))
             } else {
-                emit(Result.failure(Exception(response.body()?.message ?: response.message() ?: "Verification failed")))
+                emit(Result.failure(Exception(body?.message ?: response.message() ?: "Verification failed")))
             }
         } catch (e: Exception) {
             emit(Result.failure(e))

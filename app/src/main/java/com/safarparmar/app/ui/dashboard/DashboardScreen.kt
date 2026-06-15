@@ -824,13 +824,18 @@ private fun StatRow(label: String, value: String, isDark: Boolean) {
 
 @Composable
 private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean, onNavigate: (String) -> Unit) {
+    var showDetailDialog by remember { mutableStateOf(false) }
+    if (showDetailDialog) {
+        WeeklyMoodDetailDialog(moods = moods, onDismiss = { showDetailDialog = false })
+    }
+
     val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     DashCard(isDark) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(Icons.Default.ShowChart, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
             CardTitle(stringResource(R.string.dashboard_weekly_mood), isDark)
             Spacer(Modifier.weight(1f))
-            Text("View →", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onNavigate(Routes.NISHTHA_STREAKS) })
+            Text("View →", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { showDetailDialog = true })
         }
         Spacer(Modifier.height(4.dp))
         Text("Your emotional journey from Monday to Sunday.",
@@ -874,15 +879,80 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean, onNavigate: (Str
 
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            days.forEach { d ->
-                Text(d, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+            days.forEachIndexed { i, d ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                    val moodItem = moods.getOrNull(i)
+                    if (moodItem != null && moodItem.mood.isNotBlank()) {
+                        Text(moodEmoji(moodItem.mood), fontSize = 12.sp)
+                    } else {
+                        Text("—", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(d, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), textAlign = TextAlign.Center)
+                }
             }
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             LegendDot(primaryColor, "Intensity")
             LegendDot(primaryColor.copy(alpha = 0.5f), "Mood")
+        }
+    }
+}
+
+@Composable
+private fun WeeklyMoodDetailDialog(moods: List<Mood>, onDismiss: () -> Unit) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    "Weekly Mood Log",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                )
+                if (moods.isEmpty()) {
+                    Text("No moods logged this week.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.heightIn(max = 400.dp)
+                    ) {
+                        items(moods) { mood ->
+                            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(moodEmoji(mood.mood), fontSize = 28.sp)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(mood.mood.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                                    val dateText = try {
+                                        val parser = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                                        val formatter = java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.getDefault())
+                                        val date = parser.parse(mood.timestamp)
+                                        if (date != null) formatter.format(date) else mood.timestamp
+                                    } catch(e: Exception) { mood.timestamp }
+                                    Text(dateText, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    if (!mood.notes.isNullOrBlank()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        Text("Why: ${mood.notes}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Text("Close", fontWeight = FontWeight.SemiBold)
+                }
+            }
         }
     }
 }

@@ -80,6 +80,9 @@ class SafarDataStore @Inject constructor(
         val WELCOME_SEEN          = booleanPreferencesKey("welcome_seen")
         val NOTIFIED_ACHIEVEMENTS = stringSetPreferencesKey("notified_achievements")
         val PLANNER_ALERT_DEDUPE_KEYS = stringSetPreferencesKey("planner_alert_dedupe_keys")
+        val IS_PREMIUM = booleanPreferencesKey("is_premium")
+        val PREMIUM_PLAN_TYPE = stringPreferencesKey("premium_plan_type")
+        val PREMIUM_EXPIRES_AT = stringPreferencesKey("premium_expires_at")
 
         // Focus Shield
         val FOCUS_SHIELD_ENABLED          = booleanPreferencesKey("focus_shield_enabled")
@@ -249,6 +252,18 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.PLANNER_ALERT_DEDUPE_KEYS] ?: emptySet() }
 
+    val isPremium: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.IS_PREMIUM] ?: false }
+
+    val premiumPlanType: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PREMIUM_PLAN_TYPE] }
+
+    val premiumExpiresAt: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PREMIUM_EXPIRES_AT] }
+
     // ── Setters ───────────────────────────────────────────────────────────────
 
     suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
@@ -287,6 +302,12 @@ class SafarDataStore @Inject constructor(
     suspend fun setLastSync(time: Long) = context.dataStore.edit { it[Keys.LAST_SYNC] = time }
     suspend fun setTourDone(done: Boolean) = context.dataStore.edit { it[Keys.TOUR_DONE] = done }
     suspend fun setWelcomeSeen(seen: Boolean) = context.dataStore.edit { it[Keys.WELCOME_SEEN] = seen }
+
+    suspend fun setPremiumStatus(isPremium: Boolean, planType: String?, expiresAt: String?) = context.dataStore.edit { prefs ->
+        prefs[Keys.IS_PREMIUM] = isPremium
+        if (planType.isNullOrBlank()) prefs.remove(Keys.PREMIUM_PLAN_TYPE) else prefs[Keys.PREMIUM_PLAN_TYPE] = planType
+        if (expiresAt.isNullOrBlank()) prefs.remove(Keys.PREMIUM_EXPIRES_AT) else prefs[Keys.PREMIUM_EXPIRES_AT] = expiresAt
+    }
 
     suspend fun addNotifiedAchievement(achievementId: String) = context.dataStore.edit { prefs ->
         val current = prefs[Keys.NOTIFIED_ACHIEVEMENTS] ?: emptySet()
@@ -361,6 +382,9 @@ class SafarDataStore @Inject constructor(
             it.remove(Keys.USER_ID)
             it.remove(Keys.USER_EMAIL)
             it.remove(Keys.IS_ADMIN)
+            it.remove(Keys.IS_PREMIUM)
+            it.remove(Keys.PREMIUM_PLAN_TYPE)
+            it.remove(Keys.PREMIUM_EXPIRES_AT)
         }
     }
 

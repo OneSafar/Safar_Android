@@ -1,6 +1,5 @@
 package com.safarparmar.app.ui.launch
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,21 +31,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -55,7 +50,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -67,33 +61,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.data.local.SafarDataStore
-import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
-import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldConsentDialog
-import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
-import com.safarparmar.app.ui.ekagra.focusshield.PermissionGuideSheet
-import com.safarparmar.app.ui.ekagra.focusshield.PermissionTarget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LaunchUsageQuestionnaireScreen(
     dataStore: SafarDataStore,
     onNavigateHome: () -> Unit,
+    onNavigateKavach: () -> Unit,
     onUnauthorized: () -> Unit,
     viewModel: LaunchUsageQuestionnaireViewModel = hiltViewModel(),
 ) {
     val isLoggedIn by dataStore.isLoggedIn.collectAsStateWithLifecycle(initialValue = null)
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn == false) onUnauthorized()
@@ -123,76 +107,24 @@ fun LaunchUsageQuestionnaireScreen(
     var page by remember { mutableIntStateOf(0) }
     var selectedMode by remember { mutableStateOf<String?>(null) }
 
-    var hasUsage by remember { mutableStateOf(FocusShieldPermissionHelper.hasUsageStatsPermission(context)) }
-    var hasA11y by remember { mutableStateOf(FocusShieldPermissionHelper.hasAccessibilityService(context)) }
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                hasUsage = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
-                hasA11y = FocusShieldPermissionHelper.hasAccessibilityService(context)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
-    var showShieldConsent by remember { mutableStateOf(false) }
-    var showUsageConsent by remember { mutableStateOf(false) }
-    var showA11yConsent by remember { mutableStateOf(false) }
-    var awaitingUsageGrant by remember { mutableStateOf(false) }
-    var awaitingA11yGrant by remember { mutableStateOf(false) }
-    var pendingDirectUsageSettings by remember { mutableStateOf(false) }
-
-    var strictPipelineAfterNotif by remember { mutableStateOf(false) }
-
     fun finishStandard() {
         viewModel.markQuestionnaireFinished(AppUsageMode.STANDARD, onNavigateHome)
     }
 
     fun finishFocused() {
-        viewModel.markQuestionnaireFinished(AppUsageMode.FOCUSED, onNavigateHome)
-    }
-
-    fun enableShieldAndFinishFocused() {
-        viewModel.setFocusShieldEnabled(true)
-        finishFocused()
-    }
-
-    val requestNotification = rememberNotificationPermissionRequester { _ ->
-        if (strictPipelineAfterNotif) {
-            strictPipelineAfterNotif = false
-            showShieldConsent = true
-        } else {
-            finishStandard()
-        }
+        viewModel.markQuestionnaireFinished(AppUsageMode.FOCUSED, onNavigateKavach)
     }
 
     fun onFinishQuestionnaire() {
         val mode = selectedMode ?: (if (needsFocusSetup) AppUsageMode.FOCUSED else AppUsageMode.STANDARD)
         if (mode == AppUsageMode.STANDARD) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                requestNotification()
-            } else {
-                finishStandard()
-            }
+            finishStandard()
             return
         }
-        strictPipelineAfterNotif = true
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestNotification()
-        } else {
-            strictPipelineAfterNotif = false
-            showShieldConsent = true
-        }
+        finishFocused()
     }
 
     val scheme = MaterialTheme.colorScheme
-
-    fun beginFocusedPermissionPipeline() {
-        if (selectedMode == null) selectedMode = AppUsageMode.FOCUSED
-        onFinishQuestionnaire()
-    }
 
     LaunchedEffect(page) {
         if (page == 1 && selectedMode == null) {
@@ -232,13 +164,9 @@ fun LaunchUsageQuestionnaireScreen(
                     title = {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                if (page == 2) "Focus Setup" else "Welcome",
+                                "Welcome",
                                 fontWeight = FontWeight.Bold,
                             )
-                            if (page == 2) {
-                                Spacer(Modifier.height(6.dp))
-                                QuestionnaireProgressRow(activePage = page, accent = scheme.primary, track = scheme.outline)
-                            }
                         }
                     },
                     navigationIcon = {
@@ -257,19 +185,7 @@ fun LaunchUsageQuestionnaireScreen(
             }
         },
         bottomBar = {
-            if (page == 2) {
-                FocusSetupBottomActions(
-                    onOpenSettings = {
-                        pendingDirectUsageSettings = true
-                        beginFocusedPermissionPipeline()
-                    },
-                    onCancel = {
-                        selectedMode = AppUsageMode.STANDARD
-                        pendingDirectUsageSettings = false
-                        onFinishQuestionnaire()
-                    },
-                )
-            } else if (page == 1) {
+            if (page == 1) {
                 val configuration = androidx.compose.ui.platform.LocalConfiguration.current
                 val density = androidx.compose.ui.platform.LocalDensity.current
                 val isCompactLayout = configuration.screenHeightDp < 700 || density.fontScale > 1.15f
@@ -286,14 +202,7 @@ fun LaunchUsageQuestionnaireScreen(
                     contentAlignment = Alignment.BottomCenter,
                 ) {
                     Button(
-                        onClick = {
-                            if (selectedMode == AppUsageMode.FOCUSED || (selectedMode == null && needsFocusSetup)) {
-                                if (selectedMode == null) selectedMode = AppUsageMode.FOCUSED
-                                page = 2
-                            } else {
-                                onFinishQuestionnaire()
-                            }
-                        },
+                        onClick = { onFinishQuestionnaire() },
                         enabled = selectedMode != null,
                         modifier = Modifier
                             .height(if (isCompactLayout) 56.dp else 64.dp)
@@ -374,9 +283,7 @@ fun LaunchUsageQuestionnaireScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                if (page < 2) {
-                    QuestionnaireProgressRow(activePage = page, accent = scheme.primary, track = scheme.outline)
-                }
+                QuestionnaireProgressRow(activePage = page, accent = scheme.primary, track = scheme.outline)
 
                 when (page) {
                 0 -> {
@@ -410,9 +317,6 @@ fun LaunchUsageQuestionnaireScreen(
                         }
                     }
                 }
-                2 -> {
-                    FocusSetupMergedPage()
-                }
                 }
 
                 Spacer(Modifier.height(32.dp))
@@ -421,80 +325,6 @@ fun LaunchUsageQuestionnaireScreen(
         }
     }
 
-    if (showShieldConsent) {
-        FocusShieldConsentDialog(
-            onDismiss = {
-                showShieldConsent = false
-                finishFocused()
-            },
-            onConfirm = {
-                showShieldConsent = false
-                when {
-                    !FocusShieldPermissionHelper.hasUsageStatsPermission(context) -> {
-                        if (pendingDirectUsageSettings) {
-                            pendingDirectUsageSettings = false
-                            awaitingUsageGrant = true
-                            FocusShieldPermissionHelper.openUsageAccessSettings(context)
-                        } else {
-                            showUsageConsent = true
-                        }
-                    }
-                    !FocusShieldPermissionHelper.hasAccessibilityService(context) -> showA11yConsent = true
-                    else -> enableShieldAndFinishFocused()
-                }
-            },
-        )
-    }
-
-    if (showUsageConsent) {
-        PermissionGuideSheet(
-            permission = PermissionTarget.USAGE_STATS,
-            onDismiss = {
-                showUsageConsent = false
-                if (!FocusShieldPermissionHelper.hasAccessibilityService(context)) showA11yConsent = true
-                else finishFocused()
-            },
-            onOpenSettings = {
-                showUsageConsent = false
-                awaitingUsageGrant = true
-                FocusShieldPermissionHelper.openUsageAccessSettings(context)
-            },
-        )
-    }
-
-    if (showA11yConsent) {
-        PermissionGuideSheet(
-            permission = PermissionTarget.ACCESSIBILITY,
-            onDismiss = {
-                showA11yConsent = false
-                finishFocused()
-            },
-            onOpenSettings = {
-                showA11yConsent = false
-                awaitingA11yGrant = true
-                FocusShieldPermissionHelper.openAccessibilitySettings(context)
-            },
-        )
-    }
-
-    LaunchedEffect(hasUsage, awaitingUsageGrant) {
-        if (awaitingUsageGrant && FocusShieldPermissionHelper.hasUsageStatsPermission(context)) {
-            awaitingUsageGrant = false
-            if (!FocusShieldPermissionHelper.hasAccessibilityService(context)) showA11yConsent = true
-            else enableShieldAndFinishFocused()
-        }
-    }
-
-    LaunchedEffect(hasA11y, awaitingA11yGrant) {
-        if (awaitingA11yGrant && FocusShieldPermissionHelper.hasAccessibilityService(context)) {
-            awaitingA11yGrant = false
-            if (FocusShieldPermissionHelper.hasUsageStatsPermission(context)) {
-                enableShieldAndFinishFocused()
-            } else {
-                finishFocused()
-            }
-        }
-    }
 }
 
 @Composable
@@ -829,167 +659,6 @@ private fun QuestionnaireProgressRow(activePage: Int, accent: Color, track: Colo
                     .clip(RoundedCornerShape(99.dp))
                     .background(if (i <= activePage) accent else track.copy(alpha = 0.35f)),
             )
-        }
-    }
-}
-
-@Composable
-private fun FocusSetupMergedPage() {
-    val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(scheme.secondaryContainer)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(scheme.surface)
-                    .border(1.dp, scheme.outline.copy(alpha = 0.35f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = scheme.primary,
-                    modifier = Modifier.size(32.dp),
-                )
-            }
-            Text(
-                "To help you stay focused, SAFAR needs to know which apps you're using. This helps us gently remind you if you drift away during study time.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = scheme.onSecondaryContainer,
-            )
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                "How to allow access",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = scheme.onBackground,
-            )
-            Box {
-                Box(
-                    Modifier
-                        .padding(start = 15.dp)
-                        .width(1.dp)
-                        .height(132.dp)
-                        .background(scheme.outline.copy(alpha = 0.45f)),
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    FocusSetupStep(
-                        number = 1,
-                        title = "Find SAFAR",
-                        subtitle = "Look for SAFAR in the list of apps.",
-                        scheme = scheme,
-                    )
-                    FocusSetupStep(
-                        number = 2,
-                        title = "Tap \"Allow usage access\"",
-                        subtitle = "Toggle the switch to permit access.",
-                        scheme = scheme,
-                    )
-                    FocusSetupStep(
-                        number = 3,
-                        title = "Press back",
-                        subtitle = "Return to SAFAR to complete setup.",
-                        scheme = scheme,
-                    )
-                }
-            }
-        }
-
-        Text(
-            "SAFAR never reads what's inside any app. The package name of the open app is enough to know when a blocked app appears.",
-            style = MaterialTheme.typography.bodySmall,
-            color = scheme.onSurfaceVariant,
-            lineHeight = 18.sp,
-        )
-    }
-}
-
-@Composable
-private fun FocusSetupStep(
-    number: Int,
-    title: String,
-    subtitle: String,
-    scheme: ColorScheme,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Box(
-            Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(scheme.surface)
-                .border(1.dp, scheme.outline.copy(alpha = 0.35f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "$number",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = scheme.onSurfaceVariant,
-            )
-        }
-        Column(Modifier.padding(top = 2.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = scheme.onSurface,
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = scheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun FocusSetupBottomActions(
-    onOpenSettings: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(scheme.surface)
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp)
-            .padding(top = 12.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Button(
-            onClick = onOpenSettings,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            shape = RoundedCornerShape(12.dp),
-        ) {
-            Text("Open Settings", fontWeight = FontWeight.Bold)
-            Spacer(Modifier.size(8.dp))
-            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
-        }
-        TextButton(
-            onClick = onCancel,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            shape = RoundedCornerShape(12.dp),
-        ) {
-            Text("Cancel", fontWeight = FontWeight.SemiBold, color = scheme.primary)
         }
     }
 }

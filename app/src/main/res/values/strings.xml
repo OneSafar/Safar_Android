@@ -66,7 +66,7 @@
     <string name="kavach_screen_subtitle">Your shield against distraction</string>
     <string name="kavach_hero_body">KAVACH blocks chosen apps while your Ekagra timer is running.</string>
     <string name="kavach_intro_hero_title">KAVACH Is On</string>
-    <string name="kavach_intro_hero_subtitle">Works while your Ekagra focus timer is running.</string>
+    <string name="kavach_intro_hero_subtitle">Works while your Ekagra ekagra timer is running.</string>
     <string name="kavach_intro_copy_body">Choose apps to block, then start your Ekagra timer. KAVACH works only while that timer is on.</string>
     <string name="kavach_benefit_choose_title">Choose Apps</string>
     <string name="kavach_benefit_choose_body">Pick the apps that distract you.</string>
@@ -74,11 +74,11 @@
     <string name="kavach_benefit_start_body">Start your Ekagra timer. KAVACH blocks apps during that session.</string>
     <string name="kavach_benefit_control_title">You Control It</string>
     <string name="kavach_benefit_control_body">Change apps or turn KAVACH off anytime.</string>
-    <string name="kavach_enabled_ekagra_hint">Choose apps to block during focus sessions.</string>
+    <string name="kavach_enabled_ekagra_hint">Choose apps to block during ekagra sessions.</string>
     <string name="kavach_how_it_works_learn_more">Learn more</string>
     <string name="kavach_how_it_works_show_less">Show less</string>
     <string name="kavach_how_it_works_intro">KAVACH blocks only the apps you choose, only while your Ekagra timer is running.</string>
-    <string name="kavach_status_pill">Ready- You\'re all set for 100%% focus.</string>
+    <string name="kavach_status_pill">Ready- You\'re all set for 100%% ekagra.</string>
     <string name="kavach_enable_title">Use KAVACH</string>
     <string name="kavach_enable_subtitle">Blocks chosen apps while your Ekagra timer is on</string>
     <string name="kavach_off_hint">Turn on KAVACH, pick apps, then start Ekagra to block distractions.</string>
@@ -97,7 +97,7 @@
     <string name="kavach_emergency_unlock_title">Quick unlock</string>
     <string name="kavach_emergency_unlock_subtitle">Short access when you see the block screen</string>
     <string name="kavach_emergency_off_beast">Off while Beast Mode is on</string>
-    <string name="kavach_block_return">Back to focus</string>
+    <string name="kavach_block_return">Back to ekagra</string>
     <string name="kavach_block_unlock">Quick unlock (%1$d left · %2$ds)</string>
     <string name="kavach_block_unlock_exhausted">Quick unlock used up</string>
     <string name="kavach_block_beast_footer">Beast Mode on — no unlock until timer ends</string>
@@ -107,7 +107,7 @@
     <string name="kavach_info_permissions_title">Permissions are your choice</string>
     <string name="kavach_info_permissions_body">App Check sees when an app opens. Block Screen shows KAVACH. Notifications show study timer updates.</string>
     <string name="kavach_setup_heading">Almost ready!</string>
-    <string name="kavach_setup_intro">Two quick steps and KAVACH is ready to protect your focus.</string>
+    <string name="kavach_setup_intro">Two quick steps and KAVACH is ready to protect your ekagra.</string>
     <string name="kavach_permissions_ready">KAVACH is ready. Start Ekagra to begin blocking.</string>
     <string name="kavach_permissions_needed">Allow two quick permissions to start blocking distractions.</string>
     <string name="kavach_info_content_description">About KAVACH</string>
@@ -136,7 +136,7 @@
     <string name="kavach_end_session">End Session</string>
     <string name="kavach_session_summary_title">Session Summary</string>
     <string name="kavach_session_summary_heading">Great Work!</string>
-    <string name="kavach_session_summary_subtitle">Your focus session is complete. Here is what you achieved.</string>
+    <string name="kavach_session_summary_subtitle">Your ekagra session is complete. Here is what you achieved.</string>
     <string name="kavach_session_time_focused_label">Time Focused</string>
     <string name="kavach_session_minutes_unit">min</string>
     <string name="kavach_session_deep_work">Deep Work</string>
@@ -169,13 +169,13 @@
     <string name="dashboard_monthly_snapshot">Monthly Snapshot</string>
     <string name="dashboard_consistency">Consistency</string>
     <string name="dashboard_completion">Completion</string>
-    <string name="dashboard_focus">Focus Depth</string>
+    <string name="dashboard_focus">Ekagra Depth</string>
 
     <!-- Modules -->
     <string name="module_nishtha">Nishtha</string>
     <string name="module_nishtha_sub">Emotional wellness</string>
     <string name="module_ekagra">Ekagra</string>
-    <string name="module_ekagra_sub">Focus &amp; flow</string>
+    <string name="module_ekagra_sub">Ekagra &amp; flow</string>
     <string name="module_mehfil">Mehfil</string>
     <string name="module_mehfil_sub">Community</string>
     <string name="module_dhyan">Dhyan</string>
@@ -291,7 +291,7 @@
     <string name="goals_desc_label">Description (optional)</string>
     <string name="goals_priority_label">Priority</string>
     <string name="goals_analytics_completed_7d">Completed (7d)</string>
-    <string name="goals_analytics_focus_time">Total Focus Time</string>
+    <string name="goals_analytics_focus_time">Total Ekagra Time</string>
     <string name="goals_analytics_weekly_pulse">Weekly Pulse</string>
     <string name="goals_analytics_velocity">Completion Velocity</string>
     <string name="goals_analytics_daily_breakdown">Daily Breakdown</string>
@@ -311,7 +311,7 @@
     <string name="streaks_start_today">Start your streak today!</string>
     <string name="streaks_amazing">Amazing! Keep it up!</string>
     <string name="streaks_monthly_health">Monthly Health</string>
-    <string name="streaks_avg_focus_score">Average Focus Score</string>
+    <string name="streaks_avg_focus_score">Average Ekagra Score</string>
     <string name="streaks_days_unit">days</string>
     <string name="streaks_consistency_trend">Goal Consistency Trend</string>
     <string name="streaks_trend_subtitle">Your goal completion over the last 7 days</string>
@@ -327,7 +327,7 @@
     <string name="analytics_scorecard_title">Nishtha Scorecard</string>
     <string name="analytics_consistency_score">Consistency Score</string>
     <string name="analytics_completion_rate">Completion Rate</string>
-    <string name="analytics_focus_depth">Focus Depth</string>
+    <string name="analytics_focus_depth">Ekagra Depth</string>
     <string name="analytics_skill_radar">Skill Radar</string>
     <string name="analytics_multidimensional">Multidimensional Performance</string>
     <string name="analytics_activity_heatmap">Activity Heatmap</string>
@@ -370,7 +370,7 @@
     <string name="ekagra_tab_analytics">Analytics</string>
     <string name="ekagra_theme">Theme</string>
     <string name="ekagra_song">Song</string>
-    <string name="ekagra_focus">Focus</string>
+    <string name="ekagra_focus">Ekagra</string>
     <string name="ekagra_minutes">%d min</string>
     <string name="ekagra_decrease">Decrease</string>
     <string name="ekagra_increase">Increase</string>
@@ -393,7 +393,7 @@
     <string name="ekagra_song_forest">Forest Ambience</string>
     <string name="ekagra_song_silence">Silence</string>
     <string name="ekagra_stat_sessions">Sessions</string>
-    <string name="ekagra_stat_focus_time">Focus Time</string>
+    <string name="ekagra_stat_focus_time">Ekagra Time</string>
     <string name="ekagra_stat_avg_session">Avg Session</string>
 
     <!-- Common -->
@@ -411,13 +411,13 @@
 
     <!-- Focus Shield -->
     <string name="focus_shield_blocked_title">App Blocked</string>
-    <string name="focus_shield_blocked_message">%s is blocked during your focus session or Study Session. Stay focused!</string>
+    <string name="focus_shield_blocked_message">%s is blocked during your ekagra session or Study Session. Stay focused!</string>
     <string name="focus_shield_emergency_unlock">Emergency Unlock</string>
     <string name="focus_shield_return_to_timer">Return to Timer</string>
     <string name="focus_shield_accessibility_label">SAFAR KAVACH Block Screen</string>
-    <string name="focus_shield_accessibility_description">KAVACH blocks only the apps you choose while your Ekagra focus timer is running. SAFAR does not read your screen, messages, passwords, or typed text, and does not control your phone in any other way.</string>
+    <string name="focus_shield_accessibility_description">KAVACH blocks only the apps you choose while your Ekagra ekagra timer is running. SAFAR does not read your screen, messages, passwords, or typed text, and does not control your phone in any other way.</string>
 
     <!-- Notification action buttons -->
     <string name="notification_action_start_now">Start Now</string>
 
-</resources>
+    <string name="module_courses">Courses</string>`n</resources>

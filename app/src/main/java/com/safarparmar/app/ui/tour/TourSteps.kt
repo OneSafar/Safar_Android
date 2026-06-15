@@ -51,13 +51,13 @@ val nishthaTourSteps = listOf(
 val ekagraTourSteps = listOf(
     ButterflyTourStep(
         title   = "Welcome to Ekagra",
-        message = "Ekagra means 'one-pointed focus'. Use it for deep work sessions, Pomodoro timers, and flow tracking.",
+        message = "Ekagra means 'one-pointed ekagra'. Use it for deep work sessions, Pomodoro timers, and flow tracking.",
         anchorX = 0.5f, anchorY = 0.28f,
         tooltipSide = TooltipSide.BOTTOM,
         iconRes = com.safarparmar.app.R.drawable.ic_target
     ),
     ButterflyTourStep(
-        title   = "Focus Timer",
+        title   = "Ekagra Timer",
         message = "Set a session length and press Start. The timer keeps you accountable without distraction.",
         anchorX = 0.5f, anchorY = 0.55f,
         tooltipSide = TooltipSide.TOP,

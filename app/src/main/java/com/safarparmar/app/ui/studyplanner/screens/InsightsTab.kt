@@ -228,6 +228,7 @@ internal fun InsightsTab(
     plan: StudyPlan,
     state: StudyPlannerUiState,
     actions: PlannerActions,
+    isPremium: Boolean,
     onUpgrade: () -> Unit = {},
 ) {
     val insights = remember(plan, state.calendar, state.analytics) {
@@ -298,10 +299,12 @@ internal fun InsightsTab(
             }
         }
         // Premium lock overlay — gradient fade + lock gate
-        InsightsPremiumLockOverlay(
-            onUpgrade = onUpgrade,
-            modifier = Modifier.fillMaxSize()
-        )
+        if (!isPremium) {
+            InsightsPremiumLockOverlay(
+                onUpgrade = onUpgrade,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 
@@ -1073,7 +1076,7 @@ internal fun NextBestActionsPanel(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Your planner is fully optimized. Keep following your daily focus schedule to hit your target goals!",
+                        text = "Your planner is fully optimized. Keep following your daily ekagra schedule to hit your target goals!",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium

@@ -206,7 +206,7 @@ fun EkagraScreen(
             timerService.setDuration(TimerMode.FOCUS, focusMinutes * 60)
     }
     LaunchedEffect(initialView) {
-        if (initialView == "analytics") onNavigate(Routes.nishthaAnalytics("focus"))
+        if (initialView == "analytics") onNavigate(Routes.nishthaAnalytics("ekagra"))
     }
 
     val ekagraLifecycleOwner = LocalLifecycleOwner.current
@@ -259,7 +259,7 @@ fun EkagraScreen(
                 Intent(pipContext, TimerService::class.java).apply { action = TimerService.ACTION_PLAY_PAUSE },
                 android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE))))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            builder.setTitle("SAFAR Focus Timer"); builder.setSubtitle("Focus timer running")
+            builder.setTitle("SAFAR Ekagra Timer"); builder.setSubtitle("Ekagra timer running")
         }
         return builder.build()
     }
@@ -419,7 +419,7 @@ fun EkagraScreen(
                                 if (pending != null) {
                                     viewModel.completeSession(pending.sessionId, pending.totalSeconds,
                                         pending.secondsLeft, pending.mode, pending.startedAt,
-                                        titleInput.ifBlank { "Free Focus" }, null, null)
+                                        titleInput.ifBlank { "Free Ekagra" }, null, null)
                                     timerService?.reset(); associatedGoalId = null
                                     associatedGoalTitle = null; pendingEndedSession = null; showOrganizeSheet = false
                                 }

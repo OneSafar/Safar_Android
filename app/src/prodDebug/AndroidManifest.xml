@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <!-- Remove Kavach Accessibility Service from prodDebug variant -->
+        <service
+            android:name=".ui.ekagra.focusshield.FocusShieldAccessibilityService"
+            tools:node="remove" />
+    </application>
+
+</manifest>

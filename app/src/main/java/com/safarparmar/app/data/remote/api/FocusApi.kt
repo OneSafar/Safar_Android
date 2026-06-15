@@ -16,7 +16,7 @@ import retrofit2.http.Query
 
 interface FocusApi {
 
-    @GET("focus-sessions/stats")
+    @GET("ekagra-sessions/stats")
     suspend fun getStats(): Response<FocusStatsResponse>
 
     @GET("ekagra-sessions")

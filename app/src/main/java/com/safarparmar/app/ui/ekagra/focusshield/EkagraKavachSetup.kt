@@ -129,11 +129,7 @@ fun EkagraKavachInlineCard(
 
     fun onKavachToggle(enabled: Boolean) {
         if (enabled) {
-            if (!hasUsageStats || (accessibilityRequired && !hasAccessibility)) {
-                onSetupPermissions()
-            } else {
-                onToggleEnabled(true)
-            }
+            onSetupPermissions()
         } else {
             onToggleEnabled(false)
         }
@@ -179,14 +175,14 @@ fun EkagraKavachInlineCard(
                             }
                             startBlock == KavachStartBlock.NeedsPermissions -> {
                                 if (isSessionRunning) "Allow permissions below to activate blocking immediately"
-                                else "Allow permissions below, then start focus"
+                                else "Allow permissions below, then start ekagra"
                             }
                             startBlock == KavachStartBlock.NeedsApps -> {
                                 if (isSessionRunning) "Choose apps to block during this active session"
                                 else "Choose apps to block during this session"
                             }
                             else -> {
-                                if (isSessionRunning) "Focus Shield is active and blocking distracting apps."
+                                if (isSessionRunning) "Ekagra Shield is active and blocking distracting apps."
                                 else stringResource(R.string.kavach_enabled_ekagra_hint)
                             }
                         },

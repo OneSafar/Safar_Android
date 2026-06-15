@@ -91,7 +91,7 @@ internal fun DurationTab(
 
         DurationCard(
             icon          = Icons.Default.Timer,
-            title         = "Focus duration",
+            title         = "Ekagra duration",
             value         = focusMinutes,
             range         = 1f..120f,
             onValueChange = onFocusChange,
@@ -119,7 +119,7 @@ internal fun DurationTab(
         ) {
             Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Start focus session", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text("Start ekagra session", fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(8.dp))
     }

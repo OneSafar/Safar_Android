@@ -270,7 +270,7 @@ internal fun TimerFocusTab(
                         )
                     }
                     Text(
-                        if (isRunning) "Focus running" else "Ready to focus",
+                        if (isRunning) "Ekagra running" else "Ready to ekagra",
                         fontSize   = 12.sp,
                         fontWeight = FontWeight.Medium,
                         // M3 onSurfaceVariant
@@ -389,7 +389,7 @@ internal fun TimerFocusTab(
                 isSessionRunning = isRunning,
                 onToggleEnabled = onToggleKavach,
                 onOpenAppPicker = onOpenAppPicker,
-                onSetupPermissions = { onNavigate(Routes.KAVACH_PERMISSION_ONBOARDING) },
+                onSetupPermissions = { onNavigate(Routes.FOCUS_SHIELD) },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
             )
         }

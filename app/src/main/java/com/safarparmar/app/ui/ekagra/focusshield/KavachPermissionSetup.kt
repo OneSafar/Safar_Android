@@ -372,7 +372,7 @@ fun PermissionGuideSheet(
                         GuideStepGroup(
                             stepNumber = 1,
                             title = "Notifications",
-                            subtitle = "For focus timer progress and KAVACH status",
+                            subtitle = "For ekagra timer progress and KAVACH status",
                             steps = listOf(
                                 "Tap Allow on the prompt that follows",
                                 "(This is optional — KAVACH works without it)",

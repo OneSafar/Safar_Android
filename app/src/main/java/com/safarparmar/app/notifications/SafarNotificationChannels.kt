@@ -28,10 +28,10 @@ object SafarNotificationChannels {
         val channels = listOf(
             NotificationChannel(
                 FOCUS_TIMER,
-                "Focus timer",
+                "Ekagra timer",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Active focus timer and break status"
+                description = "Active ekagra timer and break status"
                 setShowBadge(false)
             },
             NotificationChannel(
@@ -40,7 +40,7 @@ object SafarNotificationChannels {
                 // Lower than HIGH to avoid heads-up banners; background activity starts are not user-initiated.
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
-                description = "Alerts when a blocked app is opened during an active focus session"
+                description = "Alerts when a blocked app is opened during an active ekagra session"
                 setShowBadge(false)
             },
             NotificationChannel(
@@ -48,7 +48,7 @@ object SafarNotificationChannels {
                 "KAVACH status",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Ongoing KAVACH status during an active focus session or Study Session"
+                description = "Ongoing KAVACH status during an active ekagra session or Study Session"
                 setShowBadge(false)
             },
             NotificationChannel(
@@ -56,7 +56,7 @@ object SafarNotificationChannels {
                 "KAVACH blocked app",
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
-                description = "Shown when a blocked app is opened during an active focus session or Study Session"
+                description = "Shown when a blocked app is opened during an active ekagra session or Study Session"
                 setShowBadge(false)
             },
             NotificationChannel(

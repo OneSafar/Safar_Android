@@ -210,7 +210,7 @@ internal fun LivePulseCard(
     Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Today Pulse", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Focus Activity", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Ekagra Activity", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("$completedToday Completed", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
             Text("$openManualGoals open manual goals", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("$completionRate% overall completion rate", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -236,7 +236,7 @@ internal fun ProTipCard() {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Text("Pro Tip", fontWeight = FontWeight.Bold)
-            Text("Consistent daily completion is better than occasional bursts. Break large goals into smaller focus tasks.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Consistent daily completion is better than occasional bursts. Break large goals into smaller ekagra tasks.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

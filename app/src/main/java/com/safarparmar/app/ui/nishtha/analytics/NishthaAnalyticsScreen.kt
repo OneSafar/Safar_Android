@@ -50,10 +50,12 @@ import java.util.Locale
 @Composable
 fun NishthaAnalyticsScreen(
     viewModel: NishthaViewModel = hiltViewModel(),
+    premiumViewModel: com.safarparmar.app.ui.premium.PremiumViewModel = hiltViewModel(),
     onNavigate: (String) -> Unit = {},
     initialSection: String = "overview",
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val report = uiState.monthlyReport
     val achievements = uiState.achievements
 
@@ -73,7 +75,7 @@ fun NishthaAnalyticsScreen(
         mutableStateOf(
             when (initialSection.lowercase(Locale.US)) {
                 "goals" -> "goals"
-                "focus" -> "focus"
+                "ekagra" -> "ekagra"
                 "sessions" -> "sessions"
                 "monthly" -> "monthly"
                 else -> "overview"
@@ -158,7 +160,7 @@ fun NishthaAnalyticsScreen(
         ) {
             AnalyticsSectionChip("Overview", selectedSection == "overview") { selectedSection = "overview" }
             AnalyticsSectionChip("Goals", selectedSection == "goals") { selectedSection = "goals" }
-            AnalyticsSectionChip("Focus", selectedSection == "focus") { selectedSection = "focus" }
+            AnalyticsSectionChip("Ekagra", selectedSection == "ekagra") { selectedSection = "ekagra" }
             AnalyticsSectionChip("Sessions", selectedSection == "sessions") { selectedSection = "sessions" }
             AnalyticsSectionChip("Monthly Review", selectedSection == "monthly") { selectedSection = "monthly" }
         }
@@ -170,7 +172,7 @@ fun NishthaAnalyticsScreen(
             ) {
                 when (selectedSection) {
                     "goals" -> GoalInsightsSection(uiState.goals)
-                    "focus" -> FocusInsightsSection(uiState.ekagraAnalytics)
+                    "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
                     "sessions" -> SessionHistorySection(uiState.ekagraAnalytics)
                     "monthly" -> MonthlyReviewSection(
                         selectedMonthLabel = months.first { it.first == selectedMonth }.second,
@@ -184,11 +186,13 @@ fun NishthaAnalyticsScreen(
                     else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
                 }
             }
-            // Gradient fade + premium lock gate
-            AnalyticsPremiumLockOverlay(
-                modifier = Modifier.fillMaxSize(),
-                onUpgradeClick = { onNavigate(com.safarparmar.app.ui.navigation.Routes.PREMIUM) }
-            )
+            if (!premiumStatus.canUseNishthaAnalytics) {
+                // Gradient fade + premium lock gate
+                AnalyticsPremiumLockOverlay(
+                    modifier = Modifier.fillMaxSize(),
+                    onUpgradeClick = { onNavigate(com.safarparmar.app.ui.navigation.Routes.PREMIUM) }
+                )
+            }
         }
     }
 }
@@ -721,7 +725,7 @@ private fun AnalyticsPremiumLockOverlay(
                 color = scheme.onBackground,
             )
             Text(
-                text = "See goal progress, focus history,\nsession history and monthly review.",
+                text = "See goal progress, ekagra history,\nsession history and monthly review.",
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = scheme.onSurfaceVariant,

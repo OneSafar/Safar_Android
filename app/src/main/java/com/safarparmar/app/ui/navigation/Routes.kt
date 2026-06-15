@@ -21,10 +21,10 @@ object Routes {
     const val MEHFIL = "mehfil"
     const val DM_CHAT = "mehfil/dm_chat"
     const val DHYAN  = "dhyan"
+    const val COURSES = "dhyan_courses"
     const val APP_PICKER = "ekagra/app_picker"
     const val KAVACH_ABOUT = "kavach/about"
     const val KAVACH_SESSION_SUMMARY = "kavach/session_summary"
-    const val KAVACH_PERMISSION_ONBOARDING = "kavach/permission_onboarding"
     const val LAUNCH_USAGE_QUESTIONNAIRE = "launch_usage_questionnaire"
     const val FOCUS_SHIELD = "focus_shield"
     const val LIVE_SESSIONS_ROOT = "live/sessions"
@@ -44,7 +44,7 @@ object Routes {
     fun nishthaAnalytics(section: String = "overview"): String =
         "nishtha/analytics?section=${android.net.Uri.encode(section)}"
 
-    fun ekagraAnalytics(): String = nishthaAnalytics("focus")
+    fun ekagraAnalytics(): String = nishthaAnalytics("ekagra")
 
     fun liveSessions(courseId: String? = null): String =
         if (courseId.isNullOrBlank()) LIVE_SESSIONS_ROOT

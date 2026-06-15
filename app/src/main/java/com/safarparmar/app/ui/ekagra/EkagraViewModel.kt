@@ -123,7 +123,7 @@ class EkagraViewModel @Inject constructor(
             goalId = goalId,
             goalTitle = goalTitle,
             sessionType = if (goalId.isNullOrBlank()) "named" else "goal",
-            sessionTitle = taskText.ifBlank { goalTitle ?: "Free Focus" },
+            sessionTitle = taskText.ifBlank { goalTitle ?: "Free Ekagra" },
             source = if (goalId.isNullOrBlank()) "manual" else "goal_continue",
             status = "active",
             mode = mode,
@@ -280,7 +280,7 @@ class EkagraViewModel @Inject constructor(
         val cleanTitle = taskTitle?.trim()?.takeIf { it.isNotBlank() }
             ?: current?.sessionTitle?.trim()?.takeIf { it.isNotBlank() }
             ?: cleanGoalTitle
-            ?: "Free Focus"
+            ?: "Free Ekagra"
 
         viewModelScope.launch {
             repo.saveSession(

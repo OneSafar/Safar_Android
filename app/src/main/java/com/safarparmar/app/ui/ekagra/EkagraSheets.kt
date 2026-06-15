@@ -224,7 +224,7 @@ internal fun OrganizeFreeFocusSheet(
                         contentColor   = scheme.onPrimary,
                     ),
                 ) {
-                    Text("Save free focus", fontSize = 12.sp)
+                    Text("Save free ekagra", fontSize = 12.sp)
                 }
             }
         }

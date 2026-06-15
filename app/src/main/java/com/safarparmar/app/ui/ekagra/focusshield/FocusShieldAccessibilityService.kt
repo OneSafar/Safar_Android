@@ -106,7 +106,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             return
         }
 
-        // Suppress blocking during the grace period after the user tapped "Return to Focus".
+        // Suppress blocking during the grace period after the user tapped "Return to Ekagra".
         if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) return
         // Also honour the emergency-unlock grace window (wall-clock based, survives reboots).
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
@@ -138,7 +138,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
 
     private fun launchBlockScreen(blockedPackage: String) {
         if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) {
-            debugLog("Skipping block during return-to-focus grace for $blockedPackage")
+            debugLog("Skipping block during return-to-ekagra grace for $blockedPackage")
             return
         }
 
@@ -268,7 +268,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
         return this?.shownForPackage == packageName
     }
 
-    /** Called by the overlay when the user taps "Return to Focus" — suppresses re-blocking. */
+    /** Called by the overlay when the user taps "Return to Ekagra" — suppresses re-blocking. */
     fun onUserReturnedToFocus() {
         FocusShieldRepository.ShieldPrefs.beginReturnToFocusGrace(this, RETURN_GRACE_MS)
         lastBlockedPackage = null

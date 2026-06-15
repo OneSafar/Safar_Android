@@ -51,7 +51,7 @@ object FocusShieldPermissionHelper {
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
         ).orEmpty()
         val granted = enabledServices.split(':').any { it.equals(expected, ignoreCase = true) }
-        debugLog("Focus Shield accessibility granted=$granted")
+        debugLog("Ekagra Shield accessibility granted=$granted")
         return granted
     }
 

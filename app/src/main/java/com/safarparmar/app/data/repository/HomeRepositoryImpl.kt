@@ -264,7 +264,7 @@ class HomeRepositoryImpl @Inject constructor(
     private fun EkagraTimerDurationUsageDto.toDomain() = EkagraTimerDurationUsage(
         durationMinutes = durationMinutes ?: 0,
         count = count ?: 0,
-        sessionType = sessionType ?: "focus"
+        sessionType = sessionType ?: "ekagra"
     )
 
     private fun EkagraAnalyticsRecentSessionDto.toDomain() = EkagraAnalyticsRecentSession(
@@ -277,7 +277,7 @@ class HomeRepositoryImpl @Inject constructor(
         taskText = taskText,
         associatedGoalId = associatedGoalId,
         pauseCount = pauseCount ?: 0,
-        sessionType = sessionType ?: "focus"
+        sessionType = sessionType ?: "ekagra"
     )
 
     private fun EkagraAnalyticsFocusSessionDto.toDomain() = EkagraAnalyticsFocusSession(

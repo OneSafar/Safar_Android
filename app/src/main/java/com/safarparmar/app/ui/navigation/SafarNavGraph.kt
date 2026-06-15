@@ -20,6 +20,7 @@ import com.safarparmar.app.ui.achievements.AchievementsScreen
 import com.safarparmar.app.ui.admin.AdminNotificationComposerScreen
 import com.safarparmar.app.ui.auth.AuthScreen
 import com.safarparmar.app.ui.dashboard.DashboardScreen
+import com.safarparmar.app.ui.dhyan.DhyanCoursesScreen
 import com.safarparmar.app.ui.dhyan.DhyanScreen
 import com.safarparmar.app.ui.ekagra.EkagraScreen
 import com.safarparmar.app.ui.home.HomeScreen
@@ -37,7 +38,6 @@ import com.safarparmar.app.ui.studyplanner.screens.SyllabusChaptersScreen
 import com.safarparmar.app.ui.studyplanner.screens.SyllabusTopicsScreen
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
 import com.safarparmar.app.ui.ekagra.focusshield.KavachAboutScreen
-import com.safarparmar.app.ui.ekagra.focusshield.KavachOnboardingScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionsScreen
 import com.safarparmar.app.ui.premium.PremiumPaywallScreen
@@ -155,6 +155,9 @@ fun SafarNavGraph(
                 onNavigateHome = { 
                     navigateAndClear(Routes.HOME)
                     navigate(Routes.PREMIUM)
+                },
+                onNavigateKavach = {
+                    navigateAndClear(Routes.FOCUS_SHIELD)
                 },
                 onUnauthorized = { navigateAndClear(Routes.AUTH) },
             )
@@ -330,6 +333,10 @@ fun SafarNavGraph(
             DhyanScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme)
         }
 
+        composable(Routes.COURSES) {
+            DhyanCoursesScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme)
+        }
+
         composable(Routes.FOCUS_SHIELD) {
             FocusShieldStandaloneScreen(
                 currentRoute = currentRoute,
@@ -347,13 +354,6 @@ fun SafarNavGraph(
 
         composable(Routes.KAVACH_ABOUT) {
             KavachAboutScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable(Routes.KAVACH_PERMISSION_ONBOARDING) {
-            KavachOnboardingScreen(
-                onFinished = { navController.popBackStack() },
-                onBack = { navController.popBackStack() }
-            )
         }
 
         composable(

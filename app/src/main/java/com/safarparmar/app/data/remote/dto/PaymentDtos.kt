@@ -28,5 +28,6 @@ data class VerifyPaymentRequestDto(
 
 data class VerifyPaymentResponseDto(
     val success: Boolean,
-    val message: String?
+    val message: String?,
+    val premium: PremiumStatusResponse? = null,
 )

@@ -45,6 +45,7 @@ val drawerItems = listOf(
     DrawerItem(R.string.module_ekagra, Icons.Default.Timer, Routes.EKAGRA),
     DrawerItem(R.string.module_mehfil, Icons.Default.Groups, Routes.MEHFIL),
     DrawerItem(R.string.module_dhyan, Icons.Default.Spa, Routes.DHYAN),
+    DrawerItem(R.string.module_courses, Icons.Default.MenuBook, Routes.COURSES),
     DrawerItem(R.string.nav_live_classes, Icons.Default.LiveTv, Routes.LIVE_SESSIONS_ROOT),
     DrawerItem(R.string.nav_admin_notifications, Icons.Default.Campaign, Routes.ADMIN_NOTIFICATIONS, requiresAdmin = true),
     DrawerItem(R.string.nav_profile, Icons.Default.Person, Routes.PROFILE),

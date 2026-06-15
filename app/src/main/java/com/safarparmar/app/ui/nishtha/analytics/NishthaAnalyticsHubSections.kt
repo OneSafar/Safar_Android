@@ -55,19 +55,19 @@ internal fun AnalyticsOverviewSection(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text("Overview", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-        Text("Quick read across goals, focus, and the monthly review.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Quick read across goals, ekagra, and the monthly review.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            HubMetricCard(Icons.Default.Timer, "Focus Today", formatStudyTime(focusToday), "Ekagra focus completed today", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+            HubMetricCard(Icons.Default.Timer, "Ekagra Today", formatStudyTime(focusToday), "Ekagra ekagra completed today", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
             HubMetricCard(Icons.Default.Flag, "Goals Today", "$completedToday/${todayGoals.size}", "Completed against today's goals", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HubMetricCard(Icons.Default.Bolt, "Consistency", report?.let { "${it.consistencyScore.toInt()}%" } ?: "-", "Monthly review preview", MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
-            HubMetricCard(Icons.Default.TrackChanges, "Focus Depth", report?.let { "${it.totalFocusMinutes}m/day" } ?: "-", "From Monthly Review", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+            HubMetricCard(Icons.Default.TrackChanges, "Ekagra Depth", report?.let { "${it.totalFocusMinutes}m/day" } ?: "-", "From Monthly Review", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
         }
         Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Analytics Home", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("Use Goals for completion patterns, Focus for timer depth, Sessions for the work log, and Monthly Review for reflection.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Use Goals for completion patterns, Ekagra for timer depth, Sessions for the work log, and Monthly Review for reflection.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -149,10 +149,10 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Focus Insights", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+        Text("Ekagra Insights", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
         Text("Focused metrics from Ekagra timer sessions.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CleanMetricCard("Total focus time", formatStudyTime(analytics.totalFocusMinutes), null, accent, Modifier.weight(1f))
+            CleanMetricCard("Total ekagra time", formatStudyTime(analytics.totalFocusMinutes), null, accent, Modifier.weight(1f))
             CleanMetricCard("Breaks taken", analytics.breakSessionsCount.toString(), "Short ${analytics.shortBreakSessionsCount} | Long ${analytics.longBreakSessionsCount}", accent, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -160,8 +160,8 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
             CleanMetricCard("Most used duration", analytics.mostUsedTimerDurationMinutes?.let { formatStudyTime(it) } ?: "-", null, accent, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CleanMetricCard("Goal-linked focus", linkedSessionCount.toString(), "Saved sessions assigned to goals", accent, Modifier.weight(1f))
-            CleanMetricCard("Free focus", freeFocusSessionCount.toString(), "Saved sessions without a goal", accent, Modifier.weight(1f))
+            CleanMetricCard("Goal-linked ekagra", linkedSessionCount.toString(), "Saved sessions assigned to goals", accent, Modifier.weight(1f))
+            CleanMetricCard("Free ekagra", freeFocusSessionCount.toString(), "Saved sessions without a goal", accent, Modifier.weight(1f))
         }
         TimerDurationUsageCard(analytics.timerDurationUsage, accent)
     }
@@ -183,16 +183,16 @@ internal fun SessionHistorySection(analytics: EkagraAnalyticsStats) {
                     }
                     Text("${analytics.focusSessions.size} sessions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text("All closed focus sessions are listed here.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("All closed ekagra sessions are listed here.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (analytics.focusSessions.isEmpty()) {
-                    Text("No focus sessions available yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("No ekagra sessions available yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     analytics.focusSessions.forEach { session ->
                         FocusSessionRow(
                             title = session.taskText ?: "Unlabeled task",
                             meta = "${formatDateTime(session.endedAt ?: session.startedAt)} - Planned ${session.durationMinutes}m - Actual ${session.actualMinutes}m${if (session.pauseCount > 0) " - ${session.pauseCount} pauses" else ""}",
                             accent = accent,
-                            badge = if (session.associatedGoalId.isNullOrBlank()) "Free Focus" else "Goal Focus",
+                            badge = if (session.associatedGoalId.isNullOrBlank()) "Free Ekagra" else "Goal Ekagra",
                         )
                     }
                 }
@@ -265,7 +265,7 @@ private fun TimerDurationUsageCard(rows: List<EkagraTimerDurationUsage>, accent:
     Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Timer Duration Usage", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text("Includes focus timers and both break types.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Includes ekagra timers and both break types.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (durationRows.isEmpty()) {
                 Text("No timer duration usage yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -344,7 +344,7 @@ private fun timerDurationUsageLabel(sessionType: String, durationMinutes: Int): 
     return when (sessionType) {
         "short_break" -> "Short break $duration"
         "long_break" -> "Long break $duration"
-        else -> "Focus $duration"
+        else -> "Ekagra $duration"
     }
 }
 

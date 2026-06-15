@@ -254,7 +254,7 @@ class FocusShieldRepository @Inject constructor(
             }
         }
 
-        /** Suppress re-blocking briefly after the user taps "Back to focus" on the block screen. */
+        /** Suppress re-blocking briefly after the user taps "Back to ekagra" on the block screen. */
         fun beginReturnToFocusGrace(ctx: Context, durationMs: Long) {
             prefs(ctx).edit()
                 .putLong(KEY_RETURN_GRACE_UNTIL_ELAPSED, SystemClock.elapsedRealtime() + durationMs)

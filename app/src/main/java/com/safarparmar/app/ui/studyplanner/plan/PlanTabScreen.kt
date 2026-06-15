@@ -579,7 +579,7 @@ fun PlanTabScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Every great journey starts with a single step. Start focus flow and complete your first task!",
+                                        text = "Every great journey starts with a single step. Start ekagra flow and complete your first task!",
                                         style = MaterialTheme.typography.bodySmall,
                                         textAlign = TextAlign.Center,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -692,7 +692,7 @@ fun PlanTabScreen(
                             modifier = Modifier.fillMaxWidth(0.85f)
                         ) {
                             Text(
-                                text = "Focus Queue: $completedCount of $totalCount Done",
+                                text = "Ekagra Queue: $completedCount of $totalCount Done",
                                 color = Color.White.copy(alpha = 0.7f),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold

@@ -171,20 +171,20 @@ fun PremiumPaywallScreen(
             id = "3month",
             label = "3 Months Access",
             price = 69,
-            subtitle = "Good for trying Premium",
+            subtitle = "Start small for your next target",
         ),
         PremiumPlanOption(
             id = "6month",
             label = "6 Months Access",
             price = 99,
-            subtitle = "Best for one exam cycle",
+            subtitle = "Good for one exam cycle",
             badge = "Popular",
         ),
         PremiumPlanOption(
             id = "yearly",
             label = "Yearly Access",
             price = 149,
-            subtitle = "Lowest monthly cost",
+            subtitle = "Best value for serious prep",
             badge = "Best value",
         ),
     )
@@ -272,7 +272,7 @@ fun PremiumPaywallScreen(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Choose how long you want Premium.",
+                        text = "Plan better. Stay regular. Prepare with clarity.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = textSecondaryColor
                     )
@@ -396,7 +396,7 @@ fun PremiumPaywallScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "PREMIUM ACCESS",
+                                    text = "WHAT YOU GET",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
                                     color = detailsHeaderColor,
@@ -428,12 +428,14 @@ fun PremiumPaywallScreen(
                             Spacer(modifier = Modifier.height(14.dp))
                             
                             val features = listOf(
-                                "Full Study Planner insights",
-                                "AI syllabus setup",
-                                "Auto schedule and reschedule",
-                                "Full Focus Analytics",
-                                "Focus session history",
-                                "Private Mehfil Connect",
+                                "Know if your exam plan is on track",
+                                "See completed work, pending topics, and overdue chapters",
+                                "Paste syllabus and let AI arrange it",
+                                "Missed topics get adjusted in your schedule",
+                                "Detailed Ekagra study reports and history",
+                                "Private Mehfil Connect with other students",
+                                "Dhyan audio and guided learning sessions",
+                                "Live Vartalap sessions with Parmar Sir",
                             )
                             features.forEach { feature ->
                                 Row(
@@ -541,8 +543,9 @@ fun PremiumPaywallScreen(
                     }
 
                     if (uiState is PremiumUiState.PaymentSuccess) {
+                        val status = (uiState as PremiumUiState.PaymentSuccess).status
                         Text(
-                            text = "Payment Successful! You are now a premium member.",
+                            text = "Premium is active${status.expiresAt?.let { " until $it" }.orEmpty()}.",
                             color = Color(0xFF4CAF50),
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -554,9 +557,9 @@ fun PremiumPaywallScreen(
                         onClick = {
                             val activePlan = plans.first { it.id == selectedPlanId }
                             val courseId = when (selectedPlanId) {
-                                "3month" -> "study-planner-pro-monthly"
-                                "6month" -> "study-planner-pro-monthly"
-                                else -> "study-planner-pro-annual"
+                                "3month" -> "study-planner-pro-3month"
+                                "6month" -> "study-planner-pro-6month"
+                                else -> "study-planner-pro-yearly"
                             }
                             viewModel.createOrder(amount = activePlan.price, courseId = courseId)
                         },
@@ -605,6 +608,14 @@ fun PremiumPaywallScreen(
                             "Cancel",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
+                    }
+
+                    TextButton(
+                        onClick = { viewModel.refreshPremiumStatus() },
+                        enabled = uiState !is PremiumUiState.Loading,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Restore Premium")
                     }
                 }
             }

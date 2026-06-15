@@ -394,6 +394,8 @@ fun StudyPlannerScreen(
     onToggleDarkTheme: () -> Unit = {},
     viewModel: StudyPlannerViewModel = hiltViewModel(),
 ) {
+    val premiumViewModel: com.safarparmar.app.ui.premium.PremiumViewModel = hiltViewModel()
+    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val chromeState by remember(viewModel) {
         viewModel.uiState
             .map { state ->
@@ -533,6 +535,7 @@ fun StudyPlannerScreen(
                                 detailState = detailState,
                                 actions = actions,
                                 onNavigate = onNavigate,
+                                canUsePremiumInsights = premiumStatus.canUseStudyPlannerInsights,
                                 sharedTransitionScope = this@SharedTransitionLayout,
                                 animatedVisibilityScope = this,
                             )
@@ -592,26 +595,10 @@ private fun StudyPlansScreen(
         )
     }
 
-    val isDark = isSystemInDarkTheme()
-    val baseBgColor = MaterialTheme.colorScheme.background
-    val gradientStartColor = if (isDark) {
-        Color(0xFF1B212D)
-    } else {
-        Color(0xFFD6E9FF)
-    }
-    val dynamicGradient = remember(gradientStartColor, baseBgColor) {
-        Brush.verticalGradient(
-            colors = listOf(
-                gradientStartColor,
-                baseBgColor
-            )
-        )
-    }
-
     SafarPullRefreshBox(
         isRefreshing = state.loading && state.plans.isNotEmpty(),
         onRefresh = { actions.refreshPlans() },
-        modifier = Modifier.fillMaxSize().background(dynamicGradient),
+        modifier = Modifier.fillMaxSize(),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -624,15 +611,22 @@ private fun StudyPlansScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "Your Exams",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Your Exams",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${state.plans.size} exams added",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Button(
                         onClick = { showCreate = true },
-                        shape = ButtonDefaults.shape,
+                        shape = RoundedCornerShape(50),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -677,11 +671,12 @@ private fun StudyPlansScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showCreate = true },
-                        shape = MaterialTheme.shapes.large,
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     ) {
                         Row(
                             modifier = Modifier
@@ -692,7 +687,7 @@ private fun StudyPlansScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                                 Text(
-                                    text = "Focus: Plan your success today!",
+                                    text = "Ekagra: Plan your success today!",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -851,16 +846,17 @@ private fun PlanCardSimplified(
             animatedVisibilityScope = animatedVisibilityScope,
         )
     }
-    androidx.compose.material3.ElevatedCard(
+    Card(
         modifier = sharedModifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
@@ -995,16 +991,17 @@ private fun PlanCardCompact(
             animatedVisibilityScope = animatedVisibilityScope,
         )
     }
-    androidx.compose.material3.ElevatedCard(
+    Card(
         modifier = sharedModifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
@@ -1287,6 +1284,7 @@ private fun PlannerHome(
     detailState: StudyPlannerDetailState,
     actions: PlannerActions,
     onNavigate: (String) -> Unit,
+    canUsePremiumInsights: Boolean,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -1364,6 +1362,7 @@ private fun PlannerHome(
                         plan = plan,
                         state = activePlanState,
                         actions = actions,
+                        isPremium = canUsePremiumInsights,
                         onUpgrade = { onNavigate(Routes.PREMIUM) },
                     )
                 } else {

@@ -238,7 +238,7 @@ fun SettingsScreen(
 
                 ProfileSectionCard(title = "Notifications", icon = Icons.Default.Notifications) {
                     Text(
-                        "Helpful alerts for focus sessions, streaks, and important class updates.",
+                        "Helpful alerts for ekagra sessions, streaks, and important class updates.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -257,7 +257,7 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
                     NotificationToggleRow(
-                        title = "Focus timer updates",
+                        title = "Ekagra timer updates",
                         subtitle = "Timer running, session complete, and break status.",
                         checked = uiState.focusTimerNotificationsEnabled,
                         enabled = uiState.notificationsEnabled,
@@ -381,14 +381,14 @@ fun SettingsScreen(
                 )
                 SettingsInfoRow(
                     title = "Why KAVACH needs permissions",
-                    subtitle = "A friendly guide to focus blocking.",
+                    subtitle = "A friendly guide to ekagra blocking.",
                     onClick = { activeInfoSheet = SettingsInfoSheet.KAVACH },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
                 SettingsPermissionRow(
                     icon = Icons.Default.Info,
                     title = "App Usage Permission",
-                    subtitle = "Helps KAVACH notice when a selected app opens during a focus session.",
+                    subtitle = "Helps KAVACH notice when a selected app opens during a ekagra session.",
                     granted = hasUsageAccess,
                     accent = MaterialTheme.colorScheme.primary,
                     onClickWhenNotGranted = { FocusShieldPermissionHelper.openUsageAccessSettings(context) },
@@ -456,7 +456,7 @@ private fun SettingsLegalInfoSheet(
     val content = when (sheet) {
         SettingsInfoSheet.EULA -> SettingsInfoContent(
             title = "EULA",
-            subtitle = "Use SAFAR for learning, focus, and exam preparation.",
+            subtitle = "Use SAFAR for learning, ekagra, and exam preparation.",
             points = listOf(
                 "Keep your account details private.",
                 "Use study tools fairly and respectfully.",
@@ -474,7 +474,7 @@ private fun SettingsLegalInfoSheet(
         )
         SettingsInfoSheet.KAVACH -> SettingsInfoContent(
             title = "Why KAVACH asks",
-            subtitle = "KAVACH needs a few Android permissions to block distractions during focus time.",
+            subtitle = "KAVACH needs a few Android permissions to block distractions during ekagra time.",
             points = listOf(
                 "Usage Access helps notice opened apps.",
                 "Accessibility shows the block screen for apps you selected.",
@@ -494,7 +494,7 @@ private fun SettingsLegalInfoSheet(
             title = "Usage Access",
             subtitle = "Helps KAVACH understand which app is open.",
             points = listOf(
-                "Used during KAVACH setup and active focus sessions.",
+                "Used during KAVACH setup and active ekagra sessions.",
                 "Helps match opened apps with your blocked app list.",
                 "You stay in control of the permission.",
             ),
@@ -505,7 +505,7 @@ private fun SettingsLegalInfoSheet(
             points = listOf(
                 "Timer progress and session complete alerts.",
                 "Daily study reminders if you switch them on.",
-                "KAVACH status while a focus session is active.",
+                "KAVACH status while a ekagra session is active.",
             ),
         )
     }

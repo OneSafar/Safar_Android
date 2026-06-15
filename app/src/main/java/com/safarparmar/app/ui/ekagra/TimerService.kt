@@ -106,7 +106,7 @@ class TimerService : Service() {
             return
         }
         if (!FocusShieldPermissionHelper.hasUsageStatsPermission(this)) {
-            debugFocusShield("Focus Shield not enabled: Usage access missing")
+            debugFocusShield("Ekagra Shield not enabled: Usage access missing")
             disableFocusShieldForSession()
             return
         }
@@ -114,7 +114,7 @@ class TimerService : Service() {
             FocusShieldPermissionHelper.isAccessibilityFeatureEnabled() &&
             !FocusShieldPermissionHelper.hasAccessibilityService(this)
         ) {
-            debugFocusShield("Focus Shield not enabled: Accessibility service missing")
+            debugFocusShield("Ekagra Shield not enabled: Accessibility service missing")
             disableFocusShieldForSession()
             return
         }
@@ -272,10 +272,10 @@ class TimerService : Service() {
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
             .setContentTitle("KAVACH is active")
-            .setContentText("$appName is blocked until your focus timer or Study Session ends.")
+            .setContentText("$appName is blocked until your ekagra timer or Study Session ends.")
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("$appName is blocked until your focus timer or Study Session ends. Tap to return to SAFAR."),
+                    .bigText("$appName is blocked until your ekagra timer or Study Session ends. Tap to return to SAFAR."),
             )
             .setContentIntent(focusPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -284,7 +284,7 @@ class TimerService : Service() {
             .setOnlyAlertOnce(true)
             .addAction(
                 android.R.drawable.ic_menu_revert,
-                "Return to Focus",
+                "Return to Ekagra",
                 focusPendingIntent,
             )
             .build()
@@ -305,10 +305,10 @@ class TimerService : Service() {
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
             .setContentTitle("KAVACH is active")
-            .setContentText("Selected distracting apps are blocked until your focus timer or Study Session ends.")
+            .setContentText("Selected distracting apps are blocked until your ekagra timer or Study Session ends.")
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("Selected distracting apps are blocked until your focus timer or Study Session ends. SAFAR uses Accessibility only to detect opened app package names for this feature."),
+                    .bigText("Selected distracting apps are blocked until your ekagra timer or Study Session ends. SAFAR uses Accessibility only to detect opened app package names for this feature."),
             )
             .setContentIntent(focusPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -555,7 +555,7 @@ class TimerService : Service() {
         val mode = _timerMode.value.label
         val time = "%02d:%02d".format(s / 60, s % 60)
         val notificationText = when {
-            _isRunning.value && _timerMode.value == TimerMode.FOCUS -> "Focus in progress"
+            _isRunning.value && _timerMode.value == TimerMode.FOCUS -> "Ekagra in progress"
             _isRunning.value -> "Break in progress - KAVACH paused"
             else -> "Timer paused"
         }
@@ -586,12 +586,12 @@ class TimerService : Service() {
 
             val mode = _timerMode.value
             val body = when (mode) {
-                TimerMode.FOCUS -> "Focus session complete. Great work - take a mindful break."
+                TimerMode.FOCUS -> "Ekagra session complete. Great work - take a mindful break."
                 TimerMode.BREAK,
                 TimerMode.LONG_BREAK -> "Break finished. Ready for your next session?"
             }
             SafarNotificationManager(this@TimerService).show(
-                title = if (mode == TimerMode.FOCUS) "Focus session complete" else "Break finished",
+                title = if (mode == TimerMode.FOCUS) "Ekagra session complete" else "Break finished",
                 body = body,
                 channelId = SafarNotificationChannels.FOCUS_TIMER,
                 deepLink = "safar://ekagra",

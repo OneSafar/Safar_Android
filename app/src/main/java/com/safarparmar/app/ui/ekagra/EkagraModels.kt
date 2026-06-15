@@ -101,7 +101,7 @@ internal val focusMusicTracks = listOf(
 // ─── Nav tab & Timer mode enums ────────────────────────────────────────────────
 
 internal enum class EkagraNavTab(val icon: ImageVector, val label: String) {
-    TIMER    (Icons.Default.Timer,   "Focus"),
+    TIMER    (Icons.Default.Timer,   "Ekagra"),
     DURATION (Icons.Default.Tune,    "Duration"),
     HISTORY  (Icons.Default.History, "History"),
 }
@@ -112,7 +112,7 @@ enum class TimerMode(
     val label: String,
     val showInPill: Boolean = true,
 ) {
-    FOCUS(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, "Focus"),
+    FOCUS(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, "Ekagra"),
     BREAK(R.drawable.ic_ekagra_coffee_light, R.drawable.ic_ekagra_coffee_dark, "Break"),
     LONG_BREAK(R.drawable.ic_ekagra_bed_light, R.drawable.ic_ekagra_bed_dark, "Long Break"),
 }

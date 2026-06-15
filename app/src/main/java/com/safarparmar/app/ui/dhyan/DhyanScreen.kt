@@ -90,14 +90,6 @@ private val musicOptions = listOf(
     "Solitude Deep"    to "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3",
 )
 
-private enum class DhyanTab(val label: String, val icon: ImageVector) {
-    BREATHING("Breathing", Icons.Default.Air),
-    COURSES("Courses", Icons.Default.MenuBook),
-}
-
-private const val MEDITATION_IMAGE_URL =
-    "https://raw.githubusercontent.com/OneSafar/Safar_Android/refs/heads/master/assets/image_dhyan_1.png"
-
 // ─── Screen ────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,142 +100,68 @@ fun DhyanScreen(
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
 ) {
-    var selectedTab         by remember { mutableStateOf(DhyanTab.BREATHING) }
     var showMusicSheet      by remember { mutableStateOf(false) }
     var showTechniquesSheet by remember { mutableStateOf(false) }
     var selectedMusic       by remember { mutableStateOf(musicOptions[0]) }
     // null = no technique chosen (show image), non-null = show animation
     var selectedTechnique   by remember { mutableStateOf<BreathingTechnique?>(null) }
     var tourState           by remember { mutableStateOf<com.safarparmar.app.ui.butterfly.ButterflyTourState?>(null) }
-    var showYoutubeModal    by remember { mutableStateOf(false) }
 
     val themeVm: ThemeViewModel = hiltViewModel()
-    val dhyanVm: DhyanViewModel = hiltViewModel()
-    val meditationVideoUrl by dhyanVm.meditationVideoUrl.collectAsStateWithLifecycle()
-    val isLoadingVideo by dhyanVm.isLoadingVideo.collectAsStateWithLifecycle()
-    val videoError by dhyanVm.videoError.collectAsStateWithLifecycle()
-
-    if (showTechniquesSheet) {
-        BreathingOptionsSheet(
-            selectedTechnique = selectedTechnique,
-            onSelectTechnique = { selectedTechnique = it; showTechniquesSheet = false },
-            onDismiss         = { showTechniquesSheet = false },
-        )
-    }
-
-    if (showMusicSheet) {
-        MusicSheet(
-            selected  = selectedMusic,
-            onSelect  = { selectedMusic = it; showMusicSheet = false },
-            onDismiss = { showMusicSheet = false },
-        )
-    }
-
-    if (showYoutubeModal) {
-        DhyanYoutubePromotionDialog(
-            videoUrl = meditationVideoUrl,
-            onDismiss = { showYoutubeModal = false },
-        )
-    }
 
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
-    SafarDrawerScaffold(
-        title    = "Dhyan",
-        subtitle = "SAFAR",
-        currentRoute      = currentRoute,
-        isDarkTheme       = isDarkTheme,
-        onNavigate        = onNavigate,
-        onToggleDarkTheme = onToggleDarkTheme,
-        topBarActions = {
-            IconButton(onClick = { tourState?.start() }) {
-                Icon(Icons.Default.HelpOutline, contentDescription = "Guide")
-            }
-        },
-    ) { padding ->
-        Box(Modifier.fillMaxSize()) {
-            val bgImageRes = if (isDarkTheme) {
-                com.safarparmar.app.R.drawable.dark_dhyan
-            } else {
-                com.safarparmar.app.R.drawable.dhyan_liight
-            }
-            Image(
-                painter = painterResource(id = bgImageRes),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        if (isDarkTheme) Color.Black.copy(alpha = 0.55f)
-                        else Color.White.copy(alpha = 0.65f)
-                    )
-            )
+        SafarDrawerScaffold(
+            title    = "Dhyan",
+            subtitle = "SAFAR",
+            currentRoute      = currentRoute,
+            isDarkTheme       = isDarkTheme,
+            onNavigate        = onNavigate,
+            onToggleDarkTheme = onToggleDarkTheme,
+            topBarActions = {
+                IconButton(onClick = { tourState?.start() }) {
+                    Icon(Icons.Default.HelpOutline, contentDescription = "Guide")
+                }
+            },
+        ) { padding ->
+            Box(Modifier.fillMaxSize()) {
+                val bgImageRes = com.safarparmar.app.R.drawable.dhyan_section_bg_new
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = bgImageRes),
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            if (isDarkTheme) Color.Black.copy(alpha = 0.55f)
+                            else Color.White.copy(alpha = 0.65f)
+                        )
+                )
 
-            Scaffold(
-                containerColor = Color.Transparent,
-                contentWindowInsets = WindowInsets.safeDrawing,
-                bottomBar = {
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
-                        DhyanTab.entries.forEach { tab ->
-                            NavigationBarItem(
-                                selected = selectedTab == tab,
-                                onClick  = { selectedTab = tab },
-                                icon  = { Icon(tab.icon, contentDescription = tab.label) },
-                                label = {
-                                    Text(
-                                        tab.label,
-                                        fontWeight = if (selectedTab == tab) FontWeight.SemiBold else FontWeight.Normal,
-                                        fontSize   = 11.sp,
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor   = MaterialTheme.colorScheme.primary,
-                                    selectedTextColor   = MaterialTheme.colorScheme.primary,
-                                    indicatorColor      = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                ),
-                            )
-                        }
-                    }
-                },
-            ) { innerPadding ->
                 Box(
                     Modifier.fillMaxSize().padding(
-                        top    = padding.calculateTopPadding(),
-                        bottom = innerPadding.calculateBottomPadding(),
+                        top = padding.calculateTopPadding(),
                     )
                 ) {
-                    when (selectedTab) {
-                        DhyanTab.BREATHING -> BreathingTab(
-                            selectedTechnique = selectedTechnique,
-                            selectedMusic     = selectedMusic,
-                            onBreatheWithMe   = { showTechniquesSheet = true },
-                            onShowMusic       = { showMusicSheet = true },
-                            onClearTechnique  = { selectedTechnique = null },
-                        )
-                        DhyanTab.COURSES   -> CoursesTab(
-                            meditationVideoUrl = meditationVideoUrl,
-                            isLoadingVideo = isLoadingVideo,
-                            videoError = videoError,
-                            onRetryVideo = { dhyanVm.loadMeditationVideo() },
-                            onOpenYoutubeModal = { showYoutubeModal = true },
-                        )
-                    }
+                    BreathingTab(
+                        selectedTechnique = selectedTechnique,
+                        selectedMusic     = selectedMusic,
+                        onBreatheWithMe   = { showTechniquesSheet = true },
+                        onShowMusic       = { showMusicSheet = true },
+                        onClearTechnique  = { selectedTechnique = null },
+                    )
                 }
             }
         }
-    }
 
-    // Tour overlay rendered OUTSIDE the scaffold so it appears above the TopAppBar
-    TourManager(
-        dataStore        = themeVm.dataStore,
-        steps            = dhyanTourSteps,
-        askOnFirstVisit  = false,
-        onTourStateReady = { tourState = it },
-    )
+        TourManager(
+            dataStore        = themeVm.dataStore,
+            steps            = dhyanTourSteps,
+            askOnFirstVisit  = false,
+            onTourStateReady = { tourState = it },
+        )
     } // end outer Box
 }
 
@@ -257,6 +175,11 @@ private fun BreathingTab(
     onShowMusic: () -> Unit,
     onClearTechnique: () -> Unit,
 ) {
+    val LightLotusPink = Color(0xFFFFCDE0)
+    val MediumRosePink = Color(0xFFF49BB7)
+    val DeepCalmingPink = Color(0xFFE37A9A)
+    val dhyanGradient = Brush.verticalGradient(listOf(LightLotusPink, MediumRosePink, DeepCalmingPink))
+
     var sessionLengthMin    by remember { mutableIntStateOf(5) }
     var isRunning           by remember { mutableStateOf(false) }
     var phase               by remember { mutableStateOf(DhyanBreathPhase.INHALE) }
@@ -388,14 +311,14 @@ private fun BreathingTab(
                                 scaleY = pulseScale
                             }
                             .clip(CircleShape)
-                            .border(3.dp, MaterialTheme.colorScheme.primary.copy(0.45f), CircleShape),
+                            .border(3.dp, MediumRosePink.copy(alpha = 0.8f), CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
-                        AsyncImage(
-                            model              = MEDITATION_IMAGE_URL,
+                        androidx.compose.foundation.Image(
+                            painter            = androidx.compose.ui.res.painterResource(id = com.safarparmar.app.R.drawable.meditation_transparent_background),
                             contentDescription = "Meditate",
                             modifier           = Modifier.fillMaxSize(),
-                            contentScale       = ContentScale.Crop,
+                            contentScale       = ContentScale.Fit,
                         )
                     }
                 } else {
@@ -411,7 +334,7 @@ private fun BreathingTab(
                                 .background(
                                     brush = Brush.radialGradient(
                                         colors = listOf(
-                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                                            MediumRosePink.copy(alpha = 0.6f),
                                             Color.Transparent
                                         )
                                     ),
@@ -520,7 +443,7 @@ private fun BreathingTab(
                     modifier      = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 2.dp),
-                    activeColor   = MaterialTheme.colorScheme.primary,
+                    activeColor   = DeepCalmingPink,
                 )
             }
         }
@@ -539,18 +462,19 @@ private fun BreathingTab(
             ) {
                 Icon(Icons.Default.Refresh, null)
             }
-            FilledIconButton(
-                onClick  = { isRunning = !isRunning },
-                modifier = Modifier.size(64.dp),
-                colors   = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = if (isRunning) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-                    contentColor   = if (isRunning) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onPrimary
-                )
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(if (isRunning) Brush.verticalGradient(listOf(DeepCalmingPink, MediumRosePink)) else dhyanGradient)
+                    .clickable { isRunning = !isRunning },
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = null,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
+                    tint = Color.White
                 )
             }
             FilledTonalIconButton(
@@ -575,14 +499,14 @@ private fun BreathingTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(dhyanGradient)
                 .clickable(onClick = onBreatheWithMe)
                 .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Air, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                Text("Breathe with me", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Icon(Icons.Default.Air, null, modifier = Modifier.size(18.dp), tint = Color.White)
+                Text("Breathe with me", fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
 
@@ -712,63 +636,6 @@ private fun MusicSheet(
                     Icon(Icons.Default.MusicNote, null, tint = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                     Text(option.first, fontSize = 14.sp, modifier = Modifier.weight(1f), color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Normal)
                     if (isSel) Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                }
-            }
-        }
-    }
-}
-
-// ─── Courses Tab ──────────────────────────────────────────────────────────────
-
-@Composable
-private fun CoursesTab(
-    meditationVideoUrl: String,
-    isLoadingVideo: Boolean,
-    videoError: String?,
-    onRetryVideo: () -> Unit,
-    onOpenYoutubeModal: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        when {
-            isLoadingVideo -> StatCardSkeleton(modifier = Modifier.height(180.dp))
-            videoError != null -> SafarErrorState(message = videoError, onRetry = onRetryVideo)
-            else -> DhyanLatestVideoCard(
-                videoUrl = meditationVideoUrl,
-                onOpenModal = onOpenYoutubeModal,
-            )
-        }
-        Text("Dhyan Learning Tracks", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-        Text("Deepen your meditation journey with guided courses, daily structure, and progress checkpoints.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 20.sp)
-        val context = LocalContext.current
-        val courseUrl = "https://www.parmaracademy.in/courses/75-safar-30"
-        Card(
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(courseUrl))
-                    context.startActivity(intent)
-                },
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(0.dp),
-            border = CardDefaults.outlinedCardBorder(),
-        ) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Box(Modifier.size(48.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.primary.copy(0.1f)), contentAlignment = Alignment.Center) { Icon(painter = androidx.compose.ui.res.painterResource(id = com.safarparmar.app.R.drawable.ic_person_standing), contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary) }
-                    Text("SAFAR 30-Day Meditation Course", fontWeight = FontWeight.Bold, fontSize = 14.sp, lineHeight = 18.sp, modifier = Modifier.weight(1f))
-                }
-                Text("A 30-day guided meditation journey to build a consistent practice, reduce stress, and deepen self-awareness.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 19.sp)
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Box(Modifier.clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.primary.copy(0.1f)).padding(horizontal = 8.dp, vertical = 3.dp)) { Text("Status", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold) }
-                        Text("Available", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
-                    }
-                    Text("Buy now →", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             }
         }

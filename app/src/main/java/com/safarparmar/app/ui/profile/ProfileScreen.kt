@@ -397,7 +397,7 @@ private fun ExamFocusSection(uiState: ProfileUiState, viewModel: ProfileViewMode
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Exam Focus",
+            text = "Exam Ekagra",
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp

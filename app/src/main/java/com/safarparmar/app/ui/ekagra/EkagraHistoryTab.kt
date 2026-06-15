@@ -98,7 +98,7 @@ internal fun FocusHistoryTab(
                     Icon(Icons.Default.History, contentDescription = null,
                         tint     = scheme.onSurfaceVariant.copy(alpha = 0.35f),
                         modifier = Modifier.size(40.dp))
-                    Text("No focus sessions today.",
+                    Text("No ekagra sessions today.",
                         fontSize   = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color      = scheme.onSurfaceVariant)
@@ -108,7 +108,7 @@ internal fun FocusHistoryTab(
         }
 
         Column(Modifier.fillMaxWidth()) {
-            Text("Today's focus",
+            Text("Today's ekagra",
                 style      = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color      = scheme.onSurface)
@@ -139,16 +139,16 @@ internal fun FocusHistoryTab(
         }
 
         HistorySection(
-            title      = "Goal focus",
+            title      = "Goal ekagra",
             subtitle   = "Sessions linked to a goal",
             sessions   = linkedSessions,
             emptyText  = "No linked sessions today.",
         )
         HistorySection(
-            title      = "Free focus",
+            title      = "Free ekagra",
             subtitle   = "Sessions without a linked goal",
             sessions   = freeSessions,
-            emptyText  = "No free focus today.",
+            emptyText  = "No free ekagra today.",
         )
     }
 }

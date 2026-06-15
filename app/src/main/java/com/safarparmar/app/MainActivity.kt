@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
             val customDensity = androidx.compose.ui.unit.Density(
                 density = currentDensity.density,
-                fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f) // Allow +/- 25% font scaling range
+                fontScale = (currentDensity.fontScale * 1.10f).coerceIn(0.75f, 1.25f) // 10% larger, still clamped
             )
 
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides customDensity) {
@@ -208,8 +208,8 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
                     setSeamlessResizeEnabled(true)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    setTitle("SAFAR Focus Timer")
-                    setSubtitle("Focus timer running")
+                    setTitle("SAFAR Ekagra Timer")
+                    setSubtitle("Ekagra timer running")
                 }
             }
             .build()

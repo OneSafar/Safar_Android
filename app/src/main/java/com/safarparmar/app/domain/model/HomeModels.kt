@@ -169,7 +169,7 @@ data class EkagraAnalyticsStats(
 data class EkagraTimerDurationUsage(
     val durationMinutes: Int = 0,
     val count: Int = 0,
-    val sessionType: String = "focus"
+    val sessionType: String = "ekagra"
 )
 
 @Immutable
@@ -183,7 +183,7 @@ data class EkagraAnalyticsRecentSession(
     val taskText: String? = null,
     val associatedGoalId: String? = null,
     val pauseCount: Int = 0,
-    val sessionType: String = "focus"
+    val sessionType: String = "ekagra"
 )
 
 @Immutable

@@ -209,7 +209,7 @@ private fun NotificationRationaleDialog(
                 Spacer(Modifier.height(10.dp))
 
                 Text(
-                    text = "Get reminders for your goals, focus sessions, streak check-ins, and community activity — so you never miss a beat.",
+                    text = "Get reminders for your goals, ekagra sessions, streak check-ins, and community activity — so you never miss a beat.",
                     fontSize = 14.sp,
                     color = Color(0xFFB0BAD3),
                     textAlign = TextAlign.Center,
@@ -309,7 +309,7 @@ private fun NotificationSettingsDialog(
         },
         title = { Text("Notifications are off") },
         text = {
-            Text("To receive study reminders and focus-session alerts, enable notifications from Android settings.")
+            Text("To receive study reminders and ekagra-session alerts, enable notifications from Android settings.")
         },
         confirmButton = {
             TextButton(onClick = onOpenSettings) {

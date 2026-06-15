@@ -6,7 +6,7 @@ import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.data.remote.socket.MehfilSocketManager
 import com.safarparmar.app.data.remote.socket.toDomain
 import com.safarparmar.app.domain.model.*
-import com.safarparmar.app.data.remote.api.PremiumApi
+import com.safarparmar.app.data.repository.PremiumRepository
 import com.safarparmar.app.domain.repository.MehfilRepository
 import com.safarparmar.app.domain.repository.AuthRepository
 import com.safarparmar.app.util.Resource
@@ -83,7 +83,7 @@ class MehfilViewModel @Inject constructor(
     private val socketManager: MehfilSocketManager,
     val dataStore: SafarDataStore,
     private val authRepo: AuthRepository,
-    private val premiumApi: PremiumApi,
+    private val premiumRepository: PremiumRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MehfilUiState())
@@ -98,21 +98,17 @@ class MehfilViewModel @Inject constructor(
     private fun loadPremiumFeatures() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingPremiumFeatures = true) }
-            try {
-                val response = premiumApi.getFeatures()
-                if (response.isSuccessful) {
+            launch {
+                premiumRepository.cachedStatus.collect { status ->
                     _uiState.update {
                         it.copy(
-                            mehfilDm = response.body()?.mehfilDm == true,
+                            mehfilDm = status.canUseMehfilDm,
                             isLoadingPremiumFeatures = false,
                         )
                     }
-                } else {
-                    _uiState.update { it.copy(isLoadingPremiumFeatures = false) }
                 }
-            } catch (_: Exception) {
-                _uiState.update { it.copy(isLoadingPremiumFeatures = false) }
             }
+            premiumRepository.refreshStatus()
         }
     }
 
@@ -211,18 +207,28 @@ class MehfilViewModel @Inject constructor(
                             pendingDmRequests = (it.pendingDmRequests + PendingDmRequest(event.fromUserId, event.fromUserName, event.requestId)).distinctBy { p -> p.userId },
                         ) }
                         "opened"           -> _uiState.update { it.copy(
-                            dmState = DmState.Open(
-                                peerId = event.fromUserId,
-                                peerName = event.fromUserName.ifBlank { it.dmTargetUserName }.ifBlank { event.fromUserId },
-                                roomId = event.roomId,
-                            ),
+                            dmState = if (it.mehfilDm) {
+                                DmState.Open(
+                                    peerId = event.fromUserId,
+                                    peerName = event.fromUserName.ifBlank { it.dmTargetUserName }.ifBlank { event.fromUserId },
+                                    roomId = event.roomId,
+                                )
+                            } else {
+                                DmState.Idle
+                            },
+                            showPremiumGate = !it.mehfilDm || it.showPremiumGate,
                         ) }
                         "accepted"         -> _uiState.update { it.copy(
-                            dmState = DmState.Open(
-                                peerId = event.fromUserId,
-                                peerName = event.fromUserName.ifBlank { it.dmTargetUserName }.ifBlank { event.fromUserId },
-                                roomId = event.roomId,
-                            ),
+                            dmState = if (it.mehfilDm) {
+                                DmState.Open(
+                                    peerId = event.fromUserId,
+                                    peerName = event.fromUserName.ifBlank { it.dmTargetUserName }.ifBlank { event.fromUserId },
+                                    roomId = event.roomId,
+                                )
+                            } else {
+                                DmState.Idle
+                            },
+                            showPremiumGate = !it.mehfilDm || it.showPremiumGate,
                         ) }
                         "declined"         -> _uiState.update { it.copy(dmState = DmState.Idle, dmError = "Request declined") }
                         "sync_pending"     -> _uiState.update { it.copy(pendingDmRequests = event.pendingList.map { id -> PendingDmRequest(id, id, "") }) }
@@ -541,6 +547,10 @@ class MehfilViewModel @Inject constructor(
         return true
     }
     fun acceptDm(fromUserId: String) {
+        if (!_uiState.value.mehfilDm) {
+            _uiState.update { it.copy(showPremiumGate = true, dmError = null) }
+            return
+        }
         val pending = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }
         val requestId = pending?.requestId ?: ""
         val peerName  = pending?.userName ?: fromUserId
@@ -565,6 +575,10 @@ class MehfilViewModel @Inject constructor(
         _uiState.update { it.copy(dmState = DmState.Idle) }
     }
     fun sendMessage(message: String) {
+        if (!_uiState.value.mehfilDm) {
+            _uiState.update { it.copy(showPremiumGate = true, dmError = null) }
+            return
+        }
         val current = _uiState.value.dmState
         if (current is DmState.Open) {
             socketManager.emitDmMessage(current.roomId, message)

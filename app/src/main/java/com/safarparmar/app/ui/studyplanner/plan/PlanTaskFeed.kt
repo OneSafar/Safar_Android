@@ -74,7 +74,7 @@ fun PlanTaskFeed(
         ) {
             item {
                 PlanSectionHeader(
-                    title = "Today's focus",
+                    title = "Today's ekagra",
                     subtitle = "${todayTopics.size} planned",
                     expanded = todayExpanded,
                     onToggle = onToggleToday,
