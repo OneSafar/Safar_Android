@@ -150,6 +150,7 @@ fun DhyanScreen(
                     )
                 ) {
                     BreathingTab(
+                        isDarkTheme       = isDarkTheme,
                         selectedTechnique = selectedTechnique,
                         selectedMusic     = selectedMusic,
                         onBreatheWithMe   = { showTechniquesSheet = true },
@@ -195,6 +196,7 @@ fun DhyanScreen(
 
 @Composable
 private fun BreathingTab(
+    isDarkTheme: Boolean,
     selectedTechnique: BreathingTechnique?,
     selectedMusic: Pair<String, String>,
     onBreatheWithMe: () -> Unit,
@@ -204,7 +206,16 @@ private fun BreathingTab(
     val LightLotusPink = Color(0xFFFFCDE0)
     val MediumRosePink = Color(0xFFF49BB7)
     val DeepCalmingPink = Color(0xFFE37A9A)
-    val dhyanGradient = Brush.verticalGradient(listOf(LightLotusPink, MediumRosePink, DeepCalmingPink))
+
+    val DarkLotusPink = Color(0xFF8C4A60)
+    val DarkMediumRosePink = Color(0xFF6E2F44)
+    val DarkDeepCalmingPink = Color(0xFF4C182A)
+
+    val currentLotusPink = if (isDarkTheme) DarkLotusPink else LightLotusPink
+    val currentRosePink = if (isDarkTheme) DarkMediumRosePink else MediumRosePink
+    val currentCalmingPink = if (isDarkTheme) DarkDeepCalmingPink else DeepCalmingPink
+
+    val dhyanGradient = Brush.verticalGradient(listOf(currentLotusPink, currentRosePink, currentCalmingPink))
 
     var sessionLengthMin    by remember { mutableIntStateOf(5) }
     var isRunning           by remember { mutableStateOf(false) }
@@ -343,7 +354,7 @@ private fun BreathingTab(
                                 scaleY = pulseScale
                             }
                             .clip(CircleShape)
-                            .border(3.dp, MediumRosePink.copy(alpha = 0.8f), CircleShape),
+                            .border(3.dp, currentRosePink.copy(alpha = 0.8f), CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         androidx.compose.foundation.Image(
@@ -366,7 +377,7 @@ private fun BreathingTab(
                                 .background(
                                     brush = Brush.radialGradient(
                                         colors = listOf(
-                                            MediumRosePink.copy(alpha = 0.6f),
+                                            currentRosePink.copy(alpha = 0.6f),
                                             Color.Transparent
                                         )
                                     ),
@@ -475,7 +486,7 @@ private fun BreathingTab(
                     modifier      = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 2.dp),
-                    activeColor   = DeepCalmingPink,
+                    activeColor   = currentCalmingPink,
                 )
             }
         }
@@ -498,7 +509,7 @@ private fun BreathingTab(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(if (isRunning) Brush.verticalGradient(listOf(DeepCalmingPink, MediumRosePink)) else dhyanGradient)
+                    .background(if (isRunning) Brush.verticalGradient(listOf(currentCalmingPink, currentRosePink)) else dhyanGradient)
                     .clickable { isRunning = !isRunning },
                 contentAlignment = Alignment.Center
             ) {

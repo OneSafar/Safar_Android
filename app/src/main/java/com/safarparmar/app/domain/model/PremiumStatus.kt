@@ -6,6 +6,13 @@ data class PremiumStatus(
     val expiresAt: String? = null,
     val features: PremiumFeatureAccess = PremiumFeatureAccess(),
 ) {
+    val hasAnyPaidAccess: Boolean
+        get() = isPremium ||
+            features.mehfilDm ||
+            features.studyPlannerInsights ||
+            features.nishthaAnalytics ||
+            features.focusAnalytics
+
     val canUseStudyPlannerInsights: Boolean
         get() = isPremium || features.studyPlannerInsights
 

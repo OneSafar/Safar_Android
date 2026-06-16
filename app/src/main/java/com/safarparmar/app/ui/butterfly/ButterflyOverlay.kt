@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,7 +44,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -53,10 +56,9 @@ import androidx.compose.ui.unit.sp
 import com.safarparmar.app.ui.theme.*
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
-import kotlinx.coroutines.delay
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.graphicsLayer
+import com.safarparmar.app.R
 import kotlin.math.atan2
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -67,7 +69,6 @@ fun ButterflyOverlay(
     bodyColor: Color = Color(0xFF500F50),
     butterflySize: Dp = 88.dp,
     dimColor: Color = Color(0x55000000),
-    autoAdvanceMs: Long = 4000L,
 ) {
     if (!state.isVisible) return
 
@@ -75,7 +76,6 @@ fun ButterflyOverlay(
         val W = constraints.maxWidth.toFloat()
         val H = constraints.maxHeight.toFloat()
         val density = LocalDensity.current
-        val bfPx = with(density) { butterflySize.toPx() }
 
         // ── Butterfly position ─────────────────────────────────────
         val bfX = remember { mutableFloatStateOf(W * (state.currentStep?.anchorX ?: 0.5f)) }
@@ -165,17 +165,6 @@ fun ButterflyOverlay(
             }
 
             curve = CurveState(startX, startY, cp1X, cp1Y, cp2X, cp2Y, endX, endY)
-
-            // Auto-advance after settled
-            if (!state.isLastStep) {
-                snapshotFlow { settled }.collect { isSettled ->
-                    if (isSettled) {
-                        delay(autoAdvanceMs)
-                        state.next()
-                        return@collect
-                    }
-                }
-            }
         }
 
         // ── Master tick loop ───────────────────────────────────────
@@ -350,11 +339,13 @@ fun ButterflyOverlay(
         }
 
         // ── Butterfly ──────────────────────────────────────────────
+        val bfPx = with(density) { butterflySize.toPx() }
         val bfOffX = (bfX.floatValue - bfPx / 2f).roundToInt()
         val bfOffY = (bfY.floatValue - bfPx / 2f).roundToInt()
-        ButterflyDrawing(
-            wingColor = wingColor,
-            bodyColor = bodyColor,
+        Image(
+            painter = painterResource(id = R.drawable.ic_butterfly_tour),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
             modifier = Modifier
                 .size(butterflySize)
                 .offset { IntOffset(bfOffX, bfOffY) }

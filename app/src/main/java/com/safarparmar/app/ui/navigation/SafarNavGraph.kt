@@ -47,7 +47,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val ADMIN_NOTIFICATION_ALLOWED_EMAILS = setOf(
-    "shashank181002@gmail.com",
     "safarparmar0@gmail.com",
     "steve123@example.com",
     "thatkindchic@gmail.com",

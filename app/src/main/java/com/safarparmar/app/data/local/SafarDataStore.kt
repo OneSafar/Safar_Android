@@ -83,6 +83,10 @@ class SafarDataStore @Inject constructor(
         val IS_PREMIUM = booleanPreferencesKey("is_premium")
         val PREMIUM_PLAN_TYPE = stringPreferencesKey("premium_plan_type")
         val PREMIUM_EXPIRES_AT = stringPreferencesKey("premium_expires_at")
+        val PREMIUM_FEATURE_MEHFIL_DM = booleanPreferencesKey("premium_feature_mehfil_dm")
+        val PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS = booleanPreferencesKey("premium_feature_study_planner_insights")
+        val PREMIUM_FEATURE_NISHTHA_ANALYTICS = booleanPreferencesKey("premium_feature_nishtha_analytics")
+        val PREMIUM_FEATURE_FOCUS_ANALYTICS = booleanPreferencesKey("premium_feature_focus_analytics")
 
         // Focus Shield
         val FOCUS_SHIELD_ENABLED          = booleanPreferencesKey("focus_shield_enabled")
@@ -264,6 +268,22 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.PREMIUM_EXPIRES_AT] }
 
+    val premiumFeatureMehfilDm: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PREMIUM_FEATURE_MEHFIL_DM] ?: false }
+
+    val premiumFeatureStudyPlannerInsights: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS] ?: false }
+
+    val premiumFeatureNishthaAnalytics: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PREMIUM_FEATURE_NISHTHA_ANALYTICS] ?: false }
+
+    val premiumFeatureFocusAnalytics: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS] ?: false }
+
     // ── Setters ───────────────────────────────────────────────────────────────
 
     suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
@@ -303,10 +323,22 @@ class SafarDataStore @Inject constructor(
     suspend fun setTourDone(done: Boolean) = context.dataStore.edit { it[Keys.TOUR_DONE] = done }
     suspend fun setWelcomeSeen(seen: Boolean) = context.dataStore.edit { it[Keys.WELCOME_SEEN] = seen }
 
-    suspend fun setPremiumStatus(isPremium: Boolean, planType: String?, expiresAt: String?) = context.dataStore.edit { prefs ->
+    suspend fun setPremiumStatus(
+        isPremium: Boolean,
+        planType: String?,
+        expiresAt: String?,
+        mehfilDm: Boolean = false,
+        studyPlannerInsights: Boolean = false,
+        nishthaAnalytics: Boolean = false,
+        focusAnalytics: Boolean = false,
+    ) = context.dataStore.edit { prefs ->
         prefs[Keys.IS_PREMIUM] = isPremium
         if (planType.isNullOrBlank()) prefs.remove(Keys.PREMIUM_PLAN_TYPE) else prefs[Keys.PREMIUM_PLAN_TYPE] = planType
         if (expiresAt.isNullOrBlank()) prefs.remove(Keys.PREMIUM_EXPIRES_AT) else prefs[Keys.PREMIUM_EXPIRES_AT] = expiresAt
+        prefs[Keys.PREMIUM_FEATURE_MEHFIL_DM] = mehfilDm
+        prefs[Keys.PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS] = studyPlannerInsights
+        prefs[Keys.PREMIUM_FEATURE_NISHTHA_ANALYTICS] = nishthaAnalytics
+        prefs[Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS] = focusAnalytics
     }
 
     suspend fun addNotifiedAchievement(achievementId: String) = context.dataStore.edit { prefs ->
@@ -385,6 +417,10 @@ class SafarDataStore @Inject constructor(
             it.remove(Keys.IS_PREMIUM)
             it.remove(Keys.PREMIUM_PLAN_TYPE)
             it.remove(Keys.PREMIUM_EXPIRES_AT)
+            it.remove(Keys.PREMIUM_FEATURE_MEHFIL_DM)
+            it.remove(Keys.PREMIUM_FEATURE_STUDY_PLANNER_INSIGHTS)
+            it.remove(Keys.PREMIUM_FEATURE_NISHTHA_ANALYTICS)
+            it.remove(Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS)
         }
     }
 

@@ -20,11 +20,28 @@ class PremiumRepository @Inject constructor(
         dataStore.isPremium,
         dataStore.premiumPlanType,
         dataStore.premiumExpiresAt,
-    ) { isPremium, planType, expiresAt ->
+        dataStore.premiumFeatureMehfilDm,
+        dataStore.premiumFeatureStudyPlannerInsights,
+        dataStore.premiumFeatureNishthaAnalytics,
+        dataStore.premiumFeatureFocusAnalytics,
+    ) { values ->
+        val isPremium = values[0] as Boolean
+        val planType = values[1] as String?
+        val expiresAt = values[2] as String?
+        val mehfilDm = values[3] as Boolean
+        val studyPlannerInsights = values[4] as Boolean
+        val nishthaAnalytics = values[5] as Boolean
+        val focusAnalytics = values[6] as Boolean
         PremiumStatus(
             isPremium = isPremium,
             planType = planType,
             expiresAt = expiresAt,
+            features = PremiumFeatureAccess(
+                mehfilDm = mehfilDm,
+                studyPlannerInsights = studyPlannerInsights,
+                nishthaAnalytics = nishthaAnalytics,
+                focusAnalytics = focusAnalytics,
+            ),
         )
     }
 
@@ -39,6 +56,10 @@ class PremiumRepository @Inject constructor(
             isPremium = status.isPremium,
             planType = status.planType,
             expiresAt = status.expiresAt,
+            mehfilDm = status.features.mehfilDm,
+            studyPlannerInsights = status.features.studyPlannerInsights,
+            nishthaAnalytics = status.features.nishthaAnalytics,
+            focusAnalytics = status.features.focusAnalytics,
         )
         status
     }
@@ -49,6 +70,10 @@ class PremiumRepository @Inject constructor(
             isPremium = status.isPremium,
             planType = status.planType,
             expiresAt = status.expiresAt,
+            mehfilDm = status.features.mehfilDm,
+            studyPlannerInsights = status.features.studyPlannerInsights,
+            nishthaAnalytics = status.features.nishthaAnalytics,
+            focusAnalytics = status.features.focusAnalytics,
         )
         return status
     }

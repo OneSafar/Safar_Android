@@ -133,13 +133,17 @@ fun HomeScreen(
     // Ask for notification permission once — shows a rationale dialog 1.5s after landing on Home
     NotificationPermissionRequest()
 
-    var currentPage by remember { mutableIntStateOf(0) }
+    var currentPage by remember { mutableIntStateOf(kotlin.random.Random.nextInt(slides.size)) }
     val haptic = LocalHapticFeedback.current
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(4000L)
-            currentPage = (currentPage + 1) % slides.size
+            var next = currentPage
+            while (next == currentPage) {
+                next = kotlin.random.Random.nextInt(slides.size)
+            }
+            currentPage = next
         }
     }
 
@@ -337,19 +341,18 @@ fun HomeScreen(
         }
     ) { padding ->
         val currentSlide = slides[currentPage]
-        val ekagraSlide = slides[0]
-        val buttonColor = ekagraSlide.uiColor
-        val buttonTextColor = ekagraSlide.accentColor
+        val buttonColor = currentSlide.uiColor
+        val buttonTextColor = currentSlide.accentColor
         
         val descriptionTextColor = if (isDarkTheme) Color.White else buttonColor
         val descriptionBorderColor = if (isDarkTheme) Color.White else buttonColor
 
         val baseBgColor = MaterialTheme.colorScheme.background
-        val ekagraAccent = ekagraSlide.accentColor
-        val dynamicGradient = remember(baseBgColor) {
+        val currentAccent = currentSlide.accentColor
+        val dynamicGradient = remember(baseBgColor, currentAccent) {
             Brush.verticalGradient(
                 colors = listOf(
-                    ekagraAccent.copy(alpha = if (isDarkTheme) 0.25f else 0.35f),
+                    currentAccent.copy(alpha = if (isDarkTheme) 0.25f else 0.35f),
                     baseBgColor.copy(alpha = if (isDarkTheme) 0.6f else 0.7f)
                 )
             )

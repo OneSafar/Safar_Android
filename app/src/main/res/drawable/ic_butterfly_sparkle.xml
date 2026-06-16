@@ -1,0 +1,139 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="500"
+    android:viewportHeight="500">
+
+    <!-- BRUSH TRAIL -->
+    <path
+        android:pathData="M105,482 C40,438 24,360 98,294 C170,246 281,224 358,196 C415,175 438,129 399,82 C423,90 455,147 420,190 C392,223 338,238 282,257 C213,280 157,299 116,330 C62,372 61,419 121,462 Z"
+        android:fillAlpha="0.12">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="80" android:startY="480" android:endX="420" android:endY="80">
+                <item android:offset="0" android:color="#00FF4FA3" />
+                <item android:offset="0.5" android:color="#AAE91E7A" />
+                <item android:offset="1" android:color="#00FF4FA3" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <path
+        android:pathData="M108,473 C58,432 52,371 107,306 C172,266 282,240 356,210 C408,190 425,139 396,90 C414,96 436,145 408,184 C379,220 326,235 276,253 C204,279 157,297 122,326 C78,366 77,413 115,463 Z"
+        android:fillAlpha="0.32">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="80" android:startY="480" android:endX="420" android:endY="80">
+                <item android:offset="0" android:color="#00E91E7A" />
+                <item android:offset="0.5" android:color="#FFE91E7A" />
+                <item android:offset="1" android:color="#00E91E7A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <path
+        android:pathData="M112,462 C80,417 81,374 119,322 C180,282 283,254 354,225 C389,208 407,178 404,129 C417,167 397,201 359,222 C288,262 181,284 129,328 C85,365 86,408 116,454 Z"
+        android:fillAlpha="0.18">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="80" android:startY="480" android:endX="420" android:endY="80">
+                <item android:offset="0" android:color="#00FF8ABF" />
+                <item android:offset="0.5" android:color="#FFFF5CA8" />
+                <item android:offset="1" android:color="#00FF8ABF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- BUTTERFLY (Converted from SVG and recolored to match trail) -->
+    <group
+        android:translateX="310"
+        android:translateY="25"
+        android:scaleX="0.3"
+        android:scaleY="0.3"
+        android:rotation="-10">
+
+        <!-- Butterfly Body -->
+        <path
+            android:pathData="M235 150 Q235 320 250 350 Q265 320 265 150 Z"
+            android:fillColor="#FF69B4" />
+        <path
+            android:pathData="M235,140 a15,15 0 1,1 30,0 a15,15 0 1,1 -30,0"
+            android:fillColor="#FF69B4" />
+
+        <!-- Antennae -->
+        <path
+            android:pathData="M245 130 C220 100 210 110 210 100"
+            android:strokeColor="#FF1493"
+            android:strokeWidth="4"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M255 130 C280 100 290 110 290 100"
+            android:strokeColor="#FF1493"
+            android:strokeWidth="4"
+            android:strokeLineCap="round" />
+
+        <!-- Left Upper Wing -->
+        <path
+            android:pathData="M240 160 C200 120 10 10 90 180 C130 270 200 290 240 250 Z"
+            android:fillColor="#FF69B4"
+            android:fillAlpha="0.85" />
+        <path
+            android:pathData="M235 170 C190 140 40 50 110 180 C140 240 200 260 235 230 Z"
+            android:fillColor="#FFB6C1"
+            android:fillAlpha="0.6" />
+
+        <!-- Left Lower Wing -->
+        <path
+            android:pathData="M240 260 C180 270 20 400 120 380 C180 370 210 320 240 280 Z"
+            android:fillColor="#FF69B4"
+            android:fillAlpha="0.85" />
+        <path
+            android:pathData="M235 270 C180 280 40 390 120 375 C170 365 200 320 235 290 Z"
+            android:fillColor="#FFB6C1"
+            android:fillAlpha="0.6" />
+
+        <!-- Right Upper Wing -->
+        <path
+            android:pathData="M260 160 C300 120 490 10 410 180 C370 270 300 290 260 250 Z"
+            android:fillColor="#FF69B4"
+            android:fillAlpha="0.85" />
+        <path
+            android:pathData="M265 170 C310 140 460 50 390 180 C360 240 300 260 265 230 Z"
+            android:fillColor="#FFB6C1"
+            android:fillAlpha="0.6" />
+
+        <!-- Right Lower Wing -->
+        <path
+            android:pathData="M260 260 C320 270 480 400 380 380 C320 370 290 320 260 280 Z"
+            android:fillColor="#FF69B4"
+            android:fillAlpha="0.85" />
+        <path
+            android:pathData="M265 270 C320 280 460 390 380 375 C330 365 300 320 265 290 Z"
+            android:fillColor="#FFB6C1"
+            android:fillAlpha="0.6" />
+
+        <!-- GLITTER HIGHLIGHTS -->
+        <group>
+            <path
+                android:pathData="M180,210 L185,215 L180,220 L175,215 Z"
+                android:fillColor="#FFFFFFFF"
+                android:fillAlpha="0.8" />
+            <path
+                android:pathData="M320,190 L325,195 L320,200 L315,195 Z"
+                android:fillColor="#FFFFFFFF"
+                android:fillAlpha="0.8" />
+            <path
+                android:pathData="M250,170 L255,175 L250,180 L245,175 Z"
+                android:fillColor="#FFFFFFFF"
+                android:fillAlpha="0.8" />
+            <path
+                android:pathData="M150,300 L155,305 L150,310 L145,305 Z"
+                android:fillColor="#FFFFFFFF"
+                android:fillAlpha="0.8" />
+            <path
+                android:pathData="M350,320 L355,325 L350,330 L345,325 Z"
+                android:fillColor="#FFFFFFFF"
+                android:fillAlpha="0.8" />
+        </group>
+
+    </group>
+
+</vector>

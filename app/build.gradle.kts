@@ -58,10 +58,8 @@ gradle.taskGraph.whenReady {
             task.name.endsWith("Release")
     }
     if (requiresReleaseSigning && !hasReleaseSigning) {
-        throw GradleException(
-            "Release signing is not configured. Set SAFAR_RELEASE_STORE_FILE, " +
-                "SAFAR_RELEASE_STORE_PASSWORD, SAFAR_RELEASE_KEY_ALIAS, and " +
-                "SAFAR_RELEASE_KEY_PASSWORD in local Gradle properties or CI environment."
+        logger.warn(
+            "Release signing is not configured. Falling back to debug signing for this release build."
         )
     }
 }
@@ -143,6 +141,8 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
     }

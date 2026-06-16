@@ -56,7 +56,6 @@ package com.safarparmar.app.ui.butterfly
  *         ButterflyOverlay(
  *             state = tourState,
  *             wingColor = Color(0xFF1CB1F2),   // match your brand
- *             autoAdvanceMs = 3200L,            // 0 = manual-only
  *         )
  *     }
  *
@@ -119,7 +118,6 @@ package com.safarparmar.app.ui.butterfly
  *  bodyColor      Color  — body/antennae fill
  *  butterflySize  Dp     — overall size (default 88.dp)
  *  dimColor       Color  — scrim behind everything (default 0x55000000)
- *  autoAdvanceMs  Long   — 0 disables auto-advance; user must tap Next
  *
  *  ButterflyTourStep fields
  *  ────────────────────────

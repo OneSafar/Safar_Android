@@ -85,18 +85,18 @@ class PremiumViewModel @Inject constructor(
                 result.fold(
                     onSuccess = { verification ->
                         val embeddedStatus = premiumRepository.cacheVerifiedStatus(verification.premium)
-                        val statusResult = if (embeddedStatus?.isPremium == true) {
+                        val statusResult = if (embeddedStatus?.hasAnyPaidAccess == true) {
                             Result.success(embeddedStatus)
                         } else {
                             premiumRepository.refreshStatus()
                         }
                         statusResult.fold(
                             onSuccess = { status ->
-                                if (status.isPremium) {
+                                if (status.hasAnyPaidAccess) {
                                     _premiumStatus.value = status
                                     _uiState.value = PremiumUiState.PaymentSuccess(status)
                                 } else {
-                                    _uiState.value = PremiumUiState.Error("Payment verified, but Safar Premium is not active yet. Please use Restore Safar Premium in a moment.")
+                                    _uiState.value = PremiumUiState.Error("Payment verified, but paid access is not active yet. Please use Restore Safar Premium in a moment.")
                                 }
                             },
                             onFailure = { error ->
@@ -119,7 +119,7 @@ class PremiumViewModel @Inject constructor(
                 onSuccess = { status ->
                     _premiumStatus.value = status
                     if (showLoading) {
-                        _uiState.value = if (status.isPremium) PremiumUiState.PaymentSuccess(status) else PremiumUiState.Error("No active Safar Premium plan found.")
+                        _uiState.value = if (status.hasAnyPaidAccess) PremiumUiState.PaymentSuccess(status) else PremiumUiState.Error("No active Safar Premium plan found.")
                     }
                 },
                 onFailure = { error ->

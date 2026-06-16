@@ -17,7 +17,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,9 +30,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -39,9 +42,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
-
-import com.safarparmar.app.ui.theme.LoraFontFamily
-import com.safarparmar.app.ui.theme.shimmer
 
 // ── Simple requester (already used in Ekagra + Profile — kept as-is) ──────────
 
@@ -163,135 +163,146 @@ private fun NotificationRationaleDialog(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 28.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(Color(0xFF1A1F2E)),
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.56f)), // Standard scrim background
+            contentAlignment = Alignment.Center,
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.Center,
             ) {
-
-                // Icon badge
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(Color(0xFF3DAC78), Color(0xFF073B3A)),
-                            )
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.NotificationsActive,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(34.dp),
-                    )
-                }
-
-                Spacer(Modifier.height(20.dp))
-
-                Text(
-                    text = "Stay in the loop",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = LoraFontFamily,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                )
-
-                Spacer(Modifier.height(10.dp))
-
-                Text(
-                    text = "Get reminders for your goals, ekagra sessions, streak check-ins, and community activity — so you never miss a beat.",
-                    fontSize = 14.sp,
-                    color = Color(0xFFB0BAD3),
-                    textAlign = TextAlign.Center,
-                    lineHeight = 21.sp,
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                // Feature pills
-                val features = listOf(
-                    com.safarparmar.app.R.drawable.ic_target to "Goal reminders",
-                    com.safarparmar.app.R.drawable.ic_flame to "Streak alerts",
-                    com.safarparmar.app.R.drawable.ic_handshake to "Community updates"
-                )
-                features.forEach { (iconRes, text) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF252B3B))
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            painter = androidx.compose.ui.res.painterResource(iconRes),
-                            contentDescription = null,
-                            tint = Color(0xFFCDD5E0),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = text,
-                            fontSize = 13.sp,
-                            color = Color(0xFFCDD5E0),
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(24.dp))
-
-                // Allow button
-                Box(
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(28.dp))
-                        .shimmer()
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF3DAC78), Color(0xFF073B3A)),
-                            )
+                        .padding(top = 38.dp)
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            shape = MaterialTheme.shapes.extraLarge
                         ),
-                    contentAlignment = Alignment.Center,
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    shadowElevation = 6.dp,
                 ) {
-                    TextButton(
-                        onClick = onAllow,
-                        modifier = Modifier.fillMaxSize(),
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
+                        // Icon badge
+                        Box(
+                            modifier = Modifier
+                                .size(68.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(32.dp),
+                            )
+                        }
+
+                        Spacer(Modifier.height(20.dp))
+
                         Text(
-                            text = "Allow Notifications",
+                            text = "Stay in the loop",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = LoraFontFamily,
-                            fontSize = 17.sp,
-                            color = Color.White,
+                            textAlign = TextAlign.Center,
                         )
-                    }
-                }
 
-                Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(10.dp))
 
-                // Dismiss link
-                TextButton(onClick = onDismiss) {
-                    Text(
-                        text = "Not now",
-                        fontSize = 13.sp,
-                        color = Color(0xFF6B7A99),
-                    )
+                        Text(
+                            text = "Get reminders for your study goals, focus sessions, daily streaks, and new classes. We’ll also send important account alerts so you never miss a thing!",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 20.sp,
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Feature pills
+                        val features = listOf(
+                            com.safarparmar.app.R.drawable.ic_target to "Goal reminders",
+                            com.safarparmar.app.R.drawable.ic_flame to "Streak & Focus alerts",
+                            com.safarparmar.app.R.drawable.ic_graduation_cap to "New classes & updates",
+                            com.safarparmar.app.R.drawable.ic_handshake to "Community & account alerts"
+                        )
+                        features.forEach { (iconRes, text) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    painter = painterResource(iconRes),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    text = text,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(24.dp))
+
+                        // Allow button
+                        Button(
+                            onClick = onAllow,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) {
+                            Text(
+                                text = "Allow Notifications",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        // Dismiss link
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = "Not now",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
                 }
             }
         }
     }
+}
 }
 
 @Composable
