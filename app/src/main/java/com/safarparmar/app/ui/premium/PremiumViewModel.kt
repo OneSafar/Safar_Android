@@ -44,14 +44,21 @@ class PremiumViewModel @Inject constructor(
                 when (event) {
                     is PaymentEvent.Success -> {
                         val data = event.paymentData
-                        if (data != null) {
+                        if (
+                            data?.orderId?.isNotBlank() == true &&
+                            data.paymentId?.isNotBlank() == true &&
+                            data.signature?.isNotBlank() == true
+                        ) {
                             verifyPayment(
                                 orderId = data.orderId,
                                 paymentId = data.paymentId,
                                 signature = data.signature
                             )
                         } else {
-                            _uiState.value = PremiumUiState.Error("Missing payment data")
+                            refreshPremiumStatus(
+                                showLoading = true,
+                                fallbackError = "Payment returned from PhonePe/Razorpay, but verification data was incomplete. Please tap Restore Safar Premium in a moment."
+                            )
                         }
                     }
                     is PaymentEvent.Error -> {
@@ -112,14 +119,17 @@ class PremiumViewModel @Inject constructor(
         }
     }
 
-    fun refreshPremiumStatus(showLoading: Boolean = true) {
+    fun refreshPremiumStatus(
+        showLoading: Boolean = true,
+        fallbackError: String = "No active Safar Premium plan found.",
+    ) {
         if (showLoading) _uiState.value = PremiumUiState.Loading
         viewModelScope.launch {
             premiumRepository.refreshStatus().fold(
                 onSuccess = { status ->
                     _premiumStatus.value = status
                     if (showLoading) {
-                        _uiState.value = if (status.hasAnyPaidAccess) PremiumUiState.PaymentSuccess(status) else PremiumUiState.Error("No active Safar Premium plan found.")
+                        _uiState.value = if (status.hasAnyPaidAccess) PremiumUiState.PaymentSuccess(status) else PremiumUiState.Error(fallbackError)
                     }
                 },
                 onFailure = { error ->

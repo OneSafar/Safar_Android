@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.ThemeViewModel
 import kotlinx.coroutines.launch
@@ -52,6 +53,12 @@ fun SafarDrawerScaffold(
     }
     val liveDark by themeVm.isDarkTheme.collectAsStateWithLifecycle()
     val isAdmin by themeVm.dataStore.isAdmin.collectAsStateWithLifecycle(initialValue = false)
+    val premiumVm: PremiumViewModel = if (activity != null) {
+        hiltViewModel(activity as androidx.activity.ComponentActivity)
+    } else {
+        hiltViewModel()
+    }
+    val premiumStatus by premiumVm.premiumStatus.collectAsStateWithLifecycle()
 
     val actualContentColor = topBarContentColor ?: if (liveDark) Color.White else MaterialTheme.colorScheme.onSurface
 
@@ -62,6 +69,7 @@ fun SafarDrawerScaffold(
                 currentRoute      = currentRoute,
                 isDarkTheme       = liveDark,
                 isAdmin           = isAdmin,
+                isPremiumActive   = premiumStatus.hasAnyPaidAccess,
                 onNavigate        = onNavigate,
                 onToggleDarkTheme = { themeVm.toggleDarkTheme() },
                 onCloseDrawer     = { scope.launch { drawerState.close() } },

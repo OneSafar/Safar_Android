@@ -338,20 +338,6 @@ fun ButterflyOverlay(
             }
         }
 
-        // ── Butterfly ──────────────────────────────────────────────
-        val bfPx = with(density) { butterflySize.toPx() }
-        val bfOffX = (bfX.floatValue - bfPx / 2f).roundToInt()
-        val bfOffY = (bfY.floatValue - bfPx / 2f).roundToInt()
-        Image(
-            painter = painterResource(id = R.drawable.ic_butterfly_tour),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .size(butterflySize)
-                .offset { IntOffset(bfOffX, bfOffY) }
-                .graphicsLayer { rotationZ = flightAngleDeg },
-        )
-
         // ── Tooltip card ───────────────────────────────────────────
         AnimatedVisibility(
             visible = showTooltip,
@@ -389,6 +375,20 @@ fun ButterflyOverlay(
                 )
             }
         }
+
+        // ── Butterfly ──────────────────────────────────────────────
+        val bfPx = with(density) { butterflySize.toPx() }
+        val bfOffX = (bfX.floatValue - bfPx / 2f).roundToInt()
+        val bfOffY = (bfY.floatValue - bfPx / 2f).roundToInt()
+        Image(
+            painter = painterResource(id = R.drawable.ic_butterfly_tour),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .size(butterflySize)
+                .offset { IntOffset(bfOffX, bfOffY) }
+                .graphicsLayer { rotationZ = flightAngleDeg },
+        )
     }
 }
 

@@ -17,7 +17,8 @@ class PaymentRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 emit(Result.success(response.body()!!))
             } else {
-                emit(Result.failure(Exception(response.message() ?: "Unknown error")))
+                val errorBody = response.errorBody()?.string()
+                emit(Result.failure(Exception(errorBody ?: response.message() ?: "Unknown error")))
             }
         } catch (e: Exception) {
             emit(Result.failure(e))
@@ -37,7 +38,8 @@ class PaymentRepository @Inject constructor(
             if (response.isSuccessful && body?.success == true) {
                 emit(Result.success(body))
             } else {
-                emit(Result.failure(Exception(body?.message ?: response.message() ?: "Verification failed")))
+                val errorBody = response.errorBody()?.string()
+                emit(Result.failure(Exception(body?.message ?: errorBody ?: response.message() ?: "Verification failed")))
             }
         } catch (e: Exception) {
             emit(Result.failure(e))

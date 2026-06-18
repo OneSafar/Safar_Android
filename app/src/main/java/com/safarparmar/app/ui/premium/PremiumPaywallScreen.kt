@@ -15,11 +15,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CheckCircleOutline
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,15 +25,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.razorpay.Checkout
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private data class PremiumPlanOption(
     val id: String,
@@ -53,10 +60,14 @@ fun PremiumPaywallScreen(
     viewModel: PremiumViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val premiumStatus by viewModel.premiumStatus.collectAsState()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity
+    val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val isDark = isSystemInDarkTheme()
+    var refreshAfterPaymentReturn by remember { mutableStateOf(false) }
     
     // Dynamic theme colors
     val screenBgColor = if (isDark) Color(0xFF0B0E14) else Color(0xFFEFF1FE)
@@ -93,6 +104,23 @@ fun PremiumPaywallScreen(
     val methodUnselectedBorderColor = if (isDark) Color(0xFF374151) else Color(0xFFE2E8F0)
     val methodSelectedBorderColor = if (isDark) Color(0xFF6366F1) else Color(0xFF4F46E5)
 
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && refreshAfterPaymentReturn) {
+                refreshAfterPaymentReturn = false
+                scope.launch {
+                    delay(1_500)
+                    viewModel.refreshPremiumStatus(
+                        showLoading = true,
+                        fallbackError = "Payment returned from PhonePe/Razorpay, but Safar Premium is not active yet. Please tap Restore Safar Premium in a moment."
+                    )
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     LaunchedEffect(uiState) {
         if (uiState is PremiumUiState.OrderCreated) {
             val state = uiState as PremiumUiState.OrderCreated
@@ -113,13 +141,89 @@ fun PremiumPaywallScreen(
                 retryObj.put("max_count", 4)
                 options.put("retry", retryObj)
 
+                refreshAfterPaymentReturn = true
                 checkout.open(activity, options)
                 viewModel.resetState()
             } catch (e: Exception) {
                 e.printStackTrace()
+                refreshAfterPaymentReturn = false
                 viewModel.notifyPaymentFailed(e.message ?: "Error launching checkout")
             }
         }
+    }
+
+    val activeStatus = (uiState as? PremiumUiState.PaymentSuccess)?.status ?: premiumStatus
+    val isPremiumActive = activeStatus.hasAnyPaidAccess
+    val formattedExpiry = remember(activeStatus.expiresAt) { formatPremiumExpiry(activeStatus.expiresAt) }
+    val planLabel = remember(activeStatus.planType) { premiumPlanLabel(activeStatus.planType) }
+
+    if (uiState is PremiumUiState.PaymentSuccess) {
+        val status = (uiState as PremiumUiState.PaymentSuccess).status
+        val dialogExpiry = formatPremiumExpiry(status.expiresAt)
+        val dialogPlanLabel = premiumPlanLabel(status.planType)
+        var unlockTargetScale by remember { mutableStateOf(0.72f) }
+        LaunchedEffect(Unit) {
+            unlockTargetScale = 1f
+        }
+        val unlockScale by animateFloatAsState(
+            targetValue = unlockTargetScale,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+            label = "premiumUnlockScale"
+        )
+        AlertDialog(
+            onDismissRequest = viewModel::resetState,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .graphicsLayer {
+                            scaleX = unlockScale
+                            scaleY = unlockScale
+                        }
+                )
+            },
+            title = {
+                Text(
+                    text = "Safar Premium unlocked",
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "$dialogPlanLabel is active.",
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                    dialogExpiry?.let {
+                        Text(
+                            text = "Valid until $it",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = Color(0xFF15803D),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
+                    }
+                    Text(
+                        text = "Premium features are now available across SAFAR.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::resetState) {
+                    Text("Continue")
+                }
+            }
+        )
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "lockGlow")
@@ -230,8 +334,12 @@ fun PremiumPaywallScreen(
                                 .background(
                                     Brush.radialGradient(
                                         listOf(
-                                            if (isDark) Color(0xFFFFD700).copy(alpha = 0.35f * glowAlpha) else Color(0xFFF59E0B).copy(alpha = 0.25f * glowAlpha),
-                                            if (isDark) Color(0xFFDAA520).copy(alpha = 0.12f * glowAlpha) else Color(0xFFD97706).copy(alpha = 0.08f * glowAlpha),
+                                            if (isPremiumActive) Color(0xFF10B981).copy(alpha = 0.28f * glowAlpha)
+                                            else if (isDark) Color(0xFFFFD700).copy(alpha = 0.35f * glowAlpha)
+                                            else Color(0xFFF59E0B).copy(alpha = 0.25f * glowAlpha),
+                                            if (isPremiumActive) Color(0xFF34D399).copy(alpha = 0.10f * glowAlpha)
+                                            else if (isDark) Color(0xFFDAA520).copy(alpha = 0.12f * glowAlpha)
+                                            else Color(0xFFD97706).copy(alpha = 0.08f * glowAlpha),
                                             Color.Transparent,
                                         )
                                     ),
@@ -244,7 +352,7 @@ fun PremiumPaywallScreen(
                             modifier = Modifier
                                 .size(64.dp)
                                 .background(
-                                    color = lockBgColor,
+                                    color = if (isPremiumActive) Color(0xFFD1FAE5) else lockBgColor,
                                     shape = androidx.compose.foundation.shape.CircleShape,
                                 )
                                 .border(
@@ -255,9 +363,9 @@ fun PremiumPaywallScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Lock,
+                                imageVector = if (isPremiumActive) Icons.Default.CheckCircle else Icons.Default.Lock,
                                 contentDescription = null,
-                                tint = lockIconColor,
+                                tint = if (isPremiumActive) Color(0xFF059669) else lockIconColor,
                                 modifier = Modifier.size(28.dp),
                             )
                         }
@@ -266,33 +374,59 @@ fun PremiumPaywallScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "Unlock Safar Premium",
+                        text = if (isPremiumActive) "Safar Premium Active" else "Unlock Safar Premium",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = textPrimaryColor
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Plan better. Stay regular. Prepare with clarity.",
+                        text = if (isPremiumActive) {
+                            formattedExpiry?.let { "$planLabel valid until $it" } ?: "$planLabel is active on this account."
+                        } else {
+                            "Plan better. Stay regular. Prepare with clarity."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = textSecondaryColor
+                        color = if (isPremiumActive) Color(0xFF15803D) else textSecondaryColor,
+                        fontWeight = if (isPremiumActive) FontWeight.SemiBold else FontWeight.Normal,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     )
                     
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Plan Selection
+                    if (isPremiumActive) {
+                        PremiumActiveSummaryCard(
+                            planLabel = planLabel,
+                            expiryText = formattedExpiry,
+                            isDark = isDark,
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
+                    }
+
                     Text(
-                        text = "Choose a Plan",
+                        text = if (isPremiumActive) "Extend or Upgrade" else "Choose a Plan",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = textPrimaryColor,
                         modifier = Modifier.align(Alignment.Start).padding(bottom = 8.dp)
                     )
-                    
+                    Text(
+                        text = if (isPremiumActive) {
+                            "Your new purchase will add more time after your current Premium validity."
+                        } else {
+                            "You can add more time later. Nothing is lost."
+                        },
+                        fontSize = 12.sp,
+                        color = textSecondaryColor,
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 8.dp),
+                    )
+
                     plans.forEach { plan ->
                         val isPlanSelected = selectedPlanId == plan.id
                         val planBgColor = if (isPlanSelected) planSelectedBgColor else planUnselectedBgColor
                         val planBorderColor = if (isPlanSelected) planSelectedBorderColor else planUnselectedBorderColor
-                        
+
                         Card(
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = planBgColor),
@@ -466,12 +600,12 @@ fun PremiumPaywallScreen(
                         Triple("card", "Credit / Debit Card", Icons.Default.CreditCard),
                         Triple("netbanking", "Net Banking", Icons.Default.AccountBalance)
                     )
-                    
+
                     paymentMethods.forEach { (id, label, icon) ->
                         val isMethodSelected = selectedMethod == id
                         val rowBgColor = if (isMethodSelected) methodSelectedBgColor else methodUnselectedBgColor
                         val rowBorderColor = if (isMethodSelected) methodSelectedBorderColor else methodUnselectedBorderColor
-                        
+
                         Card(
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = rowBgColor),
@@ -487,7 +621,6 @@ fun PremiumPaywallScreen(
                                     .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Custom Radio Button
                                 Box(
                                     modifier = Modifier
                                         .size(20.dp)
@@ -510,9 +643,9 @@ fun PremiumPaywallScreen(
                                         )
                                     }
                                 }
-                                
+
                                 Spacer(modifier = Modifier.width(16.dp))
-                                
+
                                 Text(
                                     text = label,
                                     fontSize = 14.sp,
@@ -520,7 +653,7 @@ fun PremiumPaywallScreen(
                                     color = textPrimaryColor,
                                     modifier = Modifier.weight(1f)
                                 )
-                                
+
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = null,
@@ -543,9 +676,8 @@ fun PremiumPaywallScreen(
                     }
 
                     if (uiState is PremiumUiState.PaymentSuccess) {
-                        val status = (uiState as PremiumUiState.PaymentSuccess).status
                         Text(
-                            text = "Safar Premium is active${status.expiresAt?.let { " until $it" }.orEmpty()}.",
+                            text = formattedExpiry?.let { "Safar Premium is active until $it." } ?: "Safar Premium is active.",
                             color = Color(0xFF4CAF50),
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -581,7 +713,7 @@ fun PremiumPaywallScreen(
                             Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                "Pay Securely",
+                                if (isPremiumActive) "Extend the Plan" else "Start Safar Premium",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
@@ -621,4 +753,78 @@ fun PremiumPaywallScreen(
             }
         }
     }
+}
+
+@Composable
+private fun PremiumActiveSummaryCard(
+    planLabel: String,
+    expiryText: String?,
+    isDark: Boolean,
+) {
+    val container = if (isDark) Color(0xFF09261C) else Color(0xFFEAF8F0)
+    val border = if (isDark) Color(0xFF34D399) else Color(0xFF86EFAC)
+    val titleColor = if (isDark) Color(0xFFD1FAE5) else Color(0xFF14532D)
+    val bodyColor = if (isDark) Color(0xFFA7F3D0) else Color(0xFF166534)
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = container),
+        border = BorderStroke(1.2.dp, border),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .background(Color(0xFF10B981), androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "Premium mode is on",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = titleColor,
+                )
+                Text(
+                    text = expiryText?.let { "$planLabel • Valid until $it" } ?: "$planLabel is active on this account.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = bodyColor,
+                )
+            }
+        }
+    }
+}
+
+private fun premiumPlanLabel(planType: String?): String {
+    val normalized = planType.orEmpty().lowercase(Locale.US)
+    return when {
+        "3month" in normalized || "3-month" in normalized -> "3-month Premium plan"
+        "6month" in normalized || "6-month" in normalized -> "6-month Premium plan"
+        "year" in normalized -> "Yearly Premium plan"
+        normalized.isNotBlank() -> "Safar Premium plan"
+        else -> "Safar Premium"
+    }
+}
+
+private fun formatPremiumExpiry(expiresAt: String?): String? {
+    if (expiresAt.isNullOrBlank()) return null
+    val instant = runCatching { Instant.parse(expiresAt) }.getOrNull() ?: return expiresAt.take(10)
+    val formatter = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.ENGLISH)
+    return formatter.format(instant.atZone(ZoneId.systemDefault()))
 }

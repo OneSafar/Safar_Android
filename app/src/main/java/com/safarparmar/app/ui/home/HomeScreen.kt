@@ -133,18 +133,16 @@ fun HomeScreen(
     // Ask for notification permission once — shows a rationale dialog 1.5s after landing on Home
     NotificationPermissionRequest()
 
-    var currentPage by remember { mutableIntStateOf(kotlin.random.Random.nextInt(slides.size)) }
+    var currentPage by remember { mutableIntStateOf((0 until slides.size).random()) }
     val haptic = LocalHapticFeedback.current
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(4000L)
-            var next = currentPage
-            while (next == currentPage) {
-                next = kotlin.random.Random.nextInt(slides.size)
-            }
-            currentPage = next
+    LaunchedEffect(currentPage) {
+        delay(4000L)
+        var next = currentPage
+        while (next == currentPage) {
+            next = (0 until slides.size).random()
         }
+        currentPage = next
     }
 
     var showBellDialog by remember { mutableStateOf(false) }

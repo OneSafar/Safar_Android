@@ -26,7 +26,18 @@ class ButterflyTourState(
     val isLastStep: Boolean
         get() = currentStepIndex >= steps.lastIndex
 
+    var onStartRequest: (() -> Unit)? = null
+
     fun start() {
+        val onStart = onStartRequest
+        if (onStart != null) {
+            onStart()
+        } else {
+            startDirectly()
+        }
+    }
+
+    fun startDirectly() {
         currentStepIndex = 0
         isVisible = true
     }

@@ -267,7 +267,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     // Required so Ekagra PiP overlay renders correctly
 
     override fun onPaymentSuccess(razorpayPaymentId: String?, paymentData: PaymentData?) {
-        PaymentEventBus.postSuccess(paymentData)
+        PaymentEventBus.postSuccess(razorpayPaymentId, paymentData)
     }
 
     override fun onPaymentError(code: Int, description: String?, paymentData: PaymentData?) {

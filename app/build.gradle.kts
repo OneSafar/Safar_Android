@@ -112,7 +112,7 @@ android {
         create("prod") {
             dimension = "env"
             buildConfigField("String", "BASE_URL", "\"$prodBaseUrl\"")
-            buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "true")
+            buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "false")
             buildConfigField("boolean", "AI_SYLLABUS_IMPORT_ENABLED", aiSyllabusImportEnabled)
             manifestPlaceholders["allowBackup"] = "false"
             manifestPlaceholders["usesCleartextTraffic"] = "false"

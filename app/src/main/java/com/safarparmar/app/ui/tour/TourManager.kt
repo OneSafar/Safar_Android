@@ -51,6 +51,15 @@ fun TourManager(
         onTourStateReady?.invoke(tourState)
     }
 
+    DisposableEffect(tourState) {
+        tourState.onStartRequest = {
+            showAskDialog = true
+        }
+        onDispose {
+            tourState.onStartRequest = null
+        }
+    }
+
     LaunchedEffect(Unit) {
         if (askOnFirstVisit) {
             val done = dataStore.isTourDone.first()
@@ -62,7 +71,7 @@ fun TourManager(
         TourAskDialog(
             onYes = {
                 showAskDialog = false
-                tourState.start()
+                tourState.startDirectly()
                 scope.launch { dataStore.setTourDone(true) }
             },
             onNo = {

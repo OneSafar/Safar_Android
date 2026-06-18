@@ -426,6 +426,7 @@ fun SafarNavGraph(
                         navigate(Routes.ADMIN_NOTIFICATIONS)
                     }
                 },
+                onPremium = { navigate(Routes.PREMIUM) },
             )
         }
 

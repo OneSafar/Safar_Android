@@ -14,34 +14,34 @@ val nishthaTourSteps = listOf(
     ButterflyTourStep(
         title   = "Daily Check-In",
         message = "Start here every day. Log your mood and set an intention. Small moments of awareness add up!",
-        anchorX = 0.12f, anchorY = 0.93f,
+        anchorX = 0.10f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
     ),
     ButterflyTourStep(
         title   = "Journal",
         message = "Tap Journal to write freely. Your entries are private and stay on your device.",
-        anchorX = 0.35f, anchorY = 0.93f,
+        anchorX = 0.30f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
         iconRes = com.safarparmar.app.R.drawable.ic_pencil_simple_line
     ),
     ButterflyTourStep(
         title   = "Goals",
         message = "Set meaningful daily or weekly goals here. Completing them feeds your streak.",
-        anchorX = 0.57f, anchorY = 0.93f,
+        anchorX = 0.50f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
         iconRes = com.safarparmar.app.R.drawable.ic_target
     ),
     ButterflyTourStep(
         title   = "Streaks",
         message = "Your current streak lives here. Consistency is the magic — even one small action counts.",
-        anchorX = 0.75f, anchorY = 0.93f,
+        anchorX = 0.70f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
         iconRes = com.safarparmar.app.R.drawable.ic_flame
     ),
     ButterflyTourStep(
         title   = "Analytics",
         message = "See your weekly patterns, mood trends, and progress charts over time.",
-        anchorX = 0.92f, anchorY = 0.93f,
+        anchorX = 0.90f, anchorY = 0.93f,
         tooltipSide = TooltipSide.TOP,
         iconRes = com.safarparmar.app.R.drawable.ic_chart_bar
     ),

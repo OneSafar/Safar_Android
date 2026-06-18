@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
@@ -73,8 +74,14 @@ import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.debug.NotificationDebugSettingsEntry
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
+import com.safarparmar.app.ui.premium.PremiumUiState
+import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.profile.NotificationToggleRow
 import com.safarparmar.app.ui.profile.ProfileSectionCard
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private enum class SettingsInfoSheet {
     EULA,
@@ -94,6 +101,24 @@ private fun isValidReminderTimeInput(value: String): Boolean {
     return hour in 0..23 && minute in 0..59
 }
 
+private fun settingsPremiumPlanLabel(planType: String?): String {
+    val normalized = planType.orEmpty().lowercase(Locale.US)
+    return when {
+        "3month" in normalized || "3-month" in normalized -> "3-month Premium plan"
+        "6month" in normalized || "6-month" in normalized -> "6-month Premium plan"
+        "year" in normalized -> "Yearly Premium plan"
+        normalized.isNotBlank() -> "Safar Premium plan"
+        else -> "Safar Premium"
+    }
+}
+
+private fun formatSettingsPremiumExpiry(expiresAt: String?): String? {
+    if (expiresAt.isNullOrBlank()) return null
+    val instant = runCatching { Instant.parse(expiresAt) }.getOrNull() ?: return expiresAt.take(10)
+    val formatter = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.ENGLISH)
+    return formatter.format(instant.atZone(ZoneId.systemDefault()))
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -104,9 +129,13 @@ fun SettingsScreen(
     dataStore: SafarDataStore,
     canAccessAdminComposer: Boolean = false,
     onOpenAdminNotificationComposer: () -> Unit = {},
+    onPremium: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
+    premiumViewModel: PremiumViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
+    val premiumUiState by premiumViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -118,6 +147,23 @@ fun SettingsScreen(
     var hasUsageAccess by remember { mutableStateOf(FocusShieldPermissionHelper.hasUsageStatsPermission(context)) }
     var hasFocusShieldAccessibility by remember { mutableStateOf(FocusShieldPermissionHelper.hasAccessibilityService(context)) }
     var hasNotificationPermission by remember { mutableStateOf(FocusShieldPermissionHelper.hasNotificationPermission(context)) }
+    val isPremiumSyncing = premiumUiState is PremiumUiState.Loading
+    val premiumExpiryText = remember(premiumStatus.expiresAt) { formatSettingsPremiumExpiry(premiumStatus.expiresAt) }
+    val premiumPlanText = remember(premiumStatus.planType) { settingsPremiumPlanLabel(premiumStatus.planType) }
+
+    androidx.compose.runtime.LaunchedEffect(premiumUiState) {
+        when (val state = premiumUiState) {
+            is PremiumUiState.PaymentSuccess -> {
+                Toast.makeText(context, "Safar Premium status synced.", Toast.LENGTH_SHORT).show()
+                premiumViewModel.resetState()
+            }
+            is PremiumUiState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                premiumViewModel.resetState()
+            }
+            else -> Unit
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -236,6 +282,25 @@ fun SettingsScreen(
                     )
                 }
 
+                ProfileSectionCard(title = "Account & Premium", icon = Icons.Default.Security) {
+                    SettingsPremiumStatusCard(
+                        isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                        planLabel = premiumPlanText,
+                        expiryText = premiumExpiryText,
+                        canUseNishthaAnalytics = premiumStatus.canUseNishthaAnalytics,
+                        canUseStudyPlannerInsights = premiumStatus.canUseStudyPlannerInsights,
+                        canUseMehfilDm = premiumStatus.canUseMehfilDm,
+                        isSyncing = isPremiumSyncing,
+                        onManagePlan = onPremium,
+                        onSyncStatus = {
+                            premiumViewModel.refreshPremiumStatus(
+                                showLoading = true,
+                                fallbackError = "No active Safar Premium plan found for this account."
+                            )
+                        },
+                    )
+                }
+
                 ProfileSectionCard(title = "Notifications", icon = Icons.Default.Notifications) {
                     Text(
                         "Helpful alerts for ekagra sessions, streaks, and important class updates.",
@@ -295,54 +360,54 @@ fun SettingsScreen(
                         } else null,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                NotificationToggleRow(
-                    title = "Streak reminders",
-                    subtitle = "Evening warning before your streak expires.",
-                    checked = uiState.streakReminderEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleStreakReminder(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Course/class updates",
-                    subtitle = "New lessons, tests, PDFs, and live class alerts.",
-                    checked = uiState.courseUpdatesEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Achievements",
-                    subtitle = "Badges, milestones, and goal completion.",
-                    checked = uiState.achievementsEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAchievements(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Community replies",
-                    subtitle = "Mehfil replies, mentions, and teacher responses.",
-                    checked = uiState.communityRepliesEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
-                )
-                NotificationToggleRow(
-                    title = "SAFAR announcements",
-                    subtitle = "Admin announcements and major challenges.",
-                    checked = uiState.announcementsEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAnnouncements(it)) },
-                )
-                NotificationToggleRow(
-                    title = "Weekly summary",
-                    subtitle = "Progress recap when summaries are enabled.",
-                    checked = uiState.weeklySummaryEnabled,
-                    enabled = uiState.notificationsEnabled,
-                    onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleWeeklySummary(it)) },
-                )
-                Text(
-                    "Quiet hours: ${uiState.quietHoursStart} to ${uiState.quietHoursEnd}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+                    NotificationToggleRow(
+                        title = "Streak reminders",
+                        subtitle = "Evening warning before your streak expires.",
+                        checked = uiState.streakReminderEnabled,
+                        enabled = uiState.notificationsEnabled,
+                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleStreakReminder(it)) },
+                    )
+                    NotificationToggleRow(
+                        title = "Course/class updates",
+                        subtitle = "New lessons, tests, PDFs, and live class alerts.",
+                        checked = uiState.courseUpdatesEnabled,
+                        enabled = uiState.notificationsEnabled,
+                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
+                    )
+                    NotificationToggleRow(
+                        title = "Achievements",
+                        subtitle = "Badges, milestones, and goal completion.",
+                        checked = uiState.achievementsEnabled,
+                        enabled = uiState.notificationsEnabled,
+                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAchievements(it)) },
+                    )
+                    NotificationToggleRow(
+                        title = "Community replies",
+                        subtitle = "Mehfil replies, mentions, and teacher responses.",
+                        checked = uiState.communityRepliesEnabled,
+                        enabled = uiState.notificationsEnabled,
+                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
+                    )
+                    NotificationToggleRow(
+                        title = "SAFAR announcements",
+                        subtitle = "Admin announcements and major challenges.",
+                        checked = uiState.announcementsEnabled,
+                        enabled = uiState.notificationsEnabled,
+                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAnnouncements(it)) },
+                    )
+                    NotificationToggleRow(
+                        title = "Weekly summary",
+                        subtitle = "Progress recap when summaries are enabled.",
+                        checked = uiState.weeklySummaryEnabled,
+                        enabled = uiState.notificationsEnabled,
+                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleWeeklySummary(it)) },
+                    )
+                    Text(
+                        "Quiet hours: ${uiState.quietHoursStart} to ${uiState.quietHoursEnd}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
 
             NotificationDebugSettingsEntry()
 
@@ -423,6 +488,110 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun SettingsPremiumStatusCard(
+    isPremiumActive: Boolean,
+    planLabel: String,
+    expiryText: String?,
+    canUseNishthaAnalytics: Boolean,
+    canUseStudyPlannerInsights: Boolean,
+    canUseMehfilDm: Boolean,
+    isSyncing: Boolean,
+    onManagePlan: () -> Unit,
+    onSyncStatus: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val statusColor = if (isPremiumActive) Color(0xFF16A34A) else scheme.onSurfaceVariant
+    val statusBg = if (isPremiumActive) Color(0xFFEAF8F0) else scheme.surfaceVariant.copy(alpha = 0.38f)
+    val statusText = if (isPremiumActive) {
+        expiryText?.let { "$planLabel active until $it" } ?: "$planLabel is active"
+    } else {
+        "No active Premium plan on this account."
+    }
+    val featureSummary = when {
+        isPremiumActive -> buildList {
+            if (canUseNishthaAnalytics) add("Nishtha Analytics")
+            if (canUseStudyPlannerInsights) add("Study Planner Insights")
+            if (canUseMehfilDm) add("Mehfil Private Connect")
+        }.takeIf { it.isNotEmpty() }?.joinToString(" / ") ?: "Premium features active"
+        else -> "Unlock analytics, planner insights, focus reports, and private connect."
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(statusBg)
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(if (isPremiumActive) Color(0xFF10B981) else scheme.outline.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isPremiumActive) Icons.Default.CheckCircle else Icons.Default.Info,
+                    contentDescription = null,
+                    tint = if (isPremiumActive) Color.White else scheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = if (isPremiumActive) "Safar Premium Active" else "Safar Plus",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = scheme.onSurface,
+                )
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (isPremiumActive) FontWeight.SemiBold else FontWeight.Normal),
+                    color = statusColor,
+                )
+                Text(
+                    text = featureSummary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(
+                onClick = onManagePlan,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text(if (isPremiumActive) "Manage Plan" else "View Plans", fontWeight = FontWeight.Bold)
+            }
+            TextButton(
+                onClick = onSyncStatus,
+                enabled = !isSyncing,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    if (isSyncing) "Syncing..." else if (isPremiumActive) "Sync Status" else "Restore Premium",
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SettingsInfoRow(
     title: String,
     subtitle: String,
@@ -470,6 +639,7 @@ private fun SettingsLegalInfoSheet(
                 "KAVACH does not read messages, passwords, photos, or typed text.",
                 "Your blocked app choices stay on this device.",
                 "Notifications are used for reminders and active session status.",
+                "Payments are handled by Razorpay/PhonePe; SAFAR stores your Premium status and validity date.",
             ),
         )
         SettingsInfoSheet.KAVACH -> SettingsInfoContent(

@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.theme.*
 import com.safarparmar.app.ui.components.*
 
@@ -101,8 +102,10 @@ fun ProfileScreen(
     onProgress: () -> Unit = {},
     onPremium: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
+    premiumViewModel: PremiumViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
 
@@ -216,7 +219,10 @@ fun ProfileScreen(
 
                     ExamFocusSection(uiState = uiState, viewModel = viewModel)
 
-                    AccountStatusSection(onPremiumClick = onPremium)
+                    AccountStatusSection(
+                        isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                        onPremiumClick = onPremium,
+                    )
 
                     if (uiState.error != null) {
                         Surface(
@@ -421,8 +427,14 @@ private fun ExamFocusSection(uiState: ProfileUiState, viewModel: ProfileViewMode
 }
 
 @Composable
-private fun AccountStatusSection(onPremiumClick: () -> Unit = {}) {
+private fun AccountStatusSection(
+    isPremiumActive: Boolean,
+    onPremiumClick: () -> Unit = {},
+) {
     val scheme = MaterialTheme.colorScheme
+    val statusTitle = if (isPremiumActive) "Safar Premium" else "Safar Plus"
+    val statusText = if (isPremiumActive) "Premium access active" else "Normal Safar access"
+    val buttonText = if (isPremiumActive) "Manage Plan" else "View Plans"
     GlassCard {
         Row(
             modifier = Modifier
@@ -433,7 +445,7 @@ private fun AccountStatusSection(onPremiumClick: () -> Unit = {}) {
         ) {
             Column {
                 Text(
-                    text = "Safar Plus",
+                    text = statusTitle,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = scheme.onSurface
                 )
@@ -457,7 +469,7 @@ private fun AccountStatusSection(onPremiumClick: () -> Unit = {}) {
                         )
                     }
                     Text(
-                        text = "Normal Safar access",
+                        text = statusText,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                         color = Color(0xFF15803D)
                     )
@@ -471,7 +483,7 @@ private fun AccountStatusSection(onPremiumClick: () -> Unit = {}) {
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("View Plans", fontWeight = FontWeight.Bold)
+                Text(buttonText, fontWeight = FontWeight.Bold)
             }
         }
     }

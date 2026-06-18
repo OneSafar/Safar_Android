@@ -8,8 +8,8 @@ object PaymentEventBus {
     private val _paymentEvents = MutableSharedFlow<PaymentEvent>(extraBufferCapacity = 1)
     val paymentEvents = _paymentEvents.asSharedFlow()
 
-    fun postSuccess(paymentData: PaymentData?) {
-        _paymentEvents.tryEmit(PaymentEvent.Success(paymentData))
+    fun postSuccess(razorpayPaymentId: String?, paymentData: PaymentData?) {
+        _paymentEvents.tryEmit(PaymentEvent.Success(razorpayPaymentId, paymentData))
     }
 
     fun postError(code: Int, description: String?, paymentData: PaymentData?) {
@@ -18,6 +18,6 @@ object PaymentEventBus {
 }
 
 sealed class PaymentEvent {
-    data class Success(val paymentData: PaymentData?) : PaymentEvent()
+    data class Success(val razorpayPaymentId: String?, val paymentData: PaymentData?) : PaymentEvent()
     data class Error(val code: Int, val description: String?, val paymentData: PaymentData?) : PaymentEvent()
 }
