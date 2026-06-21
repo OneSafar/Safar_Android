@@ -109,8 +109,10 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SongPickerSheet(current: String, onSelect: (String) -> Unit, onDismiss: () -> Unit) {
+internal fun SongPickerSheet(currentThemeId: String, current: String, onSelect: (String) -> Unit, onDismiss: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
+    val filteredTracks = focusMusicTracks.filter { it.themeId.equals(currentThemeId, ignoreCase = true) || it.themeId == "all" }
+    
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         // M3: bottom sheets use surfaceContainerLow
@@ -120,7 +122,8 @@ internal fun SongPickerSheet(current: String, onSelect: (String) -> Unit, onDism
             verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Ambient sound", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            focusMusicTracks.forEach { (name, _) ->
+            filteredTracks.forEach { track ->
+                val name = track.name
                 Row(
                     Modifier
                         .fillMaxWidth()

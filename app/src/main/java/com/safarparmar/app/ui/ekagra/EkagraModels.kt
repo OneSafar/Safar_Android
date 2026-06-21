@@ -89,13 +89,27 @@ val visualThemes = listOf(
         musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3"),
 )
 
+data class FocusMusicTrack(
+    val name: String,
+    val url: String,
+    val themeId: String
+)
+
 internal val focusMusicTracks = listOf(
-    "Theme Default"    to "",
-    "Serene Flow"      to "https://del1.vultrobjects.com/qms-images/Safar/music_1.mp3",
-    "Nostalgia Breeze" to "https://del1.vultrobjects.com/qms-images/Safar/relaxingtime-sleep-music-vol16-195422.mp3",
-    "Amber Pulse"      to "https://del1.vultrobjects.com/qms-images/Safar/WhatsApp_Audio_2026-02-18_at_10.05.04_AM.mpeg",
-    "Solitude Deep"    to "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3",
-    "Silence"          to "silence",
+    // Serene
+    FocusMusicTrack("Serene Flow", "https://del1.vultrobjects.com/qms-images/Safar/music_1.mp3", "Serene"),
+    FocusMusicTrack("Healing Waves", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/light_music-healing-waves-287955.mp3", "Serene"),
+    // Nostalgia
+    FocusMusicTrack("Nostalgia Breeze", "https://del1.vultrobjects.com/qms-images/Safar/relaxingtime-sleep-music-vol16-195422.mp3", "Nostalgia"),
+    FocusMusicTrack("Anxiety Relief", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/petrushkasound-anxiety-relief-for-dogs-287948.mp3", "Nostalgia"),
+    // Amber
+    FocusMusicTrack("Amber Pulse", "https://del1.vultrobjects.com/qms-images/Safar/WhatsApp_Audio_2026-02-18_at_10.05.04_AM.mpeg", "Amber"),
+    FocusMusicTrack("Deep Meditation", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/grand_project-deep-meditation-288005.mp3", "Amber"),
+    // Solitude
+    FocusMusicTrack("Solitude Deep", "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3", "Solitude"),
+    FocusMusicTrack("Quiet Meditation", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/quietphase-meditation-ambient-music-for-stress-relief-287959.mp3", "Solitude"),
+    // Universal
+    FocusMusicTrack("Silence", "silence", "all")
 )
 
 // ─── Nav tab & Timer mode enums ────────────────────────────────────────────────

@@ -123,7 +123,8 @@ fun EkagraScreen(
     }
     var selectedSong by remember {
         val prefs = context.getSharedPreferences("ekagra_theme_prefs", android.content.Context.MODE_PRIVATE)
-        mutableStateOf(prefs.getString("song_name", null) ?: "Theme Default")
+        val initialTheme = visualThemes.getOrElse(prefs.getInt("theme_index", -1)) { visualThemes[0] }
+        mutableStateOf(prefs.getString("song_name", null) ?: focusMusicTracks.firstOrNull { it.themeId.equals(initialTheme.name, ignoreCase = true) }?.name ?: "Silence")
     }
 
     var associatedGoalId    by remember(linkedGoalId)    { mutableStateOf(linkedGoalId) }
@@ -192,9 +193,8 @@ fun EkagraScreen(
     }
 
     fun resolveAudioUrl(): String = when {
-        selectedSong == "Theme Default" -> selectedTheme.musicUrl
         selectedSong == "Silence"       -> "silence"
-        else -> focusMusicTracks.firstOrNull { it.first == selectedSong }?.second ?: ""
+        else -> focusMusicTracks.firstOrNull { it.name == selectedSong }?.url ?: ""
     }
 
     // ── Side-effects ────────────────────────────────────────────────────────────
@@ -404,9 +404,16 @@ fun EkagraScreen(
                 else -> {
                     // ── Dialogs / sheets ─────────────────────────────────────────
                     if (showThemeDialog)
-                        VisualThemeDialog(current = selectedTheme, onSelect = { selectedTheme = it; showThemeDialog = false }, onDismiss = { showThemeDialog = false })
+                        VisualThemeDialog(current = selectedTheme, onSelect = { 
+                            selectedTheme = it
+                            val newThemeSongs = focusMusicTracks.filter { track -> track.themeId.equals(it.name, ignoreCase = true) }
+                            if (newThemeSongs.isNotEmpty()) {
+                                selectedSong = newThemeSongs.first().name
+                            }
+                            showThemeDialog = false 
+                        }, onDismiss = { showThemeDialog = false })
                     if (showSongSheet)
-                        SongPickerSheet(current = selectedSong, onSelect = { selectedSong = it; showSongSheet = false }, onDismiss = { showSongSheet = false })
+                        SongPickerSheet(currentThemeId = selectedTheme.name, current = selectedSong, onSelect = { selectedSong = it; showSongSheet = false }, onDismiss = { showSongSheet = false })
                     if (showOrganizeSheet) {
                         val pending = pendingEndedSession
                         OrganizeFreeFocusSheet(
