@@ -526,7 +526,7 @@ class StudyPlannerViewModel @Inject constructor(
                         mutating = false,
                         loading = false,
                         selectedPlan = r.data,
-                        section = PlannerSection.PLAN,
+                        section = PlannerSection.YOUR_EXAMS,
                         message = "Plan created",
                     )
                 }
@@ -577,7 +577,7 @@ class StudyPlannerViewModel @Inject constructor(
             is Resource.Success -> {
                 _uiState.update { it.copy(mutating = false, message = "Plan created") }
                 refreshPlans()
-                openPlan(r.data.id)
+                _uiState.update { it.copy(selectedPlan = r.data, section = PlannerSection.YOUR_EXAMS) }
             }
             is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
             is Resource.Loading -> Unit
@@ -642,12 +642,11 @@ class StudyPlannerViewModel @Inject constructor(
                 mutating = false,
                 selectedPlan = finalPlan,
                 message = successMessage,
-                section = PlannerSection.PLAN,
+                section = PlannerSection.YOUR_EXAMS,
             )
         }
         StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLAN_CREATED_TEMPLATE)
         refreshPlans()
-        openPlan(plan.id)
     }
 
     private suspend fun refreshCalendar(planId: String) {

@@ -111,7 +111,7 @@ fun EkagraScreen(
     var kavachSummaryMinutes     by remember { mutableIntStateOf(0) }
     var kavachSummaryAttempts    by remember { mutableStateOf<List<com.safarparmar.app.ui.ekagra.focusshield.KavachBlockedAttempt>>(emptyList()) }
     var showThemeDialog          by remember { mutableStateOf(false) }
-    var showSongSheet            by remember { mutableStateOf(false) }
+    var showAudioLibraryPanel    by remember { mutableStateOf(false) }
     var showOrganizeSheet        by remember { mutableStateOf(false) }
     var pendingEndedSession      by remember { mutableStateOf<PendingEndedEkagraSession?>(null) }
     var titleInput               by remember { mutableStateOf("") }
@@ -121,10 +121,8 @@ fun EkagraScreen(
         val prefs = context.getSharedPreferences("ekagra_theme_prefs", android.content.Context.MODE_PRIVATE)
         mutableStateOf(visualThemes.getOrElse(prefs.getInt("theme_index", -1)) { visualThemes[0] })
     }
-    var selectedSong by remember {
-        val prefs = context.getSharedPreferences("ekagra_theme_prefs", android.content.Context.MODE_PRIVATE)
-        val initialTheme = visualThemes.getOrElse(prefs.getInt("theme_index", -1)) { visualThemes[0] }
-        mutableStateOf(prefs.getString("song_name", null) ?: focusMusicTracks.firstOrNull { it.themeId.equals(initialTheme.name, ignoreCase = true) }?.name ?: "Silence")
+    var selectedMusicTrack by remember {
+        mutableStateOf(com.safarparmar.app.ui.audio.AudioLibrary.getPersistedTrack(context))
     }
 
     var associatedGoalId    by remember(linkedGoalId)    { mutableStateOf(linkedGoalId) }
@@ -142,7 +140,7 @@ fun EkagraScreen(
             onNavigate(Routes.FOCUS_SHIELD); return
         }
         requestNotificationPermission()
-        timerService?.saveTheme(visualThemes.indexOf(selectedTheme), selectedSong)
+        timerService?.saveTheme(visualThemes.indexOf(selectedTheme), selectedMusicTrack.name)
         timerService?.setDuration(mode, minutes * 60)
         timerService?.start()
         viewModel.onSessionStarted(
@@ -192,11 +190,6 @@ fun EkagraScreen(
         associatedGoalId = null; associatedGoalTitle = null
     }
 
-    fun resolveAudioUrl(): String = when {
-        selectedSong == "Silence"       -> "silence"
-        else -> focusMusicTracks.firstOrNull { it.name == selectedSong }?.url ?: ""
-    }
-
     // ── Side-effects ────────────────────────────────────────────────────────────
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -231,10 +224,10 @@ fun EkagraScreen(
         }
     }
 
-    LaunchedEffect(selectedSong, selectedTheme) {
-        timerService?.setMusic(resolveAudioUrl())
+    LaunchedEffect(selectedMusicTrack, selectedTheme) {
+        timerService?.setMusic(selectedMusicTrack.url)
         if (timerService?.isActive() == true)
-            timerService.saveTheme(visualThemes.indexOf(selectedTheme), selectedSong)
+            timerService.saveTheme(visualThemes.indexOf(selectedTheme), selectedMusicTrack.name)
     }
 
     // PiP
@@ -300,8 +293,6 @@ fun EkagraScreen(
     }
 
     // ── M3 dynamic color scheme (theme-aware) ────────────────────────────────────
-    // We derive a proper M3 scheme from each visual theme's primary accent colour.
-    // This replaces the old hand-rolled darkColorScheme with hardcoded raw hex values.
     val themeColorScheme = remember(selectedTheme, isDarkTheme) {
         val seed = selectedTheme.accent
         if (isDarkTheme) {
@@ -406,14 +397,18 @@ fun EkagraScreen(
                     if (showThemeDialog)
                         VisualThemeDialog(current = selectedTheme, onSelect = { 
                             selectedTheme = it
-                            val newThemeSongs = focusMusicTracks.filter { track -> track.themeId.equals(it.name, ignoreCase = true) }
-                            if (newThemeSongs.isNotEmpty()) {
-                                selectedSong = newThemeSongs.first().name
-                            }
                             showThemeDialog = false 
                         }, onDismiss = { showThemeDialog = false })
-                    if (showSongSheet)
-                        SongPickerSheet(currentThemeId = selectedTheme.name, current = selectedSong, onSelect = { selectedSong = it; showSongSheet = false }, onDismiss = { showSongSheet = false })
+                    if (showAudioLibraryPanel) {
+                        com.safarparmar.app.ui.audio.AudioLibraryPanel(
+                            selectedTrackId = selectedMusicTrack.id,
+                            onTrackSelect = {
+                                selectedMusicTrack = it
+                                com.safarparmar.app.ui.audio.AudioLibrary.persistTrackId(context, it.id)
+                            },
+                            onDismiss = { showAudioLibraryPanel = false }
+                        )
+                    }
                     if (showOrganizeSheet) {
                         val pending = pendingEndedSession
                         OrganizeFreeFocusSheet(
@@ -464,10 +459,17 @@ fun EkagraScreen(
                             topBarActions = {
                                 val tintColor = if (selectedTab == EkagraNavTab.TIMER) Color.White
                                                 else MaterialTheme.colorScheme.onSurface
+                                IconButton(onClick = { tourState?.start() }) {
+                                    Image(
+                                        painter = painterResource(R.drawable.ic_butterfly_tour),
+                                        contentDescription = "Guide",
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
                                 IconButton(onClick = { showThemeDialog = true }) {
                                     Icon(Icons.Default.Palette, contentDescription = "Theme", tint = tintColor)
                                 }
-                                IconButton(onClick = { showSongSheet = true }) {
+                                IconButton(onClick = { showAudioLibraryPanel = true }) {
                                     Icon(Icons.Default.MusicNote, contentDescription = "Sound", tint = tintColor)
                                 }
                             },
@@ -568,7 +570,8 @@ fun EkagraScreen(
                     com.safarparmar.app.ui.tour.TourManager(
                         dataStore       = viewModel.dataStore,
                         steps           = com.safarparmar.app.ui.tour.ekagraTourSteps,
-                        askOnFirstVisit = false,
+                        section         = "ekagra",
+                        askOnFirstVisit = true,
                         onTourStateReady = { tourState = it },
                     )
                 }

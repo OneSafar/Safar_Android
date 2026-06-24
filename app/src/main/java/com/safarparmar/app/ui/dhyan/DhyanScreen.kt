@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
+import com.safarparmar.app.R
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.StatCardSkeleton
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
@@ -83,16 +84,7 @@ private enum class DhyanBreathPhase(val label: String) {
     INHALE("INHALE"), HOLD("HOLD"), EXHALE("EXHALE"), HOLD_AFTER("REST")
 }
 
-private const val DEFAULT_DHYAN_AUDIO = "android.resource://dhyan_processed"
-
-private val musicOptions = listOf(
-    "Dhyan"            to DEFAULT_DHYAN_AUDIO,
-    "None"             to "",
-    "Serene Flow"      to "https://del1.vultrobjects.com/qms-images/Safar/music_1.mp3",
-    "Nostalgia Breeze" to "https://del1.vultrobjects.com/qms-images/Safar/relaxingtime-sleep-music-vol16-195422.mp3",
-    "Amber Pulse"      to "https://del1.vultrobjects.com/qms-images/Safar/WhatsApp_Audio_2026-02-18_at_10.05.04_AM.mpeg",
-    "Solitude Deep"    to "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3",
-)
+// musicOptions removed in favor of shared AudioLibrary
 
 // ─── Screen ────────────────────────────────────────────────────────────────────
 
@@ -104,9 +96,10 @@ fun DhyanScreen(
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
 ) {
-    var showMusicSheet      by remember { mutableStateOf(false) }
-    var showTechniquesSheet by remember { mutableStateOf(false) }
-    var selectedMusic       by remember { mutableStateOf(musicOptions[0]) }
+    var showAudioLibraryPanel by remember { mutableStateOf(false) }
+    var showTechniquesSheet   by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var selectedMusicTrack    by remember { mutableStateOf(com.safarparmar.app.ui.audio.AudioLibrary.getPersistedTrack(context)) }
     // null = no technique chosen (show image), non-null = show animation
     var selectedTechnique   by remember { mutableStateOf<BreathingTechnique?>(null) }
     var tourState           by remember { mutableStateOf<com.safarparmar.app.ui.butterfly.ButterflyTourState?>(null) }
@@ -122,8 +115,19 @@ fun DhyanScreen(
             onNavigate        = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
             topBarActions = {
+                IconButton(onClick = { showAudioLibraryPanel = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = "Audio Library",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
                 IconButton(onClick = { tourState?.start() }) {
-                    Icon(Icons.Default.HelpOutline, contentDescription = "Guide")
+                    Image(
+                        painter = painterResource(R.drawable.ic_butterfly_tour),
+                        contentDescription = "Guide",
+                        modifier = Modifier.size(24.dp),
+                    )
                 }
             },
         ) { padding ->
@@ -152,9 +156,9 @@ fun DhyanScreen(
                     BreathingTab(
                         isDarkTheme       = isDarkTheme,
                         selectedTechnique = selectedTechnique,
-                        selectedMusic     = selectedMusic,
+                        selectedMusicTrack = selectedMusicTrack,
                         onBreatheWithMe   = { showTechniquesSheet = true },
-                        onShowMusic       = { showMusicSheet = true },
+                        onShowMusic       = { showAudioLibraryPanel = true },
                         onClearTechnique  = { selectedTechnique = null },
                     )
                 }
@@ -164,7 +168,8 @@ fun DhyanScreen(
         TourManager(
             dataStore        = themeVm.dataStore,
             steps            = dhyanTourSteps,
-            askOnFirstVisit  = false,
+            section          = "dhyan",
+            askOnFirstVisit  = true,
             onTourStateReady = { tourState = it },
         )
 
@@ -179,14 +184,14 @@ fun DhyanScreen(
             )
         }
 
-        if (showMusicSheet) {
-            MusicSheet(
-                selected = selectedMusic,
-                onSelect = {
-                    selectedMusic = it
-                    showMusicSheet = false
+        if (showAudioLibraryPanel) {
+            com.safarparmar.app.ui.audio.AudioLibraryPanel(
+                selectedTrackId = selectedMusicTrack.id,
+                onTrackSelect = {
+                    selectedMusicTrack = it
+                    com.safarparmar.app.ui.audio.AudioLibrary.persistTrackId(context, it.id)
                 },
-                onDismiss = { showMusicSheet = false },
+                onDismiss = { showAudioLibraryPanel = false }
             )
         }
     } // end outer Box
@@ -198,7 +203,7 @@ fun DhyanScreen(
 private fun BreathingTab(
     isDarkTheme: Boolean,
     selectedTechnique: BreathingTechnique?,
-    selectedMusic: Pair<String, String>,
+    selectedMusicTrack: com.safarparmar.app.ui.audio.AudioTrack,
     onBreatheWithMe: () -> Unit,
     onShowMusic: () -> Unit,
     onClearTechnique: () -> Unit,
@@ -232,15 +237,15 @@ private fun BreathingTab(
         mediaPlayer.value = null
     }
 
-    LaunchedEffect(isRunning, selectedMusic) {
-        if (isRunning && selectedMusic.second.isNotBlank()) {
+    LaunchedEffect(isRunning, selectedMusicTrack) {
+        if (isRunning && selectedMusicTrack.url.isNotBlank() && selectedMusicTrack.name != "None") {
             releasePlayer()
             try {
                 val audioUri =
-                    if (selectedMusic.second == DEFAULT_DHYAN_AUDIO) {
-                        Uri.parse("android.resource://${context.packageName}/${com.safarparmar.app.R.raw.dhyan_processed}")
+                    if (selectedMusicTrack.isLocal && selectedMusicTrack.localResId != null) {
+                        Uri.parse("android.resource://${context.packageName}/${selectedMusicTrack.localResId}")
                     } else {
-                        Uri.parse(selectedMusic.second)
+                        Uri.parse(selectedMusicTrack.url)
                     }
                 val mp = MediaPlayer().apply {
                     setDataSource(context, audioUri)
@@ -524,8 +529,8 @@ private fun BreathingTab(
                 onClick  = onShowMusic,
                 modifier = Modifier.size(48.dp),
                 colors   = IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = if (selectedMusic.first != "None") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor   = if (selectedMusic.first != "None") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor   = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             ) {
                 Icon(
@@ -553,7 +558,7 @@ private fun BreathingTab(
             }
         }
 
-        if (selectedMusic.first != "None") {
+        if (selectedMusicTrack.name != "None") {
             Spacer(Modifier.height(8.dp))
             Card(
                 shape     = MaterialTheme.shapes.medium,
@@ -564,7 +569,7 @@ private fun BreathingTab(
             ) {
                 Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                    Text(selectedMusic.first, fontSize = 12.sp, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                    Text(selectedMusicTrack.name, fontSize = 12.sp, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     Text(
                         if (isRunning) "PLAYING" else "READY",
                         fontSize   = 9.sp,
@@ -644,46 +649,7 @@ private fun BreathingOptionsSheet(
     }
 }
 
-// ─── Music Sheet ──────────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MusicSheet(
-    selected: Pair<String, String>,
-    onSelect: (Pair<String, String>) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor   = MaterialTheme.colorScheme.surface,
-        shape            = MaterialTheme.shapes.extraLarge,
-    ) {
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 40.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("Ambient Sound", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(Modifier.height(4.dp))
-            musicOptions.forEach { option ->
-                val isSel = selected.first == option.first
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(if (isSel) MaterialTheme.colorScheme.primary.copy(0.1f) else Color.Transparent)
-                        .bounceClick { onSelect(option) }
-                        .padding(14.dp),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(Icons.Default.MusicNote, null, tint = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                    Text(option.first, fontSize = 14.sp, modifier = Modifier.weight(1f), color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Normal)
-                    if (isSel) Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                }
-            }
-        }
-    }
-}
+// MusicSheet removed in favor of shared AudioLibraryPanel
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

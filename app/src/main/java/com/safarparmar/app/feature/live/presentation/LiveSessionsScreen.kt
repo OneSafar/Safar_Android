@@ -52,6 +52,7 @@ fun LiveSessionsScreen(
     courseId: String,
     onBack: () -> Unit,
     onOpenSession: (String) -> Unit,
+    showTopBar: Boolean = true,
     viewModel: LiveSessionViewModel = hiltViewModel(),
 ) {
     var selectedFilter by remember { mutableStateOf(LiveSessionFilter.LIVE) }
@@ -99,7 +100,11 @@ fun LiveSessionsScreen(
 
     CompositionLocalProvider(LocalDensity provides lockedDensity) {
         Scaffold(
-            topBar = { LiveClassroomTopBar(onBack = onBack) },
+            topBar = {
+                if (showTopBar) {
+                    LiveClassroomTopBar(onBack = onBack)
+                }
+            },
 
             containerColor = MaterialTheme.colorScheme.background,
         ) { padding ->
@@ -242,5 +247,4 @@ fun LiveSessionsScreen(
 }
 }
 }
-
 

@@ -8,7 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,10 +24,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
@@ -42,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -57,6 +55,7 @@ import com.safarparmar.app.ui.theme.Orange500
 import com.safarparmar.app.ui.theme.Slate300
 import com.safarparmar.app.ui.theme.Slate700
 import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.theme.isLightBackground
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -105,6 +104,8 @@ fun SplashScreen(
     viewModel: SplashViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val backgroundRes = if (isDark) R.drawable.auth_bg_dark else R.drawable.auth_bg
 
     LaunchedEffect(uiState.destination) {
         when (uiState.destination) {
@@ -125,50 +126,50 @@ fun SplashScreen(
         viewModel.onStartSafar()
     }
     
-    // Atmospheric Radial Gradient
-    val backgroundBrush = Brush.radialGradient(
-        colors = listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.background),
-        center = Offset(0.5f, 0.4f),
-        radius = 2000f
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundBrush)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        SafarLogoAnimation(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
+    Box(Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = backgroundRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
         )
-
-        androidx.compose.animation.AnimatedVisibility(
-            visible = isTaglineVisible,
-            enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) + 
-                    slideInVertically(
-                        initialOffsetY = { 20 },
-                        animationSpec = spring(stiffness = Spring.StiffnessLow)
-                    ),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = "Your Marks Matter, But So Does Your Mind",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 17.sp,
-                    letterSpacing = 0.4.sp
-                ),
-                textAlign = TextAlign.Center,
+            SafarLogoAnimation(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 24.dp)
-                    .padding(horizontal = 16.dp)
+                    .height(300.dp)
             )
+
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isTaglineVisible,
+                enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) +
+                        slideInVertically(
+                            initialOffsetY = { 20 },
+                            animationSpec = spring(stiffness = Spring.StiffnessLow)
+                        ),
+            ) {
+                Text(
+                    text = "Your Marks Matter, But So Does Your Mind",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 17.sp,
+                        letterSpacing = 0.4.sp
+                    ),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 24.dp)
+                        .padding(horizontal = 16.dp)
+                )
+            }
         }
     }
 }

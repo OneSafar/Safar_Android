@@ -25,6 +25,10 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class SafarDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    private fun tourDoneKey(section: String): Preferences.Key<Boolean> =
+        if (section == "nishtha") Keys.TOUR_DONE
+        else booleanPreferencesKey("tour_done_${section.lowercase()}")
+
     private val securePrefs: SharedPreferences by lazy {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -207,6 +211,11 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.TOUR_DONE] ?: false }
 
+    /** Whether Titli's tutorial prompt has been answered for a specific app section. */
+    fun isTourDone(section: String): Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[tourDoneKey(section)] ?: false }
+
     val isWelcomeSeen: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.WELCOME_SEEN] ?: false }
@@ -321,6 +330,9 @@ class SafarDataStore @Inject constructor(
     }
     suspend fun setLastSync(time: Long) = context.dataStore.edit { it[Keys.LAST_SYNC] = time }
     suspend fun setTourDone(done: Boolean) = context.dataStore.edit { it[Keys.TOUR_DONE] = done }
+    suspend fun setTourDone(section: String, done: Boolean) = context.dataStore.edit {
+        it[tourDoneKey(section)] = done
+    }
     suspend fun setWelcomeSeen(seen: Boolean) = context.dataStore.edit { it[Keys.WELCOME_SEEN] = seen }
 
     suspend fun setPremiumStatus(

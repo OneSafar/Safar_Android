@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,7 +16,6 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
@@ -45,10 +45,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.theme.Blue500
@@ -107,7 +109,11 @@ internal fun MehfilContent(
                 Icon(if (searchActive) Icons.Default.Close else Icons.Default.Search, contentDescription = "Search")
             }
             IconButton(onClick = onTourClick) {
-                Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Guide")
+                Image(
+                    painter = painterResource(R.drawable.ic_butterfly_tour),
+                    contentDescription = "Guide",
+                    modifier = Modifier.size(24.dp),
+                )
             }
             IconButton(onClick = onGuidelinesClick) {
                 Icon(Icons.Default.Info, contentDescription = "Guidelines")

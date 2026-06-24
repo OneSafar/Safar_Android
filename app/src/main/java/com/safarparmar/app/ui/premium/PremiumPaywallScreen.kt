@@ -274,20 +274,20 @@ fun PremiumPaywallScreen(
         PremiumPlanOption(
             id = "3month",
             label = "3 Months Access",
-            price = 1,
+            price = 69,
             subtitle = "Start small for your next target",
         ),
         PremiumPlanOption(
             id = "6month",
             label = "6 Months Access",
-            price = 1,
+            price = 99,
             subtitle = "Good for one exam cycle",
             badge = "Popular",
         ),
         PremiumPlanOption(
             id = "yearly",
             label = "Yearly Access",
-            price = 1,
+            price = 149,
             subtitle = "Best value for serious prep",
             badge = "Best value",
         ),

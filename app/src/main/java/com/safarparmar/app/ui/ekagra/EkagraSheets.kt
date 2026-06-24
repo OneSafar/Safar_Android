@@ -107,46 +107,7 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun SongPickerSheet(currentThemeId: String, current: String, onSelect: (String) -> Unit, onDismiss: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    val filteredTracks = focusMusicTracks.filter { it.themeId.equals(currentThemeId, ignoreCase = true) || it.themeId == "all" }
-    
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        // M3: bottom sheets use surfaceContainerLow
-        containerColor   = scheme.surfaceContainerLow,
-    ) {
-        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Ambient sound", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            filteredTracks.forEach { track ->
-                val name = track.name
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        // M3: primaryContainer tint on selected row
-                        .background(if (current == name) scheme.primaryContainer.copy(alpha = 0.5f) else Color.Transparent)
-                        .clickable { onSelect(name) }
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(Icons.Default.MusicNote, contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = if (current == name) scheme.primary else scheme.onSurface.copy(0.5f))
-                    Text(name, fontSize = 14.sp, modifier = Modifier.weight(1f), color = scheme.onSurface)
-                    if (current == name)
-                        Icon(Icons.Default.Check, contentDescription = null,
-                            tint = scheme.primary, modifier = Modifier.size(16.dp))
-                }
-            }
-        }
-    }
-}
+// SongPickerSheet removed in favor of shared AudioLibraryPanel
 
 // ─── Organize free focus sheet ─────────────────────────────────────────────────
 

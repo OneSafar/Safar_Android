@@ -1,53 +1,98 @@
 package com.safarparmar.app.ui.auth
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.safarparmar.app.R
-import com.safarparmar.app.ui.theme.isLightBackground
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import com.safarparmar.app.R
+import com.safarparmar.app.ui.theme.isLightBackground
+
+private val BrandNavy = Color(0xFF0C2B61)
+private val BrandAccent = Color(0xFFF7931E)
+private val InputBg = Color(0xFFF8F8FC)
+private val InputBorder = Color(0xFFE6E6F0)
+private val IconBoxBg = Color(0xFFEEEDF5)
+private val TextMuted = Color(0xFF9CA3AF)
+private val TextDarkMuted = Color(0xFF4B5563)
+
+private data class AuthPalette(
+    val heading: Color,
+    val supportingText: Color,
+    val inputText: Color,
+    val inputIcon: Color,
+    val link: Color,
+    val primaryButton: Color,
+    val accent: Color,
+)
+
+@Composable
+private fun authPalette(): AuthPalette {
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    return if (isDark) {
+        AuthPalette(
+            heading = Color(0xFF4D8DFF),
+            supportingText = Color(0xFFB4C7F2),
+            inputText = Color(0xFF153C84),
+            inputIcon = Color(0xFF2563D8),
+            link = Color(0xFF4D8DFF),
+            primaryButton = Color(0xFF255BDA),
+            accent = Color(0xFFFFD84D),
+        )
+    } else {
+        AuthPalette(
+            heading = BrandNavy,
+            supportingText = TextDarkMuted,
+            inputText = BrandNavy,
+            inputIcon = BrandNavy.copy(alpha = 0.6f),
+            link = BrandNavy,
+            primaryButton = BrandNavy,
+            accent = BrandAccent,
+        )
+    }
+}
 
 @Composable
 fun AuthScreen(
@@ -57,8 +102,8 @@ fun AuthScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scheme = MaterialTheme.colorScheme
     val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
+    val backgroundRes = if (isDark) R.drawable.auth_bg_dark else R.drawable.auth_bg
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) onNavigateToHome()
@@ -77,48 +122,281 @@ fun AuthScreen(
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
                     snackbarData = data,
-                    containerColor = scheme.inverseSurface,
-                    contentColor = scheme.inverseOnSurface,
-                    actionColor = scheme.inversePrimary,
+                    containerColor = MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                    actionColor = MaterialTheme.colorScheme.inversePrimary,
                     shape = MaterialTheme.shapes.medium,
                 )
             }
         },
-        containerColor = scheme.background,
     ) { padding ->
-        AuthStitchScaffold(
-            isDark = isDark,
-            isSignupMode = uiState.isSignupMode,
-            logoRes = logoRes,
-            modifier = Modifier.padding(padding),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
         ) {
-            AuthStitchModeCrossfade(
-                isSignupMode = uiState.isSignupMode,
-                loginContent = {
-                    LoginForm(
-                        uiState = uiState,
-                        onEvent = viewModel::onEvent,
-                        onSwitchToSignup = { viewModel.onEvent(AuthEvent.SwitchMode) },
-                    )
-                },
-                signupContent = {
-                    SignupForm(
-                        uiState = uiState,
-                        onEvent = viewModel::onEvent,
-                        onSwitchToLogin = { viewModel.onEvent(AuthEvent.SwitchMode) },
-                    )
-                },
+            // Background Image
+            Image(
+                painter = painterResource(id = backgroundRes),
+                contentDescription = "Background",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Content Container
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 64.dp, bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // Logo Section without padding
+                val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
+                AsyncImage(
+                    model = logoRes,
+                    contentDescription = "SAFAR Logo",
+                    modifier = Modifier
+                        .offset(y = screenHeight * 0.1f)
+                        .scale(1.1f)
+                        .size(130.dp)
+                )
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                AnimatedContent(
+                    targetState = uiState.isSignupMode,
+                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    label = "authMode",
+                    modifier = Modifier.weight(1f)
+                ) { isSignup ->
+                    if (isSignup) {
+                        SignupContent(
+                            uiState = uiState,
+                            onEvent = viewModel::onEvent,
+                            onSwitchToLogin = { viewModel.onEvent(AuthEvent.SwitchMode) }
+                        )
+                    } else {
+                        LoginContent(
+                            uiState = uiState,
+                            onEvent = viewModel::onEvent,
+                            onSwitchToSignup = { viewModel.onEvent(AuthEvent.SwitchMode) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HtmlTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    leadingIcon: ImageVector,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+) {
+    val palette = authPalette()
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(InputBg, RoundedCornerShape(12.dp))
+            .border(1.dp, if (isError) MaterialTheme.colorScheme.error else InputBorder, RoundedCornerShape(12.dp))
+            .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .background(IconBoxBg, RoundedCornerShape(8.dp))
+                .padding(12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = leadingIcon,
+                contentDescription = null,
+                tint = palette.inputIcon,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        Box(modifier = Modifier.weight(1f)) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = TextStyle(
+                    color = palette.inputText,
+                    fontSize = 15.sp,
+                    fontFamily = FontFamily.SansSerif
+                ),
+                cursorBrush = SolidColor(palette.inputText),
+                visualTransformation = visualTransformation,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+            )
+            if (value.isEmpty()) {
+                Text(
+                    text = placeholder,
+                    color = TextMuted,
+                    fontSize = 15.sp,
+                    modifier = Modifier.padding(vertical = 12.dp)
+                )
+            }
+        }
+        if (trailingIcon != null) {
+            Box(modifier = Modifier.padding(end = 8.dp)) {
+                trailingIcon()
+            }
+        }
+    }
+}
+
+@Composable
+fun HtmlPasswordField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    passwordVisible: Boolean,
+    onToggleVisibility: () -> Unit,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+) {
+    HtmlTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = placeholder,
+        leadingIcon = Icons.Default.Lock,
+        modifier = modifier,
+        isError = isError,
+        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = onToggleVisibility, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                    tint = TextMuted,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        },
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HtmlDropdownField(
+    value: String,
+    placeholder: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val palette = authPalette()
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
+                .background(InputBg, RoundedCornerShape(12.dp))
+                .border(1.dp, InputBorder, RoundedCornerShape(12.dp))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = value.ifEmpty { placeholder },
+                color = if (value.isEmpty()) TextMuted else palette.inputText,
+                fontSize = 15.sp,
+            )
+            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+        }
+        
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.White)
+        ) {
+            options.forEach { opt ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = opt,
+                            color = palette.inputText,
+                            fontSize = 15.sp
+                        )
+                    },
+                    onClick = {
+                        onSelect(opt)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HtmlPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val palette = authPalette()
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = palette.primaryButton,
+            contentColor = Color.White,
+            disabledContainerColor = palette.primaryButton.copy(alpha = 0.5f),
+            disabledContentColor = Color.White.copy(alpha = 0.5f),
+        ),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = palette.accent,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 24.dp)
+                    .size(20.dp)
             )
         }
     }
 }
 
 @Composable
-private fun LoginForm(
+fun LoginContent(
     uiState: AuthUiState,
     onEvent: (AuthEvent) -> Unit,
     onSwitchToSignup: () -> Unit,
 ) {
+    val palette = authPalette()
     val focusManager = LocalFocusManager.current
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     val scroll = rememberScrollState()
@@ -127,73 +405,131 @@ private fun LoginForm(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scroll),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        AuthStitchFormCard {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                AuthStitchFieldLabel("EMAIL")
-                AuthStitchTextField(
-                    value = uiState.email,
-                    onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-                    placeholder = "you@gmail.com",
-                    leadingIcon = Icons.Default.Email,
-                    isError = !uiState.emailError.isNullOrBlank(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next,
-                    ),
-                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                )
-                AuthFieldError(uiState.emailError)
+        // Welcome Text
+        Text(
+            text = "Welcome back",
+            fontFamily = FontFamily.Serif,
+            fontSize = 36.sp,
+            fontWeight = FontWeight.Bold,
+            color = palette.heading,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Text(
+            text = "Glad to see you again.",
+            color = palette.supportingText,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
 
-                AuthStitchFieldLabel("PASSWORD")
-                AuthStitchPasswordField(
-                    value = uiState.password,
-                    onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
-                    placeholder = "Enter your password",
-                    passwordVisible = passwordVisible,
-                    onToggleVisibility = { passwordVisible = !passwordVisible },
-                    isError = !uiState.passwordError.isNullOrBlank(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(onDone = {
-                        focusManager.clearFocus()
-                        onEvent(AuthEvent.Login)
-                    }),
-                )
-                AuthFieldError(uiState.passwordError)
+        // Email Input
+        HtmlTextField(
+            value = uiState.email,
+            onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
+            placeholder = "Email address",
+            leadingIcon = Icons.Default.Email,
+            isError = !uiState.emailError.isNullOrBlank(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next,
+            ),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        // Error handling
+        if (!uiState.emailError.isNullOrBlank()) {
+            Text(text = uiState.emailError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start).padding(bottom = 8.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
-                AuthStitchRememberRow(
-                    checked = uiState.rememberMe,
-                    onToggle = { onEvent(AuthEvent.RememberMeToggled) },
-                    onForgotPassword = { onEvent(AuthEvent.ForgotPassword) },
-                )
+        // Password Input
+        HtmlPasswordField(
+            value = uiState.password,
+            onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
+            placeholder = "Password",
+            passwordVisible = passwordVisible,
+            onToggleVisibility = { passwordVisible = !passwordVisible },
+            isError = !uiState.passwordError.isNullOrBlank(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(onDone = {
+                focusManager.clearFocus()
+                onEvent(AuthEvent.Login)
+            }),
+        )
+        if (!uiState.passwordError.isNullOrBlank()) {
+            Text(text = uiState.passwordError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start).padding(top = 4.dp))
+        }
 
-                AuthStitchPrimaryButton(
-                    text = if (uiState.isLoading) "Signing in..." else "Sign In",
-                    onClick = { onEvent(AuthEvent.Login) },
-                    enabled = !uiState.isLoading,
+        // Forgot password
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 24.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Text(
+                text = "Forgot password?",
+                color = palette.link,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.clickable { onEvent(AuthEvent.ForgotPassword) }
+            )
+        }
+
+        // Sign In Button
+        HtmlPrimaryButton(
+            text = if (uiState.isLoading) "Signing in..." else "Sign In",
+            onClick = { onEvent(AuthEvent.Login) },
+            enabled = !uiState.isLoading,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Footer Links
+        Row(
+            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Don't have an account? ",
+                color = palette.supportingText,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            )
+            Row(
+                modifier = Modifier.clickable { onSwitchToSignup() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Sign Up",
+                    color = palette.accent,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = palette.accent,
+                    modifier = Modifier.padding(start = 4.dp).size(14.dp)
                 )
             }
         }
-
-        AuthStitchModeSwitch(
-            prompt = "Don't have an account?",
-            actionLabel = "Sign Up",
-            onAction = onSwitchToSignup,
-        )
-        AuthStitchFooterTagline()
+        
+        Spacer(modifier = Modifier.height(100.dp))
     }
 }
 
 @Composable
-private fun SignupForm(
+fun SignupContent(
     uiState: AuthUiState,
     onEvent: (AuthEvent) -> Unit,
     onSwitchToLogin: () -> Unit,
 ) {
+    val palette = authPalette()
     val focusManager = LocalFocusManager.current
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
@@ -206,12 +542,30 @@ private fun SignupForm(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scroll),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        AuthStitchFormCard {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                AuthStitchFieldLabel("FULL NAME")
-                AuthStitchTextField(
+        // Welcome Text
+        Text(
+            text = "Create account",
+            fontFamily = FontFamily.Serif,
+            fontSize = 36.sp,
+            fontWeight = FontWeight.Bold,
+            color = palette.heading,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Text(
+            text = "Start your study journey with SAFAR",
+            color = palette.supportingText,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+
+        // Form Fields
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Full Name
+            Column {
+                HtmlTextField(
                     value = uiState.name,
                     onValueChange = { onEvent(AuthEvent.NameChanged(it)) },
                     placeholder = "John Doe",
@@ -220,10 +574,14 @@ private fun SignupForm(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
-                AuthFieldError(uiState.nameError)
-
-                AuthStitchFieldLabel("EMAIL")
-                AuthStitchTextField(
+                if (!uiState.nameError.isNullOrBlank()) {
+                    Text(text = uiState.nameError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                }
+            }
+            
+            // Email
+            Column {
+                HtmlTextField(
                     value = uiState.email,
                     onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
                     placeholder = "you@gmail.com",
@@ -235,10 +593,14 @@ private fun SignupForm(
                     ),
                     keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
-                AuthFieldError(uiState.emailError)
+                if (!uiState.emailError.isNullOrBlank()) {
+                    Text(text = uiState.emailError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                }
+            }
 
-                AuthStitchFieldLabel("PASSWORD")
-                AuthStitchPasswordField(
+            // Password
+            Column {
+                HtmlPasswordField(
                     value = uiState.password,
                     onValueChange = { onEvent(AuthEvent.PasswordChanged(it)) },
                     placeholder = "At least 8 characters",
@@ -251,10 +613,14 @@ private fun SignupForm(
                     ),
                     keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
-                AuthFieldError(uiState.passwordError)
+                if (!uiState.passwordError.isNullOrBlank()) {
+                    Text(text = uiState.passwordError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                }
+            }
 
-                AuthStitchFieldLabel("CONFIRM PASSWORD")
-                AuthStitchPasswordField(
+            // Confirm Password
+            Column {
+                HtmlPasswordField(
                     value = uiState.confirmPassword,
                     onValueChange = { onEvent(AuthEvent.ConfirmPasswordChanged(it)) },
                     placeholder = "Re-enter password",
@@ -267,110 +633,80 @@ private fun SignupForm(
                     ),
                     keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 )
-                AuthFieldError(uiState.confirmPasswordError)
+                if (!uiState.confirmPasswordError.isNullOrBlank()) {
+                    Text(text = uiState.confirmPasswordError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                }
+            }
 
-                AuthStitchFieldLabel("TARGET EXAM")
-                AuthDropdownM3(
-                    value = uiState.examType,
-                    placeholder = "Select Target Exam",
-                    options = examOptions,
-                    onSelect = { onEvent(AuthEvent.ExamTypeChanged(it)) },
-                )
+            // Dropdowns
+            HtmlDropdownField(
+                value = uiState.examType,
+                placeholder = "Select Target Exam",
+                options = examOptions,
+                onSelect = { onEvent(AuthEvent.ExamTypeChanged(it)) }
+            )
 
-                AuthStitchFieldLabel("PREPARATION STAGE")
-                AuthDropdownM3(
-                    value = uiState.preparationStage,
-                    placeholder = "Select Preparation Stage",
-                    options = prepStageOptions,
-                    onSelect = { onEvent(AuthEvent.PreparationStageChanged(it)) },
-                )
+            HtmlDropdownField(
+                value = uiState.preparationStage,
+                placeholder = "Select Preparation Stage",
+                options = prepStageOptions,
+                onSelect = { onEvent(AuthEvent.PreparationStageChanged(it)) }
+            )
 
-                AuthStitchFieldLabel("GENDER")
-                AuthDropdownM3(
+            Column {
+                HtmlDropdownField(
                     value = uiState.gender,
                     placeholder = "Select Gender",
                     options = genderOptions,
-                    onSelect = { onEvent(AuthEvent.GenderChanged(it)) },
+                    onSelect = { onEvent(AuthEvent.GenderChanged(it)) }
                 )
-                AuthFieldError(uiState.genderError)
-
-                Spacer(Modifier.height(4.dp))
-
-                AuthStitchPrimaryButton(
-                    text = if (uiState.isLoading) "Creating account..." else "Create Account",
-                    onClick = { onEvent(AuthEvent.Signup) },
-                    enabled = !uiState.isLoading,
-                )
-            }
-        }
-
-        AuthStitchModeSwitch(
-            prompt = "Already have an account?",
-            actionLabel = "Sign In",
-            onAction = onSwitchToLogin,
-        )
-        AuthStitchFooterTagline()
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AuthDropdownM3(
-    value: String,
-    placeholder: String,
-    options: List<String>,
-    onSelect: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val scheme = MaterialTheme.colorScheme
-    val fieldShape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
-
-    Box(Modifier.fillMaxWidth()) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-        ) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = {},
-                placeholder = { Text(placeholder) },
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                shape = fieldShape,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = scheme.onSurface,
-                    unfocusedTextColor = scheme.onSurface,
-                    cursorColor = scheme.primary,
-                    focusedBorderColor = scheme.primary.copy(alpha = 0.55f),
-                    unfocusedBorderColor = scheme.outline.copy(alpha = 0.45f),
-                    focusedContainerColor = scheme.surfaceVariant.copy(alpha = 0.45f),
-                    unfocusedContainerColor = scheme.surfaceVariant.copy(alpha = 0.35f),
-                ),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.background(scheme.surface),
-            ) {
-                options.forEach { opt ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                opt,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = scheme.onSurface,
-                            )
-                        },
-                        onClick = {
-                            onSelect(opt)
-                            expanded = false
-                        },
-                    )
+                if (!uiState.genderError.isNullOrBlank()) {
+                    Text(text = uiState.genderError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Sign Up Button
+        HtmlPrimaryButton(
+            text = if (uiState.isLoading) "Creating account..." else "Create Account",
+            onClick = { onEvent(AuthEvent.Signup) },
+            enabled = !uiState.isLoading,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Footer Links
+        Row(
+            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Already have an account? ",
+                color = palette.supportingText,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            )
+            Row(
+                modifier = Modifier.clickable { onSwitchToLogin() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Sign In",
+                    color = palette.accent,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = palette.accent,
+                    modifier = Modifier.padding(start = 4.dp).size(14.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(100.dp))
     }
 }

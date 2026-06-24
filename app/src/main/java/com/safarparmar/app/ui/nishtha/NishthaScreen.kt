@@ -1,13 +1,14 @@
 package com.safarparmar.app.ui.nishtha
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,7 +57,11 @@ fun NishthaScreen(
         onToggleDarkTheme = onToggleDarkTheme,
         topBarActions = {
             IconButton(onClick = { tourState?.start() }) {
-                Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Guide")
+                Image(
+                    painter = painterResource(R.drawable.ic_butterfly_tour),
+                    contentDescription = "Guide",
+                    modifier = Modifier.size(24.dp),
+                )
             }
             IconButton(onClick = onProfileClick) {
                 Icon(Icons.Default.Person, contentDescription = stringResource(R.string.nav_profile))
@@ -118,6 +123,7 @@ fun NishthaScreen(
             TourManager(
                 dataStore       = viewModel.dataStore,
                 steps           = nishthaTourSteps,
+                section         = "nishtha",
                 askOnFirstVisit = true,
                 onTourStateReady = { tourState = it },
             )

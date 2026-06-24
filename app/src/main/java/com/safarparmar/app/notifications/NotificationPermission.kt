@@ -180,9 +180,9 @@ private fun NotificationRationaleDialog(
                         .border(
                             width = 1.dp,
                             color = MaterialTheme.colorScheme.outlineVariant,
-                            shape = MaterialTheme.shapes.extraLarge
+                            shape = RoundedCornerShape(22.dp)
                         ),
-                    shape = MaterialTheme.shapes.extraLarge,
+                    shape = RoundedCornerShape(22.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     shadowElevation = 6.dp,
                 ) {
@@ -196,7 +196,7 @@ private fun NotificationRationaleDialog(
                         Box(
                             modifier = Modifier
                                 .size(68.dp)
-                                .clip(CircleShape)
+                                .clip(RoundedCornerShape(27.dp))
                                 .background(MaterialTheme.colorScheme.primaryContainer),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -242,7 +242,7 @@ private fun NotificationRationaleDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(10.dp))
                                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                                     .padding(horizontal = 16.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -271,7 +271,7 @@ private fun NotificationRationaleDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            shape = CircleShape,
+                            shape = RoundedCornerShape(19.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,

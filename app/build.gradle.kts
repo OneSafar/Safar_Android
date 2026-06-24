@@ -5,8 +5,7 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.firebase.crashlytics)
-
-    id("com.google.gms.google-services")
+    alias(libs.plugins.google.services)
 }
 
 import java.util.Properties
@@ -85,8 +84,8 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.5.1"
+        versionCode = 3
+        versionName = "1.5.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // KAVACH (FocusShield) accessibility service is a digital wellbeing feature.
         // It MUST remain in the prod manifest so Google can review & whitelist it.

@@ -21,6 +21,7 @@ import com.safarparmar.app.ui.admin.AdminNotificationComposerScreen
 import com.safarparmar.app.ui.auth.AuthScreen
 import com.safarparmar.app.ui.dashboard.DashboardScreen
 import com.safarparmar.app.ui.dhyan.DhyanCoursesScreen
+import com.safarparmar.app.ui.dhyan.CoursesHubTab
 import com.safarparmar.app.ui.dhyan.DhyanScreen
 import com.safarparmar.app.ui.ekagra.EkagraScreen
 import com.safarparmar.app.ui.home.HomeScreen
@@ -39,7 +40,6 @@ import com.safarparmar.app.ui.studyplanner.screens.SyllabusTopicsScreen
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
 import com.safarparmar.app.ui.ekagra.focusshield.KavachAboutScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionScreen
-import com.safarparmar.app.feature.live.presentation.LiveSessionsScreen
 import com.safarparmar.app.ui.premium.PremiumPaywallScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -69,11 +69,40 @@ fun SafarNavGraph(
         isAdmin || (currentUserEmail?.trim()?.lowercase() in ADMIN_NOTIFICATION_ALLOWED_EMAILS)
     }
 
+    // Drawer destinations are feature roots. Keep only Home beneath a root so the
+    // system Back gesture exits a feature to Home instead of reopening an older one.
+    val featureRootRoutes = remember {
+        setOf(
+            Routes.HOME,
+            Routes.DASHBOARD,
+            Routes.STUDY_PLANNER,
+            Routes.FOCUS_SHIELD,
+            Routes.NISHTHA,
+            Routes.NISHTHA_CHECKIN,
+            Routes.NISHTHA_GOALS,
+            Routes.NISHTHA_STREAKS,
+            Routes.NISHTHA_ANALYTICS,
+            Routes.EKAGRA,
+            Routes.MEHFIL,
+            Routes.DHYAN,
+            Routes.COURSES,
+        )
+    }
+
     fun navigate(route: String) {
+        val routeBase = route.substringBefore("?")
         if (route == Routes.DM_CHAT) {
             navController.navigate(route) {
                 launchSingleTop = true
                 popUpTo(Routes.MEHFIL) { inclusive = false }
+            }
+        } else if (routeBase in featureRootRoutes) {
+            navController.navigate(route) {
+                // Feature roots never inherit prior feature history. Detail screens
+                // intentionally use the branch below so their Back path stays local.
+                popUpTo(Routes.HOME) { inclusive = false }
+                launchSingleTop = true
+                restoreState = false
             }
         } else {
             navController.navigate(route) { launchSingleTop = true; restoreState = true }
@@ -366,10 +395,13 @@ fun SafarNavGraph(
             )
         ) { entry ->
             val courseId = entry.arguments?.getString("courseId").orEmpty()
-            LiveSessionsScreen(
-                courseId = courseId,
-                onBack = { navController.popBackStack() },
-                onOpenSession = { sessionId -> navigate(Routes.liveSession(sessionId)) }
+            DhyanCoursesScreen(
+                currentRoute = Routes.COURSES,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                initialTab = CoursesHubTab.LIVE_CLASSES,
+                liveCourseId = courseId,
             )
         }
 

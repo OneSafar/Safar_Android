@@ -13,8 +13,8 @@ import kotlinx.coroutines.launch
  * Generic reusable tour wrapper.
  *
  * Place at the end of any screen's root Box so the overlay covers all content.
- * The "Would you like a tour?" dialog is shown once per app install (keyed by DataStore).
- * After the user answers (yes or no) it won't appear again. The butterfly tour can be
+ * The "Would you like a tour?" dialog is shown once per section (keyed by DataStore).
+ * After the user answers (yes or no) it won't appear again in that section. The butterfly tour can be
  * dismissed at any step via the "close all" button in the tooltip.
  *
  * Pass [onTourStateReady] to receive the [ButterflyTourState] — call state.start() from
@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 fun TourManager(
     dataStore: SafarDataStore,
     steps: List<ButterflyTourStep>,
+    section: String,
     askOnFirstVisit: Boolean = true,
     onTourStateReady: ((ButterflyTourState) -> Unit)? = null,
 ) {
@@ -62,7 +63,7 @@ fun TourManager(
 
     LaunchedEffect(Unit) {
         if (askOnFirstVisit) {
-            val done = dataStore.isTourDone.first()
+            val done = dataStore.isTourDone(section).first()
             if (!done) showAskDialog = true
         }
     }
@@ -72,11 +73,11 @@ fun TourManager(
             onYes = {
                 showAskDialog = false
                 tourState.startDirectly()
-                scope.launch { dataStore.setTourDone(true) }
+                scope.launch { dataStore.setTourDone(section, true) }
             },
             onNo = {
                 showAskDialog = false
-                scope.launch { dataStore.setTourDone(true) }
+                scope.launch { dataStore.setTourDone(section, true) }
             },
         )
     }

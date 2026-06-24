@@ -3,7 +3,6 @@ package com.safarparmar.app.ui.splash
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -17,12 +16,15 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
+import com.safarparmar.app.ui.theme.isLightBackground
 
 /** Timeline scaled ~50% faster than original (0.5×) to increase animation speed by 30%. */
 private fun splashMs(ms: Int): Int = (ms * 0.5f).toInt()
 
-// Default Navy replaced by dynamic theme-aware color
-private val ORANGE = Color(0xFFFE9E2E)
+// Matches AuthScreen's logo assets: navy on light backgrounds, white on dark,
+// with the shared Safar yellow accent.
+private val SAFAR_LOGO_NAVY = Color(0xFF042854)
+private val SAFAR_LOGO_ACCENT = Color(0xFFFFD84D)
 
 private val TRACE_CURVE_PATH = """
 M651 193
@@ -214,8 +216,8 @@ M314 690 C415 644 591 635 735 647
 
 @Composable
 fun SafarLogoAnimation(modifier: Modifier = Modifier) {
-    val isDark = isSystemInDarkTheme()
-    val logoNavy = if (isDark) MaterialTheme.colorScheme.primary else Color(0xFF042854)
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val logoColor = if (isDark) Color.White else SAFAR_LOGO_NAVY
 
     var isAnimated by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -451,7 +453,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                     pathMeasure.getSegment(0f, length * tracePathLength, extractedPath.asAndroidPath(), true)
                     drawPath(
                         path = extractedPath,
-                        color = logoNavy.copy(alpha = traceOpacity),
+                        color = logoColor.copy(alpha = traceOpacity),
                         style = androidx.compose.ui.graphics.drawscope.Stroke(
                             width = traceStroke,
                             cap = StrokeCap.Round,
@@ -471,7 +473,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                         translate(left = travelerPos[0], top = travelerPos[1])
                         scale(travelerScale, travelerScale, pivot = Offset.Zero)
                     }) {
-                        drawCircle(color = ORANGE, radius = 11f, center = Offset.Zero)
+                        drawCircle(color = SAFAR_LOGO_ACCENT, radius = 11f, center = Offset.Zero)
                         drawCircle(color = Color.White.copy(alpha = 0.42f), radius = 3.4f, center = Offset(-3.5f, -3.5f))
                     }
                 }
@@ -484,7 +486,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                     // Let's approximate center bottom as 545, 870
                     rotate(degrees = markRot, pivot = Offset(545f, 870f))
                 }) {
-                    drawPath(path = markPath, color = logoNavy)
+                    drawPath(path = markPath, color = logoColor)
                 }
 
                 // Seal Ring
@@ -494,7 +496,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                         scale(ringScale, ringScale, pivot = Offset(785f, 291f))
                     }) {
                         drawArc(
-                            color = ORANGE.copy(alpha = ringOpacity),
+                            color = SAFAR_LOGO_ACCENT.copy(alpha = ringOpacity),
                             startAngle = -90f,
                             sweepAngle = 360f * ringLength,
                             useCenter = false,
@@ -510,7 +512,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                     translate(left = sunX, top = sunY)
                     rotate(degrees = sunRot, pivot = Offset(785f, 291f))
                 }) {
-                    drawPath(path = sunPath, color = ORANGE)
+                    drawPath(path = sunPath, color = SAFAR_LOGO_ACCENT)
                 }
 
                 // Wordmark
@@ -520,7 +522,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                     // Wordmark bounds roughly x:280..800, y:400..610
                     rotate(degrees = wordRot, pivot = Offset(540f, 505f))
                 }) {
-                    drawPath(path = wordmarkPath, color = logoNavy)
+                    drawPath(path = wordmarkPath, color = logoColor)
                 }
 
                 // Glint
@@ -530,7 +532,7 @@ fun SafarLogoAnimation(modifier: Modifier = Modifier) {
                     pathMeasure.getSegment(0f, pathMeasure.length * glintLength, extractedPath.asAndroidPath(), true)
                     drawPath(
                         path = extractedPath,
-                        color = ORANGE.copy(alpha = glintOpacity),
+                        color = SAFAR_LOGO_ACCENT.copy(alpha = glintOpacity),
                         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6f, cap = StrokeCap.Round)
                     )
                 }
