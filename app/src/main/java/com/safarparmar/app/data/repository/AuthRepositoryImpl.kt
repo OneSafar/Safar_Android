@@ -19,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import okhttp3.MultipartBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -143,6 +144,23 @@ class AuthRepositoryImpl @Inject constructor(
                 Resource.Success(UserProfile(id = r.data.id ?: "", name = r.data.name ?: "", email = r.data.email ?: "", avatar = r.data.avatar, examType = r.data.examType, preparationStage = r.data.preparationStage, gender = r.data.gender))
             }
             is Resource.Error   -> Resource.Error(r.message)
+            is Resource.Loading -> Resource.Loading()
+        }
+    }
+
+    override suspend fun uploadAvatar(avatar: MultipartBody.Part): Resource<String> {
+        val r = safeApiCall { authApi.uploadAvatar(avatar) }
+        return when (r) {
+            is Resource.Success -> {
+                val url = r.data.url
+                if (url.isNullOrBlank()) {
+                    Resource.Error(r.data.message ?: "Avatar upload failed")
+                } else {
+                    dataStore.setUserAvatar(url)
+                    Resource.Success(url)
+                }
+            }
+            is Resource.Error -> Resource.Error(r.message)
             is Resource.Loading -> Resource.Loading()
         }
     }

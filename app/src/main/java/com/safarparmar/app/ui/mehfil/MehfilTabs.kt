@@ -787,7 +787,7 @@ internal fun ConnectionsTab(
                 border = CardDefaults.outlinedCardBorder(),
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiary))
+                    MiniDmAvatar(name = dmState.peerName, avatarUrl = dmState.peerAvatar)
                     Text("Chat with ${dmState.peerName}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(1f))
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                 }
@@ -817,9 +817,7 @@ private fun PendingRequestsCard(
             }
             pending.forEach { request ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.size(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(0.12f)), contentAlignment = Alignment.Center) {
-                        Text(request.userName.firstOrNull()?.uppercase() ?: "?", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
+                    MiniDmAvatar(name = request.userName, avatarUrl = request.userAvatar)
                     Text(request.userName, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     TextButton(onClick = { onAcceptDm(request.userId) }, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)) {
                         Text("Accept", fontSize = 12.sp)
@@ -864,7 +862,7 @@ private fun IncomingRequestCard(
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(painter = painterResource(id = R.drawable.ic_envelope_simple), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurface)
+                MiniDmAvatar(name = dmState.fromUserName, avatarUrl = dmState.fromUserAvatar)
                 Spacer(Modifier.width(6.dp))
                 Text("${dmState.fromUserName} wants to connect", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             }
@@ -876,6 +874,33 @@ private fun IncomingRequestCard(
                     Text("Decline", fontSize = 13.sp)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MiniDmAvatar(name: String, avatarUrl: String?) {
+    Box(
+        Modifier
+            .size(30.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(0.12f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (!avatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = "$name profile photo",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Text(
+                name.firstOrNull()?.uppercase() ?: "?",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }

@@ -1,8 +1,11 @@
 package com.safarparmar.app.ui.profile
 
+import android.net.Uri
+
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
+    val isAvatarUploading: Boolean = false,
     val userName: String = "",
     val userEmail: String = "",
     val userAvatar: String? = null,
@@ -14,6 +17,7 @@ data class ProfileUiState(
     val editStage: String = "",
     val editGender: String = "",
     val saveSuccess: Boolean = false,
+    val avatarUploadSuccess: Boolean = false,
     val showLogoutDialog: Boolean = false,
     val error: String? = null,
     val nameError: String? = null,
@@ -25,6 +29,8 @@ sealed class ProfileEvent {
     object Logout : ProfileEvent()
     object ClearError : ProfileEvent()
     object SaveProfile : ProfileEvent()
+    object ClearAvatarUploadSuccess : ProfileEvent()
+    data class UploadAvatar(val uri: Uri) : ProfileEvent()
     data class UpdateName(val name: String) : ProfileEvent()
     data class UpdateExamType(val exam: String) : ProfileEvent()
     data class UpdateStage(val stage: String) : ProfileEvent()

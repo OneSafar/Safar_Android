@@ -18,16 +18,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class DmMessage(val text: String, val isMine: Boolean)
+data class DmMessage(val text: String, val isMine: Boolean, val senderAvatar: String? = null)
 
 sealed class DmState {
     object Idle : DmState()
     object Waiting : DmState()
-    data class IncomingRequest(val fromUserId: String, val fromUserName: String) : DmState()
-    data class Open(val peerId: String, val peerName: String, val roomId: String, val messages: List<DmMessage> = emptyList()) : DmState()
+    data class IncomingRequest(val fromUserId: String, val fromUserName: String, val fromUserAvatar: String? = null) : DmState()
+    data class Open(val peerId: String, val peerName: String, val roomId: String, val peerAvatar: String? = null, val messages: List<DmMessage> = emptyList()) : DmState()
 }
 
-data class PendingDmRequest(val userId: String, val userName: String, val requestId: String)
+data class PendingDmRequest(val userId: String, val userName: String, val requestId: String, val userAvatar: String? = null)
 
 data class MehfilUiState(
     val isInitializing: Boolean = true,
@@ -67,6 +67,7 @@ data class MehfilUiState(
     val socketConnected: Boolean = false,
     val pendingDmRequests: List<PendingDmRequest> = emptyList(),
     val currentUserId: String = "",
+    val currentUserAvatar: String? = null,
     val dmRequestId: String = "",
     // Local overrides so optimistic like state survives list refreshes
     val localLikeOverrides: Map<String, Boolean> = emptyMap(),
@@ -142,7 +143,7 @@ class MehfilViewModel @Inject constructor(
             val userName = dataStore.userName.first() ?: "Safarite"
             val avatar   = dataStore.userAvatar.first()
 
-            _uiState.update { it.copy(isLoadingPosts = true, currentUserId = userId) }
+            _uiState.update { it.copy(isLoadingPosts = true, currentUserId = userId, currentUserAvatar = avatar) }
 
             socketManager.connect(
                 token       = token,
@@ -203,8 +204,8 @@ class MehfilViewModel @Inject constructor(
                     when (event.type) {
                         "request_sent"     -> _uiState.update { it.copy(dmRequestId = event.message) }
                         "incoming_request" -> _uiState.update { it.copy(
-                            dmState = DmState.IncomingRequest(event.fromUserId, event.fromUserName),
-                            pendingDmRequests = (it.pendingDmRequests + PendingDmRequest(event.fromUserId, event.fromUserName, event.requestId)).distinctBy { p -> p.userId },
+                            dmState = DmState.IncomingRequest(event.fromUserId, event.fromUserName, event.fromUserAvatar),
+                            pendingDmRequests = (it.pendingDmRequests + PendingDmRequest(event.fromUserId, event.fromUserName, event.requestId, event.fromUserAvatar)).distinctBy { p -> p.userId },
                         ) }
                         "opened"           -> _uiState.update { it.copy(
                             dmState = if (it.mehfilDm) {
@@ -212,6 +213,7 @@ class MehfilViewModel @Inject constructor(
                                     peerId = event.fromUserId,
                                     peerName = event.fromUserName.ifBlank { it.dmTargetUserName }.ifBlank { event.fromUserId },
                                     roomId = event.roomId,
+                                    peerAvatar = event.fromUserAvatar,
                                 )
                             } else {
                                 DmState.Idle
@@ -224,6 +226,7 @@ class MehfilViewModel @Inject constructor(
                                     peerId = event.fromUserId,
                                     peerName = event.fromUserName.ifBlank { it.dmTargetUserName }.ifBlank { event.fromUserId },
                                     roomId = event.roomId,
+                                    peerAvatar = event.fromUserAvatar,
                                 )
                             } else {
                                 DmState.Idle
@@ -239,7 +242,8 @@ class MehfilViewModel @Inject constructor(
                                 val isEcho = event.fromUserId.isBlank() || event.fromUserId == _uiState.value.currentUserId
                                 if (!isEcho) {
                                     val updatedPeerName = if (cur.peerName.isBlank() || cur.peerName == cur.peerId) event.fromUserName.ifBlank { cur.peerName } else cur.peerName
-                                    _uiState.update { it.copy(dmState = cur.copy(peerName = updatedPeerName, messages = cur.messages + DmMessage(event.message, isMine = false))) }
+                                    val updatedPeerAvatar = event.fromUserAvatar ?: cur.peerAvatar
+                                    _uiState.update { it.copy(dmState = cur.copy(peerName = updatedPeerName, peerAvatar = updatedPeerAvatar, messages = cur.messages + DmMessage(event.message, isMine = false, senderAvatar = event.fromUserAvatar))) }
                                 }
                             }
                         }
@@ -554,14 +558,16 @@ class MehfilViewModel @Inject constructor(
         val pending = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }
         val requestId = pending?.requestId ?: ""
         val peerName  = pending?.userName ?: fromUserId
+        val peerAvatar = pending?.userAvatar
         socketManager.emitDmAccept(requestId)
         _uiState.update { it.copy(
-            dmState = DmState.Open(peerId = fromUserId, peerName = peerName, roomId = ""),
+            dmState = DmState.Open(peerId = fromUserId, peerName = peerName, roomId = "", peerAvatar = peerAvatar),
             pendingDmRequests = it.pendingDmRequests.filter { p -> p.userId != fromUserId },
         ) }
     }
     fun declineDm(fromUserId: String) {
-        socketManager.emitDmDecline(fromUserId)
+        val requestId = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }?.requestId ?: ""
+        socketManager.emitDmDecline(requestId)
         _uiState.update { it.copy(
             dmState = DmState.Idle,
             pendingDmRequests = it.pendingDmRequests.filter { p -> p.userId != fromUserId },
@@ -582,7 +588,7 @@ class MehfilViewModel @Inject constructor(
         val current = _uiState.value.dmState
         if (current is DmState.Open) {
             socketManager.emitDmMessage(current.roomId, message)
-            _uiState.update { it.copy(dmState = current.copy(messages = current.messages + DmMessage(message, true))) }
+            _uiState.update { it.copy(dmState = current.copy(messages = current.messages + DmMessage(message, true, senderAvatar = it.currentUserAvatar))) }
         }
     }
 

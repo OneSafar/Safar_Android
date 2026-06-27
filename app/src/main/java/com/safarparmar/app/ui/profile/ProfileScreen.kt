@@ -1,6 +1,8 @@
 package com.safarparmar.app.ui.profile
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -50,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.theme.*
 import com.safarparmar.app.ui.components.*
+import coil.compose.AsyncImage
 
 private val examOptions = listOf("UPSC", "SSC", "IBPS", "RRB", "NEET", "JEE", "12th Boards", "State PSC", "CAT", "GATE", "Other")
 private val stageOptions = listOf("Beginner", "Intermediate", "Advanced", "Revision", "Mock Tests")
@@ -108,6 +112,9 @@ fun ProfileScreen(
     val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { viewModel.onEvent(ProfileEvent.UploadAvatar(it)) }
+    }
 
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
@@ -118,6 +125,13 @@ fun ProfileScreen(
     LaunchedEffect(uiState.error) {
         if (uiState.error != null) {
             Toast.makeText(context, uiState.error, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(uiState.avatarUploadSuccess) {
+        if (uiState.avatarUploadSuccess) {
+            Toast.makeText(context, "Profile photo updated!", Toast.LENGTH_SHORT).show()
+            viewModel.onEvent(ProfileEvent.ClearAvatarUploadSuccess)
         }
     }
 
@@ -213,7 +227,10 @@ fun ProfileScreen(
                         .padding(horizontal = 20.dp, vertical = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    ProfileHeaderCard(uiState = uiState)
+                    ProfileHeaderCard(
+                        uiState = uiState,
+                        onAvatarClick = { imagePicker.launch("image/*") },
+                    )
 
                     PersonalInfoSection(uiState = uiState, viewModel = viewModel)
 
@@ -280,7 +297,7 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileHeaderCard(uiState: ProfileUiState) {
+private fun ProfileHeaderCard(uiState: ProfileUiState, onAvatarClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     GlassCard {
         Column(
@@ -300,14 +317,38 @@ private fun ProfileHeaderCard(uiState: ProfileUiState) {
                         .border(4.dp, avatarRing, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = uiState.userName.firstOrNull()?.uppercase() ?: "U",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 32.sp
-                        ),
-                        color = scheme.primary,
-                    )
+                    val avatarUrl = uiState.userAvatar?.takeIf { it.isNotBlank() }
+                    if (avatarUrl != null) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = "Profile photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Text(
+                            text = uiState.userName.firstOrNull()?.uppercase() ?: "U",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 32.sp
+                            ),
+                            color = scheme.primary,
+                        )
+                    }
+                    if (uiState.isAvatarUploading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.35f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(30.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                            )
+                        }
+                    }
                 }
                 Box(
                     modifier = Modifier
@@ -316,7 +357,7 @@ private fun ProfileHeaderCard(uiState: ProfileUiState) {
                         .clip(CircleShape)
                         .background(scheme.primary)
                         .border(2.dp, avatarRing, CircleShape)
-                        .clickable { /* photo picker TBD */ },
+                        .clickable(enabled = !uiState.isAvatarUploading) { onAvatarClick() },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(

@@ -120,8 +120,8 @@ private val slides = listOf(
 private val toolCards = listOf(
     ToolCard(R.string.module_ekagra, R.drawable.tool_ekagra, Routes.EKAGRA),
     ToolCard(R.string.module_nishtha, R.drawable.tool_nistha, Routes.NISHTHA),
-    ToolCard(R.string.module_study_planner, R.drawable.tool_study_planner, Routes.STUDY_PLANNER),
     ToolCard(R.string.module_mehfil, R.drawable.tool_mehfil, Routes.MEHFIL),
+    ToolCard(R.string.module_study_planner, R.drawable.tool_study_planner, Routes.STUDY_PLANNER),
     ToolCard(R.string.module_dhyan, R.drawable.tool_dhyan, Routes.DHYAN),
 )
 

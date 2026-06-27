@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,12 +47,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+
 @Composable
 fun DmChatScreen(
     viewModel: MehfilViewModel,
@@ -81,6 +86,7 @@ fun DmChatScreen(
         topBar = {
             DmChatTopBar(
                 peerName = dmState.peerName,
+                peerAvatar = dmState.peerAvatar,
                 onBack = onBack,
                 onLeave = {
                     viewModel.leaveDmRoom()
@@ -115,7 +121,12 @@ fun DmChatScreen(
                     key = { index, msg -> "${index}:${msg.isMine}:${msg.text}" },
                     contentType = { _, _ -> "dmMessage" },
                 ) { _, msg ->
-                    DmMessageBubble(text = msg.text, isMine = msg.isMine)
+                    DmMessageBubble(
+                        text = msg.text,
+                        isMine = msg.isMine,
+                        avatarUrl = if (msg.isMine) msg.senderAvatar else msg.senderAvatar ?: dmState.peerAvatar,
+                        avatarName = if (msg.isMine) "You" else dmState.peerName,
+                    )
                 }
             }
         }
@@ -123,7 +134,7 @@ fun DmChatScreen(
 }
 
 @Composable
-private fun DmChatTopBar(peerName: String, onBack: () -> Unit, onLeave: () -> Unit) {
+private fun DmChatTopBar(peerName: String, peerAvatar: String?, onBack: () -> Unit, onLeave: () -> Unit) {
     Surface(
         tonalElevation = 2.dp,
         color = MaterialTheme.colorScheme.surface,
@@ -134,9 +145,7 @@ private fun DmChatTopBar(peerName: String, onBack: () -> Unit, onLeave: () -> Un
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
-            Box(Modifier.size(34.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(0.15f)), contentAlignment = Alignment.Center) {
-                Text(peerName.firstOrNull()?.uppercase() ?: "?", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
-            }
+            DmAvatar(name = peerName, avatarUrl = peerAvatar, size = 34.dp)
             Column(Modifier.weight(1f)) {
                 Text(peerName, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -206,8 +215,16 @@ private fun EmptyDmState(peerName: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DmMessageBubble(text: String, isMine: Boolean) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
+private fun DmMessageBubble(text: String, isMine: Boolean, avatarUrl: String?, avatarName: String) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        if (!isMine) {
+            DmAvatar(name = avatarName, avatarUrl = avatarUrl, size = 28.dp)
+            Spacer(Modifier.size(6.dp))
+        }
         Box(
             Modifier
                 .clip(
@@ -223,6 +240,37 @@ private fun DmMessageBubble(text: String, isMine: Boolean) {
                 .widthIn(max = 280.dp),
         ) {
             Text(text, fontSize = 14.sp, color = if (isMine) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (isMine) {
+            Spacer(Modifier.size(6.dp))
+            DmAvatar(name = avatarName, avatarUrl = avatarUrl, size = 28.dp)
+        }
+    }
+}
+
+@Composable
+private fun DmAvatar(name: String, avatarUrl: String?, size: Dp) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(0.15f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (!avatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = "$name profile photo",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Text(
+                name.firstOrNull()?.uppercase() ?: "?",
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                fontSize = if (size.value >= 34f) 14.sp else 11.sp,
+            )
         }
     }
 }

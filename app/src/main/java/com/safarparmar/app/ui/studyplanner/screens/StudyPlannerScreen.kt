@@ -623,7 +623,7 @@ fun StudyPlannerScreen(
             chromeState.section != PlannerSection.SYLLABUS ->
             chromeState.section.label
         chromeState.section == PlannerSection.YOUR_EXAMS -> PlannerSection.YOUR_EXAMS.label
-        else -> "Study Planner"
+        else -> "Exam Planner"
     }
     val drawerSubtitle: String? = null
     val currentDensity = LocalDensity.current

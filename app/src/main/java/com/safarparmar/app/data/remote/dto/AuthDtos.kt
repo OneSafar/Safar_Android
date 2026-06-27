@@ -44,4 +44,5 @@ data class UserDto(
 
 data class MeResponse(val user: UserDto?, val streaks: StreaksDto?)
 data class MessageResponse(val message: String?, val success: Boolean = true)
+data class UploadAvatarResponse(val success: Boolean = false, val url: String? = null, val message: String? = null)
 data class LoginHistoryItemDto(val timestamp: String? = null)

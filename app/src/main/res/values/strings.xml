@@ -50,7 +50,7 @@
     <string name="nav_back">Back</string>
     <string name="nav_home">Home</string>
     <string name="nav_dashboard">Dashboard</string>
-    <string name="nav_study_planner">Study Planner</string>
+    <string name="nav_study_planner">Exam Planner</string>
     <string name="nav_profile">Profile</string>
     <string name="nav_night_mode">Night Mode</string>
     <string name="nav_toggle_night">Toggle night mode</string>
@@ -180,7 +180,7 @@
     <string name="module_mehfil_sub">Community</string>
     <string name="module_dhyan">Dhyan</string>
     <string name="module_dhyan_sub">Meditation</string>
-    <string name="module_study_planner">Study Planner</string>
+    <string name="module_study_planner">Exam Planner</string>
     <string name="dhyan_latest_video_title">Latest Dhyan Video</string>
     <string name="dhyan_latest_video_preview">Latest Dhyan video preview</string>
     <string name="dhyan_latest_video_thumbnail_cd">Latest Dhyan YouTube video thumbnail</string>

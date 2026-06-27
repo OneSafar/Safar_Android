@@ -4,6 +4,7 @@ import com.safarparmar.app.domain.model.User
 import com.safarparmar.app.domain.model.UserProfile
 import com.safarparmar.app.util.Resource
 import kotlinx.coroutines.flow.Flow
+import okhttp3.MultipartBody
 
 interface AuthRepository {
     val isLoggedIn: Flow<Boolean>
@@ -14,4 +15,5 @@ interface AuthRepository {
     suspend fun refreshToken(): Resource<Unit>
     suspend fun getMe(): Resource<UserProfile>
     suspend fun updateProfile(name: String?, examType: String?, preparationStage: String?, gender: String?, avatar: String?): Resource<UserProfile>
+    suspend fun uploadAvatar(avatar: MultipartBody.Part): Resource<String>
 }
