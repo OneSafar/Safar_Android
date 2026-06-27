@@ -229,6 +229,8 @@ private fun TodayStudyPlanCard(
     isDark: Boolean,
     onNavigate: (String) -> Unit,
 ) {
+    var showAllTopics by remember(state.planId, state.totalCount) { mutableStateOf(false) }
+
     LaunchedEffect(state.status, state.planId) {
         StudyPlannerAnalytics.track(
             StudyPlannerAnalytics.DASHBOARD_TODAY_CARD_VIEWED,
@@ -241,7 +243,12 @@ private fun TodayStudyPlanCard(
             StudyPlannerAnalytics.DASHBOARD_TODAY_CARD_CLICKED,
             mapOf("state" to state.status.name.lowercase(), "plan_id" to state.planId.orEmpty()),
         )
-        onNavigate(Routes.STUDY_PLANNER)
+        val route = if (!state.planId.isNullOrBlank()) {
+            "${Routes.STUDY_PLANNER}?planId=${state.planId}"
+        } else {
+            Routes.STUDY_PLANNER
+        }
+        onNavigate(route)
     }
 
     DashCard(isDark) {
@@ -315,7 +322,8 @@ private fun TodayStudyPlanCard(
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                state.visibleTopics.forEach { topic ->
+                val topicsToShow = if (showAllTopics) state.allTopics else state.visibleTopics
+                topicsToShow.forEach { topic ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -350,11 +358,14 @@ private fun TodayStudyPlanCard(
                 }
                 if (state.moreCount > 0) {
                     Text(
-                        "+${state.moreCount} more",
+                        if (showAllTopics) "Show less" else "+${state.moreCount} more",
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(top = 2.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { showAllTopics = !showAllTopics }
+                            .padding(top = 6.dp, end = 8.dp, bottom = 4.dp),
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -501,6 +512,12 @@ private val achievementImages: Map<String, String> = mapOf(
     "S001" to "/Achievments/Badges/Badge (8).webp",
     "S002" to "/Achievments/Badges/Special_Badge (1).webp",
     "ET006" to "/Achievments/Badges/Special_Badge (3).webp",
+    "SP001" to "/Achievments/Badges/Badge (4).webp",
+    "SP002" to "/Achievments/Badges/Badge (8).webp",
+    "D001" to "/Achievments/Badges/Special_Badge (1).webp",
+    "D002" to "/Achievments/Badges/Special_Badge (3).webp",
+    "K001" to "/Achievments/Badges/Badge (6).webp",
+    "M001" to "/Achievments/Badges/Badge (7).webp",
     "T005" to "/Achievments/Titles/Title (5).webp",
     "T006" to "/Achievments/Titles/Title (3).webp",
     "T007" to "/Achievments/Titles/Title (7).webp",
@@ -514,6 +531,11 @@ private val achievementImages: Map<String, String> = mapOf(
     "ET003" to "/Achievments/Titles/Special_Title (5).webp",
     "ET004" to "/Achievments/Titles/Special_Title (3).webp",
     "ET005" to "/Achievments/Titles/Special_Title (4).webp",
+    "T010" to "/Achievments/Titles/Special_Title (1).webp",
+    "T011" to "/Achievments/Titles/Special_Title (2).webp",
+    "T012" to "/Achievments/Titles/Special_Title (3).webp",
+    "T013" to "/Achievments/Titles/Special_Title (4).webp",
+    "T014" to "/Achievments/Titles/Special_Title (5).webp",
     "T009" to "/Achievments/svgviewer-output.svg",
 )
 

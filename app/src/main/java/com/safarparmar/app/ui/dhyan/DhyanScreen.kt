@@ -105,6 +105,7 @@ fun DhyanScreen(
     var tourState           by remember { mutableStateOf<com.safarparmar.app.ui.butterfly.ButterflyTourState?>(null) }
 
     val themeVm: ThemeViewModel = hiltViewModel()
+    val dhyanVm: DhyanViewModel = hiltViewModel()
 
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
         SafarDrawerScaffold(
@@ -160,6 +161,7 @@ fun DhyanScreen(
                         onBreatheWithMe   = { showTechniquesSheet = true },
                         onShowMusic       = { showAudioLibraryPanel = true },
                         onClearTechnique  = { selectedTechnique = null },
+                        onSessionComplete = { minutes -> dhyanVm.trackCompletedSession(minutes) },
                     )
                 }
             }
@@ -207,6 +209,7 @@ private fun BreathingTab(
     onBreatheWithMe: () -> Unit,
     onShowMusic: () -> Unit,
     onClearTechnique: () -> Unit,
+    onSessionComplete: (Int) -> Unit,
 ) {
     val LightLotusPink = Color(0xFFFFCDE0)
     val MediumRosePink = Color(0xFFF49BB7)
@@ -294,7 +297,10 @@ private fun BreathingTab(
                 }
             }
         }
-        if (sessionSecondsLeft <= 0) isRunning = false
+        if (sessionSecondsLeft <= 0) {
+            onSessionComplete(sessionLengthMin)
+            isRunning = false
+        }
     }
 
     val vizPhase = when (phase) {

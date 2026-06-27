@@ -105,12 +105,22 @@ private val slides = listOf(
         Color(0xFFDDBCE0),
         Color(0xFF3F2844)
     ),
+    HomeSlide(
+        R.string.module_study_planner,
+        "Plan Your\nSuccess",
+        "Track your syllabus progress, schedule\nyour targets, and achieve your daily goals",
+        "study_planner_light.webp",
+        Routes.STUDY_PLANNER,
+        Color(0xFFC8D3A5),
+        Color(0xFF2D3615)
+    ),
 )
 
 
 private val toolCards = listOf(
     ToolCard(R.string.module_ekagra, R.drawable.tool_ekagra, Routes.EKAGRA),
     ToolCard(R.string.module_nishtha, R.drawable.tool_nistha, Routes.NISHTHA),
+    ToolCard(R.string.module_study_planner, R.drawable.tool_study_planner, Routes.STUDY_PLANNER),
     ToolCard(R.string.module_mehfil, R.drawable.tool_mehfil, Routes.MEHFIL),
     ToolCard(R.string.module_dhyan, R.drawable.tool_dhyan, Routes.DHYAN),
 )
@@ -366,6 +376,7 @@ fun HomeScreen(
                     Routes.EKAGRA -> R.drawable.ekagra_dark
                     Routes.MEHFIL -> R.drawable.dark_mehfil
                     Routes.DHYAN -> R.drawable.dark_dhyan
+                    Routes.STUDY_PLANNER -> R.drawable.study_planner_dark
                     else -> R.drawable.bg_home_dark
                 }
             } else {
@@ -373,6 +384,7 @@ fun HomeScreen(
                     Routes.EKAGRA -> R.drawable.ekagra_light
                     Routes.MEHFIL -> R.drawable.light_mehfil
                     Routes.DHYAN -> R.drawable.dhyan_liight
+                    Routes.STUDY_PLANNER -> R.drawable.study_planner_light
                     else -> R.drawable.bg_home_light
                 }
             }
@@ -488,10 +500,15 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val rows = toolCards.chunked(2)
+                    val rows = listOf(toolCards.take(3), toolCards.drop(3))
                     rows.forEach { rowItems ->
+                        val rowWidth = if (rowItems.size == 3) {
+                            if (isNarrow) 0.82f else 0.78f
+                        } else {
+                            if (isNarrow) 0.54f else 0.51f
+                        }
                         Row(
-                            modifier = Modifier.fillMaxWidth(if (isNarrow) 0.82f else 0.78f),
+                            modifier = Modifier.fillMaxWidth(rowWidth),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             rowItems.forEach { tool ->

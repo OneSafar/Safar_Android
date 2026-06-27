@@ -16,7 +16,7 @@ enum class TopicStatus(val wireValue: String, val label: String) {
     DONE("done", "Done"),
 
     @SerializedName("revision_needed")
-    REVISION_NEEDED("revision_needed", "Revision"),
+    REVISION_NEEDED("revision_needed", "To Revise"),
 }
 
 @Immutable
@@ -174,7 +174,7 @@ data class UpgradePlannerResult(
 )
 
 enum class PlannerSection(val label: String) {
-    YOUR_EXAMS("Your Exams"),
+    YOUR_EXAMS("Exam"),
     SYLLABUS("Syllabus"),
     CALENDAR("Calendar"),
     PLAN("Plan"),

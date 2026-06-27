@@ -551,6 +551,17 @@ class TimerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val showPipIntent = PendingIntent.getActivity(
+            this,
+            3,
+            NotificationDeepLinkHandler.activityIntent(
+                context = this,
+                deepLink = "safar://ekagra",
+                enterTimerPip = true,
+            ),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
         val s    = _secondsLeft.value
         val mode = _timerMode.value.label
         val time = "%02d:%02d".format(s / 60, s % 60)
@@ -574,6 +585,15 @@ class TimerService : Service() {
                 if (_isRunning.value) "Pause" else "Resume",
                 playPauseIntent
             )
+            .apply {
+                if (_isRunning.value) {
+                    addAction(
+                        android.R.drawable.ic_menu_view,
+                        "Show floating timer",
+                        showPipIntent,
+                    )
+                }
+            }
             .addAction(android.R.drawable.ic_menu_revert, "Reset", resetIntent)
             .build()
     }

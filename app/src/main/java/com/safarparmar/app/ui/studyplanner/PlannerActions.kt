@@ -6,6 +6,12 @@ import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 
 interface PlannerActions {
     fun setSection(section: PlannerSection)
+    /**
+     * Handles an internal back-press.
+     * Returns true  → the ViewModel consumed it (moved to previous section or closed the plan).
+     * Returns false → no internal state to pop; caller should let the NavController handle back.
+     */
+    fun navigateBack(): Boolean
     fun clearTransient()
     fun setError(message: String)
     fun refreshPlans()
@@ -32,9 +38,11 @@ interface PlannerActions {
     )
     fun deleteTopic(topicId: String)
     fun autoDistribute(includeRevision: Boolean, lockExisting: Boolean)
+    fun markOnboardingStepDone(step: String)
     fun clearFutureDates()
     fun moveTopicsToDate(topicIds: List<String>, date: String)
     fun clearTopicDates(topicIds: List<String>)
+    fun swapTopicDates(firstTopicId: String, secondTopicId: String)
     fun resetPlan()
     fun bulkAdd(subjectId: String, chapterId: String, text: String)
     fun importFullSyllabusFromTxt(text: String)

@@ -281,6 +281,7 @@ class EkagraViewModel @Inject constructor(
             ?: current?.sessionTitle?.trim()?.takeIf { it.isNotBlank() }
             ?: cleanGoalTitle
             ?: "Free Ekagra"
+        val shieldWasActive = focusShieldRepo.sessionActive.value || focusShieldRepo.isEnabled.value
 
         viewModelScope.launch {
             repo.saveSession(
@@ -293,6 +294,7 @@ class EkagraViewModel @Inject constructor(
                 goalTitle = cleanGoalTitle,
                 taskTitle = cleanTitle,
                 markGoalComplete = markGoalComplete,
+                shieldEnabled = shieldWasActive,
             )
             if (activeSessionId == sessionId || current?.id == sessionId) clearLocalDraft()
             focusShieldRepo.deactivateSession()

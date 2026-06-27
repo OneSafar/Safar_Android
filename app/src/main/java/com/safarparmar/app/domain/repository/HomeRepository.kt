@@ -52,5 +52,8 @@ interface HomeRepository {
     suspend fun generateMonthlyReport(month: String): Resource<MonthlyReport>
     suspend fun getActiveTitle(): Resource<ActiveTitle>
     suspend fun getAchievements(): Resource<List<Achievement>>
+    suspend fun selectAchievement(achievementId: String?): Resource<ActiveTitle>
+    suspend fun trackDhyanSession(durationMinutes: Int, source: String = "android"): Resource<Unit>
+    suspend fun trackKavachEvent(eventType: String, blockedAppCount: Int, sessionId: String? = null): Resource<Unit>
     suspend fun getLoginHistory(): Resource<List<LoginHistoryEntry>>
 }

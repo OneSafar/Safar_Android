@@ -58,6 +58,9 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.BlendMode
 import com.safarparmar.app.R
 import kotlin.math.atan2
 
@@ -242,16 +245,46 @@ fun ButterflyOverlay(
             }
         }
 
-        // ── Dim background ─────────────────────────────────────────
-        Box(
-            modifier = Modifier.fillMaxSize().background(dimColor).clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) { /* consume touches */ }
-        )
-
         // ── Trail ribbon + sparkle canvas ─────────────────────────
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = 0.99f }
+                .pointerInput(state.currentStep?.isInteractive) {
+                    val interactive = state.currentStep?.isInteractive == true
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            val cx = bfX.floatValue
+                            val cy = bfY.floatValue
+                            val radius = state.currentStep?.cutoutRadius?.toPx() ?: 0f
+                            event.changes.forEach { change ->
+                                if (change.isConsumed) return@forEach
+
+                                if (interactive) {
+                                    val dx = change.position.x - cx
+                                    val dy = change.position.y - cy
+                                    if (sqrt(dx * dx + dy * dy) > radius) {
+                                        change.consume()
+                                    }
+                                } else {
+                                    change.consume()
+                                }
+                            }
+                        }
+                    }
+                }
+        ) {
+            // Draw dim background
+            drawRect(dimColor)
+            if (state.currentStep?.isInteractive == true) {
+                drawCircle(
+                    color = Color.Transparent,
+                    radius = state.currentStep?.cutoutRadius?.toPx() ?: 0f,
+                    center = Offset(bfX.floatValue, bfY.floatValue),
+                    blendMode = BlendMode.Clear
+                )
+            }
 
             // 0. Ambient radial glow around butterfly
             val glowBrush = androidx.compose.ui.graphics.Brush.radialGradient(
@@ -474,26 +507,28 @@ private fun TooltipCard(
                     )
                 }
                 Spacer(Modifier.weight(1f))
-                Button(
-                    onClick = onNext,
-                    modifier = Modifier.heightIn(min = 30.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = ButterflyGold,
-                            contentColor = Color.White,
-                        ),
-                    contentPadding =
-                        androidx.compose.foundation.layout.PaddingValues(
-                            horizontal = 14.dp,
-                            vertical = 0.dp
-                        ),
-                ) {
-                    Text(
-                        if (isLast) "Done 🎨" else "Next →",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                if (!step.isInteractive) {
+                    Button(
+                        onClick = onNext,
+                        modifier = Modifier.heightIn(min = 30.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = ButterflyGold,
+                                contentColor = Color.White,
+                            ),
+                        contentPadding =
+                            androidx.compose.foundation.layout.PaddingValues(
+                                horizontal = 14.dp,
+                                vertical = 0.dp
+                            ),
+                    ) {
+                        Text(
+                            if (isLast) "Done 🎨" else "Next →",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
         }

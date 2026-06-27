@@ -25,6 +25,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -123,6 +124,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -151,11 +153,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.painterResource
 import com.safarparmar.app.util.bounceClick
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -216,7 +220,6 @@ import kotlin.math.max
 
 @Composable
 internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: PlannerActions) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val todayK = todayKey()
     var visibleMonth by remember { mutableStateOf(YearMonth.now()) }
     val locale = Locale.getDefault()
@@ -234,24 +237,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
         )
     }
 
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/pdf"),
-        onResult = { uri ->
-            uri?.let {
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                            StudyPlannerExportUtils.generateStudyPlanPdf(plan, outputStream)
-                        }
-                    } catch (e: Exception) {
-                        actions.setError("PDF export failed: ${e.localizedMessage}")
-                    }
-                }
-            }
-        }
-    )
+
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -259,114 +245,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            // Days Left Stacked Card Deck
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, bottom = 12.dp)
-            ) {
-                // Stacked layer 2 (shadow)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.92f)
-                        .heightIn(min = 130.dp)
-                        .align(Alignment.BottomCenter)
-                        .offset(y = 12.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainerLowest,
-                            MaterialTheme.shapes.large
-                        )
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            MaterialTheme.shapes.large
-                        )
-                )
-                // Stacked layer 1 (shadow border)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.96f)
-                        .heightIn(min = 130.dp)
-                        .align(Alignment.BottomCenter)
-                        .offset(y = 6.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainerLow,
-                            MaterialTheme.shapes.large
-                        )
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant,
-                            MaterialTheme.shapes.large
-                        )
-                )
-                // Top Main Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 130.dp),
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                val examDays = daysUntil(plan.examDate)
-                                Text(
-                                    text = plannerExamCountdownHeroNumber(examDays),
-                                    style = MaterialTheme.typography.displayLarge.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontStyle = FontStyle.Italic,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        text = plannerExamCountdownCaption(examDays),
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Black,
-                                            fontStyle = FontStyle.Italic,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    )
-                                    val secondary = plannerExamCountdownCaptionSecondary(examDays)
-                                    if (secondary.isNotBlank()) {
-                                        Text(
-                                            text = secondary,
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = FontWeight.Black,
-                                                fontStyle = FontStyle.Italic,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = readableDate(plan.examDate).takeIf { it.isNotBlank() } ?: "May 31, 2026",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                )
-                            )
-                        }
-                    }
-                }
-            }
+            CalendarCountdownBanner(plan = plan)
         }
 
         item {
@@ -386,11 +265,11 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                     )
                 }
                 Text(
-                    text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale).uppercase(locale)} ${visibleMonth.year}",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
+                    text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface
-                    )
+                    ),
                 )
                 IconButton(onClick = { visibleMonth = visibleMonth.plusMonths(1) }) {
                     Icon(
@@ -466,20 +345,29 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
 
         item {
             // Legend
-            Row(
-                Modifier
+            Box(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(top = 8.dp, bottom = 16.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                CalendarLegendDot(MaterialTheme.colorScheme.primary, "Planned")
-                Spacer(Modifier.width(16.dp))
-                CalendarLegendDot(MaterialTheme.colorScheme.tertiary, "Done")
-                Spacer(Modifier.width(16.dp))
-                CalendarLegendDot(MaterialTheme.colorScheme.error, "Overdue")
-                Spacer(Modifier.width(16.dp))
-                CalendarLegendDot(if (isDark) Color(0xFFF59E0B) else Color(0xFFD97706), "Off")
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 8.dp,
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 18.dp, vertical = 13.dp),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CalendarLegendDot(CalendarDateStatus.PLANNED.color, "Planned")
+                        CalendarLegendDot(CalendarDateStatus.DONE.color, "Done")
+                        CalendarLegendDot(CalendarDateStatus.OVERDUE.color, "Overdue")
+                        CalendarLegendDot(CalendarDateStatus.OFF.color, "Off")
+                    }
+                }
             }
         }
 
@@ -487,8 +375,103 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
     }
 }
 
-// Material medium corners are 12.dp; reduce by 30% so 5P / 0D / 0O fit inside tiles.
-private val CalendarDayTileShape = RoundedCornerShape(8.dp)
+@Composable
+private fun CalendarCountdownBanner(plan: StudyPlan) {
+    val examDays = daysUntil(plan.examDate)
+    val hero = plannerExamCountdownHeroNumber(examDays)
+    val examDate = readableDate(plan.examDate).takeUnless { it == "Not set" }.orEmpty()
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 18.dp)
+            .height(162.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(id = R.drawable.calendar_countdown_banner),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp, vertical = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = hero,
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 66.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                    ),
+                )
+                Spacer(Modifier.width(14.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = plannerExamCountdownCaption(examDays),
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontStyle = FontStyle.Italic,
+                            color = Color.White,
+                        ),
+                    )
+                    val secondary = plannerExamCountdownCaptionSecondary(examDays)
+                    if (secondary.isNotBlank()) {
+                        Text(
+                            text = secondary,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontStyle = FontStyle.Italic,
+                                color = Color.White,
+                            ),
+                        )
+                    }
+                    if (examDate.isNotBlank()) {
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = examDate,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White.copy(alpha = 0.9f),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private enum class CalendarDateStatus(val color: Color) {
+    PLANNED(Color(0xFF2563EB)),
+    DONE(Color(0xFF7E57D9)),
+    OVERDUE(Color(0xFFDC2626)),
+    OFF(Color(0xFFF59E0B)),
+}
+
+private fun calendarDateStatus(
+    dateIso: String,
+    items: List<CalendarTopicItem>,
+    isOff: Boolean,
+    todayIso: String,
+): CalendarDateStatus? {
+    val planned = items.size
+    val done = items.count { it.status == TopicStatus.DONE }
+    val overdue = dateIso < todayIso && items.any { it.status != TopicStatus.DONE }
+    return when {
+        overdue -> CalendarDateStatus.OVERDUE
+        planned > 0 && done == planned -> CalendarDateStatus.DONE
+        planned > 0 -> CalendarDateStatus.PLANNED
+        isOff -> CalendarDateStatus.OFF
+        else -> null
+    }
+}
 
 @Composable
 internal fun CalendarDayChip(
@@ -501,118 +484,76 @@ internal fun CalendarDayChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier.width(54.dp),
 ) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val todayK = todayKey()
-    val planned = items.size
-    val done = items.count { it.status == TopicStatus.DONE }
-    val overdue = if (dateIso < todayK) items.count { it.status != TopicStatus.DONE } else 0
     val dayNum = LocalDate.parse(dateIso).dayOfMonth.toString()
-
-    val backgroundColor = when {
-        isToday -> MaterialTheme.colorScheme.primaryContainer
-        planned > 0 && done == planned -> MaterialTheme.colorScheme.tertiaryContainer // Soft green/teal for Completed
-        planned > 0 && overdue > 0 -> MaterialTheme.colorScheme.errorContainer // Soft red for Overdue
-        isOff && planned > 0 -> if (isDark) Color(0xFF452B0F) else Color(0xFFFEF3C7) // Soft amber off day
-        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    val status = calendarDateStatus(dateIso, items, isOff, todayK)
+    val highlightColor = when {
+        isToday -> CalendarDateStatus.PLANNED.color
+        selected -> status?.color ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+        else -> Color.Transparent
+    }
+    val highlightAlpha = when {
+        isToday -> 1f
+        selected -> 0.22f
+        else -> 0f
+    }
+    val dayTextColor = when {
+        isToday -> Color.White
+        else -> MaterialTheme.colorScheme.onBackground
     }
 
-    val contentColor = when {
-        isToday -> MaterialTheme.colorScheme.onPrimaryContainer
-        planned > 0 && done == planned -> MaterialTheme.colorScheme.onTertiaryContainer
-        planned > 0 && overdue > 0 -> MaterialTheme.colorScheme.onErrorContainer
-        isOff && planned > 0 -> if (isDark) Color(0xFFFBBF24) else Color(0xFF92400E)
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-
-    val borderStroke = when {
-        selected -> BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-        isToday -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    }
-
-    Card(
+    Box(
         modifier = modifier
-            .shadow(
-                elevation = if (selected) 6.dp else if (isToday) 4.dp else 1.dp,
-                shape = CalendarDayTileShape,
-                ambientColor = if (selected || isToday) MaterialTheme.colorScheme.primary else Color.Black,
-                spotColor = if (selected || isToday) MaterialTheme.colorScheme.primary else Color.Black
-            )
+            .clip(CircleShape)
             .clickable(onClick = onClick),
-        shape = CalendarDayTileShape,
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        border = borderStroke
+        contentAlignment = Alignment.Center,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 4.dp, horizontal = 4.dp),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
-            if (isToday) {
+            Box(
+                modifier = Modifier
+                    .size(if (isToday || selected) 46.dp else 38.dp)
+                    .clip(CircleShape)
+                    .background(highlightColor.copy(alpha = highlightAlpha)),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
-                    text = "TODAY",
-                    fontSize = 7.sp,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1
+                    text = dayNum,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = if (isToday || selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                        fontSize = 18.sp,
+                        color = dayTextColor,
+                    ),
                 )
             }
-            Text(
-                text = dayNum,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = contentColor,
-                maxLines = 1
-            )
-            if (isOff && planned == 0) {
-                Text(
-                    text = "off",
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isDark) Color(0xFFF59E0B) else Color(0xFFD97706),
-                    maxLines = 1
+            Spacer(Modifier.height(3.dp))
+            if (status != null) {
+                Box(
+                    Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(status.color)
                 )
             } else {
-                if (planned > 0) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        Text(
-                            text = "${planned}P",
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "${done}D",
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                        Text(
-                            text = "${overdue}O",
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (overdue > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                        )
-                    }
-                }
+                Spacer(Modifier.size(7.dp))
             }
         }
     }
 }
 
 @Composable
-
 internal fun CalendarLegendDot(color: Color, label: String) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (isDark) Color(0xFF94A3B8) else Color.DarkGray)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.size(9.dp).clip(CircleShape).background(color))
+        Text(
+            label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -629,6 +570,21 @@ internal fun SelectedDayLogSheet(
     val planned = items.size
     val done = items.count { it.status == TopicStatus.DONE }
     val missed = if (dateIso < todayK) items.count { it.status != TopicStatus.DONE } else 0
+    val refs = remember(plan.subjects) { plan.flattenTopics() }
+    val refsById = remember(refs) { refs.associateBy { it.topic.id } }
+    var selectedTopicRef by remember { mutableStateOf<TopicRef?>(null) }
+    var detailNonce by remember { mutableIntStateOf(0) }
+
+    selectedTopicRef?.let { ref ->
+        PlannerTopicDetailSheet(
+            ref = ref,
+            openNonce = detailNonce,
+            actions = actions,
+            swapCandidates = refs,
+            onDismiss = { selectedTopicRef = null },
+        )
+    }
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             Modifier
@@ -772,8 +728,19 @@ internal fun SelectedDayLogSheet(
                                 FilterChip(
                                     selected = item.status == TopicStatus.REVISION_NEEDED,
                                     onClick = { actions.updateTopic(item.topicId, status = TopicStatus.REVISION_NEEDED) },
-                                    label = { Text("Revision") },
+                                    label = { Text("To Revise") },
                                 )
+                                val itemRef = refsById[item.topicId]
+                                if (itemRef != null && refs.any { it.topic.id != item.topicId && !it.topic.plannedDate.isNullOrBlank() && it.topic.plannedDate?.take(10) != itemRef.topic.plannedDate?.take(10) }) {
+                                    FilterChip(
+                                        selected = false,
+                                        onClick = {
+                                            selectedTopicRef = itemRef
+                                            detailNonce++
+                                        },
+                                        label = { Text("Swap Date") },
+                                    )
+                                }
                             }
                         }
                     }

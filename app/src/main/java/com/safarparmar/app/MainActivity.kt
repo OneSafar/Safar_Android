@@ -8,7 +8,9 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import android.util.Rational
 import androidx.activity.ComponentActivity
@@ -61,6 +63,8 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         private set
     var notificationRoute by mutableStateOf<String?>(null)
         private set
+    private var pendingTimerPipFromNotification = false
+    private var pipRequestPosted = false
 
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
@@ -70,6 +74,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             timerService = (binder as TimerService.TimerBinder).getService()
+            enterTimerPipFromNotificationIfReady()
         }
         override fun onServiceDisconnected(name: ComponentName?) {
             timerService = null
@@ -90,6 +95,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
             navigateToEkagra = true
         }
+        consumeTimerPipIntent(intent)
         consumeNotificationIntent(intent)
 
         enableEdgeToEdge()
@@ -184,18 +190,51 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
             navigateToEkagra = true
         }
+        consumeTimerPipIntent(intent)
         consumeNotificationIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        enterTimerPipFromNotificationIfReady()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enterTimerPipFromNotificationIfReady()
     }
 
     private fun consumeNotificationIntent(intent: Intent?) {
         val route = intent?.getStringExtra(NotificationDeepLinkHandler.EXTRA_ROUTE)
             ?: intent?.dataString?.let(NotificationDeepLinkHandler::routeFor)
         if (!route.isNullOrBlank()) {
-            if (route == Routes.STUDY_PLANNER) {
+            if (route.substringBefore("?") == Routes.STUDY_PLANNER) {
                 StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLANNER_NOTIFICATION_OPENED)
             }
             notificationRoute = route
         }
+    }
+
+    /**
+     * PiP can only be entered by a foreground activity. The notification first restores
+     * this activity, then this delayed hand-off renders Ekagra and returns it to PiP.
+     */
+    private fun consumeTimerPipIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra(NotificationDeepLinkHandler.EXTRA_ENTER_TIMER_PIP, false) != true) return
+        navigateToEkagra = true
+        pendingTimerPipFromNotification = true
+        enterTimerPipFromNotificationIfReady()
+    }
+
+    private fun enterTimerPipFromNotificationIfReady() {
+        if (!pendingTimerPipFromNotification || pipRequestPosted || !hasWindowFocus()) return
+        pipRequestPosted = true
+        Handler(Looper.getMainLooper()).postDelayed({
+            pipRequestPosted = false
+            if (!pendingTimerPipFromNotification || isFinishing || isDestroyed) return@postDelayed
+            pendingTimerPipFromNotification = false
+            enterTimerPipIfRunning()
+        }, 300L)
     }
 
     private fun buildTimerPipParams(): PictureInPictureParams? {

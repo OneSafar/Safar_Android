@@ -47,6 +47,7 @@ class EkagraRepositoryImpl @Inject constructor(
         goalTitle: String?,
         taskTitle: String?,
         markGoalComplete: Boolean,
+        shieldEnabled: Boolean,
     ): Resource<EkagraSession> {
         return try {
             val res = focusApi.saveSession(
@@ -60,6 +61,8 @@ class EkagraRepositoryImpl @Inject constructor(
                     goalTitle = goalTitle,
                     taskTitle = taskTitle,
                     markGoalComplete = markGoalComplete,
+                    kavachEnabled = shieldEnabled,
+                    shieldEnabled = shieldEnabled,
                 ),
             )
             if (res.isSuccessful) {

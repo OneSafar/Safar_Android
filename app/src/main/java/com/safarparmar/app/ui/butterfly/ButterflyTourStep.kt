@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.butterfly
 
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
 /**
  * A single stop in the butterfly guided tour.
  *
@@ -16,6 +19,8 @@ data class ButterflyTourStep(
     val anchorY: Float = 0.5f,
     val tooltipSide: TooltipSide = TooltipSide.AUTO,
     val iconRes: Int? = null,
+    val isInteractive: Boolean = false,
+    val cutoutRadius: androidx.compose.ui.unit.Dp = 80.dp,
 )
 
 enum class TooltipSide { AUTO, LEFT, RIGHT, TOP, BOTTOM }

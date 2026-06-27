@@ -36,6 +36,7 @@ import com.safarparmar.app.ui.components.SafarExpressiveFabMenu
 import com.safarparmar.app.ui.components.FabMenuItem
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
+import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +87,13 @@ fun SyllabusTopicsScreen(
     deleteTopic?.let { topic -> ConfirmActionDialog("Delete topic?", "This will delete ${topic.name}.", { deleteTopic = null }) { actions.deleteTopic(topic.id); deleteTopic = null } }
 
     selectedTopicRef?.let { ref ->
-        PlannerTopicDetailSheet(ref, detailNonce, actions, onDismiss = { selectedTopicRef = null })
+        PlannerTopicDetailSheet(
+            ref = ref,
+            openNonce = detailNonce,
+            actions = actions,
+            swapCandidates = state.selectedPlan?.flattenTopics().orEmpty(),
+            onDismiss = { selectedTopicRef = null },
+        )
     }
 
     val currentDensity = LocalDensity.current

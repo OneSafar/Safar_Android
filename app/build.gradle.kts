@@ -84,14 +84,14 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.5.2"
+        versionCode = 5
+        versionName = "1.5.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // KAVACH (FocusShield) accessibility service is a digital wellbeing feature.
         // It MUST remain in the prod manifest so Google can review & whitelist it.
         // Note: sideloaded installs may trigger Play Protect warnings — this is expected
         // for accessibility services from unknown sources and resolves after Play Store review.
-        buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "false")
+        buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "true")
     }
 
     flavorDimensions += "env"
@@ -111,7 +111,7 @@ android {
         create("prod") {
             dimension = "env"
             buildConfigField("String", "BASE_URL", "\"$prodBaseUrl\"")
-            buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "false")
+            buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "true")
             buildConfigField("boolean", "AI_SYLLABUS_IMPORT_ENABLED", aiSyllabusImportEnabled)
             manifestPlaceholders["allowBackup"] = "false"
             manifestPlaceholders["usesCleartextTraffic"] = "false"

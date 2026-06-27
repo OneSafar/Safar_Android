@@ -3,6 +3,7 @@ package com.safarparmar.app.ui.studyplanner.plan
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -100,6 +101,14 @@ fun PlanStatusCard(
     val scheme = MaterialTheme.colorScheme
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     var menuExpanded by remember { mutableStateOf(false) }
+
+    val isPlanScheduled = remember(plan) {
+        plan.subjects.isNotEmpty() && plan.subjects.any { s ->
+            s.chapters.any { c ->
+                c.topics.any { t -> !t.plannedDate.isNullOrBlank() }
+            }
+        }
+    }
     
     val cardModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
@@ -251,6 +260,16 @@ fun PlanStatusCard(
                                     onSettingsClick()
                                 },
                             )
+                            if (isPlanScheduled) {
+                                DropdownMenuItem(
+                                    text = { Text("Export PDF") },
+                                    leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onExportClick()
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -458,6 +477,7 @@ fun TodayMissionCard(
 fun PlanActionRow(
     onAddTopics: () -> Unit,
     onSchedule: () -> Unit,
+    showSchedule: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
@@ -489,32 +509,34 @@ fun PlanActionRow(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        OutlinedButton(
-            onClick = onSchedule,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 52.dp),
-            border = BorderStroke(
-                width = 2.dp,
-                color = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A)
-            ),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A)
-            ),
-            shape = ButtonDefaults.outlinedShape,
-        ) {
-            Icon(
-                imageVector = Icons.Default.CalendarMonth,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "Build Planner",
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+        if (showSchedule) {
+            OutlinedButton(
+                onClick = onSchedule,
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 52.dp),
+                border = BorderStroke(
+                    width = 2.dp,
+                    color = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A)
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A)
+                ),
+                shape = ButtonDefaults.outlinedShape,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Build Planner",
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -523,31 +545,42 @@ fun PlanActionRow(
 fun PlannerTaskRow(
     ref: TopicRef,
     accent: PlanTaskRowAccent,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)? = null,
     onDoneChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val done = ref.topic.status == TopicStatus.DONE
+    val needsRevision = ref.topic.status == TopicStatus.REVISION_NEEDED
     val dotColor = when {
         done -> Color(0xFF10B981)
+        needsRevision -> Color(0xFFF59E0B)
         accent == PlanTaskRowAccent.Overdue -> scheme.error
         else -> scheme.primary
     }
     val cardBgColor = when {
         done -> if (isDark) Color(0xFF163B2A) else Color(0xFFECFDF5)
+        needsRevision -> if (isDark) Color(0xFF3B2F16) else Color(0xFFFFFBEB)
         accent == PlanTaskRowAccent.Overdue -> if (isDark) Color(0xFF3B1E1E) else Color(0xFFFEF2F2)
         else -> if (isDark) Color(0xFF1E293B) else Color.White
     }
-    val borderStroke = if (done || accent == PlanTaskRowAccent.Overdue) null else BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
+    val animatedDotColor by animateColorAsState(dotColor, label = "planTaskDot")
+    val animatedCardBgColor by animateColorAsState(cardBgColor, label = "planTaskBg")
+    val borderStroke = if (done || needsRevision || accent == PlanTaskRowAccent.Overdue) null else BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
     
-    Card(
-        modifier = modifier
+    val rowModifier = if (onClick != null) {
+        modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+    } else {
+        modifier.fillMaxWidth()
+    }
+
+    Card(
+        modifier = rowModifier,
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = cardBgColor),
+        colors = CardDefaults.cardColors(containerColor = animatedCardBgColor),
         border = borderStroke,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -562,7 +595,7 @@ fun PlannerTaskRow(
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(dotColor)
+                    .background(animatedDotColor)
             )
             Column(
                 modifier = Modifier
@@ -594,6 +627,20 @@ fun PlannerTaskRow(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+                }
+                if (needsRevision) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFF59E0B).copy(alpha = if (isDark) 0.28f else 0.16f),
+                        contentColor = if (isDark) Color(0xFFFDE68A) else Color(0xFF92400E),
+                    ) {
+                        Text(
+                            text = "To Revise",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
             }
             Checkbox(
@@ -690,6 +737,14 @@ fun PlanSettingsSheet(
     var dailyGoal by remember(plan.id) { mutableStateOf((plan.dailyGoal ?: 3).toString()) }
     var offDays by remember(plan.id) { mutableStateOf(plan.offDays.toSet()) }
 
+    val isPlanScheduled = remember(plan) {
+        plan.subjects.isNotEmpty() && plan.subjects.any { s ->
+            s.chapters.any { c ->
+                c.topics.any { t -> !t.plannedDate.isNullOrBlank() }
+            }
+        }
+    }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
@@ -762,15 +817,17 @@ fun PlanSettingsSheet(
                 }
             }
             item { HorizontalDivider() }
-            item {
-                OutlinedButton(
-                    onClick = onExport,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    shape = ButtonDefaults.outlinedShape,
-                ) {
-                    Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Export PDF")
+            if (isPlanScheduled) {
+                item {
+                    OutlinedButton(
+                        onClick = onExport,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        shape = ButtonDefaults.outlinedShape,
+                    ) {
+                        Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Export PDF")
+                    }
                 }
             }
         }

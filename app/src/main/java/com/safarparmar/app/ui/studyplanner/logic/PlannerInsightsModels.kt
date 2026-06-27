@@ -70,6 +70,7 @@ data class PlannerInsightConsistency(
     val activeDaysLast30: Int,
     val bestStudyWeekday: String,
     val heatmap: List<HeatmapCell>,
+    val missedDays: List<PlannerInsightDayLoad> = emptyList(),
 )
 
 @Immutable

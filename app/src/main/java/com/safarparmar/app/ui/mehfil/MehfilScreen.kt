@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.mehfil
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -16,6 +17,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.ui.butterfly.ButterflyTourState
+import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.tour.TourManager
 import com.safarparmar.app.ui.tour.mehfilTourSteps
@@ -32,7 +34,8 @@ fun MehfilScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    var selectedTab by remember { mutableStateOf(MehfilTab.COMMUNITY) }
+    val tabBackStack = rememberFeatureTabBackStack(MehfilTab.COMMUNITY)
+    val selectedTab = tabBackStack.currentTab
     var showSandeshSheet by remember { mutableStateOf(false) }
     var sandeshTargetId by remember { mutableStateOf<String?>(null) }
     var showCreatePostSheet by remember { mutableStateOf(false) }
@@ -43,6 +46,10 @@ fun MehfilScreen(
     var searchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     val dmChatNavigated = remember { mutableStateOf(false) }
+
+    BackHandler(enabled = tabBackStack.hasHistory) {
+        tabBackStack.goBack()
+    }
 
     LaunchedEffect(uiState.postSuccess) {
         if (uiState.postSuccess) {
@@ -170,7 +177,7 @@ fun MehfilScreen(
         searchQuery = searchQuery,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        onTabSelected = { selectedTab = it },
+        onTabSelected = { tabBackStack.select(it) },
         onSearchActiveChange = {
             searchActive = it
             if (!it) searchQuery = ""
@@ -203,7 +210,7 @@ fun MehfilScreen(
                 contextPreview = post.content.take(60),
             )
             if (sent) {
-                selectedTab = MehfilTab.CONNECTIONS
+                tabBackStack.select(MehfilTab.CONNECTIONS)
             }
         },
         onAcceptDm = { userId ->

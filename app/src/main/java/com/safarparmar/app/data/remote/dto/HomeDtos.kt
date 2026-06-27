@@ -152,6 +152,19 @@ data class AchievementDto(
 )
 
 data class ActiveTitleDto(val title: String? = null, val selectedId: String? = null)
+data class SelectAchievementRequest(val achievementId: String?)
+data class TrackDhyanSessionRequest(
+    val source: String = "android",
+    val durationMinutes: Int,
+    val completed: Boolean = true,
+    val startedAt: String? = null,
+    val completedAt: String? = null
+)
+data class TrackKavachEventRequest(
+    val eventType: String,
+    val blockedAppCount: Int,
+    val sessionId: String? = null
+)
 
 data class FocusSessionsByGoalsRequest(val goalIds: List<String>)
 

@@ -86,24 +86,53 @@ fun SafarNavGraph(
             Routes.MEHFIL,
             Routes.DHYAN,
             Routes.COURSES,
+            Routes.LIVE_SESSIONS_ROOT,
         )
     }
 
     fun navigate(route: String) {
         val routeBase = route.substringBefore("?")
+        val currentRouteBase = currentRoute.substringBefore("?")
+        val keepKavachInsideEkagra = route == Routes.FOCUS_SHIELD && currentRouteBase == Routes.EKAGRA
+        val isLiveSessionDetail = route.startsWith("live/session/")
+        val isSyllabusDetail = route.startsWith("syllabus/")
+        val needsFocusShieldParent = route == Routes.APP_PICKER || route == Routes.KAVACH_ABOUT
+        val needsDashboardParent = route == Routes.ACHIEVEMENTS
+
+        fun navigateFeatureRoot(route: String) {
+            navController.navigate(route) {
+                popUpTo(Routes.HOME) { inclusive = false }
+                launchSingleTop = true
+                restoreState = false
+            }
+        }
+
         if (route == Routes.DM_CHAT) {
             navController.navigate(route) {
                 launchSingleTop = true
                 popUpTo(Routes.MEHFIL) { inclusive = false }
             }
-        } else if (routeBase in featureRootRoutes) {
+        } else if (isLiveSessionDetail && currentRouteBase !in setOf(Routes.COURSES, Routes.LIVE_SESSIONS_ROOT)) {
+            navigateFeatureRoot(Routes.COURSES)
+            navController.navigate(route) { launchSingleTop = true; restoreState = true }
+        } else if (isSyllabusDetail && currentRouteBase != Routes.STUDY_PLANNER && !currentRouteBase.startsWith("syllabus/")) {
+            navigateFeatureRoot(Routes.STUDY_PLANNER)
+            navController.navigate(route) { launchSingleTop = true; restoreState = true }
+        } else if (needsFocusShieldParent && currentRouteBase !in setOf(Routes.FOCUS_SHIELD, Routes.EKAGRA)) {
+            navigateFeatureRoot(Routes.FOCUS_SHIELD)
+            navController.navigate(route) { launchSingleTop = true; restoreState = true }
+        } else if (needsDashboardParent && currentRouteBase != Routes.DASHBOARD) {
+            navigateFeatureRoot(Routes.DASHBOARD)
+            navController.navigate(route) { launchSingleTop = true; restoreState = true }
+        } else if (keepKavachInsideEkagra) {
             navController.navigate(route) {
-                // Feature roots never inherit prior feature history. Detail screens
-                // intentionally use the branch below so their Back path stays local.
-                popUpTo(Routes.HOME) { inclusive = false }
                 launchSingleTop = true
-                restoreState = false
+                restoreState = true
             }
+        } else if (routeBase in featureRootRoutes) {
+            // Feature roots never inherit prior feature history. Detail screens
+            // intentionally use the branch below so their Back path stays local.
+            navigateFeatureRoot(route)
         } else {
             navController.navigate(route) { launchSingleTop = true; restoreState = true }
         }
@@ -134,7 +163,7 @@ fun SafarNavGraph(
             // Only navigate to Ekagra if the user is still logged in — prevents
             // a tap on a stale PiP window from bypassing the AUTH screen after logout
             if (isLoggedIn != false && currentRoute != Routes.EKAGRA) {
-                navController.navigate(Routes.EKAGRA) { launchSingleTop = true; restoreState = true }
+                navigate(Routes.EKAGRA)
             }
             activity?.resetNavigateToEkagra() // always reset, even if we skipped navigation
         }
@@ -145,7 +174,7 @@ fun SafarNavGraph(
         val route = notificationRoute ?: return@LaunchedEffect
         if (isLoggedIn != true) return@LaunchedEffect
         if (currentRoute != route) {
-            navController.navigate(route) { launchSingleTop = true; restoreState = true }
+            navigate(route)
         }
         activity.resetNotificationRoute()
     }
@@ -257,7 +286,12 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.STUDY_PLANNER) {
+        composable(
+            route = Routes.STUDY_PLANNER_ROUTE,
+            arguments = listOf(
+                navArgument("planId") { type = NavType.StringType; nullable = true; defaultValue = null }
+            )
+        ) {
             StudyPlannerScreen(
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
@@ -274,7 +308,7 @@ fun SafarNavGraph(
             popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
             popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
         ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER) }
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
             val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
             val planId = entry.arguments?.getString("planId") ?: ""
             
@@ -289,7 +323,7 @@ fun SafarNavGraph(
                 onPlannerSectionSelect = { section ->
                     viewModel.setSection(section)
                     if (section != com.safarparmar.app.domain.model.studyplanner.PlannerSection.SYLLABUS) {
-                        navController.popBackStack(Routes.STUDY_PLANNER, false)
+                        navController.popBackStack(Routes.STUDY_PLANNER_ROUTE, false)
                     }
                 },
             )
@@ -302,7 +336,7 @@ fun SafarNavGraph(
             popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
             popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
         ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER) }
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
             val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
             val planId = entry.arguments?.getString("planId") ?: ""
             val subjectId = entry.arguments?.getString("subjectId") ?: ""
@@ -323,7 +357,7 @@ fun SafarNavGraph(
             popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
             popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
         ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER) }
+            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
             val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
             val planId = entry.arguments?.getString("planId") ?: ""
             val subjectId = entry.arguments?.getString("subjectId") ?: ""
@@ -370,6 +404,7 @@ fun SafarNavGraph(
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
+                onBack = { navController.popBackStack() },
                 onToggleDarkTheme = onToggleDarkTheme,
             )
         }
@@ -424,7 +459,12 @@ fun SafarNavGraph(
             val parentEntry = remember(currentEntry) { navController.getBackStackEntry(Routes.DASHBOARD) }
             val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(parentEntry)
             val uiState by dashVm.uiState.collectAsStateWithLifecycle()
-            AchievementsScreen(achievements = uiState.allAchievements, onBack = { navController.popBackStack() })
+            AchievementsScreen(
+                achievements = uiState.allAchievements,
+                selectedAchievementId = uiState.activeTitleId,
+                onSelectAchievement = dashVm::selectAchievement,
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(Routes.PROFILE) {

@@ -35,4 +35,7 @@ interface HomeApi {
     @POST("analytics/monthly-report/generate") suspend fun generateMonthlyReport(@Body request: GenerateReportRequest): Response<MonthlyReportDto>
     @GET("achievements/active-title") suspend fun getActiveTitle(): Response<ActiveTitleDto>
     @GET("achievements/all") suspend fun getAchievements(): Response<AchievementsResponse>
+    @POST("achievements/select") suspend fun selectAchievement(@Body request: SelectAchievementRequest): Response<ActiveTitleDto>
+    @POST("achievements/dhyan-session") suspend fun trackDhyanSession(@Body request: TrackDhyanSessionRequest): Response<BasicMessageResponse>
+    @POST("achievements/kavach-event") suspend fun trackKavachEvent(@Body request: TrackKavachEventRequest): Response<BasicMessageResponse>
 }

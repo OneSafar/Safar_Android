@@ -40,6 +40,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -49,7 +50,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -73,13 +73,13 @@ import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.PlannerActions
+import com.safarparmar.app.ui.studyplanner.StudyPlannerOnboardingSteps
 import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
 import com.safarparmar.app.ui.studyplanner.logic.rollup
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
-import com.safarparmar.app.ui.studyplanner.screens.PlannerTopicDetailSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -96,6 +96,7 @@ fun PlanTabScreen(
     plan: StudyPlan,
     actions: PlannerActions,
     onNavigate: (String) -> Unit,
+    onboardingCompletedSteps: Set<String> = emptySet(),
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
@@ -125,6 +126,14 @@ fun PlanTabScreen(
     val completedTopics = remember(refs) {
         refs.filter { it.topic.status == TopicStatus.DONE }
     }
+    val hasDate = !plan.examDate.isNullOrBlank()
+    val hasTopics = refs.isNotEmpty()
+    val hasSchedule = refs.any { !it.topic.plannedDate.isNullOrBlank() } ||
+        StudyPlannerOnboardingSteps.BUILD_SCHEDULE in onboardingCompletedSteps
+    val hasReviewedCalendar = StudyPlannerOnboardingSteps.REVIEW_CALENDAR in onboardingCompletedSteps
+    val hasCompletedFirstTopic = completedTopics.isNotEmpty() ||
+        StudyPlannerOnboardingSteps.FIRST_TOPIC_DONE in onboardingCompletedSteps
+    val showSetupGuide = !(hasDate && hasTopics && hasSchedule && hasReviewedCalendar && hasCompletedFirstTopic)
     
     val progress = remember(plan.id, plan.subjects) { plan.rollup() }
 
@@ -152,8 +161,7 @@ fun PlanTabScreen(
 
     var showSettings by remember(plan.id) { mutableStateOf(false) }
     var resetConfirm by remember { mutableStateOf(false) }
-    var selectedTopic by remember { mutableStateOf<TopicRef?>(null) }
-    var topicSheetNonce by remember(plan.id) { mutableIntStateOf(0) }
+    var completionPromptTopic by remember { mutableStateOf<TopicRef?>(null) }
 
     fun exportPlan() {
         exportLauncher.launch("${plan.title.replace(" ", "_")}_Syllabus.pdf")
@@ -182,13 +190,51 @@ fun PlanTabScreen(
         )
     }
 
-    selectedTopic?.let { ref ->
-        PlannerTopicDetailSheet(
-            ref = ref,
-            openNonce = topicSheetNonce,
-            actions = actions,
-            onDismiss = { selectedTopic = null },
+    completionPromptTopic?.let { ref ->
+        AlertDialog(
+            onDismissRequest = { completionPromptTopic = null },
+            title = { Text("Mark this topic as?") },
+            text = {
+                Text(
+                    text = ref.topic.name,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = {
+                            actions.updateTopic(ref.topic.id, status = TopicStatus.REVISION_NEEDED)
+                            completionPromptTopic = null
+                        },
+                    ) {
+                        Text("To Revise")
+                    }
+                    Button(
+                        onClick = {
+                            actions.updateTopic(ref.topic.id, status = TopicStatus.DONE)
+                            completionPromptTopic = null
+                        },
+                    ) {
+                        Text("Done")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { completionPromptTopic = null }) {
+                    Text("Cancel")
+                }
+            },
         )
+    }
+
+    fun handleTopicDoneCheck(ref: TopicRef, checked: Boolean) {
+        if (checked && ref.topic.status != TopicStatus.DONE) {
+            completionPromptTopic = ref
+        } else if (!checked && ref.topic.status == TopicStatus.DONE) {
+            actions.updateTopic(ref.topic.id, status = TopicStatus.TODO)
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -222,183 +268,170 @@ fun PlanTabScreen(
                 PlanActionRow(
                     onAddTopics = { onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", plan.id)) },
                     onSchedule = { actions.autoDistribute(false, true) },
+                    showSchedule = false,
                 )
+            }
+
+            if (showSetupGuide) {
+                item(key = "setupGuide", contentType = "setupGuide") {
+                    PlanSetupBanner(
+                        plan = plan,
+                        actions = actions,
+                        completedSteps = onboardingCompletedSteps,
+                        onEditPlanDetails = { showSettings = true },
+                    )
+                }
             }
 
             // Tab Content Items
             when (activeTab) {
                 StudyPlannerTab.TODAY -> {
                     val remainingToday = todayTopics.filter { it.topic.status != TopicStatus.DONE }
-                    
-                    if (todayTopics.isEmpty() || remainingToday.isEmpty()) {
-                        // All completed or empty Today queue -> display Congratulations Banner + Bonus Topics
-                        item(key = "today_empty_celebrate") {
-                            val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+                    val todayCompleted = todayTopics.isNotEmpty() && remainingToday.isEmpty()
+
+                    if (todayTopics.isEmpty()) {
+                        item(key = "today_empty") {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            brush = Brush.horizontalGradient(
-                                                colors = if (isDark) {
-                                                    listOf(Color(0xFF14532D), Color(0xFF064E3B))
-                                                } else {
-                                                    listOf(Color(0xFFDCFCE7), Color(0xFFA7F3D0))
-                                                }
-                                            ),
-                                            shape = MaterialTheme.shapes.large
-                                        )
-                                        .padding(20.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(54.dp)
-                                            .background(
-                                                color = if (isDark) Color(0xFF15803D) else Color(0xFF4ADE80),
-                                                shape = CircleShape
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("🎉", fontSize = 24.sp)
-                                    }
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Text(
-                                            text = "Today's Queue Conquered!",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Black,
-                                            color = if (isDark) Color.White else Color(0xFF064E3B),
-                                        )
-                                        Text(
-                                            text = "Superb job! You've finished all your planned tasks for today. Want to get ahead? Try some bonus topics below!",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF047857),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Get first 5 overdue or upcoming topics to show as bonus options
-                        val bonusTopics = (overdueTopics + upcomingTopics).take(5)
-                        if (bonusTopics.isNotEmpty()) {
-                            item(key = "bonus_header") {
-                                PlanSectionHeader(title = "Bonus Tasks to Get Ahead", trailing = "${bonusTopics.size} suggested")
-                            }
-                            items(
-                                items = bonusTopics,
-                                key = { ref -> "bonus_${ref.topic.id}" },
-                                contentType = { "bonusTopic" }
-                            ) { ref ->
-                                PlannerTaskRow(
-                                    ref = ref,
-                                    accent = PlanTaskRowAccent.Planned,
-                                    onClick = {
-                                        topicSheetNonce += 1
-                                        selectedTopic = ref
-                                    },
-                                    onDoneChange = { done ->
-                                        actions.updateTopic(ref.topic.id, status = if (done) TopicStatus.DONE else TopicStatus.TODO)
-                                    }
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                 )
-                            }
-                        } else {
-                            item(key = "bonus_empty") {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = MaterialTheme.shapes.large,
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                    )
-                                ) {
-                                    Text(
-                                        text = "All caught up! Excellent studying consistency. Go to the Syllabus to structure and schedule more topics.",
-                                        modifier = Modifier.padding(16.dp),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                            ) {
+                                Text(
+                                    text = "No topics planned for today. Add topics or review upcoming tasks.",
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     } else {
-                        // Start Focus Flow Hero Card
-                        item(key = "today_flow_hero") {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                            ) {
+                        if (todayCompleted) {
+                            item(key = "today_conquered") {
                                 val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            brush = Brush.linearGradient(
-                                                colors = if (isDark) {
-                                                    listOf(Color(0xFF311042), Color(0xFF1E1B4B))
-                                                } else {
-                                                    listOf(Color(0xFFF3E8FF), Color(0xFFD8B4FE))
-                                                }
-                                            )
-                                        )
-                                        .padding(20.dp)
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.large,
+                                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                                 ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                brush = Brush.horizontalGradient(
+                                                    colors = if (isDark) {
+                                                        listOf(Color(0xFF14532D), Color(0xFF064E3B))
+                                                    } else {
+                                                        listOf(Color(0xFFDCFCE7), Color(0xFFA7F3D0))
+                                                    }
+                                                ),
+                                                shape = MaterialTheme.shapes.large
+                                            )
+                                            .padding(20.dp),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                                     ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(54.dp)
+                                                .background(
+                                                    color = if (isDark) Color(0xFF15803D) else Color(0xFF4ADE80),
+                                                    shape = CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("🎉", fontSize = 24.sp)
+                                        }
                                         Column(
                                             modifier = Modifier.weight(1f),
                                             verticalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Text(
-                                                text = "Start Studying",
+                                                text = "Today's Queue Conquered!",
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Black,
-                                                color = if (isDark) Color.White else Color(0xFF581C87)
+                                                color = if (isDark) Color.White else Color(0xFF064E3B),
                                             )
                                             Text(
-                                                text = "Enter distraction-free Flow Mode to complete your tasks one by one.",
+                                                text = "Nice. Your completed tasks stay below so the checkmarks feel visible and satisfying.",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = if (isDark) Color.White.copy(alpha = 0.8f) else Color(0xFF6B21A8)
+                                                color = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF047857),
                                             )
-                                            Spacer(Modifier.height(8.dp))
-                                            Button(
-                                                onClick = { isFlowModeActive = true },
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = if (isDark) Color(0xFFA855F7) else Color(0xFF7E22CE),
-                                                    contentColor = Color.White
-                                                ),
-                                                shape = ButtonDefaults.shape,
-                                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                                            ) {
-                                                Icon(Icons.Default.Adjust, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                Spacer(Modifier.width(6.dp))
-                                                Text(
-                                                    text = "Start Study Flow (${remainingToday.size} left)",
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp
-                                                )
-                                            }
                                         }
-                                        Text("⚡", fontSize = 44.sp)
+                                    }
+                                }
+                            }
+                        } else {
+                            item(key = "today_flow_hero") {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.large,
+                                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                ) {
+                                    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                brush = Brush.linearGradient(
+                                                    colors = if (isDark) {
+                                                        listOf(Color(0xFF311042), Color(0xFF1E1B4B))
+                                                    } else {
+                                                        listOf(Color(0xFFF3E8FF), Color(0xFFD8B4FE))
+                                                    }
+                                                )
+                                            )
+                                            .padding(20.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.weight(1f),
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Start Studying",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = if (isDark) Color.White else Color(0xFF581C87)
+                                                )
+                                                Text(
+                                                    text = "Enter distraction-free Flow Mode to complete your tasks one by one.",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = if (isDark) Color.White.copy(alpha = 0.8f) else Color(0xFF6B21A8)
+                                                )
+                                                Spacer(Modifier.height(8.dp))
+                                                Button(
+                                                    onClick = { isFlowModeActive = true },
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = if (isDark) Color(0xFFA855F7) else Color(0xFF7E22CE),
+                                                        contentColor = Color.White
+                                                    ),
+                                                    shape = ButtonDefaults.shape,
+                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Adjust, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                    Spacer(Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "Start Study Flow (${remainingToday.size} left)",
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp
+                                                    )
+                                                }
+                                            }
+                                            Text("⚡", fontSize = 44.sp)
+                                        }
                                     }
                                 }
                             }
                         }
 
-                        // List of today's topics (limit to 10)
                         item(key = "today_list_header") {
                             PlanSectionHeader(title = "Today's Agenda", trailing = "${todayTopics.size} planned")
                         }
@@ -410,14 +443,32 @@ fun PlanTabScreen(
                             PlannerTaskRow(
                                 ref = ref,
                                 accent = if (ref.topic.status == TopicStatus.DONE) PlanTaskRowAccent.Done else PlanTaskRowAccent.Planned,
-                                onClick = {
-                                    topicSheetNonce += 1
-                                    selectedTopic = ref
-                                },
                                 onDoneChange = { done ->
-                                    actions.updateTopic(ref.topic.id, status = if (done) TopicStatus.DONE else TopicStatus.TODO)
+                                    handleTopicDoneCheck(ref, done)
                                 }
                             )
+                        }
+
+                        if (todayCompleted) {
+                            val bonusTopics = (overdueTopics + upcomingTopics).take(5)
+                            if (bonusTopics.isNotEmpty()) {
+                                item(key = "bonus_header") {
+                                    PlanSectionHeader(title = "Bonus Tasks to Get Ahead", trailing = "${bonusTopics.size} suggested")
+                                }
+                                items(
+                                    items = bonusTopics,
+                                    key = { ref -> "bonus_${ref.topic.id}" },
+                                    contentType = { "bonusTopic" }
+                                ) { ref ->
+                                    PlannerTaskRow(
+                                        ref = ref,
+                                        accent = PlanTaskRowAccent.Planned,
+                                        onDoneChange = { done ->
+                                            handleTopicDoneCheck(ref, done)
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -465,12 +516,8 @@ fun PlanTabScreen(
                             PlannerTaskRow(
                                 ref = ref,
                                 accent = PlanTaskRowAccent.Overdue,
-                                onClick = {
-                                    topicSheetNonce += 1
-                                    selectedTopic = ref
-                                },
                                 onDoneChange = { done ->
-                                    actions.updateTopic(ref.topic.id, status = if (done) TopicStatus.DONE else TopicStatus.TODO)
+                                    handleTopicDoneCheck(ref, done)
                                 }
                             )
                         }
@@ -537,15 +584,8 @@ fun PlanTabScreen(
                                             PlannerTaskRow(
                                                 ref = ref,
                                                 accent = PlanTaskRowAccent.Planned,
-                                                onClick = {
-                                                    topicSheetNonce += 1
-                                                    selectedTopic = ref
-                                                },
                                                 onDoneChange = { done ->
-                                                    actions.updateTopic(
-                                                        ref.topic.id,
-                                                        status = if (done) TopicStatus.DONE else TopicStatus.TODO,
-                                                    )
+                                                    handleTopicDoneCheck(ref, done)
                                                 },
                                             )
                                         }
@@ -599,12 +639,8 @@ fun PlanTabScreen(
                             PlannerTaskRow(
                                 ref = ref,
                                 accent = PlanTaskRowAccent.Done,
-                                onClick = {
-                                    topicSheetNonce += 1
-                                    selectedTopic = ref
-                                },
                                 onDoneChange = { done ->
-                                    actions.updateTopic(ref.topic.id, status = if (done) TopicStatus.DONE else TopicStatus.TODO)
+                                    handleTopicDoneCheck(ref, done)
                                 }
                             )
                         }
@@ -797,15 +833,6 @@ fun PlanTabScreen(
                                 Text("Mark as Completed", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                             }
 
-                            TextButton(
-                                onClick = {
-                                    topicSheetNonce += 1
-                                    selectedTopic = activeTopic
-                                },
-                                colors = ButtonDefaults.textButtonColors(contentColor = Color.White.copy(alpha = 0.7f))
-                            ) {
-                                Text("View Topic Details", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            }
                         }
                     }
                 } else {
@@ -850,4 +877,3 @@ fun PlanTabScreen(
         }
     }
 }
-

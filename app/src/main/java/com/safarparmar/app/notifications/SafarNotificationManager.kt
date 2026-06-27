@@ -165,6 +165,8 @@ class SafarNotificationManager(
         const val STUDY_REMINDER = "study_reminder"
         const val MORNING_NUDGE = "morning_nudge"
         const val PLANNER_ALERT = "planner_alert"
+        /** Matches the `type` field sent by the backend FCM scheduler for spaced revision reminders. */
+        const val PLANNER_REVISION_REMINDER = "planner_revision_reminder"
     }
 
     suspend fun show(

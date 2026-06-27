@@ -24,6 +24,7 @@ fun FocusShieldStandaloneScreen(
     currentRoute: String = Routes.FOCUS_SHIELD,
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
+    onBack: () -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
     viewModel: FocusShieldViewModel = hiltViewModel(),
 ) {
@@ -37,7 +38,7 @@ fun FocusShieldStandaloneScreen(
     if (needsRequiredPermissions) {
         KavachOnboardingScreen(
             onFinished = {},
-            onBack = { onNavigate(Routes.EKAGRA) },
+            onBack = onBack,
             viewModel = viewModel,
         )
         return
@@ -74,7 +75,7 @@ fun FocusShieldStandaloneScreen(
             onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },
             onOpenAccessibilitySettings = viewModel::openAccessibilitySettings,
             onRefreshPermissions = viewModel::refreshPermissions,
-            onMaybeLater = { onNavigate(Routes.EKAGRA) },
+            onMaybeLater = onBack,
             modifier = Modifier.padding(top = padding.calculateTopPadding()),
         )
     }

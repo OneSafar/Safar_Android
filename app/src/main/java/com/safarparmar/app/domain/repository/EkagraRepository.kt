@@ -18,6 +18,7 @@ interface EkagraRepository {
         goalTitle: String? = null,
         taskTitle: String? = null,
         markGoalComplete: Boolean = false,
+        shieldEnabled: Boolean = false,
     ): Resource<EkagraSession>
     suspend fun deleteSession(sessionId: String): Resource<Unit>
 }

@@ -59,6 +59,8 @@ data class SaveEkagraSessionRequest(
     val taskTitle: String? = null,
     val source: String? = "android",
     val markGoalComplete: Boolean = false,
+    val kavachEnabled: Boolean = false,
+    val shieldEnabled: Boolean = false,
 )
 
 data class SaveEkagraSessionResponse(

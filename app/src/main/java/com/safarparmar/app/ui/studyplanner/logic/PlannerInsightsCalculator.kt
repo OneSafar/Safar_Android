@@ -96,7 +96,7 @@ object PlannerInsightsCalculator {
         val workload = buildWorkload(calendar, todayIso)
 
         val completedByDate = completedTopicsByDate(refs)
-        val consistency = buildConsistency(completedByDate, analytics?.heatmap, todayIso)
+        val consistency = buildConsistency(completedByDate, analytics?.heatmap, todayIso, calendar)
 
         val subjectRows = plan.subjects.map { sub ->
             val stTopics = sub.chapters.flatMap { it.topics }
@@ -240,11 +240,12 @@ object PlannerInsightsCalculator {
         completedByDate: Map<String, Int>,
         apiHeatmap: List<HeatmapPoint>?,
         todayIso: String,
+        calendar: Map<String, List<CalendarTopicItem>>,
     ): PlannerInsightConsistency {
+        val today = LocalDate.parse(todayIso)
         val heatmapCells = if (!apiHeatmap.isNullOrEmpty()) {
             apiHeatmap.map { HeatmapCell(it.date, it.count) }
         } else {
-            val today = LocalDate.parse(todayIso)
             (0 until 30).map { i ->
                 val d = today.minusDays((29 - i).toLong())
                 val k = d.toString()
@@ -267,12 +268,26 @@ object PlannerInsightsCalculator {
 
         val streak = computeStreak(completedByDate, todayIso)
 
+        val pastDays = calendar.keys
+            .filter { it < todayIso }
+            .sortedDescending()
+            .map { key ->
+                val items = calendar[key].orEmpty()
+                PlannerInsightDayLoad(
+                    date = key,
+                    plannedCount = items.size,
+                    doneCount = items.count { it.status == TopicStatus.DONE }
+                )
+            }
+        val missedDays = pastDays.filter { it.plannedCount > 0 && it.doneCount < it.plannedCount }
+
         return PlannerInsightConsistency(
             studyStreak = streak,
             activeDaysLast14 = activeLast14,
             activeDaysLast30 = activeLast30,
             bestStudyWeekday = if (weekdayTotals.sum() > 0) bestLabel else "No recent study",
             heatmap = heatmapCells.takeLast(14),
+            missedDays = missedDays,
         )
     }
 

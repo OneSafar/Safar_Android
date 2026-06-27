@@ -426,6 +426,7 @@ private fun KavachRegainExplanationSheet(
             "We do not read your private messages or screen content.",
             "We only monitor when you open an app you chose to block.",
             "This enables the full-screen shield overlay.",
+            "If you installed SAFAR from APK and cannot see the toggle, open SAFAR App Info, tap the top-right menu, and allow restricted settings.",
         )
         PermissionTarget.NOTIFICATIONS -> listOf(
             "Receive alerts when the Ekagra timer finishes.",

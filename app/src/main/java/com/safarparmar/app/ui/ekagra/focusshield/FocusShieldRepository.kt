@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.os.SystemClock
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.domain.repository.HomeRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 @Singleton
 class FocusShieldRepository @Inject constructor(
     private val dataStore: SafarDataStore,
+    private val homeRepository: HomeRepository,
     @ApplicationContext private val appContext: Context,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -156,7 +158,12 @@ class FocusShieldRepository @Inject constructor(
     }
 
     fun setEnabled(enabled: Boolean) {
-        scope.launch { dataStore.setFocusShieldEnabled(enabled) }
+        scope.launch {
+            dataStore.setFocusShieldEnabled(enabled)
+            if (enabled && blockedPackages.value.isNotEmpty()) {
+                homeRepository.trackKavachEvent("enabled", blockedPackages.value.size)
+            }
+        }
     }
 
     fun setStrictMode(enabled: Boolean) {
@@ -168,7 +175,12 @@ class FocusShieldRepository @Inject constructor(
     }
 
     fun setBlockedPackages(packages: Set<String>) {
-        scope.launch { dataStore.setFocusShieldBlockedPackages(packages) }
+        scope.launch {
+            dataStore.setFocusShieldBlockedPackages(packages)
+            if (isEnabled.value && packages.isNotEmpty()) {
+                homeRepository.trackKavachEvent("configured", packages.size)
+            }
+        }
     }
 
     private fun debugLog(message: String) {

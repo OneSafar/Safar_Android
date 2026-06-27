@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.dhyan
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.StatCardSkeleton
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
@@ -43,7 +44,15 @@ fun DhyanCoursesScreen(
     initialTab: CoursesHubTab = CoursesHubTab.COURSES,
     liveCourseId: String = "",
 ) {
-    var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
+    val tabBackStack = rememberFeatureTabBackStack(
+        initialTab = initialTab,
+        rootTab = CoursesHubTab.COURSES,
+    )
+    val selectedTab = tabBackStack.currentTab
+
+    BackHandler(enabled = tabBackStack.hasHistory) {
+        tabBackStack.goBack()
+    }
 
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
         SafarDrawerScaffold(
@@ -60,7 +69,7 @@ fun DhyanCoursesScreen(
                         CoursesHubTab.entries.forEach { tab ->
                             Tab(
                                 selected = selectedTab == tab,
-                                onClick = { selectedTab = tab },
+                                onClick = { tabBackStack.select(tab) },
                                 text = { Text(tab.label) },
                             )
                         }
@@ -71,7 +80,7 @@ fun DhyanCoursesScreen(
                             CoursesHubTab.COURSES -> CoursesTabContent()
                             CoursesHubTab.LIVE_CLASSES -> LiveSessionsScreen(
                                 courseId = liveCourseId,
-                                onBack = {},
+                                onBack = { tabBackStack.goBack() },
                                 onOpenSession = { sessionId -> onNavigate(Routes.liveSession(sessionId)) },
                                 showTopBar = false,
                             )

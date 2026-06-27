@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.nishtha
 
+import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
@@ -16,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safarparmar.app.R
 import com.safarparmar.app.ui.butterfly.ButterflyTourState
+import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.analytics.NishthaAnalyticsScreen
@@ -44,9 +47,27 @@ fun NishthaScreen(
     analyticsInitialSection: String = "overview",
     viewModel: NishthaViewModel = hiltViewModel(),
 ) {
-    var selectedTab by remember { mutableStateOf(NishthaTab.entries.getOrElse(initialTab) { NishthaTab.CHECK_IN }) }
+    val initialNishthaTab = NishthaTab.entries.getOrElse(initialTab) { NishthaTab.CHECK_IN }
+    val tabBackStack = rememberFeatureTabBackStack(
+        initialTab = initialNishthaTab,
+        rootTab = NishthaTab.CHECK_IN,
+    )
+    val selectedTab = tabBackStack.currentTab
     var journalOpenCount by remember { mutableStateOf(0) }
     var tourState by remember { mutableStateOf<ButterflyTourState?>(null) }
+    var analyticsSection by remember { mutableStateOf(analyticsInitialSection) }
+    val nishthaNavigate: (String) -> Unit = { route ->
+        if (route.substringBefore("?") == Routes.NISHTHA_ANALYTICS) {
+            analyticsSection = Uri.decode(route.substringAfter("section=", "overview"))
+            tabBackStack.select(NishthaTab.ANALYTICS)
+        } else {
+            onNavigate(route)
+        }
+    }
+
+    BackHandler(enabled = tabBackStack.hasHistory) {
+        tabBackStack.goBack()
+    }
 
     SafarDrawerScaffold(
         title = stringResource(R.string.module_nishtha),
@@ -79,7 +100,7 @@ fun NishthaScreen(
                                 selected = selectedTab == tab,
                                 onClick = {
                                     if (tab == NishthaTab.JOURNAL) journalOpenCount++
-                                    selectedTab = tab
+                                    tabBackStack.select(tab)
                                 },
                                 icon = { Icon(tab.icon, contentDescription = stringResource(tab.labelRes)) },
                                 label = {
@@ -112,9 +133,9 @@ fun NishthaScreen(
                     when (selectedTab) {
                         NishthaTab.CHECK_IN  -> CheckInScreen()
                         NishthaTab.JOURNAL   -> JournalScreen(openSheetOnLoad = journalOpenCount > 0)
-                        NishthaTab.GOALS     -> GoalsScreen(onNavigate = onNavigate)
+                        NishthaTab.GOALS     -> GoalsScreen(onNavigate = nishthaNavigate)
                         NishthaTab.STREAKS   -> StreaksScreen()
-                        NishthaTab.ANALYTICS -> NishthaAnalyticsScreen(onNavigate = onNavigate, initialSection = analyticsInitialSection)
+                        NishthaTab.ANALYTICS -> NishthaAnalyticsScreen(onNavigate = nishthaNavigate, initialSection = analyticsSection)
                     }
                 }
             }

@@ -988,19 +988,22 @@ private fun KavachSwitch(
     onCheckedChange: (Boolean) -> Unit,
     enabled: Boolean = true,
 ) {
+    val scheme = MaterialTheme.colorScheme
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         enabled = enabled,
         colors = SwitchDefaults.colors(
-            checkedThumbColor = Color.White,
-            checkedTrackColor = KavachDesign.Primary,
-            uncheckedThumbColor = Color.White,
-            uncheckedTrackColor = Color(0xFFCBD5E1),
-            disabledCheckedThumbColor = Color.White.copy(alpha = 0.7f),
-            disabledUncheckedThumbColor = Color.White.copy(alpha = 0.7f),
-            disabledCheckedTrackColor = KavachDesign.Primary.copy(alpha = 0.4f),
-            disabledUncheckedTrackColor = Color(0xFFCBD5E1).copy(alpha = 0.5f),
+            checkedThumbColor = scheme.onPrimary,
+            checkedTrackColor = scheme.primary,
+            uncheckedThumbColor = scheme.outline,
+            uncheckedTrackColor = scheme.surfaceVariant,
+            uncheckedBorderColor = scheme.outlineVariant,
+            disabledCheckedThumbColor = scheme.onPrimary.copy(alpha = 0.7f),
+            disabledUncheckedThumbColor = scheme.onSurfaceVariant.copy(alpha = 0.45f),
+            disabledCheckedTrackColor = scheme.primary.copy(alpha = 0.36f),
+            disabledUncheckedTrackColor = scheme.surfaceVariant.copy(alpha = 0.5f),
+            disabledUncheckedBorderColor = scheme.outlineVariant.copy(alpha = 0.5f),
         ),
     )
 }

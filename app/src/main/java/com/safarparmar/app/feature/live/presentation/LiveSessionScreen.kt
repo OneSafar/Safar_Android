@@ -613,7 +613,7 @@ private fun CompletedSessionPlayback(
                     )
                 }
 
-                items(playlistSessions, key = { it.id }) { otherSession ->
+                items(playlistSessions, key = { "playlist_${it.id}" }) { otherSession ->
                     val isCurrent = otherSession.id == session.id
                     CompletedSessionCard(
                         session = otherSession,

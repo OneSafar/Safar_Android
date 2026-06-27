@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
@@ -53,6 +54,7 @@ import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
+import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
@@ -105,7 +107,8 @@ fun EkagraScreen(
     val blockedHitCount   by focusShieldViewModel.blockedHitCount.collectAsStateWithLifecycle()
 
     // UI state
-    var selectedTab              by remember { mutableStateOf(EkagraNavTab.TIMER) }
+    val tabBackStack             = rememberFeatureTabBackStack(EkagraNavTab.TIMER)
+    val selectedTab              = tabBackStack.currentTab
     var showKavachActiveSession  by remember { mutableStateOf(false) }
     var showKavachSessionSummary by remember { mutableStateOf(false) }
     var kavachSummaryMinutes     by remember { mutableIntStateOf(0) }
@@ -116,6 +119,10 @@ fun EkagraScreen(
     var pendingEndedSession      by remember { mutableStateOf<PendingEndedEkagraSession?>(null) }
     var titleInput               by remember { mutableStateOf("") }
     var tourState                by remember { mutableStateOf<com.safarparmar.app.ui.butterfly.ButterflyTourState?>(null) }
+
+    BackHandler(enabled = tabBackStack.hasHistory) {
+        tabBackStack.goBack()
+    }
 
     var selectedTheme by remember {
         val prefs = context.getSharedPreferences("ekagra_theme_prefs", android.content.Context.MODE_PRIVATE)
@@ -135,8 +142,9 @@ fun EkagraScreen(
     // ── Helpers ─────────────────────────────────────────────────────────────────
 
     fun startTimer(mode: TimerMode, minutes: Int) {
+        val accessibilityRequired = com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
         if (mode == TimerMode.FOCUS && shieldState.isEnabled && shieldState.blockedPackages.isNotEmpty()
-            && (!shieldState.hasUsageStats || !shieldState.hasAccessibilityService)) {
+            && (!shieldState.hasUsageStats || (accessibilityRequired && !shieldState.hasAccessibilityService))) {
             onNavigate(Routes.FOCUS_SHIELD); return
         }
         requestNotificationPermission()
@@ -488,7 +496,7 @@ fun EkagraScreen(
                                 bottomBar = {
                                     EkagraBottomNav(
                                         selectedTab = selectedTab,
-                                        onSelect    = { selectedTab = it },
+                                        onSelect    = { tabBackStack.select(it) },
                                         // On timer tab the nav sits over the video scrim — use contrasting colours
                                         isOnVideo   = selectedTab == EkagraNavTab.TIMER,
                                     )

@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.tour
 
 import com.safarparmar.app.ui.butterfly.ButterflyTourStep
 import com.safarparmar.app.ui.butterfly.TooltipSide
+import androidx.compose.ui.unit.dp
 
 /** Tour steps shown on the Nishtha screen. */
 val nishthaTourSteps = listOf(
@@ -154,5 +155,122 @@ val dhyanTourSteps = listOf(
         anchorX = 0.88f, anchorY = 0.06f,
         tooltipSide = TooltipSide.BOTTOM,
         iconRes = com.safarparmar.app.R.drawable.ic_music_notes_simple
+    ),
+)
+
+/** Tour steps shown on the Study Planner screen. */
+val studyPlannerTourSteps = listOf(
+    // Step 0 (YOUR_EXAMS)
+    ButterflyTourStep(
+        title   = "Welcome to Study Planner 📚",
+        message = "This is your exam list. Open any exam to see its plan.",
+        anchorX = 0.5f, anchorY = 0.15f,
+        tooltipSide = TooltipSide.BOTTOM,
+        iconRes = com.safarparmar.app.R.drawable.ic_library
+    ),
+    // Step 1 (YOUR_EXAMS)
+    ButterflyTourStep(
+        title   = "Plan More Exams",
+        message = "Tap here to choose another exam template.",
+        anchorX = 0.88f, anchorY = 0.36f,
+        tooltipSide = TooltipSide.LEFT,
+    ),
+    // Step 2 (YOUR_EXAMS) - Custom Plan
+    ButterflyTourStep(
+        title   = "Build Your Planner",
+        message = "Tap Custom Plan if your exam is not in templates.",
+        anchorX = 0.88f, anchorY = 0.45f,
+        tooltipSide = TooltipSide.LEFT,
+    ),
+    // Step 3 (PLAN)
+    ButterflyTourStep(
+        title   = "Exam Status",
+        message = "See days left and how much syllabus is done.",
+        anchorX = 0.5f, anchorY = 0.12f,
+        tooltipSide = TooltipSide.BOTTOM,
+    ),
+    // Step 4 (PLAN)
+    ButterflyTourStep(
+        title   = "Task Tabs",
+        message = "Use these tabs to see today, overdue, upcoming, and done topics.",
+        anchorX = 0.5f, anchorY = 0.27f,
+        tooltipSide = TooltipSide.BOTTOM,
+    ),
+    // Step 5 (PLAN)
+    ButterflyTourStep(
+        title   = "Start Study Flow",
+        message = "Use Study Flow to finish today’s topics one by one.",
+        anchorX = 0.45f, anchorY = 0.48f,
+        tooltipSide = TooltipSide.TOP,
+        iconRes = com.safarparmar.app.R.drawable.ic_target
+    ),
+    // Step 6 (PLAN)
+    ButterflyTourStep(
+        title   = "Today's Agenda",
+        message = "These are today’s topics. Mark them done after studying.",
+        anchorX = 0.5f, anchorY = 0.65f,
+        tooltipSide = TooltipSide.TOP,
+    ),
+    // Step 7 (SYLLABUS)
+    ButterflyTourStep(
+        title   = "Syllabus Setup",
+        message = "Add or import your subjects, chapters, and topics here.",
+        anchorX = 0.28f, anchorY = 0.67f,
+        tooltipSide = TooltipSide.TOP,
+    ),
+    // Step 8 (SYLLABUS)
+    ButterflyTourStep(
+        title   = "Build Planner",
+        message = "After topics are ready, tap this. It creates your daily plan.",
+        anchorX = 0.74f, anchorY = 0.68f,
+        tooltipSide = TooltipSide.TOP,
+        iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
+    ),
+    // Step 9 (CALENDAR)
+    ButterflyTourStep(
+        title   = "Exam Countdown",
+        message = "This shows how many days are left for your exam.",
+        anchorX = 0.5f, anchorY = 0.19f,
+        tooltipSide = TooltipSide.BOTTOM,
+        iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
+    ),
+    // Step 10 (CALENDAR)
+    ButterflyTourStep(
+        title   = "Change Month",
+        message = "Use arrows to see your plan for other months.",
+        anchorX = 0.5f, anchorY = 0.36f,
+        tooltipSide = TooltipSide.BOTTOM,
+        iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
+    ),
+    // Step 11 (CALENDAR)
+    ButterflyTourStep(
+        title   = "Study Dots",
+        message = "Dots show study days. Tap a date to see topics.",
+        anchorX = 0.76f, anchorY = 0.66f,
+        tooltipSide = TooltipSide.TOP,
+        iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
+    ),
+    // Step 12 (CALENDAR)
+    ButterflyTourStep(
+        title   = "Calendar Legend",
+        message = "These colours show planned, done, overdue, and off days.",
+        anchorX = 0.5f, anchorY = 0.79f,
+        tooltipSide = TooltipSide.TOP,
+        iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
+    ),
+    // Step 13 (INSIGHTS)
+    ButterflyTourStep(
+        title   = "Insights",
+        message = "See where you are lagging and what to do next.",
+        anchorX = 0.5f, anchorY = 0.3f,
+        tooltipSide = TooltipSide.BOTTOM,
+        iconRes = com.safarparmar.app.R.drawable.ic_chart_bar
+    ),
+    // Step 14 (PLAN)
+    ButterflyTourStep(
+        title   = "Bottom Menu",
+        message = "Use this menu to move between Exam, Plan, Syllabus, Calendar, and Insights.",
+        anchorX = 0.5f, anchorY = 0.95f,
+        tooltipSide = TooltipSide.TOP,
     ),
 )

@@ -77,8 +77,9 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.LibraryBooks
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
@@ -129,6 +130,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -179,6 +181,7 @@ import com.safarparmar.app.data.remote.api.StructuredChapter
 import com.safarparmar.app.data.remote.api.StructuredSubject
 import com.safarparmar.app.data.remote.api.StructuredSyllabusPreview
 import com.safarparmar.app.data.remote.api.SyllabusStats
+import com.safarparmar.app.domain.model.Achievement
 import com.safarparmar.app.domain.model.studyplanner.CalendarMap
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.CalendarTopicItem
@@ -211,6 +214,9 @@ import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.plan.PlanTabScreen
+import com.safarparmar.app.ui.butterfly.ButterflyTourState
+import com.safarparmar.app.ui.tour.TourManager
+import com.safarparmar.app.ui.tour.studyPlannerTourSteps
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -273,6 +279,39 @@ private data class PlannerTemplateOption(
     val endColor: Color,
 )
 
+private data class PlannerCapacityWarning(
+    val topicCount: Int,
+    val studyDays: Int,
+    val dailyGoal: Int,
+    val requiredPerDay: Int,
+)
+
+private fun countStudyDaysUntilExam(examDateIso: String, offDays: Set<Int>): Int {
+    val examDate = runCatching { LocalDate.parse(examDateIso.take(10)) }.getOrNull() ?: return 0
+    var cursor = LocalDate.now()
+    var count = 0
+    while (cursor.isBefore(examDate)) {
+        if (cursor.dayOfWeek.value % 7 !in offDays) count += 1
+        cursor = cursor.plusDays(1)
+    }
+    return count
+}
+
+private fun buildPlannerCapacityWarning(
+    topicCount: Int,
+    examDateIso: String,
+    dailyGoal: Int,
+    offDays: Set<Int>,
+): PlannerCapacityWarning? {
+    if (topicCount <= 0 || examDateIso.isBlank()) return null
+    val studyDays = countStudyDaysUntilExam(examDateIso, offDays)
+    if (studyDays <= 0) return null
+    val goal = dailyGoal.coerceAtLeast(1)
+    val requiredPerDay = kotlin.math.ceil(topicCount.toDouble() / studyDays.toDouble()).toInt()
+    if (requiredPerDay <= goal) return null
+    return PlannerCapacityWarning(topicCount, studyDays, goal, requiredPerDay)
+}
+
 private val plannerTemplateOptions = listOf(
     PlannerTemplateOption("ssc-cgl-tier1", "SSC CGL Tier-1", "SSC", "GOVT EXAM", "Combined Graduate Level Examination Tier-1 — 100 questions, 200 marks, 60 minutes", 233, 4, Color(0xFF233B6E), Color(0xFF345895)),
     PlannerTemplateOption("railway-ntpc", "Railway NTPC CBT-1", "RRB", "GOVT EXAM", "Non-Technical Popular Categories CBT-1 — 100 questions, 100 marks, 90 minutes", 148, 4, Color(0xFF664014), Color(0xFF9A681E)),
@@ -312,6 +351,8 @@ private data class StudyPlannerDetailState(
     val structuredImportError: String? = null,
     val structuredImportSuccessMessage: String? = null,
     val hydrateWarning: String? = null,
+    val onboardingCompletedSteps: Set<String> = emptySet(),
+    val plannerAchievements: List<Achievement> = emptyList(),
 )
 
 @Immutable
@@ -332,6 +373,17 @@ fun StudyPlannerScreen(
 ) {
     val premiumViewModel: com.safarparmar.app.ui.premium.PremiumViewModel = hiltViewModel()
     val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
+    val initialChromeState = remember(viewModel) {
+        val state = viewModel.uiState.value
+        StudyPlannerChromeState(
+            selectedPlan = state.selectedPlan,
+            section = state.section,
+            loading = state.loading,
+            mutating = state.mutating,
+            error = state.error,
+            message = state.message,
+        )
+    }
     val chromeState by remember(viewModel) {
         viewModel.uiState
             .map { state ->
@@ -345,7 +397,15 @@ fun StudyPlannerScreen(
                 )
             }
             .distinctUntilChanged()
-    }.collectAsStateWithLifecycle(StudyPlannerChromeState())
+    }.collectAsStateWithLifecycle(initialChromeState)
+    val initialPlansState = remember(viewModel) {
+        val state = viewModel.uiState.value
+        StudyPlansListState(
+            plans = state.plans,
+            templates = state.templates,
+            loading = state.loading,
+        )
+    }
     val plansState by remember(viewModel) {
         viewModel.uiState
             .map { state ->
@@ -356,7 +416,28 @@ fun StudyPlannerScreen(
                 )
             }
             .distinctUntilChanged()
-    }.collectAsStateWithLifecycle(StudyPlansListState())
+    }.collectAsStateWithLifecycle(initialPlansState)
+    val initialDetailState = remember(viewModel) {
+        val state = viewModel.uiState.value
+        StudyPlannerDetailState(
+            calendar = state.calendar,
+            analytics = state.analytics,
+            isImporting = state.isImporting,
+            importStatus = state.importStatus,
+            importError = state.importError,
+            importResultSummary = state.importResultSummary,
+            rawSyllabusText = state.rawSyllabusText,
+            isStructuringSyllabus = state.isStructuringSyllabus,
+            structureError = state.structureError,
+            structuredPreview = state.structuredPreview,
+            isImportingStructuredSyllabus = state.isImportingStructuredSyllabus,
+            structuredImportError = state.structuredImportError,
+            structuredImportSuccessMessage = state.structuredImportSuccessMessage,
+            hydrateWarning = state.hydrateWarning,
+            onboardingCompletedSteps = state.onboardingCompletedSteps,
+            plannerAchievements = state.plannerAchievements,
+        )
+    }
     val detailState by remember(viewModel) {
         viewModel.uiState
             .map { state ->
@@ -375,12 +456,15 @@ fun StudyPlannerScreen(
                     structuredImportError = state.structuredImportError,
                     structuredImportSuccessMessage = state.structuredImportSuccessMessage,
                     hydrateWarning = state.hydrateWarning,
+                    onboardingCompletedSteps = state.onboardingCompletedSteps,
+                    plannerAchievements = state.plannerAchievements,
                 )
             }
             .distinctUntilChanged()
-    }.collectAsStateWithLifecycle(StudyPlannerDetailState())
+    }.collectAsStateWithLifecycle(initialDetailState)
     val actions: PlannerActions = viewModel
     val snackbar = remember { SnackbarHostState() }
+    var tourState by remember { mutableStateOf<ButterflyTourState?>(null) }
 
     LaunchedEffect(chromeState.error, chromeState.message, detailState.hydrateWarning, detailState.importError, detailState.importResultSummary, detailState.importStatus, detailState.structureError, detailState.structuredImportError, detailState.structuredImportSuccessMessage) {
         chromeState.error?.let { snackbar.showSnackbar(it); actions.clearTransient() }
@@ -392,6 +476,145 @@ fun StudyPlannerScreen(
         detailState.structureError?.let { snackbar.showSnackbar(it) }
         detailState.structuredImportError?.let { snackbar.showSnackbar(it) }
         detailState.structuredImportSuccessMessage?.let { snackbar.showSnackbar(it) }
+    }
+
+    var preTourSection by remember { mutableStateOf<PlannerSection?>(null) }
+    var preTourPlanId by remember { mutableStateOf<String?>(null) }
+    var wasTourVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(tourState?.isVisible) {
+        val state = tourState ?: return@LaunchedEffect
+        if (state.isVisible) {
+            wasTourVisible = true
+            preTourSection = chromeState.section
+            preTourPlanId = chromeState.selectedPlan?.id
+        } else {
+            if (wasTourVisible) {
+                wasTourVisible = false
+                // Restore previous state when tour ends
+                val prevSec = preTourSection
+                if (prevSec != null) {
+                    actions.setSection(prevSec)
+                    preTourSection = null
+                }
+                val prevPlanId = preTourPlanId
+                if (prevPlanId != null && chromeState.selectedPlan?.id != prevPlanId) {
+                    actions.openPlan(prevPlanId)
+                    preTourPlanId = null
+                } else if (prevPlanId == null && chromeState.selectedPlan != null) {
+                    actions.navigateBack()
+                    preTourPlanId = null
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(tourState?.currentStepIndex, tourState?.isVisible) {
+        val state = tourState ?: return@LaunchedEffect
+        if (state.isVisible) {
+            when (state.currentStepIndex) {
+                0, 1, 2 -> {
+                    // Steps 0, 1, and 2 are on the MY TARGET EXAMS screen
+                    if (chromeState.selectedPlan != null) {
+                        actions.closePlan()
+                    }
+                    if (chromeState.section != PlannerSection.YOUR_EXAMS) {
+                        actions.setSection(PlannerSection.YOUR_EXAMS)
+                    }
+                }
+                3, 4, 5, 6 -> {
+                    // PLAN tab: Auto-open first plan if none is open
+                    if (chromeState.selectedPlan == null) {
+                        val firstPlan = plansState.plans.firstOrNull()
+                        if (firstPlan != null) {
+                            actions.openPlan(firstPlan.id)
+                        } else {
+                            state.dismiss()
+                            return@LaunchedEffect
+                        }
+                    }
+                    if (chromeState.section != PlannerSection.PLAN) {
+                        actions.setSection(PlannerSection.PLAN)
+                    }
+                }
+                7, 8 -> {
+                    // SYLLABUS tab: Auto-open first plan if none is open
+                    if (chromeState.selectedPlan == null) {
+                        val firstPlan = plansState.plans.firstOrNull()
+                        if (firstPlan != null) {
+                            actions.openPlan(firstPlan.id)
+                        } else {
+                            state.dismiss()
+                            return@LaunchedEffect
+                        }
+                    }
+                    if (chromeState.section != PlannerSection.SYLLABUS) {
+                        actions.setSection(PlannerSection.SYLLABUS)
+                    }
+                }
+                9, 10, 11, 12 -> {
+                    // CALENDAR tab
+                    if (chromeState.selectedPlan == null) {
+                        val firstPlan = plansState.plans.firstOrNull()
+                        if (firstPlan != null) {
+                            actions.openPlan(firstPlan.id)
+                        } else {
+                            state.dismiss()
+                            return@LaunchedEffect
+                        }
+                    }
+                    if (chromeState.section != PlannerSection.CALENDAR) {
+                        actions.setSection(PlannerSection.CALENDAR)
+                    }
+                }
+                13 -> {
+                    // INSIGHTS tab
+                    if (chromeState.selectedPlan == null) {
+                        val firstPlan = plansState.plans.firstOrNull()
+                        if (firstPlan != null) {
+                            actions.openPlan(firstPlan.id)
+                        } else {
+                            state.dismiss()
+                            return@LaunchedEffect
+                        }
+                    }
+                    if (chromeState.section != PlannerSection.INSIGHTS) {
+                        actions.setSection(PlannerSection.INSIGHTS)
+                    }
+                }
+                14 -> {
+                    // Bottom Nav highlights (PLAN tab)
+                    if (chromeState.selectedPlan == null) {
+                        val firstPlan = plansState.plans.firstOrNull()
+                        if (firstPlan != null) {
+                            actions.openPlan(firstPlan.id)
+                        } else {
+                            state.dismiss()
+                            return@LaunchedEffect
+                        }
+                    }
+                    if (chromeState.section != PlannerSection.PLAN) {
+                        actions.setSection(PlannerSection.PLAN)
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Internal back-press handling ────────────────────────────────────────────
+    // The Study Planner manages its own sub-screens via ViewModel state (PlannerSection)
+    // rather than NavController entries. Without this BackHandler the system back press
+    // would skip all internal sections and jump straight to Home.
+    //
+    // Hierarchy:
+    //   [sub-section B] → [sub-section A] → [plan list / YOUR_EXAMS] → Home (NavController)
+    val hasInternalBackState = chromeState.selectedPlan != null
+    BackHandler(enabled = hasInternalBackState) {
+        actions.navigateBack()
+        // navigateBack() always returns true when enabled (plan is open), so we just
+        // let it update the ViewModel state. The BackHandler disables itself automatically
+        // once selectedPlan becomes null (after closePlan()), letting the NavController
+        // handle the final back press back to Home.
     }
 
     val drawerTitle = when {
@@ -419,6 +642,11 @@ fun StudyPlannerScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
+            topBarActions = {
+                IconButton(onClick = { tourState?.startDirectly() }) {
+                    Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Tour")
+                }
+            },
         ) { padding ->
             Scaffold(
                 modifier = Modifier.padding(top = padding.calculateTopPadding()),
@@ -428,16 +656,17 @@ fun StudyPlannerScreen(
                 ),
                 snackbarHost = { SnackbarHost(snackbar) },
                 bottomBar = {
-                    if (chromeState.selectedPlan != null) {
-                        PlannerBottomBar(selected = chromeState.section, onSelect = { section ->
+                    PlannerBottomBar(
+                        selected = chromeState.section.takeIf { chromeState.selectedPlan != null }
+                            ?: PlannerSection.YOUR_EXAMS,
+                        onSelect = { section ->
                             val activePlan = chromeState.selectedPlan
-                            if (section == PlannerSection.SYLLABUS && activePlan != null) {
-                                onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", activePlan.id))
-                            } else {
-                                actions.setSection(section)
+                            when {
+                                section == PlannerSection.YOUR_EXAMS || activePlan != null ->
+                                    actions.setSection(section)
                             }
-                        })
-                    }
+                        },
+                    )
                 },
             ) { innerPadding ->
                 Box(
@@ -474,7 +703,12 @@ fun StudyPlannerScreen(
                                 onNavigate = onNavigate,
                                 canUsePremiumInsights = premiumStatus.canUseStudyPlannerInsights,
                                 sharedTransitionScope = this@SharedTransitionLayout,
-                                animatedVisibilityScope = this,
+                                animatedVisibilityScope = this@AnimatedContent,
+                                onAdvanceTour = {
+                                    if (tourState?.currentStepIndex == 2) tourState?.next()
+                                },
+                                isTourActive = tourState?.isVisible == true,
+                                viewModel = viewModel,
                             )
                         }
                     }
@@ -482,6 +716,13 @@ fun StudyPlannerScreen(
                     SafarInlineRefreshIndicator(
                         isRefreshing = chromeState.loading && hasCachedContent,
                         modifier = Modifier.align(Alignment.TopCenter),
+                    )
+                    TourManager(
+                        dataStore = viewModel.dataStore,
+                        steps = studyPlannerTourSteps,
+                        section = "study_planner",
+                        askOnFirstVisit = false,
+                        onTourStateReady = { tourState = it },
                     )
                 }
             }
@@ -497,6 +738,7 @@ private fun StudyPlansScreen(
     actions: PlannerActions,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    onAdvanceTour: () -> Unit = {},
 ) {
     var showCreate by remember { mutableStateOf(false) }
     var createMode by remember { mutableStateOf("template") }
@@ -609,7 +851,10 @@ private fun StudyPlansScreen(
                         title = "No target exam yet",
                         body = "Plan an exam and it will appear here.",
                         action = "Plan More Exams",
-                        onAction = { showTemplateCatalog = true },
+                        onAction = {
+                            onAdvanceTour()
+                            showTemplateCatalog = true
+                        },
                     )
                 }
             } else if (state.plans.isNotEmpty()) {
@@ -627,9 +872,12 @@ private fun StudyPlansScreen(
                 PlannerThemeActionCard(
                     title = "Plan More Exams",
                     subtitle = "Add more exams to your planner",
-                    icon = Icons.Default.LibraryBooks,
+                    icon = Icons.AutoMirrored.Filled.LibraryBooks,
                     colors = listOf(Color(0xFF3D257B), Color(0xFF5B3B9B)),
-                    onClick = { showTemplateCatalog = true },
+                    onClick = {
+                        onAdvanceTour()
+                        showTemplateCatalog = true
+                    },
                 )
             }
             item {
@@ -639,6 +887,7 @@ private fun StudyPlansScreen(
                     icon = Icons.Default.Edit,
                     colors = listOf(Color(0xFF174777), Color(0xFF29619C)),
                     onClick = {
+                        onAdvanceTour()
                         selectedTemplateForSetup = null
                         createMode = "custom"
                         showCreate = true
@@ -1221,8 +1470,10 @@ private fun QuickStartSheet(
     var dailyGoal by remember { mutableStateOf("3") }
     var pasteSyllabus by remember { mutableStateOf("") }
     var showAdvanced by remember { mutableStateOf(false) }
+    var examDateError by remember { mutableStateOf(false) }
     val offDays = remember { mutableStateOf(setOf<Int>()) }
     val selectedTemplate = templateOptions.firstOrNull { it.id == templateId }
+    var capacityWarning by remember { mutableStateOf<PlannerCapacityWarning?>(null) }
 
     LaunchedEffect(fixedTemplateId, selectedTemplate) {
         if (fixedTemplateId != null && selectedTemplate != null) {
@@ -1237,6 +1488,71 @@ private fun QuickStartSheet(
         androidx.compose.ui.unit.Density(
             density = currentDensity.density,
             fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
+
+    fun submitPlan(skipCapacityWarning: Boolean = false) {
+        val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
+        val requiredExamDate = examDate.take(10).takeIf { it.isNotBlank() }
+        if (requiredExamDate == null) {
+            examDateError = true
+            return
+        }
+        val topicCount = if (mode == "template") {
+            selectedTemplate?.topicCount ?: 0
+        } else {
+            parseBulkSyllabus(pasteSyllabus).sumOf { it.second.size }
+        }
+        if (!skipCapacityWarning) {
+            val warning = buildPlannerCapacityWarning(topicCount, examDate, goal, offDays.value)
+            if (warning != null) {
+                capacityWarning = warning
+                return
+            }
+        }
+
+        val hasSyllabusImport = mode == "custom" && pasteSyllabus.isNotBlank()
+        if (mode == "template" && templateId.isNotBlank()) {
+            actions.createFromTemplate(templateId, title.ifBlank { "Study Plan" }, requiredExamDate, goal, offDays.value.toList())
+            onDismiss()
+        } else {
+            actions.createPlan(
+                title = title.ifBlank { "Study Plan" },
+                examType = examType.ifBlank { null },
+                examDate = requiredExamDate,
+                dailyGoal = goal,
+                offDays = offDays.value.toList(),
+                syllabusText = pasteSyllabus,
+            )
+            if (!hasSyllabusImport) onDismiss()
+        }
+    }
+
+    capacityWarning?.let { warning ->
+        AlertDialog(
+            onDismissRequest = { capacityWarning = null },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null) },
+            title = { Text("This plan may be too tight") },
+            text = {
+                Text(
+                    "You have ${warning.topicCount} topics and about ${warning.studyDays} study days. " +
+                        "To finish before the exam, this needs around ${warning.requiredPerDay} topics/day, " +
+                        "but your current setting is ${warning.dailyGoal}.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    capacityWarning = null
+                    submitPlan(skipCapacityWarning = true)
+                }) {
+                    Text("Continue anyway")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { capacityWarning = null }) {
+                    Text("Go back")
+                }
+            },
         )
     }
 
@@ -1289,7 +1605,21 @@ private fun QuickStartSheet(
                     }
                 }
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Plan title") }, modifier = Modifier.fillMaxWidth())
-                PlannerExamDateField(examDateIso = examDate, onExamDateChange = { examDate = it })
+                PlannerExamDateField(
+                    examDateIso = examDate,
+                    onExamDateChange = {
+                        examDate = it
+                        examDateError = false
+                    },
+                    isError = examDateError,
+                )
+                if (examDateError) {
+                    Text(
+                        text = "Exam date is required to create a planner.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 OutlinedTextField(value = dailyGoal, onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) }, label = { Text("Topics per day") }, modifier = Modifier.fillMaxWidth())
                 OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = ButtonDefaults.outlinedShape) {
                     Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1316,10 +1646,15 @@ private fun QuickStartSheet(
                         TextButton(
                             onClick = {
                                 val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
+                                val requiredExamDate = examDate.take(10).takeIf { it.isNotBlank() }
+                                if (requiredExamDate == null) {
+                                    examDateError = true
+                                    return@TextButton
+                                }
                                 actions.createPlan(
                                     title = title.ifBlank { "Study Plan" },
                                     examType = examType.ifBlank { null },
-                                    examDate = examDate.ifBlank { null },
+                                    examDate = requiredExamDate,
                                     dailyGoal = goal,
                                     offDays = offDays.value.toList(),
                                     syllabusText = pasteSyllabus,
@@ -1331,22 +1666,7 @@ private fun QuickStartSheet(
                 }
                 Button(
                     onClick = {
-                        val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
-                        val hasSyllabusImport = mode == "custom" && pasteSyllabus.isNotBlank()
-                        if (mode == "template" && templateId.isNotBlank()) {
-                            actions.createFromTemplate(templateId, title.ifBlank { "Study Plan" }, examDate.ifBlank { null }, goal, offDays.value.toList())
-                            onDismiss()
-                        } else {
-                            actions.createPlan(
-                                title = title.ifBlank { "Study Plan" },
-                                examType = examType.ifBlank { null },
-                                examDate = examDate.ifBlank { null },
-                                dailyGoal = goal,
-                                offDays = offDays.value.toList(),
-                                syllabusText = pasteSyllabus,
-                            )
-                            if (!hasSyllabusImport) onDismiss()
-                        }
+                        submitPlan()
                     },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                     shape = ButtonDefaults.shape,
@@ -1473,6 +1793,9 @@ private fun PlannerHome(
     canUsePremiumInsights: Boolean,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    onAdvanceTour: () -> Unit = {},
+    isTourActive: Boolean = false,
+    viewModel: StudyPlannerViewModel,
 ) {
     val plan = chromeState.selectedPlan
     val activePlanState = remember(chromeState, plansState, detailState) {
@@ -1498,16 +1821,12 @@ private fun PlannerHome(
             isImportingStructuredSyllabus = detailState.isImportingStructuredSyllabus,
             structuredImportError = detailState.structuredImportError,
             structuredImportSuccessMessage = detailState.structuredImportSuccessMessage,
+            onboardingCompletedSteps = detailState.onboardingCompletedSteps,
+            plannerAchievements = detailState.plannerAchievements,
         )
     }
 
     Column(Modifier.fillMaxSize()) {
-        if (plan != null && chromeState.section != PlannerSection.INSIGHTS) {
-            SelectedExamStrip(
-                plan = plan,
-                onChangeExam = { actions.setSection(PlannerSection.YOUR_EXAMS) },
-            )
-        }
         Box(Modifier.weight(1f)) {
             if (plan == null) {
                 // The target-exam list is the single planner landing screen.
@@ -1517,6 +1836,7 @@ private fun PlannerHome(
                     actions = actions,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
+                    onAdvanceTour = onAdvanceTour,
                 )
             } else {
                 when (chromeState.section) {
@@ -1526,21 +1846,35 @@ private fun PlannerHome(
                         actions = actions,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
+                        onAdvanceTour = onAdvanceTour,
                     )
                     PlannerSection.PLAN -> {
                     PlanTabScreen(
                         plan = plan,
                         actions = actions,
-                        onNavigate = onNavigate,
+                        onNavigate = { route ->
+                            if (route.startsWith("syllabus/subjects/")) {
+                                actions.setSection(PlannerSection.SYLLABUS)
+                            } else {
+                                onNavigate(route)
+                            }
+                        },
+                        onboardingCompletedSteps = detailState.onboardingCompletedSteps,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
                     }
                     PlannerSection.SYLLABUS -> {
-                    LaunchedEffect(plan.id) {
-                        onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", plan.id))
-                    }
-                    Box(Modifier.fillMaxSize())
+                        SyllabusSubjectsScreen(
+                            viewModel = viewModel,
+                            planId = plan.id,
+                            onNavigate = onNavigate,
+                            onBack = { actions.setSection(PlannerSection.PLAN) },
+                            onPlannerSectionSelect = { section ->
+                                actions.setSection(section)
+                            },
+                            showBottomBar = false,
+                        )
                     }
                     PlannerSection.CALENDAR -> CalendarTab(plan, activePlanState, actions)
                     PlannerSection.INSIGHTS -> {
@@ -1559,14 +1893,16 @@ private fun PlannerHome(
 }
 
 @Composable
-private fun SelectedExamStrip(
+internal fun SelectedExamStrip(
     plan: StudyPlan,
     onChangeExam: () -> Unit,
+    modifier: Modifier = Modifier,
+    outerPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
 ) {
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(outerPadding),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -1634,15 +1970,91 @@ internal fun AddTopicsToPlanButton(onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-internal fun PlannerTopicDetailSheet(ref: TopicRef, openNonce: Int, actions: PlannerActions, onDismiss: () -> Unit) {
+internal fun PlannerTopicDetailSheet(
+    ref: TopicRef,
+    openNonce: Int,
+    actions: PlannerActions,
+    swapCandidates: List<TopicRef> = emptyList(),
+    onDismiss: () -> Unit,
+) {
     var name by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.name) }
     var notes by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.notes.orEmpty()) }
     var status by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.status) }
+    var showSwapPicker by remember(ref.topic.id, openNonce) { mutableStateOf(false) }
+    val currentDate = ref.topic.plannedDate?.take(10).orEmpty()
+    val dateSwapCandidates = remember(ref.topic.id, currentDate, swapCandidates) {
+        swapCandidates
+            .filter {
+                it.topic.id != ref.topic.id &&
+                    !it.topic.plannedDate.isNullOrBlank() &&
+                    it.topic.plannedDate?.take(10) != currentDate
+            }
+            .sortedWith(
+                compareBy<TopicRef> { it.topic.plannedDate?.take(10).orEmpty() }
+                    .thenBy { it.topic.name.lowercase() },
+            )
+    }
     val currentDensity = androidx.compose.ui.platform.LocalDensity.current
     val clampedDensity = remember(currentDensity) {
         androidx.compose.ui.unit.Density(
             density = currentDensity.density,
             fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+        )
+    }
+    if (showSwapPicker) {
+        AlertDialog(
+            onDismissRequest = { showSwapPicker = false },
+            title = { Text("Swap planned date") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Pick a scheduled topic to exchange dates with.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 360.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(dateSwapCandidates, key = { it.topic.id }) { candidate ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .clickable {
+                                        actions.swapTopicDates(ref.topic.id, candidate.topic.id)
+                                        showSwapPicker = false
+                                        onDismiss()
+                                    },
+                                shape = MaterialTheme.shapes.medium,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                            ) {
+                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = candidate.topic.name,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = "${readableDate(candidate.topic.plannedDate)} • ${candidate.subject.name}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showSwapPicker = false }) {
+                    Text("Cancel")
+                }
+            },
         )
     }
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -1652,7 +2064,15 @@ internal fun PlannerTopicDetailSheet(ref: TopicRef, openNonce: Int, actions: Pla
                 OutlinedTextField(name, { name = it }, label = { Text("Topic") }, modifier = Modifier.fillMaxWidth())
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     plannerTopicStatusSheetChips.forEach { st ->
-                        FilterChip(selected = status == st, onClick = { status = st }, label = { Text(st.label) })
+                        FilterChip(selected = status == st, onClick = { status = st }, label = { Text(plannerTopicStatusDisplayLabel(st)) })
+                    }
+                }
+                if (currentDate.isNotBlank() && dateSwapCandidates.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = { showSwapPicker = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Swap Date")
                     }
                 }
                 OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, minLines = 3, modifier = Modifier.fillMaxWidth())
@@ -2015,12 +2435,14 @@ private fun TopicRow(
 @Composable
 internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSection) -> Unit) {
     val sections = listOf(
+        PlannerSection.YOUR_EXAMS,
         PlannerSection.PLAN,
         PlannerSection.SYLLABUS,
         PlannerSection.CALENDAR,
         PlannerSection.INSIGHTS,
     )
     val icons = mapOf(
+        PlannerSection.YOUR_EXAMS to Icons.Default.School,
         PlannerSection.PLAN to Icons.Default.Today,
         PlannerSection.SYLLABUS to Icons.AutoMirrored.Filled.FactCheck,
         PlannerSection.CALENDAR to Icons.Default.CalendarMonth,
@@ -2136,7 +2558,7 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
             Text("Setup Guide", fontWeight = FontWeight.Bold)
             GuideStep("Set exam date", hasDate) { actions.setSection(PlannerSection.PLAN) }
             GuideStep("Add topics", hasTopics) { actions.setSection(PlannerSection.SYLLABUS) }
-            GuideStep("Build planner", plan.flattenTopics().any { !it.topic.plannedDate.isNullOrBlank() }) { actions.autoDistribute(false, true) }
+            GuideStep("Tap Build Planner", plan.flattenTopics().any { !it.topic.plannedDate.isNullOrBlank() }) { actions.setSection(PlannerSection.SYLLABUS) }
             GuideStep("Review calendar", false) { actions.setSection(PlannerSection.CALENDAR) }
         }
     }

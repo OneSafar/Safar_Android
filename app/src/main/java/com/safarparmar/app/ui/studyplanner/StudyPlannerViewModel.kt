@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.studyplanner
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.SavedStateHandle
 import com.safarparmar.app.data.remote.api.AutoDistributeRequest
 import com.safarparmar.app.data.remote.api.BulkTopicItemRequest
 import com.safarparmar.app.data.remote.api.BulkTopicsRequest
@@ -18,6 +19,7 @@ import com.safarparmar.app.data.remote.api.TopicPatchRequest
 import com.safarparmar.app.data.remote.api.TopicRequest
 import com.safarparmar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
 import com.safarparmar.app.data.remote.api.UpdatePlanRequest
+import com.safarparmar.app.domain.model.Achievement
 import com.safarparmar.app.domain.model.studyplanner.AutoDistributeResult
 import com.safarparmar.app.domain.model.studyplanner.CalendarMap
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
@@ -25,6 +27,7 @@ import com.safarparmar.app.domain.model.studyplanner.PlannerAnalytics
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.repository.HomeRepository
 import com.safarparmar.app.domain.repository.StudyPlannerRepository
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,6 +45,7 @@ import com.safarparmar.app.ui.studyplanner.templates.getLocalExamTemplate
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -72,6 +76,12 @@ data class TopicUiModel(
     val plannedDate: String? = null
 )
 
+object StudyPlannerOnboardingSteps {
+    const val BUILD_SCHEDULE = "build_schedule"
+    const val REVIEW_CALENDAR = "review_calendar"
+    const val FIRST_TOPIC_DONE = "first_topic_done"
+}
+
 data class StudyPlannerUiState(
     val plans: List<StudyPlan> = emptyList(),
     val templates: List<ExamTemplateSummary> = emptyList(),
@@ -98,16 +108,25 @@ data class StudyPlannerUiState(
     val importError: String? = null,
     val importResultSummary: String? = null,
     val hydrateWarning: String? = null,
+    val onboardingCompletedSteps: Set<String> = emptySet(),
+    val plannerAchievements: List<Achievement> = emptyList(),
 )
 
 @HiltViewModel
 class StudyPlannerViewModel @Inject constructor(
     private val repo: StudyPlannerRepository,
+    private val homeRepository: HomeRepository,
+    val dataStore: com.safarparmar.app.data.local.SafarDataStore,
     @ApplicationContext private val context: Context,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel(), PlannerActions {
     private val _uiState = MutableStateFlow(StudyPlannerUiState())
     val uiState = _uiState.asStateFlow()
     private val firedDailyMilestones = mutableSetOf<String>()
+
+    // Tracks the ordered history of PlannerSections the user has visited inside a plan.
+    // Populated by setSection(); consumed (popped) by navigateBack().
+    private val _sectionBackStack = ArrayDeque<PlannerSection>()
 
     private val _selectedSubjectId = MutableStateFlow<String?>(null)
     val selectedSubjectId = _selectedSubjectId.asStateFlow()
@@ -155,6 +174,10 @@ class StudyPlannerViewModel @Inject constructor(
     init {
         refreshPlans()
         loadTemplates()
+        val planId = savedStateHandle.get<String>("planId")
+        if (!planId.isNullOrBlank()) {
+            openPlan(planId)
+        }
     }
 
     fun selectSubject(subjectId: String) {
@@ -168,7 +191,45 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun setSection(section: PlannerSection) {
+        val current = _uiState.value.section
+        // Don't push duplicate consecutive entries; do push when genuinely navigating forward.
+        if (current != section) {
+            _sectionBackStack.addLast(current)
+        }
         _uiState.update { it.copy(section = section) }
+        if (section == PlannerSection.CALENDAR) {
+            val plan = _uiState.value.selectedPlan
+            val hasSchedule = plan?.flattenTopics()?.any { !it.topic.plannedDate.isNullOrBlank() } == true
+            if (hasSchedule) markOnboardingStepDone(StudyPlannerOnboardingSteps.REVIEW_CALENDAR)
+        }
+    }
+
+    /**
+     * Handles a back-press inside the Study Planner feature.
+     *
+     * Back-press hierarchy:
+     *   [Any sub-section] → previous section (or PLAN if stack empty)
+     *   → [Plan is open, section == PLAN or YOUR_EXAMS] → close plan (go to exam list)
+     *   → [No plan open / exam list] → return false so NavController goes to Home.
+     */
+    override fun navigateBack(): Boolean {
+        val hasPlan = _uiState.value.selectedPlan != null
+        if (!hasPlan) {
+            // Nothing internal to consume — let the NavController handle it.
+            return false
+        }
+
+        // If there's a previous section on the stack, pop back to it.
+        if (_sectionBackStack.isNotEmpty()) {
+            val previous = _sectionBackStack.removeLast()
+            _uiState.update { it.copy(section = previous) }
+            return true
+        }
+
+        // Stack is empty: we're at the "first" section the user landed on inside this plan.
+        // The next logical back step is to close the plan and return to the exam list.
+        closePlan()
+        return true
     }
 
     override fun clearTransient() {
@@ -188,6 +249,7 @@ class StudyPlannerViewModel @Inject constructor(
                 is Resource.Loading -> Unit
             }
         }
+        refreshPlannerAchievements()
     }
 
     fun loadTemplates() = viewModelScope.launch {
@@ -199,13 +261,16 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun openPlan(planId: String) {
+        _sectionBackStack.clear() // fresh history for every newly-opened plan
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null, section = PlannerSection.PLAN) }
             when (val r = repo.getPlan(planId)) {
                 is Resource.Success -> {
                     _uiState.update { it.copy(selectedPlan = r.data, loading = false) }
+                    refreshOnboardingProgress(planId)
                     refreshCalendar(planId)
                     refreshAnalytics(planId)
+                    refreshPlannerAchievements()
                 }
                 is Resource.Error -> _uiState.update { it.copy(error = r.message, loading = false) }
                 is Resource.Loading -> Unit
@@ -214,32 +279,56 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun closePlan() {
-        _uiState.update { it.copy(selectedPlan = null, calendar = emptyMap(), analytics = null, section = PlannerSection.PLAN) }
+        _sectionBackStack.clear()
+        _uiState.update {
+            it.copy(
+                selectedPlan = null,
+                calendar = emptyMap(),
+                analytics = null,
+                section = PlannerSection.PLAN,
+                onboardingCompletedSteps = emptySet(),
+            )
+        }
         refreshPlans()
     }
 
     override fun createPlan(title: String, examType: String?, examDate: String?, dailyGoal: Int, offDays: List<Int>, syllabusText: String?) {
+        val requiredExamDate = examDate?.take(10)?.takeIf { it.isNotBlank() }
+        if (requiredExamDate == null) {
+            _uiState.update { it.copy(error = "Exam date is required to create a planner.") }
+            return
+        }
         viewModelScope.launch {
             mutatePlanList {
-                repo.createPlan(CreatePlanRequest(title = title, examType = examType, examDate = examDate, dailyGoal = dailyGoal, offDays = offDays))
+                repo.createPlan(CreatePlanRequest(title = title, examType = examType, examDate = requiredExamDate, dailyGoal = dailyGoal, offDays = offDays))
             }
         }
     }
 
     override fun createFromTemplate(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
+        val requiredExamDate = examDate?.take(10)?.takeIf { it.isNotBlank() }
+        if (requiredExamDate == null) {
+            _uiState.update { it.copy(error = "Exam date is required to create a planner.") }
+            return
+        }
         viewModelScope.launch {
-            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, examDate, dailyGoal, offDays)
+            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, requiredExamDate, dailyGoal, offDays)
         }
     }
 
     override fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
+        val requiredExamDate = examDate?.take(10)?.takeIf { it.isNotBlank() }
+        if (requiredExamDate == null) {
+            _uiState.update { it.copy(error = "Exam date is required to create a planner.") }
+            return
+        }
         viewModelScope.launch {
             // Always try the fast server-side POST /plans/from-template first
             // (creates entire plan in one request instead of ~175 sequential calls).
             // The server independently validates template existence, so a client-side
             // pre-check against loadTemplates() is unnecessary and was causing the
             // slow local fallback when templates hadn't loaded yet.
-            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, examDate, dailyGoal, offDays)
+            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, requiredExamDate, dailyGoal, offDays)
         }
     }
 
@@ -264,7 +353,10 @@ class StudyPlannerViewModel @Inject constructor(
     override fun addChapter(subjectId: String, name: String) = mutateSelected { planId -> repo.addChapter(planId, subjectId, ChapterRequest(name)) }
     override fun renameChapter(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(name)) }
     override fun deleteChapter(subjectId: String, chapterId: String) = mutateSelected { planId -> repo.deleteChapter(planId, subjectId, chapterId) }
-    override fun addTopic(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.addTopic(planId, subjectId, chapterId, TopicRequest(name)) }
+    override fun addTopic(subjectId: String, chapterId: String, name: String) =
+        mutateSelected(onSuccess = { refreshPlannerAchievements() }) { planId ->
+            repo.addTopic(planId, subjectId, chapterId, TopicRequest(name))
+        }
     override fun updateTopic(topicId: String, status: TopicStatus?, name: String?, plannedDate: String?, notes: String?) {
         val state = _uiState.value
         val planId = state.selectedPlan?.id ?: return
@@ -277,13 +369,29 @@ class StudyPlannerViewModel @Inject constructor(
             if (topicWasToday && status == TopicStatus.DONE && !wasDone) {
                 checkDailyMilestones(planId, beforeDoneCount)
             }
+            if (status == TopicStatus.DONE && !wasDone) {
+                markOnboardingStepDone(StudyPlannerOnboardingSteps.FIRST_TOPIC_DONE)
+            }
+            refreshPlannerAchievements()
         }) { planId -> repo.updateTopic(planId, topicId, TopicPatchRequest(name = name, status = status, plannedDate = plannedDate, notes = notes)) }
     }
     override fun deleteTopic(topicId: String) = mutateSelected(refreshCalendar = true, refreshAnalytics = true) { planId -> repo.deleteTopic(planId, topicId) }
 
     override fun autoDistribute(includeRevision: Boolean, lockExisting: Boolean) {
+        if (_uiState.value.selectedPlan?.examDate.isNullOrBlank()) {
+            _uiState.update { it.copy(error = "Set an exam date before building the planner.") }
+            return
+        }
         mutateAuto {
             repo.autoDistribute(it, AutoDistributeRequest(includeRevisionNeeded = includeRevision, lockExistingDates = lockExisting))
+        }
+    }
+
+    override fun markOnboardingStepDone(step: String) {
+        val planId = _uiState.value.selectedPlan?.id ?: return
+        viewModelScope.launch {
+            dataStore.setStudyPlannerOnboardingStepDone(planId, step, true)
+            refreshOnboardingProgress(planId)
         }
     }
 
@@ -325,6 +433,7 @@ class StudyPlannerViewModel @Inject constructor(
 
     private companion object {
         val bulkSubjectPalette = listOf("#0ea5e9", "#9333ea", "#16a34a", "#ef4444", "#f59e0b", "#0f766e")
+        val STUDY_PLANNER_ACHIEVEMENT_IDS = listOf("SP001", "SP002", "T011", "T012")
     }
 
     /** Full syllabus (`-` / `_` / `>`) before manual subjects — matches web bulk TXT import. */
@@ -468,16 +577,46 @@ class StudyPlannerViewModel @Inject constructor(
         reloadSelected(message)
     }
 
+    override fun swapTopicDates(firstTopicId: String, secondTopicId: String) {
+        viewModelScope.launch {
+            val state = _uiState.value
+            val plan = state.selectedPlan ?: return@launch
+            val planId = plan.id
+            val refsById = plan.flattenTopics().associateBy { it.topic.id }
+            val first = refsById[firstTopicId]?.topic ?: return@launch
+            val second = refsById[secondTopicId]?.topic ?: return@launch
+            val firstDate = first.plannedDate?.takeIf { it.isNotBlank() } ?: return@launch
+            val secondDate = second.plannedDate?.takeIf { it.isNotBlank() } ?: return@launch
+            _uiState.update { it.copy(mutating = true) }
+            repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = secondDate))
+            repo.updateTopic(planId, secondTopicId, TopicPatchRequest(plannedDate = firstDate))
+            reloadSelected("Topics swapped")
+        }
+    }
+
     private fun mutateAuto(call: suspend (String) -> Resource<AutoDistributeResult>) = viewModelScope.launch {
         val planId = _uiState.value.selectedPlan?.id ?: return@launch
         _uiState.update { it.copy(mutating = true, error = null) }
         when (val r = call(planId)) {
             is Resource.Success -> {
+                dataStore.setStudyPlannerOnboardingStepDone(planId, StudyPlannerOnboardingSteps.BUILD_SCHEDULE, true)
                 _uiState.update { it.copy(mutating = false, selectedPlan = r.data.plan ?: it.selectedPlan, message = "Assigned ${r.data.assigned}; skipped ${r.data.skipped}") }
+                refreshOnboardingProgress(planId)
                 reloadSelected()
             }
             is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
             is Resource.Loading -> Unit
+        }
+    }
+
+    private fun refreshOnboardingProgress(planId: String) = viewModelScope.launch {
+        val completed = dataStore.studyPlannerOnboardingCompletedSteps(planId).first()
+        _uiState.update { state ->
+            if (state.selectedPlan?.id == planId) {
+                state.copy(onboardingCompletedSteps = completed)
+            } else {
+                state
+            }
         }
     }
 
@@ -531,6 +670,7 @@ class StudyPlannerViewModel @Inject constructor(
                     )
                 }
                 hydratePlanFromServerBestEffort(r.data.id)
+                refreshPlannerAchievements()
             }
             is Resource.Error -> {
                 if (getLocalExamTemplate(templateId) != null) {
@@ -647,6 +787,7 @@ class StudyPlannerViewModel @Inject constructor(
         }
         StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLAN_CREATED_TEMPLATE)
         refreshPlans()
+        refreshPlannerAchievements()
     }
 
     private suspend fun refreshCalendar(planId: String) {
@@ -674,6 +815,26 @@ class StudyPlannerViewModel @Inject constructor(
         }
         refreshCalendar(planId)
         refreshAnalytics(planId)
+        refreshPlannerAchievements()
+    }
+
+    private fun refreshPlannerAchievements() {
+        viewModelScope.launch {
+            when (val r = homeRepository.getAchievements()) {
+                is Resource.Success -> {
+                    val order = STUDY_PLANNER_ACHIEVEMENT_IDS.withIndex().associate { it.value to it.index }
+                    _uiState.update {
+                        it.copy(
+                            plannerAchievements = r.data
+                                .filter { achievement -> achievement.id in STUDY_PLANNER_ACHIEVEMENT_IDS }
+                                .sortedBy { achievement -> order[achievement.id] ?: Int.MAX_VALUE }
+                        )
+                    }
+                }
+                is Resource.Error -> Unit
+                is Resource.Loading -> Unit
+            }
+        }
     }
 
     private suspend fun checkDailyMilestones(planId: String, beforeDoneCount: Int) {

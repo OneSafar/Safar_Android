@@ -59,6 +59,21 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch { dataStore.setWelcomeSeen(true) }
     }
 
+    fun selectAchievement(achievementId: String?) {
+        viewModelScope.launch(exceptionHandler) {
+            when (val result = homeRepository.selectAchievement(achievementId)) {
+                is Resource.Success -> _uiState.update {
+                    it.copy(
+                        activeTitle = result.data.title,
+                        activeTitleId = result.data.selectedId,
+                    )
+                }
+                is Resource.Error -> _uiState.update { it.copy(error = result.message ?: "Failed to set active achievement") }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
     private fun loadAll() {
         viewModelScope.launch(exceptionHandler) {
             _uiState.update { it.copy(isLoading = true, error = null) }

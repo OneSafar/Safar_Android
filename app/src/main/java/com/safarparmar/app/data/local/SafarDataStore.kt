@@ -29,6 +29,9 @@ class SafarDataStore @Inject constructor(
         if (section == "nishtha") Keys.TOUR_DONE
         else booleanPreferencesKey("tour_done_${section.lowercase()}")
 
+    private fun studyPlannerOnboardingCompletedStepsKey(planId: String): Preferences.Key<Set<String>> =
+        stringSetPreferencesKey("study_planner_onboarding_v2_${planId}_completed_steps")
+
     private val securePrefs: SharedPreferences by lazy {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -333,6 +336,19 @@ class SafarDataStore @Inject constructor(
     suspend fun setTourDone(section: String, done: Boolean) = context.dataStore.edit {
         it[tourDoneKey(section)] = done
     }
+
+    fun studyPlannerOnboardingCompletedSteps(planId: String): Flow<Set<String>> =
+        context.dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[studyPlannerOnboardingCompletedStepsKey(planId)] ?: emptySet() }
+
+    suspend fun setStudyPlannerOnboardingStepDone(planId: String, step: String, done: Boolean) =
+        context.dataStore.edit { prefs ->
+            val key = studyPlannerOnboardingCompletedStepsKey(planId)
+            val current = prefs[key].orEmpty()
+            prefs[key] = if (done) current + step else current - step
+        }
+
     suspend fun setWelcomeSeen(seen: Boolean) = context.dataStore.edit { it[Keys.WELCOME_SEEN] = seen }
 
     suspend fun setPremiumStatus(

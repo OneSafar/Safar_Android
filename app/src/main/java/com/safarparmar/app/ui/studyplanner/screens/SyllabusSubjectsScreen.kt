@@ -13,7 +13,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +59,7 @@ fun SyllabusSubjectsScreen(
     onNavigate: (String) -> Unit,
     onBack: () -> Unit,
     onPlannerSectionSelect: (PlannerSection) -> Unit,
+    showBottomBar: Boolean = true,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
@@ -59,11 +67,39 @@ fun SyllabusSubjectsScreen(
 
     var dialogState by remember { mutableStateOf<SyllabusDialogState>(SyllabusDialogState.Closed) }
 
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        uri?.let {
+            state.selectedPlan?.let { plan ->
+                coroutineScope.launch(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(it)?.use { os ->
+                        StudyPlannerExportUtils.generateStudyPlanPdf(plan, os)
+                    }
+                }
+            }
+        }
+    }
+
+    fun exportPlan() {
+        val safeName = state.selectedPlan?.title?.replace(Regex("[^a-zA-Z0-9.-]"), "_") ?: "StudyPlan"
+        exportLauncher.launch("${safeName}.pdf")
+    }
+
+    val isPlanScheduled = remember(state.selectedPlan) {
+        state.selectedPlan?.subjects?.isNotEmpty() == true && state.selectedPlan?.subjects?.any { s ->
+            s.chapters.any { c ->
+                c.topics.any { t -> !t.plannedDate.isNullOrBlank() }
+            }
+        } == true
+    }
+
     LaunchedEffect(planId) {
         if (state.selectedPlan?.id != planId) {
             viewModel.openPlan(planId)
         }
-        viewModel.setSection(PlannerSection.SYLLABUS)
     }
 
     when (val ds = dialogState) {
@@ -112,10 +148,12 @@ fun SyllabusSubjectsScreen(
                 WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
             ),
             bottomBar = {
-                PlannerBottomBar(
-                    selected = PlannerSection.SYLLABUS,
-                    onSelect = onPlannerSectionSelect,
-                )
+                if (showBottomBar) {
+                    PlannerBottomBar(
+                        selected = PlannerSection.SYLLABUS,
+                        onSelect = onPlannerSectionSelect,
+                    )
+                }
             },
         ) { padding ->
             Column(
@@ -126,6 +164,7 @@ fun SyllabusSubjectsScreen(
                 SyllabusScreenTopBar(
                     onBack = onBack,
                     subtitle = state.selectedPlan?.title?.takeIf { it.isNotBlank() },
+                    onExportClick = if (isPlanScheduled) ::exportPlan else null,
                 )
 
                 when {
@@ -217,6 +256,7 @@ fun SyllabusSubjectsScreen(
 private fun SyllabusScreenTopBar(
     onBack: () -> Unit,
     subtitle: String? = null,
+    onExportClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -237,7 +277,7 @@ private fun SyllabusScreenTopBar(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(end = 48.dp),
+                .padding(end = if (onExportClick == null) 48.dp else 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -253,6 +293,18 @@ private fun SyllabusScreenTopBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (onExportClick != null) {
+            IconButton(
+                onClick = onExportClick,
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    Icons.Default.FileDownload,
+                    contentDescription = "Export PDF",
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }

@@ -206,7 +206,7 @@ fun LiveSessionsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 }
 
-                items(upNextSessions, key = { it.id }) { session ->
+                items(upNextSessions, key = { "up_next_${it.id}" }) { session ->
                     val isCompleted = session.status == "ended" || session.status == "cancelled"
                     if (isCompleted) {
                         CompletedSessionCard(

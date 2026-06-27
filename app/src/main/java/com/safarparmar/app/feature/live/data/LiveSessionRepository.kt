@@ -34,7 +34,13 @@ interface LiveSessionRepositoryContract {
 }
 
 private fun <T, R> Resource<T>.map(transform: (T) -> R): Resource<R> = when (this) {
-    is Resource.Success -> Resource.Success(transform(data))
+    is Resource.Success -> {
+        try {
+            Resource.Success(transform(data))
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Mapping error", 500)
+        }
+    }
     is Resource.Error -> Resource.Error(message, code)
     is Resource.Loading -> Resource.Loading()
 }

@@ -47,14 +47,13 @@ class VideoPlayerActivity : ComponentActivity() {
         private const val EXTRA_EMBED_URL = "extra_embed_url"
         private const val EXTRA_VIDEO_TITLE = "extra_video_title"
 
-        /**
-         * Launch the player for a given YouTube embed URL.
-         * Handles unlisted, public, and embedded-enabled private videos.
-         */
         fun start(context: Context, embedUrl: String, videoTitle: String = "") {
             val intent = Intent(context, VideoPlayerActivity::class.java).apply {
                 putExtra(EXTRA_EMBED_URL, embedUrl)
                 putExtra(EXTRA_VIDEO_TITLE, videoTitle)
+                if (context !is android.app.Activity) {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
             }
             context.startActivity(intent)
         }

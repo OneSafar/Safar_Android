@@ -129,7 +129,7 @@ fun EkagraKavachInlineCard(
 
     fun onKavachToggle(enabled: Boolean) {
         if (enabled) {
-            onSetupPermissions()
+            if (requiredPermissionsGranted) onToggleEnabled(true) else onSetupPermissions()
         } else {
             onToggleEnabled(false)
         }
@@ -195,10 +195,11 @@ fun EkagraKavachInlineCard(
                     checked = shieldState.isEnabled,
                     onCheckedChange = ::onKavachToggle,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = accent,
-                        uncheckedThumbColor = Color.White,
-                        uncheckedTrackColor = Color(0xFFCBD5E1),
+                        checkedThumbColor = scheme.onPrimary,
+                        checkedTrackColor = scheme.primary,
+                        uncheckedThumbColor = scheme.outline,
+                        uncheckedTrackColor = scheme.surfaceVariant,
+                        uncheckedBorderColor = scheme.outlineVariant,
                     ),
                     modifier = Modifier.padding(start = 8.dp)
                 )

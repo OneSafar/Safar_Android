@@ -154,6 +154,32 @@ class HomeRepositoryImpl @Inject constructor(
         safeApiCall { homeApi.getAchievements() }
             .map { it.achievements?.map { a -> a.toDomain() } ?: emptyList() }
 
+    override suspend fun selectAchievement(achievementId: String?): Resource<ActiveTitle> =
+        safeApiCall { homeApi.selectAchievement(SelectAchievementRequest(achievementId)) }
+            .map { ActiveTitle(title = it.title ?: "", selectedId = it.selectedId ?: "") }
+
+    override suspend fun trackDhyanSession(durationMinutes: Int, source: String): Resource<Unit> =
+        safeApiCall {
+            homeApi.trackDhyanSession(
+                TrackDhyanSessionRequest(
+                    source = source,
+                    durationMinutes = durationMinutes.coerceAtLeast(0),
+                    completed = true,
+                )
+            )
+        }.map { Unit }
+
+    override suspend fun trackKavachEvent(eventType: String, blockedAppCount: Int, sessionId: String?): Resource<Unit> =
+        safeApiCall {
+            homeApi.trackKavachEvent(
+                TrackKavachEventRequest(
+                    eventType = eventType,
+                    blockedAppCount = blockedAppCount.coerceAtLeast(0),
+                    sessionId = sessionId,
+                )
+            )
+        }.map { Unit }
+
     override suspend fun getLoginHistory(): Resource<List<LoginHistoryEntry>> =
         safeApiCall { authApi.getLoginHistory() }
             .map { list -> list.map { LoginHistoryEntry(timestamp = it.timestamp ?: "") } }

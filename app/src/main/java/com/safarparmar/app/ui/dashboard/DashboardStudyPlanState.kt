@@ -27,6 +27,7 @@ data class DashboardStudyPlanState(
     val daysLeftText: String = "Set exam date",
     val doneCount: Int = 0,
     val totalCount: Int = 0,
+    val allTopics: List<DashboardStudyPlanTopic> = emptyList(),
     val visibleTopics: List<DashboardStudyPlanTopic> = emptyList(),
     val moreCount: Int = 0,
     val errorMessage: String? = null,
@@ -44,7 +45,7 @@ fun buildDashboardStudyPlanState(
     val topicsToday = calendar[todayIso].orEmpty()
     val total = topicsToday.size
     val done = topicsToday.count { it.status == TopicStatus.DONE }
-    val visible = topicsToday.take(3).map {
+    val allTopics = topicsToday.map {
         DashboardStudyPlanTopic(
             id = it.topicId,
             title = it.topicName,
@@ -52,6 +53,7 @@ fun buildDashboardStudyPlanState(
             done = it.status == TopicStatus.DONE,
         )
     }
+    val visible = allTopics.take(3)
 
     return DashboardStudyPlanState(
         status = if (topicsToday.isEmpty()) DashboardStudyPlanStatus.NO_TOPICS_TODAY else DashboardStudyPlanStatus.HAS_TOPICS,
@@ -60,6 +62,7 @@ fun buildDashboardStudyPlanState(
         daysLeftText = dashboardDaysLeftText(plan.examDate, today),
         doneCount = done,
         totalCount = total,
+        allTopics = allTopics,
         visibleTopics = visible,
         moreCount = (total - visible.size).coerceAtLeast(0),
         errorMessage = errorMessage,

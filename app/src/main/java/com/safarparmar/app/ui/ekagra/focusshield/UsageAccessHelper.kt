@@ -57,9 +57,18 @@ object FocusShieldPermissionHelper {
 
     fun openAccessibilitySettings(context: Context) {
         if (!isAccessibilityFeatureEnabled()) return
-        context.startActivity(
-            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
+        val componentName = ComponentName(context, FocusShieldAccessibilityService::class.java)
+        val detailsIntent = Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS")
+            .putExtra(Intent.EXTRA_COMPONENT_NAME, componentName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val fallbackIntent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        runCatching {
+            context.startActivity(detailsIntent)
+        }.getOrElse {
+            context.startActivity(fallbackIntent)
+        }
     }
 
     fun hasNotificationPermission(context: Context): Boolean {

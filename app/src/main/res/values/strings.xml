@@ -180,6 +180,7 @@
     <string name="module_mehfil_sub">Community</string>
     <string name="module_dhyan">Dhyan</string>
     <string name="module_dhyan_sub">Meditation</string>
+    <string name="module_study_planner">Study Planner</string>
     <string name="dhyan_latest_video_title">Latest Dhyan Video</string>
     <string name="dhyan_latest_video_preview">Latest Dhyan video preview</string>
     <string name="dhyan_latest_video_thumbnail_cd">Latest Dhyan YouTube video thumbnail</string>

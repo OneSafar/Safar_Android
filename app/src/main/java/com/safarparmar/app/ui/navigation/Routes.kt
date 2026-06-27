@@ -18,6 +18,7 @@ object Routes {
     const val EKAGRA = "ekagra"
     const val EKAGRA_LINKED = "ekagra?goalId={goalId}&goalTitle={goalTitle}&view={view}"
     const val STUDY_PLANNER = "study_planner"
+    const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}"
     const val MEHFIL = "mehfil"
     const val DM_CHAT = "mehfil/dm_chat"
     const val DHYAN  = "dhyan"

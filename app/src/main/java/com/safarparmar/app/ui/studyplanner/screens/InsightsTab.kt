@@ -1,9 +1,4 @@
 package com.safarparmar.app.ui.studyplanner.screens
-import android.content.Context
-import android.net.Uri
-import android.provider.OpenableColumns
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -74,7 +69,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.automirrored.filled.FactCheck
-import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
@@ -85,7 +79,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Today
-import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -128,7 +121,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -153,7 +145,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -170,6 +161,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
 import com.safarparmar.app.data.remote.api.UpdatePlanRequest
+import com.safarparmar.app.domain.model.Achievement
 import com.safarparmar.app.domain.model.studyplanner.CalendarMap
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.CalendarTopicItem
@@ -193,7 +185,6 @@ import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
 import com.safarparmar.app.ui.studyplanner.components.subjectHeaderBrush
 import com.safarparmar.app.ui.studyplanner.components.subjectMeterBrush
 import com.safarparmar.app.ui.studyplanner.components.topicHierarchyBrush
-import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
 import com.safarparmar.app.ui.studyplanner.logic.*
 import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
@@ -202,15 +193,8 @@ import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.plan.PlanTabScreen
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
-import okio.source
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.Instant
@@ -235,42 +219,8 @@ internal fun InsightsTab(
         PlannerInsightsCalculator.compute(plan, state.calendar, state.analytics)
     }
     val rollup = remember(plan.id, plan.subjects) { plan.rollup() }
-    val subjectIndexById = remember(plan.subjects) {
-        plan.subjects.sortedBy { it.id }.mapIndexed { index, s -> s.id to index }.toMap()
-    }
-    val subjectCount = max(1, plan.subjects.size)
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/pdf"),
-        onResult = { uri ->
-            uri?.let {
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                            StudyPlannerExportUtils.generateStudyPlanPdf(plan, outputStream)
-                        }
-                    } catch (e: Exception) {
-                        actions.setError("PDF export failed: ${e.localizedMessage}")
-                    }
-                }
-            }
-        }
-    )
-
-    val days: Int? = daysUntil(plan.examDate)?.toInt()
-    val s = insights.summary
-    val totalTopics = rollup.totalTopics
-    val doneTopics = rollup.doneTopics
-    val remaining = (totalTopics - doneTopics).coerceAtLeast(0)
-    val pace = s.requiredTopicsPerStudyDay?.let { kotlin.math.ceil(it.toDouble()).toInt() } ?: 0
-    val dailyGoal = plan.dailyGoal?.takeIf { it > 0 } ?: pace
-    val paceBannerMessage = remember(s, insights.backlog, dailyGoal, pace) {
-        buildInsightsPaceMessage(s, insights.backlog, dailyGoal, pace)
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Show first ~40% of the screen: header + next actions + pace banner hint
         Column(
             modifier = Modifier.fillMaxSize(),
         ) {
@@ -280,21 +230,30 @@ internal fun InsightsTab(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
-                    InsightsTopHeader(plan = plan, days = days)
-                }
-                item {
-                    NextBestActionsPanel(
+                    SelectedExamStrip(
                         plan = plan,
-                        insights = insights,
-                        days = days,
-                        actions = actions
+                        onChangeExam = { actions.setSection(PlannerSection.YOUR_EXAMS) },
+                        outerPadding = PaddingValues(0.dp),
                     )
                 }
-                paceBannerMessage?.let { message ->
-                    item { InsightsPaceBanner(message) }
+                item {
+                    StudentInsightHero(
+                        plan = plan,
+                        rollup = rollup,
+                    )
                 }
                 item {
-                    ConsistencyStreakCard(consistency = insights.consistency)
+                    StudyPlannerAchievementsStrip(
+                        achievements = state.plannerAchievements,
+                    )
+                }
+                item {
+                    SubjectProgressChart(
+                        subjects = insights.subjectRows,
+                    )
+                }
+                item {
+                    ConsistencyInsightsCard(consistency = insights.consistency)
                 }
             }
         }
@@ -375,7 +334,7 @@ private fun InsightsPremiumLockOverlay(
                 color = scheme.onBackground,
             )
             Text(
-                text = "Upgrade to see overdue topics, chapters needing attention, and topics needed per day before your exam.",
+                text = "Upgrade to see simple charts for progress, subject completion, and weekly study load.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = scheme.onSurfaceVariant,
@@ -589,6 +548,809 @@ internal fun InsightsPaceBanner(message: String) {
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.weight(1f),
             )
+        }
+    }
+}
+
+@Composable
+internal fun StudentInsightHero(
+    plan: StudyPlan,
+    rollup: PlanProgress,
+) {
+    val topics = remember(plan.subjects) { plan.flattenTopics().map { it.topic } }
+    val total = rollup.totalTopics.coerceAtLeast(0)
+    val done = rollup.doneTopics.coerceAtLeast(0)
+    val revision = topics.count { it.status == TopicStatus.REVISION_NEEDED }
+    val left = (total - done - revision).coerceAtLeast(0)
+    val doneColor = Color(0xFF16A34A)
+    val revisionColor = Color(0xFFF59E0B)
+    val leftColor = MaterialTheme.colorScheme.outlineVariant
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(doneColor.copy(alpha = 0.12f))
+                        .border(1.dp, doneColor.copy(alpha = 0.28f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "${rollup.completionPercent}%",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 22.sp,
+                        color = doneColor,
+                    )
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Plan progress",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "$done of $total topics completed",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f)),
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
+                if (total > 0) {
+                    if (done > 0) {
+                        Box(
+                            Modifier
+                                .fillMaxHeight()
+                                .weight(done.toFloat())
+                                .background(doneColor),
+                        )
+                    }
+                    if (revision > 0) {
+                        Box(
+                            Modifier
+                                .fillMaxHeight()
+                                .weight(revision.toFloat())
+                                .background(revisionColor),
+                        )
+                    }
+                    if (left > 0) {
+                        Box(
+                            Modifier
+                                .fillMaxHeight()
+                                .weight(left.toFloat())
+                                .background(leftColor),
+                        )
+                    }
+                } else {
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth()
+                            .background(leftColor),
+                    )
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                PlannerLegendStat(
+                    label = "Done",
+                    value = done.toString(),
+                    tint = doneColor,
+                    modifier = Modifier.weight(1f),
+                )
+                PlannerLegendStat(
+                    label = "Revision",
+                    value = revision.toString(),
+                    tint = revisionColor,
+                    modifier = Modifier.weight(1f),
+                )
+                PlannerLegendStat(
+                    label = "Left",
+                    value = left.toString(),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlannerLegendStat(
+    label: String,
+    value: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(tint),
+                )
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun StudyPlannerAchievementsStrip(
+    achievements: List<Achievement>,
+    modifier: Modifier = Modifier,
+) {
+    if (achievements.isEmpty()) return
+
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = scheme.surface,
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(scheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.EmojiEvents,
+                        contentDescription = null,
+                        tint = scheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = "Study Planner Rewards",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = scheme.onSurface,
+                    )
+                    Text(
+                        text = "Badges and titles from your planner progress.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(achievements, key = { it.id }) { achievement ->
+                    StudyPlannerAchievementCard(achievement = achievement)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StudyPlannerAchievementCard(
+    achievement: Achievement,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val earned = achievement.earned
+    val tint = if (earned) Color(0xFF16A34A) else scheme.primary
+    val progress = when {
+        achievement.earned -> 1f
+        achievement.targetValue > 0 -> (achievement.currentValue.toFloat() / achievement.targetValue.toFloat()).coerceIn(0f, 1f)
+        else -> (achievement.progress.toFloat() / 100f).coerceIn(0f, 1f)
+    }
+    val typeLabel = if (achievement.type.equals("title", ignoreCase = true)) "Title" else "Badge"
+    val progressLabel = when {
+        earned -> "Earned"
+        achievement.targetValue > 0 -> "${achievement.currentValue}/${achievement.targetValue}"
+        achievement.progress > 0 -> "${achievement.progress}%"
+        else -> "Locked"
+    }
+
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = if (earned) tint.copy(alpha = 0.10f) else scheme.surfaceVariant.copy(alpha = 0.42f),
+        border = BorderStroke(1.dp, if (earned) tint.copy(alpha = 0.32f) else scheme.outlineVariant.copy(alpha = 0.7f)),
+        modifier = modifier.width(172.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(tint.copy(alpha = if (earned) 0.18f else 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (achievement.type.equals("title", ignoreCase = true)) Icons.Rounded.AutoAwesome else Icons.Rounded.EmojiEvents,
+                        contentDescription = null,
+                        tint = tint,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Text(
+                    text = typeLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = tint,
+                    maxLines = 1,
+                )
+            }
+
+            Text(
+                text = achievement.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Black,
+                color = scheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                minLines = 2,
+            )
+            Text(
+                text = achievement.description?.takeIf { it.isNotBlank() } ?: achievement.requirement,
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 16.sp,
+                minLines = 2,
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(7.dp)
+                        .clip(CircleShape)
+                        .background(scheme.outlineVariant.copy(alpha = 0.45f)),
+                ) {
+                    if (progress > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(progress)
+                                .clip(CircleShape)
+                                .background(tint),
+                        )
+                    }
+                }
+                Text(
+                    text = progressLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (earned) tint else scheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun StudentNextStepCard(
+    plan: StudyPlan,
+    insights: PlannerInsights,
+    days: Int?,
+    actions: PlannerActions,
+) {
+    val overdue = insights.backlog.overdueTotal
+    val unplanned = insights.backlog.unplannedUnfinished
+    val title: String
+    val body: String
+    val button: String
+    val icon: ImageVector
+    val tint: Color
+    val action: () -> Unit
+
+    when {
+        plan.examDate.isNullOrBlank() || days == null -> {
+            title = "Set exam date"
+            body = "Without exam date, your planner cannot guide you properly."
+            button = "Edit plan"
+            icon = Icons.Default.CalendarMonth
+            tint = MaterialTheme.colorScheme.primary
+            action = { actions.setSection(PlannerSection.PLAN) }
+        }
+        unplanned > 0 -> {
+            title = "Tap Build Planner"
+            body = "$unplanned topics are not in calendar. Go to Syllabus and tap Build Planner."
+            button = "Go to Syllabus"
+            icon = Icons.AutoMirrored.Filled.PlaylistAdd
+            tint = Color(0xFFF59E0B)
+            action = { actions.setSection(PlannerSection.SYLLABUS) }
+        }
+        overdue > 0 -> {
+            title = "Clear overdue first"
+            body = "$overdue topics are late. Finish them before starting new topics."
+            button = "Go to Plan"
+            icon = Icons.Default.Warning
+            tint = MaterialTheme.colorScheme.error
+            action = { actions.setSection(PlannerSection.PLAN) }
+        }
+        insights.summary.onTrackStatus == InsightTrackStatus.BEHIND -> {
+            title = "You are lagging"
+            body = "Build Planner again or increase daily topics."
+            button = "Go to Syllabus"
+            icon = Icons.Default.Refresh
+            tint = MaterialTheme.colorScheme.error
+            action = { actions.setSection(PlannerSection.SYLLABUS) }
+        }
+        else -> {
+            title = "Keep going"
+            body = "Your plan looks fine. Follow Today's Agenda."
+            button = "Go to Today"
+            icon = Icons.Rounded.CheckCircle
+            tint = Color(0xFF16A34A)
+            action = { actions.setSection(PlannerSection.PLAN) }
+        }
+    }
+
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = tint.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, tint.copy(alpha = 0.22f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(tint.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 17.sp)
+                Button(
+                    onClick = action,
+                    colors = ButtonDefaults.buttonColors(containerColor = tint, contentColor = Color.White),
+                    shape = ButtonDefaults.shape,
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    modifier = Modifier.heightIn(min = 36.dp),
+                ) {
+                    Text(button, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SubjectProgressChart(
+    subjects: List<PlannerInsightSubjectRow>,
+) {
+    val chartSubjects = subjects
+        .sortedWith(
+            compareByDescending<PlannerInsightSubjectRow> { it.overdueTopics }
+                .thenByDescending { it.remainingTopics }
+        )
+        .take(5)
+
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("Subject progress", fontWeight = FontWeight.Black, fontSize = 18.sp)
+            if (chartSubjects.isEmpty()) {
+                Text("Add topics to see subject chart.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                chartSubjects.forEach { row ->
+                    StudentSubjectBar(row)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StudentSubjectBar(row: PlannerInsightSubjectRow) {
+    val progress = (row.completionPercent / 100f).coerceIn(0f, 1f)
+    val tint = when {
+        row.overdueTopics > 0 -> MaterialTheme.colorScheme.error
+        row.completionPercent < 25 -> Color(0xFFF59E0B)
+        else -> MaterialTheme.colorScheme.primary
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                row.subjectName,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text("${row.completionPercent}%", fontWeight = FontWeight.Black, color = tint)
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(9.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+        ) {
+            if (progress > 0f) {
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .clip(CircleShape)
+                        .background(tint),
+                )
+            }
+        }
+        Text(
+            text = "${row.remainingTopics} topics left${if (row.overdueTopics > 0) " • ${row.overdueTopics} overdue" else ""}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+internal fun ConsistencyInsightsCard(consistency: PlannerInsightConsistency) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Consistency / Missed Days", fontWeight = FontWeight.Black, fontSize = 18.sp)
+            if (consistency.missedDays.isEmpty()) {
+                Text(
+                    text = "Great job! You haven't missed any planned topics recently.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                consistency.missedDays.forEach { day ->
+                    val date = runCatching { LocalDate.parse(day.date.take(10)) }.getOrNull()
+                    val label = date?.dayOfWeek?.getDisplayName(TextStyle.SHORT, Locale.getDefault()) ?: day.date.takeLast(2)
+                    
+                    val completionPercent = if (day.plannedCount > 0) {
+                        (day.doneCount.toFloat() / day.plannedCount.toFloat())
+                    } else {
+                        0f
+                    }
+                    val displayPercent = (completionPercent * 100).toInt()
+
+                    val tint = when {
+                        completionPercent < 0.25f -> MaterialTheme.colorScheme.error
+                        completionPercent < 0.75f -> Color(0xFFF59E0B)
+                        else -> MaterialTheme.colorScheme.primary
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(label, modifier = Modifier.width(34.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(12.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+                        ) {
+                            if (completionPercent > 0f) {
+                                Box(
+                                    Modifier
+                                        .fillMaxHeight()
+                                        .fillMaxWidth(completionPercent.coerceIn(0.06f, 1f))
+                                        .clip(CircleShape)
+                                        .background(tint),
+                                )
+                            }
+                        }
+                        Text("$displayPercent%", modifier = Modifier.width(36.dp), textAlign = TextAlign.End, fontWeight = FontWeight.Black)
+                    }
+                }
+                Text(
+                    text = "Displays % completion for days where you didn't finish all topics.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun InsightsMetricGrid(
+    summary: PlannerInsightSummary,
+    backlog: PlannerInsightBacklog,
+    workload: PlannerInsightWorkload,
+    dailyGoal: Int,
+    requiredPace: Int,
+) {
+    val forecast = summary.forecastCompletionDate?.let { readableDate(it) }?.takeUnless { it == "Not set" } ?: "—"
+    val buffer = summary.daysBuffer
+    val statusLabel = when (summary.onTrackStatus) {
+        InsightTrackStatus.ON_TRACK -> "On track"
+        InsightTrackStatus.AT_RISK -> "At risk"
+        InsightTrackStatus.BEHIND -> "Behind"
+        InsightTrackStatus.AHEAD -> "Ahead"
+        InsightTrackStatus.NEEDS_DATA -> "Needs data"
+    }
+    val statusColor = when (summary.onTrackStatus) {
+        InsightTrackStatus.ON_TRACK, InsightTrackStatus.AHEAD -> Color(0xFF16A34A)
+        InsightTrackStatus.AT_RISK -> Color(0xFFF59E0B)
+        InsightTrackStatus.BEHIND -> MaterialTheme.colorScheme.error
+        InsightTrackStatus.NEEDS_DATA -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val next14Total = workload.next14Days.sumOf { it.plannedCount }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            InsightsMetricTile(
+                label = "Track status",
+                value = statusLabel,
+                helper = buffer?.let { if (it >= 0) "$it study days buffer" else "${-it} study days short" } ?: "Build planner for forecast",
+                icon = Icons.Default.Insights,
+                tint = statusColor,
+                modifier = Modifier.weight(1f),
+            )
+            InsightsMetricTile(
+                label = "Required pace",
+                value = if (requiredPace > 0) "$requiredPace/day" else "—",
+                helper = "Goal: ${dailyGoal.coerceAtLeast(1)}/day",
+                icon = Icons.Default.Today,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            InsightsMetricTile(
+                label = "Forecast finish",
+                value = forecast,
+                helper = summary.availableStudyDays?.let { "$it study days left" } ?: "Set exam date",
+                icon = Icons.Default.CalendarMonth,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.weight(1f),
+            )
+            InsightsMetricTile(
+                label = "Schedule coverage",
+                value = summary.scheduleCoveragePercent?.let { "$it%" } ?: "—",
+                helper = if (backlog.unplannedUnfinished > 0) "${backlog.unplannedUnfinished} unplanned" else "$next14Total topics next 14 days",
+                icon = Icons.AutoMirrored.Filled.FactCheck,
+                tint = if (backlog.unplannedUnfinished > 0) Color(0xFFF59E0B) else Color(0xFF2563EB),
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun InsightsMetricTile(
+    label: String,
+    value: String,
+    helper: String,
+    icon: ImageVector,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(tint.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = helper,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 14.sp,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun InsightsWorkloadCard(workload: PlannerInsightWorkload) {
+    val next14Total = workload.next14Days.sumOf { it.plannedCount }
+    val busiest = workload.busiestDay
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Upcoming workload", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                InsightsInnerStat(
+                    label = "Next 14 days",
+                    value = "$next14Total topics",
+                    valueColor = MaterialTheme.colorScheme.onSurface,
+                    icon = Icons.Default.Today,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+                InsightsInnerStat(
+                    label = "Busiest day",
+                    value = busiest?.let { "${it.plannedCount} topics" } ?: "—",
+                    valueColor = if ((busiest?.plannedCount ?: 0) >= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    icon = Icons.Default.CalendarMonth,
+                    iconTint = if ((busiest?.plannedCount ?: 0) >= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text(
+                text = when {
+                    workload.overloadDays > 0 -> "${workload.overloadDays} heavy day${if (workload.overloadDays == 1) "" else "s"} detected. Use Build Planner again if the load feels uneven."
+                    workload.emptyStudyDays > 7 -> "${workload.emptyStudyDays} empty days in the next 14. Build Planner may need to run after adding topics."
+                    else -> "Your next 14 days look balanced."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun InsightsBacklogCard(backlog: PlannerInsightBacklog) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Backlog health", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                InsightsInnerStat(
+                    label = "Overdue",
+                    value = backlog.overdueTotal.toString(),
+                    valueColor = if (backlog.overdueTotal > 0) MaterialTheme.colorScheme.error else Color(0xFF16A34A),
+                    icon = Icons.Default.Warning,
+                    iconTint = if (backlog.overdueTotal > 0) MaterialTheme.colorScheme.error else Color(0xFF16A34A),
+                    modifier = Modifier.weight(1f),
+                )
+                InsightsInnerStat(
+                    label = "Revision",
+                    value = backlog.revisionNeeded.toString(),
+                    valueColor = MaterialTheme.colorScheme.onSurface,
+                    icon = Icons.Default.Refresh,
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                InsightsInnerStat(
+                    label = "Unplanned",
+                    value = backlog.unplannedUnfinished.toString(),
+                    valueColor = if (backlog.unplannedUnfinished > 0) Color(0xFFF59E0B) else Color(0xFF16A34A),
+                    icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                    iconTint = if (backlog.unplannedUnfinished > 0) Color(0xFFF59E0B) else Color(0xFF16A34A),
+                    modifier = Modifier.weight(1f),
+                )
+                InsightsInnerStat(
+                    label = "8+ days late",
+                    value = backlog.overdue8Plus.toString(),
+                    valueColor = if (backlog.overdue8Plus > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    icon = Icons.Default.CalendarMonth,
+                    iconTint = if (backlog.overdue8Plus > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun InsightsRecommendationsCard(recommendations: List<String>) {
+    if (recommendations.isEmpty()) return
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Planner recommendations", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            recommendations.forEach { recommendation ->
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(
+                        imageVector = Icons.Rounded.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp).padding(top = 2.dp),
+                    )
+                    Text(
+                        text = recommendation,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
     }
 }

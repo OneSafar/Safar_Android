@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.dhyan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.safarparmar.app.domain.repository.HomeRepository
 import com.safarparmar.app.domain.repository.MehfilRepository
 import com.safarparmar.app.util.Resource
 import com.safarparmar.app.util.YoutubeUrls
@@ -14,6 +15,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DhyanViewModel @Inject constructor(
     private val mehfilRepository: MehfilRepository,
+    private val homeRepository: HomeRepository,
 ) : ViewModel() {
 
     private val _meditationVideoUrl = MutableStateFlow(YoutubeUrls.DEFAULT_MEDITATION_VIDEO_URL)
@@ -44,6 +46,12 @@ class DhyanViewModel @Inject constructor(
                 }
                 is Resource.Loading -> Unit
             }
+        }
+    }
+
+    fun trackCompletedSession(durationMinutes: Int) {
+        viewModelScope.launch {
+            homeRepository.trackDhyanSession(durationMinutes = durationMinutes.coerceAtLeast(1))
         }
     }
 }
