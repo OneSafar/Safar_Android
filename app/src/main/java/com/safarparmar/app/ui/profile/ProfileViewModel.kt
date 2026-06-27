@@ -1,7 +1,11 @@
 package com.safarparmar.app.ui.profile
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,6 +24,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 @HiltViewModel
@@ -123,14 +128,51 @@ class ProfileViewModel @Inject constructor(
     }
 
     private fun buildAvatarPart(uri: Uri): MultipartBody.Part? {
-        val resolver = appContext.contentResolver
-        val mimeType = resolver.getType(uri)?.takeIf { it.startsWith("image/") } ?: "image/jpeg"
-        val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+        val bitmap = decodeAvatarBitmap(uri) ?: return null
+        val scaledBitmap = scaleAvatarBitmap(bitmap, maxSide = 1024)
+        val output = ByteArrayOutputStream()
+
+        val compressed = scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 88, output)
+        if (scaledBitmap !== bitmap) scaledBitmap.recycle()
+        bitmap.recycle()
+
+        if (!compressed) return null
+        val bytes = output.toByteArray()
         if (bytes.isEmpty()) return null
 
-        val fileName = getDisplayName(uri) ?: "avatar.${extensionForMime(mimeType)}"
-        val body = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+        val baseName = getDisplayName(uri)
+            ?.substringBeforeLast('.')
+            ?.takeIf { it.isNotBlank() }
+            ?: "avatar"
+        val fileName = "$baseName.jpg"
+        val body = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
         return MultipartBody.Part.createFormData("avatar", fileName, body)
+    }
+
+    private fun decodeAvatarBitmap(uri: Uri): Bitmap? {
+        val resolver = appContext.contentResolver
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val source = ImageDecoder.createSource(resolver, uri)
+            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
+        } else {
+            resolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream)
+            }
+        }
+    }
+
+    private fun scaleAvatarBitmap(bitmap: Bitmap, maxSide: Int): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        val longestSide = maxOf(width, height)
+        if (longestSide <= maxSide || longestSide <= 0) return bitmap
+
+        val scale = maxSide.toFloat() / longestSide.toFloat()
+        val targetWidth = (width * scale).toInt().coerceAtLeast(1)
+        val targetHeight = (height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
     }
 
     private fun getDisplayName(uri: Uri): String? {
@@ -140,13 +182,6 @@ class ProfileViewModel @Inject constructor(
                 if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
             }
             ?.takeIf { it.isNotBlank() }
-    }
-
-    private fun extensionForMime(mimeType: String): String = when (mimeType) {
-        "image/png" -> "png"
-        "image/webp" -> "webp"
-        "image/gif" -> "gif"
-        else -> "jpg"
     }
 
     private fun handleLogout() {

@@ -517,6 +517,7 @@ fun SafarNavGraph(
 
         composable(Routes.PREMIUM) {
             PremiumPaywallScreen(
+                isDarkTheme = isDarkTheme,
                 onBack = { navController.popBackStack() },
                 onNavigate = ::navigate
             )

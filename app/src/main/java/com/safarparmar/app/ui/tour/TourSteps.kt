@@ -158,11 +158,11 @@ val dhyanTourSteps = listOf(
     ),
 )
 
-/** Tour steps shown on the Study Planner screen. */
+/** Tour steps shown on the Exam Planner screen. */
 val studyPlannerTourSteps = listOf(
     // Step 0 (YOUR_EXAMS)
     ButterflyTourStep(
-        title   = "Welcome to Study Planner 📚",
+        title   = "Welcome to Exam Planner 📚",
         message = "This is your exam list. Open any exam to see its plan.",
         anchorX = 0.5f, anchorY = 0.15f,
         tooltipSide = TooltipSide.BOTTOM,

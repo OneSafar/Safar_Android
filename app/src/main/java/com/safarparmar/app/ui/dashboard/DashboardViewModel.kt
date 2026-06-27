@@ -169,7 +169,7 @@ class DashboardViewModel @Inject constructor(
                 is Resource.Loading -> DashboardStudyPlanState()
             }
         } catch (e: Exception) {
-            DashboardStudyPlanState(errorMessage = e.localizedMessage ?: "Could not load study planner.")
+            DashboardStudyPlanState(errorMessage = e.localizedMessage ?: "Could not load exam planner.")
         }
     }
 }

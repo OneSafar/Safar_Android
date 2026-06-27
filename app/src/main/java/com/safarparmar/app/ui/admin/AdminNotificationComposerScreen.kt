@@ -92,7 +92,7 @@ data class AdminDeepLinkOption(
 
 private val deepLinkOptions = listOf(
     AdminDeepLinkOption("Home Dashboard", "safar://dashboard"),
-    AdminDeepLinkOption("Study Planner", "safar://study_planner"),
+    AdminDeepLinkOption("Exam Planner", "safar://study_planner"),
     AdminDeepLinkOption("Mehfil (Community)", "safar://mehfil"),
     AdminDeepLinkOption("Mehfil DM Chat", "safar://mehfil/dm_chat"),
     AdminDeepLinkOption("Nishtha (Goals & Streaks)", "safar://nishtha"),

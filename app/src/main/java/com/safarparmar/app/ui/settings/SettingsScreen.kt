@@ -510,7 +510,7 @@ private fun SettingsPremiumStatusCard(
     val featureSummary = when {
         isPremiumActive -> buildList {
             if (canUseNishthaAnalytics) add("Nishtha Analytics")
-            if (canUseStudyPlannerInsights) add("Study Planner Insights")
+            if (canUseStudyPlannerInsights) add("Exam Planner Insights")
             if (canUseMehfilDm) add("Mehfil Private Connect")
         }.takeIf { it.isNotEmpty() }?.joinToString(" / ") ?: "Premium features active"
         else -> "Unlock analytics, planner insights, focus reports, and private connect."

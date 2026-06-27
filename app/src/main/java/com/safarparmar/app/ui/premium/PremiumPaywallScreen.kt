@@ -55,6 +55,7 @@ private data class PremiumPlanOption(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PremiumPaywallScreen(
+    isDarkTheme: Boolean = false,
     onBack: () -> Unit,
     onNavigate: (String) -> Unit = {},
     viewModel: PremiumViewModel = hiltViewModel()
@@ -66,7 +67,7 @@ fun PremiumPaywallScreen(
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
-    val isDark = isSystemInDarkTheme()
+    val isDark = isDarkTheme
     var refreshAfterPaymentReturn by remember { mutableStateOf(false) }
     
     // Dynamic theme colors
