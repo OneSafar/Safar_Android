@@ -54,6 +54,9 @@ fun AudioLibraryPanel(
     }
 
     fun playPreview(track: AudioTrack) {
+        if (track.id == "none-track") {
+            return
+        }
         if (previewingTrackId == track.id) {
             // Stop preview if tapping the same track
             releasePreview()

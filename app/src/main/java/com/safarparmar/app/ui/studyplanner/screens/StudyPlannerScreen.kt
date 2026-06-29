@@ -71,6 +71,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
@@ -79,8 +80,10 @@ import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Refresh
@@ -162,6 +165,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -464,6 +468,7 @@ fun StudyPlannerScreen(
     }.collectAsStateWithLifecycle(initialDetailState)
     val actions: PlannerActions = viewModel
     val snackbar = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     var tourState by remember { mutableStateOf<ButterflyTourState?>(null) }
 
     LaunchedEffect(chromeState.error, chromeState.message, detailState.hydrateWarning, detailState.importError, detailState.importResultSummary, detailState.importStatus, detailState.structureError, detailState.structuredImportError, detailState.structuredImportSuccessMessage) {
@@ -664,6 +669,9 @@ fun StudyPlannerScreen(
                             when {
                                 section == PlannerSection.YOUR_EXAMS || activePlan != null ->
                                     actions.setSection(section)
+                                else -> coroutineScope.launch {
+                                    snackbar.showSnackbar("Please select an exam plan first.")
+                                }
                             }
                         },
                     )
@@ -736,6 +744,8 @@ private fun StudyPlansScreen(
     state: StudyPlansListState,
     importState: StudyPlannerDetailState,
     actions: PlannerActions,
+    canUsePremiumPlannerFeatures: Boolean,
+    onUpgrade: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onAdvanceTour: () -> Unit = {},
@@ -767,6 +777,8 @@ private fun StudyPlansScreen(
             actions = actions,
             initialMode = createMode,
             fixedTemplateId = selectedTemplateForSetup,
+            canUsePremiumPlannerFeatures = canUsePremiumPlannerFeatures,
+            onUpgrade = onUpgrade,
             onDismiss = { if (!quickStartState.isImporting) showCreate = false },
         )
     }
@@ -784,6 +796,7 @@ private fun StudyPlansScreen(
     if (showTemplateCatalog) {
         PlannerTemplateCatalogScreen(
             templates = resolvedPlannerTemplateOptions(state.templates),
+            canUsePremiumPlannerFeatures = canUsePremiumPlannerFeatures,
             onBack = { showTemplateCatalog = false },
             onSelectTemplate = { template ->
                 selectedTemplateForSetup = template.id
@@ -791,6 +804,7 @@ private fun StudyPlansScreen(
                 showTemplateCatalog = false
                 showCreate = true
             },
+            onUpgrade = onUpgrade,
         )
     } else SafarPullRefreshBox(
         isRefreshing = state.loading && state.plans.isNotEmpty(),
@@ -1124,10 +1138,49 @@ private fun PlannerThemeActionCard(
 }
 
 @Composable
+private fun PremiumPlannerGateCard(
+    title: String,
+    body: String,
+    action: String,
+    onUpgrade: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(color = MaterialTheme.colorScheme.primary, shape = CircleShape) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(10.dp).size(20.dp),
+                )
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(title, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f))
+            }
+            TextButton(onClick = onUpgrade) {
+                Text(action, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
 private fun PlannerTemplateCatalogScreen(
     templates: List<PlannerTemplateOption>,
+    canUsePremiumPlannerFeatures: Boolean,
     onBack: () -> Unit,
     onSelectTemplate: (PlannerTemplateOption) -> Unit,
+    onUpgrade: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1146,18 +1199,31 @@ private fun PlannerTemplateCatalogScreen(
                 Column {
                     Text("Plan More Exams", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
                     Text(
-                        "Pick a template to set up your next plan.",
+                        if (canUsePremiumPlannerFeatures) "Pick a template to set up your next plan." else "Templates are included with Safar Premium.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         }
+        if (!canUsePremiumPlannerFeatures) {
+            item {
+                PremiumPlannerGateCard(
+                    title = "Templates are premium",
+                    body = "Create custom plans for free, or start Premium to use ready-made exam templates.",
+                    action = "Start 7-day free trial",
+                    onUpgrade = onUpgrade,
+                )
+            }
+        }
         items(templates, key = { it.id }) { template ->
             PlannerTemplateSelectionCard(
                 template = template,
                 selected = false,
-                onClick = { onSelectTemplate(template) },
+                locked = !canUsePremiumPlannerFeatures,
+                onClick = {
+                    if (canUsePremiumPlannerFeatures) onSelectTemplate(template) else onUpgrade()
+                },
             )
         }
     }
@@ -1459,9 +1525,19 @@ private fun QuickStartSheet(
     actions: PlannerActions,
     initialMode: String = "template",
     fixedTemplateId: String? = null,
+    canUsePremiumPlannerFeatures: Boolean,
+    onUpgrade: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var mode by remember(initialMode, fixedTemplateId) { mutableStateOf(if (fixedTemplateId != null) "template" else initialMode) }
+    var mode by remember(initialMode, fixedTemplateId, canUsePremiumPlannerFeatures) {
+        mutableStateOf(
+            when {
+                fixedTemplateId != null -> "template"
+                initialMode == "template" && !canUsePremiumPlannerFeatures -> "custom"
+                else -> initialMode
+            }
+        )
+    }
     val templateOptions = remember(state.templates) { resolvedPlannerTemplateOptions(state.templates) }
     var templateId by remember(templateOptions, fixedTemplateId) { mutableStateOf(fixedTemplateId ?: templateOptions.firstOrNull()?.id.orEmpty()) }
     var title by remember { mutableStateOf("") }
@@ -1512,6 +1588,10 @@ private fun QuickStartSheet(
         }
 
         val hasSyllabusImport = mode == "custom" && pasteSyllabus.isNotBlank()
+        if (mode == "template" && !canUsePremiumPlannerFeatures) {
+            onUpgrade()
+            return
+        }
         if (mode == "template" && templateId.isNotBlank()) {
             actions.createFromTemplate(templateId, title.ifBlank { "Study Plan" }, requiredExamDate, goal, offDays.value.toList())
             onDismiss()
@@ -1570,6 +1650,14 @@ private fun QuickStartSheet(
                     }
                 }
                 if (mode == "template") {
+                    if (!canUsePremiumPlannerFeatures) {
+                        PremiumPlannerGateCard(
+                            title = "Templates are premium",
+                            body = "You can still create a custom plan manually for free.",
+                            action = "Start 7-day free trial",
+                            onUpgrade = onUpgrade,
+                        )
+                    }
                     if (fixedTemplateId != null && selectedTemplate != null) {
                         Text(
                             text = selectedTemplate.title,
@@ -1583,11 +1671,16 @@ private fun QuickStartSheet(
                             PlannerTemplateSelectionCard(
                                 template = template,
                                 selected = templateId == template.id,
+                                locked = !canUsePremiumPlannerFeatures,
                                 onClick = {
-                                    templateId = template.id
-                                    title = template.title
-                                    examType = template.title
-                                    dailyGoal = template.dailyGoal.toString()
+                                    if (canUsePremiumPlannerFeatures) {
+                                        templateId = template.id
+                                        title = template.title
+                                        examType = template.title
+                                        dailyGoal = template.dailyGoal.toString()
+                                    } else {
+                                        onUpgrade()
+                                    }
                                 },
                             )
                         }
@@ -1686,6 +1779,7 @@ private fun QuickStartSheet(
 private fun PlannerTemplateSelectionCard(
     template: PlannerTemplateOption,
     selected: Boolean,
+    locked: Boolean = false,
     onClick: () -> Unit,
 ) {
     val cardShape = RoundedCornerShape(22.dp)
@@ -1722,13 +1816,21 @@ private fun PlannerTemplateSelectionCard(
                     )
                 }
                 Surface(color = Color(0xFF315AAB).copy(alpha = 0.9f), shape = CircleShape) {
-                    Text(
-                        text = template.categoryLabel,
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.ExtraBold,
+                    Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        if (locked) {
+                            Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        }
+                        Text(
+                            text = if (locked) "PREMIUM" else template.categoryLabel,
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                        )
+                    }
                 }
             }
             Text(
@@ -1749,6 +1851,11 @@ private fun PlannerTemplateSelectionCard(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                     Text("Selected", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                }
+            } else if (locked) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Text("Unlock with Premium", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1834,6 +1941,8 @@ private fun PlannerHome(
                     state = plansState,
                     importState = detailState,
                     actions = actions,
+                    canUsePremiumPlannerFeatures = canUsePremiumInsights,
+                    onUpgrade = { onNavigate(Routes.PREMIUM) },
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     onAdvanceTour = onAdvanceTour,
@@ -1844,6 +1953,8 @@ private fun PlannerHome(
                         state = plansState,
                         importState = detailState,
                         actions = actions,
+                        canUsePremiumPlannerFeatures = canUsePremiumInsights,
+                        onUpgrade = { onNavigate(Routes.PREMIUM) },
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                         onAdvanceTour = onAdvanceTour,
@@ -2746,71 +2857,103 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SyllabusFullImportCard(state: StudyPlannerUiState, actions: PlannerActions) {
+internal fun SyllabusFullImportCard(
+    state: StudyPlannerUiState,
+    actions: PlannerActions,
+    canUseAiImport: Boolean,
+    onUpgrade: () -> Unit,
+) {
     var text by remember { mutableStateOf(state.rawSyllabusText) }
     val aiImportEnabled = BuildConfig.AI_SYLLABUS_IMPORT_ENABLED
-    var mode by remember(aiImportEnabled) { mutableStateOf(if (aiImportEnabled) "ai" else "manual") }
+    var mode by remember(aiImportEnabled, canUseAiImport) { mutableStateOf(if (aiImportEnabled && canUseAiImport) "ai" else "manual") }
+    var showManualGuide by remember { mutableStateOf(false) }
+    var showManualImportChoice by remember { mutableStateOf(false) }
+    val manualSyllabusExample = remember {
+        """
+        Subject: Maths
+        Chapter: Algebra
+        Topic: Linear Equations
+        Topics: Quadratic Equations, Polynomials
+
+        Subject: Science
+        Unit: Physics
+        Topic: Motion
+        """.trimIndent()
+    }
     val parsed = remember(text) { parseBulkSubjectsFromTxt(text) }
     val groups = parsed.getOrNull()
     val topicCount = groups?.let { countBulkSubjectsTopics(it) } ?: 0
     val chapterCount = groups?.let { countBulkSubjectsChapters(it) } ?: 0
     val preview = state.structuredPreview
     val scheme = MaterialTheme.colorScheme
+    val hasExistingSyllabus = remember(state.selectedPlan) {
+        state.selectedPlan?.subjects?.any { subject ->
+            subject.chapters.any { chapter -> chapter.topics.isNotEmpty() }
+        } == true
+    }
+    fun submitManualSyllabus(importMode: String) {
+        actions.importFullSyllabusFromTxt(text, importMode)
+    }
+
+    if (showManualGuide) {
+        ManualSyllabusGuideDialog(
+            example = manualSyllabusExample,
+            onDismiss = { showManualGuide = false },
+            onAddExample = {
+                text = if (text.isBlank()) {
+                    manualSyllabusExample
+                } else {
+                    "${text.trimEnd()}\n\n$manualSyllabusExample"
+                }
+                showManualGuide = false
+            },
+        )
+    }
+    if (showManualImportChoice) {
+        ManualSyllabusImportChoiceSheet(
+            topicCount = topicCount,
+            chapterCount = chapterCount,
+            onDismiss = { showManualImportChoice = false },
+            onMerge = {
+                showManualImportChoice = false
+                submitManualSyllabus("merge")
+            },
+            onReplace = {
+                showManualImportChoice = false
+                submitManualSyllabus("replace")
+            },
+        )
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLowest),
-        border = BorderStroke(1.dp, scheme.surfaceContainerHighest),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
     ) {
         Column(
-            Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            Modifier.padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Text(
                 "Import Syllabus",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
                 color = scheme.onSurface,
             )
             if (aiImportEnabled) {
-                val selectedTabIndex = if (mode == "ai") 0 else 1
-                SecondaryTabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = Color.Transparent,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Tab(
-                        selected = mode == "ai",
-                        onClick = { mode = "ai" },
-                        text = {
-                            Text(
-                                "AI Import",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        },
-                        selectedContentColor = scheme.primary,
-                        unselectedContentColor = scheme.onSurfaceVariant
-                    )
-                    Tab(
-                        selected = mode == "manual",
-                        onClick = { mode = "manual" },
-                        text = {
-                            Text(
-                                "Manual Setup",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        },
-                        selectedContentColor = scheme.primary,
-                        unselectedContentColor = scheme.onSurfaceVariant
-                    )
-                }
+                SyllabusImportModeTabs(
+                    mode = mode,
+                    canUseAiImport = canUseAiImport,
+                    onAiClick = {
+                        if (canUseAiImport) mode = "ai" else onUpgrade()
+                    },
+                    onManualClick = { mode = "manual" },
+                )
             }
 
-            if (aiImportEnabled && mode == "ai") {
+            if (aiImportEnabled && mode == "ai" && canUseAiImport) {
                 OutlinedTextField(
                     value = text,
                     onValueChange = {
@@ -2897,36 +3040,591 @@ internal fun SyllabusFullImportCard(state: StudyPlannerUiState, actions: Planner
                 }
                 state.structuredImportError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             } else {
+                if (aiImportEnabled && !canUseAiImport) {
+                    AiSyllabusPremiumCard(onUpgrade = onUpgrade)
+                }
+                ManualSyllabusHelpRow(onGuideClick = { showManualGuide = true })
                 OutlinedTextField(
                     text,
                     { text = it },
                     placeholder = {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Use Manual", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("- Subject, _ Chapter, > Topic", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ManualSyllabusExamplePlaceholder()
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            text = if (text.isBlank()) {
+                                manualSyllabusExample
+                            } else {
+                                "${text.trimEnd()}\n\n$manualSyllabusExample"
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Add example",
+                                tint = Color(0xFF60A5FA),
+                            )
                         }
                     },
-                    minLines = 5,
+                    minLines = 8,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = OutlinedTextFieldDefaults.shape,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = scheme.onSurface,
+                        unfocusedTextColor = scheme.onSurface,
+                        cursorColor = Color(0xFF2563EB),
+                        focusedBorderColor = Color(0xFF93C5FD),
+                        unfocusedBorderColor = Color(0xFFBFDBFE),
+                        focusedContainerColor = scheme.surface,
+                        unfocusedContainerColor = scheme.surface,
+                    ),
                 )
                 when {
                     text.isBlank() -> Unit
                     parsed.isSuccess && groups != null -> Text("$topicCount topics / $chapterCount chapters / ${groups.size} subjects", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     else -> Text(parsed.exceptionOrNull()?.message ?: "Invalid format", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
-                Button(
-                    onClick = { actions.importFullSyllabusFromTxt(text); text = "" },
-                    enabled = chapterCount > 0 && parsed.isSuccess && !state.isImporting,
+                Text(
+                    "Write one line at a time: Subject, then Chapter or Unit, then Topic. Use Topics: A, B, C to add many topics at once.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = scheme.primary,
-                        contentColor = scheme.onPrimary,
-                    ),
-                ) { Text("Add Manual Format to Plan") }
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Button(
+                        onClick = {
+                            if (hasExistingSyllabus) showManualImportChoice = true else submitManualSyllabus("merge")
+                        },
+                        enabled = chapterCount > 0 && parsed.isSuccess && !state.isImporting && !state.mutating,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(58.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2563EB),
+                            contentColor = Color.White,
+                            disabledContainerColor = scheme.onSurface.copy(alpha = 0.09f),
+                            disabledContentColor = scheme.onSurface.copy(alpha = 0.28f),
+                        ),
+                    ) {
+                        Text(
+                            if (state.mutating) "Adding..." else "Add Syllabus to Plan",
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            if (hasExistingSyllabus) showManualImportChoice = true else submitManualSyllabus("merge")
+                        },
+                        enabled = chapterCount > 0 && parsed.isSuccess && !state.isImporting && !state.mutating,
+                        modifier = Modifier.size(64.dp),
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(0.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2563EB),
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFF2563EB).copy(alpha = 0.36f),
+                            disabledContentColor = Color.White.copy(alpha = 0.72f),
+                        ),
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add syllabus", modifier = Modifier.size(34.dp))
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun SyllabusImportModeTabs(
+    mode: String,
+    canUseAiImport: Boolean,
+    onAiClick: () -> Unit,
+    onManualClick: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(28.dp),
+        color = scheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.55f)),
+        shadowElevation = 1.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SyllabusImportModeTab(
+                label = "AI Import",
+                selected = mode == "ai",
+                locked = !canUseAiImport,
+                onClick = onAiClick,
+                modifier = Modifier.weight(1f),
+            )
+            SyllabusImportModeTab(
+                label = "Manual Setup",
+                selected = mode == "manual",
+                locked = false,
+                onClick = onManualClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SyllabusImportModeTab(
+    label: String,
+    selected: Boolean,
+    locked: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier
+            .fillMaxHeight()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(25.dp),
+        color = if (selected) scheme.surface else Color.Transparent,
+        shadowElevation = if (selected) 3.dp else 0.dp,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (locked) {
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = scheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (selected) Color(0xFF2563EB) else scheme.onSurfaceVariant,
+                )
+            }
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth(0.94f)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(0xFF2563EB)),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiSyllabusPremiumCard(onUpgrade: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val isDark = isSystemInDarkTheme()
+    val blue = Color(0xFF2563EB)
+    val deepBlue = Color(0xFF1D4ED8)
+    val gradientColors = if (isDark) {
+        listOf(
+            Color(0xFF142036),
+            Color(0xFF101827),
+            Color(0xFF0F2748),
+        )
+    } else {
+        listOf(
+            Color(0xFFEFF6FF),
+            Color(0xFFFFFFFF),
+            Color(0xFFDDEBFF),
+        )
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF355581) else Color(0xFFBFDBFE)),
+        shadowElevation = 2.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.linearGradient(gradientColors),
+                )
+                .padding(20.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(88.dp),
+                tint = Color(0xFF93C5FD).copy(alpha = 0.32f),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    modifier = Modifier.size(72.dp),
+                    shape = CircleShape,
+                    color = blue,
+                    border = BorderStroke(8.dp, if (isDark) Color(0xFF1D355A) else Color.White.copy(alpha = 0.75f)),
+                    shadowElevation = 4.dp,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = null,
+                            modifier = Modifier.size(30.dp),
+                            tint = Color.White,
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        "AI syllabus import\nis premium",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = scheme.onSurface,
+                    )
+                    Text(
+                        "Manual syllabus entry stays free. Start Premium to let AI structure your syllabus.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = onUpgrade,
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = deepBlue,
+                            contentColor = Color.White,
+                        ),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+                    ) {
+                        Text("Start 7-day free trial", fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualSyllabusHelpRow(onGuideClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val isDark = isSystemInDarkTheme()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            modifier = Modifier.size(54.dp),
+            shape = CircleShape,
+            color = if (isDark) Color(0xFF1E385F) else Color(0xFFEAF3FF),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.LibraryBooks,
+                    contentDescription = null,
+                    tint = Color(0xFF60A5FA),
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                "Need help adding topics?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = scheme.onSurface,
+            )
+            Text(
+                "Tap the guide for a simple example.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+            )
+        }
+        TextButton(onClick = onGuideClick) {
+            Text("Guide", fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
+            Spacer(Modifier.width(4.dp))
+            Surface(
+                modifier = Modifier.size(24.dp),
+                shape = CircleShape,
+                color = if (isDark) Color(0xFF1E385F) else Color(0xFFEAF3FF),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = Color(0xFF2563EB),
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualSyllabusExamplePlaceholder() {
+    val scheme = MaterialTheme.colorScheme
+    val isDark = isSystemInDarkTheme()
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = if (isDark) Color(0xFF1E385F) else Color(0xFFEAF3FF),
+        ) {
+            Text(
+                "Example",
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (isDark) Color(0xFFBFDBFE) else Color(0xFF1D4ED8),
+                fontWeight = FontWeight.ExtraBold,
+            )
+        }
+        ManualExampleLine("Subject:", "Maths", labelColor = if (isDark) Color(0xFFBFD4FF) else Color(0xFF53658F), valueColor = scheme.onSurface)
+        ManualExampleLine("Chapter:", "Algebra", labelColor = if (isDark) Color(0xFFBFD4FF) else Color(0xFF53658F), valueColor = scheme.onSurface)
+        ManualExampleLine("Topic:", "Linear Equations", labelColor = if (isDark) Color(0xFFBFD4FF) else Color(0xFF53658F), valueColor = scheme.onSurface)
+        ManualExampleLine("Topics:", "Quadratic Equations, Polynomials", labelColor = if (isDark) Color(0xFFBFD4FF) else Color(0xFF53658F), valueColor = scheme.onSurface)
+    }
+}
+
+@Composable
+private fun ManualExampleLine(
+    label: String,
+    value: String,
+    labelColor: Color,
+    valueColor: Color,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = labelColor,
+            fontWeight = FontWeight.ExtraBold,
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ManualSyllabusImportChoiceSheet(
+    topicCount: Int,
+    chapterCount: Int,
+    onDismiss: () -> Unit,
+    onMerge: () -> Unit,
+    onReplace: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 22.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                "How should we update this syllabus?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = scheme.onSurface,
+            )
+            Text(
+                "Your editor text will stay here after import, so you can keep editing and import again.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+            )
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = scheme.surfaceContainerHigh,
+                border = BorderStroke(1.dp, scheme.outlineVariant),
+            ) {
+                Text(
+                    "$topicCount topics across $chapterCount chapters found in your text.",
+                    modifier = Modifier.padding(14.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Button(
+                onClick = onMerge,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2563EB),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Add new items only", fontWeight = FontWeight.Bold)
+            }
+            Text(
+                "Best for small edits. Existing topics, progress, notes, and dates stay safe. Duplicate topics are skipped.",
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+            )
+            OutlinedButton(
+                onClick = onReplace,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(50),
+                border = BorderStroke(1.dp, scheme.error.copy(alpha = 0.65f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.error),
+            ) {
+                Text("Replace current syllabus", fontWeight = FontWeight.Bold)
+            }
+            Text(
+                "Use this only when you want the typed syllabus to become the full syllabus for this plan.",
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+            )
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Cancel")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualSyllabusGuideDialog(
+    example: String,
+    onDismiss: () -> Unit,
+    onAddExample: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Manual setup guide",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    "Use these four words to build your syllabus. Put each item on a new line.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurfaceVariant,
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ManualGuideRule("Subject:", "Write the subject name, like Maths or Science.")
+                    ManualGuideRule("Chapter:", "Write the chapter name under that subject.")
+                    ManualGuideRule("Unit:", "Use this instead of Chapter if your syllabus has units.")
+                    ManualGuideRule("Topic:", "Write one topic under the chapter or unit.")
+                    ManualGuideRule("Topics:", "Write many topics in one line, separated by commas.")
+                }
+                Text(
+                    "Example",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = scheme.onSurface,
+                )
+                Surface(
+                    color = scheme.surfaceContainerHighest,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, scheme.outlineVariant),
+                ) {
+                    Text(
+                        example,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = scheme.onSurface,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onAddExample) {
+                Text("Add this example")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Got it")
+            }
+        },
+    )
+}
+
+@Composable
+private fun ManualGuideRule(
+    label: String,
+    description: String,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Surface(
+            color = scheme.primaryContainer,
+            contentColor = scheme.onPrimaryContainer,
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            Text(
+                label,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Text(
+            description,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodySmall,
+            color = scheme.onSurfaceVariant,
+        )
     }
 }
 

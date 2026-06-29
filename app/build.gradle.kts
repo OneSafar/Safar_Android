@@ -84,8 +84,8 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.5.8"
+        versionCode = 11
+        versionName = "1.6.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // KAVACH (FocusShield) accessibility service is a digital wellbeing feature.
         // It MUST remain in the prod manifest so Google can review & whitelist it.

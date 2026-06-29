@@ -1,6 +1,7 @@
 package com.safarparmar.app.data.repository
 
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.data.local.PersistentCookieStore
 import com.safarparmar.app.data.remote.api.AuthApi
 import com.safarparmar.app.data.remote.api.NotificationApi
 import com.safarparmar.app.data.remote.dto.DeviceTokenRevokeRequest
@@ -28,6 +29,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
     private val notificationApi: NotificationApi,
     private val dataStore: SafarDataStore,
+    private val cookieStore: PersistentCookieStore,
     private val notificationTokenRegistrar: NotificationTokenRegistrar,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : AuthRepository {
@@ -101,6 +103,7 @@ class AuthRepositoryImpl @Inject constructor(
         }
         dataStore.setLoggedIn(false)
         dataStore.clearSession()
+        cookieStore.removeAll()
         return Resource.Success(Unit)
     }
 

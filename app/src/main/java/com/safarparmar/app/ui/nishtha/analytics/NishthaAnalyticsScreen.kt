@@ -86,8 +86,10 @@ fun NishthaAnalyticsScreen(
     var showMonthPicker by remember { mutableStateOf(false) }
     val androidContext = androidx.compose.ui.platform.LocalContext.current
 
-    LaunchedEffect(selectedMonth) {
-        viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth))
+    LaunchedEffect(selectedMonth, premiumStatus.canUseNishthaAnalytics) {
+        if (premiumStatus.canUseNishthaAnalytics) {
+            viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth))
+        }
     }
 
     // Native month-year picker via DatePickerDialog (capped to current month, no future)
@@ -166,10 +168,7 @@ fun NishthaAnalyticsScreen(
         }
 
         Box(Modifier.fillMaxSize()) {
-            // Content rendered at full height, faded and unscrollable by the overlay
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
+            if (premiumStatus.canUseNishthaAnalytics) {
                 when (selectedSection) {
                     "goals" -> GoalInsightsSection(uiState.goals)
                     "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
@@ -185,9 +184,7 @@ fun NishthaAnalyticsScreen(
                     )
                     else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
                 }
-            }
-            if (!premiumStatus.canUseNishthaAnalytics) {
-                // Gradient fade + premium lock gate
+            } else {
                 AnalyticsPremiumLockOverlay(
                     modifier = Modifier.fillMaxSize(),
                     onUpgradeClick = { onNavigate(com.safarparmar.app.ui.navigation.Routes.PREMIUM) }

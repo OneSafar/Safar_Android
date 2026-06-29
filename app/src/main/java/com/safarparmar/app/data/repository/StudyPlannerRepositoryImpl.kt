@@ -90,7 +90,7 @@ class StudyPlannerRepositoryImpl @Inject constructor(
             return Resource.Error(it.message ?: "Invalid syllabus format.")
         }
         if (parsed.isEmpty()) return Resource.Error("No syllabus content found.")
-        val request = buildImportRequestFromParsed(parsed)
+        val request = buildImportRequestFromParsed(parsed, mode = "merge")
         if (request.subjects.isEmpty()) return Resource.Error("No syllabus content found.")
 
         val subjectCount = request.subjects.size
@@ -113,6 +113,17 @@ class StudyPlannerRepositoryImpl @Inject constructor(
             is Resource.Error -> Resource.Error(result.message, result.code, result.errorCode)
             is Resource.Loading -> Resource.Error("Import interrupted.")
         }
+    }
+
+    override suspend fun importManualSyllabus(planId: String, text: String, mode: String): Resource<StudyPlan> {
+        val resolvedMode = mode.trim().lowercase().takeIf { it == "merge" || it == "replace" } ?: "merge"
+        val parsed = parseBulkSubjectsFromTxt(text).getOrElse {
+            return Resource.Error(it.message ?: "Invalid syllabus format.")
+        }
+        if (parsed.isEmpty()) return Resource.Error("No syllabus content found.")
+        val request = buildImportRequestFromParsed(parsed, mode = resolvedMode)
+        if (request.subjects.isEmpty()) return Resource.Error("No syllabus content found.")
+        return importSyllabus(planId, request)
     }
 
     override suspend fun structureSyllabusPreview(request: StructureSyllabusRequest): Resource<StructuredSyllabusPreview> {
@@ -169,7 +180,7 @@ class StudyPlannerRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun buildImportRequestFromParsed(groups: List<BulkSubjectParsed>): ImportSyllabusRequest {
+    private fun buildImportRequestFromParsed(groups: List<BulkSubjectParsed>, mode: String): ImportSyllabusRequest {
         val subjects = groups.mapNotNull { subject ->
             val subjectName = subject.subjectName.trim()
             if (subjectName.isBlank()) return@mapNotNull null
@@ -187,7 +198,7 @@ class StudyPlannerRepositoryImpl @Inject constructor(
             ImportSyllabusSubjectRequest(name = subjectName, chapters = chapters)
         }
 
-        return ImportSyllabusRequest(subjects = subjects, mode = "replace")
+        return ImportSyllabusRequest(subjects = subjects, mode = mode)
     }
 
     private fun parseErrorBody(raw: String?): SyllabusImportResponse? {

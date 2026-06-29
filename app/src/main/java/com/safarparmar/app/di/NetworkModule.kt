@@ -14,6 +14,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.Cache
+import okhttp3.CertificatePinner
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -65,8 +66,8 @@ object NetworkModule {
         authInterceptor: AuthInterceptor,
         cookieManager: CookieManager,
         cache: Cache,
-    ): OkHttpClient =
-        OkHttpClient.Builder()
+    ): OkHttpClient {
+        val builder = OkHttpClient.Builder()
             .cookieJar(JavaNetCookieJar(cookieManager))
             .cache(cache)
             .addInterceptor(authInterceptor)
@@ -121,7 +122,19 @@ object NetworkModule {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+        productionCertificatePinner()?.let { builder.certificatePinner(it) }
+        return builder.build()
+    }
+
+    private fun productionCertificatePinner(): CertificatePinner? {
+        if (BuildConfig.FLAVOR != "prod") return null
+        val host = runCatching { URI(BuildConfig.BASE_URL).host.lowercase() }.getOrNull() ?: return null
+        if (host != "safar.parmarssc.in") return null
+        return CertificatePinner.Builder()
+            .add(host, "sha256/9FJJUGLzHyhQbmtj2++bJPLKabiuynqMkEM90lAp27M=")
+            .add(host, "sha256/kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=")
             .build()
+    }
 
     private const val TIMEOUT_HEADER = "X-Timeout-Seconds"
     private const val CACHE_MAX_AGE_HEADER = "X-Cache-Max-Age"

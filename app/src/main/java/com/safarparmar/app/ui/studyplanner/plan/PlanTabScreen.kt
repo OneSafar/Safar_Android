@@ -33,6 +33,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.Adjust
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -45,6 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -163,6 +166,11 @@ fun PlanTabScreen(
     var resetConfirm by remember { mutableStateOf(false) }
     var completionPromptTopic by remember { mutableStateOf<TopicRef?>(null) }
 
+    // Editable Today's Agenda state
+    var replaceSheetTopic by remember { mutableStateOf<TopicRef?>(null) }
+    var showAddToTodaySheet by remember { mutableStateOf(false) }
+    var removeFromTodayConfirmTopic by remember { mutableStateOf<TopicRef?>(null) }
+
     fun exportPlan() {
         exportLauncher.launch("${plan.title.replace(" ", "_")}_Syllabus.pdf")
     }
@@ -235,6 +243,50 @@ fun PlanTabScreen(
         } else if (!checked && ref.topic.status == TopicStatus.DONE) {
             actions.updateTopic(ref.topic.id, status = TopicStatus.TODO)
         }
+    }
+
+    // ── Replace Topic Sheet ────────────────────────────────────────
+    replaceSheetTopic?.let { currentRef ->
+        ReplaceTopicSheet(
+            currentRef = currentRef,
+            allRefs = refs,
+            today = today,
+            onSwap = { currentId, replacementId ->
+                actions.swapTopicDates(currentId, replacementId)
+            },
+            onReplace = { currentId, replacementId, todayDate ->
+                // Move replacement to today, unschedule the current one
+                actions.replaceTopicToday(currentId, replacementId, todayDate)
+            },
+            onDismiss = { replaceSheetTopic = null },
+        )
+    }
+
+    // ── Add Topic to Today Sheet ───────────────────────────────────
+    if (showAddToTodaySheet) {
+        AddTopicToTodaySheet(
+            allRefs = refs,
+            today = today,
+            dailyGoal = plan.dailyGoal ?: 0,
+            currentTodayCount = todayTopics.size,
+            onAdd = { topicId, todayDate ->
+                actions.moveTopicsToDate(listOf(topicId), todayDate)
+            },
+            onDismiss = { showAddToTodaySheet = false },
+        )
+    }
+
+    // ── Remove from Today confirmation ─────────────────────────────
+    removeFromTodayConfirmTopic?.let { ref ->
+        PlanConfirmDialog(
+            title = "Remove from today?",
+            body = "\"${ref.topic.name}\" will be unscheduled. You can re-add it later.",
+            onDismiss = { removeFromTodayConfirmTopic = null },
+            onConfirm = {
+                actions.clearTopicDates(listOf(ref.topic.id))
+                removeFromTodayConfirmTopic = null
+            },
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -445,8 +497,47 @@ fun PlanTabScreen(
                                 accent = if (ref.topic.status == TopicStatus.DONE) PlanTaskRowAccent.Done else PlanTaskRowAccent.Planned,
                                 onDoneChange = { done ->
                                     handleTopicDoneCheck(ref, done)
-                                }
+                                },
+                                onReplace = { replaceSheetTopic = ref },
+                                onRemoveFromToday = { removeFromTodayConfirmTopic = ref },
                             )
+                        }
+
+                        // "Add Topic to Today" button
+                        item(key = "today_add_topic") {
+                            val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+                            OutlinedButton(
+                                onClick = { showAddToTodaySheet = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 48.dp),
+                                border = BorderStroke(
+                                    width = 1.5.dp,
+                                    brush = Brush.horizontalGradient(
+                                        colors = if (isDark) {
+                                            listOf(Color(0xFF38BDF8), Color(0xFF818CF8))
+                                        } else {
+                                            listOf(Color(0xFF0F172A), Color(0xFF334155))
+                                        },
+                                    ),
+                                ),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A),
+                                ),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AddCircleOutline,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "Add Topic to Today",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                )
+                            }
                         }
 
                         if (todayCompleted) {

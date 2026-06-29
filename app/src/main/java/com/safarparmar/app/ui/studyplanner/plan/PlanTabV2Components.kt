@@ -25,15 +25,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.items
 
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
@@ -547,6 +553,8 @@ fun PlannerTaskRow(
     accent: PlanTaskRowAccent,
     onClick: (() -> Unit)? = null,
     onDoneChange: (Boolean) -> Unit,
+    onReplace: (() -> Unit)? = null,
+    onRemoveFromToday: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -640,6 +648,39 @@ fun PlannerTaskRow(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                         )
+                    }
+                }
+            }
+            if (onReplace != null || onRemoveFromToday != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (onReplace != null) {
+                        IconButton(
+                            onClick = onReplace,
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SwapHoriz,
+                                contentDescription = "Replace topic",
+                                tint = if (isDark) Color(0xFF38BDF8) else Color(0xFF0369A1),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                    if (onRemoveFromToday != null && !done) {
+                        IconButton(
+                            onClick = onRemoveFromToday,
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RemoveCircleOutline,
+                                contentDescription = "Remove from today",
+                                tint = if (isDark) Color(0xFFF87171) else Color(0xFFDC2626),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -827,6 +868,399 @@ fun PlanSettingsSheet(
                         Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Export PDF")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReplaceTopicSheet(
+    currentRef: TopicRef,
+    allRefs: List<TopicRef>,
+    today: String,
+    onSwap: (currentTopicId: String, replacementTopicId: String) -> Unit,
+    onReplace: (currentTopicId: String, replacementTopicId: String, today: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val scheme = MaterialTheme.colorScheme
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Available replacement candidates: TODO topics not scheduled for today, excluding the current topic
+    val candidates = remember(allRefs, today, currentRef.topic.id) {
+        allRefs.filter { ref ->
+            ref.topic.id != currentRef.topic.id &&
+            ref.topic.status != TopicStatus.DONE &&
+            (ref.topic.plannedDate?.take(10) ?: "") != today
+        }
+    }
+    val filteredCandidates = remember(candidates, searchQuery) {
+        if (searchQuery.isBlank()) candidates
+        else {
+            val q = searchQuery.lowercase()
+            candidates.filter {
+                it.topic.name.lowercase().contains(q) ||
+                it.subject.name.lowercase().contains(q) ||
+                it.chapter.name.lowercase().contains(q)
+            }
+        }
+    }
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding(),
+        ) {
+            // Header
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    "Replace Topic",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "Replacing: ${currentRef.topic.name}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Search field
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search topics…") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                singleLine = true,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // Candidate list
+            if (filteredCandidates.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (searchQuery.isNotBlank()) "No matching topics found" else "No available topics to swap",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(
+                        items = filteredCandidates,
+                        key = { it.topic.id },
+                    ) { ref ->
+                        val hasDate = !ref.topic.plannedDate.isNullOrBlank()
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (hasDate) {
+                                        // Both have dates → swap
+                                        onSwap(currentRef.topic.id, ref.topic.id)
+                                    } else {
+                                        // Replacement is unscheduled → replace
+                                        onReplace(currentRef.topic.id, ref.topic.id, today)
+                                    }
+                                    onDismiss()
+                                },
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isDark) Color(0xFF1E293B) else Color.White,
+                            ),
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(if (hasDate) Color(0xFFF59E0B) else scheme.primary),
+                                )
+                                Column(
+                                    modifier = Modifier.weight(1f).widthIn(min = 0.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        text = ref.topic.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = "${ref.subject.name} / ${ref.chapter.name}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF64748B),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    if (hasDate) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = Color(0xFFF59E0B).copy(alpha = if (isDark) 0.28f else 0.16f),
+                                            contentColor = if (isDark) Color(0xFFFDE68A) else Color(0xFF92400E),
+                                        ) {
+                                            Text(
+                                                text = "Scheduled: ${readableDate(ref.topic.plannedDate)}",
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    } else {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = scheme.primary.copy(alpha = if (isDark) 0.2f else 0.1f),
+                                            contentColor = if (isDark) Color(0xFF93C5FD) else scheme.primary,
+                                        ) {
+                                            Text(
+                                                text = "Unscheduled",
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.SwapHoriz,
+                                    contentDescription = if (hasDate) "Swap dates" else "Replace",
+                                    tint = if (isDark) Color(0xFF38BDF8) else Color(0xFF0369A1),
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddTopicToTodaySheet(
+    allRefs: List<TopicRef>,
+    today: String,
+    dailyGoal: Int,
+    currentTodayCount: Int,
+    onAdd: (topicId: String, today: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val scheme = MaterialTheme.colorScheme
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Available: TODO topics that are NOT scheduled for today
+    val candidates = remember(allRefs, today) {
+        allRefs.filter { ref ->
+            ref.topic.status != TopicStatus.DONE &&
+            (ref.topic.plannedDate?.take(10) ?: "") != today
+        }
+    }
+    val filteredCandidates = remember(candidates, searchQuery) {
+        if (searchQuery.isBlank()) candidates
+        else {
+            val q = searchQuery.lowercase()
+            candidates.filter {
+                it.topic.name.lowercase().contains(q) ||
+                it.subject.name.lowercase().contains(q) ||
+                it.chapter.name.lowercase().contains(q)
+            }
+        }
+    }
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding(),
+        ) {
+            // Header
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    "Add Topic to Today",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "Today: $currentTodayCount topics" + if (dailyGoal > 0) " (goal: $dailyGoal/day)" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Search field
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search topics…") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                singleLine = true,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            if (filteredCandidates.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (searchQuery.isNotBlank()) "No matching topics found" else "All topics are scheduled or completed",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(
+                        items = filteredCandidates,
+                        key = { it.topic.id },
+                    ) { ref ->
+                        val hasDate = !ref.topic.plannedDate.isNullOrBlank()
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onAdd(ref.topic.id, today)
+                                    onDismiss()
+                                },
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isDark) Color(0xFF1E293B) else Color.White,
+                            ),
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(if (hasDate) Color(0xFFF59E0B) else scheme.primary),
+                                )
+                                Column(
+                                    modifier = Modifier.weight(1f).widthIn(min = 0.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        text = ref.topic.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = "${ref.subject.name} / ${ref.chapter.name}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF64748B),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    if (hasDate) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = Color(0xFFF59E0B).copy(alpha = if (isDark) 0.28f else 0.16f),
+                                            contentColor = if (isDark) Color(0xFFFDE68A) else Color(0xFF92400E),
+                                        ) {
+                                            Text(
+                                                text = "Currently: ${readableDate(ref.topic.plannedDate)}",
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Add to today",
+                                    tint = if (isDark) Color(0xFF10B981) else Color(0xFF059669),
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }

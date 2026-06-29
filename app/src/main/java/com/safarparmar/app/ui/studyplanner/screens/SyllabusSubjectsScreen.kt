@@ -61,6 +61,8 @@ fun SyllabusSubjectsScreen(
     onPlannerSectionSelect: (PlannerSection) -> Unit,
     showBottomBar: Boolean = true,
 ) {
+    val premiumViewModel: com.safarparmar.app.ui.premium.PremiumViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val actions: PlannerActions = viewModel
@@ -155,6 +157,15 @@ fun SyllabusSubjectsScreen(
                     )
                 }
             },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { dialogState = SyllabusDialogState.AddSubject },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Subject")
+                }
+            },
         ) { padding ->
             Column(
                 modifier = Modifier
@@ -194,7 +205,12 @@ fun SyllabusSubjectsScreen(
                             verticalArrangement = Arrangement.spacedBy(24.dp),
                         ) {
                             item {
-                                SyllabusFullImportCard(state = state, actions = actions)
+                                SyllabusFullImportCard(
+                                    state = state,
+                                    actions = actions,
+                                    canUseAiImport = premiumStatus.canUseStudyPlannerInsights,
+                                    onUpgrade = { onNavigate(Routes.PREMIUM) },
+                                )
                             }
 
                             item {

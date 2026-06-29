@@ -401,6 +401,13 @@ fun PremiumPaywallScreen(
                             isDark = isDark,
                         )
                         Spacer(modifier = Modifier.height(18.dp))
+                    } else {
+                        SevenDayTrialBanner(
+                            isDark = isDark,
+                            isLoading = uiState is PremiumUiState.Loading,
+                            onStartTrial = viewModel::startFreeTrial,
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
                     }
 
                     Text(
@@ -812,9 +819,81 @@ private fun PremiumActiveSummaryCard(
     }
 }
 
+@Composable
+private fun SevenDayTrialBanner(
+    isDark: Boolean,
+    isLoading: Boolean,
+    onStartTrial: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDark) Color(0xFF172033) else Color(0xFFEFF6FF),
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (isDark) Color(0xFF60A5FA).copy(alpha = 0.45f) else Color(0xFF93C5FD),
+        ),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(
+                color = if (isDark) Color(0xFF2563EB) else Color(0xFFDBEAFE),
+                shape = androidx.compose.foundation.shape.CircleShape,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = if (isDark) Color.White else Color(0xFF2563EB),
+                    modifier = Modifier.padding(10.dp).size(20.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "7-day free trial",
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isDark) Color.White else Color(0xFF1E3A8A),
+                )
+                Text(
+                    text = "Tap to activate Premium free for 7 days. No payment is needed today.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF1E40AF),
+                )
+                TextButton(
+                    onClick = onStartTrial,
+                    enabled = !isLoading,
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = if (isDark) Color(0xFFBFDBFE) else Color(0xFF1D4ED8),
+                        )
+                    } else {
+                        Text(
+                            "Start 7-day free trial",
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color(0xFFBFDBFE) else Color(0xFF1D4ED8),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 private fun premiumPlanLabel(planType: String?): String {
     val normalized = planType.orEmpty().lowercase(Locale.US)
     return when {
+        "trial" in normalized -> "7-day free trial"
         "3month" in normalized || "3-month" in normalized -> "3-month Premium plan"
         "6month" in normalized || "6-month" in normalized -> "6-month Premium plan"
         "year" in normalized -> "Yearly Premium plan"

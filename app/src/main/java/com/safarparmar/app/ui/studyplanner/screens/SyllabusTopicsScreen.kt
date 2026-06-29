@@ -107,15 +107,13 @@ fun SyllabusTopicsScreen(
     CompositionLocalProvider(LocalDensity provides clampedDensity) {
         Scaffold(
             floatingActionButton = {
-                SafarExpressiveFabMenu(
-                    items = listOf(
-                        FabMenuItem(
-                            label = "Add Topic",
-                            icon = Icons.Default.Add,
-                            onClick = { addTopic = true }
-                        )
-                    )
-                )
+                FloatingActionButton(
+                    onClick = { addTopic = true },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Topic")
+                }
             },
             contentWindowInsets = WindowInsets.safeDrawing,
             containerColor = MaterialTheme.colorScheme.background
@@ -127,7 +125,7 @@ fun SyllabusTopicsScreen(
             ) {
                 SafarExpressiveHeader(
                     title = currentChapter?.name ?: "Topics",
-                    subtitle = "${currentSubject?.name ?: "Subject"} > Topics",
+                    subtitle = "${currentSubject?.name ?: "Subject"} / Topics",
                     onBackClick = onBack
                 )
 

@@ -148,27 +148,14 @@ fun AuthScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 24.dp)
-                    .padding(top = 64.dp, bottom = 32.dp),
+                    .padding(top = 24.dp, bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Logo Section without padding
-                val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
-                AsyncImage(
-                    model = logoRes,
-                    contentDescription = "SAFAR Logo",
-                    modifier = Modifier
-                        .offset(y = screenHeight * 0.1f)
-                        .scale(1.1f)
-                        .size(130.dp)
-                )
-
-                Spacer(modifier = Modifier.height(40.dp))
-
                 AnimatedContent(
                     targetState = uiState.isSignupMode,
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
                     label = "authMode",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxSize()
                 ) { isSignup ->
                     if (isSignup) {
                         SignupContent(
@@ -408,6 +395,17 @@ fun LoginContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
+        val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+        val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
+        AsyncImage(
+            model = logoRes,
+            contentDescription = "SAFAR Logo",
+            modifier = Modifier
+                .size(120.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+
         // Welcome Text
         Text(
             text = "Welcome back",
@@ -545,6 +543,17 @@ fun SignupContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
+        val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+        val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
+        AsyncImage(
+            model = logoRes,
+            contentDescription = "SAFAR Logo",
+            modifier = Modifier
+                .size(120.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+
         // Welcome Text
         Text(
             text = "Create account",

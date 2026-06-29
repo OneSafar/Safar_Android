@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import okhttp3.MultipartBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -109,5 +110,7 @@ class AuthViewModelTest {
             gender: String?,
             avatar: String?,
         ): Resource<UserProfile> = Resource.Success(UserProfile(id = "1"))
+
+        override suspend fun uploadAvatar(avatar: MultipartBody.Part): Resource<String> = Resource.Success("avatar")
     }
 }

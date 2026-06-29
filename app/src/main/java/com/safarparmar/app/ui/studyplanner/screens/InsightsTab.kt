@@ -221,44 +221,44 @@ internal fun InsightsTab(
     val rollup = remember(plan.id, plan.subjects) { plan.rollup() }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            LazyColumn(
+        if (isPremium) {
+            Column(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item {
-                    SelectedExamStrip(
-                        plan = plan,
-                        onChangeExam = { actions.setSection(PlannerSection.YOUR_EXAMS) },
-                        outerPadding = PaddingValues(0.dp),
-                    )
-                }
-                item {
-                    StudentInsightHero(
-                        plan = plan,
-                        rollup = rollup,
-                    )
-                }
-                item {
-                    StudyPlannerAchievementsStrip(
-                        achievements = state.plannerAchievements,
-                    )
-                }
-                item {
-                    SubjectProgressChart(
-                        subjects = insights.subjectRows,
-                    )
-                }
-                item {
-                    ConsistencyInsightsCard(consistency = insights.consistency)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item {
+                        SelectedExamStrip(
+                            plan = plan,
+                            onChangeExam = { actions.setSection(PlannerSection.YOUR_EXAMS) },
+                            outerPadding = PaddingValues(0.dp),
+                        )
+                    }
+                    item {
+                        StudentInsightHero(
+                            plan = plan,
+                            rollup = rollup,
+                        )
+                    }
+                    item {
+                        StudyPlannerAchievementsStrip(
+                            achievements = state.plannerAchievements,
+                        )
+                    }
+                    item {
+                        SubjectProgressChart(
+                            subjects = insights.subjectRows,
+                        )
+                    }
+                    item {
+                        ConsistencyInsightsCard(consistency = insights.consistency)
+                    }
                 }
             }
-        }
-        // Premium lock overlay — gradient fade + lock gate
-        if (!isPremium) {
+        } else {
             InsightsPremiumLockOverlay(
                 onUpgrade = onUpgrade,
                 modifier = Modifier.fillMaxSize()

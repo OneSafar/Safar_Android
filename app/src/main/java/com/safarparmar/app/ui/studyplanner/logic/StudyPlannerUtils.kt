@@ -191,7 +191,14 @@ fun isBulkPlaceholderChapter(chapter: StudyChapter): Boolean =
     chapter.name.trim().equals(BULK_IMPORT_PLACEHOLDER_NAME, ignoreCase = true)
 
 private fun normalizeBulkTopicToken(input: String): String =
-    input.trim().trimStart('>', '-', '*', '•').trim()
+    input.trim()
+
+private fun splitBulkTopicTokens(input: String, allowCommaSeparated: Boolean): List<String> {
+    val normalized = normalizeBulkTopicToken(input)
+    if (normalized.isBlank()) return emptyList()
+    val tokens = if (allowCommaSeparated) normalized.split(",") else listOf(normalized)
+    return tokens.map { it.trim() }.filter { it.isNotBlank() }
+}
 
 fun extractBulkTopicsFromSyllabusCode(text: String): String {
     val seen = mutableSetOf<String>()
@@ -206,7 +213,8 @@ fun extractBulkTopicsFromSyllabusCode(text: String): String {
 }
 
 /**
- * Web-aligned TXT: `- Subject`, `_ Chapter`, `> Topic` ([StudyPlanner.tsx] `parseBulkSubjectsFromTxt`).
+ * Student-readable manual import: `Subject:`, `Chapter:`/`Unit:`, `Topic:`, and
+ * comma-separated topic lists after `Topics:`.
  */
 fun parseBulkSubjectsFromTxt(text: String): Result<List<BulkSubjectParsed>> = runCatching {
     val rawLines = text.split("\r?\n".toRegex())
@@ -241,30 +249,35 @@ fun parseBulkSubjectsFromTxt(text: String): Result<List<BulkSubjectParsed>> = ru
         return nextIndex
     }
 
-    fun addTopic(subjectIndex: Int?, chapterIndex: Int?, topicRaw: String) {
+    fun addTopic(subjectIndex: Int?, chapterIndex: Int?, topicRaw: String, allowCommaSeparated: Boolean = false) {
         val resolvedSubjectIndex = subjectIndex ?: ensureSubject(BULK_IMPORT_PLACEHOLDER_NAME)
         val resolvedChapterIndex = chapterIndex ?: ensureChapter(resolvedSubjectIndex, BULK_IMPORT_PLACEHOLDER_NAME)
-        val topic = normalizeBulkTopicToken(topicRaw).ifBlank { return }
         val subjectName = subjects[resolvedSubjectIndex].first
         val chapterName = subjects[resolvedSubjectIndex].second[resolvedChapterIndex].first
         val chapterKey = "${subjectName.lowercase(Locale.US)}::${chapterName.lowercase(Locale.US)}"
         val seen = topicSeenByChapter.getOrPut(chapterKey) { mutableSetOf() }
-        val tk = topic.lowercase(Locale.US)
-        if (tk in seen) return
-        seen += tk
-        subjects[resolvedSubjectIndex].second[resolvedChapterIndex].second += topic
+        splitBulkTopicTokens(topicRaw, allowCommaSeparated).forEach { topic ->
+            val tk = topic.lowercase(Locale.US)
+            if (tk in seen) return@forEach
+            seen += tk
+            subjects[resolvedSubjectIndex].second[resolvedChapterIndex].second += topic
+        }
     }
 
     var activeSubjectIndex: Int? = null
     var activeChapterIndex: Int? = null
 
-    val subjectHeading = Regex("""^-\s*(.*)$""")
-    val chapterHeading = Regex("""^_\s*(.*)$""")
-    val topicHeading = Regex("^>\\s*(.*)$")
+    val oldSymbolHeading = Regex("""^[-_>]\s+.*$""")
+    val subjectHeading = Regex("""^(?:subject|sub|विषय)\s*[:：\-]\s*(.*)$""", RegexOption.IGNORE_CASE)
+    val chapterHeading = Regex("""^(?:chapter|chap|unit|lesson|अध्याय)\s*[:：\-]\s*(.*)$""", RegexOption.IGNORE_CASE)
+    val labeledTopicHeading = Regex("""^(?:topic|topics|टॉपिक)\s*[:：\-]\s*(.*)$""", RegexOption.IGNORE_CASE)
 
     for (index in rawLines.indices) {
         val line = rawLines[index].trim()
         if (line.isEmpty()) continue
+        require(!oldSymbolHeading.matches(line)) {
+            "Use labels instead: Subject:, Chapter:, and Topic:."
+        }
 
         val sm = subjectHeading.matchEntire(line)
         if (sm != null) {
@@ -278,11 +291,11 @@ fun parseBulkSubjectsFromTxt(text: String): Result<List<BulkSubjectParsed>> = ru
             activeChapterIndex = ensureChapter(activeSubjectIndex, cm.groupValues[1])
             continue
         }
-        val tm = topicHeading.matchEntire(line)
-        if (tm != null) {
+        val ltm = labeledTopicHeading.matchEntire(line)
+        if (ltm != null) {
             if (activeSubjectIndex == null) activeSubjectIndex = ensureSubject(BULK_IMPORT_PLACEHOLDER_NAME)
             if (activeChapterIndex == null) activeChapterIndex = ensureChapter(activeSubjectIndex, BULK_IMPORT_PLACEHOLDER_NAME)
-            addTopic(activeSubjectIndex, activeChapterIndex, tm.groupValues[1])
+            addTopic(activeSubjectIndex, activeChapterIndex, ltm.groupValues[1], allowCommaSeparated = true)
             continue
         }
         if (activeSubjectIndex == null) activeSubjectIndex = ensureSubject(BULK_IMPORT_PLACEHOLDER_NAME)

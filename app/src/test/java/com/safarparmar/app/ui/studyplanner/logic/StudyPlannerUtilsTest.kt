@@ -34,13 +34,13 @@ class StudyPlannerUtilsTest {
     @Test
     fun `parseBulkSubjectsFromTxt handles unicode malformed and whitespace`() {
         val text = """
-            - गणित
-            _ बीजगणित
-            > रैखिक समीकरण
-            > रैखिक समीकरण
+            विषय: गणित
+            अध्याय: बीजगणित
+            टॉपिक: रैखिक समीकरण
+            टॉपिक: रैखिक समीकरण
             
-            _  
-            >   प्रतिशत  
+            अध्याय:   
+            टॉपिक: प्रतिशत  
             random line without token
         """.trimIndent()
 
@@ -52,15 +52,54 @@ class StudyPlannerUtilsTest {
     }
 
     @Test
-    fun `parseBulkSubjectsFromTxt supports topics without explicit subject or chapter`() {
+    fun `parseBulkSubjectsFromTxt supports labeled topics without explicit subject or chapter`() {
         val text = """
-            > Topic A
-            > Topic B
+            Topic: Topic A
+            Topic: Topic B
         """.trimIndent()
         val parsed = parseBulkSubjectsFromTxt(text).getOrThrow()
         assertEquals(1, parsed.size)
         assertEquals(1, parsed.first().chapters.size)
         assertEquals(2, parsed.first().chapters.first().topics.size)
     }
-}
 
+    @Test
+    fun `parseBulkSubjectsFromTxt rejects old symbol format`() {
+        val parsed = parseBulkSubjectsFromTxt(
+            """
+                - Maths
+                _ Algebra
+                > Linear equations
+            """.trimIndent()
+        )
+
+        assertTrue(parsed.isFailure)
+        assertEquals("Use labels instead: Subject:, Chapter:, and Topic:.", parsed.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `parseBulkSubjectsFromTxt supports readable labels and comma separated topic labels`() {
+        val text = """
+            Subject: Maths
+            Chapter: Algebra
+            Topics: Linear equations, Quadratic equations
+            Topic: Polynomials
+            Subject: Science
+            Unit: Physics
+            Topic: Motion
+        """.trimIndent()
+
+        val parsed = parseBulkSubjectsFromTxt(text).getOrThrow()
+
+        assertEquals(2, parsed.size)
+        assertEquals("Maths", parsed[0].subjectName)
+        assertEquals("Algebra", parsed[0].chapters.first().chapterName)
+        assertEquals(
+            listOf("Linear equations", "Quadratic equations", "Polynomials"),
+            parsed[0].chapters.first().topics,
+        )
+        assertEquals("Science", parsed[1].subjectName)
+        assertEquals("Physics", parsed[1].chapters.first().chapterName)
+        assertEquals(listOf("Motion"), parsed[1].chapters.first().topics)
+    }
+}

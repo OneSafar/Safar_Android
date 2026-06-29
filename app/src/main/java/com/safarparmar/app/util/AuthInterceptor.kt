@@ -1,6 +1,7 @@
 package com.safarparmar.app.util
 
 import com.safarparmar.app.BuildConfig
+import com.safarparmar.app.data.local.PersistentCookieStore
 import com.safarparmar.app.data.local.SafarDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -15,46 +16,87 @@ import javax.inject.Singleton
 
 @Singleton
 class AuthInterceptor @Inject constructor(
-    private val dataStore: SafarDataStore
+    private val dataStore: SafarDataStore,
+    private val cookieStore: PersistentCookieStore,
 ) : Interceptor {
+    private val refreshLock = Any()
+
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token    = runBlocking { dataStore.authToken.first() }
+        val token = runBlocking { dataStore.authToken.first() }
         val request  = chain.request().newBuilder().apply {
             token?.let { addHeader("Authorization", "Bearer $it") }
             addHeader("Accept-Language", "en")
         }.build()
         var response = chain.proceed(request)
         if (response.code == 401 && shouldAttemptRefresh(request.url.encodedPath)) {
-            val originalContentType = response.body?.contentType()
-            val originalBody = response.body?.string().orEmpty()
-            val originalResponse = response.newBuilder()
-                .body(originalBody.toResponseBody(originalContentType))
-                .build()
-            response.close()
-            val refreshRequest = request.newBuilder()
-                .url(BuildConfig.BASE_URL.trimEnd('/') + "/auth/refresh")
-                .post("{}".toRequestBody("application/json".toMediaType()))
-                .build()
-            val refreshResponse = chain.proceed(refreshRequest)
-            if (refreshResponse.isSuccessful) {
-                val body = refreshResponse.body?.string().orEmpty()
-                val refreshedToken = runCatching { JSONObject(body).optString("accessToken").takeIf { it.isNotBlank() } }.getOrNull()
-                refreshResponse.close()
-                if (refreshedToken != null) {
-                    runBlocking { dataStore.setAuthToken(refreshedToken) }
-                    response = chain.proceed(request.newBuilder().header("Authorization", "Bearer $refreshedToken").build())
-                } else {
-                    runBlocking { dataStore.clearSession() }
-                    response = originalResponse
-                }
-            } else {
-                refreshResponse.close()
-                runBlocking { dataStore.clearSession() }
-                response = originalResponse
-            }
+            response = recoverFromUnauthorized(chain, request, response, token)
         }
         return response
     }
+
+    private fun recoverFromUnauthorized(
+        chain: Interceptor.Chain,
+        request: okhttp3.Request,
+        unauthorizedResponse: Response,
+        originalToken: String?,
+    ): Response {
+        val originalContentType = unauthorizedResponse.body?.contentType()
+        val originalBody = unauthorizedResponse.body?.string().orEmpty()
+        val originalResponse = unauthorizedResponse.newBuilder()
+            .body(originalBody.toResponseBody(originalContentType))
+            .build()
+        unauthorizedResponse.close()
+
+        val alreadyRefreshedToken = runBlocking { dataStore.authToken.first() }
+            ?.takeIf { it.isNotBlank() && it != originalToken }
+        if (alreadyRefreshedToken != null) {
+            originalResponse.close()
+            return chain.proceed(request.withBearer(alreadyRefreshedToken))
+        }
+
+        synchronized(refreshLock) {
+            val latestToken = runBlocking { dataStore.authToken.first() }
+                ?.takeIf { it.isNotBlank() && it != originalToken }
+            if (latestToken != null) {
+                originalResponse.close()
+                return chain.proceed(request.withBearer(latestToken))
+            }
+
+            val refreshRequest = request.newBuilder()
+                .url(BuildConfig.BASE_URL.trimEnd('/') + "/auth/refresh")
+                .post("{}".toRequestBody("application/json".toMediaType()))
+                .removeHeader("Authorization")
+                .build()
+            val refreshResponse = chain.proceed(refreshRequest)
+            val refreshBody = refreshResponse.body?.string().orEmpty()
+            if (refreshResponse.isSuccessful) {
+                val refreshedToken = runCatching {
+                    JSONObject(refreshBody).optString("accessToken").takeIf { it.isNotBlank() }
+                }.getOrNull()
+                refreshResponse.close()
+                if (refreshedToken != null) {
+                    runBlocking { dataStore.setAuthToken(refreshedToken) }
+                    originalResponse.close()
+                    return chain.proceed(request.withBearer(refreshedToken))
+                }
+                return originalResponse
+            }
+
+            val refreshError = runCatching { JSONObject(refreshBody).optString("error") }.getOrNull()
+            val isDefinitiveAuthFailure = refreshResponse.code == 401 ||
+                refreshResponse.code == 409 ||
+                refreshError in setOf("no_refresh_token", "refresh_token_invalid", "refresh_token_stale")
+            refreshResponse.close()
+            if (isDefinitiveAuthFailure) {
+                runBlocking { dataStore.clearSession() }
+                cookieStore.removeAll()
+            }
+            return originalResponse
+        }
+    }
+
+    private fun okhttp3.Request.withBearer(token: String): okhttp3.Request =
+        newBuilder().header("Authorization", "Bearer $token").build()
 
     private fun shouldAttemptRefresh(path: String): Boolean {
         val authPathsWithoutSession = listOf(

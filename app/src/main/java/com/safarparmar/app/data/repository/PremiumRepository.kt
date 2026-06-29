@@ -9,6 +9,8 @@ import com.safarparmar.app.domain.model.PremiumStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
+import retrofit2.Response
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -45,7 +47,7 @@ class PremiumRepository @Inject constructor(
                 nishthaAnalytics = nishthaAnalytics,
                 focusAnalytics = focusAnalytics,
             ),
-        ).withDeveloperPremiumOverride(userEmail)
+        ).withLocalExpiryGuard().withDeveloperPremiumOverride(userEmail)
     }
 
     suspend fun refreshStatus(): Result<PremiumStatus> = runCatching {
@@ -69,7 +71,31 @@ class PremiumRepository @Inject constructor(
             nishthaAnalytics = status.features.nishthaAnalytics,
             focusAnalytics = status.features.focusAnalytics,
         )
-        status.withDeveloperPremiumOverride(userEmail)
+        status.withLocalExpiryGuard().withDeveloperPremiumOverride(userEmail)
+    }
+
+    suspend fun startTrial(): Result<PremiumStatus> = runCatching {
+        val userEmail = dataStore.userEmail.firstOrNull()
+        if (userEmail.isDeveloperPremiumEmail()) {
+            return@runCatching developerPremiumStatus()
+        }
+
+        val response = api.startTrial()
+        if (!response.isSuccessful) {
+            error(response.readPremiumError("Could not start the 7-day free trial"))
+        }
+        val body = response.body() ?: error("Trial response was empty")
+        val status = body.toDomain()
+        dataStore.setPremiumStatus(
+            isPremium = status.isPremium,
+            planType = status.planType,
+            expiresAt = status.expiresAt,
+            mehfilDm = status.features.mehfilDm,
+            studyPlannerInsights = status.features.studyPlannerInsights,
+            nishthaAnalytics = status.features.nishthaAnalytics,
+            focusAnalytics = status.features.focusAnalytics,
+        )
+        status.withLocalExpiryGuard().withDeveloperPremiumOverride(userEmail)
     }
 
     suspend fun cacheVerifiedStatus(response: PremiumStatusResponse?): PremiumStatus? {
@@ -83,7 +109,7 @@ class PremiumRepository @Inject constructor(
             nishthaAnalytics = status.features.nishthaAnalytics,
             focusAnalytics = status.features.focusAnalytics,
         )
-        return status.withDeveloperPremiumOverride(dataStore.userEmail.firstOrNull())
+        return status.withLocalExpiryGuard().withDeveloperPremiumOverride(dataStore.userEmail.firstOrNull())
     }
 }
 
@@ -111,6 +137,19 @@ private fun PremiumStatus.withDeveloperPremiumOverride(email: String?): PremiumS
     return developerPremiumStatus()
 }
 
+private fun PremiumStatus.withLocalExpiryGuard(now: Instant = Instant.now()): PremiumStatus {
+    val expiry = expiresAt?.let { raw ->
+        runCatching { Instant.parse(raw) }.getOrNull()
+    } ?: return this
+    if (expiry.isAfter(now)) return this
+    return PremiumStatus(
+        isPremium = false,
+        planType = planType,
+        expiresAt = expiresAt,
+        features = PremiumFeatureAccess(),
+    )
+}
+
 private fun PremiumStatusResponse.toDomain(): PremiumStatus {
     val resolvedFeatures = features.toDomain()
     val resolvedPremium = isPremium || premium == true || active == true
@@ -130,4 +169,15 @@ private fun PremiumFeaturesResponse?.toDomain(): PremiumFeatureAccess {
         nishthaAnalytics = nishthaAnalytics,
         focusAnalytics = focusAnalytics,
     )
+}
+
+private fun Response<*>.readPremiumError(fallback: String): String {
+    val raw = runCatching { errorBody()?.string() }.getOrNull().orEmpty()
+    if (raw.isBlank()) return message().ifBlank { fallback }
+    val parsedMessage = Regex("\"message\"\\s*:\\s*\"([^\"]+)\"")
+        .find(raw)
+        ?.groupValues
+        ?.getOrNull(1)
+        ?.replace("\\\"", "\"")
+    return parsedMessage?.takeIf { it.isNotBlank() } ?: fallback
 }

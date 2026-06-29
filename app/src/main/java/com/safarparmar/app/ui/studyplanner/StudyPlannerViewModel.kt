@@ -31,12 +31,15 @@ import com.safarparmar.app.domain.repository.HomeRepository
 import com.safarparmar.app.domain.repository.StudyPlannerRepository
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import android.content.Context
 import com.safarparmar.app.notifications.SafarNotificationManager
 import com.safarparmar.app.notifications.SafarNotificationChannels
+import com.safarparmar.app.ui.studyplanner.logic.countBulkSubjectsChapters
+import com.safarparmar.app.ui.studyplanner.logic.countBulkSubjectsTopics
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
 import com.safarparmar.app.ui.studyplanner.logic.parseBulkSubjectsFromTxt
 import com.safarparmar.app.ui.studyplanner.logic.parseBulkSyllabus
@@ -436,8 +439,7 @@ class StudyPlannerViewModel @Inject constructor(
         val STUDY_PLANNER_ACHIEVEMENT_IDS = listOf("SP001", "SP002", "T011", "T012")
     }
 
-    /** Full syllabus (`-` / `_` / `>`) before manual subjects — matches web bulk TXT import. */
-    override fun importFullSyllabusFromTxt(text: String) {
+    override fun importFullSyllabusFromTxt(text: String, mode: String) {
         val parsed = parseBulkSubjectsFromTxt(text)
         val groups = parsed.getOrElse { e ->
             _uiState.update { it.copy(error = e.message ?: "Invalid syllabus text") }
@@ -449,73 +451,42 @@ class StudyPlannerViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val planId = _uiState.value.selectedPlan?.id ?: return@launch
-            _uiState.update { it.copy(mutating = true, error = null) }
-            var plan = _uiState.value.selectedPlan ?: return@launch
-            var colorIdx = 0
-            var totalTopicCount = 0
-            var totalChapterCount = 0
-            for (group in groups) {
-                val subjectKey = group.subjectName.lowercase(Locale.US)
-                var subject = plan.subjects.find { it.name.lowercase(Locale.US) == subjectKey }
-                if (subject == null) {
-                    val color = bulkSubjectPalette[colorIdx % bulkSubjectPalette.size]
-                    colorIdx++
-                    when (val sr = repo.addSubject(planId, SubjectRequest(name = group.subjectName, color = color))) {
-                        is Resource.Success -> {
-                            plan = sr.data
-                            subject = plan.subjects.find { it.name.lowercase(Locale.US) == subjectKey }
-                        }
-                        is Resource.Error -> {
-                            _uiState.update { it.copy(mutating = false, error = sr.message) }
-                            return@launch
-                        }
-                        is Resource.Loading -> Unit
-                    }
-                }
-                val subjectId = subject?.id ?: continue
-                for (ch in group.chapters) {
-                    val chapterKey = ch.chapterName.lowercase(Locale.US)
-                    var chapter = plan.subjects.find { it.id == subjectId }
-                        ?.chapters
-                        ?.find { it.name.lowercase(Locale.US) == chapterKey }
-                    if (chapter == null) {
-                        when (val cr = repo.addChapter(planId, subjectId, ChapterRequest(ch.chapterName))) {
-                            is Resource.Success -> {
-                                plan = cr.data
-                                chapter = plan.subjects.find { it.id == subjectId }
-                                    ?.chapters
-                                    ?.find { it.name.lowercase(Locale.US) == chapterKey }
-                            }
-                            is Resource.Error -> {
-                                _uiState.update { it.copy(mutating = false, error = cr.message) }
-                                return@launch
-                            }
-                            is Resource.Loading -> Unit
-                        }
-                    }
-                    val chapterId = chapter?.id ?: continue
-                    totalChapterCount++
-                    for (topicName in ch.topics) {
-                        when (val tr = repo.addTopic(planId, subjectId, chapterId, TopicRequest(topicName))) {
-                            is Resource.Success -> {
-                                plan = tr.data
-                                totalTopicCount++
-                            }
-                            is Resource.Error -> {
-                                _uiState.update { it.copy(mutating = false, error = tr.message) }
-                                return@launch
-                            }
-                            is Resource.Loading -> Unit
-                        }
-                    }
-                }
-            }
+            val resolvedMode = mode.trim().lowercase(Locale.US).takeIf { it == "replace" || it == "merge" } ?: "merge"
+            _uiState.update { it.copy(mutating = true, error = null, importError = null) }
+            val totalTopicCount = countBulkSubjectsTopics(groups)
+            val totalChapterCount = countBulkSubjectsChapters(groups)
             val message = if (totalTopicCount > 0) {
-                "Imported $totalTopicCount topics across $totalChapterCount chapters"
+                if (resolvedMode == "replace") {
+                    "Replaced syllabus with $totalTopicCount topics across $totalChapterCount chapters"
+                } else {
+                    "Added new syllabus items. Duplicates were skipped."
+                }
             } else {
-                "Imported $totalChapterCount empty chapters"
+                if (resolvedMode == "replace") "Replaced syllabus" else "Syllabus updated"
             }
-            reloadSelected(message)
+            when (val result = repo.importManualSyllabus(planId, text, resolvedMode)) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            mutating = false,
+                            selectedPlan = result.data,
+                            message = message,
+                            importResultSummary = message,
+                        )
+                    }
+                    reloadSelected(message)
+                }
+                is Resource.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            mutating = false,
+                            error = result.message,
+                            importError = result.message,
+                        )
+                    }
+                }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
@@ -587,10 +558,64 @@ class StudyPlannerViewModel @Inject constructor(
             val second = refsById[secondTopicId]?.topic ?: return@launch
             val firstDate = first.plannedDate?.takeIf { it.isNotBlank() } ?: return@launch
             val secondDate = second.plannedDate?.takeIf { it.isNotBlank() } ?: return@launch
+            if (firstDate.take(10) == secondDate.take(10)) {
+                _uiState.update { it.copy(error = "Both topics are already planned for the same day.") }
+                return@launch
+            }
             _uiState.update { it.copy(mutating = true) }
-            repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = secondDate))
-            repo.updateTopic(planId, secondTopicId, TopicPatchRequest(plannedDate = firstDate))
+            when (val clearFirst = repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = ""))) {
+                is Resource.Error -> {
+                    _uiState.update { it.copy(mutating = false, error = clearFirst.message) }
+                    return@launch
+                }
+                is Resource.Loading -> Unit
+                is Resource.Success -> Unit
+            }
+            when (val moveSecond = repo.updateTopic(planId, secondTopicId, TopicPatchRequest(plannedDate = firstDate))) {
+                is Resource.Error -> {
+                    repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = firstDate))
+                    _uiState.update { it.copy(mutating = false, error = moveSecond.message) }
+                    return@launch
+                }
+                is Resource.Loading -> Unit
+                is Resource.Success -> Unit
+            }
+            when (val moveFirst = repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = secondDate))) {
+                is Resource.Error -> {
+                    repo.updateTopic(planId, secondTopicId, TopicPatchRequest(plannedDate = secondDate))
+                    repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = firstDate))
+                    _uiState.update { it.copy(mutating = false, error = moveFirst.message) }
+                    return@launch
+                }
+                is Resource.Loading -> Unit
+                is Resource.Success -> Unit
+            }
             reloadSelected("Topics swapped")
+        }
+    }
+
+    override fun replaceTopicToday(currentTopicId: String, replacementTopicId: String, todayDate: String) {
+        viewModelScope.launch {
+            val planId = _uiState.value.selectedPlan?.id ?: return@launch
+            _uiState.update { it.copy(mutating = true) }
+            when (val clearCurrent = repo.updateTopic(planId, currentTopicId, TopicPatchRequest(plannedDate = ""))) {
+                is Resource.Error -> {
+                    _uiState.update { it.copy(mutating = false, error = clearCurrent.message) }
+                    return@launch
+                }
+                is Resource.Loading -> Unit
+                is Resource.Success -> Unit
+            }
+            when (val moveReplacement = repo.updateTopic(planId, replacementTopicId, TopicPatchRequest(plannedDate = todayDate))) {
+                is Resource.Error -> {
+                    repo.updateTopic(planId, currentTopicId, TopicPatchRequest(plannedDate = todayDate))
+                    _uiState.update { it.copy(mutating = false, error = moveReplacement.message) }
+                    return@launch
+                }
+                is Resource.Loading -> Unit
+                is Resource.Success -> Unit
+            }
+            reloadSelected("Topic replaced")
         }
     }
 

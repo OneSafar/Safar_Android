@@ -101,15 +101,13 @@ fun SyllabusChaptersScreen(
     CompositionLocalProvider(LocalDensity provides clampedDensity) {
         Scaffold(
             floatingActionButton = {
-                SafarExpressiveFabMenu(
-                    items = listOf(
-                        FabMenuItem(
-                            label = "Add Chapter",
-                            icon = Icons.Default.Add,
-                            onClick = { addChapter = true }
-                        )
-                    )
-                )
+                FloatingActionButton(
+                    onClick = { addChapter = true },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Chapter")
+                }
             },
             contentWindowInsets = WindowInsets.safeDrawing,
             containerColor = MaterialTheme.colorScheme.background

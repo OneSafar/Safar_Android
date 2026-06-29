@@ -240,8 +240,8 @@ private fun BreathingTab(
         mediaPlayer.value = null
     }
 
-    LaunchedEffect(isRunning, selectedMusicTrack) {
-        if (isRunning && selectedMusicTrack.url.isNotBlank() && selectedMusicTrack.name != "None") {
+    LaunchedEffect(isRunning, selectedMusicTrack, selectedTechnique) {
+        if (isRunning && selectedTechnique == null && selectedMusicTrack.url.isNotBlank() && selectedMusicTrack.name != "None" && selectedMusicTrack.id != "none-track") {
             releasePlayer()
             try {
                 val audioUri =
@@ -564,7 +564,7 @@ private fun BreathingTab(
             }
         }
 
-        if (selectedMusicTrack.name != "None") {
+        if (selectedTechnique == null && selectedMusicTrack.name != "None" && selectedMusicTrack.id != "none-track") {
             Spacer(Modifier.height(8.dp))
             Card(
                 shape     = MaterialTheme.shapes.medium,

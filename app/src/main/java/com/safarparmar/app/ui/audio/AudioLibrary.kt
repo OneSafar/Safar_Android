@@ -26,6 +26,16 @@ object AudioLibrary {
     private const val PREFS_NAME = "safar_audio_prefs"
     private const val PREF_KEY_TRACK_ID = "selected_audio_track_id"
 
+    val NONE_TRACK = AudioTrack(
+        id = "none-track",
+        name = "None (Silent)",
+        url = "",
+        category = null,
+        description = "Meditate in silence",
+        isLocal = true,
+        localResId = null
+    )
+
     val DEFAULT_DHYAN_TRACK = AudioTrack(
         id = "dhyan-default",
         name = "Dhyan",
@@ -37,6 +47,7 @@ object AudioLibrary {
     )
 
     val TRACKS: List<AudioTrack> = listOf(
+        NONE_TRACK,
         DEFAULT_DHYAN_TRACK,
         // ── Indian Classical Ragas ─────────────────────────────────────────────────
         AudioTrack(

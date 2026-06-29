@@ -141,6 +141,25 @@ class PremiumViewModel @Inject constructor(
         }
     }
 
+    fun startFreeTrial() {
+        _uiState.value = PremiumUiState.Loading
+        viewModelScope.launch {
+            premiumRepository.startTrial().fold(
+                onSuccess = { status ->
+                    _premiumStatus.value = status
+                    _uiState.value = if (status.hasAnyPaidAccess) {
+                        PremiumUiState.PaymentSuccess(status)
+                    } else {
+                        PremiumUiState.Error("The trial was started, but premium access is not active yet. Please tap Restore Safar Premium in a moment.")
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.value = PremiumUiState.Error(error.message ?: "Could not start the 7-day free trial")
+                },
+            )
+        }
+    }
+
     fun resetState() {
         _uiState.value = PremiumUiState.Idle
     }
