@@ -38,10 +38,9 @@ private fun <T, R> Resource<T>.map(transform: (T) -> R): Resource<R> = when (thi
         try {
             Resource.Success(transform(data))
         } catch (e: Exception) {
-            Resource.Error(e.message ?: "Mapping error", 500)
+            Resource.Error(e.message ?: "Could not load live sessions", 500)
         }
     }
     is Resource.Error -> Resource.Error(message, code)
     is Resource.Loading -> Resource.Loading()
 }
-

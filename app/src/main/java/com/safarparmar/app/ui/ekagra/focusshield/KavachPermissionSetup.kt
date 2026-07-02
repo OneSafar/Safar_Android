@@ -300,7 +300,7 @@ fun PermissionGuideSheet(
                     Text(
                         when (permission) {
                             PermissionTarget.USAGE_STATS -> if (accessibilityRequired) stringResource(R.string.kavach_setup_guide_title) else "Allow App Check"
-                            PermissionTarget.ACCESSIBILITY -> "Allow Block Screen"
+                            PermissionTarget.ACCESSIBILITY -> "Allow KAVACH Alert"
                             PermissionTarget.NOTIFICATIONS -> "Allow Notifications"
                         },
                         fontWeight = FontWeight.Bold,
@@ -340,12 +340,12 @@ fun PermissionGuideSheet(
                             accent = scheme.primary,
                         )
 
-                        // Step 2 — Block Screen (Accessibility) — only if required
+                        // Step 2 — KAVACH Alert (Accessibility) — only if required
                         if (accessibilityRequired) {
                             GuideStepGroup(
                                 stepNumber = 2,
-                                title = "Block Screen",
-                                subtitle = "Shows the KAVACH screen when a blocked app opens",
+                                title = "KAVACH Alert",
+                                subtitle = "Brings you back to SAFAR when a blocked app opens",
                                 steps = listOf(
                                     "Scroll down to find SAFAR KAVACH",
                                     "Tap it and toggle the switch on",
@@ -358,8 +358,8 @@ fun PermissionGuideSheet(
                     PermissionTarget.ACCESSIBILITY -> {
                         GuideStepGroup(
                             stepNumber = 1,
-                            title = "Block Screen",
-                            subtitle = "Shows the KAVACH screen when a blocked app opens",
+                            title = "KAVACH Alert",
+                            subtitle = "Brings you back to SAFAR when a blocked app opens",
                             steps = listOf(
                                 "Scroll down to find SAFAR KAVACH",
                                 "Tap it and toggle the switch on",
@@ -579,7 +579,7 @@ fun KavachPermissionSetup(
             Spacer(Modifier.height(6.dp))
 
             Text(
-                text = "KAVACH blocks only the apps you choose, only while your timer is running.",
+                text = "KAVACH blocks only the apps you choose during timer sessions or Always-on mode.",
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = scheme.onSurfaceVariant,

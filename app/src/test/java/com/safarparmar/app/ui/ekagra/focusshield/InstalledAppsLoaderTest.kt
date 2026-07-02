@@ -20,4 +20,19 @@ class InstalledAppsLoaderTest {
         assertEquals(listOf("Alpha", "YouTube"), result.map { it.appName })
         assertEquals(listOf("com.alpha", "com.youtube"), result.map { it.packageName })
     }
+
+    @Test
+    fun `excludes launcher packages from blockable apps`() {
+        val result = InstalledAppsLoader.toBlockedAppInfos(
+            apps = listOf(
+                InstalledAppsLoader.InstalledAppRecord("com.miui.home", "System Launcher", null),
+                InstalledAppsLoader.InstalledAppRecord("com.whatsapp", "WhatsApp", null),
+            ),
+            ownPackageName = "com.safarparmar.app",
+            excludedPackages = setOf("com.miui.home"),
+        )
+
+        assertEquals(listOf("WhatsApp"), result.map { it.appName })
+        assertEquals(listOf("com.whatsapp"), result.map { it.packageName })
+    }
 }

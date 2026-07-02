@@ -220,138 +220,39 @@ internal fun InsightsTab(
     }
     val rollup = remember(plan.id, plan.subjects) { plan.rollup() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (isPremium) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item {
-                        SelectedExamStrip(
-                            plan = plan,
-                            onChangeExam = { actions.setSection(PlannerSection.YOUR_EXAMS) },
-                            outerPadding = PaddingValues(0.dp),
-                        )
-                    }
-                    item {
-                        StudentInsightHero(
-                            plan = plan,
-                            rollup = rollup,
-                        )
-                    }
-                    item {
-                        StudyPlannerAchievementsStrip(
-                            achievements = state.plannerAchievements,
-                        )
-                    }
-                    item {
-                        SubjectProgressChart(
-                            subjects = insights.subjectRows,
-                        )
-                    }
-                    item {
-                        ConsistencyInsightsCard(consistency = insights.consistency)
-                    }
-                }
-            }
-        } else {
-            InsightsPremiumLockOverlay(
-                onUpgrade = onUpgrade,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-    }
-}
-
-@Composable
-private fun InsightsPremiumLockOverlay(
-    onUpgrade: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    val bg = scheme.background
-    val gradient = Brush.verticalGradient(
-        colorStops = arrayOf(
-            0.00f to Color.Transparent,
-            0.25f to bg.copy(alpha = 0.88f),
-            0.45f to bg,
-        )
-    )
-    Box(
-        modifier = modifier
-            .background(gradient)
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, _ -> }
-            }
-            .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                indication = null,
-                onClick = onUpgrade
-            )
+    Column(
+        modifier = Modifier.fillMaxSize(),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.Center)
-                .padding(horizontal = 32.dp)
-                .padding(top = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .background(
-                        Brush.radialGradient(
-                            listOf(
-                                scheme.primary.copy(alpha = 0.28f),
-                                scheme.primary.copy(alpha = 0.08f),
-                                Color.Transparent,
-                            )
-                        ),
-                        CircleShape,
-                    )
-                    .border(1.5.dp, Brush.linearGradient(
-                        listOf(scheme.primary.copy(alpha = 0.6f), scheme.secondary.copy(alpha = 0.3f))
-                    ), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Safar Premium feature",
-                    tint = scheme.primary,
-                    modifier = Modifier.size(32.dp),
+            item {
+                SelectedExamStrip(
+                    plan = plan,
+                    onChangeExam = { actions.setSection(PlannerSection.YOUR_EXAMS) },
+                    outerPadding = PaddingValues(0.dp),
                 )
             }
-            Text(
-                text = "Safar Premium Feature",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = scheme.onBackground,
-            )
-            Text(
-                text = "Upgrade to see simple charts for progress, subject completion, and weekly study load.",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = scheme.onSurfaceVariant,
-                lineHeight = 20.sp,
-            )
-            Button(
-                onClick = onUpgrade,
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = scheme.primary,
-                    contentColor = scheme.onPrimary,
-                ),
-                modifier = Modifier.fillMaxWidth(0.75f),
-            ) {
-                Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Upgrade to Safar Premium", fontWeight = FontWeight.Bold)
+            item {
+                StudentInsightHero(
+                    plan = plan,
+                    rollup = rollup,
+                )
+            }
+            item {
+                StudyPlannerAchievementsStrip(
+                    achievements = state.plannerAchievements,
+                )
+            }
+            item {
+                SubjectProgressChart(
+                    subjects = insights.subjectRows,
+                )
+            }
+            item {
+                ConsistencyInsightsCard(consistency = insights.consistency)
             }
         }
     }

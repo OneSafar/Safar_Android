@@ -30,6 +30,7 @@ data class DrawerItem(
     val route: String,
     val rainbowShimmer: Boolean = false,
     val requiresAdmin: Boolean = false,
+    val requiresPremium: Boolean = false,
 )
 
 val drawerItems = listOf(
@@ -40,6 +41,7 @@ val drawerItems = listOf(
         Icons.AutoMirrored.Filled.EventNote,
         Routes.STUDY_PLANNER,
         rainbowShimmer = true,
+        requiresPremium = true,
     ),
     DrawerItem(
         R.string.nav_focus_shield,
@@ -129,6 +131,7 @@ fun SafarDrawer(
                     DrawerNavRow(
                         item = item,
                         currentRoute = currentRoute,
+                        isPremiumActive = isPremiumActive,
                         onNavigate = onNavigate,
                         onCloseDrawer = onCloseDrawer,
                     )
@@ -199,28 +202,45 @@ fun SafarDrawer(
 private fun DrawerNavRow(
     item: DrawerItem,
     currentRoute: String,
+    isPremiumActive: Boolean,
     onNavigate: (String) -> Unit,
     onCloseDrawer: () -> Unit,
 ) {
     val label = stringResource(item.labelRes)
     val selected = currentRoute.startsWith(item.route)
     val fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+    val showLock = item.requiresPremium && !isPremiumActive
 
     NavigationDrawerItem(
         label = {
-            if (item.rainbowShimmer) {
-                RainbowShimmerText(
-                    text = label,
-                    fontWeight = fontWeight,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            } else {
-                Text(
-                    text = label,
-                    fontWeight = fontWeight,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                if (item.rainbowShimmer) {
+                    RainbowShimmerText(
+                        text = label,
+                        modifier = Modifier.weight(1f, fill = false),
+                        fontWeight = fontWeight,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                } else {
+                    Text(
+                        text = label,
+                        modifier = Modifier.weight(1f, fill = false),
+                        fontWeight = fontWeight,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (showLock) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Premium locked",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(15.dp),
+                    )
+                }
             }
         },
         icon = { Icon(item.icon, contentDescription = label) },

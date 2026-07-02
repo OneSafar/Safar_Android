@@ -26,6 +26,7 @@ class InstalledAppsLoader @Inject constructor(
     suspend fun loadLaunchableApps(): List<BlockedAppInfo> = withContext(dispatcher) {
         val pm = context.packageManager
         val mainIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val homePackages = resolveHomePackages(pm)
 
         val resolveInfos = pm.queryIntentActivities(mainIntent, PackageManager.MATCH_ALL)
 
@@ -46,6 +47,7 @@ class InstalledAppsLoader @Inject constructor(
                     }
                 },
             ownPackageName = context.packageName,
+            excludedPackages = homePackages,
         )
     }
 
@@ -53,10 +55,12 @@ class InstalledAppsLoader @Inject constructor(
         internal fun toBlockedAppInfos(
             apps: List<InstalledAppRecord>,
             ownPackageName: String,
+            excludedPackages: Set<String> = emptySet(),
         ): List<BlockedAppInfo> =
             apps
                 .distinctBy { it.packageName }
                 .filter { it.packageName != ownPackageName }
+                .filter { it.packageName !in excludedPackages }
                 .map {
                     BlockedAppInfo(
                         packageName = it.packageName,
@@ -65,6 +69,28 @@ class InstalledAppsLoader @Inject constructor(
                     )
                 }
                 .sortedBy { it.appName.lowercase() }
+
+        private fun resolveHomePackages(pm: PackageManager): Set<String> {
+            val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            val queried = pm.queryIntentActivities(homeIntent, 0)
+                .mapNotNull { it.activityInfo?.packageName }
+            val resolved = pm.resolveActivity(homeIntent, 0)?.activityInfo?.packageName
+            return (queried + listOfNotNull(resolved) + KNOWN_HOME_PACKAGES).toSet()
+        }
+
+        private val KNOWN_HOME_PACKAGES = setOf(
+            "com.miui.home",
+            "com.mi.android.globallauncher",
+            "com.android.launcher",
+            "com.android.launcher2",
+            "com.android.launcher3",
+            "com.google.android.apps.nexuslauncher",
+            "com.sec.android.app.launcher",
+            "com.huawei.android.launcher",
+            "com.oppo.launcher",
+            "com.vivo.launcher",
+            "com.transsion.XOSLauncher",
+        )
     }
 
     internal data class InstalledAppRecord(

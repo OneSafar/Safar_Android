@@ -19,7 +19,8 @@ data class DashboardUiState(
     val loginHistory: List<LoginHistoryEntry> = emptyList(),
     val studyPlan: DashboardStudyPlanState = DashboardStudyPlanState(),
     val error: String? = null,
-    val showWelcomeOverlay: Boolean = false
+    val showWelcomeOverlay: Boolean = false,
+    val celebrationAchievements: List<Achievement> = emptyList()
 )
 
 sealed class DashboardEvent {

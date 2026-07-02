@@ -82,6 +82,16 @@ class MorningNudgeWorker(
             targetMinute: Int = 30,
             policy: ExistingPeriodicWorkPolicy = ExistingPeriodicWorkPolicy.KEEP,
         ) {
+            // PRODUCTION NOTE: Morning quote notifications are delivered exclusively via
+            // backend FCM in RELEASE builds. The FCM path is reliable on all OEMs (including
+            // Xiaomi) and avoids duplicate notifications if WorkManager happens to fire too.
+            // This worker is kept ONLY in DEBUG builds for local notification UI testing;
+            // it must NOT run in production alongside the backend FCM scheduler.
+            if (!BuildConfig.DEBUG) {
+                cancel(context)
+                return
+            }
+
             val delay = calculateInitialDelayMinutes(targetHour, targetMinute)
 
             val request = PeriodicWorkRequestBuilder<MorningNudgeWorker>(24, TimeUnit.HOURS)

@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.ekagra.focusshield
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -123,6 +124,8 @@ fun KavachOnboardingScreen(
     var selectedPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
     val scope = rememberCoroutineScope()
+
+    BackHandler(enabled = true) { onBack() }
 
     val requestNotificationPermission = rememberNotificationPermissionRequester {
         hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
@@ -246,8 +249,8 @@ fun KavachOnboardingScreen(
 
                 if (accessibilityRequired) {
                     KavachRegainPermissionRow(
-                        title = "Block screen permission",
-                        subtitle = "Lets KAVACH show the block screen over selected apps.",
+                        title = "KAVACH alert permission",
+                        subtitle = "Lets KAVACH bring you back to SAFAR from selected apps.",
                         granted = hasAccessibility,
                         isNext = isAccessibilityNext,
                         colors = colors,

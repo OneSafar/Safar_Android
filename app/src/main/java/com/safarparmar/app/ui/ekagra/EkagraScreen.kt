@@ -124,6 +124,15 @@ fun EkagraScreen(
         tabBackStack.goBack()
     }
 
+    LaunchedEffect(tourState?.isVisible, tourState?.currentStepIndex) {
+        val state = tourState ?: return@LaunchedEffect
+        if (!state.isVisible) return@LaunchedEffect
+        when (state.currentStepIndex) {
+            0, 1 -> tabBackStack.select(EkagraNavTab.TIMER)
+            2 -> tabBackStack.select(EkagraNavTab.DURATION)
+        }
+    }
+
     var selectedTheme by remember {
         val prefs = context.getSharedPreferences("ekagra_theme_prefs", android.content.Context.MODE_PRIVATE)
         mutableStateOf(visualThemes.getOrElse(prefs.getInt("theme_index", -1)) { visualThemes[0] })
@@ -149,6 +158,32 @@ fun EkagraScreen(
         }
         requestNotificationPermission()
         timerService?.saveTheme(visualThemes.indexOf(selectedTheme), selectedMusicTrack.name)
+
+        val service = timerService
+        if (mode == TimerMode.FOCUS && timerMode != TimerMode.FOCUS && service?.switchToFocusFromBreak() == true) {
+            service.start()
+            viewModel.syncActiveSession(
+                service.totalSeconds.value,
+                service.secondsLeft.value,
+                TimerMode.FOCUS.toApiMode(),
+                true,
+                associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
+            )
+            return
+        }
+
+        if (mode == TimerMode.FOCUS && timerMode == TimerMode.FOCUS && timerService?.isActive() == true) {
+            timerService.start()
+            viewModel.syncActiveSession(
+                totalSeconds,
+                secondsLeft,
+                timerMode.toApiMode(),
+                true,
+                associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
+            )
+            return
+        }
+
         timerService?.setDuration(mode, minutes * 60)
         timerService?.start()
         viewModel.onSessionStarted(
@@ -158,7 +193,7 @@ fun EkagraScreen(
             goalTitle    = if (mode == TimerMode.FOCUS) associatedGoalTitle else null,
             mode         = mode.toApiMode(),
         )
-        if (mode == TimerMode.FOCUS && shieldState.isEnabled && shieldState.blockedPackages.isNotEmpty()) {
+        if (mode == TimerMode.FOCUS && shieldState.isEnabled && !shieldState.isAlwaysOn && shieldState.blockedPackages.isNotEmpty()) {
             timerService?.setFocusShieldConfig(shieldState.blockedPackages, shieldState.isStrictMode)
             timerService?.enableFocusShieldForSession()
         }
@@ -179,6 +214,18 @@ fun EkagraScreen(
 
     fun endCurrentSession() {
         captureKavachSessionSummary()
+        val service = timerService
+        if (timerMode != TimerMode.FOCUS && service?.switchToFocusFromBreak() == true) {
+            activeSession?.let { session ->
+                viewModel.pauseActiveSession(
+                    service.totalSeconds.value,
+                    service.secondsLeft.value,
+                    TimerMode.FOCUS.toApiMode(),
+                    associatedGoalTitle ?: session.sessionTitle,
+                )
+            }
+            return
+        }
         val session = activeSession
         if (session != null && timerMode == TimerMode.FOCUS) {
             timerService?.pause()
@@ -291,7 +338,8 @@ fun EkagraScreen(
 
     val progress = if (totalSeconds > 0) 1f - secondsLeft.toFloat() / totalSeconds else 0f
     val mottoText = when {
-        timerMode != TimerMode.FOCUS && timerRunning -> "BREAK TIME — KAVACH PAUSED"
+        timerMode != TimerMode.FOCUS && timerRunning && shieldState.isAlwaysOn -> "BREAK TIME - ALWAYS-ON KAVACH ACTIVE"
+        timerMode != TimerMode.FOCUS && timerRunning -> "BREAK TIME - KAVACH PAUSED"
         timerRunning -> "STAY FOCUSED, YOU'RE DOING GREAT!"
         else         -> "READY TO FOCUS?"
     }
@@ -513,20 +561,26 @@ fun EkagraScreen(
                                         secondsLeft        = secondsLeft,
                                         isRunning          = timerRunning,
                                         progress           = progress,
+                                        hasProgress        = secondsLeft < totalSeconds,
                                         mottoText          = mottoText,
                                         kavachActive       = focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS,
                                         kavachBlockedCount = blockedHitCount,
                                         onOpenKavachSession = { showKavachActiveSession = true },
                                         onModeChange = { mode ->
+                                            if (mode == timerMode) return@TimerFocusTab
                                             val mins = when (mode) {
                                                 TimerMode.FOCUS      -> focusMinutes
                                                 TimerMode.BREAK      -> breakMinutes
                                                 TimerMode.LONG_BREAK -> longBreakMinutes
                                             }
-                                            if (mode != TimerMode.FOCUS && timerMode == TimerMode.FOCUS && timerService?.isActive() == true)
-                                                timerService.startBreak(mode, mins * 60)
-                                            else
-                                                timerService?.setDuration(mode, mins * 60)
+                                            when {
+                                                mode == TimerMode.FOCUS && timerMode != TimerMode.FOCUS ->
+                                                    if (timerService?.switchToFocusFromBreak() != true) timerService?.setDuration(mode, mins * 60)
+                                                mode != TimerMode.FOCUS && timerMode == TimerMode.FOCUS && timerService?.isActive() == true ->
+                                                    timerService.startBreak(mode, mins * 60)
+                                                else ->
+                                                    timerService?.setDuration(mode, mins * 60)
+                                            }
                                         },
                                         onPlayPause = {
                                             val wasRunning  = timerRunning

@@ -1,24 +1,23 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
@@ -27,13 +26,10 @@ import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.TopicUiModel
-import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarResultSlot
 import com.safarparmar.app.ui.components.SyllabusRowSkeleton
 import com.safarparmar.app.ui.components.SafarExpressiveHeader
-import com.safarparmar.app.ui.components.SafarExpressiveFabMenu
-import com.safarparmar.app.ui.components.FabMenuItem
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
@@ -175,50 +171,101 @@ fun SyllabusTopicsScreen(
                             }
                             val onRenameTopic = remember(topic) { { renameTopic = topic } }
                             val onDeleteTopic = remember(topic) { { deleteTopic = topic } }
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(onClick = onTopicClick),
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                ),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    StatusDot(topic.status)
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = topic.name,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
-                                            color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-                                        )
-                                        if (plannedDate != null) {
-                                            Text(
-                                                text = "Scheduled: $plannedDate",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    TopicOverflowMenu(
-                                        onRename = onRenameTopic,
-                                        onDelete = onDeleteTopic,
-                                    )
-                                }
-                            }
+                            SyllabusTopicListCard(
+                                topic = topic,
+                                isDone = isDone,
+                                plannedDate = plannedDate,
+                                onClick = onTopicClick,
+                                onRename = onRenameTopic,
+                                onDelete = onDeleteTopic,
+                            )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SyllabusTopicListCard(
+    topic: TopicUiModel,
+    isDone: Boolean,
+    plannedDate: String?,
+    onClick: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = scheme.surfaceContainerLowest,
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
+        shadowElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                StatusDot(topic.status)
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                Text(
+                    text = topic.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
+                    color = if (isDone) scheme.onSurfaceVariant else scheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    SyllabusTopicPill(
+                        label = topic.status.label,
+                        highlighted = topic.status == TopicStatus.DONE,
+                    )
+                    if (plannedDate != null) {
+                        SyllabusTopicPill(label = plannedDate, highlighted = false)
+                    }
+                }
+            }
+            TopicOverflowMenu(
+                onRename = onRename,
+                onDelete = onDelete,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SyllabusTopicPill(label: String, highlighted: Boolean) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = if (highlighted) scheme.primaryContainer else scheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.32f)),
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = if (highlighted) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

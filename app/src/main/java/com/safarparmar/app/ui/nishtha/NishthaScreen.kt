@@ -69,6 +69,18 @@ fun NishthaScreen(
         tabBackStack.goBack()
     }
 
+    LaunchedEffect(tourState?.isVisible, tourState?.currentStepIndex) {
+        val state = tourState ?: return@LaunchedEffect
+        if (!state.isVisible) return@LaunchedEffect
+        when (state.currentStepIndex) {
+            0, 1 -> tabBackStack.select(NishthaTab.CHECK_IN)
+            2 -> tabBackStack.select(NishthaTab.JOURNAL)
+            3 -> tabBackStack.select(NishthaTab.GOALS)
+            4 -> tabBackStack.select(NishthaTab.STREAKS)
+            5 -> tabBackStack.select(NishthaTab.ANALYTICS)
+        }
+    }
+
     SafarDrawerScaffold(
         title = stringResource(R.string.module_nishtha),
         subtitle = stringResource(R.string.app_name),

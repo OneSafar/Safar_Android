@@ -532,6 +532,9 @@ fun LiveUpNextListItem(
 
 @Composable
 fun LiveClassroomEmptyState(
+    title: String,
+    subtitle: String?,
+    showClearFilters: Boolean,
     onClearFilters: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -561,17 +564,21 @@ fun LiveClassroomEmptyState(
                 )
             }
             Text(
-                "No sessions found",
+                title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text(
-                "Try another filter or check back later.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OutlinedButton(onClick = onClearFilters, shape = RoundedCornerShape(50)) {
-                Text("Clear filters")
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (showClearFilters) {
+                OutlinedButton(onClick = onClearFilters, shape = RoundedCornerShape(50)) {
+                    Text("Clear filters")
+                }
             }
         }
     }
@@ -665,6 +672,5 @@ fun CompletedSessionCard(
         }
     }
 }
-
 
 

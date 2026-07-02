@@ -108,10 +108,6 @@ fun LiveSessionsScreen(
 
             containerColor = MaterialTheme.colorScheme.background,
         ) { padding ->
-        val errorText = uiState.errorMessage?.let {
-            liveSessionsErrorMessage(it, uiState.errorCode)
-        }
-
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -149,15 +145,6 @@ fun LiveSessionsScreen(
                 }
             }
 
-            if (errorText != null && !uiState.isLoading) {
-                item(key = "error_banner") {
-                    LiveClassroomErrorBanner(
-                        message = errorText,
-                        onRetry = { viewModel.loadSessions(courseId, backendStatus) },
-                    )
-                }
-            }
-
             if (!uiState.isLoading && featuredSession != null) {
                 item(key = "hero_${featuredSession.id}") {
                     LiveHeroSessionCard(
@@ -172,6 +159,17 @@ fun LiveSessionsScreen(
             if (!uiState.isLoading && filteredSessions.isEmpty()) {
                 item(key = "empty") {
                     LiveClassroomEmptyState(
+                        title = if (selectedFilter == LiveSessionFilter.COMPLETED) {
+                            "No sessions currently."
+                        } else {
+                            "Parmar sir is not live currently."
+                        },
+                        subtitle = if (selectedFilter == LiveSessionFilter.COMPLETED) {
+                            null
+                        } else {
+                            "Please check back later."
+                        },
+                        showClearFilters = searchQuery.isNotBlank(),
                         onClearFilters = {
                             searchQuery = ""
                             selectedFilter = LiveSessionFilter.LIVE
@@ -247,4 +245,3 @@ fun LiveSessionsScreen(
 }
 }
 }
-

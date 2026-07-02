@@ -23,27 +23,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.ekagra.TimerService
 import com.safarparmar.app.ui.theme.SafarTheme
 
 class BlockedAppActivity : ComponentActivity() {
@@ -51,6 +57,7 @@ class BlockedAppActivity : ComponentActivity() {
     companion object {
         const val EXTRA_BLOCKED_PACKAGE = "blocked_package"
         const val EXTRA_BEAST_MODE = "beast_mode"
+        const val EXTRA_ALWAYS_ON = "always_on"
         const val EXTRA_UNLOCKS_REMAINING = "unlocks_remaining"
         const val EXTRA_UNLOCK_SECONDS = "unlock_seconds"
 
@@ -70,22 +77,16 @@ class BlockedAppActivity : ComponentActivity() {
         val appName = labelForPackage(blockedPackage)
         val strict = intent.getBooleanExtra(EXTRA_BEAST_MODE, false) ||
             FocusShieldRepository.ShieldPrefs.isStrict(this)
-        val initialUnlocks = intent.getIntExtra(EXTRA_UNLOCKS_REMAINING, -1).let {
-            if (it >= 0) it else FocusShieldRepository.ShieldPrefs.getUnlocksRemaining(this)
-        }
-        val unlockSeconds = intent.getIntExtra(EXTRA_UNLOCK_SECONDS, 0).let {
-            if (it > 0) it else FocusShieldRepository.ShieldPrefs.getUnlockSeconds(this)
-        }
-
         setContent {
             SafarTheme {
                 BlockedAppScreen(
                     appName = appName,
                     motivationalCopy = remember { BLOCK_COPY.random() },
                     strict = strict,
-                    initialUnlocksRemaining = initialUnlocks,
-                    unlockSeconds = unlockSeconds,
-                    onReturnToFocus = ::returnToFocus,
+                    returnToEkagra = strict,
+                    isEkagraTimerRunning = TimerService.isFocusTimerRunning(this@BlockedAppActivity),
+                    onReturnToFocus = { returnFromBlock(returnToEkagra = strict) },
+                    onLeaveToHome = ::leaveToHome,
                     onEmergencyUnlock = ::handleEmergencyUnlock,
                 )
             }
@@ -100,11 +101,11 @@ class BlockedAppActivity : ComponentActivity() {
         }.getOrDefault("This app")
     }
 
-    private fun returnToFocus() {
+    private fun returnFromBlock(returnToEkagra: Boolean) {
         FocusShieldRepository.ShieldPrefs.beginReturnToFocusGrace(this, 5_000L)
         startActivity(
             Intent(this, MainActivity::class.java).apply {
-                data = Uri.parse("safar://ekagra")
+                data = Uri.parse(if (returnToEkagra) "safar://ekagra" else "safar://home")
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_ACTIVITY_NEW_TASK
@@ -113,18 +114,29 @@ class BlockedAppActivity : ComponentActivity() {
         finish()
     }
 
-    private fun handleEmergencyUnlock(): Int? {
-        if (FocusShieldRepository.ShieldPrefs.isStrict(this)) return null
-        val limit = FocusShieldRepository.ShieldPrefs.getUnlockLimit(this)
-        val used = FocusShieldRepository.ShieldPrefs.getUnlocksUsed(this)
-        if (limit <= 0 || used >= limit) return 0
-
-        val seconds = FocusShieldRepository.ShieldPrefs.getUnlockSeconds(this).coerceAtLeast(5)
-        val graceUntilMs = System.currentTimeMillis() + seconds * 1000L
-        val newUsed = used + 1
-        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(this, graceUntilMs, newUsed)
+    private fun leaveToHome() {
+        FocusShieldRepository.ShieldPrefs.clearReturnToFocusGrace(this)
+        runCatching {
+            Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }.also(::startActivity)
+        }
         finish()
-        return (limit - newUsed).coerceAtLeast(0)
+    }
+
+    private fun handleEmergencyUnlock(minutes: Int, pauseTimer: Boolean): Boolean {
+        if (pauseTimer) {
+            startService(Intent(this, TimerService::class.java).apply {
+                action = TimerService.ACTION_PAUSE
+            })
+        }
+        val unlockMinutes = minutes.coerceIn(1, 60)
+        val graceUntilMs = System.currentTimeMillis() + unlockMinutes * 60_000L
+        val used = FocusShieldRepository.ShieldPrefs.getUnlocksUsed(this) + 1
+        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(this, graceUntilMs, used)
+        finish()
+        return true
     }
 }
 
@@ -133,15 +145,99 @@ private fun BlockedAppScreen(
     appName: String,
     motivationalCopy: String,
     strict: Boolean,
-    initialUnlocksRemaining: Int,
-    unlockSeconds: Int,
+    returnToEkagra: Boolean,
+    isEkagraTimerRunning: Boolean,
     onReturnToFocus: () -> Unit,
-    onEmergencyUnlock: () -> Int?,
+    onLeaveToHome: () -> Unit,
+    onEmergencyUnlock: (minutes: Int, pauseTimer: Boolean) -> Boolean,
 ) {
-    BackHandler(onBack = onReturnToFocus)
+    BackHandler(onBack = onLeaveToHome)
 
-    var unlocksRemaining by remember { mutableIntStateOf(initialUnlocksRemaining) }
-    val showUnlock = !strict && initialUnlocksRemaining >= 0
+    var showUnlockDialog by remember { mutableStateOf(false) }
+    var showTimerChoiceDialog by remember { mutableStateOf(false) }
+    var quickUnlockMinutes by remember { mutableStateOf("") }
+    var pendingUnlockMinutes by remember { mutableStateOf<Int?>(null) }
+    val enteredMinutes = quickUnlockMinutes.toIntOrNull()
+    val minuteError = quickUnlockMinutes.isNotBlank() && (enteredMinutes == null || enteredMinutes !in 1..60)
+
+    if (showUnlockDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnlockDialog = false },
+            title = { Text("Quick unlock") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Enter how many minutes you want to unlock $appName.")
+                    OutlinedTextField(
+                        value = quickUnlockMinutes,
+                        onValueChange = { value ->
+                            quickUnlockMinutes = value.filter(Char::isDigit).take(2)
+                        },
+                        singleLine = true,
+                        label = { Text("Minutes") },
+                        supportingText = {
+                            Text(if (minuteError) "Choose 1 to 60 minutes." else "Allowed range: 1-60 minutes.")
+                        },
+                        isError = minuteError,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = enteredMinutes in 1..60,
+                    onClick = {
+                        val minutes = enteredMinutes ?: return@TextButton
+                        showUnlockDialog = false
+                        if (isEkagraTimerRunning) {
+                            pendingUnlockMinutes = minutes
+                            showTimerChoiceDialog = true
+                        } else if (onEmergencyUnlock(minutes, false)) {
+                            showUnlockDialog = false
+                        }
+                    },
+                ) {
+                    Text("Unlock")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnlockDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    if (showTimerChoiceDialog) {
+        AlertDialog(
+            onDismissRequest = { showTimerChoiceDialog = false },
+            title = { Text("Ekagra Timer is Currently Running !") },
+            text = { Text("Choose what should happen to your Ekagra timer during Quick unlock.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val minutes = pendingUnlockMinutes ?: return@TextButton
+                        if (onEmergencyUnlock(minutes, true)) {
+                            showTimerChoiceDialog = false
+                        }
+                    },
+                ) {
+                    Text("Pause Timer")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        val minutes = pendingUnlockMinutes ?: return@TextButton
+                        if (onEmergencyUnlock(minutes, false)) {
+                            showTimerChoiceDialog = false
+                        }
+                    },
+                ) {
+                    Text("Keep Timer")
+                }
+            },
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -223,62 +319,41 @@ private fun BlockedAppScreen(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.size(8.dp))
-                            Text(stringResource(R.string.kavach_block_return), fontWeight = FontWeight.Bold)
-            }
-
-            if (showUnlock) {
-                Spacer(Modifier.height(10.dp))
-                val enabled = unlocksRemaining > 0
-                OutlinedButton(
-                    onClick = {
-                        val result = onEmergencyUnlock()
-                        if (result != null) unlocksRemaining = result
-                        else unlocksRemaining = 0
-                    },
-                    enabled = enabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(999.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        Color.White.copy(alpha = if (enabled) 0.35f else 0.2f),
-                    ),
-                ) {
-                    Icon(
-                        Icons.Default.LockOpen,
-                        contentDescription = null,
-                        tint = if (enabled) Color.White else KavachDesign.ActiveSessionStatus,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.size(8.dp))
-                                Text(
-                                    if (enabled)
-                                        stringResource(
-                                            R.string.kavach_block_unlock,
-                                            unlocksRemaining,
-                                            unlockSeconds,
-                                        )
-                                    else
-                                        stringResource(R.string.kavach_block_unlock_exhausted),
-                        color = if (enabled) Color.White else KavachDesign.ActiveSessionStatus,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-
-            if (strict) {
-                Spacer(Modifier.height(14.dp))
                 Text(
-                    stringResource(R.string.kavach_block_beast_footer),
-                    color = Color(0xFFFECACA),
-                    fontSize = 12.sp,
+                    stringResource(
+                        if (returnToEkagra) R.string.kavach_block_return_ekagra
+                        else R.string.kavach_block_return_safar,
+                    ),
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFFEF4444).copy(alpha = 0.35f))
-                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = {
+                    quickUnlockMinutes = ""
+                    showUnlockDialog = true
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(999.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    Color.White.copy(alpha = 0.35f),
+                ),
+            ) {
+                Icon(
+                    Icons.Default.LockOpen,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    "Quick unlock",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }

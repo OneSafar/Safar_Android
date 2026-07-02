@@ -396,8 +396,8 @@ fun KavachPermissionDisclosureCard(
                 if (accessibilityRequired) {
                     HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
                     KavachPermissionStatusRow(
-                        title = "Block Screen",
-                        body = "Shows block screen over distractions.",
+                        title = "KAVACH Alert",
+                        body = "Brings you back to SAFAR from distractions.",
                         granted = hasAccessibilityService,
                         required = true,
                         onClick = onOpenAccessibility,
@@ -874,10 +874,12 @@ fun KavachHeroSwitchCard(
 @Composable
 fun KavachControlCenterContainer(
     blockedAppCount: Int,
+    alwaysOnEnabled: Boolean,
     beastModeEnabled: Boolean,
     emergencyUnlockEnabled: Boolean,
     accent: Color,
     onOpenAppPicker: () -> Unit,
+    onAlwaysOnChange: (Boolean) -> Unit,
     onBeastModeChange: (Boolean) -> Unit,
     onEmergencyUnlockChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -894,6 +896,11 @@ fun KavachControlCenterContainer(
         stringResource(R.string.kavach_emergency_off_beast)
     } else {
         stringResource(R.string.kavach_emergency_unlock_subtitle)
+    }
+    val alwaysOnSubtitle = if (alwaysOnEnabled) {
+        stringResource(R.string.kavach_always_on_subtitle_on)
+    } else {
+        stringResource(R.string.kavach_always_on_subtitle_off)
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(0.dp)) {
@@ -944,6 +951,22 @@ fun KavachControlCenterContainer(
         ) {
             Column {
                 KavachControlRow(
+                    iconRes = R.drawable.ic_shield_check,
+                    title = stringResource(R.string.kavach_always_on_title),
+                    subtitle = alwaysOnSubtitle,
+                    onClick = { onAlwaysOnChange(!alwaysOnEnabled) },
+                    isDark = isDark,
+                ) {
+                    KavachSwitch(
+                        checked = alwaysOnEnabled,
+                        accent = accent,
+                        onCheckedChange = onAlwaysOnChange,
+                    )
+                }
+
+                HorizontalDivider(color = KavachDesign.Surface, thickness = 1.dp)
+
+                KavachControlRow(
                     iconRes = R.drawable.ic_zap,
                     title = stringResource(R.string.kavach_beast_mode_title),
                     subtitle = stringResource(R.string.kavach_beast_mode_subtitle),
@@ -957,25 +980,6 @@ fun KavachControlCenterContainer(
                     )
                 }
 
-                HorizontalDivider(color = KavachDesign.Surface, thickness = 1.dp)
-
-                KavachControlRow(
-                    iconRes = R.drawable.ic_key,
-                    title = stringResource(R.string.kavach_emergency_unlock_title),
-                    subtitle = emergencySubtitle,
-                    onClick = {
-                        if (!beastModeEnabled) onEmergencyUnlockChange(!emergencyUnlockEnabled)
-                    },
-                    isDark = isDark,
-                    enabled = !beastModeEnabled,
-                ) {
-                    KavachSwitch(
-                        checked = emergencyUnlockEnabled && !beastModeEnabled,
-                        accent = accent,
-                        onCheckedChange = { if (!beastModeEnabled) onEmergencyUnlockChange(it) },
-                        enabled = !beastModeEnabled,
-                    )
-                }
             }
         }
     }
@@ -1091,7 +1095,7 @@ fun KavachInfoBottomSheet(
     }
     val permissionTitles = listOf(
         "App Check",
-        "Block Screen",
+        "KAVACH Alert",
         "Notifications",
     )
 

@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,6 +44,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -133,42 +135,53 @@ fun SplashScreen(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
-            SafarLogoAnimation(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-            )
+            val logoMaxFromWidth = maxWidth * 0.78f
+            val logoMaxFromHeight = maxHeight * 0.34f
+            val logoSize = minOf(logoMaxFromWidth, logoMaxFromHeight, 320.dp)
+                .coerceAtLeast(210.dp)
 
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isTaglineVisible,
-                enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) +
-                        slideInVertically(
-                            initialOffsetY = { 20 },
-                            animationSpec = spring(stiffness = Spring.StiffnessLow)
-                        ),
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = "Your Marks Matter, But So Does Your Mind",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 17.sp,
-                        letterSpacing = 0.4.sp
-                    ),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 24.dp)
-                        .padding(horizontal = 16.dp)
+                SafarLogoAnimation(
+                    modifier = Modifier.size(logoSize)
                 )
+
+                Spacer(Modifier.height(28.dp))
+
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isTaglineVisible,
+                    enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) +
+                            slideInVertically(
+                                initialOffsetY = { 20 },
+                                animationSpec = spring(stiffness = Spring.StiffnessLow)
+                            ),
+                ) {
+                    Text(
+                        text = "Your Marks Matter, But So Does Your Mind",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 17.sp,
+                            letterSpacing = 0.4.sp,
+                            lineHeight = 22.sp,
+                        ),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                    )
+                }
             }
         }
     }

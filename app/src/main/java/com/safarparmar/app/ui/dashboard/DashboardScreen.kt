@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.R
@@ -124,9 +126,7 @@ fun DashboardScreen(
                     if (uiState.weeklyMoods.isNotEmpty()) {
                         item { WeeklyMoodChart(uiState.weeklyMoods, isDarkTheme, onNavigate) }
                     }
-                    if (uiState.completedGoals.isNotEmpty()) {
-                        item { GoalHistoryCard(uiState.completedGoals, isDarkTheme, onNavigate) }
-                    }
+
                 }
                 }
             }
@@ -141,6 +141,14 @@ fun DashboardScreen(
                 DashboardWelcomeOverlay(
                     userName = uiState.userName,
                     onDismiss = { viewModel.dismissWelcome() },
+                )
+            }
+
+            val celebrationAchievements = uiState.celebrationAchievements
+            if (celebrationAchievements.isNotEmpty()) {
+                CelebrationDialog(
+                    achievements = celebrationAchievements,
+                    onDismiss = { viewModel.dismissCelebration() }
                 )
             }
         }
@@ -400,7 +408,8 @@ private fun ActiveTitleCard(title: String, titleId: String, isDark: Boolean) {
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = title,
-                    modifier = Modifier.size(80.dp).clip(RoundedCornerShape(16.dp))
+                    modifier = Modifier.width(180.dp).height(90.dp),
+                    contentScale = ContentScale.Fit
                 )
             } else {
                 Box(
@@ -987,49 +996,7 @@ private fun LegendDot(color: Color, label: String) {
     }
 }
 
-@Composable
-private fun GoalHistoryCard(goals: List<Goal>, isDark: Boolean, onNavigate: (String) -> Unit) {
-    DashCard(isDark) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Default.History, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                CardTitle("Goal History", isDark)
-            }
-            Text("View Full History", color = MaterialTheme.colorScheme.primary,
-                fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { onNavigate(Routes.NISHTHA_GOALS) })
-        }
-        Spacer(Modifier.height(4.dp))
-        Text("Review your past accomplishments.",
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), fontSize = 12.sp)
-        Spacer(Modifier.height(4.dp))
-        Text("Showing the last ${goals.size} completed goals.",
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = 11.sp)
-        Spacer(Modifier.height(12.dp))
-        goals.forEach { goal ->
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
-                    Box(
-                        Modifier.size(20.dp).clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("✓", color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Text(goal.title, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Text("Completed", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-        }
-    }
-}
+
 
 @Composable
 private fun DashCard(isDark: Boolean, content: @Composable ColumnScope.() -> Unit) {
@@ -1049,4 +1016,197 @@ private fun DashCard(isDark: Boolean, content: @Composable ColumnScope.() -> Uni
 @Composable
 private fun CardTitle(text: String, isDark: Boolean) {
     Text(text, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+}
+
+private data class ConfettiParticle(
+    var x: Float,
+    var y: Float,
+    var vx: Float,
+    var vy: Float,
+    val color: Color,
+    val size: Float,
+    val isCircle: Boolean,
+    var rotation: Float,
+    val rotationSpeed: Float
+)
+
+@Composable
+private fun ConfettiCelebration(
+    modifier: Modifier = Modifier,
+    isActive: Boolean = true
+) {
+    if (!isActive) return
+
+    val colors = listOf(
+        Color(0xFFFFC107), // Amber
+        Color(0xFFFF5722), // Deep Orange
+        Color(0xFF4CAF50), // Green
+        Color(0xFF2196F3), // Blue
+        Color(0xFF9C27B0), // Purple
+        Color(0xFFE91E63)  // Pink
+    )
+
+    var ticks by remember { mutableStateOf(0) }
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            while (true) {
+                ticks++
+                kotlinx.coroutines.delay(16)
+            }
+        }
+    }
+
+    val particles = remember { mutableStateListOf<ConfettiParticle>() }
+
+    Canvas(modifier = modifier) {
+        val width = size.width
+        val height = size.height
+
+        if (particles.isEmpty() && width > 0 && height > 0) {
+            val random = java.util.Random()
+            repeat(45) {
+                particles.add(
+                    ConfettiParticle(
+                        x = random.nextFloat() * width,
+                        y = -random.nextFloat() * 100f - 20f,
+                        vx = (random.nextFloat() - 0.5f) * 4f,
+                        vy = random.nextFloat() * 6f + 3f,
+                        color = colors[random.nextInt(colors.size)],
+                        size = random.nextFloat() * 12f + 8f,
+                        isCircle = random.nextBoolean(),
+                        rotation = random.nextFloat() * 360f,
+                        rotationSpeed = (random.nextFloat() - 0.5f) * 8f
+                    )
+                )
+            }
+        }
+
+        if (particles.isNotEmpty()) {
+            val frame = ticks
+            particles.forEach { p ->
+                p.x += p.vx
+                p.y += p.vy
+                p.rotation += p.rotationSpeed
+
+                if (p.x < -20f) p.x = width + 20f
+                if (p.x > width + 20f) p.x = -20f
+
+                if (p.y > height + 20f) {
+                    p.y = -20f
+                    p.vy = (0.1f + Math.random().toFloat() * 0.9f) * 6f + 3f
+                }
+
+                rotate(degrees = p.rotation, pivot = Offset(p.x, p.y)) {
+                    if (p.isCircle) {
+                        drawCircle(
+                            color = p.color,
+                            radius = p.size / 2,
+                            center = Offset(p.x, p.y)
+                        )
+                    } else {
+                        drawRect(
+                            color = p.color,
+                            topLeft = Offset(p.x - p.size / 2, p.y - p.size / 4),
+                            size = androidx.compose.ui.geometry.Size(p.size, p.size / 2)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CelebrationDialog(
+    achievements: List<Achievement>,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            ConfettiCelebration(modifier = Modifier.matchParentSize())
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Congratulations! 🎉",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    if (achievements.size > 1) "You have unlocked new achievements!" else "You unlocked a new achievement!",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                achievements.forEach { achievement ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val imagePath = achievementImages[achievement.id]
+                        if (imagePath != null) {
+                            val imageUrl = remember(imagePath) {
+                                val origin = BuildConfig.BASE_URL.trimEnd('/').let {
+                                    val uri = android.net.Uri.parse(it)
+                                    "${uri.scheme}://${uri.host}"
+                                }
+                                "$origin$imagePath"
+                            }
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription = achievement.name,
+                                modifier = Modifier.size(96.dp).clip(CircleShape),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            Text(
+                                if (achievement.type == "title") "👑" else "🏅",
+                                fontSize = 48.sp
+                            )
+                        }
+
+                        Text(
+                            achievement.name,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+
+                        if (!achievement.description.isNullOrBlank()) {
+                            Text(
+                                achievement.description,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("Awesome!", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                }
+            }
+        }
+    }
 }

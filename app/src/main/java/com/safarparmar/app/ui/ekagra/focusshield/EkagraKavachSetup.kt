@@ -182,8 +182,11 @@ fun EkagraKavachInlineCard(
                                 else "Choose apps to block during this session"
                             }
                             else -> {
-                                if (isSessionRunning) "Ekagra Shield is active and blocking distracting apps."
-                                else stringResource(R.string.kavach_enabled_ekagra_hint)
+                                when {
+                                    shieldState.isAlwaysOn -> "KAVACH is active whenever it is enabled."
+                                    isSessionRunning -> "Ekagra Shield is active and blocking distracting apps."
+                                    else -> stringResource(R.string.kavach_enabled_ekagra_hint)
+                                }
                             }
                         },
                         fontSize = 12.sp,
@@ -237,7 +240,11 @@ fun EkagraKavachInlineCard(
                         ) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
                             Text(
-                                text = if (isSessionRunning) "KAVACH is active and blocking apps" else "KAVACH will run when you start the timer",
+                                text = when {
+                                    shieldState.isAlwaysOn -> "KAVACH is active whenever it is enabled"
+                                    isSessionRunning -> "KAVACH is active and blocking apps"
+                                    else -> "KAVACH will run when you start the timer"
+                                },
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = accent,

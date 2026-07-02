@@ -106,7 +106,6 @@ private fun settingsPremiumPlanLabel(planType: String?): String {
     return when {
         "3month" in normalized || "3-month" in normalized -> "3-month Premium plan"
         "6month" in normalized || "6-month" in normalized -> "6-month Premium plan"
-        "year" in normalized -> "Yearly Premium plan"
         normalized.isNotBlank() -> "Safar Premium plan"
         else -> "Safar Premium"
     }
@@ -462,8 +461,8 @@ fun SettingsScreen(
                 if (FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()) {
                     SettingsPermissionRow(
                         icon = Icons.Default.Info,
-                        title = "KAVACH Block Screen",
-                        subtitle = "Shows the block screen for apps you selected during KAVACH sessions.",
+                        title = "KAVACH Alert",
+                        subtitle = "Brings you back to SAFAR when a selected app opens.",
                         granted = hasFocusShieldAccessibility,
                         accent = MaterialTheme.colorScheme.primary,
                         onClickWhenNotGranted = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
@@ -647,7 +646,7 @@ private fun SettingsLegalInfoSheet(
             subtitle = "KAVACH needs a few Android permissions to block distractions during ekagra time.",
             points = listOf(
                 "Usage Access helps notice opened apps.",
-                "Accessibility shows the block screen for apps you selected.",
+                "Accessibility brings you back to SAFAR when a selected app opens.",
                 "You can use SAFAR without KAVACH permissions.",
             ),
         )
@@ -656,7 +655,7 @@ private fun SettingsLegalInfoSheet(
             subtitle = "Used only for KAVACH app blocking.",
             points = listOf(
                 "It notices when a selected distracting app opens.",
-                "It helps show the KAVACH block screen during active sessions.",
+                "It helps KAVACH return you to SAFAR during active sessions.",
                 "It does not read private content or control your phone.",
             ),
         )

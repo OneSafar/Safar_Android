@@ -96,6 +96,8 @@ fun DhyanYoutubeThumbnailLink(
     videoUrl: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    title: String = stringResource(R.string.dhyan_latest_video_title),
+    subtitle: String = stringResource(R.string.dhyan_youtube_channel_hint),
 ) {
     Row(
         modifier = modifier
@@ -116,13 +118,13 @@ fun DhyanYoutubeThumbnailLink(
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                text = stringResource(R.string.dhyan_latest_video_title),
+                text = title,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = stringResource(R.string.dhyan_youtube_channel_hint),
+                text = subtitle,
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 15.sp,

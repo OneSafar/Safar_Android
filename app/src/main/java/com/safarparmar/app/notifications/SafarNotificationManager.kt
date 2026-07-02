@@ -164,6 +164,8 @@ class SafarNotificationManager(
     object DedupeType {
         const val STUDY_REMINDER = "study_reminder"
         const val MORNING_NUDGE = "morning_nudge"
+        /** Matches the backend FCM type for evening quote notifications (backend-driven only). */
+        const val EVENING_NUDGE = "evening_nudge"
         const val PLANNER_ALERT = "planner_alert"
         /** Matches the `type` field sent by the backend FCM scheduler for spaced revision reminders. */
         const val PLANNER_REVISION_REMINDER = "planner_revision_reminder"
@@ -187,12 +189,13 @@ class SafarNotificationManager(
         if (evaluateNotificationAvailability(normalizedChannel).reason != NotificationAvailabilityReason.allowed) {
             return
         }
+        val personalizedBody = personalizeBody(body)
         // if (shouldSuppressByQuietHours(normalizedChannel)) return
         notificationManager.notify(
             resolvedId,
             buildNotification(
                 title = title,
-                body = body,
+                body = personalizedBody,
                 channelId = normalizedChannel,
                 deepLink = deepLink,
                 priority = priority,
@@ -202,6 +205,19 @@ class SafarNotificationManager(
         )
         // P2 fix: post group summary so Android collapses stacked channel notifications
         postGroupSummary(normalizedChannel)
+    }
+
+    private suspend fun personalizeBody(body: String): String {
+        val name = SafarDataStore(context).userName.first()?.trim().orEmpty()
+        if (name.isBlank() || startsWithPersonalGreeting(body)) return body
+        return "Hi $name, $body"
+    }
+
+    private fun startsWithPersonalGreeting(body: String): Boolean {
+        return Regex(
+            pattern = "^\\s*(hi|hey|hello|good morning|good afternoon|good evening)\\b",
+            option = RegexOption.IGNORE_CASE,
+        ).containsMatchIn(body)
     }
 
     /**

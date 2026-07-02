@@ -76,7 +76,7 @@ fun NishthaAnalyticsScreen(
             when (initialSection.lowercase(Locale.US)) {
                 "goals" -> "goals"
                 "ekagra" -> "ekagra"
-                "sessions" -> "sessions"
+                "sessions" -> "ekagra"
                 "monthly" -> "monthly"
                 else -> "overview"
             }
@@ -163,7 +163,6 @@ fun NishthaAnalyticsScreen(
             AnalyticsSectionChip("Overview", selectedSection == "overview") { selectedSection = "overview" }
             AnalyticsSectionChip("Goals", selectedSection == "goals") { selectedSection = "goals" }
             AnalyticsSectionChip("Ekagra", selectedSection == "ekagra") { selectedSection = "ekagra" }
-            AnalyticsSectionChip("Sessions", selectedSection == "sessions") { selectedSection = "sessions" }
             AnalyticsSectionChip("Monthly Review", selectedSection == "monthly") { selectedSection = "monthly" }
         }
 
@@ -172,7 +171,6 @@ fun NishthaAnalyticsScreen(
                 when (selectedSection) {
                     "goals" -> GoalInsightsSection(uiState.goals)
                     "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
-                    "sessions" -> SessionHistorySection(uiState.ekagraAnalytics)
                     "monthly" -> MonthlyReviewSection(
                         selectedMonthLabel = months.first { it.first == selectedMonth }.second,
                         onMonthClick = { showMonthPicker = true },
@@ -733,7 +731,7 @@ private fun AnalyticsPremiumLockOverlay(
                 color = scheme.onBackground,
             )
             Text(
-                text = "Upgrade to see your goal progress, Ekagra history, session history, and monthly review.",
+                text = "Upgrade to see your goal progress, Ekagra history, and monthly review.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = scheme.onSurfaceVariant,

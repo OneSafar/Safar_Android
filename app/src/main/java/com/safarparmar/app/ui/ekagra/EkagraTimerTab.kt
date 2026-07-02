@@ -157,6 +157,7 @@ internal fun TimerFocusTab(
     secondsLeft: Int,
     isRunning: Boolean,
     progress: Float,
+    hasProgress: Boolean,
     mottoText: String,
     kavachActive: Boolean = false,
     kavachBlockedCount: Int = 0,
@@ -300,7 +301,11 @@ internal fun TimerFocusTab(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(17.dp))
-                        Text("End", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            if (timerMode == TimerMode.FOCUS) "End" else "End Break",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
                     }
                 }
 
@@ -317,8 +322,13 @@ internal fun TimerFocusTab(
                     contentPadding = PaddingValues(0.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val playPauseLabel = when {
+                            isRunning -> "Pause"
+                            hasProgress -> "Resume"
+                            else -> "Start"
+                        }
                         Icon(if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Text(if (isRunning) "Pause" else "Start", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(playPauseLabel, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

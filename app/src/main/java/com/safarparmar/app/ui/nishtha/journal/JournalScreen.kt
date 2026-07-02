@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.domain.model.JournalEntry
+import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.ui.nishtha.NishthaEvent
 import com.safarparmar.app.ui.nishtha.NishthaViewModel
 import com.safarparmar.app.ui.components.GoalRowSkeleton
@@ -271,6 +272,6 @@ private fun JournalCard(entry: JournalEntry) {
 }
 
 private fun formatJournalDate(ts: String): String = runCatching {
-    val zdt = ZonedDateTime.parse(ts)
+    val zdt = ZonedDateTime.parse(ts).withZoneSameInstant(IstDateUtils.zone)
     zdt.format(DateTimeFormatter.ofPattern("MMM dd, yyyy · h:mm a", Locale.getDefault()))
 }.getOrDefault(ts.take(10))

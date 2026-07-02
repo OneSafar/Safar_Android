@@ -41,6 +41,7 @@ import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
 import com.safarparmar.app.ui.ekagra.focusshield.KavachAboutScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionScreen
 import com.safarparmar.app.ui.premium.PremiumPaywallScreen
+import com.safarparmar.app.ui.premium.PremiumViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -64,6 +65,9 @@ fun SafarNavGraph(
     val isLoggedIn by dataStore.isLoggedIn.collectAsStateWithLifecycle(initialValue = null)
     val isAdmin by dataStore.isAdmin.collectAsStateWithLifecycle(initialValue = false)
     val currentUserEmail by dataStore.userEmail.collectAsStateWithLifecycle(initialValue = null)
+    val premiumViewModel = androidx.hilt.navigation.compose.hiltViewModel<PremiumViewModel>()
+    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
+    val studyPlannerPremiumUnlocked = premiumStatus.hasAnyPaidAccess || premiumStatus.canUseStudyPlannerInsights
     val scope = rememberCoroutineScope()
     val canAccessAdminComposer = remember(isAdmin, currentUserEmail) {
         isAdmin || (currentUserEmail?.trim()?.lowercase() in ADMIN_NOTIFICATION_ALLOWED_EMAILS)
@@ -308,25 +312,29 @@ fun SafarNavGraph(
             popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
             popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
         ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
-            val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
-            val planId = entry.arguments?.getString("planId") ?: ""
-            
-            SyllabusSubjectsScreen(
-                viewModel = viewModel,
-                planId = planId,
-                onNavigate = ::navigate,
-                onBack = {
-                    viewModel.setSection(com.safarparmar.app.domain.model.studyplanner.PlannerSection.PLAN)
-                    navController.popBackStack()
-                },
-                onPlannerSectionSelect = { section ->
-                    viewModel.setSection(section)
-                    if (section != com.safarparmar.app.domain.model.studyplanner.PlannerSection.SYLLABUS) {
-                        navController.popBackStack(Routes.STUDY_PLANNER_ROUTE, false)
-                    }
-                },
-            )
+            if (!studyPlannerPremiumUnlocked) {
+                LaunchedEffect(Unit) { navigate(Routes.PREMIUM) }
+            } else {
+                val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
+                val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
+                val planId = entry.arguments?.getString("planId") ?: ""
+                
+                SyllabusSubjectsScreen(
+                    viewModel = viewModel,
+                    planId = planId,
+                    onNavigate = ::navigate,
+                    onBack = {
+                        viewModel.setSection(com.safarparmar.app.domain.model.studyplanner.PlannerSection.PLAN)
+                        navController.popBackStack()
+                    },
+                    onPlannerSectionSelect = { section ->
+                        viewModel.setSection(section)
+                        if (section != com.safarparmar.app.domain.model.studyplanner.PlannerSection.SYLLABUS) {
+                            navController.popBackStack(Routes.STUDY_PLANNER_ROUTE, false)
+                        }
+                    },
+                )
+            }
         }
 
         composable(
@@ -336,18 +344,22 @@ fun SafarNavGraph(
             popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
             popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
         ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
-            val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
-            val planId = entry.arguments?.getString("planId") ?: ""
-            val subjectId = entry.arguments?.getString("subjectId") ?: ""
-            
-            SyllabusChaptersScreen(
-                viewModel = viewModel,
-                planId = planId,
-                subjectId = subjectId,
-                onNavigate = ::navigate,
-                onBack = { navController.popBackStack() }
-            )
+            if (!studyPlannerPremiumUnlocked) {
+                LaunchedEffect(Unit) { navigate(Routes.PREMIUM) }
+            } else {
+                val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
+                val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
+                val planId = entry.arguments?.getString("planId") ?: ""
+                val subjectId = entry.arguments?.getString("subjectId") ?: ""
+                
+                SyllabusChaptersScreen(
+                    viewModel = viewModel,
+                    planId = planId,
+                    subjectId = subjectId,
+                    onNavigate = ::navigate,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
 
         composable(
@@ -357,20 +369,24 @@ fun SafarNavGraph(
             popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
             popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
         ) { entry ->
-            val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
-            val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
-            val planId = entry.arguments?.getString("planId") ?: ""
-            val subjectId = entry.arguments?.getString("subjectId") ?: ""
-            val chapterId = entry.arguments?.getString("chapterId") ?: ""
-            
-            SyllabusTopicsScreen(
-                viewModel = viewModel,
-                planId = planId,
-                subjectId = subjectId,
-                chapterId = chapterId,
-                onNavigate = ::navigate,
-                onBack = { navController.popBackStack() }
-            )
+            if (!studyPlannerPremiumUnlocked) {
+                LaunchedEffect(Unit) { navigate(Routes.PREMIUM) }
+            } else {
+                val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
+                val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
+                val planId = entry.arguments?.getString("planId") ?: ""
+                val subjectId = entry.arguments?.getString("subjectId") ?: ""
+                val chapterId = entry.arguments?.getString("chapterId") ?: ""
+                
+                SyllabusTopicsScreen(
+                    viewModel = viewModel,
+                    planId = planId,
+                    subjectId = subjectId,
+                    chapterId = chapterId,
+                    onNavigate = ::navigate,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
 
         composable(Routes.MEHFIL) {

@@ -35,6 +35,7 @@ fun SafarDrawerScaffold(
     topBarActions: @Composable RowScope.() -> Unit = {},
     topBarContentColor: Color? = null,
     emphasizeTopBar: Boolean = false,
+    showTopBarTitle: Boolean = true,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -88,42 +89,44 @@ fun SafarDrawerScaffold(
                         .padding(horizontal = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .fillMaxWidth()
-                            .padding(horizontal = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        val shouldShowSubtitle = subtitle != null &&
-                            !subtitle.contains("SAFAR", ignoreCase = true) &&
-                            !subtitle.contains("Safar", ignoreCase = true) &&
-                            !subtitle.contains(appName, ignoreCase = true) &&
-                            subtitle.isNotBlank()
-                        if (shouldShowSubtitle) {
+                    if (showTopBarTitle) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .fillMaxWidth()
+                                .padding(horizontal = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            val shouldShowSubtitle = subtitle != null &&
+                                !subtitle.contains("SAFAR", ignoreCase = true) &&
+                                !subtitle.contains("Safar", ignoreCase = true) &&
+                                !subtitle.contains(appName, ignoreCase = true) &&
+                                subtitle.isNotBlank()
+                            if (shouldShowSubtitle) {
+                                Text(
+                                    subtitle!!.uppercase(),
+                                    fontSize = if (emphasizeTopBar) 12.sp else 11.sp,
+                                    lineHeight = 12.sp,
+                                    color = actualContentColor.copy(alpha = if (emphasizeTopBar) 0.82f else 0.7f),
+                                    fontFamily = if (subtitle.uppercase() == "SAFAR") LoraFontFamily else null,
+                                    fontWeight = if (subtitle.uppercase() == "SAFAR") FontWeight.Bold else null,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                )
+                            }
                             Text(
-                                subtitle!!.uppercase(),
-                                fontSize = if (emphasizeTopBar) 12.sp else 11.sp,
-                                lineHeight = 12.sp,
-                                color = actualContentColor.copy(alpha = if (emphasizeTopBar) 0.82f else 0.7f),
-                                fontFamily = if (subtitle.uppercase() == "SAFAR") LoraFontFamily else null,
-                                fontWeight = if (subtitle.uppercase() == "SAFAR") FontWeight.Bold else null,
+                                title,
+                                fontSize = if (emphasizeTopBar) 20.sp else 18.sp,
+                                lineHeight = if (emphasizeTopBar) 22.sp else 20.sp,
+                                fontWeight = if (emphasizeTopBar) FontWeight.ExtraBold else FontWeight.Bold,
+                                fontFamily = if (title.uppercase() == "SAFAR") LoraFontFamily else null,
+                                color = actualContentColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                             )
                         }
-                        Text(
-                            title, 
-                            fontSize = if (emphasizeTopBar) 20.sp else 18.sp,
-                            lineHeight = if (emphasizeTopBar) 22.sp else 20.sp,
-                            fontWeight = if (emphasizeTopBar) FontWeight.ExtraBold else FontWeight.Bold,
-                            fontFamily = if (title.uppercase() == "SAFAR") LoraFontFamily else null,
-                            color = actualContentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        )
                     }
 
                     IconButton(

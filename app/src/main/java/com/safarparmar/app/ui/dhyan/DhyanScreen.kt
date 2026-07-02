@@ -70,12 +70,28 @@ private data class BreathingTechnique(
     val pattern: String,
 )
 
+private data class BreathingSound(
+    val id: String,
+    val name: String,
+    val description: String,
+    val url: String = "",
+    val localResId: Int? = null,
+)
+
 private val techniques = listOf(
     BreathingTechnique("Diaphragmatic", com.safarparmar.app.R.drawable.ic_wind, "Belly breathing for full oxygen exchange", 4, 0, 6, 0, "4-6"),
     BreathingTechnique("Pursed Lip", com.safarparmar.app.R.drawable.ic_wind, "Slows breathing and keeps airways open", 2, 0, 4, 0, "2-4"),
     BreathingTechnique("Box Breathing", com.safarparmar.app.R.drawable.ic_square, "Rhythmic 4-4-4-4 for stress reduction", 4, 4, 4, 4, "4-4-4-4"),
     BreathingTechnique("4-7-8 Breathing", com.safarparmar.app.R.drawable.ic_moon, "Deep relaxation for anxiety and sleep", 4, 7, 8, 0, "4-7-8"),
     BreathingTechnique("6-7-8 Breathing", com.safarparmar.app.R.drawable.ic_yin_yang, "Slower inhale variation for deeper calm", 6, 7, 8, 0, "6-7-8"),
+)
+
+private val breathingSounds = listOf(
+    BreathingSound(
+        id = "silent-breathing",
+        name = "Silent Guidance",
+        description = "No background music during breathing techniques",
+    ),
 )
 
 private val intensityLabels = listOf("Light", "Gentle", "Moderate", "Deep", "Intense")
@@ -97,9 +113,11 @@ fun DhyanScreen(
     onToggleDarkTheme: () -> Unit = {},
 ) {
     var showAudioLibraryPanel by remember { mutableStateOf(false) }
+    var showBreathingSoundSheet by remember { mutableStateOf(false) }
     var showTechniquesSheet   by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var selectedMusicTrack    by remember { mutableStateOf(com.safarparmar.app.ui.audio.AudioLibrary.getPersistedTrack(context)) }
+    var selectedBreathingSound by remember { mutableStateOf(breathingSounds.first()) }
     // null = no technique chosen (show image), non-null = show animation
     var selectedTechnique   by remember { mutableStateOf<BreathingTechnique?>(null) }
     var tourState           by remember { mutableStateOf<com.safarparmar.app.ui.butterfly.ButterflyTourState?>(null) }
@@ -116,10 +134,13 @@ fun DhyanScreen(
             onNavigate        = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
             topBarActions = {
-                IconButton(onClick = { showAudioLibraryPanel = true }) {
+                IconButton(onClick = {
+                    if (selectedTechnique == null) showAudioLibraryPanel = true
+                    else showBreathingSoundSheet = true
+                }) {
                     Icon(
                         imageVector = Icons.Default.MusicNote,
-                        contentDescription = "Audio Library",
+                        contentDescription = if (selectedTechnique == null) "Meditation Audio Library" else "Breathing Sounds",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -158,8 +179,8 @@ fun DhyanScreen(
                         isDarkTheme       = isDarkTheme,
                         selectedTechnique = selectedTechnique,
                         selectedMusicTrack = selectedMusicTrack,
+                        selectedBreathingSound = selectedBreathingSound,
                         onBreatheWithMe   = { showTechniquesSheet = true },
-                        onShowMusic       = { showAudioLibraryPanel = true },
                         onClearTechnique  = { selectedTechnique = null },
                         onSessionComplete = { minutes -> dhyanVm.trackCompletedSession(minutes) },
                     )
@@ -196,6 +217,17 @@ fun DhyanScreen(
                 onDismiss = { showAudioLibraryPanel = false }
             )
         }
+
+        if (showBreathingSoundSheet) {
+            BreathingSoundSheet(
+                selectedSound = selectedBreathingSound,
+                onSelectSound = {
+                    selectedBreathingSound = it
+                    showBreathingSoundSheet = false
+                },
+                onDismiss = { showBreathingSoundSheet = false },
+            )
+        }
     } // end outer Box
 }
 
@@ -206,8 +238,8 @@ private fun BreathingTab(
     isDarkTheme: Boolean,
     selectedTechnique: BreathingTechnique?,
     selectedMusicTrack: com.safarparmar.app.ui.audio.AudioTrack,
+    selectedBreathingSound: BreathingSound,
     onBreatheWithMe: () -> Unit,
-    onShowMusic: () -> Unit,
     onClearTechnique: () -> Unit,
     onSessionComplete: (Int) -> Unit,
 ) {
@@ -230,6 +262,7 @@ private fun BreathingTab(
     var phase               by remember { mutableStateOf(DhyanBreathPhase.INHALE) }
     var phaseSecondsLeft    by remember { mutableIntStateOf(selectedTechnique?.inhale ?: 4) }
     var sessionSecondsLeft  by remember { mutableIntStateOf(sessionLengthMin * 60) }
+    var isSessionAudioMuted by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
@@ -240,16 +273,33 @@ private fun BreathingTab(
         mediaPlayer.value = null
     }
 
-    LaunchedEffect(isRunning, selectedMusicTrack, selectedTechnique) {
-        if (isRunning && selectedTechnique == null && selectedMusicTrack.url.isNotBlank() && selectedMusicTrack.name != "None" && selectedMusicTrack.id != "none-track") {
+    LaunchedEffect(isRunning, selectedMusicTrack, selectedBreathingSound, selectedTechnique, isSessionAudioMuted) {
+        val technique = selectedTechnique
+        val shouldPlayMeditationMusic = isRunning &&
+            !isSessionAudioMuted &&
+            technique == null &&
+            selectedMusicTrack.url.isNotBlank() &&
+            selectedMusicTrack.name != "None" &&
+            selectedMusicTrack.id != "none-track"
+        val shouldPlayBreathingSound = isRunning &&
+            !isSessionAudioMuted &&
+            technique != null &&
+            (selectedBreathingSound.url.isNotBlank() || selectedBreathingSound.localResId != null)
+
+        if (shouldPlayMeditationMusic || shouldPlayBreathingSound) {
             releasePlayer()
             try {
-                val audioUri =
+                val audioUri = if (shouldPlayBreathingSound) {
+                    selectedBreathingSound.localResId?.let {
+                        Uri.parse("android.resource://${context.packageName}/$it")
+                    } ?: Uri.parse(selectedBreathingSound.url)
+                } else {
                     if (selectedMusicTrack.isLocal && selectedMusicTrack.localResId != null) {
                         Uri.parse("android.resource://${context.packageName}/${selectedMusicTrack.localResId}")
                     } else {
                         Uri.parse(selectedMusicTrack.url)
                     }
+                }
                 val mp = MediaPlayer().apply {
                     setDataSource(context, audioUri)
                     isLooping = true
@@ -316,7 +366,7 @@ private fun BreathingTab(
         holdOut = selectedTechnique?.holdAfter ?: 0,
     )
     val vizSessionId = when (techniques.indexOf(selectedTechnique)) {
-        0 -> "1"; 1 -> "3"; 2 -> "4"; 3 -> "4"; else -> "1"
+        0 -> "1"; 1 -> "2"; 2 -> "3"; 3 -> "4"; else -> "1"
     }
 
     Column(
@@ -532,16 +582,16 @@ private fun BreathingTab(
                 )
             }
             FilledTonalIconButton(
-                onClick  = onShowMusic,
+                onClick  = { isSessionAudioMuted = !isSessionAudioMuted },
                 modifier = Modifier.size(48.dp),
                 colors   = IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor   = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = if (isSessionAudioMuted) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer,
+                    contentColor   = if (isSessionAudioMuted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimaryContainer
                 )
             ) {
                 Icon(
-                    Icons.Default.VolumeUp,
-                    null
+                    imageVector = if (isSessionAudioMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                    contentDescription = if (isSessionAudioMuted) "Unmute meditation music" else "Mute meditation music",
                 )
             }
         }
@@ -577,10 +627,33 @@ private fun BreathingTab(
                     Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                     Text(selectedMusicTrack.name, fontSize = 12.sp, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     Text(
-                        if (isRunning) "PLAYING" else "READY",
+                        if (isSessionAudioMuted) "MUTED" else if (isRunning) "PLAYING" else "READY",
                         fontSize   = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        color      = if (isRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color      = if (isRunning && !isSessionAudioMuted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        } else if (selectedTechnique != null) {
+            Spacer(Modifier.height(8.dp))
+            Card(
+                shape     = MaterialTheme.shapes.medium,
+                modifier  = Modifier.fillMaxWidth(),
+                colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(0.dp),
+                border    = CardDefaults.outlinedCardBorder(),
+            ) {
+                Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(Icons.Default.Air, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(selectedBreathingSound.name, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text("Breathing sound", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(
+                        if (isSessionAudioMuted) "MUTED" else if (isRunning && (selectedBreathingSound.url.isNotBlank() || selectedBreathingSound.localResId != null)) "PLAYING" else "SILENT",
+                        fontSize   = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = if (!isSessionAudioMuted && (selectedBreathingSound.url.isNotBlank() || selectedBreathingSound.localResId != null)) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -646,6 +719,64 @@ private fun BreathingOptionsSheet(
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(t.pattern, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                        if (isSelected) Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BreathingSoundSheet(
+    selectedSound: BreathingSound,
+    onSelectSound: (BreathingSound) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor   = MaterialTheme.colorScheme.surface,
+        shape            = MaterialTheme.shapes.extraLarge,
+        sheetState       = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 40.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Air, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
+                Text("Breathing sounds", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            }
+            Text(
+                "Breathing techniques use their own sound set. Add the final audio files here when they are ready.",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            breathingSounds.forEach { sound ->
+                val isSelected = sound.id == selectedSound.id
+                Card(
+                    shape     = MaterialTheme.shapes.medium,
+                    modifier  = Modifier.fillMaxWidth().bounceClick { onSelectSound(sound) },
+                    colors    = CardDefaults.cardColors(
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(0.1f) else MaterialTheme.colorScheme.background,
+                    ),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                ) {
+                    Row(
+                        Modifier.padding(14.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Icon(Icons.Default.GraphicEq, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Column(Modifier.weight(1f)) {
+                            Text(sound.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text(sound.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 17.sp)
                         }
                         if (isSelected) Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     }

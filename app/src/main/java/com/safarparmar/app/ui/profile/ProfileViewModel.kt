@@ -27,6 +27,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
+private const val MAX_AVATAR_UPLOAD_BYTES = 5L * 1024L * 1024L
+private const val MAX_AVATAR_UPLOAD_MB = 5
+
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
@@ -95,6 +98,8 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isAvatarUploading = true, error = null, avatarUploadSuccess = false) }
             val avatarPart = withContext(Dispatchers.IO) {
+                val sourceSize = getFileSize(uri)
+                if (sourceSize != null && sourceSize > MAX_AVATAR_UPLOAD_BYTES) return@withContext null
                 runCatching { buildAvatarPart(uri) }.getOrNull()
             }
 
@@ -102,7 +107,11 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isAvatarUploading = false,
-                        error = "Could not read this image. Please choose another photo.",
+                        error = if ((getFileSize(uri) ?: 0L) > MAX_AVATAR_UPLOAD_BYTES) {
+                            "Profile photo must be under $MAX_AVATAR_UPLOAD_MB MB."
+                        } else {
+                            "Could not read this image. Please choose another photo."
+                        },
                     )
                 }
                 return@launch
@@ -147,6 +156,19 @@ class ProfileViewModel @Inject constructor(
         val fileName = "$baseName.jpg"
         val body = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
         return MultipartBody.Part.createFormData("avatar", fileName, body)
+    }
+
+    private fun getFileSize(uri: Uri): Long? {
+        val resolver = appContext.contentResolver
+        resolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+            val index = cursor.getColumnIndex(OpenableColumns.SIZE)
+            if (index >= 0 && cursor.moveToFirst() && !cursor.isNull(index)) {
+                return cursor.getLong(index).takeIf { it >= 0 }
+            }
+        }
+        return runCatching {
+            resolver.openFileDescriptor(uri, "r")?.use { it.statSize.takeIf { size -> size >= 0 } }
+        }.getOrNull()
     }
 
     private fun decodeAvatarBitmap(uri: Uri): Bitmap? {

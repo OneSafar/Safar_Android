@@ -1,38 +1,64 @@
 package com.safarparmar.app.feature.live.model
 
+import com.google.gson.annotations.SerializedName
+
 data class LiveSessionResourceDto(
+    @SerializedName("label")
     val label: String? = null,
+    @SerializedName("url")
     val url: String? = null,
 )
 
 data class LiveSessionDto(
+    @SerializedName("id")
     val id: String? = null,
+    @SerializedName("title")
     val title: String? = null,
+    @SerializedName("description")
     val description: String? = null,
+    @SerializedName("courseId")
     val courseId: String? = null,
+    @SerializedName("teacherId")
     val teacherId: String? = null,
+    @SerializedName("scheduledStartAt")
     val scheduledStartAt: String? = null,
+    @SerializedName("scheduledEndAt")
     val scheduledEndAt: String? = null,
+    @SerializedName("status")
     val status: String? = null,
+    @SerializedName("youtubeVideoId")
     val youtubeVideoId: String? = null,
+    @SerializedName("youtubeWatchUrl")
     val youtubeWatchUrl: String? = null,
+    @SerializedName("youtubeEmbedUrl")
     val youtubeEmbedUrl: String? = null,
+    @SerializedName("thumbnailUrl")
     val thumbnailUrl: String? = null,
+    @SerializedName("isChatEnabled")
     val isChatEnabled: Boolean? = null,
+    @SerializedName("isRecordingAvailable")
     val isRecordingAvailable: Boolean? = null,
+    @SerializedName("recordingVideoId")
     val recordingVideoId: String? = null,
-    val resources: List<LiveSessionResourceDto>? = null,
+    @SerializedName("resources")
+    val resources: List<LiveSessionResourceDto?>? = null,
+    @SerializedName("canManage")
     val canManage: Boolean? = null,
+    @SerializedName("createdBy")
     val createdBy: String? = null,
+    @SerializedName("createdAt")
     val createdAt: String? = null,
+    @SerializedName("updatedAt")
     val updatedAt: String? = null,
 )
 
 data class LiveSessionsResponseDto(
+    @SerializedName("liveSessions")
     val liveSessions: List<LiveSessionDto>? = null,
 )
 
 data class LiveSessionResponseDto(
+    @SerializedName("liveSession")
     val liveSession: LiveSessionDto? = null,
 )
 
@@ -78,8 +104,8 @@ fun LiveSessionDto.toDomain(): LiveSession = LiveSession(
     isRecordingAvailable = isRecordingAvailable ?: false,
     recordingVideoId = recordingVideoId,
     resources = resources.orEmpty().mapNotNull { resource ->
-        val label = resource.label?.trim().orEmpty()
-        val url = resource.url?.trim().orEmpty()
+        val label = resource?.label?.trim().orEmpty()
+        val url = resource?.url?.trim().orEmpty()
         if (label.isBlank() || url.isBlank()) null else LiveSessionResource(label, url)
     },
     canManage = canManage ?: false,

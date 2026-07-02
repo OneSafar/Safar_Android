@@ -365,7 +365,7 @@ private fun ModeSelectionScreen(
 ) {
     androidx.compose.foundation.layout.BoxWithConstraints(modifier = modifier) {
         val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
-        val constrainedHeight = maxHeight < 500.dp
+        val constrainedHeight = maxHeight < 700.dp
         val largeFont = fontScale > 1.15f
 
         if (constrainedHeight || largeFont) {
@@ -397,8 +397,8 @@ private fun ModeSelectionCompactList(
     ) {
         item {
             ModeSelectionCompactCard(
-                title = "Beast Mode",
-                description = "KAVACH with clear App Usage Permission, KAVACH Block Screen accessibility, and notification prompts. You decide what to grant.",
+                title = "Ekagra-only mode",
+                description = "KAVACH brings you back to Ekagra when you open a blocked app.",
                 icon = Icons.Default.Shield,
                 selected = selectedMode == AppUsageMode.FOCUSED,
                 primaryStyle = true,
@@ -482,8 +482,6 @@ private fun ModeSelectionCompactCard(
                 fontSize = 15.sp,
                 lineHeight = 21.sp,
                 color = scheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
         }
         if (selected) {
@@ -516,8 +514,8 @@ private fun ModeSelectionSplitScreenLarge(
     val scheme = MaterialTheme.colorScheme
     Column(modifier = modifier) {
         ModeSelectionHalf(
-            title = "Beast Mode",
-            description = "KAVACH with clear App Usage Permission, KAVACH Block Screen accessibility, and notification prompts. You decide what to grant.",
+            title = "Ekagra-only mode",
+            description = "KAVACH brings you back to Ekagra when you open a blocked app.",
             icon = Icons.Default.Shield,
             selected = selectedMode == AppUsageMode.FOCUSED,
             primaryStyle = true,
@@ -585,7 +583,7 @@ private fun ModeSelectionHalf(
         ) {
             Box(
                 modifier = Modifier
-                    .size(96.dp)
+                    .size(84.dp)
                     .shadow(12.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.08f))
                     .clip(CircleShape)
                     .background(scheme.surface)
@@ -596,30 +594,28 @@ private fun ModeSelectionHalf(
                     imageVector = icon,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(42.dp),
                 )
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(18.dp))
             Text(
                 text = title,
-                fontSize = 32.sp,
-                lineHeight = 40.sp,
+                fontSize = 30.sp,
+                lineHeight = 38.sp,
                 fontWeight = FontWeight.Bold,
                 color = titleColor,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = description,
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
+                fontSize = 15.sp,
+                lineHeight = 22.sp,
                 color = scheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(max = 280.dp),
-                maxLines = 3,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                modifier = Modifier.widthIn(max = 320.dp),
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
             AnimatedVisibility(
                 visible = selected,
                 enter = fadeIn(),

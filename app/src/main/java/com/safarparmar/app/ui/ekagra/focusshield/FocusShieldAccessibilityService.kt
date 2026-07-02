@@ -15,12 +15,14 @@ import android.os.Build
 import android.os.SystemClock
 import android.view.Gravity
 import android.view.View
+import android.view.WindowInsets
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityEvent
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.view.accessibility.AccessibilityEvent
 import com.safarparmar.app.BuildConfig
+import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.notifications.NotificationDeepLinkHandler
 import com.safarparmar.app.ui.ekagra.TimerService
@@ -31,7 +33,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
     private var lastBlockedAt: Long = 0L
     /** Package for which we already counted one distraction this foreground visit. */
     private var countedDistractionPackage: String? = null
-    private var overlayController: FocusShieldOverlayController? = null
+    private val homePackages: Set<String> by lazy { resolveHomePackages() }
     private val handler = Handler(Looper.getMainLooper())
     private val foregroundMonitor = object : Runnable {
         override fun run() {
@@ -42,10 +44,6 @@ class FocusShieldAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        overlayController = FocusShieldOverlayController(this).also {
-            it.onReturnToFocus = ::onUserReturnedToFocus
-            it.onEmergencyUnlock = ::onEmergencyUnlockRequested
-        }
         handler.post(foregroundMonitor)
         debugLog("Service connected")
     }
@@ -53,90 +51,113 @@ class FocusShieldAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val packageName = event?.packageName?.toString()?.takeIf { it.isNotBlank() } ?: return
         if (packageName == this.packageName) {
+            FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
             val className = event.className?.toString().orEmpty()
             if (
                 className == "com.safarparmar.app.MainActivity" ||
                 className == BlockedAppActivity::class.java.name
             ) {
-                overlayController?.hide()
+                lastBlockedPackage = null
+                lastBlockedAt = 0L
             }
+            return
+        }
+        if (isHomePackage(packageName)) {
+            countedDistractionPackage = null
+            FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
+            FocusShieldRepository.ShieldPrefs.clearReturnToFocusGrace(this)
             return
         }
 
         val active = FocusShieldRepository.ShieldPrefs.isActive(this)
         if (!active) {
-            overlayController?.hide()
             return
         }
 
         // Honour the emergency-unlock grace window even when triggered from an accessibility event.
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
-            overlayController?.hide()
             return
         }
 
         val blockedPackages = FocusShieldRepository.ShieldPrefs.getPackages(this)
         if (packageName !in blockedPackages) {
             if (shouldHideForPackage(packageName)) {
-                overlayController?.hide()
+                FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
+                lastBlockedPackage = null
+                lastBlockedAt = 0L
             }
             return
         }
 
         if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) return
+        if (FocusShieldRepository.ShieldPrefs.isOneTimeUnlockedPackage(this, packageName)) return
 
         scheduleBlockScreen(packageName)
     }
 
     override fun onInterrupt() {
-        overlayController?.hide()
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(foregroundMonitor)
-        overlayController?.hide()
-        overlayController = null
         super.onDestroy()
     }
 
     private fun monitorForegroundPackage() {
         val active = FocusShieldRepository.ShieldPrefs.isActive(this)
         if (!active) {
-            overlayController?.hide()
             return
         }
 
-        // Suppress blocking during the grace period after the user tapped "Return to Ekagra".
+        // Suppress blocking during the grace period after the user tapped the return button.
         if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) return
         // Also honour the emergency-unlock grace window (wall-clock based, survives reboots).
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
-            overlayController?.hide()
             return
         }
 
         val foregroundPackage = currentForegroundPackage() ?: return
-        if (foregroundPackage == packageName) return
+        if (foregroundPackage == packageName) {
+            FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
+            return
+        }
+        if (isHomePackage(foregroundPackage)) {
+            countedDistractionPackage = null
+            FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
+            FocusShieldRepository.ShieldPrefs.clearReturnToFocusGrace(this)
+            return
+        }
 
         val blockedPackages = FocusShieldRepository.ShieldPrefs.getPackages(this)
         if (foregroundPackage in blockedPackages) {
+            if (FocusShieldRepository.ShieldPrefs.isOneTimeUnlockedPackage(this, foregroundPackage)) return
             scheduleBlockScreen(foregroundPackage)
         } else {
             if (countedDistractionPackage != null && shouldHideForPackage(foregroundPackage)) {
                 countedDistractionPackage = null
+                FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
                 FocusShieldRepository.ShieldPrefs.clearReturnToFocusGrace(this)
             }
             if (shouldHideForPackage(foregroundPackage)) {
-                overlayController?.hide()
+                FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
+                lastBlockedPackage = null
+                lastBlockedAt = 0L
             }
         }
     }
 
     /** Accessibility callbacks can arrive off the main thread; serialize block handling. */
     private fun scheduleBlockScreen(blockedPackage: String) {
+        if (isHomePackage(blockedPackage)) {
+            return
+        }
         handler.post { launchBlockScreen(blockedPackage) }
     }
 
     private fun launchBlockScreen(blockedPackage: String) {
+        if (isHomePackage(blockedPackage)) {
+            return
+        }
         if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) {
             debugLog("Skipping block during return-to-ekagra grace for $blockedPackage")
             return
@@ -170,25 +191,10 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             debugLog("Re-blocking $blockedPackage (same visit, not counted again)")
         }
 
-        // 1) Show an Accessibility overlay immediately (works even when SAFAR is backgrounded).
-        val overlayShown = overlayController?.show(
-            blockedPackage = blockedPackage,
-            strict = strict,
-            unlocksRemaining = unlocksRemaining,
-            unlockSeconds = unlockSeconds,
-        ) == true
-        if (!overlayShown) {
-            debugLog("Overlay show failed; falling back")
-        }
-
-        // 2) Still notify TimerService so it can post a notification (and attempt Activity launch as fallback).
-        if (!requestBlockOverlay(blockedPackage, strict, unlocksRemaining, unlockSeconds)) {
-            // Android 13/14 may deny background activity starts; keep this as a last-resort fallback.
-            if (!overlayShown) startBlockedAppActivity(blockedPackage, strict, unlocksRemaining, unlockSeconds)
-        }
+        redirectToSafar(blockedPackage, strict, unlocksRemaining, unlockSeconds)
     }
 
-    private fun requestBlockOverlay(
+    private fun requestBlockNotification(
         blockedPackage: String,
         strict: Boolean,
         unlocksRemaining: Int,
@@ -198,6 +204,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             action = TimerService.ACTION_FOCUS_SHIELD_BLOCKED
             putExtra(BlockedAppActivity.EXTRA_BLOCKED_PACKAGE, blockedPackage)
             putExtra(BlockedAppActivity.EXTRA_BEAST_MODE, strict)
+            putExtra(BlockedAppActivity.EXTRA_ALWAYS_ON, FocusShieldRepository.ShieldPrefs.isAlwaysOn(this@FocusShieldAccessibilityService))
             putExtra(BlockedAppActivity.EXTRA_UNLOCKS_REMAINING, unlocksRemaining)
             putExtra(BlockedAppActivity.EXTRA_UNLOCK_SECONDS, unlockSeconds)
         }
@@ -211,29 +218,48 @@ class FocusShieldAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun startBlockedAppActivity(
+    private fun redirectToSafar(
         blockedPackage: String,
         strict: Boolean,
         unlocksRemaining: Int,
         unlockSeconds: Int,
     ) {
-        startActivity(
-            Intent(this, BlockedAppActivity::class.java)
-                .putExtra(BlockedAppActivity.EXTRA_BLOCKED_PACKAGE, blockedPackage)
-                .putExtra(BlockedAppActivity.EXTRA_BEAST_MODE, strict)
-                .putExtra(BlockedAppActivity.EXTRA_UNLOCKS_REMAINING, unlocksRemaining)
-                .putExtra(BlockedAppActivity.EXTRA_UNLOCK_SECONDS, unlockSeconds)
-                .addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS,
-                ),
-        )
+        val appName = labelForPackage(blockedPackage)
+        val openEkagra = TimerService.isFocusTimerRunning(this)
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT,
+            )
+            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE, blockedPackage)
+            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME, appName)
+            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_STRICT, strict)
+            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_ALWAYS_ON, FocusShieldRepository.ShieldPrefs.isAlwaysOn(this@FocusShieldAccessibilityService))
+            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING, unlocksRemaining)
+            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_UNLOCK_SECONDS, unlockSeconds)
+            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_OPEN_EKAGRA, openEkagra)
+        }
+
+        runCatching {
+            startActivity(intent)
+        }.onFailure {
+            debugLog("SAFAR redirect failed: ${it.javaClass.simpleName}")
+            requestBlockNotification(blockedPackage, strict, unlocksRemaining, unlockSeconds)
+        }
     }
 
     private fun debugLog(message: String) {
         if (BuildConfig.DEBUG) android.util.Log.d("FocusShieldA11y", message)
+    }
+
+    private fun labelForPackage(packageName: String): String {
+        if (packageName.isBlank()) return "This app"
+        return runCatching {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationLabel(appInfo).toString()
+        }.getOrDefault("This app")
     }
 
     private fun currentForegroundPackage(): String? {
@@ -260,46 +286,22 @@ class FocusShieldAccessibilityService : AccessibilityService() {
 
     private fun shouldHideForPackage(packageName: String): Boolean {
         return packageName == this.packageName ||
-            packageName.contains("launcher", ignoreCase = true) ||
+            isHomePackage(packageName) ||
             packageName == "com.android.settings"
     }
 
-    private fun FocusShieldOverlayController?.isBlockingPackage(packageName: String): Boolean {
-        return this?.shownForPackage == packageName
+    private fun resolveHomePackages(): Set<String> {
+        val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val queried = packageManager.queryIntentActivities(homeIntent, 0)
+            .mapNotNull { it.activityInfo?.packageName }
+        val resolved = packageManager.resolveActivity(homeIntent, 0)?.activityInfo?.packageName
+        return (queried + listOfNotNull(resolved) + KNOWN_HOME_PACKAGES).toSet()
     }
 
-    /** Called by the overlay when the user taps "Return to Ekagra" — suppresses re-blocking. */
-    fun onUserReturnedToFocus() {
-        FocusShieldRepository.ShieldPrefs.beginReturnToFocusGrace(this, RETURN_GRACE_MS)
-        lastBlockedPackage = null
-        lastBlockedAt = 0L
-        // Keep countedDistractionPackage so the same visit does not increment distraction count again.
-        overlayController?.hide()
-    }
-
-    /**
-     * Called by the overlay when the user taps "Emergency Unlock". Writes a grace window into
-     * [FocusShieldRepository.ShieldPrefs] so subsequent foreground checks suppress blocking until
-     * the configured duration expires. Returns the new remaining-unlock count, or null when the
-     * unlock could not be granted (Beast Mode, disabled, or quota exhausted).
-     */
-    fun onEmergencyUnlockRequested(): Int? {
-        if (FocusShieldRepository.ShieldPrefs.isStrict(this)) return null
-        val limit = FocusShieldRepository.ShieldPrefs.getUnlockLimit(this)
-        val used = FocusShieldRepository.ShieldPrefs.getUnlocksUsed(this)
-        if (limit <= 0 || used >= limit) return 0
-
-        val seconds = FocusShieldRepository.ShieldPrefs.getUnlockSeconds(this).coerceAtLeast(5)
-        val graceUntilMs = System.currentTimeMillis() + seconds * 1000L
-        val newUsed = used + 1
-        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(this, graceUntilMs, newUsed)
-        // Also clear local debounce so the user can hop straight into the blocked app.
-        lastBlockedPackage = null
-        lastBlockedAt = 0L
-        countedDistractionPackage = null
-        overlayController?.hide()
-        debugLog("Emergency unlock granted for ${seconds}s ($newUsed/$limit)")
-        return (limit - newUsed).coerceAtLeast(0)
+    private fun isHomePackage(packageName: String): Boolean {
+        if (packageName.isBlank()) return false
+        return packageName in homePackages ||
+            packageName.contains("launcher", ignoreCase = true)
     }
 
     companion object {
@@ -307,6 +309,19 @@ class FocusShieldAccessibilityService : AccessibilityService() {
         private const val FOREGROUND_LOOKBACK_MS = 2_000L
         private const val BLOCK_DEBOUNCE_MS = 750L
         private const val RETURN_GRACE_MS = 5_000L
+        private val KNOWN_HOME_PACKAGES = setOf(
+            "com.miui.home",
+            "com.mi.android.globallauncher",
+            "com.android.launcher",
+            "com.android.launcher2",
+            "com.android.launcher3",
+            "com.google.android.apps.nexuslauncher",
+            "com.sec.android.app.launcher",
+            "com.huawei.android.launcher",
+            "com.oppo.launcher",
+            "com.vivo.launcher",
+            "com.transsion.XOSLauncher",
+        )
     }
 
     private class FocusShieldOverlayController(
@@ -315,11 +330,13 @@ class FocusShieldAccessibilityService : AccessibilityService() {
         var onEmergencyUnlock: (() -> Int?)? = null,
     ) {
         private var wm: WindowManager? = null
-        private var root: View? = null
+        private var backdropRoot: View? = null
+        private var cardRoot: View? = null
+        private var blockerRoots: List<View> = emptyList()
         var shownForPackage: String? = null
             private set
         val isShowing: Boolean
-            get() = root != null
+            get() = backdropRoot != null || cardRoot != null || blockerRoots.isNotEmpty()
 
         fun show(
             blockedPackage: String,
@@ -327,7 +344,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             unlocksRemaining: Int = 0,
             unlockSeconds: Int = 60,
         ): Boolean {
-            if (root != null && shownForPackage == blockedPackage) return true
+            if (isShowing && shownForPackage == blockedPackage) return true
             hide()
 
             val windowManager = (context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager)
@@ -335,10 +352,15 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             wm = windowManager
 
             val primary = Color.rgb(10, 86, 217)
-            val overlayRoot = FrameLayout(context).apply {
+            val backdropView = FrameLayout(context).apply {
                 setBackgroundColor(primary)
+                isClickable = false
+                isFocusable = false
+            }
+            val cardWindow = FrameLayout(context).apply {
+                setBackgroundColor(Color.TRANSPARENT)
                 isClickable = true
-                isFocusable = true
+                isFocusable = false
             }
 
             val accent = Color.WHITE
@@ -390,7 +412,9 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             }
 
             val primaryButton = TextView(context).apply {
-                text = context.getString(R.string.kavach_block_return)
+                text = context.getString(
+                    if (strict) R.string.kavach_block_return_ekagra else R.string.kavach_block_return_safar,
+                )
                 textSize = 15f
                 typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
@@ -401,8 +425,11 @@ class FocusShieldAccessibilityService : AccessibilityService() {
                     // Notify the service first so grace period is set before activity starts.
                     onReturnToFocus?.invoke()
                     // User-initiated click: safe to bring SAFAR to foreground.
-                    val intent = NotificationDeepLinkHandler.activityIntent(context, "safar://ekagra")
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    val intent = if (strict) {
+                        NotificationDeepLinkHandler.activityIntent(context, "safar://ekagra")
+                    } else {
+                        NotificationDeepLinkHandler.activityIntent(context, "safar://home")
+                    }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     runCatching { context.startActivity(intent) }
                 }
             }
@@ -432,16 +459,12 @@ class FocusShieldAccessibilityService : AccessibilityService() {
                 ),
             )
 
-            // Emergency unlock secondary CTA (only when unlock is enabled and Beast Mode is off).
-            if (!strict && unlocksRemaining >= 0) {
+            // Quick unlock secondary CTA.
+            if (unlocksRemaining >= 0) {
                 container.addView(space(context, 12))
                 val unlockButton = TextView(context).apply {
-                    val initialEnabled = unlocksRemaining > 0
-                    text = if (initialEnabled) {
-                        context.getString(R.string.kavach_block_unlock, unlocksRemaining, unlockSeconds)
-                    } else {
-                        context.getString(R.string.kavach_block_unlock_exhausted)
-                    }
+                    val initialEnabled = true
+                    text = "Quick unlock"
                     textSize = 14f
                     typeface = Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
@@ -457,27 +480,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
                     alpha = if (initialEnabled) 1f else 0.6f
                     if (initialEnabled) {
                         setOnClickListener { btn ->
-                            val remaining = onEmergencyUnlock?.invoke()
-                            if (remaining == null) {
-                                // Beast Mode active or disabled — disable button visually.
-                                (btn as TextView).text = context.getString(R.string.kavach_block_unlock_exhausted)
-                                btn.setTextColor(mutedText)
-                                btn.isEnabled = false
-                                btn.alpha = 0.6f
-                                return@setOnClickListener
-                            }
-                            if (remaining <= 0) {
-                                (btn as TextView).text = context.getString(R.string.kavach_block_unlock_exhausted)
-                                btn.setTextColor(mutedText)
-                                btn.background = roundedBg(
-                                    Color.argb(20, 100, 116, 139),
-                                    dp(999),
-                                    Color.argb(50, 100, 116, 139),
-                                    dp(1),
-                                )
-                                btn.isEnabled = false
-                                btn.alpha = 0.6f
-                            }
+                            onEmergencyUnlock?.invoke()
                         }
                     }
                 }
@@ -491,7 +494,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             }
 
             // Beast Mode footer chip (shown when strict mode is on).
-            if (strict) {
+            if (false) {
                 container.addView(space(context, 14))
                 val beastFooter = TextView(context).apply {
                     text = context.getString(R.string.kavach_block_beast_footer)
@@ -511,7 +514,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
                 )
             }
 
-            overlayRoot.addView(
+            cardWindow.addView(
                 container,
                 FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
@@ -530,38 +533,183 @@ class FocusShieldAccessibilityService : AccessibilityService() {
                 WindowManager.LayoutParams.TYPE_PHONE
             }
 
-            val params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.MATCH_PARENT,
+            val overlayBounds = overlayBounds(windowManager)
+            val estimatedCardHeight = estimatedCardHeight(strict, unlocksRemaining)
+            val cardTop = overlayBounds.top + ((overlayBounds.height - estimatedCardHeight) / 2)
+                .coerceAtLeast(0)
+            val gestureTopReserve = dp(24)
+            val gestureBottomReserve = dp(72)
+            val backdropParams = WindowManager.LayoutParams(
+                overlayBounds.width,
+                overlayBounds.height,
                 type,
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                PixelFormat.OPAQUE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                PixelFormat.TRANSLUCENT,
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
+                x = overlayBounds.left
+                y = overlayBounds.top
             }
+            val cardParams = WindowManager.LayoutParams(
+                overlayBounds.width,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT,
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = overlayBounds.left
+                y = cardTop
+            }
+            val blockerWindows = buildTouchBlockers(
+                type = type,
+                overlayBounds = overlayBounds,
+                cardTop = cardTop,
+                estimatedCardHeight = estimatedCardHeight,
+                topGestureReserve = gestureTopReserve,
+                bottomGestureReserve = gestureBottomReserve,
+            )
 
             return runCatching {
-                windowManager.addView(overlayRoot, params)
-                root = overlayRoot
+                windowManager.addView(backdropView, backdropParams)
+                blockerWindows.forEach { (view, params) -> windowManager.addView(view, params) }
+                windowManager.addView(cardWindow, cardParams)
+                backdropRoot = backdropView
+                cardRoot = cardWindow
+                blockerRoots = blockerWindows.map { it.first }
                 shownForPackage = blockedPackage
                 true
             }.getOrElse {
-                root = null
+                runCatching { windowManager.removeView(backdropView) }
+                blockerWindows.forEach { (view, _) -> runCatching { windowManager.removeView(view) } }
+                runCatching { windowManager.removeView(cardWindow) }
+                backdropRoot = null
+                cardRoot = null
+                blockerRoots = emptyList()
                 shownForPackage = null
                 false
             }
         }
 
         fun hide() {
-            val view = root ?: return
-            root = null
+            val backdrop = backdropRoot
+            val card = cardRoot
+            val blockers = blockerRoots
+            if (backdrop == null && card == null && blockers.isEmpty()) return
+            backdropRoot = null
+            cardRoot = null
+            blockerRoots = emptyList()
             shownForPackage = null
-            runCatching { wm?.removeView(view) }
+            runCatching { if (card != null) wm?.removeView(card) }
+            blockers.forEach { blocker -> runCatching { wm?.removeView(blocker) } }
+            runCatching { if (backdrop != null) wm?.removeView(backdrop) }
         }
 
         private fun dp(value: Int): Int {
             return (value * context.resources.displayMetrics.density).toInt()
+        }
+
+        private fun overlayBounds(windowManager: WindowManager): OverlayBounds {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val metrics = windowManager.currentWindowMetrics
+                val insets = metrics.windowInsets.getInsetsIgnoringVisibility(
+                    WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout(),
+                )
+                val bounds = metrics.bounds
+                val width = (bounds.width() - insets.left - insets.right).coerceAtLeast(1)
+                val height = (bounds.height() - insets.bottom).coerceAtLeast(1)
+                return OverlayBounds(
+                    left = insets.left,
+                    top = 0,
+                    width = width,
+                    height = height,
+                )
+            }
+
+            val displayMetrics = context.resources.displayMetrics
+            val bottomInset = systemDimension("navigation_bar_height")
+            return OverlayBounds(
+                left = 0,
+                top = 0,
+                width = displayMetrics.widthPixels.coerceAtLeast(1),
+                height = (displayMetrics.heightPixels - bottomInset).coerceAtLeast(1),
+            )
+        }
+
+        private fun systemDimension(name: String): Int {
+            val resourceId = context.resources.getIdentifier(name, "dimen", "android")
+            return if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
+        }
+
+        private fun estimatedCardHeight(strict: Boolean, unlocksRemaining: Int): Int {
+            val base = 84 + 18 + 32 + 10 + 36 + 12 + 44 + 22 + 52 + 48
+            val unlock = if (unlocksRemaining >= 0) 12 + 46 else 0
+            return dp(base + unlock)
+        }
+
+        private fun buildTouchBlockers(
+            type: Int,
+            overlayBounds: OverlayBounds,
+            cardTop: Int,
+            estimatedCardHeight: Int,
+            topGestureReserve: Int,
+            bottomGestureReserve: Int,
+        ): List<Pair<View, WindowManager.LayoutParams>> {
+            val blockers = mutableListOf<Pair<View, WindowManager.LayoutParams>>()
+            val topBlockerTop = overlayBounds.top + topGestureReserve
+            val topBlockerHeight = (cardTop - topBlockerTop).coerceAtLeast(0)
+            if (topBlockerHeight > 0) {
+                blockers += touchBlocker() to blockerParams(
+                    type = type,
+                    bounds = overlayBounds,
+                    y = topBlockerTop,
+                    height = topBlockerHeight,
+                )
+            }
+
+            val bottomBlockerTop = cardTop + estimatedCardHeight
+            val blockerBottom = overlayBounds.top + overlayBounds.height - bottomGestureReserve
+            val bottomBlockerHeight = (blockerBottom - bottomBlockerTop).coerceAtLeast(0)
+            if (bottomBlockerHeight > 0) {
+                blockers += touchBlocker() to blockerParams(
+                    type = type,
+                    bounds = overlayBounds,
+                    y = bottomBlockerTop,
+                    height = bottomBlockerHeight,
+                )
+            }
+            return blockers
+        }
+
+        private fun touchBlocker(): View {
+            return View(context).apply {
+                setBackgroundColor(Color.TRANSPARENT)
+                isClickable = true
+                isFocusable = false
+            }
+        }
+
+        private fun blockerParams(
+            type: Int,
+            bounds: OverlayBounds,
+            y: Int,
+            height: Int,
+        ): WindowManager.LayoutParams {
+            return WindowManager.LayoutParams(
+                bounds.width,
+                height,
+                type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT,
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = bounds.left
+                this.y = y
+            }
         }
 
         private fun roundedBg(
@@ -593,6 +741,13 @@ class FocusShieldAccessibilityService : AccessibilityService() {
                 context.packageManager.getApplicationLabel(appInfo).toString()
             }.getOrDefault("This app")
         }
+
+        private data class OverlayBounds(
+            val left: Int,
+            val top: Int,
+            val width: Int,
+            val height: Int,
+        )
 
         companion object {
             // Rotating motivational copy shown on the block overlay. Randomised per block event.

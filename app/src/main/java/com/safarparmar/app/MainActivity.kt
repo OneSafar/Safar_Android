@@ -36,6 +36,9 @@ import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.notifications.NotificationDeepLinkHandler
 import com.safarparmar.app.ui.ekagra.LocalTimerService
 import com.safarparmar.app.ui.ekagra.TimerService
+import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldBlockPrompt
+import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldBlockedBottomSheet
+import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import com.safarparmar.app.ui.navigation.SafarNavGraph
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
@@ -63,11 +66,20 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         private set
     var notificationRoute by mutableStateOf<String?>(null)
         private set
+    var focusShieldBlockPrompt by mutableStateOf<FocusShieldBlockPrompt?>(null)
+        private set
     private var pendingTimerPipFromNotification = false
     private var pipRequestPosted = false
 
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
+        const val EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE = "focus_shield_blocked_package"
+        const val EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME = "focus_shield_blocked_app_name"
+        const val EXTRA_FOCUS_SHIELD_STRICT = "focus_shield_strict"
+        const val EXTRA_FOCUS_SHIELD_ALWAYS_ON = "focus_shield_always_on"
+        const val EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING = "focus_shield_unlocks_remaining"
+        const val EXTRA_FOCUS_SHIELD_UNLOCK_SECONDS = "focus_shield_unlock_seconds"
+        const val EXTRA_FOCUS_SHIELD_OPEN_EKAGRA = "focus_shield_open_ekagra"
         private const val TABLET_SMALLEST_WIDTH_DP = 600
     }
 
@@ -97,6 +109,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         }
         consumeTimerPipIntent(intent)
         consumeNotificationIntent(intent)
+        consumeFocusShieldBlockIntent(intent)
 
         enableEdgeToEdge()
         setContent {
@@ -139,6 +152,14 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
                                 )
                             }
                         }
+                        focusShieldBlockPrompt?.let { prompt ->
+                            FocusShieldBlockedBottomSheet(
+                                prompt = prompt,
+                                isEkagraTimerRunning = TimerService.isFocusTimerRunning(this@MainActivity),
+                                onDismiss = ::dismissFocusShieldBlockPrompt,
+                                onQuickUnlock = { minutes, pauseTimer -> quickUnlockBlockedApp(prompt, minutes, pauseTimer) },
+                            )
+                        }
                     }
                 }
             }
@@ -147,6 +168,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     fun resetNavigateToEkagra() { navigateToEkagra = false }
     fun resetNotificationRoute() { notificationRoute = null }
+    fun dismissFocusShieldBlockPrompt() { focusShieldBlockPrompt = null }
 
     private fun applyOrientationPolicy() {
         val currentRequest = requestedOrientation
@@ -192,6 +214,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         }
         consumeTimerPipIntent(intent)
         consumeNotificationIntent(intent)
+        consumeFocusShieldBlockIntent(intent)
     }
 
     override fun onResume() {
@@ -212,6 +235,53 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
                 StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLANNER_NOTIFICATION_OPENED)
             }
             notificationRoute = route
+        }
+    }
+
+    private fun consumeFocusShieldBlockIntent(intent: Intent?) {
+        val blockedPackage = intent
+            ?.getStringExtra(EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE)
+            ?.takeIf { it.isNotBlank() }
+            ?: return
+        val appName = intent.getStringExtra(EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME)
+            ?.takeIf { it.isNotBlank() }
+            ?: blockedPackage
+        val openEkagra = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_OPEN_EKAGRA, false)
+
+        focusShieldBlockPrompt = FocusShieldBlockPrompt(
+            packageName = blockedPackage,
+            appName = appName,
+            strict = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_STRICT, false),
+            alwaysOn = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_ALWAYS_ON, false) && !openEkagra,
+            unlocksRemaining = intent.getIntExtra(EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING, -1),
+        )
+
+        if (openEkagra) {
+            navigateToEkagra = true
+        }
+    }
+
+    private fun quickUnlockBlockedApp(prompt: FocusShieldBlockPrompt, minutes: Int, pauseTimer: Boolean) {
+        if (pauseTimer) {
+            pauseEkagraTimerIfRunning()
+        }
+        val unlockMinutes = minutes.coerceIn(1, 60)
+        val graceUntilMs = System.currentTimeMillis() + unlockMinutes * 60_000L
+        val used = FocusShieldRepository.ShieldPrefs.getUnlocksUsed(this) + 1
+        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(this, graceUntilMs, used)
+        dismissFocusShieldBlockPrompt()
+        packageManager.getLaunchIntentForPackage(prompt.packageName)
+            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ?.let { runCatching { startActivity(it) } }
+    }
+
+    private fun pauseEkagraTimerIfRunning() {
+        timerService?.takeIf { it.isRunning.value }?.pause() ?: run {
+            if (TimerService.isFocusTimerRunning(this)) {
+                startService(Intent(this, TimerService::class.java).apply {
+                    action = TimerService.ACTION_PAUSE
+                })
+            }
         }
     }
 

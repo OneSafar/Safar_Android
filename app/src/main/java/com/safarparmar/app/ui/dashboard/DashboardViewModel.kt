@@ -104,23 +104,35 @@ class DashboardViewModel @Inject constructor(
             val todayGoals     = goals.filter { it.scheduledDate?.startsWith(today) == true }
             val completedGoals = goals.filter { it.completed }.takeLast(5)
             val todayMood      = moods.firstOrNull { it.timestamp.startsWith(today) }
-            val weeklyMoods    = moods.take(7)
+            
+            // Align and pad moods for the current week (Monday to Sunday)
+            val todayDate      = LocalDate.now()
+            val dayOfWeekVal   = todayDate.dayOfWeek.value // 1 (Mon) to 7 (Sun)
+            val mondayDate     = todayDate.minusDays((dayOfWeekVal - 1).toLong())
+            val weeklyMoods    = (0..6).map { i ->
+                val dateStr = mondayDate.plusDays(i.toLong()).toString()
+                moods.firstOrNull { it.timestamp.startsWith(dateStr) } ?: Mood(intensity = 0, mood = "", timestamp = dateStr)
+            }
 
             // Trigger local notifications for newly earned achievements
             val notifiedAchievements = dataStore.notifiedAchievements.first()
             val notificationsEnabled = dataStore.notificationsEnabled.first() && dataStore.achievementsEnabled.first()
             val newlyEarned = achievements.filter { it.earned && !notifiedAchievements.contains(it.id) }
             
-            if (newlyEarned.isNotEmpty() && notificationsEnabled) {
-                val notificationManager = SafarNotificationManager(context)
-                newlyEarned.forEach { achievement ->
-                    notificationManager.show(
-                        title = "Achievement Unlocked! \uD83C\uDFC6",
-                        body = "You unlocked: ${achievement.name}",
-                        channelId = SafarNotificationChannels.ACHIEVEMENTS,
-                        deepLink = "safar://achievements"
-                    )
-                    dataStore.addNotifiedAchievement(achievement.id)
+            if (newlyEarned.isNotEmpty()) {
+                if (notificationsEnabled) {
+                    val notificationManager = SafarNotificationManager(context)
+                    newlyEarned.forEach { achievement ->
+                        notificationManager.show(
+                            title = "Achievement Unlocked! 🏆",
+                            body = "You unlocked: ${achievement.name}",
+                            channelId = SafarNotificationChannels.ACHIEVEMENTS,
+                            deepLink = "safar://achievements"
+                        )
+                    }
+                }
+                viewModelScope.launch {
+                    newlyEarned.forEach { dataStore.addNotifiedAchievement(it.id) }
                 }
             }
 
@@ -141,7 +153,8 @@ class DashboardViewModel @Inject constructor(
                     allAchievements    = achievements,
                     loginHistory          = loginHistory,
                     studyPlan             = studyPlan,
-                    showWelcomeOverlay    = !welcomeSeen
+                    showWelcomeOverlay    = !welcomeSeen,
+                    celebrationAchievements = newlyEarned
                 )
             }
         }
@@ -171,5 +184,9 @@ class DashboardViewModel @Inject constructor(
         } catch (e: Exception) {
             DashboardStudyPlanState(errorMessage = e.localizedMessage ?: "Could not load exam planner.")
         }
+    }
+
+    fun dismissCelebration() {
+        _uiState.update { it.copy(celebrationAchievements = emptyList()) }
     }
 }

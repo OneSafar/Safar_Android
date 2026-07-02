@@ -483,6 +483,7 @@ fun TodayMissionCard(
 fun PlanActionRow(
     onAddTopics: () -> Unit,
     onSchedule: () -> Unit,
+    onRebuildPlan: (() -> Unit)? = null,
     showSchedule: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
@@ -514,6 +515,35 @@ fun PlanActionRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+        if (onRebuildPlan != null) {
+            OutlinedButton(
+                onClick = onRebuildPlan,
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 52.dp),
+                border = BorderStroke(
+                    width = 2.dp,
+                    color = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A)
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A)
+                ),
+                shape = ButtonDefaults.outlinedShape,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SwapHoriz,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Rebuild Plan",
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
         if (showSchedule) {
             OutlinedButton(
@@ -887,7 +917,9 @@ fun ReplaceTopicSheet(
 ) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val scheme = MaterialTheme.colorScheme
-    var searchQuery by remember { mutableStateOf("") }
+    var selectedSubjectKey by remember(currentRef.topic.id) { mutableStateOf<String?>(null) }
+    var selectedChapterKey by remember(currentRef.topic.id) { mutableStateOf<String?>(null) }
+    var searchQuery by remember(currentRef.topic.id) { mutableStateOf("") }
 
     // Available replacement candidates: TODO topics not scheduled for today, excluding the current topic
     val candidates = remember(allRefs, today, currentRef.topic.id) {
@@ -897,14 +929,166 @@ fun ReplaceTopicSheet(
             (ref.topic.plannedDate?.take(10) ?: "") != today
         }
     }
-    val filteredCandidates = remember(candidates, searchQuery) {
-        if (searchQuery.isBlank()) candidates
-        else {
+
+    data class SubjectGroup(val key: String, val name: String, val refs: List<TopicRef>)
+    data class ChapterGroup(val key: String, val name: String, val refs: List<TopicRef>)
+
+    val subjectGroups = remember(candidates) {
+        candidates
+            .groupBy { it.subject.id.ifBlank { it.subject.name } }
+            .map { (key, refs) -> SubjectGroup(key, refs.first().subject.name, refs) }
+            .sortedBy { it.name.lowercase() }
+    }
+    val selectedSubject = remember(subjectGroups, selectedSubjectKey) {
+        subjectGroups.firstOrNull { it.key == selectedSubjectKey }
+    }
+    val chapterGroups = remember(selectedSubject) {
+        selectedSubject?.refs
+            .orEmpty()
+            .groupBy { it.chapter.id.ifBlank { it.chapter.name } }
+            .map { (key, refs) -> ChapterGroup(key, refs.first().chapter.name, refs) }
+            .sortedBy { it.name.lowercase() }
+    }
+    val selectedChapter = remember(chapterGroups, selectedChapterKey) {
+        chapterGroups.firstOrNull { it.key == selectedChapterKey }
+    }
+    val filteredTopicRefs = remember(selectedChapter, searchQuery) {
+        val refs = selectedChapter?.refs.orEmpty().sortedWith(
+            compareBy<TopicRef> { it.topic.plannedDate?.take(10).orEmpty() }
+                .thenBy { it.topic.name.lowercase() },
+        )
+        if (searchQuery.isBlank()) refs else {
             val q = searchQuery.lowercase()
-            candidates.filter {
-                it.topic.name.lowercase().contains(q) ||
-                it.subject.name.lowercase().contains(q) ||
-                it.chapter.name.lowercase().contains(q)
+            refs.filter { it.topic.name.lowercase().contains(q) }
+        }
+    }
+
+    fun chooseReplacement(ref: TopicRef) {
+        val hasDate = !ref.topic.plannedDate.isNullOrBlank()
+        if (hasDate) {
+            // Both have dates → swap
+            onSwap(currentRef.topic.id, ref.topic.id)
+        } else {
+            // Replacement is unscheduled → replace
+            onReplace(currentRef.topic.id, ref.topic.id, today)
+        }
+        onDismiss()
+    }
+
+    @Composable
+    fun StepPill(
+        number: String,
+        text: String,
+        selected: Boolean,
+        complete: Boolean,
+        modifier: Modifier = Modifier,
+        onClick: (() -> Unit)? = null,
+    ) {
+        Surface(
+            modifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier,
+            shape = CircleShape,
+            color = when {
+                selected -> scheme.primaryContainer
+                complete -> scheme.secondaryContainer.copy(alpha = 0.68f)
+                else -> scheme.surfaceContainerHigh
+            },
+            contentColor = when {
+                selected -> scheme.onPrimaryContainer
+                complete -> scheme.onSecondaryContainer
+                else -> scheme.onSurfaceVariant
+            },
+        ) {
+            Row(
+                modifier = Modifier.padding(start = 6.dp, end = 10.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = if (selected || complete) scheme.primary else scheme.outlineVariant,
+                    contentColor = if (selected || complete) scheme.onPrimary else scheme.onSurfaceVariant,
+                ) {
+                    Text(
+                        text = number,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun SelectionCard(
+        title: String,
+        subtitle: String,
+        badgeText: String,
+        onClick: () -> Unit,
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = scheme.surfaceContainerLowest,
+            ),
+            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.65f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = scheme.primaryContainer,
+                    contentColor = scheme.onPrimaryContainer,
+                ) {
+                    Text(
+                        text = badgeText,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f).widthIn(min = 0.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = scheme.primary,
+                    modifier = Modifier.size(24.dp),
+                )
             }
         }
     }
@@ -914,6 +1098,7 @@ fun ReplaceTopicSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        containerColor = scheme.surfaceContainerLow,
         dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
         Column(
@@ -923,48 +1108,61 @@ fun ReplaceTopicSheet(
         ) {
             // Header
             Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    "Replace Topic",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    "Choose topic to swap",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    color = scheme.onSurface,
                 )
-                Text(
-                    "Replacing: ${currentRef.topic.name}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    color = scheme.surfaceContainerHigh,
+                    tonalElevation = 1.dp,
+                ) {
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "Replacing",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = scheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            currentRef.topic.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = scheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
 
-            Spacer(Modifier.height(12.dp))
-
-            // Search field
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search topics…") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
-                trailingIcon = {
-                    if (searchQuery.isNotBlank()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(18.dp))
-                        }
-                    }
-                },
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                singleLine = true,
-            )
+                    .padding(horizontal = 24.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StepPill("1", "Subject", selectedSubject == null, complete = selectedSubject != null, modifier = Modifier.weight(1f), onClick = {
+                    selectedSubjectKey = null
+                    selectedChapterKey = null
+                    searchQuery = ""
+                })
+                StepPill("2", selectedSubject?.name ?: "Chapter", selectedSubject != null && selectedChapter == null, complete = selectedChapter != null, modifier = Modifier.weight(1f), onClick = selectedSubject?.let {
+                    {
+                        selectedChapterKey = null
+                        searchQuery = ""
+                    }
+                })
+                StepPill("3", selectedChapter?.name ?: "Topic", selectedChapter != null, complete = false, modifier = Modifier.weight(1f))
+            }
 
-            Spacer(Modifier.height(8.dp))
-
-            // Candidate list
-            if (filteredCandidates.isEmpty()) {
+            if (candidates.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -972,55 +1170,127 @@ fun ReplaceTopicSheet(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = if (searchQuery.isNotBlank()) "No matching topics found" else "No available topics to swap",
+                        text = "No available topics to swap",
                         style = MaterialTheme.typography.bodyMedium,
                         color = scheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
                 }
-            } else {
+            } else if (selectedSubject == null) {
                 LazyColumn(
-                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.heightIn(max = 460.dp),
+                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(
-                        items = filteredCandidates,
-                        key = { it.topic.id },
-                    ) { ref ->
+                    items(subjectGroups, key = { it.key }) { group ->
+                        val chapterCount = group.refs.map { it.chapter.id.ifBlank { it.chapter.name } }.distinct().size
+                        SelectionCard(
+                            title = group.name,
+                            subtitle = "$chapterCount chapters • ${group.refs.size} topics available",
+                            badgeText = group.refs.size.toString(),
+                            onClick = {
+                                selectedSubjectKey = group.key
+                                selectedChapterKey = null
+                                searchQuery = ""
+                            },
+                        )
+                    }
+                }
+            } else if (selectedChapter == null) {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 460.dp),
+                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(chapterGroups, key = { it.key }) { group ->
+                        SelectionCard(
+                            title = group.name,
+                            subtitle = "${group.refs.size} topics available in ${selectedSubject.name}",
+                            badgeText = group.refs.size.toString(),
+                            onClick = {
+                                selectedChapterKey = group.key
+                                searchQuery = ""
+                            },
+                        )
+                    }
+                }
+            } else {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search topics in this chapter…") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    shape = CircleShape,
+                    singleLine = true,
+                )
+
+                Spacer(Modifier.height(10.dp))
+
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 460.dp),
+                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (filteredTopicRefs.isEmpty()) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.large,
+                                color = scheme.surfaceContainerHigh,
+                            ) {
+                                Text(
+                                    text = "No matching topics found in this chapter",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(28.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = scheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
+                    }
+                    items(filteredTopicRefs, key = { it.topic.id }) { ref ->
                         val hasDate = !ref.topic.plannedDate.isNullOrBlank()
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    if (hasDate) {
-                                        // Both have dates → swap
-                                        onSwap(currentRef.topic.id, ref.topic.id)
-                                    } else {
-                                        // Replacement is unscheduled → replace
-                                        onReplace(currentRef.topic.id, ref.topic.id, today)
-                                    }
-                                    onDismiss()
-                                },
-                            shape = MaterialTheme.shapes.medium,
+                                .clickable { chooseReplacement(ref) },
+                            shape = MaterialTheme.shapes.large,
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isDark) Color(0xFF1E293B) else Color.White,
+                                containerColor = scheme.surfaceContainerLowest,
                             ),
-                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.65f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    .padding(horizontal = 14.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(if (hasDate) Color(0xFFF59E0B) else scheme.primary),
-                                )
+                                Surface(
+                                    shape = CircleShape,
+                                    color = if (hasDate) Color(0xFFF59E0B).copy(alpha = if (isDark) 0.28f else 0.16f) else scheme.primaryContainer,
+                                    contentColor = if (hasDate) Color(0xFF92400E) else scheme.onPrimaryContainer,
+                                ) {
+                                    Icon(
+                                        imageVector = if (hasDate) Icons.Default.CalendarMonth else Icons.Default.SwapHoriz,
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(8.dp).size(18.dp),
+                                    )
+                                }
                                 Column(
                                     modifier = Modifier.weight(1f).widthIn(min = 0.dp),
                                     verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -1029,49 +1299,22 @@ fun ReplaceTopicSheet(
                                         text = ref.topic.name,
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isDark) Color.White else Color(0xFF0F172A),
+                                        color = scheme.onSurface,
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     Text(
-                                        text = "${ref.subject.name} / ${ref.chapter.name}",
+                                        text = if (hasDate) "Scheduled ${readableDate(ref.topic.plannedDate)}" else "Unscheduled topic",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF64748B),
+                                        color = scheme.onSurfaceVariant,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
-                                    if (hasDate) {
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = Color(0xFFF59E0B).copy(alpha = if (isDark) 0.28f else 0.16f),
-                                            contentColor = if (isDark) Color(0xFFFDE68A) else Color(0xFF92400E),
-                                        ) {
-                                            Text(
-                                                text = "Scheduled: ${readableDate(ref.topic.plannedDate)}",
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                            )
-                                        }
-                                    } else {
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = scheme.primary.copy(alpha = if (isDark) 0.2f else 0.1f),
-                                            contentColor = if (isDark) Color(0xFF93C5FD) else scheme.primary,
-                                        ) {
-                                            Text(
-                                                text = "Unscheduled",
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                            )
-                                        }
-                                    }
                                 }
                                 Icon(
                                     imageVector = Icons.Default.SwapHoriz,
                                     contentDescription = if (hasDate) "Swap dates" else "Replace",
-                                    tint = if (isDark) Color(0xFF38BDF8) else Color(0xFF0369A1),
+                                    tint = scheme.primary,
                                     modifier = Modifier.size(22.dp),
                                 )
                             }

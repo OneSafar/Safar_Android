@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -34,7 +36,20 @@ class FocusShieldRepository @Inject constructor(
         private const val TAG = "FocusShield"
     }
 
+    private data class ShieldActivationSettings(
+        val enabled: Boolean,
+        val alwaysOn: Boolean,
+        val strict: Boolean,
+        val allowEmergencyUnlock: Boolean,
+        val packages: Set<String>,
+        val unlockLimit: Int,
+        val unlockSeconds: Int,
+    )
+
     val isEnabled: StateFlow<Boolean> = dataStore.focusShieldEnabled
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
+    val isAlwaysOn: StateFlow<Boolean> = dataStore.focusShieldAlwaysOn
         .stateIn(scope, SharingStarted.Eagerly, false)
 
     val isStrictMode: StateFlow<Boolean> = dataStore.focusShieldStrictMode
@@ -48,6 +63,9 @@ class FocusShieldRepository @Inject constructor(
 
     val emergencyUnlockSeconds: StateFlow<Int> = dataStore.focusShieldEmergencyUnlockSeconds
         .stateIn(scope, SharingStarted.Eagerly, 60)
+
+    private val userName: StateFlow<String?> = dataStore.userName
+        .stateIn(scope, SharingStarted.Eagerly, null)
 
     val blockedPackages: StateFlow<Set<String>> = dataStore.focusShieldBlockedPackages
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
@@ -67,41 +85,57 @@ class FocusShieldRepository @Inject constructor(
     private val _emergencyUnlockCount = MutableStateFlow(0)
     val emergencyUnlockCount: StateFlow<Int> = _emergencyUnlockCount.asStateFlow()
 
+    private val _alwaysOnActive = MutableStateFlow(false)
+
+    init {
+        val primarySettings = combine(
+            dataStore.focusShieldEnabled,
+            dataStore.focusShieldAlwaysOn,
+            dataStore.focusShieldStrictMode,
+            dataStore.focusShieldEmergencyUnlock,
+            dataStore.focusShieldBlockedPackages,
+        ) { enabled, alwaysOn, strict, emergency, packages ->
+            ShieldActivationSettings(
+                enabled = enabled,
+                alwaysOn = alwaysOn,
+                strict = strict,
+                allowEmergencyUnlock = emergency,
+                packages = packages,
+                unlockLimit = emergencyUnlocksPerSession.value,
+                unlockSeconds = emergencyUnlockSeconds.value,
+            )
+        }
+
+        scope.launch {
+            combine(
+                primarySettings,
+                dataStore.focusShieldEmergencyUnlocksPerSession,
+                dataStore.focusShieldEmergencyUnlockSeconds,
+            ) { settings, unlockLimit, unlockSeconds ->
+                settings.copy(unlockLimit = unlockLimit, unlockSeconds = unlockSeconds)
+            }.collect { settings ->
+                syncAlwaysOnActivation(settings)
+            }
+        }
+    }
+
     fun activateForSession() {
-        if (!isEnabled.value) {
+        val settings = currentSettings()
+        if (!settings.enabled) {
             debugLog("activateForSession skipped: shield not enabled")
             return
         }
 
-        val packages = blockedPackages.value
-        if (packages.isEmpty()) {
+        if (settings.packages.isEmpty()) {
             debugLog("activateForSession skipped: no blocked packages")
             return
         }
-        if (!FocusShieldPermissionHelper.hasUsageStatsPermission(appContext)) {
-            debugLog("activateForSession skipped: usage access missing")
+        if (!hasRequiredPermissions()) {
+            debugLog("activateForSession skipped: required permission missing")
             return
         }
-        if (!FocusShieldPermissionHelper.hasAccessibilityService(appContext)) {
-            debugLog("activateForSession skipped: accessibility service missing")
-            return
-        }
-
-        _sessionBlockedPackages.value = packages
-        _sessionActive.value = true
-        _blockedHitCount.value = 0
-        _blockedHitsByPackage.value = emptyMap()
-        _emergencyUnlockCount.value = 0
-        ShieldPrefs.write(
-            appContext,
-            active = true,
-            packages = packages,
-            strict = isStrictMode.value,
-            unlockLimit = if (allowEmergencyUnlock.value) emergencyUnlocksPerSession.value else 0,
-            unlockSeconds = emergencyUnlockSeconds.value,
-            resetUnlocks = true,
-        )
-        debugLog("activateForSession enabled for ${packages.size} packages")
+        activateBlocking(settings, resetUnlocks = true)
+        debugLog("activateForSession enabled for ${settings.packages.size} packages")
     }
 
     fun deactivateSession() {
@@ -110,6 +144,9 @@ class FocusShieldRepository @Inject constructor(
         _sessionActive.value = false
         _sessionBlockedPackages.value = emptySet()
         ShieldPrefs.clear(appContext)
+        Snapshot.active = false
+        Snapshot.packages = emptySet()
+        Snapshot.strict = false
         debugLog("deactivateSession cleared (blocks=$totalHits)")
     }
 
@@ -151,7 +188,12 @@ class FocusShieldRepository @Inject constructor(
         val seconds = graceSeconds.coerceAtLeast(5)
         val graceUntilMs = System.currentTimeMillis() + seconds * 1000L
         val newUsed = used + 1
-        ShieldPrefs.applyEmergencyUnlock(appContext, graceUntilMs = graceUntilMs, unlocksUsed = newUsed)
+        ShieldPrefs.applyEmergencyUnlock(
+            ctx = appContext,
+            graceUntilMs = graceUntilMs,
+            unlocksUsed = newUsed,
+            userName = userName.value,
+        )
         _emergencyUnlockCount.value = newUsed
         debugLog("recordEmergencyUnlock granted ${seconds}s (used=$newUsed/$limit)")
         return (limit - newUsed).coerceAtLeast(0)
@@ -160,28 +202,145 @@ class FocusShieldRepository @Inject constructor(
     fun setEnabled(enabled: Boolean) {
         scope.launch {
             dataStore.setFocusShieldEnabled(enabled)
+            val settings = currentSettings().copy(enabled = enabled)
+            if (!enabled) {
+                _alwaysOnActive.value = false
+                deactivateSession()
+            } else {
+                syncAlwaysOnActivation(settings, resetUnlocks = true)
+            }
             if (enabled && blockedPackages.value.isNotEmpty()) {
                 homeRepository.trackKavachEvent("enabled", blockedPackages.value.size)
             }
         }
     }
 
+    fun setAlwaysOn(enabled: Boolean) {
+        scope.launch {
+            if (enabled && !isEnabled.value) {
+                dataStore.setFocusShieldEnabled(true)
+            }
+            dataStore.setFocusShieldAlwaysOn(enabled)
+            syncAlwaysOnActivation(
+                currentSettings().copy(
+                    enabled = if (enabled) true else isEnabled.value,
+                    alwaysOn = enabled,
+                ),
+                resetUnlocks = enabled,
+            )
+        }
+    }
+
     fun setStrictMode(enabled: Boolean) {
-        scope.launch { dataStore.setFocusShieldStrictMode(enabled) }
+        scope.launch {
+            dataStore.setFocusShieldStrictMode(enabled)
+            syncAlwaysOnActivation(currentSettings().copy(strict = enabled))
+        }
     }
 
     fun setAllowEmergencyUnlock(allow: Boolean) {
-        scope.launch { dataStore.setFocusShieldEmergencyUnlock(allow) }
+        scope.launch {
+            dataStore.setFocusShieldEmergencyUnlock(allow)
+            syncAlwaysOnActivation(currentSettings().copy(allowEmergencyUnlock = allow))
+        }
     }
 
     fun setBlockedPackages(packages: Set<String>) {
         scope.launch {
             dataStore.setFocusShieldBlockedPackages(packages)
+            syncAlwaysOnActivation(currentSettings().copy(packages = packages), resetUnlocks = true)
             if (isEnabled.value && packages.isNotEmpty()) {
                 homeRepository.trackKavachEvent("configured", packages.size)
             }
         }
     }
+
+    fun syncAlwaysOnActivation(resetUnlocks: Boolean = false) {
+        syncAlwaysOnActivation(currentSettings(), resetUnlocks)
+    }
+
+    fun shouldPreserveAlwaysOnBlocking(): Boolean {
+        val settings = currentSettings()
+        return settings.enabled &&
+            settings.alwaysOn &&
+            settings.packages.isNotEmpty() &&
+            hasRequiredPermissions()
+    }
+
+    private fun syncAlwaysOnActivation(
+        settings: ShieldActivationSettings,
+        resetUnlocks: Boolean = false,
+    ) {
+        if (!settings.enabled) {
+            _alwaysOnActive.value = false
+            deactivateSession()
+            return
+        }
+
+        if (!settings.alwaysOn) {
+            if (_alwaysOnActive.value) {
+                _alwaysOnActive.value = false
+                deactivateSession()
+            }
+            return
+        }
+
+        if (settings.packages.isEmpty() || !hasRequiredPermissions()) {
+            if (_alwaysOnActive.value) {
+                _alwaysOnActive.value = false
+                deactivateSession()
+            }
+            return
+        }
+
+        activateBlocking(settings, resetUnlocks = resetUnlocks || !_alwaysOnActive.value)
+        _alwaysOnActive.value = true
+        debugLog("Always-on KAVACH active for ${settings.packages.size} packages")
+    }
+
+    private fun activateBlocking(
+        settings: ShieldActivationSettings,
+        resetUnlocks: Boolean,
+    ) {
+        _sessionBlockedPackages.value = settings.packages
+        _sessionActive.value = true
+        if (resetUnlocks) {
+            _blockedHitCount.value = 0
+            _blockedHitsByPackage.value = emptyMap()
+            _emergencyUnlockCount.value = 0
+        }
+        ShieldPrefs.write(
+            appContext,
+            active = true,
+            packages = settings.packages,
+            strict = settings.strict,
+            alwaysOn = settings.alwaysOn,
+            unlockLimit = if (settings.alwaysOn && settings.allowEmergencyUnlock && !settings.strict) 1 else 0,
+            unlockSeconds = settings.unlockSeconds,
+            resetUnlocks = resetUnlocks,
+        )
+        Snapshot.active = true
+        Snapshot.packages = settings.packages
+        Snapshot.strict = settings.strict
+    }
+
+    private fun currentSettings(): ShieldActivationSettings =
+        ShieldActivationSettings(
+            enabled = isEnabled.value,
+            alwaysOn = isAlwaysOn.value,
+            strict = isStrictMode.value,
+            allowEmergencyUnlock = allowEmergencyUnlock.value,
+            packages = blockedPackages.value,
+            unlockLimit = emergencyUnlocksPerSession.value,
+            unlockSeconds = emergencyUnlockSeconds.value,
+        )
+
+    private fun hasRequiredPermissions(): Boolean =
+        FocusShieldPermissionHelper.hasUsageStatsPermission(appContext) &&
+            (
+                !FocusShieldPermissionHelper.isAccessibilityFeatureEnabled() ||
+                    FocusShieldPermissionHelper.hasAccessibilityService(appContext)
+                )
 
     private fun debugLog(message: String) {
         if (BuildConfig.DEBUG) android.util.Log.d(TAG, message)
@@ -192,10 +351,12 @@ class FocusShieldRepository @Inject constructor(
         private const val KEY_ACTIVE = "active"
         private const val KEY_PACKAGES = "packages"
         private const val KEY_STRICT = "strict"
+        private const val KEY_ALWAYS_ON = "always_on"
         private const val KEY_UNLOCK_LIMIT = "unlock_limit"
         private const val KEY_UNLOCK_SECONDS = "unlock_seconds"
         private const val KEY_UNLOCKS_USED = "unlocks_used"
         private const val KEY_GRACE_UNTIL_MS = "grace_until_ms"
+        private const val KEY_ONE_TIME_UNLOCK_PACKAGE = "one_time_unlock_package"
         private const val KEY_RETURN_GRACE_UNTIL_ELAPSED = "return_grace_until_elapsed"
 
         private fun prefs(ctx: Context): SharedPreferences =
@@ -206,6 +367,7 @@ class FocusShieldRepository @Inject constructor(
             active: Boolean,
             packages: Set<String>,
             strict: Boolean,
+            alwaysOn: Boolean = false,
             unlockLimit: Int = 0,
             unlockSeconds: Int = 60,
             resetUnlocks: Boolean = true,
@@ -214,18 +376,20 @@ class FocusShieldRepository @Inject constructor(
                 putBoolean(KEY_ACTIVE, active)
                 putStringSet(KEY_PACKAGES, packages)
                 putBoolean(KEY_STRICT, strict)
+                putBoolean(KEY_ALWAYS_ON, alwaysOn)
                 putInt(KEY_UNLOCK_LIMIT, unlockLimit.coerceAtLeast(0))
                 putInt(KEY_UNLOCK_SECONDS, unlockSeconds.coerceAtLeast(5))
                 if (resetUnlocks) {
                     putInt(KEY_UNLOCKS_USED, 0)
                     putLong(KEY_GRACE_UNTIL_MS, 0L)
+                    putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
                 }
             }.apply()
             if (BuildConfig.DEBUG) {
                 android.util.Log.d(
                     TAG,
                     "ShieldPrefs.write(active=$active, count=${packages.size}, strict=$strict, " +
-                        "unlockLimit=$unlockLimit, unlockSeconds=$unlockSeconds, reset=$resetUnlocks)",
+                        "alwaysOn=$alwaysOn, unlockLimit=$unlockLimit, unlockSeconds=$unlockSeconds, reset=$resetUnlocks)",
                 )
             }
         }
@@ -234,9 +398,12 @@ class FocusShieldRepository @Inject constructor(
             prefs(ctx).edit()
                 .putBoolean(KEY_ACTIVE, false)
                 .putStringSet(KEY_PACKAGES, emptySet())
+                .putBoolean(KEY_ALWAYS_ON, false)
                 .putInt(KEY_UNLOCKS_USED, 0)
                 .putLong(KEY_GRACE_UNTIL_MS, 0L)
+                .putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
                 .apply()
+            QuickUnlockNotification.cancel(ctx)
             if (BuildConfig.DEBUG) android.util.Log.d(TAG, "ShieldPrefs.clear()")
         }
 
@@ -245,6 +412,7 @@ class FocusShieldRepository @Inject constructor(
             prefs(ctx).getStringSet(KEY_PACKAGES, emptySet()) ?: emptySet()
 
         fun isStrict(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_STRICT, false)
+        fun isAlwaysOn(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_ALWAYS_ON, false)
         fun getUnlockLimit(ctx: Context): Int = prefs(ctx).getInt(KEY_UNLOCK_LIMIT, 0)
         fun getUnlockSeconds(ctx: Context): Int = prefs(ctx).getInt(KEY_UNLOCK_SECONDS, 60)
         fun getUnlocksUsed(ctx: Context): Int = prefs(ctx).getInt(KEY_UNLOCKS_USED, 0)
@@ -256,17 +424,37 @@ class FocusShieldRepository @Inject constructor(
         fun getGraceUntilMs(ctx: Context): Long = prefs(ctx).getLong(KEY_GRACE_UNTIL_MS, 0L)
         fun isInGracePeriod(ctx: Context): Boolean = System.currentTimeMillis() < getGraceUntilMs(ctx)
 
-        fun applyEmergencyUnlock(ctx: Context, graceUntilMs: Long, unlocksUsed: Int) {
+        fun applyEmergencyUnlock(ctx: Context, graceUntilMs: Long, unlocksUsed: Int, userName: String? = null) {
             prefs(ctx).edit()
                 .putLong(KEY_GRACE_UNTIL_MS, graceUntilMs)
                 .putInt(KEY_UNLOCKS_USED, unlocksUsed)
                 .apply()
+            QuickUnlockNotification.show(ctx, graceUntilMs, userName)
             if (BuildConfig.DEBUG) {
                 android.util.Log.d(TAG, "ShieldPrefs.applyEmergencyUnlock(graceUntilMs=$graceUntilMs, unlocksUsed=$unlocksUsed)")
             }
         }
 
-        /** Suppress re-blocking briefly after the user taps "Back to ekagra" on the block screen. */
+        fun applyOneTimeUnlock(ctx: Context, packageName: String, unlocksUsed: Int) {
+            prefs(ctx).edit()
+                .putString(KEY_ONE_TIME_UNLOCK_PACKAGE, packageName)
+                .putLong(KEY_GRACE_UNTIL_MS, 0L)
+                .putInt(KEY_UNLOCKS_USED, unlocksUsed)
+                .apply()
+            if (BuildConfig.DEBUG) {
+                android.util.Log.d(TAG, "ShieldPrefs.applyOneTimeUnlock(packageName=$packageName, unlocksUsed=$unlocksUsed)")
+            }
+        }
+
+        fun isOneTimeUnlockedPackage(ctx: Context, packageName: String): Boolean =
+            packageName.isNotBlank() &&
+                prefs(ctx).getString(KEY_ONE_TIME_UNLOCK_PACKAGE, null) == packageName
+
+        fun clearOneTimeUnlock(ctx: Context) {
+            prefs(ctx).edit().putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null).apply()
+        }
+
+        /** Suppress re-blocking briefly after the user taps the return button on the block screen. */
         fun beginReturnToFocusGrace(ctx: Context, durationMs: Long) {
             prefs(ctx).edit()
                 .putLong(KEY_RETURN_GRACE_UNTIL_ELAPSED, SystemClock.elapsedRealtime() + durationMs)

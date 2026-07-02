@@ -34,7 +34,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.Adjust
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -161,6 +160,7 @@ fun PlanTabScreen(
 
     var activeTab by remember(plan.id) { mutableStateOf(StudyPlannerTab.TODAY) }
     var isFlowModeActive by remember(plan.id) { mutableStateOf(false) }
+    var skippedFlowTopicIds by remember(plan.id, today) { mutableStateOf(emptySet<String>()) }
 
     var showSettings by remember(plan.id) { mutableStateOf(false) }
     var resetConfirm by remember { mutableStateOf(false) }
@@ -168,7 +168,6 @@ fun PlanTabScreen(
 
     // Editable Today's Agenda state
     var replaceSheetTopic by remember { mutableStateOf<TopicRef?>(null) }
-    var showAddToTodaySheet by remember { mutableStateOf(false) }
     var removeFromTodayConfirmTopic by remember { mutableStateOf<TopicRef?>(null) }
 
     fun exportPlan() {
@@ -262,20 +261,6 @@ fun PlanTabScreen(
         )
     }
 
-    // ── Add Topic to Today Sheet ───────────────────────────────────
-    if (showAddToTodaySheet) {
-        AddTopicToTodaySheet(
-            allRefs = refs,
-            today = today,
-            dailyGoal = plan.dailyGoal ?: 0,
-            currentTodayCount = todayTopics.size,
-            onAdd = { topicId, todayDate ->
-                actions.moveTopicsToDate(listOf(topicId), todayDate)
-            },
-            onDismiss = { showAddToTodaySheet = false },
-        )
-    }
-
     // ── Remove from Today confirmation ─────────────────────────────
     removeFromTodayConfirmTopic?.let { ref ->
         PlanConfirmDialog(
@@ -320,6 +305,7 @@ fun PlanTabScreen(
                 PlanActionRow(
                     onAddTopics = { onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", plan.id)) },
                     onSchedule = { actions.autoDistribute(false, true) },
+                    onRebuildPlan = { actions.autoDistribute(false, false) },
                     showSchedule = false,
                 )
             }
@@ -460,7 +446,10 @@ fun PlanTabScreen(
                                                 )
                                                 Spacer(Modifier.height(8.dp))
                                                 Button(
-                                                    onClick = { isFlowModeActive = true },
+                                                    onClick = {
+                                                        skippedFlowTopicIds = emptySet()
+                                                        isFlowModeActive = true
+                                                    },
                                                     colors = ButtonDefaults.buttonColors(
                                                         containerColor = if (isDark) Color(0xFFA855F7) else Color(0xFF7E22CE),
                                                         contentColor = Color.White
@@ -501,43 +490,6 @@ fun PlanTabScreen(
                                 onReplace = { replaceSheetTopic = ref },
                                 onRemoveFromToday = { removeFromTodayConfirmTopic = ref },
                             )
-                        }
-
-                        // "Add Topic to Today" button
-                        item(key = "today_add_topic") {
-                            val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-                            OutlinedButton(
-                                onClick = { showAddToTodaySheet = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 48.dp),
-                                border = BorderStroke(
-                                    width = 1.5.dp,
-                                    brush = Brush.horizontalGradient(
-                                        colors = if (isDark) {
-                                            listOf(Color(0xFF38BDF8), Color(0xFF818CF8))
-                                        } else {
-                                            listOf(Color(0xFF0F172A), Color(0xFF334155))
-                                        },
-                                    ),
-                                ),
-                                shape = MaterialTheme.shapes.medium,
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0F172A),
-                                ),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AddCircleOutline,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = "Add Topic to Today",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                )
-                            }
                         }
 
                         if (todayCompleted) {
@@ -743,9 +695,10 @@ fun PlanTabScreen(
         // Fullscreen Flow Mode Overlay
         if (isFlowModeActive) {
             val incompleteTopics = todayTopics.filter { it.topic.status != TopicStatus.DONE }
+            val availableTopics = incompleteTopics.filter { it.topic.id !in skippedFlowTopicIds }
             val totalCount = todayTopics.size
             val completedCount = totalCount - incompleteTopics.size
-            val activeTopic = incompleteTopics.firstOrNull()
+            val activeTopic = availableTopics.firstOrNull()
 
             // Breathing pulse animations
             val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -819,7 +772,7 @@ fun PlanTabScreen(
                             modifier = Modifier.fillMaxWidth(0.85f)
                         ) {
                             Text(
-                                text = "Ekagra Queue: $completedCount of $totalCount Done",
+                                text = "Topics Queue: $completedCount of $totalCount Done",
                                 color = Color.White.copy(alpha = 0.7f),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
@@ -924,6 +877,55 @@ fun PlanTabScreen(
                                 Text("Mark as Completed", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                             }
 
+                            OutlinedButton(
+                                onClick = {
+                                    skippedFlowTopicIds = skippedFlowTopicIds + activeTopic.topic.id
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 54.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color.White.copy(alpha = 0.9f)
+                                ),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
+                                shape = CircleShape
+                            ) {
+                                Text("Skip for now", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                        }
+                    }
+                } else if (incompleteTopics.isNotEmpty()) {
+                    // All remaining topics were skipped in this Flow session only.
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(24.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Skipped for now",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Skipped topics stay unticked in Today's Agenda. Start Study Flow again when you want to continue them.",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { isFlowModeActive = false },
+                            modifier = Modifier
+                                .fillMaxWidth(0.6f)
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF1E1B4B)),
+                            shape = CircleShape
+                        ) {
+                            Text("Back to Planner", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 } else {
