@@ -249,8 +249,8 @@ fun KavachOnboardingScreen(
 
                 if (accessibilityRequired) {
                     KavachRegainPermissionRow(
-                        title = "KAVACH alert permission",
-                        subtitle = "Lets KAVACH bring you back to SAFAR from selected apps.",
+                        title = "AccessibilityService API",
+                        subtitle = "Required to monitor app launches and display the blocking shield overlay over distracting apps.",
                         granted = hasAccessibility,
                         isNext = isAccessibilityNext,
                         colors = colors,
@@ -415,7 +415,7 @@ private fun KavachRegainExplanationSheet(
 
     val title = when (permission) {
         PermissionTarget.USAGE_STATS -> "Allow usage permission to check app use"
-        PermissionTarget.ACCESSIBILITY -> "Allow accessibility permission to block apps"
+        PermissionTarget.ACCESSIBILITY -> "Allow AccessibilityService API to block apps"
         PermissionTarget.NOTIFICATIONS -> "Allow notifications for status"
     }
 
@@ -426,9 +426,12 @@ private fun KavachRegainExplanationSheet(
             "This helps KAVACH block only the apps you choose.",
         )
         PermissionTarget.ACCESSIBILITY -> listOf(
-            "We do not read your private messages or screen content.",
-            "We only monitor when you open an app you chose to block.",
-            "This enables the full-screen shield overlay.",
+            "SAFAR uses Android AccessibilityService only for KAVACH Focus Shield.",
+            "When KAVACH is enabled, SAFAR detects the package name of the app you open and compares it with the apps you selected to block.",
+            "If a selected app opens during an active Ekagra focus timer session, SAFAR shows the KAVACH block screen so you can return to studying.",
+            "SAFAR does not request the Display over other apps permission. KAVACH shows its own block screen only when a user-selected blocked app is opened during an active Ekagra focus timer session.",
+            "SAFAR does not read your screen content, messages, passwords, typed text, notifications, contacts, photos, or files. SAFAR does not click buttons, perform gestures, change device settings, prevent uninstall, or control your phone.",
+            "All processing happens locally on your device. SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties. You can keep using SAFAR without KAVACH and can disable this permission anytime in Android Settings.",
             "If you installed SAFAR from APK and cannot see the toggle, open SAFAR App Info, tap the top-right menu, and allow restricted settings.",
         )
         PermissionTarget.NOTIFICATIONS -> listOf(
@@ -446,6 +449,7 @@ private fun KavachRegainExplanationSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
         ) {
@@ -524,11 +528,36 @@ private fun KavachRegainExplanationSheet(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = "Allow",
+                        text = if (permission == PermissionTarget.ACCESSIBILITY) {
+                            "I Agree - Open Accessibility Settings"
+                        } else {
+                            "Allow"
+                        },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.ctaText,
                     )
+                }
+            }
+
+            if (permission == PermissionTarget.ACCESSIBILITY) {
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(99.dp),
+                    color = Color.Transparent,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "Not Now",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.secondaryText,
+                        )
+                    }
                 }
             }
         }

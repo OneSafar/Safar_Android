@@ -2,6 +2,7 @@ package com.safarparmar.app.data.repository
 
 import com.safarparmar.app.data.remote.api.PaymentApi
 import com.safarparmar.app.data.remote.dto.CreateOrderRequestDto
+import com.safarparmar.app.data.remote.dto.ExtendPlanRequestDto
 import com.safarparmar.app.data.remote.dto.VerifyPaymentRequestDto
 import com.safarparmar.app.data.remote.dto.VerifyPaymentResponseDto
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +15,20 @@ class PaymentRepository @Inject constructor(
     fun createOrder(amount: Int, courseId: String): Flow<Result<com.safarparmar.app.data.remote.dto.CreateOrderResponseWrapper>> = flow {
         try {
             val response = api.createOrder(CreateOrderRequestDto(amount, courseId))
+            if (response.isSuccessful && response.body() != null) {
+                emit(Result.success(response.body()!!))
+            } else {
+                val errorBody = response.errorBody()?.string()
+                emit(Result.failure(Exception(errorBody ?: response.message() ?: "Unknown error")))
+            }
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
+    fun extendPlan(duration: Int): Flow<Result<com.safarparmar.app.data.remote.dto.CreateOrderResponseWrapper>> = flow {
+        try {
+            val response = api.extendPlan(ExtendPlanRequestDto(duration = duration))
             if (response.isSuccessful && response.body() != null) {
                 emit(Result.success(response.body()!!))
             } else {

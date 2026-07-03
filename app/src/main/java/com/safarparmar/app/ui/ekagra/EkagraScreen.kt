@@ -193,7 +193,7 @@ fun EkagraScreen(
             goalTitle    = if (mode == TimerMode.FOCUS) associatedGoalTitle else null,
             mode         = mode.toApiMode(),
         )
-        if (mode == TimerMode.FOCUS && shieldState.isEnabled && !shieldState.isAlwaysOn && shieldState.blockedPackages.isNotEmpty()) {
+        if (mode == TimerMode.FOCUS && shieldState.isEnabled && shieldState.blockedPackages.isNotEmpty()) {
             timerService?.setFocusShieldConfig(shieldState.blockedPackages, shieldState.isStrictMode)
             timerService?.enableFocusShieldForSession()
         }
@@ -338,7 +338,6 @@ fun EkagraScreen(
 
     val progress = if (totalSeconds > 0) 1f - secondsLeft.toFloat() / totalSeconds else 0f
     val mottoText = when {
-        timerMode != TimerMode.FOCUS && timerRunning && shieldState.isAlwaysOn -> "BREAK TIME - ALWAYS-ON KAVACH ACTIVE"
         timerMode != TimerMode.FOCUS && timerRunning -> "BREAK TIME - KAVACH PAUSED"
         timerRunning -> "STAY FOCUSED, YOU'RE DOING GREAT!"
         else         -> "READY TO FOCUS?"

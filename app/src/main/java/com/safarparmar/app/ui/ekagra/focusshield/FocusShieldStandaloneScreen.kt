@@ -70,7 +70,6 @@ fun FocusShieldStandaloneScreen(
             state = state,
             accent = accent,
             onToggleEnabled = viewModel::setEnabled,
-            onToggleAlwaysOn = viewModel::setAlwaysOn,
             onToggleStrictMode = viewModel::setStrictMode,
             onToggleEmergencyUnlock = viewModel::setAllowEmergencyUnlock,
             onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },

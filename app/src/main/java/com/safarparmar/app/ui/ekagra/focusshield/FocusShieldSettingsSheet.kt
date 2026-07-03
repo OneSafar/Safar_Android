@@ -49,7 +49,6 @@ fun FocusShieldSettingsContent(
     state: FocusShieldUiState,
     accent: Color,
     onToggleEnabled: (Boolean) -> Unit,
-    onToggleAlwaysOn: (Boolean) -> Unit,
     onToggleStrictMode: (Boolean) -> Unit,
     onToggleEmergencyUnlock: (Boolean) -> Unit,
     onOpenAppPicker: () -> Unit,
@@ -84,7 +83,7 @@ fun FocusShieldSettingsContent(
     val primaryCtaLabel = when {
         !state.isEnabled -> "Turn On KAVACH"
         !hasUsageStats -> "Allow App Check"
-        accessibilityRequired && !hasAccessibilityService -> "Allow KAVACH Alert"
+        accessibilityRequired && !hasAccessibilityService -> "Allow Accessibility API"
         state.blockedPackages.isEmpty() -> "Choose Apps"
         else -> "Edit App List"
     }
@@ -198,12 +197,10 @@ fun FocusShieldSettingsContent(
                     Spacer(Modifier.height(32.dp))
                     KavachControlCenterContainer(
                         blockedAppCount = state.blockedPackages.size,
-                        alwaysOnEnabled = state.isAlwaysOn,
                         beastModeEnabled = state.isStrictMode,
                         emergencyUnlockEnabled = state.allowEmergencyUnlock,
                         accent = accent,
                         onOpenAppPicker = onOpenAppPicker,
-                        onAlwaysOnChange = onToggleAlwaysOn,
                         onBeastModeChange = onToggleStrictMode,
                         onEmergencyUnlockChange = onToggleEmergencyUnlock,
                     )

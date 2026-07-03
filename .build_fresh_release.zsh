@@ -14,4 +14,4 @@ bundle_path='app/build/outputs/bundle/prodRelease/app-prod-release.aab'
 
 ./gradlew clean :app:bundleProdRelease --no-daemon --console=plain
 "$JAVA_HOME/bin/keytool" -printcert -jarfile "$bundle_path" | grep -q 'CN=Safar App'
-cp "$bundle_path" Outputs/Safar-prod-release-v1.6.1-12-fresh.aab
+cp "$bundle_path" Outputs/Safar-prod-release-v1.6.4-16-fresh.aab

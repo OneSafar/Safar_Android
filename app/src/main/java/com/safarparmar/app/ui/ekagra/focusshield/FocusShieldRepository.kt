@@ -38,7 +38,6 @@ class FocusShieldRepository @Inject constructor(
 
     private data class ShieldActivationSettings(
         val enabled: Boolean,
-        val alwaysOn: Boolean,
         val strict: Boolean,
         val allowEmergencyUnlock: Boolean,
         val packages: Set<String>,
@@ -49,8 +48,8 @@ class FocusShieldRepository @Inject constructor(
     val isEnabled: StateFlow<Boolean> = dataStore.focusShieldEnabled
         .stateIn(scope, SharingStarted.Eagerly, false)
 
-    val isAlwaysOn: StateFlow<Boolean> = dataStore.focusShieldAlwaysOn
-        .stateIn(scope, SharingStarted.Eagerly, false)
+    private val _isAlwaysOn = MutableStateFlow(false)
+    val isAlwaysOn: StateFlow<Boolean> = _isAlwaysOn.asStateFlow()
 
     val isStrictMode: StateFlow<Boolean> = dataStore.focusShieldStrictMode
         .stateIn(scope, SharingStarted.Eagerly, false)
@@ -90,14 +89,12 @@ class FocusShieldRepository @Inject constructor(
     init {
         val primarySettings = combine(
             dataStore.focusShieldEnabled,
-            dataStore.focusShieldAlwaysOn,
             dataStore.focusShieldStrictMode,
             dataStore.focusShieldEmergencyUnlock,
             dataStore.focusShieldBlockedPackages,
-        ) { enabled, alwaysOn, strict, emergency, packages ->
+        ) { enabled, strict, emergency, packages ->
             ShieldActivationSettings(
                 enabled = enabled,
-                alwaysOn = alwaysOn,
                 strict = strict,
                 allowEmergencyUnlock = emergency,
                 packages = packages,
@@ -107,6 +104,7 @@ class FocusShieldRepository @Inject constructor(
         }
 
         scope.launch {
+            dataStore.setFocusShieldAlwaysOn(false)
             combine(
                 primarySettings,
                 dataStore.focusShieldEmergencyUnlocksPerSession,
@@ -114,7 +112,7 @@ class FocusShieldRepository @Inject constructor(
             ) { settings, unlockLimit, unlockSeconds ->
                 settings.copy(unlockLimit = unlockLimit, unlockSeconds = unlockSeconds)
             }.collect { settings ->
-                syncAlwaysOnActivation(settings)
+                if (!settings.enabled) deactivateSession()
             }
         }
     }
@@ -204,10 +202,7 @@ class FocusShieldRepository @Inject constructor(
             dataStore.setFocusShieldEnabled(enabled)
             val settings = currentSettings().copy(enabled = enabled)
             if (!enabled) {
-                _alwaysOnActive.value = false
                 deactivateSession()
-            } else {
-                syncAlwaysOnActivation(settings, resetUnlocks = true)
             }
             if (enabled && blockedPackages.value.isNotEmpty()) {
                 homeRepository.trackKavachEvent("enabled", blockedPackages.value.size)
@@ -217,38 +212,27 @@ class FocusShieldRepository @Inject constructor(
 
     fun setAlwaysOn(enabled: Boolean) {
         scope.launch {
-            if (enabled && !isEnabled.value) {
-                dataStore.setFocusShieldEnabled(true)
-            }
-            dataStore.setFocusShieldAlwaysOn(enabled)
-            syncAlwaysOnActivation(
-                currentSettings().copy(
-                    enabled = if (enabled) true else isEnabled.value,
-                    alwaysOn = enabled,
-                ),
-                resetUnlocks = enabled,
-            )
+            dataStore.setFocusShieldAlwaysOn(false)
+            _isAlwaysOn.value = false
+            _alwaysOnActive.value = false
         }
     }
 
     fun setStrictMode(enabled: Boolean) {
         scope.launch {
             dataStore.setFocusShieldStrictMode(enabled)
-            syncAlwaysOnActivation(currentSettings().copy(strict = enabled))
         }
     }
 
     fun setAllowEmergencyUnlock(allow: Boolean) {
         scope.launch {
             dataStore.setFocusShieldEmergencyUnlock(allow)
-            syncAlwaysOnActivation(currentSettings().copy(allowEmergencyUnlock = allow))
         }
     }
 
     fun setBlockedPackages(packages: Set<String>) {
         scope.launch {
             dataStore.setFocusShieldBlockedPackages(packages)
-            syncAlwaysOnActivation(currentSettings().copy(packages = packages), resetUnlocks = true)
             if (isEnabled.value && packages.isNotEmpty()) {
                 homeRepository.trackKavachEvent("configured", packages.size)
             }
@@ -256,46 +240,21 @@ class FocusShieldRepository @Inject constructor(
     }
 
     fun syncAlwaysOnActivation(resetUnlocks: Boolean = false) {
-        syncAlwaysOnActivation(currentSettings(), resetUnlocks)
+        scope.launch { dataStore.setFocusShieldAlwaysOn(false) }
+        _isAlwaysOn.value = false
+        _alwaysOnActive.value = false
     }
 
     fun shouldPreserveAlwaysOnBlocking(): Boolean {
-        val settings = currentSettings()
-        return settings.enabled &&
-            settings.alwaysOn &&
-            settings.packages.isNotEmpty() &&
-            hasRequiredPermissions()
+        return false
     }
 
     private fun syncAlwaysOnActivation(
         settings: ShieldActivationSettings,
         resetUnlocks: Boolean = false,
     ) {
-        if (!settings.enabled) {
-            _alwaysOnActive.value = false
-            deactivateSession()
-            return
-        }
-
-        if (!settings.alwaysOn) {
-            if (_alwaysOnActive.value) {
-                _alwaysOnActive.value = false
-                deactivateSession()
-            }
-            return
-        }
-
-        if (settings.packages.isEmpty() || !hasRequiredPermissions()) {
-            if (_alwaysOnActive.value) {
-                _alwaysOnActive.value = false
-                deactivateSession()
-            }
-            return
-        }
-
-        activateBlocking(settings, resetUnlocks = resetUnlocks || !_alwaysOnActive.value)
-        _alwaysOnActive.value = true
-        debugLog("Always-on KAVACH active for ${settings.packages.size} packages")
+        _isAlwaysOn.value = false
+        _alwaysOnActive.value = false
     }
 
     private fun activateBlocking(
@@ -314,8 +273,8 @@ class FocusShieldRepository @Inject constructor(
             active = true,
             packages = settings.packages,
             strict = settings.strict,
-            alwaysOn = settings.alwaysOn,
-            unlockLimit = if (settings.alwaysOn && settings.allowEmergencyUnlock && !settings.strict) 1 else 0,
+            alwaysOn = false,
+            unlockLimit = if (settings.allowEmergencyUnlock && !settings.strict) settings.unlockLimit else 0,
             unlockSeconds = settings.unlockSeconds,
             resetUnlocks = resetUnlocks,
         )
@@ -327,7 +286,6 @@ class FocusShieldRepository @Inject constructor(
     private fun currentSettings(): ShieldActivationSettings =
         ShieldActivationSettings(
             enabled = isEnabled.value,
-            alwaysOn = isAlwaysOn.value,
             strict = isStrictMode.value,
             allowEmergencyUnlock = allowEmergencyUnlock.value,
             packages = blockedPackages.value,

@@ -5,6 +5,10 @@ data class CreateOrderRequestDto(
     val courseId: String
 )
 
+data class ExtendPlanRequestDto(
+    val duration: Int
+)
+
 data class CreateOrderResponseWrapper(
     val success: Boolean,
     val order: CreateOrderResponseDto,

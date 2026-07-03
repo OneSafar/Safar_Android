@@ -201,6 +201,10 @@ fun SettingsScreen(
         SettingsLegalInfoSheet(
             sheet = sheet,
             onDismiss = { activeInfoSheet = null },
+            onOpenAccessibilitySettings = {
+                activeInfoSheet = null
+                FocusShieldPermissionHelper.openAccessibilitySettings(context)
+            },
         )
     }
 
@@ -462,10 +466,10 @@ fun SettingsScreen(
                     SettingsPermissionRow(
                         icon = Icons.Default.Info,
                         title = "KAVACH Alert",
-                        subtitle = "Brings you back to SAFAR when a selected app opens.",
+                        subtitle = "Uses AccessibilityService for KAVACH Focus Shield app blocking.",
                         granted = hasFocusShieldAccessibility,
                         accent = MaterialTheme.colorScheme.primary,
-                        onClickWhenNotGranted = { FocusShieldPermissionHelper.openAccessibilitySettings(context) },
+                        onClickWhenNotGranted = { activeInfoSheet = SettingsInfoSheet.ACCESSIBILITY },
                         onInfoClick = { activeInfoSheet = SettingsInfoSheet.ACCESSIBILITY },
                     )
                 }
@@ -620,6 +624,7 @@ private fun SettingsInfoRow(
 private fun SettingsLegalInfoSheet(
     sheet: SettingsInfoSheet,
     onDismiss: () -> Unit,
+    onOpenAccessibilitySettings: (() -> Unit)? = null,
 ) {
     val content = when (sheet) {
         SettingsInfoSheet.EULA -> SettingsInfoContent(
@@ -651,12 +656,16 @@ private fun SettingsLegalInfoSheet(
             ),
         )
         SettingsInfoSheet.ACCESSIBILITY -> SettingsInfoContent(
-            title = "Accessibility",
-            subtitle = "Used only for KAVACH app blocking.",
+            title = "AccessibilityService API",
+            subtitle = "SAFAR uses this only for KAVACH Focus Shield.",
             points = listOf(
-                "It notices when a selected distracting app opens.",
-                "It helps KAVACH return you to SAFAR during active sessions.",
-                "It does not read private content or control your phone.",
+                "When KAVACH is enabled, SAFAR detects the package name of the app you open and compares it with the apps you selected to block.",
+                "If a selected app opens during an active Ekagra focus timer session, SAFAR shows the KAVACH block screen so you can return to studying.",
+                "SAFAR does not request the Display over other apps permission. KAVACH shows its own block screen only when a user-selected blocked app is opened during an active Ekagra focus timer session.",
+                "SAFAR does not read your screen content, messages, passwords, typed text, notifications, contacts, photos, or files.",
+                "SAFAR does not click buttons, perform gestures, change device settings, prevent uninstall, or control your phone.",
+                "All processing happens locally on your device. SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties.",
+                "You can keep using SAFAR without KAVACH and can disable this permission anytime in Android Settings.",
             ),
         )
         SettingsInfoSheet.USAGE_ACCESS -> SettingsInfoContent(
@@ -683,6 +692,7 @@ private fun SettingsLegalInfoSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 22.dp)
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -701,8 +711,21 @@ private fun SettingsLegalInfoSheet(
                     Text(point, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                Text("Got it", fontWeight = FontWeight.Bold)
+            if (sheet == SettingsInfoSheet.ACCESSIBILITY && onOpenAccessibilitySettings != null) {
+                Button(
+                    onClick = onOpenAccessibilitySettings,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Text("I Agree - Open Accessibility Settings", fontWeight = FontWeight.Bold)
+                }
+                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                    Text("Not Now", fontWeight = FontWeight.Bold)
+                }
+            } else {
+                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                    Text("Got it", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,6 +43,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,7 +63,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -79,6 +79,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.razorpay.Checkout
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -91,6 +93,7 @@ private data class PremiumPlanOption(
     val price: Int,
     val subtitle: String,
     val durationLabel: String,
+    val durationMonths: Int,
     val courseId: String,
     val badge: String? = null,
     val discountLabel: String? = null,
@@ -140,6 +143,7 @@ fun PremiumPaywallScreen(
                 price = 79,
                 subtitle = "Start small for your next target",
                 durationLabel = "3 months",
+                durationMonths = 3,
                 courseId = "study-planner-pro-3month",
                 discountLabel = "Starter",
             ),
@@ -149,6 +153,7 @@ fun PremiumPaywallScreen(
                 price = 99,
                 subtitle = "Good for one exam cycle",
                 durationLabel = "6 months",
+                durationMonths = 6,
                 courseId = "study-planner-pro-6month",
                 badge = "Popular",
                 discountLabel = "Popular",
@@ -156,6 +161,8 @@ fun PremiumPaywallScreen(
         )
     }
     var selectedPlanId by remember { mutableStateOf("6month") }
+    var selectedPlanDuration by remember { mutableStateOf(6) }
+    var currentExpiryDate by remember { mutableStateOf<String?>(null) }
     val selectedPlan = plans.firstOrNull { it.id == selectedPlanId } ?: plans.last()
     val isLoading = uiState is PremiumUiState.Loading
 
@@ -216,6 +223,18 @@ fun PremiumPaywallScreen(
     val isPremiumActive = activeStatus.hasAnyPaidAccess
     val formattedExpiry = remember(activeStatus.expiresAt) { formatPremiumExpiry(activeStatus.expiresAt) }
     val planLabel = remember(activeStatus.planType) { premiumPlanLabel(activeStatus.planType) }
+    val newExpiryAfterPurchase = remember(currentExpiryDate, selectedPlanDuration) {
+        calculatePremiumExtensionExpiry(currentExpiryDate, selectedPlanDuration)
+    }
+    val formattedNewExpiry = remember(newExpiryAfterPurchase) { formatPremiumExpiry(newExpiryAfterPurchase) }
+    val updateSelectedPlan: (String) -> Unit = { planId ->
+        selectedPlanId = planId
+        selectedPlanDuration = plans.firstOrNull { it.id == planId }?.durationMonths ?: selectedPlanDuration
+    }
+
+    LaunchedEffect(activeStatus.expiresAt) {
+        currentExpiryDate = activeStatus.expiresAt
+    }
 
     if (uiState is PremiumUiState.PaymentSuccess) {
         PremiumUnlockedDialog(
@@ -251,8 +270,7 @@ fun PremiumPaywallScreen(
                 colors = colors,
                 onPurchase = {
                     viewModel.createOrder(
-                        amount = selectedPlan.price,
-                        courseId = selectedPlan.courseId,
+                        duration = selectedPlan.durationMonths,
                     )
                 },
             )
@@ -274,9 +292,11 @@ fun PremiumPaywallScreen(
                     plans = plans,
                     selectedPlanId = selectedPlanId,
                     selectedPlan = selectedPlan,
+                    currentExpiryText = formattedExpiry,
+                    newExpiryText = formattedNewExpiry,
                     isLoading = isLoading,
                     colors = colors,
-                    onSelectPlan = { selectedPlanId = it },
+                    onSelectPlan = updateSelectedPlan,
                     onRestore = { viewModel.refreshPremiumStatus() },
                 )
             } else {
@@ -284,10 +304,12 @@ fun PremiumPaywallScreen(
                     plans = plans,
                     selectedPlanId = selectedPlanId,
                     selectedPlan = selectedPlan,
+                    currentExpiryText = formattedExpiry,
+                    newExpiryText = formattedNewExpiry,
                     uiState = uiState,
                     isLoading = isLoading,
                     colors = colors,
-                    onSelectPlan = { selectedPlanId = it },
+                    onSelectPlan = updateSelectedPlan,
                     onStartTrial = { showTrialConfirmation = true },
                     onRestore = { viewModel.refreshPremiumStatus() },
                 )
@@ -424,7 +446,7 @@ private fun PremiumUnlockedDialog(
         },
         title = {
             Text(
-                text = "Safar Premium unlocked",
+                text = "Plan extended",
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -435,20 +457,19 @@ private fun PremiumUnlockedDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = "$dialogPlanLabel is active.",
-                    textAlign = TextAlign.Center,
-                )
                 dialogExpiry?.let {
                     Text(
-                        text = "Valid until $it",
+                        text = "Your plan has been extended to $it",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = Color(0xFF15803D),
                         textAlign = TextAlign.Center,
                     )
-                }
+                } ?: Text(
+                    text = "$dialogPlanLabel is active.",
+                    textAlign = TextAlign.Center,
+                )
                 Text(
-                    text = "Premium features are now available across SAFAR.",
+                    text = "You can keep using every Premium feature across SAFAR.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -468,6 +489,8 @@ private fun PremiumUpgradeContent(
     plans: List<PremiumPlanOption>,
     selectedPlanId: String,
     selectedPlan: PremiumPlanOption,
+    currentExpiryText: String?,
+    newExpiryText: String?,
     uiState: PremiumUiState,
     isLoading: Boolean,
     colors: PremiumColors,
@@ -481,10 +504,7 @@ private fun PremiumUpgradeContent(
         onStartTrial = onStartTrial,
     )
 
-    PremiumBenefitsCard(
-        selectedPlan = selectedPlan,
-        colors = colors,
-    )
+    PremiumBenefitsCard(colors = colors)
 
     PremiumHero(colors = colors)
 
@@ -492,6 +512,8 @@ private fun PremiumUpgradeContent(
         plans = plans,
         selectedPlanId = selectedPlanId,
         selectedPlan = selectedPlan,
+        currentExpiryText = currentExpiryText,
+        newExpiryText = newExpiryText,
         colors = colors,
         onSelectPlan = onSelectPlan,
     )
@@ -512,6 +534,8 @@ private fun PremiumActiveContent(
     plans: List<PremiumPlanOption>,
     selectedPlanId: String,
     selectedPlan: PremiumPlanOption,
+    currentExpiryText: String?,
+    newExpiryText: String?,
     isLoading: Boolean,
     colors: PremiumColors,
     onSelectPlan: (String) -> Unit,
@@ -523,14 +547,11 @@ private fun PremiumActiveContent(
         colors = colors,
     )
 
-    PremiumBenefitsCard(
-        selectedPlan = selectedPlan,
-        colors = colors,
-    )
+    PremiumBenefitsCard(colors = colors)
 
     SectionHeader(
-        title = "Extend plan",
-        subtitle = "Add more time after your current Premium validity.",
+        title = "Add more time to your plan",
+        subtitle = "You won’t lose your current time. This purchase adds more time to your plan.",
         colors = colors,
     )
 
@@ -538,6 +559,8 @@ private fun PremiumActiveContent(
         plans = plans,
         selectedPlanId = selectedPlanId,
         selectedPlan = selectedPlan,
+        currentExpiryText = currentExpiryText,
+        newExpiryText = newExpiryText,
         colors = colors,
         onSelectPlan = onSelectPlan,
     )
@@ -606,10 +629,7 @@ private fun PremiumHero(colors: PremiumColors) {
 }
 
 @Composable
-private fun PremiumBenefitsCard(
-    selectedPlan: PremiumPlanOption,
-    colors: PremiumColors,
-) {
+private fun PremiumBenefitsCard(colors: PremiumColors) {
     val benefits = remember {
         listOf(
             "Know if your exam plan is on track",
@@ -639,11 +659,6 @@ private fun PremiumBenefitsCard(
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                     color = colors.accent,
-                )
-                Text(
-                    text = "₹${selectedPlan.price}",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                    color = colors.textPrimary,
                 )
             }
 
@@ -678,11 +693,13 @@ private fun PremiumPricingPanel(
     plans: List<PremiumPlanOption>,
     selectedPlanId: String,
     selectedPlan: PremiumPlanOption,
+    currentExpiryText: String?,
+    newExpiryText: String?,
     colors: PremiumColors,
     onSelectPlan: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        SegmentedPlanSelector(
+        RadioPlanSelector(
             plans = plans,
             selectedPlanId = selectedPlanId,
             colors = colors,
@@ -690,56 +707,52 @@ private fun PremiumPricingPanel(
         )
         SelectedPlanCard(
             plan = selectedPlan,
+            currentExpiryText = currentExpiryText,
+            newExpiryText = newExpiryText,
             colors = colors,
         )
     }
 }
 
 @Composable
-private fun SegmentedPlanSelector(
+private fun RadioPlanSelector(
     plans: List<PremiumPlanOption>,
     selectedPlanId: String,
     colors: PremiumColors,
     onSelectPlan: (String) -> Unit,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = colors.primarySoft,
-        shape = RoundedCornerShape(50),
-        border = BorderStroke(1.dp, colors.border.copy(alpha = 0.62f)),
-    ) {
-        Row(
-            modifier = Modifier.padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            plans.forEach { plan ->
-                val selected = selectedPlanId == plan.id
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 40.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(if (selected) colors.surface else Color.Transparent)
-                        .border(
-                            width = if (selected) 1.dp else 0.dp,
-                            color = if (selected) colors.border else Color.Transparent,
-                            shape = RoundedCornerShape(50),
-                        )
-                        .selectable(
-                            selected = selected,
-                            onClick = { onSelectPlan(plan.id) },
-                            role = Role.RadioButton,
-                        )
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        plans.forEach { plan ->
+            val selected = selectedPlanId == plan.id
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(
+                        selected = selected,
+                        onClick = { onSelectPlan(plan.id) },
+                        role = Role.RadioButton,
+                    ),
+                shape = RoundedCornerShape(18.dp),
+                color = if (selected) colors.accentSoft else colors.elevatedSurface,
+                border = BorderStroke(1.dp, if (selected) colors.accent else colors.border),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text(
-                        text = plan.label,
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    RadioButton(
+                        selected = selected,
+                        onClick = null,
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = colors.accent,
+                            unselectedColor = colors.muted,
                         ),
-                        color = if (selected) colors.textPrimary else colors.textSecondary,
-                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        text = "${plan.label} – ₹${plan.price}",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = colors.textPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -752,6 +765,8 @@ private fun SegmentedPlanSelector(
 @Composable
 private fun SelectedPlanCard(
     plan: PremiumPlanOption,
+    currentExpiryText: String?,
+    newExpiryText: String?,
     colors: PremiumColors,
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
@@ -797,25 +812,19 @@ private fun SelectedPlanCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textSecondary,
                 )
-            }
-        }
-
-        plan.discountLabel?.let { label ->
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 16.dp)
-                    .rotate(7f),
-                shape = RoundedCornerShape(50),
-                color = colors.danger,
-                shadowElevation = 3.dp,
-            ) {
-                Text(
-                    text = label,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
-                    color = Color.White,
-                )
+                HorizontalDivider(color = colors.border)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Your current expiry: ${currentExpiryText ?: "No current active plan"}",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.textSecondary,
+                    )
+                    Text(
+                        text = "New expiry after purchase: ${newExpiryText ?: "Calculating..."}",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = colors.textPrimary,
+                    )
+                }
             }
         }
     }
@@ -1020,7 +1029,7 @@ private fun PremiumBottomBar(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isPremiumActive) "Extend" else "Continue",
+                        text = "Add ${selectedPlan.durationMonths} Months",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
                     )
                 }
@@ -1136,6 +1145,22 @@ private fun premiumPlanLabel(planType: String?): String {
         normalized.isNotBlank() -> "Safar Premium plan"
         else -> "Safar Premium"
     }
+}
+
+private fun calculatePremiumExtensionExpiry(
+    currentExpiryDate: String?,
+    selectedPlanDuration: Int,
+    now: Instant = Instant.now(),
+): String {
+    val currentExpiry = currentExpiryDate?.let { raw ->
+        runCatching { Instant.parse(raw) }.getOrNull()
+    }
+    val startsFrom = currentExpiry?.takeIf { it.isAfter(now) } ?: now
+    return ZonedDateTime
+        .ofInstant(startsFrom, ZoneOffset.UTC)
+        .plusMonths(selectedPlanDuration.toLong())
+        .toInstant()
+        .toString()
 }
 
 private fun formatPremiumExpiry(expiresAt: String?): String? {

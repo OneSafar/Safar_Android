@@ -252,7 +252,6 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
             packageName = blockedPackage,
             appName = appName,
             strict = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_STRICT, false),
-            alwaysOn = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_ALWAYS_ON, false) && !openEkagra,
             unlocksRemaining = intent.getIntExtra(EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING, -1),
         )
 
@@ -261,10 +260,8 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         }
     }
 
-    private fun quickUnlockBlockedApp(prompt: FocusShieldBlockPrompt, minutes: Int, pauseTimer: Boolean) {
-        if (pauseTimer) {
-            pauseEkagraTimerIfRunning()
-        }
+    private fun quickUnlockBlockedApp(prompt: FocusShieldBlockPrompt, minutes: Int, _pauseTimer: Boolean) {
+        pauseEkagraTimerIfRunning()
         val unlockMinutes = minutes.coerceIn(1, 60)
         val graceUntilMs = System.currentTimeMillis() + unlockMinutes * 60_000L
         val used = FocusShieldRepository.ShieldPrefs.getUnlocksUsed(this) + 1

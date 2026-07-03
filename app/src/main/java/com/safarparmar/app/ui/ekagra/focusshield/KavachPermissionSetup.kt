@@ -300,7 +300,7 @@ fun PermissionGuideSheet(
                     Text(
                         when (permission) {
                             PermissionTarget.USAGE_STATS -> if (accessibilityRequired) stringResource(R.string.kavach_setup_guide_title) else "Allow App Check"
-                            PermissionTarget.ACCESSIBILITY -> "Allow KAVACH Alert"
+                            PermissionTarget.ACCESSIBILITY -> "Allow Accessibility API"
                             PermissionTarget.NOTIFICATIONS -> "Allow Notifications"
                         },
                         fontWeight = FontWeight.Bold,
@@ -344,8 +344,8 @@ fun PermissionGuideSheet(
                         if (accessibilityRequired) {
                             GuideStepGroup(
                                 stepNumber = 2,
-                                title = "KAVACH Alert",
-                                subtitle = "Brings you back to SAFAR when a blocked app opens",
+                                title = "AccessibilityService API",
+                                subtitle = "Required to monitor app launches and display the blocking shield overlay over distracting apps. We do not collect or share your personal data.",
                                 steps = listOf(
                                     "Scroll down to find SAFAR KAVACH",
                                     "Tap it and toggle the switch on",
@@ -358,8 +358,8 @@ fun PermissionGuideSheet(
                     PermissionTarget.ACCESSIBILITY -> {
                         GuideStepGroup(
                             stepNumber = 1,
-                            title = "KAVACH Alert",
-                            subtitle = "Brings you back to SAFAR when a blocked app opens",
+                            title = "AccessibilityService API",
+                            subtitle = "Required for KAVACH Focus Shield to detect selected distracting apps and show the block screen.",
                             steps = listOf(
                                 "Scroll down to find SAFAR KAVACH",
                                 "Tap it and toggle the switch on",
@@ -381,6 +381,10 @@ fun PermissionGuideSheet(
                         )
                     }
                 }
+            }
+
+            if (permission == PermissionTarget.ACCESSIBILITY) {
+                AccessibilityProminentDisclosureCard()
             }
 
             // Privacy badge
@@ -418,7 +422,7 @@ fun PermissionGuideSheet(
                 Text(
                     when (permission) {
                         PermissionTarget.USAGE_STATS -> if (accessibilityRequired) "Open Settings — Step 1" else "Open Settings"
-                        PermissionTarget.ACCESSIBILITY -> "Open Accessibility Settings"
+                        PermissionTarget.ACCESSIBILITY -> "I Agree - Open Accessibility Settings"
                         PermissionTarget.NOTIFICATIONS -> "Allow Notifications"
                     },
                     fontWeight = FontWeight.Bold,
@@ -429,9 +433,68 @@ fun PermissionGuideSheet(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
                 shape = RoundedCornerShape(14.dp),
             ) {
-                Text("Maybe later", color = scheme.onSurfaceVariant)
+                Text(
+                    if (permission == PermissionTarget.ACCESSIBILITY) "Not Now" else "Maybe later",
+                    color = scheme.onSurfaceVariant,
+                )
             }
             Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun AccessibilityProminentDisclosureCard() {
+    val scheme = MaterialTheme.colorScheme
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = scheme.surfaceVariant.copy(alpha = 0.55f)),
+        border = CardDefaults.outlinedCardBorder(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "How SAFAR uses AccessibilityService",
+                fontSize = 15.sp,
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface,
+            )
+            Text(
+                text = "SAFAR uses Android AccessibilityService only for KAVACH Focus Shield. When KAVACH is enabled, SAFAR detects the package name of the app you open and compares it with the apps you selected to block.",
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                color = scheme.onSurfaceVariant,
+            )
+            Text(
+                text = "If a selected app opens during an active Ekagra focus timer session, SAFAR shows the KAVACH block screen so you can return to studying.",
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                color = scheme.onSurfaceVariant,
+            )
+            Text(
+                text = "SAFAR does not request the Display over other apps permission. KAVACH shows its own block screen only when a user-selected blocked app is opened during an active Ekagra focus timer session.",
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                color = scheme.onSurfaceVariant,
+            )
+            Text(
+                text = "SAFAR does not read your screen content, messages, passwords, typed text, notifications, contacts, photos, or files. SAFAR does not click buttons, perform gestures, change device settings, prevent uninstall, or control your phone.",
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                color = scheme.onSurfaceVariant,
+            )
+            Text(
+                text = "All processing happens locally on your device. SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties. You can keep using SAFAR without KAVACH and can disable this permission anytime in Android Settings.",
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                color = scheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -547,6 +610,7 @@ fun KavachPermissionSetup(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -579,7 +643,47 @@ fun KavachPermissionSetup(
             Spacer(Modifier.height(6.dp))
 
             Text(
-                text = "KAVACH blocks only the apps you choose during timer sessions or Always-on mode.",
+                text = "SAFAR uses Android AccessibilityService only for KAVACH Focus Shield. When KAVACH is enabled, SAFAR detects the package name of the app you open and compares it with the apps you selected to block.",
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                text = "If a selected app opens during an active Ekagra focus timer session, SAFAR shows the KAVACH block screen so you can return to studying.",
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                text = "SAFAR does not request the Display over other apps permission. KAVACH shows its own block screen only when a user-selected blocked app is opened during an active Ekagra focus timer session.",
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                text = "SAFAR does not read your screen content, messages, passwords, typed text, notifications, contacts, photos, or files. SAFAR does not click buttons, perform gestures, change device settings, prevent uninstall, or control your phone.",
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                text = "All processing happens locally on your device. SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties. You can keep using SAFAR without KAVACH and can disable this permission anytime in Android Settings.",
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = scheme.onSurfaceVariant,
@@ -588,7 +692,7 @@ fun KavachPermissionSetup(
 
             Spacer(Modifier.height(16.dp))
 
-            // Compact privacy badge — no long legal paragraph
+            // Compact privacy badge - no long legal paragraph
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -635,7 +739,7 @@ fun KavachPermissionSetup(
                 )
             ) {
                 Text(
-                    text = "Let's set it up →",
+                    text = "I Agree - Continue to Settings",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -648,7 +752,7 @@ fun KavachPermissionSetup(
                 modifier = Modifier.fillMaxWidth().height(44.dp)
             ) {
                 Text(
-                    text = "Maybe later",
+                    text = "Not Now",
                     color = scheme.onSurfaceVariant,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium

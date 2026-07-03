@@ -1,7 +1,6 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -52,11 +49,6 @@ fun FocusShieldBlockedBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val blue = Color(0xFF0A56D9)
     var showQuickUnlockDialog by remember { mutableStateOf(false) }
-    var showTimerChoiceDialog by remember { mutableStateOf(false) }
-    var quickUnlockMinutes by remember { mutableStateOf("") }
-    var pendingUnlockMinutes by remember { mutableStateOf<Int?>(null) }
-    val enteredMinutes = quickUnlockMinutes.toIntOrNull()
-    val minuteError = quickUnlockMinutes.isNotBlank() && (enteredMinutes == null || enteredMinutes !in 1..60)
 
     if (showQuickUnlockDialog) {
         AlertDialog(
@@ -64,72 +56,33 @@ fun FocusShieldBlockedBottomSheet(
             title = { Text("Quick unlock") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Enter how many minutes you want to unlock ${prompt.appName}.")
-                    OutlinedTextField(
-                        value = quickUnlockMinutes,
-                        onValueChange = { value ->
-                            quickUnlockMinutes = value.filter(Char::isDigit).take(2)
-                        },
-                        singleLine = true,
-                        label = { Text("Minutes") },
-                        supportingText = {
-                            Text(if (minuteError) "Choose 1 to 60 minutes." else "Allowed range: 1-60 minutes.")
-                        },
-                        isError = minuteError,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = enteredMinutes in 1..60,
-                    onClick = {
-                        val minutes = enteredMinutes ?: return@TextButton
-                        showQuickUnlockDialog = false
-                        if (isEkagraTimerRunning) {
-                            pendingUnlockMinutes = minutes
-                            showTimerChoiceDialog = true
-                        } else {
-                            onQuickUnlock(minutes, false)
+                    Text("Unlock ${prompt.appName} for a short break. Your Ekagra timer will pause automatically.")
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = {
+                                showQuickUnlockDialog = false
+                                onQuickUnlock(1, true)
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("1 minute")
                         }
-                    },
-                ) {
-                    Text("Unlock")
+                        Button(
+                            onClick = {
+                                showQuickUnlockDialog = false
+                                onQuickUnlock(5, true)
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("5 minutes")
+                        }
+                    }
                 }
             },
+            confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showQuickUnlockDialog = false }) {
                     Text("Cancel")
-                }
-            },
-        )
-    }
-
-    if (showTimerChoiceDialog) {
-        AlertDialog(
-            onDismissRequest = { showTimerChoiceDialog = false },
-            title = { Text("Ekagra Timer is Currently Running !") },
-            text = { Text("Choose what should happen to your Ekagra timer during Quick unlock.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val minutes = pendingUnlockMinutes ?: return@TextButton
-                        showTimerChoiceDialog = false
-                        onQuickUnlock(minutes, true)
-                    },
-                ) {
-                    Text("Pause Timer")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        val minutes = pendingUnlockMinutes ?: return@TextButton
-                        showTimerChoiceDialog = false
-                        onQuickUnlock(minutes, false)
-                    },
-                ) {
-                    Text("Keep Timer")
                 }
             },
         )
@@ -183,8 +136,6 @@ fun FocusShieldBlockedBottomSheet(
             Text(
                 text = if (prompt.strict) {
                     "KAVACH brought you back to Ekagra. Use Quick unlock only when you intentionally need a short window."
-                } else if (prompt.alwaysOn) {
-                    "KAVACH brought you back to SAFAR. Use Quick unlock only when you intentionally need a short window."
                 } else {
                     "KAVACH brought you back to Ekagra. Use Quick unlock only when you intentionally need a short window."
                 },
@@ -196,10 +147,7 @@ fun FocusShieldBlockedBottomSheet(
             Spacer(Modifier.height(22.dp))
 
             Button(
-                onClick = {
-                    quickUnlockMinutes = ""
-                    showQuickUnlockDialog = true
-                },
+                onClick = { showQuickUnlockDialog = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),

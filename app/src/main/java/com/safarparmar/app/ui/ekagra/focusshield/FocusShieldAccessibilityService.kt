@@ -204,7 +204,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             action = TimerService.ACTION_FOCUS_SHIELD_BLOCKED
             putExtra(BlockedAppActivity.EXTRA_BLOCKED_PACKAGE, blockedPackage)
             putExtra(BlockedAppActivity.EXTRA_BEAST_MODE, strict)
-            putExtra(BlockedAppActivity.EXTRA_ALWAYS_ON, FocusShieldRepository.ShieldPrefs.isAlwaysOn(this@FocusShieldAccessibilityService))
+            putExtra(BlockedAppActivity.EXTRA_ALWAYS_ON, false)
             putExtra(BlockedAppActivity.EXTRA_UNLOCKS_REMAINING, unlocksRemaining)
             putExtra(BlockedAppActivity.EXTRA_UNLOCK_SECONDS, unlockSeconds)
         }
@@ -236,7 +236,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE, blockedPackage)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME, appName)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_STRICT, strict)
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_ALWAYS_ON, FocusShieldRepository.ShieldPrefs.isAlwaysOn(this@FocusShieldAccessibilityService))
+            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_ALWAYS_ON, false)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING, unlocksRemaining)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_UNLOCK_SECONDS, unlockSeconds)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_OPEN_EKAGRA, openEkagra)

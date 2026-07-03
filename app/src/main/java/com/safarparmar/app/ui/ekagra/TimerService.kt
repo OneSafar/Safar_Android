@@ -170,15 +170,13 @@ class TimerService : Service() {
                 safarDataStore.focusShieldEmergencyUnlocksPerSession.first()
             else 0
             val unlockSeconds = safarDataStore.focusShieldEmergencyUnlockSeconds.first()
-            val alwaysOn = safarDataStore.focusShieldAlwaysOn.first()
-
             // Write to SharedPreferences (survives process death!). Reset session counters.
             FocusShieldRepository.ShieldPrefs.write(
                 ctx = this@TimerService,
                 active = true,
                 packages = pkgs,
                 strict = strict,
-                alwaysOn = alwaysOn,
+                alwaysOn = false,
                 unlockLimit = unlockLimit,
                 unlockSeconds = unlockSeconds,
                 resetUnlocks = true,
@@ -198,15 +196,6 @@ class TimerService : Service() {
     fun disableFocusShieldForSession(force: Boolean = false) {
         debugFocusShield("TimerService.disableFocusShieldForSession()")
         val repo = focusShieldRepo()
-        if (!force && repo.shouldPreserveAlwaysOnBlocking()) {
-            _focusShieldActive.value = false
-            shieldActivationJob?.cancel()
-            repo.syncAlwaysOnActivation(resetUnlocks = false)
-            getSystemService(NotificationManager::class.java)
-                .cancel(FOCUS_SHIELD_ACTIVE_NOTIFICATION_ID)
-            debugFocusShield("TimerService.disableFocusShieldForSession() preserved always-on KAVACH")
-            return
-        }
 
         _focusShieldActive.value = false
 
@@ -234,18 +223,8 @@ class TimerService : Service() {
         shieldActivationJob?.cancel()
         shieldActivationJob = scope.launch {
             val enabled = safarDataStore.focusShieldEnabled.first()
-            val alwaysOn = safarDataStore.focusShieldAlwaysOn.first()
             val packages = safarDataStore.focusShieldBlockedPackages.first()
             val strict = safarDataStore.focusShieldStrictMode.first()
-
-            if (enabled && alwaysOn) {
-                _focusShieldActive.value = false
-                focusShieldRepo().syncAlwaysOnActivation(resetUnlocks = false)
-                getSystemService(NotificationManager::class.java)
-                    .cancel(FOCUS_SHIELD_ACTIVE_NOTIFICATION_ID)
-                debugFocusShield("TimerService.start() using always-on KAVACH; session shield skipped")
-                return@launch
-            }
 
             if (enabled && packages.isNotEmpty()) {
                 debugFocusShield("TimerService.start() activating from persisted settings: ${packages.size} packages")
@@ -280,17 +259,8 @@ class TimerService : Service() {
         }
 
         val enabled = safarDataStore.focusShieldEnabled.first()
-        val alwaysOn = safarDataStore.focusShieldAlwaysOn.first()
         val packages = safarDataStore.focusShieldBlockedPackages.first()
         val strict = safarDataStore.focusShieldStrictMode.first()
-
-        if (enabled && alwaysOn) {
-            _focusShieldActive.value = false
-            focusShieldRepo().syncAlwaysOnActivation(resetUnlocks = false)
-            getSystemService(NotificationManager::class.java)
-                .cancel(FOCUS_SHIELD_ACTIVE_NOTIFICATION_ID)
-            return
-        }
 
         if (
             !enabled ||
@@ -349,10 +319,7 @@ class TimerService : Service() {
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE, blockedPackage)
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME, appName)
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_STRICT, strict)
-                putExtra(
-                    MainActivity.EXTRA_FOCUS_SHIELD_ALWAYS_ON,
-                    FocusShieldRepository.ShieldPrefs.isAlwaysOn(this@TimerService),
-                )
+                putExtra(MainActivity.EXTRA_FOCUS_SHIELD_ALWAYS_ON, false)
                 putExtra(
                     MainActivity.EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING,
                     FocusShieldRepository.ShieldPrefs.getUnlocksRemaining(this@TimerService),

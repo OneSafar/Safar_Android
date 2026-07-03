@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +29,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,13 +36,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -125,12 +123,10 @@ class BlockedAppActivity : ComponentActivity() {
         finish()
     }
 
-    private fun handleEmergencyUnlock(minutes: Int, pauseTimer: Boolean): Boolean {
-        if (pauseTimer) {
-            startService(Intent(this, TimerService::class.java).apply {
-                action = TimerService.ACTION_PAUSE
-            })
-        }
+    private fun handleEmergencyUnlock(minutes: Int, _pauseTimer: Boolean): Boolean {
+        startService(Intent(this, TimerService::class.java).apply {
+            action = TimerService.ACTION_PAUSE
+        })
         val unlockMinutes = minutes.coerceIn(1, 60)
         val graceUntilMs = System.currentTimeMillis() + unlockMinutes * 60_000L
         val used = FocusShieldRepository.ShieldPrefs.getUnlocksUsed(this) + 1
@@ -154,11 +150,6 @@ private fun BlockedAppScreen(
     BackHandler(onBack = onLeaveToHome)
 
     var showUnlockDialog by remember { mutableStateOf(false) }
-    var showTimerChoiceDialog by remember { mutableStateOf(false) }
-    var quickUnlockMinutes by remember { mutableStateOf("") }
-    var pendingUnlockMinutes by remember { mutableStateOf<Int?>(null) }
-    val enteredMinutes = quickUnlockMinutes.toIntOrNull()
-    val minuteError = quickUnlockMinutes.isNotBlank() && (enteredMinutes == null || enteredMinutes !in 1..60)
 
     if (showUnlockDialog) {
         AlertDialog(
@@ -166,74 +157,35 @@ private fun BlockedAppScreen(
             title = { Text("Quick unlock") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Enter how many minutes you want to unlock $appName.")
-                    OutlinedTextField(
-                        value = quickUnlockMinutes,
-                        onValueChange = { value ->
-                            quickUnlockMinutes = value.filter(Char::isDigit).take(2)
-                        },
-                        singleLine = true,
-                        label = { Text("Minutes") },
-                        supportingText = {
-                            Text(if (minuteError) "Choose 1 to 60 minutes." else "Allowed range: 1-60 minutes.")
-                        },
-                        isError = minuteError,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = enteredMinutes in 1..60,
-                    onClick = {
-                        val minutes = enteredMinutes ?: return@TextButton
-                        showUnlockDialog = false
-                        if (isEkagraTimerRunning) {
-                            pendingUnlockMinutes = minutes
-                            showTimerChoiceDialog = true
-                        } else if (onEmergencyUnlock(minutes, false)) {
-                            showUnlockDialog = false
+                    Text("Unlock $appName for a short break. Your Ekagra timer will pause automatically.")
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = {
+                                if (onEmergencyUnlock(1, true)) {
+                                    showUnlockDialog = false
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("1 minute")
                         }
-                    },
-                ) {
-                    Text("Unlock")
+                        Button(
+                            onClick = {
+                                if (onEmergencyUnlock(5, true)) {
+                                    showUnlockDialog = false
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("5 minutes")
+                        }
+                    }
                 }
             },
+            confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showUnlockDialog = false }) {
                     Text("Cancel")
-                }
-            },
-        )
-    }
-
-    if (showTimerChoiceDialog) {
-        AlertDialog(
-            onDismissRequest = { showTimerChoiceDialog = false },
-            title = { Text("Ekagra Timer is Currently Running !") },
-            text = { Text("Choose what should happen to your Ekagra timer during Quick unlock.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val minutes = pendingUnlockMinutes ?: return@TextButton
-                        if (onEmergencyUnlock(minutes, true)) {
-                            showTimerChoiceDialog = false
-                        }
-                    },
-                ) {
-                    Text("Pause Timer")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        val minutes = pendingUnlockMinutes ?: return@TextButton
-                        if (onEmergencyUnlock(minutes, false)) {
-                            showTimerChoiceDialog = false
-                        }
-                    },
-                ) {
-                    Text("Keep Timer")
                 }
             },
         )
@@ -330,10 +282,7 @@ private fun BlockedAppScreen(
 
             Spacer(Modifier.height(10.dp))
             OutlinedButton(
-                onClick = {
-                    quickUnlockMinutes = ""
-                    showUnlockDialog = true
-                },
+                onClick = { showUnlockDialog = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),

@@ -69,13 +69,13 @@ class PremiumViewModel @Inject constructor(
         }
     }
 
-    fun createOrder(amount: Int, courseId: String) {
+    fun createOrder(duration: Int) {
         _uiState.value = PremiumUiState.Loading
         viewModelScope.launch {
-            paymentRepository.createOrder(amount, courseId).collect { result ->
+            paymentRepository.extendPlan(duration).collect { result ->
                 result.fold(
                     onSuccess = { orderResponse ->
-                        _uiState.value = PremiumUiState.OrderCreated(orderResponse.order, courseId, orderResponse.keyId)
+                        _uiState.value = PremiumUiState.OrderCreated(orderResponse.order, "${duration}month", orderResponse.keyId)
                     },
                     onFailure = { error ->
                         _uiState.value = PremiumUiState.Error(error.message ?: "Failed to create order")
