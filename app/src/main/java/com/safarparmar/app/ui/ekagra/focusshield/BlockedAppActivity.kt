@@ -55,7 +55,6 @@ class BlockedAppActivity : ComponentActivity() {
     companion object {
         const val EXTRA_BLOCKED_PACKAGE = "blocked_package"
         const val EXTRA_BEAST_MODE = "beast_mode"
-        const val EXTRA_ALWAYS_ON = "always_on"
         const val EXTRA_UNLOCKS_REMAINING = "unlocks_remaining"
         const val EXTRA_UNLOCK_SECONDS = "unlock_seconds"
 

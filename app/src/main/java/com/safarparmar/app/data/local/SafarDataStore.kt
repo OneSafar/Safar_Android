@@ -32,11 +32,38 @@ class SafarDataStore @Inject constructor(
     private fun studyPlannerOnboardingCompletedStepsKey(planId: String): Preferences.Key<Set<String>> =
         stringSetPreferencesKey("study_planner_onboarding_v2_${planId}_completed_steps")
 
+    private fun plannerPlanningModeKey(planId: String): Preferences.Key<String> =
+        stringPreferencesKey("study_planner_planning_mode_$planId")
+
     private val securePrefs: SharedPreferences by lazy {
+        try {
+            createSecurePrefs()
+        } catch (e: Exception) {
+            try {
+                val keyStore = java.security.KeyStore.getInstance("AndroidKeyStore")
+                keyStore.load(null)
+                keyStore.deleteEntry(MasterKey.DEFAULT_MASTER_KEY_ALIAS)
+            } catch (_: Exception) {}
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= 24) {
+                    context.deleteSharedPreferences("safar_secure_auth")
+                } else {
+                    context.getSharedPreferences("safar_secure_auth", Context.MODE_PRIVATE).edit().clear().commit()
+                }
+            } catch (_: Exception) {}
+            try {
+                createSecurePrefs()
+            } catch (e2: Exception) {
+                context.getSharedPreferences("safar_secure_auth_fallback", Context.MODE_PRIVATE)
+            }
+        }
+    }
+
+    private fun createSecurePrefs(): SharedPreferences {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
-        EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             context,
             "safar_secure_auth",
             masterKey,
@@ -71,6 +98,7 @@ class SafarDataStore @Inject constructor(
         val DAILY_REMINDER_TIME   = stringPreferencesKey("daily_reminder_time")
         val FCM_TOKEN             = stringPreferencesKey("fcm_token")
         val FOCUS_TIMER_NOTIFICATIONS_ENABLED = booleanPreferencesKey("focus_timer_notifications_enabled")
+        val SHOW_EKAGRA_DURATION_PROMPT = booleanPreferencesKey("show_ekagra_duration_prompt")
         val DAILY_STUDY_REMINDER_ENABLED      = booleanPreferencesKey("daily_study_reminder_enabled")
         val STREAK_REMINDER_ENABLED           = booleanPreferencesKey("streak_reminder_enabled")
         val COURSE_UPDATES_ENABLED            = booleanPreferencesKey("course_updates_enabled")
@@ -97,7 +125,6 @@ class SafarDataStore @Inject constructor(
 
         // Focus Shield
         val FOCUS_SHIELD_ENABLED          = booleanPreferencesKey("focus_shield_enabled")
-        val FOCUS_SHIELD_ALWAYS_ON        = booleanPreferencesKey("focus_shield_always_on")
         val FOCUS_SHIELD_STRICT_MODE      = booleanPreferencesKey("focus_shield_strict_mode")
         val FOCUS_SHIELD_EMERGENCY_UNLOCK = booleanPreferencesKey("focus_shield_allow_emergency_unlock")
         val FOCUS_SHIELD_BLOCKED_PACKAGES = stringPreferencesKey("focus_shield_blocked_packages")
@@ -107,6 +134,8 @@ class SafarDataStore @Inject constructor(
 
         val LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED = booleanPreferencesKey("launch_usage_questionnaire_completed")
         val APP_USAGE_MODE = stringPreferencesKey("app_usage_mode")
+
+        val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -166,6 +195,10 @@ class SafarDataStore @Inject constructor(
     val focusTimerNotificationsEnabled: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.FOCUS_TIMER_NOTIFICATIONS_ENABLED] ?: true }
+
+    val showEkagraDurationPrompt: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.SHOW_EKAGRA_DURATION_PROMPT] ?: true }
 
     val dailyStudyReminderEnabled: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -234,10 +267,6 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.FOCUS_SHIELD_ENABLED] ?: false }
 
-    val focusShieldAlwaysOn: Flow<Boolean> = context.dataStore.data
-        .catch { emit(emptyPreferences()) }
-        .map { it[Keys.FOCUS_SHIELD_ALWAYS_ON] ?: false }
-
     val focusShieldStrictMode: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.FOCUS_SHIELD_STRICT_MODE] ?: false }
@@ -268,6 +297,10 @@ class SafarDataStore @Inject constructor(
     val appUsageMode: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.APP_USAGE_MODE] }
+
+    val notificationBellLastSeenAt: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.NOTIFICATION_BELL_LAST_SEEN_AT] }
 
     val plannerAlertDedupeKeys: Flow<Set<String>> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -319,6 +352,7 @@ class SafarDataStore @Inject constructor(
     suspend fun setFcmToken(token: String) = context.dataStore.edit { it[Keys.FCM_TOKEN] = token }
     suspend fun setDailyReminderTime(time: String) = context.dataStore.edit { it[Keys.DAILY_REMINDER_TIME] = time }
     suspend fun setFocusTimerNotificationsEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_TIMER_NOTIFICATIONS_ENABLED] = enabled }
+    suspend fun setShowEkagraDurationPrompt(show: Boolean) = context.dataStore.edit { it[Keys.SHOW_EKAGRA_DURATION_PROMPT] = show }
     suspend fun setDailyStudyReminderEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.DAILY_STUDY_REMINDER_ENABLED] = enabled }
     suspend fun setStreakReminderEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.STREAK_REMINDER_ENABLED] = enabled }
     suspend fun setCourseUpdatesEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.COURSE_UPDATES_ENABLED] = enabled }
@@ -338,6 +372,7 @@ class SafarDataStore @Inject constructor(
     }
     suspend fun setLastSync(time: Long) = context.dataStore.edit { it[Keys.LAST_SYNC] = time }
     suspend fun setTourDone(done: Boolean) = context.dataStore.edit { it[Keys.TOUR_DONE] = done }
+    suspend fun setNotificationBellLastSeenAt(iso: String) = context.dataStore.edit { it[Keys.NOTIFICATION_BELL_LAST_SEEN_AT] = iso }
     suspend fun setTourDone(section: String, done: Boolean) = context.dataStore.edit {
         it[tourDoneKey(section)] = done
     }
@@ -346,6 +381,19 @@ class SafarDataStore @Inject constructor(
         context.dataStore.data
             .catch { emit(emptyPreferences()) }
             .map { it[studyPlannerOnboardingCompletedStepsKey(planId)] ?: emptySet() }
+
+    /**
+     * Per-plan planning mode: "flex" (allow over-goal days when building the
+     * schedule) or "strict" (keep exactly to the daily goal). Stored on-device
+     * so it persists without a server round-trip. Defaults to "flex".
+     */
+    fun plannerPlanningMode(planId: String): Flow<String> =
+        context.dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[plannerPlanningModeKey(planId)] ?: "flex" }
+
+    suspend fun setPlannerPlanningMode(planId: String, mode: String) =
+        context.dataStore.edit { it[plannerPlanningModeKey(planId)] = mode }
 
     suspend fun setStudyPlannerOnboardingStepDone(planId: String, step: String, done: Boolean) =
         context.dataStore.edit { prefs ->
@@ -398,7 +446,6 @@ class SafarDataStore @Inject constructor(
     // ── Focus Shield Setters ─────────────────────────────────────────────────
 
     suspend fun setFocusShieldEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_ENABLED] = enabled }
-    suspend fun setFocusShieldAlwaysOn(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_ALWAYS_ON] = enabled }
     suspend fun setFocusShieldStrictMode(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_STRICT_MODE] = enabled }
     suspend fun setFocusShieldEmergencyUnlock(allow: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCK] = allow }
     suspend fun setFocusShieldBlockedPackages(packages: Set<String>) = context.dataStore.edit {

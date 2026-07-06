@@ -9,6 +9,7 @@ import com.safarparmar.app.data.remote.dto.*
 import com.safarparmar.app.di.IoDispatcher
 import com.safarparmar.app.domain.model.User
 import com.safarparmar.app.domain.model.UserProfile
+import com.safarparmar.app.domain.model.ForgotPasswordResult
 import com.safarparmar.app.domain.repository.AuthRepository
 import com.safarparmar.app.notifications.NotificationTokenRegistrar
 import com.safarparmar.app.util.decodeIsAdminClaim
@@ -61,6 +62,31 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun googleLogin(idToken: String): Resource<User> {
+        val r = safeApiCall { authApi.googleLogin(GoogleLoginRequest(token = idToken)) }
+        return when (r) {
+            is Resource.Success -> {
+                val u = r.data.user
+                val token = r.data.accessToken
+                if (token.isNullOrBlank()) return Resource.Error("Google login response did not include a session token")
+                dataStore.setAuthToken(token)
+                dataStore.setLoggedIn(true)
+                dataStore.setUserId(u?.id)
+                dataStore.setUserName(u?.name ?: "")
+                dataStore.setUserEmail(u?.email)
+                dataStore.setUserAvatar(u?.avatar)
+                dataStore.setIsAdmin(u?.isAdmin ?: decodeIsAdminClaim(token))
+                // Do not block sign-in on FCM registration — network can be slow after cold start.
+                CoroutineScope(SupervisorJob() + ioDispatcher).launch {
+                    runCatching { notificationTokenRegistrar.registerStoredTokenIfNeeded(force = true) }
+                }
+                Resource.Success(User(id = u?.id ?: "", name = u?.name ?: "", email = u?.email ?: "", photoUrl = u?.avatar, exam = u?.examType, stage = u?.preparationStage, gender = u?.gender))
+            }
+            is Resource.Error   -> Resource.Error(r.message)
+            is Resource.Loading -> Resource.Loading()
+        }
+    }
+
     override suspend fun register(name: String, email: String, password: String, exam: String?, stage: String?, gender: String?, photoUrl: String?): Resource<User> {
         val r = safeApiCall { authApi.signup(SignupRequest(name, email, password, exam, stage, gender, photoUrl)) }
         return when (r) {
@@ -86,10 +112,24 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun forgotPassword(email: String): Resource<String> {
+    override suspend fun forgotPassword(email: String): Resource<ForgotPasswordResult> {
         val r = safeApiCall { authApi.forgotPassword(ForgotPasswordRequest(email)) }
         return when (r) {
-            is Resource.Success -> Resource.Success(r.data.message ?: "")
+            is Resource.Success -> Resource.Success(
+                ForgotPasswordResult(
+                    message = r.data.message ?: "",
+                    resetToken = r.data.resetToken
+                )
+            )
+            is Resource.Error   -> Resource.Error(r.message)
+            is Resource.Loading -> Resource.Loading()
+        }
+    }
+
+    override suspend fun resetPasswordConfirm(token: String, newPassword: String): Resource<Unit> {
+        val r = safeApiCall { authApi.resetPasswordConfirm(ResetPasswordConfirmRequest(token, newPassword)) }
+        return when (r) {
+            is Resource.Success -> Resource.Success(Unit)
             is Resource.Error   -> Resource.Error(r.message)
             is Resource.Loading -> Resource.Loading()
         }

@@ -122,6 +122,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -263,6 +264,8 @@ private data class StudyPlannerChromeState(
     val mutating: Boolean = false,
     val error: String? = null,
     val message: String? = null,
+    val rolloverUndoToken: String? = null,
+    val deleteUndoToken: String? = null,
 )
 
 @Immutable
@@ -360,6 +363,7 @@ private data class StudyPlannerDetailState(
     val hydrateWarning: String? = null,
     val onboardingCompletedSteps: Set<String> = emptySet(),
     val plannerAchievements: List<Achievement> = emptyList(),
+    val planningMode: String = "flex",
 )
 
 @Immutable
@@ -390,6 +394,8 @@ fun StudyPlannerScreen(
             mutating = state.mutating,
             error = state.error,
             message = state.message,
+            rolloverUndoToken = state.rolloverUndoToken,
+            deleteUndoToken = state.deleteUndoToken,
         )
     }
     val chromeState by remember(viewModel) {
@@ -402,6 +408,8 @@ fun StudyPlannerScreen(
                     mutating = state.mutating,
                     error = state.error,
                     message = state.message,
+                    rolloverUndoToken = state.rolloverUndoToken,
+                    deleteUndoToken = state.deleteUndoToken,
                 )
             }
             .distinctUntilChanged()
@@ -444,6 +452,7 @@ fun StudyPlannerScreen(
             hydrateWarning = state.hydrateWarning,
             onboardingCompletedSteps = state.onboardingCompletedSteps,
             plannerAchievements = state.plannerAchievements,
+            planningMode = state.planningMode,
         )
     }
     val detailState by remember(viewModel) {
@@ -466,6 +475,7 @@ fun StudyPlannerScreen(
                     hydrateWarning = state.hydrateWarning,
                     onboardingCompletedSteps = state.onboardingCompletedSteps,
                     plannerAchievements = state.plannerAchievements,
+                    planningMode = state.planningMode,
                 )
             }
             .distinctUntilChanged()
@@ -477,7 +487,20 @@ fun StudyPlannerScreen(
 
     LaunchedEffect(chromeState.error, chromeState.message, detailState.hydrateWarning, detailState.importError, detailState.importResultSummary, detailState.importStatus, detailState.structureError, detailState.structuredImportError, detailState.structuredImportSuccessMessage) {
         chromeState.error?.let { snackbar.showSnackbar(it); actions.clearTransient() }
-        chromeState.message?.let { snackbar.showSnackbar(it); actions.clearTransient() }
+        chromeState.message?.let {
+            val hasUndo = chromeState.rolloverUndoToken != null || chromeState.deleteUndoToken != null
+            val result = snackbar.showSnackbar(
+                message = it,
+                actionLabel = if (hasUndo) "Undo" else null,
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                when {
+                    chromeState.deleteUndoToken != null -> actions.undoDelete()
+                    chromeState.rolloverUndoToken != null -> actions.undoRollover()
+                }
+            }
+            actions.clearTransient()
+        }
         detailState.hydrateWarning?.let { snackbar.showSnackbar(it); actions.clearTransient() }
         detailState.importStatus?.let { snackbar.showSnackbar(it) }
         detailState.importResultSummary?.let { snackbar.showSnackbar(it) }
@@ -2170,6 +2193,7 @@ private fun PlannerHome(
                             }
                         },
                         onboardingCompletedSteps = detailState.onboardingCompletedSteps,
+                        planningMode = detailState.planningMode,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
@@ -2608,299 +2632,6 @@ internal fun BulkAddSheet(
 }
 
 @Composable
-private fun SubjectBlock(
-    subject: StudySubject,
-    subjectColorIndex: Int,
-    subjectColorCount: Int,
-    query: String,
-    status: TopicStatus?,
-    onAddChapter: () -> Unit,
-    onRenameSubject: () -> Unit,
-    onDeleteSubject: () -> Unit,
-    onAddTopic: (StudyChapter) -> Unit,
-    onRenameChapter: (StudyChapter) -> Unit,
-    onBulkAdd: (StudyChapter) -> Unit,
-    onDeleteChapter: (StudyChapter) -> Unit,
-    onTopic: (TopicRef) -> Unit,
-    onMarkDone: (String) -> Unit,
-) {
-    var subjectExpanded by remember(subject.id, query, status) { mutableStateOf(query.isNotBlank() || status != null) }
-    val chapterExpanded = remember(subject.id) { mutableStateMapOf<String, Boolean>() }
-    var subjectMenuExpanded by remember { mutableStateOf(false) }
-
-    PlannerSurface {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            val subjectHeaderShape = MaterialTheme.shapes.medium
-            val subjectHeaderColors = Modifier
-                .fillMaxWidth()
-                .clip(subjectHeaderShape)
-                .background(brush = subjectHeaderBrush(subjectColorIndex, subjectColorCount))
-                .padding(horizontal = 4.dp, vertical = 4.dp)
-            Row(subjectHeaderColors, verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { subjectExpanded = !subjectExpanded }) {
-                    Icon(
-                        if (subjectExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (subjectExpanded) "Collapse subject" else "Expand subject",
-                    )
-                }
-                Column(Modifier.weight(1f).widthIn(min = 0.dp)) {
-                    Text(
-                        subject.name,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        "${subject.chapters.size} chapters • ${subject.percentDone()}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                IconButton(onClick = onAddChapter) { Icon(Icons.Default.Add, contentDescription = "Add chapter") }
-                Box {
-                    IconButton(onClick = { subjectMenuExpanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Subject actions") }
-                    DropdownMenu(expanded = subjectMenuExpanded, onDismissRequest = { subjectMenuExpanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Rename") },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                            onClick = {
-                                subjectMenuExpanded = false
-                                onRenameSubject()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Delete") },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
-                            onClick = {
-                                subjectMenuExpanded = false
-                                onDeleteSubject()
-                            },
-                        )
-                    }
-                }
-            }
-            if (subjectExpanded) {
-                subject.chapters.forEach { chapter ->
-                    val chExpanded = chapterExpanded[chapter.id] ?: false
-                    var chapterMenuExpanded by remember(chapter.id) { mutableStateOf(false) }
-                    val isPlaceholderChapter = isBulkPlaceholderChapter(chapter)
-                    val chapterShape = MaterialTheme.shapes.medium
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(chapterShape)
-                            .background(
-                                if (isPlaceholderChapter) {
-                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f)
-                                } else {
-                                    Color.Transparent
-                                },
-                            )
-                            .then(
-                                if (isPlaceholderChapter) {
-                                    Modifier.border(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.error.copy(alpha = 0.45f),
-                                        chapterShape,
-                                    )
-                                } else {
-                                    Modifier
-                                },
-                            )
-                            .then(if (isPlaceholderChapter) Modifier else Modifier.background(chapterHierarchyBrush()))
-                            .padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    chapterExpanded[chapter.id] = !chExpanded
-                                },
-                            ) {
-                                Icon(
-                                    if (chExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    contentDescription = if (chExpanded) "Collapse chapter" else "Expand chapter",
-                                )
-                            }
-                            Text(
-                                chapter.name,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.weight(1f).widthIn(min = 0.dp),
-                                color = if (isPlaceholderChapter) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (isPlaceholderChapter) {
-                                Icon(
-                                    Icons.Default.Warning,
-                                    contentDescription = "Needs chapter name",
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(4.dp))
-                            }
-                            Text(
-                                "${chapter.percentDone()}%",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1,
-                            )
-                            IconButton(onClick = { onAddTopic(chapter) }) { Icon(Icons.Default.Add, contentDescription = "Add topic") }
-                            Box {
-                                IconButton(onClick = { chapterMenuExpanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Chapter actions") }
-                                DropdownMenu(expanded = chapterMenuExpanded, onDismissRequest = { chapterMenuExpanded = false }) {
-                                    DropdownMenuItem(
-                                        text = { Text("Bulk add") },
-                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
-                                        onClick = {
-                                            chapterMenuExpanded = false
-                                            onBulkAdd(chapter)
-                                        },
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Rename") },
-                                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                                        onClick = {
-                                            chapterMenuExpanded = false
-                                            onRenameChapter(chapter)
-                                        },
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Delete") },
-                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
-                                        onClick = {
-                                            chapterMenuExpanded = false
-                                            onDeleteChapter(chapter)
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                        if (chExpanded) {
-                            val topics = remember(chapter.topics, query, status, chapter.name, subject.name) {
-                                val q = query.trim()
-                                val matchSubject = q.isNotBlank() && subject.name.contains(q, ignoreCase = true)
-                                val matchChapter = q.isNotBlank() && chapter.name.contains(q, ignoreCase = true)
-                                chapter.topics.filter { t ->
-                                    val matchesQuery = q.isBlank() || matchSubject || matchChapter || t.name.contains(q, ignoreCase = true)
-                                    matchesQuery && syllabusTopicMatchesFilter(t.status, status)
-                                }
-                            }
-                            topics.forEach { topic ->
-                                val ref = TopicRef(subject, chapter, topic)
-                                TopicRow(
-                                    ref,
-                                    onClick = { onTopic(ref) },
-                                    onDone = { onMarkDone(topic.id) },
-                                    useSyllabusHierarchyBackground = true,
-                                )
-                            }
-                            if (topics.isEmpty()) Text("No topics found.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlanCard(plan: StudyPlan, onOpen: () -> Unit, onDelete: () -> Unit) {
-    val progress = plan.rollup()
-    val examDays = daysUntil(plan.examDate)
-    PlannerSurface(onClick = onOpen) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val stackCountdown = maxWidth < 360.dp
-                if (stackCountdown) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f).widthIn(min = 0.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                                Text(plan.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    "${plan.subjectCount ?: plan.subjects.size} subjects • ${progress.totalTopics} topics",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            IconButton(onClick = onDelete) { Icon(Icons.Default.MoreVert, contentDescription = "Plan actions") }
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            ExamDaysCountdownBadge(days = examDays)
-                        }
-                    }
-                } else {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f).widthIn(min = 0.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                            Text(plan.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                "${plan.subjectCount ?: plan.subjects.size} subjects • ${progress.totalTopics} topics",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        ExamDaysCountdownBadge(days = examDays)
-                        IconButton(onClick = onDelete) { Icon(Icons.Default.MoreVert, contentDescription = "Plan actions") }
-                    }
-                }
-            }
-            LinearProgressIndicator(progress = { progress.completionPercent / 100f }, modifier = Modifier.fillMaxWidth().height(7.dp).clip(CircleShape))
-        }
-    }
-}
-
-@Composable
-private fun TopicRow(
-    ref: TopicRef,
-    onClick: () -> Unit,
-    onDone: () -> Unit,
-    useSyllabusHierarchyBackground: Boolean = false,
-) {
-    val rowBg = if (useSyllabusHierarchyBackground) {
-        Modifier.background(topicHierarchyBrush())
-    } else {
-        Modifier.background(MaterialTheme.colorScheme.surface)
-    }
-    Row(
-        Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).then(rowBg).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), MaterialTheme.shapes.medium).clickable(onClick = onClick).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        StatusDot(ref.topic.status)
-        Column(Modifier.weight(1f).widthIn(min = 0.dp)) {
-            Text(
-                ref.topic.name,
-                fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                "${ref.subject.name} • ${ref.chapter.name}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Checkbox(
-            checked = ref.topic.status == TopicStatus.DONE,
-            onCheckedChange = { checked ->
-                if (checked) onDone()
-            },
-            colors = CheckboxDefaults.colors(
-                checkedColor = Color(0xFF16A34A),
-                checkmarkColor = Color.White,
-            ),
-        )
-    }
-}
-
-@Composable
 internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSection) -> Unit) {
     val sections = listOf(
         PlannerSection.YOUR_EXAMS,
@@ -3163,7 +2894,13 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
         title = { androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) { Text(title) } },
         text = {
             androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-                OutlinedTextField(text, { text = it }, label = { Text(label) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    text,
+                    { text = it },
+                    label = { Text(label) },
+                    supportingText = { if (text.isBlank()) Text("Please type a name first") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         },
         confirmButton = {

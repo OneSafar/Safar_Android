@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">SAFAR</string>
+    <string name="material3_outlined_button_label">मटीरियल 3 आउटलाइन बटन</string>
+    <string name="app_tagline">आपकी दिमागी यात्रा यहाँ से शुरू होती है।</string>
+
+    <!-- Splash -->
+    <string name="splash_title">सफर</string>
+    <string name="splash_start_safar">सफर शुरू करें</string>
+    <string name="splash_tagline">मार्क्स मायने रखते हैं, लेकिन आपका मन भी।</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_headline">विचारों की गति से आगे बढ़ें।</string>
+    <string name="onboarding_body">आधुनिक जीवन के लिए तैयार की गई आसान यात्रा का अनुभव करें।</string>
+
+    <!-- Auth -->
+    <string name="auth_tagline">अपनी यात्रा जारी रखने के लिए साइन इन करें</string>
+    <string name="auth_create_account_tagline">अपना SAFAR अकाउंट बनाएं</string>
+    <string name="auth_sign_in_to_continue">आगे बढ़ने के लिए साइन इन करें</string>
+    <string name="auth_create_account">अपना अकाउंट बनाएं</string>
+    <string name="auth_label_email">ईमेल</string>
+    <string name="auth_label_password">पासवर्ड</string>
+    <string name="auth_label_full_name">पूरा नाम</string>
+    <string name="auth_label_confirm_password">पासवर्ड कन्फर्म करें</string>
+    <string name="auth_label_exam_type">परीक्षा का प्रकार</string>
+    <string name="auth_label_prep_stage">तैयारी का चरण</string>
+    <string name="auth_label_gender">जेंडर</string>
+    <string name="auth_hint_email">you@gmail.com</string>
+    <string name="auth_hint_password">••••••••</string>
+    <string name="auth_hint_password_signup">कम से कम 8 अक्षर</string>
+    <string name="auth_hint_confirm_password">दोबारा पासवर्ड डालें</string>
+    <string name="auth_hint_full_name">आपका पूरा नाम</string>
+    <string name="auth_hint_exam_type">परीक्षा चुनें</string>
+    <string name="auth_hint_prep_stage">चरण चुनें</string>
+    <string name="auth_hint_gender">जेंडर चुनें</string>
+    <string name="auth_remember_me">याद रखें</string>
+    <string name="auth_forgot_password">पासवर्ड भूल गए?</string>
+    <string name="auth_sign_in">साइन इन</string>
+    <string name="auth_signing_in">साइन इन हो रहा है…</string>
+    <string name="auth_create_account_btn">अकाउंट बनाएं</string>
+    <string name="auth_creating_account">अकाउंट बन रहा है…</string>
+    <string name="auth_no_account">अकाउंट नहीं है? </string>
+    <string name="auth_sign_up_here">यहाँ साइन अप करें</string>
+    <string name="auth_have_account">पहले से अकाउंट है? </string>
+    <string name="auth_sign_in_here">यहाँ साइन इन करें</string>
+    <string name="auth_footer">SAFAR · हर छात्र के मानसिक स्वास्थ्य के लिए</string>
+
+    <!-- Navigation -->
+    <string name="nav_back">पीछे</string>
+    <string name="nav_home">होम</string>
+    <string name="nav_dashboard">डैशबोर्ड</string>
+    <string name="nav_study_planner">एग्जाम प्लानर</string>
+    <string name="nav_profile">प्रोफाइल</string>
+    <string name="nav_night_mode">नाइट मोड</string>
+    <string name="nav_toggle_night">नाइट मोड बदलें</string>
+    <string name="nav_open_menu">मेनू खोलें</string>
+    <string name="nav_previous">पिछला</string>
+    <string name="nav_next">अगला</string>
+    <string name="nav_focus_shield">कवच</string>
+    <string name="nav_live_classes">लाइव क्लासेस</string>
+    <string name="nav_admin_notifications">एडमिन सूचनाएं</string>
+
+    <!-- KAVACH -->
+    <string name="kavach_hero_title">भटकाव से आपका बचाव</string>
+    <string name="kavach_screen_subtitle">भटकाव से आपका बचाव</string>
+    <string name="kavach_hero_body">कवच केवल एकाग्र फोकस टाइमर के दौरान ही चुनिंदा ऐप्स को ब्लॉक करता है।</string>
+    <string name="kavach_intro_hero_title">कवच ऑन है</string>
+    <string name="kavach_intro_hero_subtitle">यह केवल आपके एकाग्र फोकस टाइमर के चलने के दौरान काम करता है।</string>
+    <string name="kavach_intro_copy_body">ब्लॉक करने के लिए ऐप्स चुनें, फिर एकाग्र टाइमर शुरू करें। कवच केवल उसी समय ऐप्स को ब्लॉक करेगा।</string>
+    <string name="kavach_benefit_choose_title">ऐप्स चुनें</string>
+    <string name="kavach_benefit_choose_body">उन ऐप्स को चुनें जो आपका ध्यान भटकाते हैं।</string>
+    <string name="kavach_benefit_start_title">एकाग्र शुरू करें</string>
+    <string name="kavach_benefit_start_body">एकाग्र टाइमर शुरू करें। कवच उस समय ऐप्स को ब्लॉक रखेगा।</string>
+    <string name="kavach_benefit_control_title">आपका नियंत्रण</string>
+    <string name="kavach_benefit_control_body">कभी भी ऐप्स बदलें या कवच को बंद करें।</string>
+    <string name="kavach_enabled_ekagra_hint">टाइमर मोड: एकाग्र टाइमर चलने तक ऐप्स को ब्लॉक रखता है।</string>
+    <string name="kavach_how_it_works_learn_more">और जानें</string>
+    <string name="kavach_how_it_works_show_less">कम दिखाएं</string>
+    <string name="kavach_how_it_works_intro">एकाग्र फोकस टाइमर चलने के दौरान कवच केवल आपके चुने हुए ऐप्स को ब्लॉक करता है।</string>
+    <string name="kavach_status_pill">तैयार - ऐप्स चुनें, फिर ब्लॉक करने के लिए एकाग्र शुरू करें।</string>
+    <string name="kavach_enable_title">कवच का प्रयोग करें</string>
+    <string name="kavach_enable_subtitle">एकाग्र फोकस टाइमर चलने के दौरान चुने हुए ऐप्स को ब्लॉक करता है</string>
+    <string name="kavach_off_hint">कवच ऑन करें, ऐप्स चुनें, फिर भटकाव से बचने के लिए एकाग्र टाइमर शुरू करें।</string>
+    <string name="kavach_guide_title">क्विक गाइड</string>
+    <string name="kavach_guide_use">टाइमर मोड - एकाग्र चलने के दौरान ऐप्स ब्लॉक करता है</string>
+    <string name="kavach_guide_beast">एकाग्र पर जाएं - चुने हुए ऐप्स को ब्लॉक करने के लिए टाइमर शुरू करें</string>
+    <string name="kavach_guide_unlock">क्विक अनलॉक - टाइमर सेशन के दौरान कुछ देर इस्तेमाल करने के लिए</string>
+    <string name="kavach_section_apps">स्टेप 1 · ऐप्स चुनें</string>
+    <string name="kavach_section_session">स्टेप 2 · एकाग्र टाइमर पर जाएं</string>
+    <string name="kavach_blocked_apps_title">ब्लॉक करने वाले ऐप्स</string>
+    <string name="kavach_blocked_apps_subtitle">जोड़ने या हटाने के लिए टैप करें</string>
+    <string name="kavach_blocked_apps_none">ऐप्स चुनें</string>
+    <string name="kavach_blocked_apps_count">%1$d चुने गए</string>
+    <string name="kavach_go_to_ekagra_title">एकाग्र से ब्लॉक करना शुरू करें</string>
+    <string name="kavach_go_to_ekagra_subtitle">एकाग्र खोलें, टाइमर शुरू करें, और कवच आपके चुने हुए ऐप्स को ब्लॉक कर देगा।</string>
+    <string name="kavach_go_to_ekagra_button">एकाग्र पर जाएं</string>
+    <string name="kavach_beast_mode_title">केवल एकाग्र मोड</string>
+    <string name="kavach_beast_mode_subtitle">टाइमर खत्म होने तक आपको एकाग्र स्क्रीन पर ही रखता है</string>
+    <string name="kavach_emergency_unlock_title">क्विक अनलॉक</string>
+    <string name="kavach_emergency_unlock_subtitle">एक्टिव टाइमर सेशन के दौरान थोड़े समय के लिए इस्तेमाल</string>
+    <string name="kavach_emergency_off_beast">केवल एकाग्र मोड में बंद</string>
+    <string name="kavach_block_return">एकाग्र पर लौटें</string>
+    <string name="kavach_block_return_ekagra">एकाग्र पर लौटें</string>
+    <string name="kavach_block_return_safar">SAFAR पर लौटें</string>
+    <string name="kavach_block_unlock">क्विक अनलॉक (%1$d बचे हैं)</string>
+    <string name="kavach_block_unlock_exhausted">क्विक अनलॉक समाप्त</string>
+    <string name="kavach_block_beast_footer">थोड़े समय के इस्तेमाल के लिए क्विक अनलॉक उपलब्ध है</string>
+    <string name="kavach_info_sheet_title">कवच के बारे में</string>
+    <string name="kavach_info_how_title">कवच कैसे काम करता है</string>
+    <string name="kavach_info_how_body">कवच केवल एकाग्र फोकस टाइमर के दौरान आपके चुने हुए ऐप्स को ब्लॉक करता है। यह आपके संदेश, पासवर्ड, फोटो या लिखे गए टेक्स्ट को नहीं पढ़ता।</string>
+    <string name="kavach_info_permissions_title">अनुमति देना आपकी पसंद है</string>
+    <string name="kavach_info_permissions_body">ऐप चेक देखता है कि ऐप कब खुला। कवच अलर्ट आपको वापस SAFAR पर लाता है। नोटिफिकेशन्स स्टडी टाइमर के अपडेट्स दिखाते हैं।</string>
+    <string name="kavach_setup_heading">लगभग तैयार!</string>
+    <string name="kavach_setup_intro">बस दो आसान कदम और कवच आपकी एकाग्रता की रक्षा के लिए तैयार है।</string>
+    <string name="kavach_permissions_ready">कवच तैयार है। ब्लॉक करना शुरू करने के लिए एकाग्र शुरू करें।</string>
+    <string name="kavach_permissions_needed">भटकाव से बचने के लिए दो आसान अनुमतियां दें।</string>
+    <string name="kavach_info_content_description">कवच के बारे में</string>
+    <string name="kavach_consent_title">ध्यान भटकाने वाले ऐप्स ब्लॉक करें</string>
+    <string name="kavach_consent_description">कवच एकाग्र फोकस टाइमर के दौरान आपके चुने हुए ऐप्स को ब्लॉक करके आपको केंद्रित रखता है।</string>
+    <string name="kavach_consent_how_label">यह कैसे काम करता है</string>
+    <string name="kavach_consent_how_body">कवच केवल एकाग्र फोकस टाइमर चलने के दौरान काम करता है। टाइमर बंद होते ही कवच ऐप्स को ब्लॉक करना बंद कर देता है।</string>
+    <string name="kavach_consent_privacy_label">अपनी गोपनीयता</string>
+    <string name="kavach_consent_privacy_body">कवच आपके संदेश, पासवर्ड, फोटो या स्क्रीन की किसी भी चीज़ को नहीं पढ़ता।</string>
+    <string name="kavach_consent_agree">सहमत हैं और कवच चालू करें</string>
+    <string name="kavach_privacy_badge">आपके डिवाइस पर चलता है \u00b7 कोई डेटा नहीं लिया जाता</string>
+    <string name="kavach_setup_guide_title">क्विक सेटअप — 2 कदम</string>
+    <string name="kavach_setup_guide_subtitle">आप एक मिनट से भी कम समय में SAFAR पर वापस आ जाएंगे।</string>
+    <string name="kavach_consent_cancel">अभी नहीं</string>
+    <string name="kavach_about_title">कवच के बारे में</string>
+    <string name="kavach_about_description">कवच एक ढाल की तरह काम करता है, जो एकाग्र फोकस टाइमर के दौरान केवल आपके चुने हुए ऐप्स को ब्लॉक करता है।</string>
+    <string name="kavach_about_privacy_card">हम आपके संदेश, पासवर्ड, फोटो या कोई भी व्यक्तिगत जानकारी नहीं पढ़ते हैं।</string>
+    <string name="kavach_permission_usage_title">ऐप चेक</string>
+    <string name="kavach_permission_accessibility_title">कवच अलर्ट</string>
+    <string name="kavach_permission_required">आवश्यक</string>
+    <string name="kavach_permission_granted">स्वीकृत</string>
+    <string name="kavach_shield_configuration_title">शील्ड कॉन्फ़िगरेशन</string>
+    <string name="kavach_search_apps">ऐप्स खोजें…</string>
+    <string name="kavach_save_configuration">सेटिंग्स सेव करें</string>
+    <string name="kavach_active_status">कवच सक्रिय है। %1$d बार भटकाव रोका गया।</string>
+    <string name="kavach_end_session">सेशन समाप्त करें</string>
+    <string name="kavach_session_summary_title">सेशन का सारांश</string>
+    <string name="kavach_session_summary_heading">बहुत बढ़िया!</string>
+    <string name="kavach_session_summary_subtitle">आपका एकाग्र सेशन पूरा हो गया है। यहाँ आपका रिपोर्ट कार्ड है।</string>
+    <string name="kavach_session_time_focused_label">फोकस का समय</string>
+    <string name="kavach_session_minutes_unit">मिनट</string>
+    <string name="kavach_session_deep_work">गहरा फोकस</string>
+    <string name="kavach_session_blocked_attempts">रोके गए भटकाव</string>
+    <string name="kavach_session_attempts_count">%1$d प्रयास</string>
+    <string name="kavach_session_summary_done">पूरा हुआ</string>
+
+    <!-- Drawer -->
+    <string name="drawer_tagline">आपकी मानसिक स्वास्थ्य यात्रा</string>
+
+    <!-- Home -->
+    <string name="home_greeting">शुभ प्रभात</string>
+    <string name="home_subtitle">आज आप कहाँ जाना चाहेंगे?</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">डैशबोर्ड</string>
+    <string name="dashboard_welcome_back">स्वागत है,</string>
+    <string name="dashboard_streaks">आपकी लगातार सक्रियता</string>
+    <string name="dashboard_streak_checkin">चेक-इन</string>
+    <string name="dashboard_streak_login">लॉगिन</string>
+    <string name="dashboard_streak_goal">लक्ष्य</string>
+    <string name="dashboard_today_mood">आज का मूड</string>
+    <string name="dashboard_no_checkin">आज अभी तक चेक-इन नहीं किया</string>
+    <string name="dashboard_intensity">तीव्रता: %d/10</string>
+    <string name="dashboard_today_goals">आज के लक्ष्य</string>
+    <string name="dashboard_goals_count">%1$d/%2$d पूरे हुए</string>
+    <string name="dashboard_no_goals">आज के लिए कोई लक्ष्य नहीं है</string>
+    <string name="dashboard_achievements">उपलब्धियां</string>
+    <string name="dashboard_achievements_count">%1$d हासिल · कुल %2$d</string>
+    <string name="dashboard_monthly_snapshot">मासिक स्नैपशॉट</string>
+    <string name="dashboard_consistency">निरंतरता</string>
+    <string name="dashboard_completion">पूर्णता दर</string>
+    <string name="dashboard_focus">एकाग्रता की गहराई</string>
+
+    <!-- Modules -->
+    <string name="module_nishtha">निष्ठा</string>
+    <string name="module_nishtha_sub">भावनात्मक स्वास्थ्य</string>
+    <string name="module_ekagra">एकाग्र</string>
+    <string name="module_ekagra_sub">एकाग्रता और प्रवाह</string>
+    <string name="module_mehfil">महफ़िल</string>
+    <string name="module_mehfil_sub">कम्युनिटी</string>
+    <string name="module_dhyan">ध्यान</string>
+    <string name="module_dhyan_sub">मेडिटेशन</string>
+    <string name="module_study_planner">एग्जाम प्लानर</string>
+    <string name="dhyan_latest_video_title">नया ध्यान वीडियो</string>
+    <string name="dhyan_latest_video_preview">नए ध्यान वीडियो का प्रीव्यू</string>
+    <string name="dhyan_latest_video_thumbnail_cd">नए ध्यान यूट्यूब वीडियो का थंबनेल</string>
+    <string name="dhyan_youtube_channel_hint">यूट्यूब पर ताज़ा जानकारी के लिए टैप करें</string>
+    <string name="dhyan_youtube_modal_title">नवीनतम वीडियो</string>
+    <string name="dhyan_youtube_modal_body">यूट्यूब पर हमारा नया वीडियो देखें।</string>
+    <string name="dhyan_watch_on_youtube">यूट्यूब पर देखें</string>
+    <string name="dhyan_youtube_channel_cta">SAFAR यूट्यूब चैनल देखें</string>
+    <string name="close">बंद करें</string>
+
+    <!-- Profile -->
+    <string name="profile_title">प्रोफाइल</string>
+    <string name="profile_guest">मेहमान</string>
+    <string name="profile_no_email">कोई ईमेल नहीं है</string>
+    <string name="profile_section_settings">सेटिंग्स</string>
+    <string name="profile_section_about">हमारे बारे में</string>
+    <string name="profile_night_mode">नाइट मोड</string>
+    <string name="profile_app_version">ऐप वर्ज़न</string>
+    <string name="profile_logout">लॉगआउट</string>
+    <string name="profile_logout_confirm">क्या आप लॉगआउट करना चाहते हैं?</string>
+    <string name="profile_language_title">ऐप की भाषा</string>
+    <string name="profile_language_subtitle">ऐप की भाषा अंग्रेजी या हिंदी में बदलें</string>
+    <string name="profile_language_dialog_title">भाषा चुनें</string>
+    <string name="profile_language_english">English (अंग्रेजी)</string>
+    <string name="profile_language_hindi">हिन्दी (Hindi)</string>
+
+    <!-- Nishtha tour overlay -->
+    <string name="tour_ask_title">नमस्ते, मैं हूँ तितली</string>
+    <string name="tour_ask_body_primary">क्या मैं आपको ऐप घुमाऊँ?</string>
+    <string name="tour_ask_body_secondary_prefix">मैं आपको </string>
+    <string name="tour_ask_body_secondary_highlight">मुख्य फीचर्स</string>
+    <string name="tour_ask_body_secondary_suffix"> दिखाऊँगी - आप इसे कभी भी छोड़ या बंद कर सकते हैं।</string>
+    <string name="tour_ask_accept">हाँ, दिखाओ!</string>
+    <string name="tour_ask_decline">नहीं, मैं खुद देख लूँगा</string>
+
+    <!-- Nishtha tabs -->
+    <string name="nishtha_tab_checkin">चेक-इन</string>
+    <string name="nishtha_tab_journal">जर्नल</string>
+    <string name="nishtha_tab_goals">लक्ष्य</string>
+    <string name="nishtha_tab_streaks">सक्रियता</string>
+    <string name="nishtha_tab_analytics">विश्लेषण</string>
+
+    <!-- Check-In -->
+    <string name="checkin_how_feeling">आप कैसा महसूस कर रहे हैं?</string>
+    <string name="checkin_today">आज</string>
+    <string name="checkin_do_checkin">चेक-इन</string>
+    <string name="checkin_history">पुराना रिकॉर्ड</string>
+    <string name="checkin_select_mood">मूड चुनें</string>
+    <string name="checkin_intensity">तीव्रता</string>
+    <string name="checkin_low">कम</string>
+    <string name="checkin_high">ज़्यादा</string>
+    <string name="checkin_note_hint">इस मूड की क्या वजह रही? (वैकल्पिक)</string>
+    <string name="checkin_save">चेक-इन सेव करें</string>
+    <string name="checkin_no_history">अभी तक कोई चेक-इन नहीं हुआ</string>
+    <string name="checkin_history_title">मूड का रिकॉर्ड</string>
+    <string name="checkin_intensity_value">तीव्रता: %d/10</string>
+
+    <!-- Mood labels -->
+    <string name="mood_happy">खुश</string>
+    <string name="mood_calm">शांत</string>
+    <string name="mood_neutral">सामान्य</string>
+    <string name="mood_sad">उदास</string>
+    <string name="mood_angry">गुस्सा</string>
+    <string name="mood_anxious">चिंतित</string>
+    <string name="mood_tired">थका हुआ</string>
+    <string name="mood_excited">उत्साहित</string>
+    <string name="mood_motivated">प्रेरित</string>
+
+    <!-- Check-In context tags -->
+    <string name="checkin_context_tags">प्रसंग टैग</string>
+
+    <!-- Journal -->
+    <string name="journal_entry_count">इस हफ्ते %d प्रविष्टियां</string>
+    <string name="journal_new_entry">नया जर्नल</string>
+    <string name="journal_placeholder">आज आपके मन में क्या है?</string>
+    <string name="journal_past_entries">पुराने जर्नल</string>
+    <string name="journal_word_count">%d शब्द</string>
+    <string name="journal_title_label">शीर्षक (आवश्यक)</string>
+    <string name="journal_title_hint">कोई छोटा शीर्षक दें…</string>
+    <string name="journal_body_label">आपके विचार (आवश्यक)</string>
+    <string name="journal_write">लिखें</string>
+    <string name="journal_save_entry">जर्नल सेव करें</string>
+    <string name="journal_empty_title">अभी कोई प्रविष्टि नहीं है</string>
+    <string name="journal_empty_subtitle">अपना पहला जर्नल लिखना शुरू करें</string>
+    <string name="journal_write_first">पहला जर्नल लिखें</string>
+
+    <!-- Goals -->
+    <string name="goals_add_goal">लक्ष्य जोड़ें</string>
+    <string name="goals_add_short">जोड़ें</string>
+    <string name="goals_title_label">लक्ष्य का शीर्षक</string>
+    <string name="goals_category_label">श्रेणी (जैसे: नींद, ध्यान)</string>
+    <string name="goals_set_due_date">समय सीमा चुनें</string>
+    <string name="goals_active_count">%d सक्रिय लक्ष्य</string>
+    <string name="goals_percent_complete">%d%% पूरा हुआ</string>
+    <string name="goals_analytics_title">लक्ष्य पूर्णता — %s</string>
+    <string name="goals_stat_completed">पूरा हुआ</string>
+    <string name="goals_stat_in_progress">चल रहा है</string>
+    <string name="goals_stat_not_started">शुरू नहीं हुआ</string>
+    <string name="goals_tab_goals">लक्ष्य</string>
+    <string name="goals_tab_history">इतिहास</string>
+    <string name="goals_tab_analytics">विश्लेषण</string>
+    <string name="goals_command_center">लक्ष्य</string>
+    <string name="goals_subtitle">अपने लक्ष्यों को प्रबंधित करें और प्रगति ट्रैक करें।</string>
+    <string name="goals_pending">बाकी है</string>
+    <string name="goals_tasks">कार्य</string>
+    <string name="goals_completed_section">पूरा हुआ</string>
+    <string name="goals_completed_on">%s को पूरा हुआ</string>
+    <string name="goals_due">सीमा %s तक</string>
+    <string name="goals_archive">आर्काइव</string>
+    <string name="goals_done">संपन्न</string>
+    <string name="goals_done_suffix">पूरा</string>
+    <string name="goals_empty_title">अभी कोई लक्ष्य नहीं है</string>
+    <string name="goals_empty_subtitle">शुरू करने के लिए पहला लक्ष्य जोड़ें</string>
+    <string name="goals_desc_label">विवरण (वैकल्पिक)</string>
+    <string name="goals_priority_label">प्राथमिकता</string>
+    <string name="goals_analytics_completed_7d">पूरे हुए (7 दिन)</string>
+    <string name="goals_analytics_focus_time">कुल एकाग्रता समय</string>
+    <string name="goals_analytics_weekly_pulse">साप्ताहिक पल्स</string>
+    <string name="goals_analytics_velocity">पूर्णता दर की गति</string>
+    <string name="goals_analytics_daily_breakdown">दैनिक ब्योरा</string>
+    <string name="dashboard_weekly_mood">साप्ताहिक मूड ट्रेंड</string>
+
+    <!-- Streaks -->
+    <string name="streaks_current_label">सक्रियता का क्रम</string>
+    <string name="streaks_current_value">7 दिन</string>
+    <string name="streaks_keep_it_up">लगे रहो!</string>
+    <string name="streaks_this_week">इस हफ्ते</string>
+    <string name="streaks_longest_label">सबसे लंबा क्रम</string>
+    <string name="streaks_longest_value">21 दिन</string>
+    <string name="streaks_header_title">जोश बनाए रखें!</string>
+    <string name="streaks_header_subtitle">अच्छी आदतें बनाने के लिए निरंतरता ज़रूरी है। अपनी प्रगति नीचे देखें।</string>
+    <string name="streaks_checkin_label">चेक-इन का क्रम</string>
+    <string name="streaks_login_label">लॉगिन का क्रम</string>
+    <string name="streaks_start_today">आज ही अपना क्रम शुरू करें!</string>
+    <string name="streaks_amazing">बहुत बढ़िया! ऐसे ही लगे रहें!</string>
+    <string name="streaks_monthly_health">मासिक स्वास्थ्य</string>
+    <string name="streaks_avg_focus_score">औसत एकाग्रता स्कोर</string>
+    <string name="streaks_days_unit">दिन</string>
+    <string name="streaks_consistency_trend">लक्ष्य की निरंतरता का ट्रेंड</string>
+    <string name="streaks_trend_subtitle">पिछले 7 दिनों में आपके पूरे हुए लक्ष्य</string>
+
+    <!-- Analytics -->
+    <string name="analytics_filter">फ़िल्टर</string>
+    <string name="analytics_mood_trend">मूड ट्रेंड — %s</string>
+    <string name="analytics_avg_mood">औसत मूड</string>
+    <string name="analytics_checkins">चेक-इन संख्या</string>
+    <string name="analytics_top_mood">मुख्य मूड</string>
+    <string name="analytics_no_report_hint">इस महीने के लिए अभी कोई रिपोर्ट नहीं बनी है।</string>
+    <string name="analytics_generate">तैयार करें</string>
+    <string name="analytics_scorecard_title">निष्ठा स्कोरकार्ड</string>
+    <string name="analytics_consistency_score">निरंतरता स्कोर</string>
+    <string name="analytics_completion_rate">पूर्णता दर</string>
+    <string name="analytics_focus_depth">एकाग्रता की गहराई</string>
+    <string name="analytics_skill_radar">कौशल रडार</string>
+    <string name="analytics_multidimensional">बहुआयामी प्रदर्शन</string>
+    <string name="analytics_activity_heatmap">गतिविधि हीटमैप</string>
+    <string name="analytics_30_day">30 दिनों का घनत्व</string>
+    <string name="analytics_less_active">कम सक्रिय</string>
+    <string name="analytics_power_mode">पावर मोड</string>
+    <string name="analytics_self_discovery">आत्म-खोज के विचार</string>
+    <string name="analytics_power_hour_title">आपका पावर ऑवर</string>
+    <string name="analytics_mood_connection_title">मूड का संबंध</string>
+    <string name="analytics_sunday_scaries_title">संडे स्केरीज़</string>
+
+    <!-- Days of week (short) -->
+    <string name="day_mon">सोम</string>
+    <string name="day_tue">मंगल</string>
+    <string name="day_wed">बुध</string>
+    <string name="day_thu">गुरु</string>
+    <string name="day_fri">शुक्र</string>
+    <string name="day_sat">शनि</string>
+    <string name="day_sun">रवि</string>
+
+    <!-- Days of week (full) -->
+    <string name="day_full_mon">सोमवार</string>
+    <string name="day_full_tue">मंगलवार</string>
+    <string name="day_full_wed">बुधवार</string>
+    <string name="day_full_thu">गुरुवार</string>
+    <string name="day_full_fri">शुक्रवार</string>
+    <string name="day_full_sat">शनिवार</string>
+    <string name="day_full_sun">रविवार</string>
+
+    <!-- Date filters -->
+    <string name="filter_today">आज</string>
+    <string name="filter_this_week">इस सप्ताह</string>
+    <string name="filter_this_month">इस महीने</string>
+    <string name="filter_3_months">3 महीने</string>
+    <string name="filter_all_time">अब तक का</string>
+
+    <!-- Ekagra -->
+    <string name="ekagra_tab_timer">टाइमर</string>
+    <string name="ekagra_tab_break">ब्रेक</string>
+    <string name="ekagra_tab_analytics">विश्लेषण</string>
+    <string name="ekagra_theme">थीम</string>
+    <string name="ekagra_song">संगीत</string>
+    <string name="ekagra_focus">एकाग्रता</string>
+    <string name="ekagra_minutes">%d मिनट</string>
+    <string name="ekagra_decrease">घटाएं</string>
+    <string name="ekagra_increase">बढ़ाएं</string>
+    <string name="ekagra_reset">रीसेट</string>
+    <string name="ekagra_pause">रोकें</string>
+    <string name="ekagra_start">शुरू करें</string>
+    <string name="ekagra_start_break">ब्रेक शुरू करें</string>
+    <string name="ekagra_break_time">ब्रेक का समय</string>
+    <string name="ekagra_break_minutes">%d मिनट का ब्रेक</string>
+    <string name="ekagra_choose_theme">थीम चुनें</string>
+    <string name="ekagra_ambient_sound">शांत वातावरण की आवाज़</string>
+    <string name="ekagra_theme_forest">जंगल</string>
+    <string name="ekagra_theme_ocean">सागर</string>
+    <string name="ekagra_theme_desert">रेगिस्तान</string>
+    <string name="ekagra_theme_night">रात का आसमान</string>
+    <string name="ekagra_theme_minimal">साधारण</string>
+    <string name="ekagra_song_rain">बारिश की आवाज़</string>
+    <string name="ekagra_song_binaural">बाइनॉरल बीट्स</string>
+    <string name="ekagra_song_lofi">लो-फाई संगीत</string>
+    <string name="ekagra_song_forest">जंगल का वातावरण</string>
+    <string name="ekagra_song_silence">मौन</string>
+    <string name="ekagra_stat_sessions">सेशन</string>
+    <string name="ekagra_stat_focus_time">एकाग्रता समय</string>
+    <string name="ekagra_stat_avg_session">औसत सेशन</string>
+
+    <!-- Common -->
+    <string name="common_cancel">रद्द करें</string>
+    <string name="common_save">सेव करें</string>
+    <string name="common_close">बंद करें</string>
+    <string name="common_ok">ठीक है</string>
+    <string name="common_back">पीछे</string>
+    <string name="common_error">कुछ गड़बड़ हो गई</string>
+    <string name="common_retry">दोबारा कोशिश करें</string>
+    <string name="common_loading">लोड हो रहा है…</string>
+
+    <string name="profile_dark_mode">डार्क मोड</string>
+    <string name="profile_light_mode">लाइट मोड</string>
+
+    <!-- Focus Shield -->
+    <string name="focus_shield_blocked_title">ऐप ब्लॉक है</string>
+    <string name="focus_shield_blocked_message">%s आपके एकाग्रता या अध्ययन सत्र के दौरान ब्लॉक है। केंद्रित रहें!</string>
+    <string name="focus_shield_emergency_unlock">आपातकालीन अनलॉक</string>
+    <string name="focus_shield_return_to_timer">टाइमर पर लौटें</string>
+    <string name="focus_shield_accessibility_label">SAFAR कवच अलर्ट</string>
+    <string name="focus_shield_accessibility_description">कवच वैकल्पिक है। यह केवल आपके चुने हुए ऐप्स को एकाग्रता सत्र के दौरान ब्लॉक करने और कवच स्क्रीन दिखाने के लिए एक्सेसिबिलिटी सेवा का उपयोग करता है ताकि आप पढ़ाई पर लौट सकें। SAFAR आपकी व्यक्तिगत सामग्री नहीं पढ़ता, कोई जेस्चर नहीं करता, सेटिंग्स नहीं बदलता और न ही कोई डेटा साझा करता है।</string>
+
+    <!-- Notification action buttons -->
+    <string name="notification_action_start_now">अभी शुरू करें</string>
+
+    <string name="module_courses">कोर्सेस</string>
+</resources>

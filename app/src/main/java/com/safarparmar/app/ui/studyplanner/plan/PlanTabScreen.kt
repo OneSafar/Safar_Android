@@ -37,10 +37,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Adjust
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -92,13 +97,14 @@ enum class StudyPlannerTab {
     COMPLETED
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun PlanTabScreen(
     plan: StudyPlan,
     actions: PlannerActions,
     onNavigate: (String) -> Unit,
     onboardingCompletedSteps: Set<String> = emptySet(),
+    planningMode: String = "flex",
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
@@ -166,9 +172,15 @@ fun PlanTabScreen(
     var resetConfirm by remember { mutableStateOf(false) }
     var completionPromptTopic by remember { mutableStateOf<TopicRef?>(null) }
 
-    // Editable Today's Agenda state
+    // Editable Today's Study Plan state
     var replaceSheetTopic by remember { mutableStateOf<TopicRef?>(null) }
+    var showPullTopicSheet by remember { mutableStateOf(false) }
+    // Boolean = lockExisting; null means sheet is closed
+    var pendingDistributeAction by remember { mutableStateOf<Boolean?>(null) }
     var removeFromTodayConfirmTopic by remember { mutableStateOf<TopicRef?>(null) }
+    var showAddCustomTopic by remember { mutableStateOf(false) }
+    var editTopicRef by remember { mutableStateOf<TopicRef?>(null) }
+    var revisionTopicRef by remember { mutableStateOf<TopicRef?>(null) }
 
     fun exportPlan() {
         exportLauncher.launch("${plan.title.replace(" ", "_")}_Syllabus.pdf")
@@ -178,6 +190,7 @@ fun PlanTabScreen(
         PlanSettingsSheet(
             plan = plan,
             actions = actions,
+            planningMode = planningMode,
             onExport = ::exportPlan,
             onReset = { resetConfirm = true },
             onDismiss = { showSettings = false },
@@ -212,7 +225,8 @@ fun PlanTabScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(
                         onClick = {
-                            actions.updateTopic(ref.topic.id, status = TopicStatus.REVISION_NEEDED)
+                            // Open the revision scheduler instead of directly setting status
+                            revisionTopicRef = ref
                             completionPromptTopic = null
                         },
                     ) {
@@ -236,6 +250,17 @@ fun PlanTabScreen(
         )
     }
 
+    revisionTopicRef?.let { ref ->
+        RevisionScheduleSheet(
+            topicName = ref.topic.name,
+            examDate = plan.examDate,
+            onRevisionScheduled = { dates, scheduleType ->
+                actions.markForRevision(ref.topic.id, dates, scheduleType)
+            },
+            onDismiss = { revisionTopicRef = null },
+        )
+    }
+
     fun handleTopicDoneCheck(ref: TopicRef, checked: Boolean) {
         if (checked && ref.topic.status != TopicStatus.DONE) {
             completionPromptTopic = ref
@@ -244,20 +269,103 @@ fun PlanTabScreen(
         }
     }
 
+
+    // ── Build Schedule Mode Sheet ─────────────────────────────────────────
+    pendingDistributeAction?.let { action ->
+        ModalBottomSheet(
+            onDismissRequest = { pendingDistributeAction = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .padding(bottom = 32.dp),
+            ) {
+                Text(
+                    text = "Build Schedule Mode",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "How should we handle situations where there are more topics than available days before your exam?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Strict Mode Option
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    onClick = {
+                        actions.autoDistribute(action, "strict")
+                        pendingDistributeAction = null
+                    }
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Strict Mode", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Keep exactly to your daily goal. If topics don't fit, they'll remain unscheduled.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+
+                // Flex Mode Option
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    onClick = {
+                        actions.autoDistribute(action, "flex")
+                        pendingDistributeAction = null
+                    }
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "Flex Mode (Recommended)", 
+                            fontWeight = FontWeight.Bold, 
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            "Distribute all remaining topics evenly across available days before the exam, temporarily raising your daily goal if needed.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     // ── Replace Topic Sheet ────────────────────────────────────────
-    replaceSheetTopic?.let { currentRef ->
+    if (replaceSheetTopic != null || showPullTopicSheet) {
         ReplaceTopicSheet(
-            currentRef = currentRef,
+            currentRef = replaceSheetTopic,
             allRefs = refs,
             today = today,
             onSwap = { currentId, replacementId ->
                 actions.swapTopicDates(currentId, replacementId)
             },
             onReplace = { currentId, replacementId, todayDate ->
-                // Move replacement to today, unschedule the current one
                 actions.replaceTopicToday(currentId, replacementId, todayDate)
             },
-            onDismiss = { replaceSheetTopic = null },
+            onPull = { topicId ->
+                actions.updateTopic(topicId = topicId, plannedDate = today, pinned = true)
+            },
+            onDismiss = { 
+                replaceSheetTopic = null
+                showPullTopicSheet = false
+            },
         )
     }
 
@@ -270,6 +378,37 @@ fun PlanTabScreen(
             onConfirm = {
                 actions.clearTopicDates(listOf(ref.topic.id))
                 removeFromTodayConfirmTopic = null
+            },
+        )
+    }
+
+    // ── Add a brand-new custom topic to today ──────────────────────
+    if (showAddCustomTopic) {
+        AddCustomTopicDialog(
+            onDismiss = { showAddCustomTopic = false },
+            onConfirm = { name ->
+                actions.addCustomTopicToToday(name)
+                showAddCustomTopic = false
+            },
+        )
+    }
+
+    // ── Edit topic / chapter / subject names ───────────────────────
+    editTopicRef?.let { ref ->
+        EditTopicDialog(
+            ref = ref,
+            onDismiss = { editTopicRef = null },
+            onSave = { topicName, chapterName, subjectName ->
+                if (topicName != ref.topic.name && topicName.isNotBlank()) {
+                    actions.updateTopic(ref.topic.id, name = topicName)
+                }
+                if (chapterName != ref.chapter.name && chapterName.isNotBlank()) {
+                    actions.renameChapter(ref.subject.id, ref.chapter.id, chapterName)
+                }
+                if (subjectName != ref.subject.name && subjectName.isNotBlank()) {
+                    actions.renameSubject(ref.subject.id, subjectName)
+                }
+                editTopicRef = null
             },
         )
     }
@@ -304,8 +443,8 @@ fun PlanTabScreen(
             item(key = "actions", contentType = "actions") {
                 PlanActionRow(
                     onAddTopics = { onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", plan.id)) },
-                    onSchedule = { actions.autoDistribute(false, true) },
-                    onRebuildPlan = { actions.autoDistribute(false, false) },
+                    onSchedule = { pendingDistributeAction = true },
+                    onRebuildPlan = { pendingDistributeAction = false },
                     showSchedule = false,
                 )
             }
@@ -336,13 +475,36 @@ fun PlanTabScreen(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                 )
                             ) {
-                                Text(
-                                    text = "No topics planned for today. Add topics or review upcoming tasks.",
-                                    modifier = Modifier.padding(16.dp),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "No topics planned for today. Add topics or review upcoming tasks.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        TextButton(
+                                            onClick = { showPullTopicSheet = true },
+                                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                                        ) {
+                                            Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("Pull Existing", fontWeight = FontWeight.Bold)
+                                        }
+                                        TextButton(
+                                            onClick = { showAddCustomTopic = true },
+                                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                                        ) {
+                                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("Add Custom", fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -474,7 +636,7 @@ fun PlanTabScreen(
                         }
 
                         item(key = "today_list_header") {
-                            PlanSectionHeader(title = "Today's Agenda", trailing = "${todayTopics.size} planned")
+                            PlanSectionHeader(title = "Today's Study Plan", trailing = "${todayTopics.size} planned")
                         }
                         items(
                             items = todayTopics.take(10),
@@ -489,7 +651,34 @@ fun PlanTabScreen(
                                 },
                                 onReplace = { replaceSheetTopic = ref },
                                 onRemoveFromToday = { removeFromTodayConfirmTopic = ref },
+                                onEdit = { editTopicRef = ref },
                             )
+                        }
+
+                        item(key = "pull_extra_topic") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                TextButton(
+                                    onClick = { showPullTopicSheet = true },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Pull Existing", fontWeight = FontWeight.Bold)
+                                }
+                                TextButton(
+                                    onClick = { showAddCustomTopic = true },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Add Custom", fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
 
                         if (todayCompleted) {
@@ -910,7 +1099,7 @@ fun PlanTabScreen(
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "Skipped topics stay unticked in Today's Agenda. Start Study Flow again when you want to continue them.",
+                            text = "Skipped topics stay unticked in Today's Study Plan. Start Study Flow again when you want to continue them.",
                             color = Color.White.copy(alpha = 0.8f),
                             fontSize = 15.sp,
                             textAlign = TextAlign.Center,
@@ -969,4 +1158,91 @@ fun PlanTabScreen(
             }
         }
     }
+}
+
+@Composable
+private fun AddCustomTopicDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add a topic to today") },
+        text = {
+            Column {
+                Text(
+                    text = "This adds a one-off topic to Today's Study Plan only. It won't change your daily goal or future days.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Topic name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(name.trim()) },
+                enabled = name.trim().length >= 2,
+            ) { Text("Add to today") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+private fun EditTopicDialog(
+    ref: TopicRef,
+    onDismiss: () -> Unit,
+    onSave: (topicName: String, chapterName: String, subjectName: String) -> Unit,
+) {
+    var topicName by remember(ref.topic.id) { mutableStateOf(ref.topic.name) }
+    var chapterName by remember(ref.topic.id) { mutableStateOf(ref.chapter.name) }
+    var subjectName by remember(ref.topic.id) { mutableStateOf(ref.subject.name) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = topicName,
+                    onValueChange = { topicName = it },
+                    label = { Text("Topic") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = chapterName,
+                    onValueChange = { chapterName = it },
+                    label = { Text("Chapter") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = subjectName,
+                    onValueChange = { subjectName = it },
+                    label = { Text("Subject") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(topicName.trim(), chapterName.trim(), subjectName.trim()) },
+                enabled = topicName.trim().length >= 2,
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }

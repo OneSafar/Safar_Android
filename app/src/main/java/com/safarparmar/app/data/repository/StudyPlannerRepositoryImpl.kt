@@ -1,6 +1,7 @@
 package com.safarparmar.app.data.repository
 
 import com.safarparmar.app.data.remote.api.AutoDistributeRequest
+import com.safarparmar.app.data.remote.api.BatchTopicUpdateRequest
 import com.safarparmar.app.data.remote.api.BulkImportResponse
 import com.safarparmar.app.data.remote.api.BulkTopicsRequest
 import com.safarparmar.app.data.remote.api.ChapterRequest
@@ -11,6 +12,9 @@ import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusSubjectRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusTopicRequest
 import com.safarparmar.app.data.remote.api.PlannerApi
+import com.safarparmar.app.data.remote.api.DeleteUndoRequest
+import com.safarparmar.app.data.remote.api.PlanRestoreResult
+import com.safarparmar.app.data.remote.api.RolloverUndoRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusResponse
 import com.safarparmar.app.data.remote.api.StructuredSyllabusPreview
@@ -29,11 +33,14 @@ import com.google.gson.JsonSyntaxException
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.time.LocalDate
+import java.time.ZoneId
 import com.safarparmar.app.domain.model.studyplanner.AutoDistributeResult
 import com.safarparmar.app.domain.model.studyplanner.CalendarMap
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
 import com.safarparmar.app.domain.model.studyplanner.PlannerAnalytics
+import com.safarparmar.app.domain.model.studyplanner.RolloverUndoResult
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.UpgradePlannerResult
 import com.safarparmar.app.domain.repository.StudyPlannerRepository
@@ -61,8 +68,12 @@ class StudyPlannerRepositoryImpl @Inject constructor(
     override suspend fun getTemplates(): Resource<List<ExamTemplateSummary>> = safeApiCall { api.getTemplates() }
     override suspend fun getTemplateDetail(templateId: String): Resource<ExamTemplate> = safeApiCall { api.getTemplateDetail(templateId) }
     override suspend fun createPlanFromTemplate(request: CreateFromTemplateRequest): Resource<StudyPlan> = safeApiCall { api.createPlanFromTemplate(request) }
-    override suspend fun getPlan(planId: String): Resource<StudyPlan> = safeApiCall { api.getPlan(planId) }
+    override suspend fun getPlan(planId: String): Resource<StudyPlan> = safeApiCall {
+        api.getPlan(planId, LocalDate.now().toString(), ZoneId.systemDefault().id)
+    }
     override suspend fun updatePlan(planId: String, request: UpdatePlanRequest): Resource<StudyPlan> = safeApiCall { api.updatePlan(planId, request) }
+    override suspend fun undoRollover(planId: String, request: RolloverUndoRequest): Resource<RolloverUndoResult> = safeApiCall { api.undoRollover(planId, request) }
+    override suspend fun undoDelete(planId: String, request: DeleteUndoRequest): Resource<PlanRestoreResult> = safeApiCall { api.undoDelete(planId, request) }
     override suspend fun upgradePlan(planId: String): Resource<UpgradePlannerResult> = safeApiCall { api.upgradePlan(planId) }
     override suspend fun getCalendar(planId: String): Resource<CalendarMap> = safeApiCall { api.getCalendar(planId) }
     override suspend fun getAnalytics(planId: String): Resource<PlannerAnalytics> = safeApiCall { api.getAnalytics(planId) }
@@ -83,6 +94,7 @@ class StudyPlannerRepositoryImpl @Inject constructor(
     override suspend fun importSyllabus(planId: String, request: ImportSyllabusRequest): Resource<StudyPlan> =
         safeApiCall { api.importSyllabus(planId, request) }
     override suspend fun updateTopic(planId: String, topicId: String, request: TopicPatchRequest): Resource<StudyPlan> = safeApiCall { api.updateTopic(planId, topicId, request) }
+    override suspend fun batchUpdateTopics(planId: String, request: BatchTopicUpdateRequest): Resource<StudyPlan> = safeApiCall { api.batchUpdateTopics(planId, request) }
     override suspend fun deleteTopic(planId: String, topicId: String): Resource<StudyPlan> = safeApiCall { api.deleteTopic(planId, topicId) }
 
     override suspend fun bulkImportSyllabus(planId: String, text: String): Resource<BulkImportResponse> {

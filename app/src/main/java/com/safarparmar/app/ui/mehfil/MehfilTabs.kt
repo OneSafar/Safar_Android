@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -689,11 +690,11 @@ internal fun AnalyticsTab(uiState: MehfilUiState) {
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(
+            itemsIndexed(
                 items = uiState.activity,
-                key = { item -> "${item.type}:${item.thoughtId}:${item.createdAt}:${item.comment.orEmpty()}" },
-                contentType = { "activity" },
-            ) { item ->
+                key = { index, item -> "${item.type}:${item.thoughtId}:${item.createdAt}:${item.comment.orEmpty()}:$index" },
+                contentType = { _, _ -> "activity" },
+            ) { _, item ->
                 ActivityRow(item = item)
             }
         }

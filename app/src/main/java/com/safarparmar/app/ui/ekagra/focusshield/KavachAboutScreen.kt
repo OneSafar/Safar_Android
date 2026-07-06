@@ -44,6 +44,10 @@ import com.safarparmar.app.R
 fun KavachAboutScreen(
     onBack: () -> Unit,
 ) {
+    androidx.activity.compose.BackHandler {
+        onBack()
+    }
+
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasUsage by remember { mutableStateOf(FocusShieldPermissionHelper.hasUsageStatsPermission(context)) }

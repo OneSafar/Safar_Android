@@ -1,12 +1,14 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
 import android.app.AppOpsManager
+import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
+import android.service.notification.NotificationListenerService
 import com.safarparmar.app.BuildConfig
 
 object FocusShieldPermissionHelper {
@@ -75,6 +77,39 @@ object FocusShieldPermissionHelper {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
         return context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
+    fun hasNotificationListenerAccess(context: Context): Boolean {
+        val component = ComponentName(context, FocusShieldNotificationListenerService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            return runCatching {
+                context.getSystemService(NotificationManager::class.java)
+                    .isNotificationListenerAccessGranted(component)
+            }.getOrDefault(false)
+        }
+
+        val enabledListeners = Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners",
+        ).orEmpty()
+        return enabledListeners.split(':').any { it.equals(component.flattenToString(), ignoreCase = true) }
+    }
+
+    fun openNotificationListenerSettings(context: Context) {
+        context.startActivity(
+            Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
+
+    fun requestNotificationListenerRebind(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+        val component = ComponentName(context, FocusShieldNotificationListenerService::class.java)
+        runCatching {
+            NotificationListenerService.requestRebind(component)
+        }.onFailure {
+            debugLog("Notification listener rebind request failed: ${it.javaClass.simpleName}")
+        }
     }
 
     private fun debugLog(message: String) {

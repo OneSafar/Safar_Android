@@ -5,11 +5,14 @@ import com.safarparmar.app.data.remote.dto.AdminBroadcastResponse
 import com.safarparmar.app.data.remote.dto.DeviceTokenRequest
 import com.safarparmar.app.data.remote.dto.DeviceTokenRevokeRequest
 import com.safarparmar.app.data.remote.dto.MessageResponse
+import com.safarparmar.app.data.remote.dto.NotificationHistoryResponse
 import com.safarparmar.app.data.remote.dto.NotificationPreferencesRequest
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface NotificationApi {
     @POST("device-tokens")
@@ -27,4 +30,7 @@ interface NotificationApi {
     /** Sends only to the signed-in user — does not require admin (for testing composer content). */
     @POST("notifications/test")
     suspend fun sendTestNotification(@Body request: AdminBroadcastRequest): Response<AdminBroadcastResponse>
+
+    @GET("notifications/history")
+    suspend fun getNotificationHistory(@Query("page") page: Int = 1, @Query("limit") limit: Int = 20): Response<NotificationHistoryResponse>
 }

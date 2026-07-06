@@ -287,5 +287,6 @@ data class EkagraAnalyticsFocusSessionDto(
     val rawStatus: String? = null,
     val taskText: String? = null,
     val associatedGoalId: String? = null,
-    val pauseCount: Int? = 0
+    val pauseCount: Int? = 0,
+    val timerMode: String? = null
 )

@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -82,6 +83,11 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
+import androidx.compose.ui.res.stringResource
+import androidx.compose.material.icons.filled.Language
+import com.safarparmar.app.R
 
 private enum class SettingsInfoSheet {
     EULA,
@@ -278,6 +284,160 @@ fun SettingsScreen(
                         checked = isDarkTheme,
                         onCheckedChange = { onToggleDarkTheme() },
                     )
+
+                    // Language Selection Row
+                    var showLanguageDialog by remember { mutableStateOf(false) }
+                    val locales = AppCompatDelegate.getApplicationLocales()
+                    val currentLangCode = if (locales.isEmpty) "en" else locales.get(0)?.language ?: "en"
+                    val currentLangName = if (currentLangCode == "hi") "हिन्दी (Hindi)" else "English"
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .clickable { showLanguageDialog = true }
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f))
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                                shape = MaterialTheme.shapes.medium
+                            )
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = "Language",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(id = R.string.profile_language_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = currentLangName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    if (showLanguageDialog) {
+                        ModalBottomSheet(
+                            onDismissRequest = { showLanguageDialog = false }
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 22.dp)
+                                    .padding(bottom = 40.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(id = R.string.profile_language_dialog_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.profile_language_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                
+                                // English option
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            AppCompatDelegate.setApplicationLocales(
+                                                LocaleListCompat.forLanguageTags("en")
+                                            )
+                                            showLanguageDialog = false
+                                        }
+                                        .background(
+                                            if (currentLangCode == "en") MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                            else Color.Transparent
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (currentLangCode == "en") MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Language,
+                                        contentDescription = null,
+                                        tint = if (currentLangCode == "en") MaterialTheme.colorScheme.primary
+                                               else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = stringResource(id = R.string.profile_language_english),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = if (currentLangCode == "en") FontWeight.Bold else FontWeight.Normal,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                // Hindi option
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            AppCompatDelegate.setApplicationLocales(
+                                                LocaleListCompat.forLanguageTags("hi")
+                                            )
+                                            showLanguageDialog = false
+                                        }
+                                        .background(
+                                            if (currentLangCode == "hi") MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                            else Color.Transparent
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (currentLangCode == "hi") MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Language,
+                                        contentDescription = null,
+                                        tint = if (currentLangCode == "hi") MaterialTheme.colorScheme.primary
+                                               else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = stringResource(id = R.string.profile_language_hindi),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = if (currentLangCode == "hi") FontWeight.Bold else FontWeight.Normal,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     Text(
                         "Version ${BuildConfig.VERSION_NAME.substringBefore('-')}",
                         style = MaterialTheme.typography.bodySmall,
@@ -466,7 +626,7 @@ fun SettingsScreen(
                     SettingsPermissionRow(
                         icon = Icons.Default.Info,
                         title = "KAVACH Alert",
-                        subtitle = "Uses AccessibilityService for KAVACH Focus Shield app blocking.",
+                        subtitle = "Uses Accessibility Service for KAVACH Focus Shield app blocking.",
                         granted = hasFocusShieldAccessibility,
                         accent = MaterialTheme.colorScheme.primary,
                         onClickWhenNotGranted = { activeInfoSheet = SettingsInfoSheet.ACCESSIBILITY },
@@ -634,6 +794,10 @@ private fun SettingsLegalInfoSheet(
                 "Keep your account details private.",
                 "Use study tools fairly and respectfully.",
                 "SAFAR may improve features and fix issues over time.",
+                "KAVACH Focus Shield is optional. If enabled, it uses Usage Access and Accessibility Service only to detect selected blocked apps during active Ekagra focus timer sessions and return you to SAFAR.",
+                "SAFAR does not use KAVACH permissions to read screen content, messages, passwords, typed text, or to control your phone.",
+                "SAFAR does not sell or share Accessibility Service or Usage Access data, and it does not upload the names of apps you open or block.",
+                "Ekagra may use foreground service, media playback, notifications, and Picture-in-Picture only for active user-started focus sessions.",
             ),
         )
         SettingsInfoSheet.PRIVACY -> SettingsInfoContent(
@@ -642,7 +806,12 @@ private fun SettingsLegalInfoSheet(
             points = listOf(
                 "KAVACH does not read messages, passwords, photos, or typed text.",
                 "Your blocked app choices stay on this device.",
+                "Usage Access is used only to match opened apps against your blocked app list.",
+                "Accessibility Service is used only to show SAFAR's KAVACH block screen when a selected app opens during an active focus session.",
+                "SAFAR does not sell or share Accessibility Service or Usage Access data, and it does not upload the names of apps you open or block.",
+                "SAFAR may use limited KAVACH status, such as selected blocked app count, to keep the feature working.",
                 "Notifications are used for reminders and active session status.",
+                "Foreground service, media playback, and Picture-in-Picture are used only for active user-started Ekagra focus sessions.",
                 "Payments are handled by Razorpay/PhonePe; SAFAR stores your Premium status and validity date.",
             ),
         )
@@ -650,22 +819,24 @@ private fun SettingsLegalInfoSheet(
             title = "Why KAVACH asks",
             subtitle = "KAVACH needs a few Android permissions to block distractions during ekagra time.",
             points = listOf(
-                "Usage Access helps notice opened apps.",
-                "Accessibility brings you back to SAFAR when a selected app opens.",
+                "Usage Access helps notice opened apps only so KAVACH can compare them with your blocked app list.",
+                "Accessibility brings you back to SAFAR when a selected app opens during an active focus timer.",
+                "SAFAR does not upload the names of apps you open or block.",
                 "You can use SAFAR without KAVACH permissions.",
             ),
         )
         SettingsInfoSheet.ACCESSIBILITY -> SettingsInfoContent(
-            title = "AccessibilityService API",
-            subtitle = "SAFAR uses this only for KAVACH Focus Shield.",
+            title = "Accessibility Service",
+            subtitle = "KAVACH is optional. It helps block only the apps you choose during an active Ekagra focus timer session.",
             points = listOf(
-                "When KAVACH is enabled, SAFAR detects the package name of the app you open and compares it with the apps you selected to block.",
-                "If a selected app opens during an active Ekagra focus timer session, SAFAR shows the KAVACH block screen so you can return to studying.",
-                "SAFAR does not request the Display over other apps permission. KAVACH shows its own block screen only when a user-selected blocked app is opened during an active Ekagra focus timer session.",
-                "SAFAR does not read your screen content, messages, passwords, typed text, notifications, contacts, photos, or files.",
-                "SAFAR does not click buttons, perform gestures, change device settings, prevent uninstall, or control your phone.",
-                "All processing happens locally on your device. SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties.",
-                "You can keep using SAFAR without KAVACH and can disable this permission anytime in Android Settings.",
+                "SAFAR uses Android Accessibility Service only for KAVACH Focus Shield.",
+                "When you open an app you selected for blocking, SAFAR detects that app's package name, checks it against your blocked app list, and shows SAFAR's own KAVACH block screen so you can return to your focus session.",
+                "SAFAR does not use Accessibility Service to read your screen, messages, passwords, typed text, notifications, contacts, photos, or files.",
+                "SAFAR does not use Accessibility Service to click buttons, perform gestures, change settings, prevent uninstall, or control your phone.",
+                "SAFAR does not request the Display over other apps permission. KAVACH shows SAFAR's own block screen only when a user-selected blocked app opens during an active focus session.",
+                "SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties.",
+                "All processing happens locally on your device.",
+                "You can keep using SAFAR without KAVACH, and you can turn this permission off anytime in Android Settings.",
             ),
         )
         SettingsInfoSheet.USAGE_ACCESS -> SettingsInfoContent(
@@ -674,6 +845,8 @@ private fun SettingsLegalInfoSheet(
             points = listOf(
                 "Used during KAVACH setup and active ekagra sessions.",
                 "Helps match opened apps with your blocked app list.",
+                "SAFAR does not use Usage Access for ads, marketing, or third-party sharing.",
+                "SAFAR does not upload the names of apps you open or block.",
                 "You stay in control of the permission.",
             ),
         )
@@ -684,6 +857,7 @@ private fun SettingsLegalInfoSheet(
                 "Timer progress and session complete alerts.",
                 "Daily study reminders if you switch them on.",
                 "KAVACH status while a ekagra session is active.",
+                "Foreground service and media playback notifications keep active Ekagra sessions visible and controllable outside the app.",
             ),
         )
     }

@@ -37,6 +37,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.util.UUID
 
 class TimerService : Service() {
 
@@ -59,6 +61,12 @@ class TimerService : Service() {
         private const val KEY_SAVED_AT_MS = "saved_at_ms"
         private const val KEY_SUSPENDED_TOTAL_SECONDS = "suspended_total_seconds"
         private const val KEY_SUSPENDED_REMAINING_SECONDS = "suspended_remaining_seconds"
+        private const val KEY_AUTO_SAVE_CLIENT_SESSION_ID = "auto_save_client_session_id"
+        private const val KEY_AUTO_SAVE_STARTED_AT = "auto_save_started_at"
+        private const val KEY_AUTO_SAVE_TASK_TITLE = "auto_save_task_title"
+        private const val KEY_AUTO_SAVE_GOAL_ID = "auto_save_goal_id"
+        private const val KEY_AUTO_SAVE_GOAL_TITLE = "auto_save_goal_title"
+        private const val DEFAULT_UNTITLED_SESSION_TITLE = "Untitled"
         private val KNOWN_HOME_PACKAGES = setOf(
             "com.miui.home",
             "com.mi.android.globallauncher",
@@ -77,7 +85,8 @@ class TimerService : Service() {
             val prefs = context.getSharedPreferences(TIMER_STATE_PREFS, Context.MODE_PRIVATE)
             if (!prefs.getBoolean(KEY_HAS_STATE, false)) return false
             if (!prefs.getBoolean(KEY_IS_RUNNING, false)) return false
-            if (prefs.getString(KEY_MODE, TimerMode.FOCUS.name) != TimerMode.FOCUS.name) return false
+            val modeStr = prefs.getString(KEY_MODE, TimerMode.FOCUS.name)
+            if (modeStr != TimerMode.FOCUS.name && modeStr != TimerMode.STOPWATCH.name) return false
 
             val total = prefs.getInt(KEY_TOTAL_SECONDS, 25 * 60).coerceAtLeast(1)
             val savedRemaining = prefs.getInt(KEY_REMAINING_SECONDS, total).coerceIn(0, total)
@@ -101,10 +110,20 @@ class TimerService : Service() {
     private var shieldMonitorJob: Job? = null
     private var suspendedFocusState: SuspendedFocusState? = null
     private var cachedUserName: String = ""
+    private var autoSaveMetadata: AutoSaveMetadata? = null
+    private var sessionSaveQueuedThisRun: Boolean = false
 
     private data class SuspendedFocusState(
         val totalSeconds: Int,
         val remainingSeconds: Int,
+    )
+
+    private data class AutoSaveMetadata(
+        val clientSessionId: String,
+        val startedAt: String,
+        val taskTitle: String?,
+        val goalId: String?,
+        val goalTitle: String?,
     )
 
     // ── Exposed state ─────────────────────────────────────────────────────────
@@ -112,11 +131,17 @@ class TimerService : Service() {
     private val _totalSeconds = MutableStateFlow(25 * 60)
     private val _isRunning    = MutableStateFlow(false)
     private val _timerMode    = MutableStateFlow(TimerMode.FOCUS)
+    private val _isMuted      = MutableStateFlow(false)
+    private val _isPomodoroMode = MutableStateFlow(false)
+    private val _pomodorosCompleted = MutableStateFlow(0)
 
     val secondsLeft:  StateFlow<Int>       = _secondsLeft
     val totalSeconds: StateFlow<Int>       = _totalSeconds
     val isRunning:    StateFlow<Boolean>   = _isRunning
     val timerMode:    StateFlow<TimerMode> = _timerMode
+    val isMuted:      StateFlow<Boolean>   = _isMuted
+    val isPomodoroMode: StateFlow<Boolean> = _isPomodoroMode
+    val pomodorosCompleted: StateFlow<Int> = _pomodorosCompleted
 
     // ── Focus Shield state ─────────────────────────────────────────────────
     private val _focusShieldActive  = MutableStateFlow(false)
@@ -159,6 +184,12 @@ class TimerService : Service() {
             disableFocusShieldForSession()
             return
         }
+        if (!FocusShieldPermissionHelper.hasNotificationListenerAccess(this)) {
+            debugFocusShield("Ekagra Shield not enabled: notification listener access missing")
+            disableFocusShieldForSession()
+            return
+        }
+        FocusShieldPermissionHelper.requestNotificationListenerRebind(this)
 
         _focusShieldActive.value = true
         val strict = _strictMode.value
@@ -176,7 +207,6 @@ class TimerService : Service() {
                 active = true,
                 packages = pkgs,
                 strict = strict,
-                alwaysOn = false,
                 unlockLimit = unlockLimit,
                 unlockSeconds = unlockSeconds,
                 resetUnlocks = true,
@@ -215,7 +245,7 @@ class TimerService : Service() {
     }
 
     private fun activateFocusShieldFromSettingsIfNeeded() {
-        if (_timerMode.value != TimerMode.FOCUS) {
+        if (_timerMode.value != TimerMode.FOCUS && _timerMode.value != TimerMode.STOPWATCH) {
             disableFocusShieldForSession()
             return
         }
@@ -253,7 +283,7 @@ class TimerService : Service() {
     }
 
     private suspend fun syncFocusShieldState() {
-        if (_timerMode.value != TimerMode.FOCUS || !_isRunning.value) {
+        if ((_timerMode.value != TimerMode.FOCUS && _timerMode.value != TimerMode.STOPWATCH) || !_isRunning.value) {
             disableFocusShieldForSession()
             return
         }
@@ -319,7 +349,6 @@ class TimerService : Service() {
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE, blockedPackage)
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME, appName)
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_STRICT, strict)
-                putExtra(MainActivity.EXTRA_FOCUS_SHIELD_ALWAYS_ON, false)
                 putExtra(
                     MainActivity.EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING,
                     FocusShieldRepository.ShieldPrefs.getUnlocksRemaining(this@TimerService),
@@ -426,12 +455,27 @@ class TimerService : Service() {
             .focusShieldRepository()
 
     private fun clearTheme() {
-        themePrefs().edit().clear().apply()
+        themePrefs().edit().clear().commit()
     }
 
     // ── Audio player (lives in the service — survives navigation) ─────────────
     private var musicPlayer: MediaPlayer? = null
     private var currentMusicUrl: String   = ""
+
+    fun setMute(mute: Boolean) {
+        _isMuted.value = mute
+        if (_isRunning.value && musicPlayer != null) {
+            val volume = if (mute) 0f else 0.7f
+            musicPlayer?.setVolume(volume, volume)
+        }
+    }
+
+    fun setPomodoroMode(enabled: Boolean) {
+        _isPomodoroMode.value = enabled
+        if (!enabled) {
+            _pomodorosCompleted.value = 0
+        }
+    }
 
     fun setMusic(url: String) {
         if (url == currentMusicUrl) return
@@ -446,7 +490,8 @@ class TimerService : Service() {
             musicPlayer = MediaPlayer().apply {
                 setDataSource(this@TimerService, Uri.parse(url))
                 isLooping = true
-                setVolume(0.7f, 0.7f)
+                val volume = if (_isMuted.value) 0f else 0.7f
+                setVolume(volume, volume)
                 setOnPreparedListener { start() }
                 prepareAsync()
             }
@@ -454,9 +499,14 @@ class TimerService : Service() {
     }
 
     private fun releaseMusic() {
-        runCatching { musicPlayer?.stop() }
-        runCatching { musicPlayer?.release() }
+        val player = musicPlayer
         musicPlayer = null
+        player?.let {
+            kotlin.concurrent.thread {
+                runCatching { it.stop() }
+                runCatching { it.release() }
+            }
+        }
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -483,6 +533,11 @@ class TimerService : Service() {
         return START_STICKY
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        stopBecauseTaskWasRemoved()
+        super.onTaskRemoved(rootIntent)
+    }
+
     override fun onDestroy() {
         disableFocusShieldForSession()
         stopFocusShieldMonitor()
@@ -502,8 +557,9 @@ class TimerService : Service() {
 
     fun setDuration(mode: TimerMode, seconds: Int) {
         _timerMode.value    = mode
-        _secondsLeft.value  = seconds
-        _totalSeconds.value = seconds
+        val initialSeconds  = if (mode == TimerMode.STOPWATCH) 0 else seconds
+        _secondsLeft.value  = initialSeconds
+        _totalSeconds.value = initialSeconds
         _isRunning.value    = false
         suspendedFocusState = null
         tickJob?.cancel()
@@ -524,6 +580,25 @@ class TimerService : Service() {
         releaseMusic()
         persistTimerState()
         if (running && _secondsLeft.value > 0) start() else updateNotification()
+    }
+
+    fun prepareAutoSaveSession(
+        taskTitle: String?,
+        goalId: String?,
+        goalTitle: String?,
+        forceNew: Boolean = false,
+    ) {
+        val current = autoSaveMetadata
+        val shouldCreate = forceNew || current == null
+        autoSaveMetadata = AutoSaveMetadata(
+            clientSessionId = if (shouldCreate) "ekagra-${UUID.randomUUID()}" else current.clientSessionId,
+            startedAt = if (shouldCreate) Instant.now().toString() else current.startedAt,
+            taskTitle = taskTitle?.trim()?.takeIf { it.isNotBlank() } ?: current?.taskTitle,
+            goalId = goalId?.takeIf { it.isNotBlank() && !it.startsWith("named:") } ?: current?.goalId,
+            goalTitle = goalTitle?.trim()?.takeIf { it.isNotBlank() } ?: current?.goalTitle,
+        )
+        sessionSaveQueuedThisRun = false
+        persistAutoSaveMetadata()
     }
 
     fun togglePlayPause() {
@@ -575,17 +650,26 @@ class TimerService : Service() {
     }
 
     fun start() {
-        if (_secondsLeft.value <= 0) return
+        if (_secondsLeft.value <= 0 && _timerMode.value != TimerMode.STOPWATCH) return
         _isRunning.value = true
         persistTimerState()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (e: Exception) {
+            // Android 12+ prevents starting foreground services from the background.
+            // If this happens (e.g., system recreates service), gracefully pause the timer instead of crashing.
+            pause()
+            return
+        }
+        
         activateFocusShieldFromSettingsIfNeeded()
         startFocusShieldMonitor()
         startMusic(currentMusicUrl)
         lastTickElapsedMs = SystemClock.elapsedRealtime()
         tickJob?.cancel()
         tickJob = scope.launch {
-            while (_secondsLeft.value > 0 && _isRunning.value) {
+            while (_isRunning.value && (_timerMode.value == TimerMode.STOPWATCH || _secondsLeft.value > 0)) {
                 delay(1000L)
                 val now = SystemClock.elapsedRealtime()
                 val elapsedSeconds = ((now - lastTickElapsedMs) / 1000L).toInt().coerceAtLeast(1)
@@ -594,7 +678,11 @@ class TimerService : Service() {
                     pause()
                     break
                 }
-                _secondsLeft.value = (_secondsLeft.value - elapsedSeconds).coerceAtLeast(0)
+                if (_timerMode.value == TimerMode.STOPWATCH) {
+                    _secondsLeft.value = _secondsLeft.value + elapsedSeconds
+                } else {
+                    _secondsLeft.value = (_secondsLeft.value - elapsedSeconds).coerceAtLeast(0)
+                }
                 persistTimerState()
                 updateNotification()
             }
@@ -611,7 +699,49 @@ class TimerService : Service() {
                     updateNotification()
                     return@launch
                 }
+                
                 _isRunning.value = false
+                if (_timerMode.value == TimerMode.FOCUS) {
+                    enqueueCompletedFocusSessionSave(
+                        totalSeconds = _totalSeconds.value,
+                        actualSeconds = _totalSeconds.value,
+                        mode = _timerMode.value,
+                    )
+                    
+                    clearPersistedTimerState()
+                    releaseMusic()
+                    clearTheme()
+                    disableFocusShieldForSession()
+                    stopFocusShieldMonitor()
+                    showCompletionNotification()
+                    // Handle next session based on Pomodoro mode
+                    if (_isPomodoroMode.value) {
+                        _pomodorosCompleted.value += 1
+                        _timerMode.value = TimerMode.BREAK
+                        val breakLength = if (_pomodorosCompleted.value % 4 == 0) 15 * 60 else 5 * 60
+                        _totalSeconds.value = breakLength
+                        _secondsLeft.value = breakLength
+                    } else {
+                        // Standard auto-start a 5-minute break
+                        _timerMode.value = TimerMode.BREAK
+                        _totalSeconds.value = 5 * 60
+                        _secondsLeft.value = 5 * 60
+                    }
+                    persistTimerState()
+                    start()
+                    return@launch
+                }
+                
+                // If it was a BREAK and Pomodoro is on, loop back to FOCUS
+                if (_timerMode.value == TimerMode.BREAK && _isPomodoroMode.value) {
+                    _timerMode.value = TimerMode.FOCUS
+                    _totalSeconds.value = 25 * 60
+                    _secondsLeft.value = 25 * 60
+                    persistTimerState()
+                    start()
+                    return@launch
+                }
+                
                 clearPersistedTimerState()
                 releaseMusic()
                 clearTheme()
@@ -635,7 +765,7 @@ class TimerService : Service() {
 
     fun reset() {
         _isRunning.value   = false
-        _secondsLeft.value = _totalSeconds.value
+        _secondsLeft.value = if (_timerMode.value == TimerMode.STOPWATCH) 0 else _totalSeconds.value
         suspendedFocusState = null
         tickJob?.cancel()
         clearPersistedTimerState()
@@ -646,15 +776,117 @@ class TimerService : Service() {
         updateNotification()
     }
 
-    fun isActive(): Boolean = _isRunning.value || _secondsLeft.value < _totalSeconds.value
+    fun isActive(): Boolean = _isRunning.value || (if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value > 0 else _secondsLeft.value < _totalSeconds.value)
+
+    private fun stopBecauseTaskWasRemoved() {
+        if ((_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.STOPWATCH) && !sessionSaveQueuedThisRun) {
+            enqueueFocusSessionSaveIfElapsed(
+                totalSeconds = _totalSeconds.value,
+                remainingSeconds = _secondsLeft.value,
+                mode = _timerMode.value,
+            )
+        }
+        _isRunning.value = false
+        tickJob?.cancel()
+        suspendedFocusState = null
+        clearPersistedTimerState()
+        releaseMusic()
+        clearTheme()
+        disableFocusShieldForSession()
+        stopFocusShieldMonitor()
+        stopForegroundCompat()
+        getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
+        stopSelf()
+    }
 
     private fun timerStatePrefs(): SharedPreferences =
         getSharedPreferences(TIMER_STATE_PREFS, Context.MODE_PRIVATE)
 
+    private fun persistAutoSaveMetadata() {
+        val metadata = autoSaveMetadata ?: return
+        timerStatePrefs().edit()
+            .putString(KEY_AUTO_SAVE_CLIENT_SESSION_ID, metadata.clientSessionId)
+            .putString(KEY_AUTO_SAVE_STARTED_AT, metadata.startedAt)
+            .putString(KEY_AUTO_SAVE_TASK_TITLE, metadata.taskTitle)
+            .putString(KEY_AUTO_SAVE_GOAL_ID, metadata.goalId)
+            .putString(KEY_AUTO_SAVE_GOAL_TITLE, metadata.goalTitle)
+            .apply()
+    }
+
+    private fun restoreAutoSaveMetadata(prefs: SharedPreferences) {
+        val clientSessionId = prefs.getString(KEY_AUTO_SAVE_CLIENT_SESSION_ID, null)
+            ?.takeIf { it.isNotBlank() }
+        val startedAt = prefs.getString(KEY_AUTO_SAVE_STARTED_AT, null)
+            ?.takeIf { it.isNotBlank() }
+        autoSaveMetadata = if (clientSessionId != null && startedAt != null) {
+            AutoSaveMetadata(
+                clientSessionId = clientSessionId,
+                startedAt = startedAt,
+                taskTitle = prefs.getString(KEY_AUTO_SAVE_TASK_TITLE, null)?.takeIf { it.isNotBlank() },
+                goalId = prefs.getString(KEY_AUTO_SAVE_GOAL_ID, null)?.takeIf { it.isNotBlank() },
+                goalTitle = prefs.getString(KEY_AUTO_SAVE_GOAL_TITLE, null)?.takeIf { it.isNotBlank() },
+            )
+        } else {
+            null
+        }
+    }
+
+    private fun enqueueCompletedFocusSessionSave(
+        totalSeconds: Int,
+        actualSeconds: Int,
+        mode: TimerMode,
+    ) {
+        val total = totalSeconds.coerceAtLeast(60)
+        val actual = actualSeconds.coerceIn(60, total)
+        val endedAt = Instant.now().toString()
+        val metadata = autoSaveMetadata ?: AutoSaveMetadata(
+            clientSessionId = "ekagra-${UUID.randomUUID()}",
+            startedAt = Instant.now().minusSeconds(actual.toLong()).toString(),
+            taskTitle = null,
+            goalId = null,
+            goalTitle = null,
+        )
+        val title = metadata.taskTitle
+            ?: metadata.goalTitle
+            ?: DEFAULT_UNTITLED_SESSION_TITLE
+        EkagraPendingSessionSaveStore.enqueue(
+            this,
+            PendingEkagraSessionSave(
+                clientSessionId = metadata.clientSessionId,
+                mode = mode.toApiMode(),
+                startedAt = metadata.startedAt,
+                endedAt = endedAt,
+                plannedDurationMinutes = if (mode == TimerMode.STOPWATCH) 0 else (total + 59) / 60,
+                actualDurationMinutes = (actual + 59) / 60,
+                goalId = metadata.goalId,
+                goalTitle = metadata.goalTitle,
+                taskTitle = title,
+                shieldEnabled = _focusShieldActive.value || FocusShieldRepository.ShieldPrefs.isActive(this),
+            ),
+        )
+        EkagraSessionSaveWorker.enqueue(this)
+        sessionSaveQueuedThisRun = true
+    }
+
+    private fun enqueueFocusSessionSaveIfElapsed(
+        totalSeconds: Int,
+        remainingSeconds: Int,
+        mode: TimerMode,
+    ) {
+        val total = totalSeconds.coerceAtLeast(60)
+        val elapsed = if (mode == TimerMode.STOPWATCH) remainingSeconds else (total - remainingSeconds.coerceIn(0, total)).coerceAtLeast(0)
+        if (elapsed <= 0) return
+        enqueueCompletedFocusSessionSave(
+            totalSeconds = if (mode == TimerMode.STOPWATCH) remainingSeconds else total,
+            actualSeconds = elapsed,
+            mode = mode,
+        )
+    }
+
     private fun persistTimerState() {
-        val total = _totalSeconds.value
-        val remaining = _secondsLeft.value.coerceIn(0, total.coerceAtLeast(1))
-        val shouldPersist = _isRunning.value || remaining < total
+        val total = if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value else _totalSeconds.value
+        val remaining = if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value else _secondsLeft.value.coerceIn(0, total.coerceAtLeast(1))
+        val shouldPersist = _isRunning.value || (_timerMode.value == TimerMode.STOPWATCH && remaining > 0) || (remaining < total)
         if (!shouldPersist) {
             clearPersistedTimerState()
             return
@@ -676,6 +908,7 @@ class TimerService : Service() {
     private fun restorePersistedTimerState() {
         val prefs = timerStatePrefs()
         if (!prefs.getBoolean(KEY_HAS_STATE, false)) return
+        restoreAutoSaveMetadata(prefs)
 
         val mode = runCatching {
             TimerMode.valueOf(prefs.getString(KEY_MODE, TimerMode.FOCUS.name) ?: TimerMode.FOCUS.name)
@@ -707,6 +940,13 @@ class TimerService : Service() {
         }
 
         if (remaining <= 0) {
+            if (wasRunning && (mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH)) {
+                enqueueCompletedFocusSessionSave(
+                    totalSeconds = total,
+                    actualSeconds = total,
+                    mode = mode,
+                )
+            }
             clearPersistedTimerState()
         } else if (wasRunning) {
             start()
@@ -716,7 +956,8 @@ class TimerService : Service() {
     }
 
     private fun clearPersistedTimerState() {
-        timerStatePrefs().edit().clear().apply()
+        autoSaveMetadata = null
+        timerStatePrefs().edit().clear().commit()
     }
 
     // ── Notification ──────────────────────────────────────────────────────────
@@ -754,7 +995,7 @@ class TimerService : Service() {
         val mode = _timerMode.value.label
         val time = "%02d:%02d".format(s / 60, s % 60)
         val notificationText = when {
-            _isRunning.value && _timerMode.value == TimerMode.FOCUS -> "Ekagra in progress"
+            _isRunning.value && (_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.STOPWATCH) -> "Ekagra in progress"
             _isRunning.value -> "Break in progress - KAVACH paused"
             else -> "Timer paused"
         }
@@ -809,7 +1050,7 @@ class TimerService : Service() {
             val body = when (mode) {
                 TimerMode.FOCUS -> "Ekagra session complete. Great work - take a mindful break."
                 TimerMode.BREAK,
-                TimerMode.LONG_BREAK -> "Break finished. Ready for your next session?"
+                TimerMode.STOPWATCH -> "Break finished. Ready for your next session?"
             }
             SafarNotificationManager(this@TimerService).show(
                 title = if (mode == TimerMode.FOCUS) "Ekagra session complete" else "Break finished",

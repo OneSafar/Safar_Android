@@ -124,6 +124,30 @@ class PlannerAlertsWorker(
                         }
                     }
                 }
+
+                val revisionTopicsDue = allTopics.filter { topic ->
+                    topic.status == TopicStatus.REVISION_NEEDED &&
+                        topic.revisionReminderDates.any { date ->
+                            runCatching { LocalDate.parse(date.take(10)) }.getOrNull()
+                                ?.let { it == today } == true
+                        }
+                }
+                if (revisionTopicsDue.isNotEmpty()) {
+                    val dedupeKey = PlannerAlertDedupe.revisionReminderKey(plan.id, today)
+                    if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
+                        notificationManager.showStudyReminder(
+                            title = "Time to revise",
+                            body = if (revisionTopicsDue.size == 1) {
+                                "Revise ${revisionTopicsDue.first().name} from ${plan.title} today."
+                            } else {
+                                "You have ${revisionTopicsDue.size} topics ready for revision today."
+                            },
+                            deepLink = "safar://studyplanner",
+                            dedupeType = SafarNotificationManager.DedupeType.PLANNER_REVISION_REMINDER,
+                        )
+                        dataStore.addPlannerAlertDedupeKey(dedupeKey)
+                    }
+                }
             }
         }
 

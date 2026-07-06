@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class SignupRequest(val name: String, val email: String, val password: String, val examType: String?, val preparationStage: String?, val gender: String?, val profileImage: String?)
 data class LoginRequest(val email: String, val password: String)
 data class ForgotPasswordRequest(val email: String)
+data class ForgotPasswordResponse(val message: String?, val resetToken: String? = null, val success: Boolean = true)
 data class ResetPasswordConfirmRequest(val token: String, val newPassword: String)
 
 data class UpdateProfileRequest(
@@ -46,3 +47,8 @@ data class MeResponse(val user: UserDto?, val streaks: StreaksDto?)
 data class MessageResponse(val message: String?, val success: Boolean = true)
 data class UploadAvatarResponse(val success: Boolean = false, val url: String? = null, val message: String? = null)
 data class LoginHistoryItemDto(val timestamp: String? = null)
+
+data class GoogleLoginRequest(
+    val token: String,
+    val platform: String = "android"
+)

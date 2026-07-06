@@ -14,6 +14,8 @@ import com.safarparmar.app.notifications.PlannerAlertsWorker
 import com.safarparmar.app.notifications.MorningNudgeWorker
 import com.safarparmar.app.notifications.NotificationTokenRegistrar
 import com.safarparmar.app.notifications.StudyReminderWorker
+import com.safarparmar.app.ui.ekagra.EkagraPendingSessionSaveStore
+import com.safarparmar.app.ui.ekagra.EkagraSessionSaveWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -43,6 +45,9 @@ class SafarApplication : Application() {
         configureCrashReporting()
         SafarNotificationChannels.createAll(this)
         fetchAndStoreFcmToken()
+        if (EkagraPendingSessionSaveStore.getAll(this).isNotEmpty()) {
+            EkagraSessionSaveWorker.enqueue(this)
+        }
         appScope.launch {
             notificationTokenRegistrar.registerStoredTokenIfNeeded()
             if (dataStore.notificationsEnabled.first() && dataStore.dailyStudyReminderEnabled.first()) {

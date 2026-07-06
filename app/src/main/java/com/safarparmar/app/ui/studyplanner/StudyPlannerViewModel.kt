@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.SavedStateHandle
 import com.safarparmar.app.data.remote.api.AutoDistributeRequest
+import com.safarparmar.app.data.remote.api.BatchTopicUpdateItem
+import com.safarparmar.app.data.remote.api.BatchTopicUpdateRequest
 import com.safarparmar.app.data.remote.api.BulkTopicItemRequest
 import com.safarparmar.app.data.remote.api.BulkTopicsRequest
 import com.safarparmar.app.data.remote.api.ChapterRequest
@@ -13,6 +15,8 @@ import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusSubjectRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusChapterRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusTopicRequest
+import com.safarparmar.app.data.remote.api.RolloverUndoRequest
+import com.safarparmar.app.data.remote.api.DeleteUndoRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
 import com.safarparmar.app.data.remote.api.SubjectRequest
 import com.safarparmar.app.data.remote.api.TopicPatchRequest
@@ -96,6 +100,14 @@ data class StudyPlannerUiState(
     val mutating: Boolean = false,
     val error: String? = null,
     val message: String? = null,
+    val rolloverUndoToken: String? = null,
+    val deleteUndoToken: String? = null,
+    /** What the current deleteUndoToken would restore, e.g. "Topic swap" — used to
+     *  phrase the confirmation after Undo is tapped ("Topic swap undone") instead of
+     *  a generic message that doesn't match what was actually undone. */
+    val lastUndoableActionLabel: String? = null,
+    /** Per-plan scheduling mode: "flex" (allow over-goal days) or "strict". */
+    val planningMode: String = "flex",
     val onboardingSkipped: Boolean = false,
     val selectedSubjectId: String? = null,
     val selectedChapterId: String? = null,
@@ -236,7 +248,72 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun clearTransient() {
-        _uiState.update { it.copy(error = null, message = null, hydrateWarning = null) }
+        _uiState.update {
+            it.copy(
+                error = null,
+                message = null,
+                hydrateWarning = null,
+                rolloverUndoToken = null,
+                deleteUndoToken = null,
+                lastUndoableActionLabel = null,
+            )
+        }
+    }
+
+    override fun setPlanningMode(mode: String) {
+        val normalized = if (mode == "strict") "strict" else "flex"
+        val planId = _uiState.value.selectedPlan?.id ?: return
+        _uiState.update { it.copy(planningMode = normalized) }
+        viewModelScope.launch { dataStore.setPlannerPlanningMode(planId, normalized) }
+    }
+
+    override fun undoDelete() {
+        val state = _uiState.value
+        val planId = state.selectedPlan?.id ?: return
+        val undoToken = state.deleteUndoToken ?: return
+        val undoneLabel = state.lastUndoableActionLabel ?: "Change"
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, deleteUndoToken = null, lastUndoableActionLabel = null) }
+            when (val r = repo.undoDelete(planId, DeleteUndoRequest(undoToken))) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = r.data.plan ?: it.selectedPlan,
+                            mutating = false,
+                            message = "$undoneLabel undone",
+                        )
+                    }
+                    refreshCalendar(planId)
+                    refreshAnalytics(planId)
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    override fun undoRollover() {
+        val state = _uiState.value
+        val planId = state.selectedPlan?.id ?: return
+        val undoToken = state.rolloverUndoToken ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, rolloverUndoToken = null) }
+            when (val r = repo.undoRollover(planId, RolloverUndoRequest(undoToken))) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = r.data.plan ?: it.selectedPlan,
+                            mutating = false,
+                            message = "Missed topics restored",
+                        )
+                    }
+                    refreshCalendar(planId)
+                    refreshAnalytics(planId)
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
     }
 
     override fun setError(message: String) {
@@ -269,8 +346,22 @@ class StudyPlannerViewModel @Inject constructor(
             _uiState.update { it.copy(loading = true, error = null, section = PlannerSection.PLAN) }
             when (val r = repo.getPlan(planId)) {
                 is Resource.Success -> {
-                    _uiState.update { it.copy(selectedPlan = r.data, loading = false) }
+                    val digest = r.data.rolloverDigest
+                    val rolloverMessage = digest
+                        ?.takeIf { it.movedCount > 0 && it.undoToken.isNotBlank() }
+                        ?.let {
+                            "Moved ${it.movedCount} missed ${if (it.movedCount == 1) "topic" else "topics"} forward"
+                        }
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = r.data,
+                            loading = false,
+                            message = rolloverMessage,
+                            rolloverUndoToken = digest?.undoToken?.takeIf { token -> rolloverMessage != null && token.isNotBlank() },
+                        )
+                    }
                     refreshOnboardingProgress(planId)
+                    refreshPlanningMode(planId)
                     refreshCalendar(planId)
                     refreshAnalytics(planId)
                     refreshPlannerAchievements()
@@ -278,6 +369,13 @@ class StudyPlannerViewModel @Inject constructor(
                 is Resource.Error -> _uiState.update { it.copy(error = r.message, loading = false) }
                 is Resource.Loading -> Unit
             }
+        }
+    }
+
+    private fun refreshPlanningMode(planId: String) = viewModelScope.launch {
+        val mode = dataStore.plannerPlanningMode(planId).first()
+        _uiState.update { state ->
+            if (state.selectedPlan?.id == planId) state.copy(planningMode = mode) else state
         }
     }
 
@@ -352,15 +450,74 @@ class StudyPlannerViewModel @Inject constructor(
     override fun updatePlan(request: UpdatePlanRequest) = mutateSelected { planId -> repo.updatePlan(planId, request) }
     override fun addSubject(name: String) = mutateSelected { planId -> repo.addSubject(planId, SubjectRequest(name = name, color = "#0ea5e9")) }
     override fun renameSubject(subjectId: String, name: String) = mutateSelected { planId -> repo.renameSubject(planId, subjectId, SubjectRequest(name = name)) }
-    override fun deleteSubject(subjectId: String) = mutateSelected { planId -> repo.deleteSubject(planId, subjectId) }
+    override fun deleteSubject(subjectId: String) = mutateSelected(
+        successMessage = "Subject deleted",
+        undoLabel = "Subject deletion",
+    ) { planId -> repo.deleteSubject(planId, subjectId) }
     override fun addChapter(subjectId: String, name: String) = mutateSelected { planId -> repo.addChapter(planId, subjectId, ChapterRequest(name)) }
     override fun renameChapter(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(name)) }
-    override fun deleteChapter(subjectId: String, chapterId: String) = mutateSelected { planId -> repo.deleteChapter(planId, subjectId, chapterId) }
+    override fun deleteChapter(subjectId: String, chapterId: String) = mutateSelected(
+        successMessage = "Chapter deleted",
+        undoLabel = "Chapter deletion",
+    ) { planId -> repo.deleteChapter(planId, subjectId, chapterId) }
     override fun addTopic(subjectId: String, chapterId: String, name: String) =
         mutateSelected(onSuccess = { refreshPlannerAchievements() }) { planId ->
             repo.addTopic(planId, subjectId, chapterId, TopicRequest(name))
         }
-    override fun updateTopic(topicId: String, status: TopicStatus?, name: String?, plannedDate: String?, notes: String?) {
+
+    override fun addCustomTopicToToday(name: String) {
+        val cleaned = name.trim()
+        if (cleaned.length < 2) {
+            _uiState.update { it.copy(error = "Topic name must be at least 2 characters") }
+            return
+        }
+        viewModelScope.launch {
+            val planId = _uiState.value.selectedPlan?.id ?: return@launch
+            _uiState.update { it.copy(mutating = true, error = null) }
+
+            // 1. Ensure the "Extra Topics" subject exists.
+            var plan = _uiState.value.selectedPlan
+            var subject = plan?.subjects?.firstOrNull { it.name.equals(EXTRA_TOPICS_SUBJECT, ignoreCase = true) }
+            if (subject == null) {
+                when (val r = repo.addSubject(planId, SubjectRequest(name = EXTRA_TOPICS_SUBJECT, color = "#64748B"))) {
+                    is Resource.Success -> { plan = r.data; subject = r.data.subjects.firstOrNull { it.name.equals(EXTRA_TOPICS_SUBJECT, ignoreCase = true) } }
+                    is Resource.Error -> { _uiState.update { it.copy(mutating = false, error = r.message) }; return@launch }
+                    is Resource.Loading -> Unit
+                }
+            }
+            val subjectId = subject?.id
+            if (subjectId.isNullOrBlank()) { _uiState.update { it.copy(mutating = false, error = "Could not create Extra Topics section") }; return@launch }
+
+            // 2. Ensure the "Custom" chapter exists inside it.
+            var chapter = subject?.chapters?.firstOrNull { it.name.equals(EXTRA_TOPICS_CHAPTER, ignoreCase = true) }
+            if (chapter == null) {
+                when (val r = repo.addChapter(planId, subjectId, ChapterRequest(EXTRA_TOPICS_CHAPTER))) {
+                    is Resource.Success -> {
+                        plan = r.data
+                        chapter = r.data.subjects.firstOrNull { it.id == subjectId }?.chapters?.firstOrNull { it.name.equals(EXTRA_TOPICS_CHAPTER, ignoreCase = true) }
+                    }
+                    is Resource.Error -> { _uiState.update { it.copy(mutating = false, error = r.message) }; return@launch }
+                    is Resource.Loading -> Unit
+                }
+            }
+            val chapterId = chapter?.id
+            if (chapterId.isNullOrBlank()) { _uiState.update { it.copy(mutating = false, error = "Could not create Custom chapter") }; return@launch }
+
+            // 3. Add the topic pinned to today so a rebuild never moves it and
+            //    future days keep their original daily-goal count.
+            when (val r = repo.addTopic(planId, subjectId, chapterId, TopicRequest(name = cleaned, plannedDate = todayKey()))) {
+                is Resource.Success -> {
+                    _uiState.update { it.copy(selectedPlan = r.data, mutating = false, message = "Added to today") }
+                    refreshCalendar(planId)
+                    refreshAnalytics(planId)
+                    refreshPlannerAchievements()
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+    override fun updateTopic(topicId: String, status: TopicStatus?, name: String?, plannedDate: String?, notes: String?, pinned: Boolean?) {
         val state = _uiState.value
         val planId = state.selectedPlan?.id ?: return
         val today = todayKey()
@@ -376,17 +533,74 @@ class StudyPlannerViewModel @Inject constructor(
                 markOnboardingStepDone(StudyPlannerOnboardingSteps.FIRST_TOPIC_DONE)
             }
             refreshPlannerAchievements()
-        }) { planId -> repo.updateTopic(planId, topicId, TopicPatchRequest(name = name, status = status, plannedDate = plannedDate, notes = notes)) }
+        }) { planId -> repo.updateTopic(planId, topicId, TopicPatchRequest(name = name, status = status, plannedDate = plannedDate, notes = notes, pinned = pinned, clientDateKey = today)) }
     }
-    override fun deleteTopic(topicId: String) = mutateSelected(refreshCalendar = true, refreshAnalytics = true) { planId -> repo.deleteTopic(planId, topicId) }
+    override fun deleteTopic(topicId: String) {
+        viewModelScope.launch {
+            val planId = _uiState.value.selectedPlan?.id ?: return@launch
+            _uiState.update { it.copy(mutating = true, error = null) }
+            when (val r = repo.deleteTopic(planId, topicId)) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = r.data,
+                            mutating = false,
+                            message = "Topic deleted",
+                            // The delete route returns an undoToken; surfacing it lets
+                            // the screen offer an "Undo" action on the snackbar.
+                            deleteUndoToken = r.data.undoToken?.takeIf { token -> token.isNotBlank() },
+                            lastUndoableActionLabel = "Topic deletion",
+                        )
+                    }
+                    refreshCalendar(planId)
+                    refreshAnalytics(planId)
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
 
-    override fun autoDistribute(includeRevision: Boolean, lockExisting: Boolean) {
+    override fun markForRevision(
+        topicId: String,
+        revisionDates: List<String>,
+        revisionScheduleType: String?,
+    ) {
+        val today = todayKey()
+        val firstDate = revisionDates.firstOrNull()
+        mutateSelected(refreshCalendar = true) { planId ->
+            repo.updateTopic(
+                planId,
+                topicId,
+                TopicPatchRequest(
+                    status = TopicStatus.REVISION_NEEDED,
+                    plannedDate = firstDate,
+                    pinned = firstDate != null,
+                    revisionMarkedAt = today,
+                    revisionReminderDates = revisionDates,
+                    revisionScheduleType = revisionScheduleType,
+                    clientDateKey = today,
+                ),
+            )
+        }
+    }
+
+    override fun autoDistribute(lockExisting: Boolean, overloadMode: String?) {
         if (_uiState.value.selectedPlan?.examDate.isNullOrBlank()) {
             _uiState.update { it.copy(error = "Set an exam date before building the planner.") }
             return
         }
+        val resolvedMode = overloadMode ?: _uiState.value.planningMode
         mutateAuto {
-            repo.autoDistribute(it, AutoDistributeRequest(includeRevisionNeeded = includeRevision, lockExistingDates = lockExisting))
+            repo.autoDistribute(
+                it,
+                AutoDistributeRequest(
+                    fromDate = todayKey(),
+                    includeRevisionNeeded = false,
+                    lockExistingDates = lockExisting,
+                    overloadMode = resolvedMode,
+                ),
+            )
         }
     }
 
@@ -400,8 +614,12 @@ class StudyPlannerViewModel @Inject constructor(
 
     override fun clearFutureDates() {
         val today = todayKey()
+        // Normalize to a bare date-key before comparing: a full ISO timestamp
+        // (legacy plannedDate values written before server-side canonicalization)
+        // would otherwise always lexicographically sort >= a bare date-key,
+        // incorrectly treating every such topic as "future".
         val refs = _uiState.value.selectedPlan?.flattenTopics().orEmpty()
-            .filter { (it.topic.plannedDate ?: "") >= today }
+            .filter { (it.topic.plannedDate?.take(10) ?: "") >= today }
         batchTopicDates(refs.map { it.topic.id }, null, "Future dates cleared")
     }
 
@@ -437,6 +655,8 @@ class StudyPlannerViewModel @Inject constructor(
     private companion object {
         val bulkSubjectPalette = listOf("#0ea5e9", "#9333ea", "#16a34a", "#ef4444", "#f59e0b", "#0f766e")
         val STUDY_PLANNER_ACHIEVEMENT_IDS = listOf("SP001", "SP002", "T011", "T012")
+        const val EXTRA_TOPICS_SUBJECT = "Extra Topics"
+        const val EXTRA_TOPICS_CHAPTER = "Custom"
     }
 
     override fun importFullSyllabusFromTxt(text: String, mode: String) {
@@ -543,9 +763,35 @@ class StudyPlannerViewModel @Inject constructor(
 
     private fun batchTopicDates(topicIds: List<String>, date: String?, message: String) = viewModelScope.launch {
         val planId = _uiState.value.selectedPlan?.id ?: return@launch
-        _uiState.update { it.copy(mutating = true) }
-        topicIds.forEach { repo.updateTopic(planId, it, TopicPatchRequest(plannedDate = date ?: "")) }
-        reloadSelected(message)
+        if (topicIds.isEmpty()) return@launch
+        _uiState.update { it.copy(mutating = true, error = null) }
+        // One atomic write for the whole batch instead of one PATCH per topic —
+        // a failure partway through the old sequential loop could leave some
+        // topics moved and others not, with no way to tell which.
+        val request = BatchTopicUpdateRequest(
+            updates = topicIds.map {
+                BatchTopicUpdateItem(topicId = it, patch = TopicPatchRequest(plannedDate = date ?: ""))
+            },
+        )
+        when (val r = repo.batchUpdateTopics(planId, request)) {
+            is Resource.Success -> {
+                _uiState.update {
+                    it.copy(
+                        selectedPlan = r.data,
+                        mutating = false,
+                        message = message,
+                        // 2+ topics changed at once means the server took a snapshot —
+                        // surfacing its undoToken lets the screen offer "Undo".
+                        deleteUndoToken = r.data.undoToken?.takeIf { token -> token.isNotBlank() },
+                        lastUndoableActionLabel = message,
+                    )
+                }
+                refreshCalendar(planId)
+                refreshAnalytics(planId)
+            }
+            is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+            is Resource.Loading -> Unit
+        }
     }
 
     override fun swapTopicDates(firstTopicId: String, secondTopicId: String) {
@@ -562,35 +808,35 @@ class StudyPlannerViewModel @Inject constructor(
                 _uiState.update { it.copy(error = "Both topics are already planned for the same day.") }
                 return@launch
             }
-            _uiState.update { it.copy(mutating = true) }
-            when (val clearFirst = repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = ""))) {
-                is Resource.Error -> {
-                    _uiState.update { it.copy(mutating = false, error = clearFirst.message) }
-                    return@launch
+            _uiState.update { it.copy(mutating = true, error = null) }
+            // A single atomic write — both topics' dates are exchanged in one
+            // server-side read-modify-write, so there's no intermediate state for
+            // a failure to strand (the old 3-request dance needed manual rollback
+            // because it wrote each topic separately). The server also snapshots
+            // the plan beforehand, so an accidental swap can be undone.
+            val request = BatchTopicUpdateRequest(
+                updates = listOf(
+                    BatchTopicUpdateItem(topicId = firstTopicId, patch = TopicPatchRequest(plannedDate = secondDate)),
+                    BatchTopicUpdateItem(topicId = secondTopicId, patch = TopicPatchRequest(plannedDate = firstDate)),
+                ),
+            )
+            when (val r = repo.batchUpdateTopics(planId, request)) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = r.data,
+                            mutating = false,
+                            message = "Topics swapped",
+                            deleteUndoToken = r.data.undoToken?.takeIf { token -> token.isNotBlank() },
+                            lastUndoableActionLabel = "Topic swap",
+                        )
+                    }
+                    refreshCalendar(planId)
+                    refreshAnalytics(planId)
                 }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
                 is Resource.Loading -> Unit
-                is Resource.Success -> Unit
             }
-            when (val moveSecond = repo.updateTopic(planId, secondTopicId, TopicPatchRequest(plannedDate = firstDate))) {
-                is Resource.Error -> {
-                    repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = firstDate))
-                    _uiState.update { it.copy(mutating = false, error = moveSecond.message) }
-                    return@launch
-                }
-                is Resource.Loading -> Unit
-                is Resource.Success -> Unit
-            }
-            when (val moveFirst = repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = secondDate))) {
-                is Resource.Error -> {
-                    repo.updateTopic(planId, secondTopicId, TopicPatchRequest(plannedDate = secondDate))
-                    repo.updateTopic(planId, firstTopicId, TopicPatchRequest(plannedDate = firstDate))
-                    _uiState.update { it.copy(mutating = false, error = moveFirst.message) }
-                    return@launch
-                }
-                is Resource.Loading -> Unit
-                is Resource.Success -> Unit
-            }
-            reloadSelected("Topics swapped")
         }
     }
 
@@ -645,13 +891,31 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    private fun mutateSelected(refreshCalendar: Boolean = false, refreshAnalytics: Boolean = false, onSuccess: (suspend () -> Unit)? = null, call: suspend (String) -> Resource<StudyPlan>) {
+    private fun mutateSelected(
+        refreshCalendar: Boolean = false,
+        refreshAnalytics: Boolean = false,
+        successMessage: String = "Saved",
+        // Label shown as "<undoLabel> undone" if this call's response carries an
+        // undoToken (e.g. delete-subject/chapter). Ignored when there's no token.
+        undoLabel: String? = null,
+        onSuccess: (suspend () -> Unit)? = null,
+        call: suspend (String) -> Resource<StudyPlan>,
+    ) {
         viewModelScope.launch {
             val planId = _uiState.value.selectedPlan?.id ?: return@launch
             _uiState.update { it.copy(mutating = true, error = null) }
             when (val r = call(planId)) {
                 is Resource.Success -> {
-                    _uiState.update { it.copy(selectedPlan = r.data, mutating = false, message = "Saved") }
+                    val undoToken = r.data.undoToken?.takeIf { it.isNotBlank() }
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = r.data,
+                            mutating = false,
+                            message = successMessage,
+                            deleteUndoToken = undoToken,
+                            lastUndoableActionLabel = undoLabel.takeIf { undoToken != null },
+                        )
+                    }
                     if (refreshCalendar) refreshCalendar(planId)
                     if (refreshAnalytics) refreshAnalytics(planId)
                     onSuccess?.invoke()
@@ -675,7 +939,7 @@ class StudyPlannerViewModel @Inject constructor(
             examDate = examDate,
             dailyGoal = dailyGoal,
             offDays = offDays,
-            autoDistribute = false,
+            autoDistribute = true,
         )
         _uiState.update { it.copy(mutating = true, error = null) }
         when (val r = repo.createPlanFromTemplate(request)) {
@@ -690,7 +954,7 @@ class StudyPlannerViewModel @Inject constructor(
                         mutating = false,
                         loading = false,
                         selectedPlan = r.data,
-                        section = PlannerSection.YOUR_EXAMS,
+                        section = PlannerSection.PLAN,
                         message = "Plan created",
                     )
                 }
@@ -802,12 +1066,29 @@ class StudyPlannerViewModel @Inject constructor(
             is Resource.Loading -> return
         }
 
+        // Trigger autoDistribute locally to match the server autoDistribute flow
+        val finalPlanWithSchedule = if (!examDate.isNullOrBlank()) {
+            when (val res = repo.autoDistribute(
+                finalPlan.id,
+                AutoDistributeRequest(
+                    fromDate = todayKey(),
+                    includeRevisionNeeded = false,
+                    lockExistingDates = false,
+                )
+            )) {
+                is Resource.Success -> res.data.plan ?: finalPlan
+                else -> finalPlan
+            }
+        } else {
+            finalPlan
+        }
+
         _uiState.update {
             it.copy(
                 mutating = false,
-                selectedPlan = finalPlan,
+                selectedPlan = finalPlanWithSchedule,
                 message = successMessage,
-                section = PlannerSection.YOUR_EXAMS,
+                section = PlannerSection.PLAN,
             )
         }
         StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLAN_CREATED_TEMPLATE)

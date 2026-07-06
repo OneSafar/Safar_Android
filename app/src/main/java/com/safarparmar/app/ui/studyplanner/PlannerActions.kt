@@ -13,6 +13,10 @@ interface PlannerActions {
      */
     fun navigateBack(): Boolean
     fun clearTransient()
+    fun undoRollover()
+    fun undoDelete()
+    /** Persists the plan's Flexible/Strict scheduling mode ("flex" or "strict"). */
+    fun setPlanningMode(mode: String)
     fun setError(message: String)
     fun refreshPlans()
     fun openPlan(planId: String)
@@ -29,15 +33,33 @@ interface PlannerActions {
     fun renameChapter(subjectId: String, chapterId: String, name: String)
     fun deleteChapter(subjectId: String, chapterId: String)
     fun addTopic(subjectId: String, chapterId: String, name: String)
+    /**
+     * Adds a brand-new, user-typed topic straight into Today's Study Plan. It is
+     * filed under an auto-created "Extra Topics" subject/chapter and pinned to
+     * today, so it never disrupts the built schedule for future days.
+     */
+    fun addCustomTopicToToday(name: String)
     fun updateTopic(
         topicId: String,
         status: TopicStatus? = null,
         name: String? = null,
         plannedDate: String? = null,
         notes: String? = null,
+        pinned: Boolean? = null,
+    )
+    /**
+     * Sets a topic to REVISION_NEEDED and schedules [revisionDates] on it.
+     * The first date becomes the new plannedDate so the topic reappears in
+     * Today's feed on that day. All dates are stored as revisionReminderDates
+     * on the server for record-keeping.
+     */
+    fun markForRevision(
+        topicId: String,
+        revisionDates: List<String>,
+        revisionScheduleType: String? = null,
     )
     fun deleteTopic(topicId: String)
-    fun autoDistribute(includeRevision: Boolean, lockExisting: Boolean)
+    fun autoDistribute(lockExisting: Boolean, overloadMode: String? = null)
     fun markOnboardingStepDone(step: String)
     fun clearFutureDates()
     fun moveTopicsToDate(topicIds: List<String>, date: String)

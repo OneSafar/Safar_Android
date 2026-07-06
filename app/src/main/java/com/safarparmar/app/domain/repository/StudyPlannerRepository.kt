@@ -1,6 +1,7 @@
 package com.safarparmar.app.domain.repository
 
 import com.safarparmar.app.data.remote.api.AutoDistributeRequest
+import com.safarparmar.app.data.remote.api.BatchTopicUpdateRequest
 import com.safarparmar.app.data.remote.api.ChapterRequest
 import com.safarparmar.app.data.remote.api.CreateFromTemplateRequest
 import com.safarparmar.app.data.remote.api.CreatePlanRequest
@@ -8,6 +9,9 @@ import com.safarparmar.app.data.remote.api.SubjectRequest
 import com.safarparmar.app.data.remote.api.BulkImportResponse
 import com.safarparmar.app.data.remote.api.BulkTopicsRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
+import com.safarparmar.app.data.remote.api.RolloverUndoRequest
+import com.safarparmar.app.data.remote.api.DeleteUndoRequest
+import com.safarparmar.app.data.remote.api.PlanRestoreResult
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructuredSyllabusPreview
 import com.safarparmar.app.data.remote.api.TopicPatchRequest
@@ -18,6 +22,7 @@ import com.safarparmar.app.domain.model.studyplanner.CalendarMap
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
 import com.safarparmar.app.domain.model.studyplanner.PlannerAnalytics
+import com.safarparmar.app.domain.model.studyplanner.RolloverUndoResult
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.UpgradePlannerResult
 import com.safarparmar.app.util.Resource
@@ -32,6 +37,8 @@ interface StudyPlannerRepository {
     suspend fun createPlanFromTemplate(request: CreateFromTemplateRequest): Resource<StudyPlan>
     suspend fun getPlan(planId: String): Resource<StudyPlan>
     suspend fun updatePlan(planId: String, request: UpdatePlanRequest): Resource<StudyPlan>
+    suspend fun undoRollover(planId: String, request: RolloverUndoRequest): Resource<RolloverUndoResult>
+    suspend fun undoDelete(planId: String, request: DeleteUndoRequest): Resource<PlanRestoreResult>
     suspend fun upgradePlan(planId: String): Resource<UpgradePlannerResult>
     suspend fun getCalendar(planId: String): Resource<CalendarMap>
     suspend fun getAnalytics(planId: String): Resource<PlannerAnalytics>
@@ -51,6 +58,7 @@ interface StudyPlannerRepository {
     ): Resource<StudyPlan>
     suspend fun importSyllabus(planId: String, request: ImportSyllabusRequest): Resource<StudyPlan>
     suspend fun updateTopic(planId: String, topicId: String, request: TopicPatchRequest): Resource<StudyPlan>
+    suspend fun batchUpdateTopics(planId: String, request: BatchTopicUpdateRequest): Resource<StudyPlan>
     suspend fun deleteTopic(planId: String, topicId: String): Resource<StudyPlan>
     suspend fun bulkImportSyllabus(planId: String, text: String): Resource<BulkImportResponse>
     suspend fun importManualSyllabus(planId: String, text: String, mode: String): Resource<StudyPlan>

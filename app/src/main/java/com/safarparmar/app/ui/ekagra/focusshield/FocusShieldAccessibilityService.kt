@@ -35,6 +35,20 @@ class FocusShieldAccessibilityService : AccessibilityService() {
     private var countedDistractionPackage: String? = null
     private val homePackages: Set<String> by lazy { resolveHomePackages() }
     private val handler = Handler(Looper.getMainLooper())
+    private val overlayController: FocusShieldOverlayController by lazy {
+        FocusShieldOverlayController(this).apply {
+            onReturnToFocus = {
+                FocusShieldRepository.ShieldPrefs.beginReturnToFocusGrace(
+                    this@FocusShieldAccessibilityService,
+                    RETURN_GRACE_MS,
+                )
+                hide()
+            }
+            onEmergencyUnlock = { blockedPackage ->
+                handleOverlayEmergencyUnlock(blockedPackage)
+            }
+        }
+    }
     private val foregroundMonitor = object : Runnable {
         override fun run() {
             monitorForegroundPackage()
@@ -51,6 +65,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val packageName = event?.packageName?.toString()?.takeIf { it.isNotBlank() } ?: return
         if (packageName == this.packageName) {
+            overlayController.hide()
             FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
             val className = event.className?.toString().orEmpty()
             if (
@@ -63,6 +78,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             return
         }
         if (isHomePackage(packageName)) {
+            overlayController.hide()
             countedDistractionPackage = null
             FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
             FocusShieldRepository.ShieldPrefs.clearReturnToFocusGrace(this)
@@ -71,6 +87,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
 
         val active = FocusShieldRepository.ShieldPrefs.isActive(this)
         if (!active) {
+            overlayController.hide()
             return
         }
 
@@ -82,6 +99,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
         val blockedPackages = FocusShieldRepository.ShieldPrefs.getPackages(this)
         if (packageName !in blockedPackages) {
             if (shouldHideForPackage(packageName)) {
+                overlayController.hide()
                 FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
                 lastBlockedPackage = null
                 lastBlockedAt = 0L
@@ -96,16 +114,19 @@ class FocusShieldAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
+        overlayController.hide()
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(foregroundMonitor)
+        overlayController.hide()
         super.onDestroy()
     }
 
     private fun monitorForegroundPackage() {
         val active = FocusShieldRepository.ShieldPrefs.isActive(this)
         if (!active) {
+            overlayController.hide()
             return
         }
 
@@ -118,10 +139,12 @@ class FocusShieldAccessibilityService : AccessibilityService() {
 
         val foregroundPackage = currentForegroundPackage() ?: return
         if (foregroundPackage == packageName) {
+            overlayController.hide()
             FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
             return
         }
         if (isHomePackage(foregroundPackage)) {
+            overlayController.hide()
             countedDistractionPackage = null
             FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
             FocusShieldRepository.ShieldPrefs.clearReturnToFocusGrace(this)
@@ -139,6 +162,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
                 FocusShieldRepository.ShieldPrefs.clearReturnToFocusGrace(this)
             }
             if (shouldHideForPackage(foregroundPackage)) {
+                overlayController.hide()
                 FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
                 lastBlockedPackage = null
                 lastBlockedAt = 0L
@@ -191,7 +215,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             debugLog("Re-blocking $blockedPackage (same visit, not counted again)")
         }
 
-        redirectToSafar(blockedPackage, strict, unlocksRemaining, unlockSeconds)
+        showBlockUi(blockedPackage, strict, unlocksRemaining, unlockSeconds)
     }
 
     private fun requestBlockNotification(
@@ -204,7 +228,6 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             action = TimerService.ACTION_FOCUS_SHIELD_BLOCKED
             putExtra(BlockedAppActivity.EXTRA_BLOCKED_PACKAGE, blockedPackage)
             putExtra(BlockedAppActivity.EXTRA_BEAST_MODE, strict)
-            putExtra(BlockedAppActivity.EXTRA_ALWAYS_ON, false)
             putExtra(BlockedAppActivity.EXTRA_UNLOCKS_REMAINING, unlocksRemaining)
             putExtra(BlockedAppActivity.EXTRA_UNLOCK_SECONDS, unlockSeconds)
         }
@@ -218,12 +241,18 @@ class FocusShieldAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun redirectToSafar(
+    private fun showBlockUi(
         blockedPackage: String,
         strict: Boolean,
         unlocksRemaining: Int,
         unlockSeconds: Int,
     ) {
+        // The in-app bottom sheet is the canonical block UI. A service-level
+        // accessibility overlay can sit above SAFAR and hide that sheet, which
+        // looks like a rapid flicker when the foreground package is rechecked.
+        overlayController.hide()
+        requestBlockNotification(blockedPackage, strict, unlocksRemaining, unlockSeconds)
+
         val appName = labelForPackage(blockedPackage)
         val openEkagra = TimerService.isFocusTimerRunning(this)
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -236,7 +265,6 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE, blockedPackage)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME, appName)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_STRICT, strict)
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_ALWAYS_ON, false)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING, unlocksRemaining)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_UNLOCK_SECONDS, unlockSeconds)
             putExtra(MainActivity.EXTRA_FOCUS_SHIELD_OPEN_EKAGRA, openEkagra)
@@ -246,8 +274,32 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             startActivity(intent)
         }.onFailure {
             debugLog("SAFAR redirect failed: ${it.javaClass.simpleName}")
-            requestBlockNotification(blockedPackage, strict, unlocksRemaining, unlockSeconds)
         }
+    }
+
+    private fun handleOverlayEmergencyUnlock(blockedPackage: String): Int? {
+        if (blockedPackage.isBlank()) return null
+        val strict = FocusShieldRepository.ShieldPrefs.isStrict(this)
+        if (strict) return null
+
+        val unlockLimit = FocusShieldRepository.ShieldPrefs.getUnlockLimit(this)
+        val used = FocusShieldRepository.ShieldPrefs.getUnlocksUsed(this)
+        if (unlockLimit <= 0 || used >= unlockLimit) return 0
+
+        runCatching {
+            startService(Intent(this, TimerService::class.java).apply {
+                action = TimerService.ACTION_PAUSE
+            })
+        }
+
+        val unlockSeconds = FocusShieldRepository.ShieldPrefs.getUnlockSeconds(this).coerceAtLeast(5)
+        val graceUntilMs = System.currentTimeMillis() + unlockSeconds * 1_000L
+        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(this, graceUntilMs, used + 1)
+        overlayController.hide()
+        packageManager.getLaunchIntentForPackage(blockedPackage)
+            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ?.let { intent -> runCatching { startActivity(intent) } }
+        return (unlockLimit - used - 1).coerceAtLeast(0)
     }
 
     private fun debugLog(message: String) {
@@ -327,7 +379,7 @@ class FocusShieldAccessibilityService : AccessibilityService() {
     private class FocusShieldOverlayController(
         private val context: Context,
         var onReturnToFocus: (() -> Unit)? = null,
-        var onEmergencyUnlock: (() -> Int?)? = null,
+        var onEmergencyUnlock: ((String) -> Int?)? = null,
     ) {
         private var wm: WindowManager? = null
         private var backdropRoot: View? = null
@@ -460,11 +512,11 @@ class FocusShieldAccessibilityService : AccessibilityService() {
             )
 
             // Quick unlock secondary CTA.
-            if (unlocksRemaining >= 0) {
+            if (!strict) {
                 container.addView(space(context, 12))
                 val unlockButton = TextView(context).apply {
-                    val initialEnabled = true
-                    text = "Quick unlock"
+                    val initialEnabled = unlocksRemaining > 0
+                    text = if (initialEnabled) "Quick unlock" else "No unlocks left"
                     textSize = 14f
                     typeface = Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
@@ -480,7 +532,11 @@ class FocusShieldAccessibilityService : AccessibilityService() {
                     alpha = if (initialEnabled) 1f else 0.6f
                     if (initialEnabled) {
                         setOnClickListener { btn ->
-                            onEmergencyUnlock?.invoke()
+                            val remaining = onEmergencyUnlock?.invoke(blockedPackage)
+                            if (remaining == 0) {
+                                isEnabled = false
+                                alpha = 0.6f
+                            }
                         }
                     }
                 }

@@ -71,6 +71,7 @@ internal data class PendingEndedEkagraSession(
     val secondsLeft: Int,
     val mode: String,
     val startedAt: String?,
+    val endedAt: String? = null,
 )
 
 // ─── Utility functions ─────────────────────────────────────────────────────────

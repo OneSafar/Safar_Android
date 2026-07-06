@@ -5,6 +5,7 @@ import com.safarparmar.app.domain.model.studyplanner.CalendarMap
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
 import com.safarparmar.app.domain.model.studyplanner.PlannerAnalytics
+import com.safarparmar.app.domain.model.studyplanner.RolloverUndoResult
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.domain.model.studyplanner.UpgradePlannerResult
@@ -17,6 +18,7 @@ import retrofit2.http.Headers
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -53,7 +55,11 @@ interface PlannerApi {
     suspend fun createPlanFromTemplate(@Body request: CreateFromTemplateRequest): Response<StudyPlan>
 
     @GET("plans/{planId}")
-    suspend fun getPlan(@Path("planId") planId: String): Response<StudyPlan>
+    suspend fun getPlan(
+        @Path("planId") planId: String,
+        @Query("today") today: String? = null,
+        @Query("timezone") timezone: String? = null,
+    ): Response<StudyPlan>
 
     @PATCH("plans/{planId}")
     suspend fun updatePlan(
@@ -63,6 +69,24 @@ interface PlannerApi {
 
     @POST("plans/{planId}/upgrade")
     suspend fun upgradePlan(@Path("planId") planId: String): Response<UpgradePlannerResult>
+
+    @POST("plans/{planId}/rollover/undo")
+    suspend fun undoRollover(
+        @Path("planId") planId: String,
+        @Body request: RolloverUndoRequest,
+    ): Response<RolloverUndoResult>
+
+    @POST("plans/{planId}/undo-delete")
+    suspend fun undoDelete(
+        @Path("planId") planId: String,
+        @Body request: DeleteUndoRequest,
+    ): Response<PlanRestoreResult>
+
+    @POST("plans/{planId}/restore")
+    suspend fun restorePlan(
+        @Path("planId") planId: String,
+        @Body request: PlanRestoreRequest,
+    ): Response<PlanRestoreResult>
 
     @GET("plans/{planId}/calendar")
     suspend fun getCalendar(@Path("planId") planId: String): Response<CalendarMap>
@@ -80,6 +104,12 @@ interface PlannerApi {
     suspend fun addSubject(
         @Path("planId") planId: String,
         @Body request: SubjectRequest,
+    ): Response<StudyPlan>
+
+    @PUT("plans/{planId}/order")
+    suspend fun reorderSyllabus(
+        @Path("planId") planId: String,
+        @Body request: ReorderSyllabusRequest,
     ): Response<StudyPlan>
 
     @PATCH("plans/{planId}/subjects/{subjectId}")
@@ -146,6 +176,20 @@ interface PlannerApi {
         @Body request: TopicPatchRequest,
     ): Response<StudyPlan>
 
+    /**
+     * Atomic multi-topic update: applies every item in one server-side
+     * read-modify-write instead of N sequential single-topic PATCH calls, so
+     * a failure partway through can't leave the plan half-changed. Used for
+     * swap-dates, move-to-date, and clear-day. When more than one topic is
+     * updated, the response carries an `undoToken` (see StudyPlan.undoToken)
+     * good for one call to [undoDelete].
+     */
+    @PATCH("plans/{planId}/topics")
+    suspend fun batchUpdateTopics(
+        @Path("planId") planId: String,
+        @Body request: BatchTopicUpdateRequest,
+    ): Response<StudyPlan>
+
     @DELETE("plans/{planId}/topics/{topicId}")
     suspend fun deleteTopic(
         @Path("planId") planId: String,
@@ -190,12 +234,38 @@ data class UpdatePlanRequest(
     val description: String? = null,
     val dailyGoal: Int? = null,
     val offDays: List<Int>? = null,
+    val offDates: List<String>? = null,
+    val autoRollover: Boolean? = null,
+)
+
+data class RolloverUndoRequest(
+    val undoToken: String,
+)
+
+data class DeleteUndoRequest(
+    val undoToken: String,
+)
+
+data class PlanRestoreRequest(
+    val snapshotId: String,
+)
+
+data class PlanRestoreResult(
+    val message: String? = null,
+    val plan: StudyPlan? = null,
 )
 
 data class AutoDistributeRequest(
     val fromDate: String? = null,
     val lockExistingDates: Boolean = true,
     val includeRevisionNeeded: Boolean = false,
+    val overloadMode: String? = null,
+)
+
+data class ReorderSyllabusRequest(
+    val subjectIds: List<String>? = null,
+    val chapterIdsBySubjectId: Map<String, List<String>>? = null,
+    val topicIdsByChapterId: Map<String, List<String>>? = null,
 )
 
 data class SubjectRequest(
@@ -247,6 +317,22 @@ data class TopicPatchRequest(
     val status: TopicStatus? = null,
     val plannedDate: String? = null,
     val notes: String? = null,
+    val pinned: Boolean? = null,
+    // The device's local "today" (YYYY-MM-DD), used server-side to anchor
+    // completedDate when status becomes DONE instead of the server's own clock.
+    val clientDateKey: String? = null,
+    val revisionMarkedAt: String? = null,
+    val revisionReminderDates: List<String>? = null,
+    val revisionScheduleType: String? = null,
+)
+
+data class BatchTopicUpdateItem(
+    val topicId: String,
+    val patch: TopicPatchRequest,
+)
+
+data class BatchTopicUpdateRequest(
+    val updates: List<BatchTopicUpdateItem>,
 )
 
 data class BulkImportRequest(

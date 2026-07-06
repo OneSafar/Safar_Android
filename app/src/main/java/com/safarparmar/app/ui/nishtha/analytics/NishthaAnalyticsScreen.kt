@@ -172,7 +172,7 @@ fun NishthaAnalyticsScreen(
                     "goals" -> GoalInsightsSection(uiState.goals)
                     "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
                     "monthly" -> MonthlyReviewSection(
-                        selectedMonthLabel = months.first { it.first == selectedMonth }.second,
+                        selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.second ?: "",
                         onMonthClick = { showMonthPicker = true },
                         isLoading = uiState.isLoadingReport,
                         report = report,
@@ -630,23 +630,25 @@ private fun LineChart(values: List<Float>, modifier: Modifier = Modifier) {
         )
 
         // Fill area under line
-        val path = Path().apply {
-            moveTo(pts.first().x, h - padding)
-            pts.forEach { lineTo(it.x, it.y) }
-            lineTo(pts.last().x, h - padding)
-            close()
-        }
-        drawPath(path, fillColor)
+        if (pts.isNotEmpty()) {
+            val path = Path().apply {
+                moveTo(pts.first().x, h - padding)
+                pts.forEach { lineTo(it.x, it.y) }
+                lineTo(pts.last().x, h - padding)
+                close()
+            }
+            drawPath(path, fillColor)
 
-        // Draw line segments
-        for (i in 0 until pts.size - 1) {
-            drawLine(
-                color       = lineColor,
-                start       = pts[i],
-                end         = pts[i + 1],
-                strokeWidth = 3f,
-                cap         = StrokeCap.Round
-            )
+            // Draw line segments
+            for (i in 0 until pts.size - 1) {
+                drawLine(
+                    color       = lineColor,
+                    start       = pts[i],
+                    end         = pts[i + 1],
+                    strokeWidth = 3f,
+                    cap         = StrokeCap.Round
+                )
+            }
         }
 
         // Draw dots

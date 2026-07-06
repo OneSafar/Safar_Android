@@ -85,8 +85,20 @@ internal fun formatTime(iso: String?): String {
     return java.time.format.DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()).format(dateTime)
 }
 
+internal fun formatDateTime(iso: String?): String {
+    val zone     = ZoneId.systemDefault()
+    val dateTime = parseInstantOrNull(iso)?.atZone(zone) ?: return "-"
+    val now = java.time.LocalDate.now(zone)
+    val formatter = if (dateTime.toLocalDate() == now) {
+        java.time.format.DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+    } else {
+        java.time.format.DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.getDefault())
+    }
+    return formatter.format(dateTime)
+}
+
 internal fun TimerMode.toApiMode(): String = when (this) {
     TimerMode.FOCUS      -> "Timer"
     TimerMode.BREAK      -> "short"
-    TimerMode.LONG_BREAK -> "long"
+    TimerMode.STOPWATCH  -> "stopwatch"
 }

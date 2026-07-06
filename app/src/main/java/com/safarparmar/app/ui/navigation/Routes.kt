@@ -34,10 +34,8 @@ object Routes {
     const val ADMIN_NOTIFICATIONS = "admin/notifications"
     const val PREMIUM = "premium"
 
-    // Syllabus Drill-Down Routes
+    // Syllabus route — single unified accordion-tree screen (subjects/chapters/topics expand in place)
     const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"
-    const val ROUTE_SYLLABUS_CHAPTERS = "syllabus/chapters/{planId}/{subjectId}"
-    const val ROUTE_SYLLABUS_TOPICS   = "syllabus/topics/{planId}/{subjectId}/{chapterId}"
 
     fun ekagraForGoal(goalId: String, goalTitle: String): String =
         "ekagra?goalId=${android.net.Uri.encode(goalId)}&goalTitle=${android.net.Uri.encode(goalTitle)}"

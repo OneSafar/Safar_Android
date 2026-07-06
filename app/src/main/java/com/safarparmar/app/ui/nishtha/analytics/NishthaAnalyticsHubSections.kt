@@ -71,7 +71,7 @@ internal fun AnalyticsOverviewSection(
         Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Analytics Home", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("Use Goals for completion patterns, Ekagra for timer depth and history, and Monthly Review for reflection.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Use Goals for completion patterns, Ekagra for timer depth, and Monthly Review for reflection.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -149,14 +149,6 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
     val accent = MaterialTheme.colorScheme.primary
     val linkedSessionCount = analytics.focusSessions.count { !it.associatedGoalId.isNullOrBlank() }
     val freeFocusSessionCount = analytics.focusSessions.count { it.associatedGoalId.isNullOrBlank() }
-    var showHistory by remember { mutableStateOf(false) }
-
-    if (showHistory) {
-        EkagraHistoryDialog(
-            analytics = analytics,
-            onDismiss = { showHistory = false },
-        )
-    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -164,12 +156,6 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
     ) {
         Text("Ekagra Insights", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
         Text("Focused metrics from Ekagra timer sessions.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        EkagraHistorySummaryCard(
-            sessionCount = analytics.focusSessions.size,
-            totalMinutes = analytics.totalFocusMinutes,
-            accent = accent,
-            onClick = { showHistory = true },
-        )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             CleanMetricCard("Total ekagra time", formatStudyTime(analytics.totalFocusMinutes), null, accent, Modifier.weight(1f))
             CleanMetricCard("Breaks taken", analytics.breakSessionsCount.toString(), "Short ${analytics.shortBreakSessionsCount} | Long ${analytics.longBreakSessionsCount}", accent, Modifier.weight(1f))
@@ -183,123 +169,6 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
             CleanMetricCard("Free ekagra", freeFocusSessionCount.toString(), "Saved sessions without a goal", accent, Modifier.weight(1f))
         }
         TimerDurationUsageCard(analytics.timerDurationUsage, accent)
-    }
-}
-
-@Composable
-private fun EkagraHistorySummaryCard(
-    sessionCount: Int,
-    totalMinutes: Int,
-    accent: Color,
-    onClick: () -> Unit,
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(0.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(accent.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("Ekagra History", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("$sessionCount sessions - ${formatStudyTime(totalMinutes)} total", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun EkagraHistoryDialog(
-    analytics: EkagraAnalyticsStats,
-    onDismiss: () -> Unit,
-) {
-    val accent = MaterialTheme.colorScheme.primary
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Ekagra History", fontWeight = FontWeight.Bold)
-                Text("${analytics.focusSessions.size} sessions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 420.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (analytics.focusSessions.isEmpty()) {
-                    Text("No ekagra sessions available yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    analytics.focusSessions.forEach { session ->
-                        FocusSessionRow(
-                            title = session.taskText ?: "Unlabeled task",
-                            meta = "${formatDateTime(session.endedAt ?: session.startedAt)} - Planned ${session.durationMinutes}m - Actual ${session.actualMinutes}m${if (session.pauseCount > 0) " - ${session.pauseCount} pauses" else ""}",
-                            accent = accent,
-                            badge = if (session.associatedGoalId.isNullOrBlank()) "Free Ekagra" else "Goal Ekagra",
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
-            }
-        },
-    )
-}
-
-@Composable
-internal fun SessionHistorySection(analytics: EkagraAnalyticsStats) {
-    val accent = MaterialTheme.colorScheme.primary
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(0.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
-                        Text("Session History", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                    Text("${analytics.focusSessions.size} sessions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text("All closed ekagra sessions are listed here.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (analytics.focusSessions.isEmpty()) {
-                    Text("No ekagra sessions available yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    analytics.focusSessions.forEach { session ->
-                        FocusSessionRow(
-                            title = session.taskText ?: "Unlabeled task",
-                            meta = "${formatDateTime(session.endedAt ?: session.startedAt)} - Planned ${session.durationMinutes}m - Actual ${session.actualMinutes}m${if (session.pauseCount > 0) " - ${session.pauseCount} pauses" else ""}",
-                            accent = accent,
-                            badge = if (session.associatedGoalId.isNullOrBlank()) "Free Ekagra" else "Goal Ekagra",
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -417,21 +286,6 @@ private fun WeeklyGrowthRow(entry: GoalAnalyticsDay) {
     }
 }
 
-@Composable
-private fun FocusSessionRow(title: String, meta: String, accent: Color, badge: String) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(9.dp).clip(CircleShape).background(accent))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Surface(shape = RoundedCornerShape(20.dp), color = accent.copy(alpha = 0.12f)) {
-                    Text(badge, fontSize = 9.sp, color = accent, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                }
-            }
-            Text(meta, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
 
 private data class GoalAnalyticsDay(
     val dayLabel: String,

@@ -66,7 +66,11 @@ enum class KavachStartBlock {
 fun kavachStartBlock(state: FocusShieldUiState): KavachStartBlock {
     if (!state.isEnabled) return KavachStartBlock.None
     val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
-    if (!state.hasUsageStats || (accessibilityRequired && !state.hasAccessibilityService)) {
+    if (
+        !state.hasUsageStats ||
+        (accessibilityRequired && !state.hasAccessibilityService) ||
+        !state.hasNotificationSuppressionAccess
+    ) {
         return KavachStartBlock.NeedsPermissions
     }
     if (state.blockedPackages.isEmpty()) return KavachStartBlock.NeedsApps
@@ -84,6 +88,7 @@ fun EkagraKavachInlineCard(
     forceExpanded: Boolean,
     isSessionRunning: Boolean = false,
     onToggleEnabled: (Boolean) -> Unit,
+    onToggleStrictMode: (Boolean) -> Unit = {},
     onOpenAppPicker: () -> Unit,
     onSetupPermissions: () -> Unit,
     modifier: Modifier = Modifier,
@@ -99,14 +104,16 @@ fun EkagraKavachInlineCard(
     var hasUsageStats by remember { mutableStateOf(shieldState.hasUsageStats) }
     var hasAccessibility by remember { mutableStateOf(shieldState.hasAccessibilityService) }
     var hasNotifications by remember { mutableStateOf(shieldState.hasNotifications) }
+    var hasNotificationSuppressionAccess by remember { mutableStateOf(shieldState.hasNotificationSuppressionAccess) }
 
     val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
     val requiredPermissionsGranted =
-        hasUsageStats && (!accessibilityRequired || hasAccessibility)
+        hasUsageStats && (!accessibilityRequired || hasAccessibility) && hasNotificationSuppressionAccess
     val startBlock = kavachStartBlock(
         shieldState.copy(
             hasUsageStats = hasUsageStats,
             hasAccessibilityService = hasAccessibility,
+            hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
         ),
     )
     val showDetails = shieldState.isEnabled && (forceExpanded || startBlock != KavachStartBlock.None)
@@ -121,6 +128,7 @@ fun EkagraKavachInlineCard(
                 hasUsageStats = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
                 hasAccessibility = FocusShieldPermissionHelper.hasAccessibilityService(context)
                 hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
+                hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -222,6 +230,26 @@ fun EkagraKavachInlineCard(
                         needsApps = startBlock == KavachStartBlock.NeedsApps,
                         onOpenAppPicker = onOpenAppPicker,
                     )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(scheme.surfaceVariant.copy(alpha = 0.3f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column {
+                            Text("Beast Mode", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = scheme.onSurface)
+                            Text("No quick unlocks or bypass.", fontSize = 11.sp, color = secondaryText)
+                        }
+                        Switch(
+                            checked = shieldState.isStrictMode,
+                            onCheckedChange = onToggleStrictMode,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
 
                     AnimatedVisibility(
                         visible = shieldState.isEnabled && requiredPermissionsGranted && shieldState.blockedPackages.isNotEmpty(),

@@ -9,6 +9,7 @@ interface EkagraRepository {
     suspend fun getStats(): Resource<FocusStatsResponse>
     suspend fun getEkagraAnalytics(): Resource<EkagraAnalyticsStats>
     suspend fun saveSession(
+        clientSessionId: String? = null,
         mode: String,
         startedAt: String,
         endedAt: String?,

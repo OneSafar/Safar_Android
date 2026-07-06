@@ -53,6 +53,29 @@ fun StudyChapter.percentDone(): Int {
     return ((topics.count { it.status == TopicStatus.DONE }.toFloat() / topics.size) * 100).roundToInt()
 }
 
+/** Returns a user-facing error, or null if [rawName] is acceptable to submit. */
+fun validateSyllabusNodeName(rawName: String): String? =
+    if (rawName.trim().isBlank()) "Please type a name first" else null
+
+/** Case-insensitive sibling-name collision check (e.g. "Physics" vs "physics"). */
+fun findDuplicateSiblingName(rawName: String, siblingNames: List<String>): Boolean =
+    siblingNames.any { it.trim().equals(rawName.trim(), ignoreCase = true) }
+
+data class SubjectDeleteImpact(val chapterCount: Int, val topicCount: Int, val scheduledTopicCount: Int)
+
+fun StudySubject.deleteImpact(): SubjectDeleteImpact = SubjectDeleteImpact(
+    chapterCount = chapters.size,
+    topicCount = chapters.sumOf { it.topics.size },
+    scheduledTopicCount = chapters.sumOf { ch -> ch.topics.count { !it.plannedDate.isNullOrBlank() } },
+)
+
+data class ChapterDeleteImpact(val topicCount: Int, val scheduledTopicCount: Int)
+
+fun StudyChapter.deleteImpact(): ChapterDeleteImpact = ChapterDeleteImpact(
+    topicCount = topics.size,
+    scheduledTopicCount = topics.count { !it.plannedDate.isNullOrBlank() },
+)
+
 fun todayKey(): String = LocalDate.now(ZoneId.systemDefault()).toString()
 
 fun parsePlannerDate(value: String?): LocalDate? {

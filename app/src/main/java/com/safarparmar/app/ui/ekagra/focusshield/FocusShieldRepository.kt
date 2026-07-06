@@ -48,9 +48,6 @@ class FocusShieldRepository @Inject constructor(
     val isEnabled: StateFlow<Boolean> = dataStore.focusShieldEnabled
         .stateIn(scope, SharingStarted.Eagerly, false)
 
-    private val _isAlwaysOn = MutableStateFlow(false)
-    val isAlwaysOn: StateFlow<Boolean> = _isAlwaysOn.asStateFlow()
-
     val isStrictMode: StateFlow<Boolean> = dataStore.focusShieldStrictMode
         .stateIn(scope, SharingStarted.Eagerly, false)
 
@@ -84,8 +81,6 @@ class FocusShieldRepository @Inject constructor(
     private val _emergencyUnlockCount = MutableStateFlow(0)
     val emergencyUnlockCount: StateFlow<Int> = _emergencyUnlockCount.asStateFlow()
 
-    private val _alwaysOnActive = MutableStateFlow(false)
-
     init {
         val primarySettings = combine(
             dataStore.focusShieldEnabled,
@@ -104,7 +99,6 @@ class FocusShieldRepository @Inject constructor(
         }
 
         scope.launch {
-            dataStore.setFocusShieldAlwaysOn(false)
             combine(
                 primarySettings,
                 dataStore.focusShieldEmergencyUnlocksPerSession,
@@ -210,14 +204,6 @@ class FocusShieldRepository @Inject constructor(
         }
     }
 
-    fun setAlwaysOn(enabled: Boolean) {
-        scope.launch {
-            dataStore.setFocusShieldAlwaysOn(false)
-            _isAlwaysOn.value = false
-            _alwaysOnActive.value = false
-        }
-    }
-
     fun setStrictMode(enabled: Boolean) {
         scope.launch {
             dataStore.setFocusShieldStrictMode(enabled)
@@ -239,24 +225,6 @@ class FocusShieldRepository @Inject constructor(
         }
     }
 
-    fun syncAlwaysOnActivation(resetUnlocks: Boolean = false) {
-        scope.launch { dataStore.setFocusShieldAlwaysOn(false) }
-        _isAlwaysOn.value = false
-        _alwaysOnActive.value = false
-    }
-
-    fun shouldPreserveAlwaysOnBlocking(): Boolean {
-        return false
-    }
-
-    private fun syncAlwaysOnActivation(
-        settings: ShieldActivationSettings,
-        resetUnlocks: Boolean = false,
-    ) {
-        _isAlwaysOn.value = false
-        _alwaysOnActive.value = false
-    }
-
     private fun activateBlocking(
         settings: ShieldActivationSettings,
         resetUnlocks: Boolean,
@@ -273,7 +241,6 @@ class FocusShieldRepository @Inject constructor(
             active = true,
             packages = settings.packages,
             strict = settings.strict,
-            alwaysOn = false,
             unlockLimit = if (settings.allowEmergencyUnlock && !settings.strict) settings.unlockLimit else 0,
             unlockSeconds = settings.unlockSeconds,
             resetUnlocks = resetUnlocks,
@@ -298,7 +265,8 @@ class FocusShieldRepository @Inject constructor(
             (
                 !FocusShieldPermissionHelper.isAccessibilityFeatureEnabled() ||
                     FocusShieldPermissionHelper.hasAccessibilityService(appContext)
-                )
+                ) &&
+            FocusShieldPermissionHelper.hasNotificationListenerAccess(appContext)
 
     private fun debugLog(message: String) {
         if (BuildConfig.DEBUG) android.util.Log.d(TAG, message)
@@ -309,7 +277,6 @@ class FocusShieldRepository @Inject constructor(
         private const val KEY_ACTIVE = "active"
         private const val KEY_PACKAGES = "packages"
         private const val KEY_STRICT = "strict"
-        private const val KEY_ALWAYS_ON = "always_on"
         private const val KEY_UNLOCK_LIMIT = "unlock_limit"
         private const val KEY_UNLOCK_SECONDS = "unlock_seconds"
         private const val KEY_UNLOCKS_USED = "unlocks_used"
@@ -325,7 +292,6 @@ class FocusShieldRepository @Inject constructor(
             active: Boolean,
             packages: Set<String>,
             strict: Boolean,
-            alwaysOn: Boolean = false,
             unlockLimit: Int = 0,
             unlockSeconds: Int = 60,
             resetUnlocks: Boolean = true,
@@ -334,7 +300,6 @@ class FocusShieldRepository @Inject constructor(
                 putBoolean(KEY_ACTIVE, active)
                 putStringSet(KEY_PACKAGES, packages)
                 putBoolean(KEY_STRICT, strict)
-                putBoolean(KEY_ALWAYS_ON, alwaysOn)
                 putInt(KEY_UNLOCK_LIMIT, unlockLimit.coerceAtLeast(0))
                 putInt(KEY_UNLOCK_SECONDS, unlockSeconds.coerceAtLeast(5))
                 if (resetUnlocks) {
@@ -347,7 +312,7 @@ class FocusShieldRepository @Inject constructor(
                 android.util.Log.d(
                     TAG,
                     "ShieldPrefs.write(active=$active, count=${packages.size}, strict=$strict, " +
-                        "alwaysOn=$alwaysOn, unlockLimit=$unlockLimit, unlockSeconds=$unlockSeconds, reset=$resetUnlocks)",
+                        "unlockLimit=$unlockLimit, unlockSeconds=$unlockSeconds, reset=$resetUnlocks)",
                 )
             }
         }
@@ -356,7 +321,6 @@ class FocusShieldRepository @Inject constructor(
             prefs(ctx).edit()
                 .putBoolean(KEY_ACTIVE, false)
                 .putStringSet(KEY_PACKAGES, emptySet())
-                .putBoolean(KEY_ALWAYS_ON, false)
                 .putInt(KEY_UNLOCKS_USED, 0)
                 .putLong(KEY_GRACE_UNTIL_MS, 0L)
                 .putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
@@ -370,7 +334,6 @@ class FocusShieldRepository @Inject constructor(
             prefs(ctx).getStringSet(KEY_PACKAGES, emptySet()) ?: emptySet()
 
         fun isStrict(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_STRICT, false)
-        fun isAlwaysOn(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_ALWAYS_ON, false)
         fun getUnlockLimit(ctx: Context): Int = prefs(ctx).getInt(KEY_UNLOCK_LIMIT, 0)
         fun getUnlockSeconds(ctx: Context): Int = prefs(ctx).getInt(KEY_UNLOCK_SECONDS, 60)
         fun getUnlocksUsed(ctx: Context): Int = prefs(ctx).getInt(KEY_UNLOCKS_USED, 0)

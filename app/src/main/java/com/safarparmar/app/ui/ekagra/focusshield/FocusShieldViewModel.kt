@@ -15,12 +15,12 @@ import javax.inject.Inject
 
 data class FocusShieldUiState(
     val isEnabled: Boolean = false,
-    val isAlwaysOn: Boolean = false,
     val isStrictMode: Boolean = false,
     val allowEmergencyUnlock: Boolean = true,
     val blockedPackages: Set<String> = emptySet(),
     val hasAccessibilityService: Boolean = false,
     val hasNotifications: Boolean = false,
+    val hasNotificationSuppressionAccess: Boolean = false,
     val hasUsageStats: Boolean = false,
 )
 
@@ -32,7 +32,6 @@ data class AppPickerUiState(
 
 private data class FocusShieldSettingsState(
     val enabled: Boolean,
-    val alwaysOn: Boolean,
     val strict: Boolean,
     val emergency: Boolean,
     val packages: Set<String>,
@@ -51,14 +50,12 @@ class FocusShieldViewModel @Inject constructor(
 
     private val shieldSettings = combine(
         repo.isEnabled,
-        repo.isAlwaysOn,
         repo.isStrictMode,
         repo.allowEmergencyUnlock,
         repo.blockedPackages,
-    ) { enabled, alwaysOn, strict, emergency, packages ->
+    ) { enabled, strict, emergency, packages ->
         FocusShieldSettingsState(
             enabled = enabled,
-            alwaysOn = alwaysOn,
             strict = strict,
             emergency = emergency,
             packages = packages,
@@ -71,12 +68,12 @@ class FocusShieldViewModel @Inject constructor(
     ) { settings, _ ->
         FocusShieldUiState(
             isEnabled = settings.enabled,
-            isAlwaysOn = settings.alwaysOn,
             isStrictMode = settings.strict,
             allowEmergencyUnlock = settings.emergency,
             blockedPackages = settings.packages,
             hasAccessibilityService = FocusShieldPermissionHelper.hasAccessibilityService(app),
             hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(app),
+            hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(app),
             hasUsageStats = FocusShieldPermissionHelper.hasUsageStatsPermission(app),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FocusShieldUiState())
@@ -117,7 +114,6 @@ class FocusShieldViewModel @Inject constructor(
     // ── Shield settings actions ──────────────────────────────────────────────
 
     fun setEnabled(enabled: Boolean) = repo.setEnabled(enabled)
-    fun setAlwaysOn(enabled: Boolean) = repo.setAlwaysOn(enabled)
     fun setStrictMode(enabled: Boolean) = repo.setStrictMode(enabled)
     fun setAllowEmergencyUnlock(allow: Boolean) = repo.setAllowEmergencyUnlock(allow)
 

@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -51,6 +52,7 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -585,6 +587,7 @@ fun PlannerTaskRow(
     onDoneChange: (Boolean) -> Unit,
     onReplace: (() -> Unit)? = null,
     onRemoveFromToday: (() -> Unit)? = null,
+    onEdit: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -681,11 +684,24 @@ fun PlannerTaskRow(
                     }
                 }
             }
-            if (onReplace != null || onRemoveFromToday != null) {
+            if (onReplace != null || onRemoveFromToday != null || onEdit != null) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(0.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (onEdit != null) {
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit topic",
+                                tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
                     if (onReplace != null) {
                         IconButton(
                             onClick = onReplace,
@@ -798,6 +814,7 @@ fun PlanTextLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifie
 fun PlanSettingsSheet(
     plan: StudyPlan,
     actions: PlannerActions,
+    planningMode: String = "flex",
     onExport: () -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit,
@@ -888,6 +905,39 @@ fun PlanSettingsSheet(
                 }
             }
             item { HorizontalDivider() }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Scheduling mode", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "How the planner distributes topics when there are more than your days allow.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        FilterChip(
+                            selected = planningMode != "strict",
+                            onClick = { actions.setPlanningMode("flex") },
+                            label = { Text("Flexible") },
+                            modifier = Modifier.weight(1f),
+                        )
+                        FilterChip(
+                            selected = planningMode == "strict",
+                            onClick = { actions.setPlanningMode("strict") },
+                            label = { Text("Strict") },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Text(
+                        text = if (planningMode == "strict")
+                            "Strict: keep exactly to your daily goal; extra topics stay unscheduled."
+                        else
+                            "Flexible: fit all topics before the exam, raising some days above the goal if needed.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            item { HorizontalDivider() }
             if (isPlanScheduled) {
                 item {
                     OutlinedButton(
@@ -908,23 +958,24 @@ fun PlanSettingsSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReplaceTopicSheet(
-    currentRef: TopicRef,
+    currentRef: TopicRef?,
     allRefs: List<TopicRef>,
     today: String,
     onSwap: (currentTopicId: String, replacementTopicId: String) -> Unit,
     onReplace: (currentTopicId: String, replacementTopicId: String, today: String) -> Unit,
+    onPull: ((topicId: String) -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val scheme = MaterialTheme.colorScheme
-    var selectedSubjectKey by remember(currentRef.topic.id) { mutableStateOf<String?>(null) }
-    var selectedChapterKey by remember(currentRef.topic.id) { mutableStateOf<String?>(null) }
-    var searchQuery by remember(currentRef.topic.id) { mutableStateOf("") }
+    var selectedSubjectKey by remember(currentRef?.topic?.id) { mutableStateOf<String?>(null) }
+    var selectedChapterKey by remember(currentRef?.topic?.id) { mutableStateOf<String?>(null) }
+    var searchQuery by remember(currentRef?.topic?.id) { mutableStateOf("") }
 
     // Available replacement candidates: TODO topics not scheduled for today, excluding the current topic
-    val candidates = remember(allRefs, today, currentRef.topic.id) {
+    val candidates = remember(allRefs, today, currentRef?.topic?.id) {
         allRefs.filter { ref ->
-            ref.topic.id != currentRef.topic.id &&
+            (currentRef == null || ref.topic.id != currentRef.topic.id) &&
             ref.topic.status != TopicStatus.DONE &&
             (ref.topic.plannedDate?.take(10) ?: "") != today
         }
@@ -964,6 +1015,11 @@ fun ReplaceTopicSheet(
     }
 
     fun chooseReplacement(ref: TopicRef) {
+        if (currentRef == null) {
+            onPull?.invoke(ref.topic.id)
+            onDismiss()
+            return
+        }
         val hasDate = !ref.topic.plannedDate.isNullOrBlank()
         if (hasDate) {
             // Both have dates → swap
@@ -1112,7 +1168,7 @@ fun ReplaceTopicSheet(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    "Choose topic to swap",
+                    text = if (currentRef == null) "Pull topic to today" else "Choose topic to swap",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
                     color = scheme.onSurface,
@@ -1131,7 +1187,7 @@ fun ReplaceTopicSheet(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            currentRef.topic.name,
+                            currentRef?.topic?.name.orEmpty(),
                             style = MaterialTheme.typography.titleSmall,
                             color = scheme.onSurface,
                             fontWeight = FontWeight.Bold,
@@ -1312,8 +1368,8 @@ fun ReplaceTopicSheet(
                                     )
                                 }
                                 Icon(
-                                    imageVector = Icons.Default.SwapHoriz,
-                                    contentDescription = if (hasDate) "Swap dates" else "Replace",
+                                    imageVector = if (currentRef == null) Icons.Default.Add else Icons.Default.SwapHoriz,
+                                    contentDescription = if (currentRef == null) "Pull" else if (hasDate) "Swap dates" else "Replace",
                                     tint = scheme.primary,
                                     modifier = Modifier.size(22.dp),
                                 )

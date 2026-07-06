@@ -80,6 +80,12 @@ android {
         .orElse("true")
         .get()
 
+    val googleWebClientId = providers.gradleProperty("GOOGLE_WEB_CLIENT_ID")
+        .orElse(providers.environmentVariable("GOOGLE_WEB_CLIENT_ID"))
+        .orElse(providers.provider { localProps.getProperty("GOOGLE_WEB_CLIENT_ID") })
+        .orElse("your_web_oauth_client_id.apps.googleusercontent.com")
+        .get()
+
     defaultConfig {
         applicationId = "com.safarparmar.app"
         minSdk = 26
@@ -92,6 +98,7 @@ android {
         // Note: sideloaded installs may trigger Play Protect warnings — this is expected
         // for accessibility services from unknown sources and resolves after Play Store review.
         buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "true")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
     flavorDimensions += "env"
@@ -230,7 +237,12 @@ dependencies {
     implementation(libs.accompanist.permissions)
     
     //payments
-    implementation("com.razorpay:checkout:1.6.38")
+    implementation("com.razorpay:checkout:1.6.39")
+
+    //credentials / google sign in
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
 
     //testing
     debugImplementation(libs.androidx.ui.tooling)

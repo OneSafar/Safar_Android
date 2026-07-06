@@ -49,9 +49,8 @@ fun FocusShieldSettingsContent(
     state: FocusShieldUiState,
     accent: Color,
     onToggleEnabled: (Boolean) -> Unit,
-    onToggleStrictMode: (Boolean) -> Unit,
-    onToggleEmergencyUnlock: (Boolean) -> Unit,
     onOpenAppPicker: () -> Unit,
+    onGoToEkagra: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     onRefreshPermissions: () -> Unit = {},
     onMaybeLater: () -> Unit = {},
@@ -61,6 +60,7 @@ fun FocusShieldSettingsContent(
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasAccessibilityService by remember { mutableStateOf(state.hasAccessibilityService) }
     var hasNotifications by remember { mutableStateOf(state.hasNotifications) }
+    var hasNotificationSuppressionAccess by remember { mutableStateOf(state.hasNotificationSuppressionAccess) }
     var hasUsageStats by remember { mutableStateOf(state.hasUsageStats) }
     val scheme = MaterialTheme.colorScheme
     val screenBackground = scheme.background
@@ -70,6 +70,7 @@ fun FocusShieldSettingsContent(
     val textSecondary = scheme.onSurfaceVariant
     var pendingEnableAfterUsage by remember { mutableStateOf(false) }
     var pendingEnableAfterAccessibility by remember { mutableStateOf(false) }
+    var pendingEnableAfterNotificationAccess by remember { mutableStateOf(false) }
     var showLearnMore by remember { mutableStateOf(false) }
     var guideTarget by remember { mutableStateOf<PermissionTarget?>(null) }
     var grantedBannerText by remember { mutableStateOf<String?>(null) }
@@ -79,11 +80,12 @@ fun FocusShieldSettingsContent(
 
     val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
     val requiredPermissionsGranted =
-        hasUsageStats && (!accessibilityRequired || hasAccessibilityService)
+        hasUsageStats && (!accessibilityRequired || hasAccessibilityService) && hasNotificationSuppressionAccess
     val primaryCtaLabel = when {
         !state.isEnabled -> "Turn On KAVACH"
         !hasUsageStats -> "Allow App Check"
-        accessibilityRequired && !hasAccessibilityService -> "Allow Accessibility API"
+        accessibilityRequired && !hasAccessibilityService -> "Allow Accessibility Service"
+        !hasNotificationSuppressionAccess -> "Allow Notification Shield"
         state.blockedPackages.isEmpty() -> "Choose Apps"
         else -> "Edit App List"
     }
@@ -95,21 +97,33 @@ fun FocusShieldSettingsContent(
         }
     }
 
-    DisposableEffect(lifecycleOwner, state.hasAccessibilityService, state.hasNotifications, state.hasUsageStats) {
+    DisposableEffect(
+        lifecycleOwner,
+        state.hasAccessibilityService,
+        state.hasNotifications,
+        state.hasNotificationSuppressionAccess,
+        state.hasUsageStats,
+    ) {
         hasAccessibilityService = state.hasAccessibilityService
         hasNotifications = state.hasNotifications
+        hasNotificationSuppressionAccess = state.hasNotificationSuppressionAccess
         hasUsageStats = state.hasUsageStats
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val newUsage = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
                 val newA11y = FocusShieldPermissionHelper.hasAccessibilityService(context)
                 val newNotif = FocusShieldPermissionHelper.hasNotificationPermission(context)
+                val newNotificationAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
                 if (newUsage && !hasUsageStats) grantedBannerText = "App check is ready"
                 if (newA11y && !hasAccessibilityService) grantedBannerText = "Block screen is ready"
                 if (newNotif && !hasNotifications) grantedBannerText = "Notifications are on"
+                if (newNotificationAccess && !hasNotificationSuppressionAccess) {
+                    grantedBannerText = "Notification Shield is ready"
+                }
                 hasUsageStats = newUsage
                 hasAccessibilityService = newA11y
                 hasNotifications = newNotif
+                hasNotificationSuppressionAccess = newNotificationAccess
                 onRefreshPermissions()
             }
         }
@@ -117,18 +131,39 @@ fun FocusShieldSettingsContent(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(hasUsageStats, hasAccessibilityService, pendingEnableAfterUsage, pendingEnableAfterAccessibility) {
+    LaunchedEffect(
+        hasUsageStats,
+        hasAccessibilityService,
+        hasNotificationSuppressionAccess,
+        pendingEnableAfterUsage,
+        pendingEnableAfterAccessibility,
+        pendingEnableAfterNotificationAccess,
+    ) {
         if (pendingEnableAfterUsage && hasUsageStats) {
             pendingEnableAfterUsage = false
             if (accessibilityRequired && !hasAccessibilityService) {
                 guideTarget = PermissionTarget.ACCESSIBILITY
+            } else if (!hasNotificationSuppressionAccess) {
+                guideTarget = PermissionTarget.NOTIFICATION_ACCESS
             } else {
                 onToggleEnabled(true)
             }
         }
         if (accessibilityRequired && pendingEnableAfterAccessibility && hasAccessibilityService) {
             pendingEnableAfterAccessibility = false
-            if (hasUsageStats) onToggleEnabled(true)
+            if (hasUsageStats) {
+                if (!hasNotificationSuppressionAccess) {
+                    guideTarget = PermissionTarget.NOTIFICATION_ACCESS
+                } else {
+                    onToggleEnabled(true)
+                }
+            }
+        }
+        if (pendingEnableAfterNotificationAccess && hasNotificationSuppressionAccess) {
+            pendingEnableAfterNotificationAccess = false
+            if (hasUsageStats && (!accessibilityRequired || hasAccessibilityService)) {
+                onToggleEnabled(true)
+            }
         }
     }
 
@@ -142,6 +177,10 @@ fun FocusShieldSettingsContent(
                 accessibilityRequired && !hasAccessibilityService -> {
                     pendingEnableAfterAccessibility = true
                     guideTarget = PermissionTarget.ACCESSIBILITY
+                }
+                !hasNotificationSuppressionAccess -> {
+                    pendingEnableAfterNotificationAccess = true
+                    guideTarget = PermissionTarget.NOTIFICATION_ACCESS
                 }
                 else -> onToggleEnabled(true)
             }
@@ -197,12 +236,9 @@ fun FocusShieldSettingsContent(
                     Spacer(Modifier.height(32.dp))
                     KavachControlCenterContainer(
                         blockedAppCount = state.blockedPackages.size,
-                        beastModeEnabled = state.isStrictMode,
-                        emergencyUnlockEnabled = state.allowEmergencyUnlock,
                         accent = accent,
                         onOpenAppPicker = onOpenAppPicker,
-                        onBeastModeChange = onToggleStrictMode,
-                        onEmergencyUnlockChange = onToggleEmergencyUnlock,
+                        onGoToEkagra = onGoToEkagra,
                     )
                 }
             }
@@ -218,9 +254,11 @@ fun FocusShieldSettingsContent(
                     hasUsageStats = hasUsageStats,
                     hasAccessibilityService = hasAccessibilityService,
                     hasNotifications = hasNotifications,
+                    hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
                     onOpenUsageAccess = { guideTarget = PermissionTarget.USAGE_STATS },
                     onOpenAccessibility = { guideTarget = PermissionTarget.ACCESSIBILITY },
-                    onOpenNotifications = { requestNotificationPermission() },
+                    onOpenNotifications = { guideTarget = PermissionTarget.NOTIFICATIONS },
+                    onOpenNotificationAccess = { guideTarget = PermissionTarget.NOTIFICATION_ACCESS },
                 )
             }
 
@@ -236,6 +274,8 @@ fun FocusShieldSettingsContent(
                     !hasUsageStats -> guideTarget = PermissionTarget.USAGE_STATS
                     accessibilityRequired && !hasAccessibilityService ->
                         guideTarget = PermissionTarget.ACCESSIBILITY
+                    !hasNotificationSuppressionAccess ->
+                        guideTarget = PermissionTarget.NOTIFICATION_ACCESS
                     else -> onOpenAppPicker()
                 }
             },
@@ -250,9 +290,11 @@ fun FocusShieldSettingsContent(
             hasUsageStats = hasUsageStats,
             hasAccessibilityService = hasAccessibilityService,
             hasNotifications = hasNotifications,
+            hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
             onOpenUsageAccess = { guideTarget = PermissionTarget.USAGE_STATS },
             onOpenAccessibility = { guideTarget = PermissionTarget.ACCESSIBILITY },
-            onOpenNotifications = { requestNotificationPermission() },
+            onOpenNotifications = { guideTarget = PermissionTarget.NOTIFICATIONS },
+            onOpenNotificationAccess = { guideTarget = PermissionTarget.NOTIFICATION_ACCESS },
             onDismiss = { showLearnMore = false },
         )
     }
@@ -266,6 +308,7 @@ fun FocusShieldSettingsContent(
                     PermissionTarget.USAGE_STATS -> pendingEnableAfterUsage = false
                     PermissionTarget.ACCESSIBILITY -> pendingEnableAfterAccessibility = false
                     PermissionTarget.NOTIFICATIONS -> Unit
+                    PermissionTarget.NOTIFICATION_ACCESS -> pendingEnableAfterNotificationAccess = false
                 }
             },
             onOpenSettings = {
@@ -277,6 +320,8 @@ fun FocusShieldSettingsContent(
                         onOpenAccessibilitySettings()
                     PermissionTarget.NOTIFICATIONS ->
                         requestNotificationPermission()
+                    PermissionTarget.NOTIFICATION_ACCESS ->
+                        FocusShieldPermissionHelper.openNotificationListenerSettings(context)
                 }
             },
         )

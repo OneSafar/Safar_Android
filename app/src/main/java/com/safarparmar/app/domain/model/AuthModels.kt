@@ -24,3 +24,10 @@ data class UserProfile(
     val gender: String? = null,
     val isAdmin: Boolean = false,
 )
+
+@Immutable
+data class ForgotPasswordResult(
+    val message: String,
+    val resetToken: String?
+)
+

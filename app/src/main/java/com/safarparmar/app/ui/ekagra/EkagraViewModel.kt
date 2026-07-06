@@ -13,11 +13,13 @@ import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 sealed class StatsUiState {
     object Loading : StatsUiState()
@@ -54,6 +56,18 @@ class EkagraViewModel @Inject constructor(
 
     private var activeSessionId: String? = null
     private var sessionStartedAt: String? = null
+
+    val showDurationPrompt = dataStore.showEkagraDurationPrompt.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = true
+    )
+
+    fun disableDurationPrompt() {
+        viewModelScope.launch {
+            dataStore.setShowEkagraDurationPrompt(false)
+        }
+    }
 
     init {
         // Initial fetch; periodic refresh is now driven from the screen via
@@ -123,7 +137,7 @@ class EkagraViewModel @Inject constructor(
             goalId = goalId,
             goalTitle = goalTitle,
             sessionType = if (goalId.isNullOrBlank()) "named" else "goal",
-            sessionTitle = taskText.ifBlank { goalTitle ?: "Free Ekagra" },
+            sessionTitle = taskText.ifBlank { goalTitle ?: "Untitled" },
             source = if (goalId.isNullOrBlank()) "manual" else "goal_continue",
             status = "active",
             mode = mode,
@@ -237,6 +251,7 @@ class EkagraViewModel @Inject constructor(
         mode: String,
         startedAt: String?,
         markGoalComplete: Boolean = false,
+        endedAt: String? = null,
     ) {
         completeSession(
             sessionId = sessionId,
@@ -247,6 +262,7 @@ class EkagraViewModel @Inject constructor(
             goalId = goal.id,
             goalTitle = goal.title,
             markGoalComplete = markGoalComplete,
+            endedAt = endedAt
         )
     }
 
@@ -269,25 +285,37 @@ class EkagraViewModel @Inject constructor(
         goalId: String? = null,
         goalTitle: String? = null,
         markGoalComplete: Boolean = false,
+        endedAt: String? = null,
     ) {
         val current = _activeSession.value
-        val elapsedSeconds = (totalSeconds - secondsLeft).coerceAtLeast(0)
-        val actualMinutes = (elapsedSeconds.coerceAtLeast(60) + 59) / 60
-        val plannedMinutes = (totalSeconds.coerceAtLeast(60) + 59) / 60
-        val started = startedAt ?: current?.sessionStartedAt ?: sessionStartedAt ?: Instant.now().minusSeconds(elapsedSeconds.toLong()).toString()
+        val actualMinutes = if (mode == "stopwatch") {
+            (secondsLeft / 60.0).roundToInt()
+        } else {
+            ((totalSeconds - secondsLeft) / 60.0).roundToInt()
+        }
+        val plannedMinutes = if (mode == "stopwatch") 0 else (totalSeconds / 60.0).roundToInt()
+        val started = startedAt ?: current?.sessionStartedAt ?: sessionStartedAt ?: if (mode == "stopwatch") {
+            Instant.now().minusSeconds(secondsLeft.toLong()).toString()
+        } else {
+            Instant.now().minusSeconds((totalSeconds - secondsLeft).toLong()).toString()
+        }
         val cleanGoalId = goalId ?: current?.goalId
         val cleanGoalTitle = goalTitle ?: current?.goalTitle
-        val cleanTitle = taskTitle?.trim()?.takeIf { it.isNotBlank() }
-            ?: current?.sessionTitle?.trim()?.takeIf { it.isNotBlank() }
+        val cleanTitle = taskTitle?.trim()?.takeIf { it.isNotBlank() && it != "Untitled" }
+            ?: current?.sessionTitle?.trim()?.takeIf { it.isNotBlank() && it != "Untitled" }
             ?: cleanGoalTitle
-            ?: "Free Ekagra"
+            ?: "Untitled"
         val shieldWasActive = focusShieldRepo.sessionActive.value || focusShieldRepo.isEnabled.value
 
         viewModelScope.launch {
+            if (!sessionId.startsWith("local-")) {
+                repo.deleteSession(sessionId)
+            }
             repo.saveSession(
+                clientSessionId = sessionId.takeIf { it.startsWith("local-") },
                 mode = mode,
                 startedAt = started,
-                endedAt = Instant.now().toString(),
+                endedAt = endedAt ?: Instant.now().toString(),
                 plannedDurationMinutes = plannedMinutes,
                 actualDurationMinutes = actualMinutes,
                 goalId = cleanGoalId?.takeIf { it.isNotBlank() && !it.startsWith("named:") },

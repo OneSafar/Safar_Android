@@ -18,6 +18,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -137,8 +138,11 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -205,6 +209,7 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.ceil
 import kotlin.math.max
 
 @Composable
@@ -219,6 +224,21 @@ internal fun InsightsTab(
         PlannerInsightsCalculator.compute(plan, state.calendar, state.analytics)
     }
     val rollup = remember(plan.id, plan.subjects) { plan.rollup() }
+    val dailyGoal = (plan.dailyGoal ?: 1).coerceAtLeast(1)
+    val requiredPace = insights.summary.requiredTopicsPerStudyDay
+        ?.let { ceil(it.toDouble()).toInt().coerceAtLeast(0) }
+        ?: 0
+    val examDays = daysUntil(plan.examDate)
+        ?.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())
+        ?.toInt()
+    val paceMessage = remember(insights.summary, insights.backlog, dailyGoal, requiredPace) {
+        buildInsightsPaceMessage(
+            summary = insights.summary,
+            backlog = insights.backlog,
+            dailyGoal = dailyGoal,
+            requiredPace = requiredPace,
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -236,9 +256,13 @@ internal fun InsightsTab(
                 )
             }
             item {
-                StudentInsightHero(
-                    plan = plan,
-                    rollup = rollup,
+                OverallProgressCard(
+                    completionPercent = insights.summary.completionPercent,
+                    doneTopics = rollup.doneTopics,
+                    totalTopics = rollup.totalTopics,
+                    remaining = insights.summary.remainingTopics,
+                    days = examDays,
+                    dailyGoal = dailyGoal,
                 )
             }
             item {
@@ -247,12 +271,41 @@ internal fun InsightsTab(
                 )
             }
             item {
+                InsightsPaceForecastCard(
+                    summary = insights.summary,
+                    dailyGoal = dailyGoal,
+                    requiredPace = requiredPace,
+                )
+            }
+            if (!paceMessage.isNullOrBlank()) {
+                item {
+                    InsightsPaceBanner(message = paceMessage)
+                }
+            }
+            item {
+                ConsistencyStreakCard(consistency = insights.consistency)
+            }
+            item {
+                ConsistencyInsightsCard(consistency = insights.consistency)
+            }
+            item {
+                InsightsRevisionStudyCardWidget(
+                    plan = plan,
+                    actions = actions,
+                )
+            }
+            item {
                 SubjectProgressChart(
                     subjects = insights.subjectRows,
                 )
             }
             item {
-                ConsistencyInsightsCard(consistency = insights.consistency)
+                NextBestActionsPanel(
+                    plan = plan,
+                    insights = insights,
+                    days = examDays,
+                    actions = actions,
+                )
             }
         }
     }
@@ -800,7 +853,7 @@ internal fun StudentNextStepCard(
         }
         unplanned > 0 -> {
             title = "Tap Build Planner"
-            body = "$unplanned topics are not in calendar. Go to Syllabus and tap Build Planner."
+            body = "$unplanned topics have no study date. Go to Syllabus and tap Build Planner."
             button = "Go to Syllabus"
             icon = Icons.AutoMirrored.Filled.PlaylistAdd
             tint = Color(0xFFF59E0B)
@@ -815,8 +868,8 @@ internal fun StudentNextStepCard(
             action = { actions.setSection(PlannerSection.PLAN) }
         }
         insights.summary.onTrackStatus == InsightTrackStatus.BEHIND -> {
-            title = "You are lagging"
-            body = "Build Planner again or increase daily topics."
+            title = "You are behind"
+            body = "Build Planner again or increase your daily target."
             button = "Go to Syllabus"
             icon = Icons.Default.Refresh
             tint = MaterialTheme.colorScheme.error
@@ -824,7 +877,7 @@ internal fun StudentNextStepCard(
         }
         else -> {
             title = "Keep going"
-            body = "Your plan looks fine. Follow Today's Agenda."
+            body = "Your plan looks fine. Follow Today's Plan."
             button = "Go to Today"
             icon = Icons.Rounded.CheckCircle
             tint = Color(0xFF16A34A)
@@ -952,10 +1005,10 @@ internal fun ConsistencyInsightsCard(consistency: PlannerInsightConsistency) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Consistency / Missed Days", fontWeight = FontWeight.Black, fontSize = 18.sp)
+            Text("Study regularity / Missed days", fontWeight = FontWeight.Black, fontSize = 18.sp)
             if (consistency.missedDays.isEmpty()) {
                 Text(
-                    text = "Great job! You haven't missed any planned topics recently.",
+                    text = "No missed planned topics recently.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -1000,7 +1053,7 @@ internal fun ConsistencyInsightsCard(consistency: PlannerInsightConsistency) {
                     }
                 }
                 Text(
-                    text = "Displays % completion for days where you didn't finish all topics.",
+                    text = "Shows how much you completed on days where some planned topics were left.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1037,15 +1090,15 @@ internal fun InsightsMetricGrid(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
             InsightsMetricTile(
-                label = "Track status",
+                label = "Plan status",
                 value = statusLabel,
-                helper = buffer?.let { if (it >= 0) "$it study days buffer" else "${-it} study days short" } ?: "Build planner for forecast",
+                helper = buffer?.let { if (it >= 0) "$it study days extra" else "${-it} study days short" } ?: "Build planner to calculate",
                 icon = Icons.Default.Insights,
                 tint = statusColor,
                 modifier = Modifier.weight(1f),
             )
             InsightsMetricTile(
-                label = "Required pace",
+                label = "Need per day",
                 value = if (requiredPace > 0) "$requiredPace/day" else "—",
                 helper = "Goal: ${dailyGoal.coerceAtLeast(1)}/day",
                 icon = Icons.Default.Today,
@@ -1055,7 +1108,7 @@ internal fun InsightsMetricGrid(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
             InsightsMetricTile(
-                label = "Forecast finish",
+                label = "May finish on",
                 value = forecast,
                 helper = summary.availableStudyDays?.let { "$it study days left" } ?: "Set exam date",
                 icon = Icons.Default.CalendarMonth,
@@ -1063,12 +1116,201 @@ internal fun InsightsMetricGrid(
                 modifier = Modifier.weight(1f),
             )
             InsightsMetricTile(
-                label = "Schedule coverage",
+                label = "Dates added",
                 value = summary.scheduleCoveragePercent?.let { "$it%" } ?: "—",
-                helper = if (backlog.unplannedUnfinished > 0) "${backlog.unplannedUnfinished} unplanned" else "$next14Total topics next 14 days",
+                helper = if (backlog.unplannedUnfinished > 0) "${backlog.unplannedUnfinished} topics need dates" else "$next14Total topics next 14 days",
                 icon = Icons.AutoMirrored.Filled.FactCheck,
                 tint = if (backlog.unplannedUnfinished > 0) Color(0xFFF59E0B) else Color(0xFF2563EB),
                 modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun InsightsPaceForecastCard(
+    summary: PlannerInsightSummary,
+    dailyGoal: Int,
+    requiredPace: Int,
+) {
+    val forecast = summary.forecastCompletionDate?.let { readableDate(it) }?.takeUnless { it == "Not set" } ?: "—"
+    val statusLabel = when (summary.onTrackStatus) {
+        InsightTrackStatus.ON_TRACK -> "On track"
+        InsightTrackStatus.AT_RISK -> "At risk"
+        InsightTrackStatus.BEHIND -> "Behind"
+        InsightTrackStatus.AHEAD -> "Ahead"
+        InsightTrackStatus.NEEDS_DATA -> "Needs data"
+    }
+    val statusColor = when (summary.onTrackStatus) {
+        InsightTrackStatus.ON_TRACK, InsightTrackStatus.AHEAD -> Color(0xFF16A34A)
+        InsightTrackStatus.AT_RISK -> Color(0xFFF59E0B)
+        InsightTrackStatus.BEHIND -> MaterialTheme.colorScheme.error
+        InsightTrackStatus.NEEDS_DATA -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val paceRatio = when {
+        summary.remainingTopics <= 0 -> 1f
+        requiredPace > 0 -> (dailyGoal.toFloat() / requiredPace.toFloat()).coerceIn(0f, 1f)
+        summary.onTrackStatus == InsightTrackStatus.NEEDS_DATA -> 0.28f
+        summary.onTrackStatus == InsightTrackStatus.BEHIND -> 0.42f
+        summary.onTrackStatus == InsightTrackStatus.AT_RISK -> 0.72f
+        else -> 1f
+    }
+    val bufferText = summary.daysBuffer?.let {
+        if (it >= 0) "$it study day${if (it == 1) "" else "s"} buffer"
+        else "${-it} study day${if (it == -1) "" else "s"} short"
+    } ?: "Set exam date and study dates to calculate"
+
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                PaceGauge(
+                    progress = paceRatio,
+                    statusLabel = statusLabel,
+                    color = statusColor,
+                    modifier = Modifier.size(118.dp),
+                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Study speed",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = statusLabel,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        color = statusColor,
+                    )
+                    Text(
+                        text = bufferText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 18.sp,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                InsightsInnerStat(
+                    label = "Need per day",
+                    value = if (requiredPace > 0) "$requiredPace/day" else "—",
+                    valueColor = statusColor,
+                    icon = Icons.Default.Today,
+                    iconTint = statusColor,
+                    modifier = Modifier.weight(1f),
+                )
+                InsightsInnerStat(
+                    label = "Your target",
+                    value = "$dailyGoal/day",
+                    valueColor = MaterialTheme.colorScheme.onSurface,
+                    icon = Icons.Default.School,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                InsightsInnerStat(
+                    label = "May finish on",
+                    value = forecast,
+                    valueColor = MaterialTheme.colorScheme.onSurface,
+                    icon = Icons.Default.CalendarMonth,
+                    iconTint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.weight(1f),
+                )
+                InsightsInnerStat(
+                    label = "Study days left",
+                    value = summary.availableStudyDays?.toString() ?: "—",
+                    valueColor = MaterialTheme.colorScheme.onSurface,
+                    icon = Icons.Default.Insights,
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaceGauge(
+    progress: Float,
+    statusLabel: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow,
+        ),
+        label = "paceGaugeProgress",
+    )
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
+    val centerText = "${(animatedProgress * 100).roundToInt()}%"
+    Box(
+        modifier = modifier.semantics {
+            contentDescription = "Study speed $statusLabel, $centerText"
+        },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokeWidth = 12.dp.toPx()
+            val diameter = size.minDimension - strokeWidth
+            val topLeft = Offset(
+                x = (size.width - diameter) / 2f,
+                y = (size.height - diameter) / 2f,
+            )
+            val arcSize = Size(diameter, diameter)
+            drawArc(
+                color = trackColor,
+                startAngle = 135f,
+                sweepAngle = 270f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+            )
+            drawArc(
+                color = color,
+                startAngle = 135f,
+                sweepAngle = 270f * animatedProgress,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+            )
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                text = centerText,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = color,
+            )
+            Text(
+                text = "speed",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -1176,80 +1418,217 @@ internal fun InsightsWorkloadCard(workload: PlannerInsightWorkload) {
 }
 
 @Composable
-internal fun InsightsBacklogCard(backlog: PlannerInsightBacklog) {
+internal fun InsightsRevisionStudyCardWidget(
+    plan: StudyPlan,
+    actions: PlannerActions,
+) {
+    val revisionRefs = remember(plan.subjects) {
+        plan.flattenTopics()
+            .filter { ref ->
+                ref.topic.revisionReminderDates.isNotEmpty() ||
+                    !ref.topic.revisionMarkedAt.isNullOrBlank() ||
+                    ref.topic.status == TopicStatus.REVISION_NEEDED
+            }
+            .sortedWith(
+                compareBy<TopicRef> { it.topic.status != TopicStatus.REVISION_NEEDED }
+                    .thenBy { it.topic.plannedDate?.take(10).orEmpty().ifBlank { "9999-99-99" } }
+                    .thenBy { it.topic.name.lowercase() },
+            )
+    }
+    val total = revisionRefs.size
+    val done = revisionRefs.count { it.topic.status == TopicStatus.DONE }
+    val pending = (total - done).coerceAtLeast(0)
+    val progress = if (total == 0) 0f else done.toFloat() / total.toFloat()
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 650),
+        label = "revisionProgress",
+    )
+    var showAll by remember(total) { mutableStateOf(false) }
+    val visibleRefs = if (showAll) revisionRefs else revisionRefs.take(4)
+    val tint = if (pending == 0 && total > 0) Color(0xFF16A34A) else Color(0xFFF59E0B)
+
     Surface(
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Backlog health", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(58.dp)
+                        .clip(CircleShape)
+                        .background(tint.copy(alpha = 0.12f))
+                        .border(1.dp, tint.copy(alpha = 0.28f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (total == 0) "0" else "$done/$total",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = tint,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Revision",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                    )
+                    Text(
+                        text = when {
+                            total == 0 -> "No revision topics added yet. Mark a completed topic for revision from Today's Plan."
+                            pending == 0 -> "All revision topics are done."
+                            else -> "$done of $total revision topics done. $pending left."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 18.sp,
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+                    .semantics {
+                        contentDescription = "$done of $total revision topics done"
+                    },
+            ) {
+                if (animatedProgress > 0f) {
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(animatedProgress.coerceIn(0.04f, 1f))
+                            .clip(CircleShape)
+                            .background(tint),
+                    )
+                }
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 InsightsInnerStat(
-                    label = "Overdue",
-                    value = backlog.overdueTotal.toString(),
-                    valueColor = if (backlog.overdueTotal > 0) MaterialTheme.colorScheme.error else Color(0xFF16A34A),
-                    icon = Icons.Default.Warning,
-                    iconTint = if (backlog.overdueTotal > 0) MaterialTheme.colorScheme.error else Color(0xFF16A34A),
+                    label = "Revision done",
+                    value = "$done/$total",
+                    valueColor = if (done > 0) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurface,
+                    icon = Icons.Default.Check,
+                    iconTint = if (done > 0) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
                 InsightsInnerStat(
-                    label = "Revision",
-                    value = backlog.revisionNeeded.toString(),
+                    label = "No date topics",
+                    value = plan.flattenTopics().count { it.topic.status != TopicStatus.DONE && it.topic.plannedDate.isNullOrBlank() }.toString(),
                     valueColor = MaterialTheme.colorScheme.onSurface,
-                    icon = Icons.Default.Refresh,
-                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                    iconTint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                InsightsInnerStat(
-                    label = "Unplanned",
-                    value = backlog.unplannedUnfinished.toString(),
-                    valueColor = if (backlog.unplannedUnfinished > 0) Color(0xFFF59E0B) else Color(0xFF16A34A),
-                    icon = Icons.AutoMirrored.Filled.PlaylistAdd,
-                    iconTint = if (backlog.unplannedUnfinished > 0) Color(0xFFF59E0B) else Color(0xFF16A34A),
-                    modifier = Modifier.weight(1f),
-                )
-                InsightsInnerStat(
-                    label = "8+ days late",
-                    value = backlog.overdue8Plus.toString(),
-                    valueColor = if (backlog.overdue8Plus > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                    icon = Icons.Default.CalendarMonth,
-                    iconTint = if (backlog.overdue8Plus > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.weight(1f),
-                )
+
+            if (revisionRefs.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Revision list",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    visibleRefs.forEach { ref ->
+                        RevisionTopicMiniRow(
+                            ref = ref,
+                            onMarkDone = {
+                                actions.updateTopic(
+                                    topicId = ref.topic.id,
+                                    status = TopicStatus.DONE,
+                                )
+                            },
+                        )
+                    }
+                    if (revisionRefs.size > 4) {
+                        TextButton(onClick = { showAll = !showAll }) {
+                            Text(if (showAll) "Show less" else "Show all revision topics")
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-internal fun InsightsRecommendationsCard(recommendations: List<String>) {
-    if (recommendations.isEmpty()) return
+private fun RevisionTopicMiniRow(
+    ref: TopicRef,
+    onMarkDone: () -> Unit,
+) {
+    val done = ref.topic.status == TopicStatus.DONE
+    val nextDate = ref.topic.plannedDate?.take(10)?.takeIf { it.isNotBlank() }
+    val scheduleLabel = when {
+        ref.topic.revisionScheduleType.equals("spaced", ignoreCase = true) ->
+            "Spaced revision • ${ref.topic.revisionReminderDates.size} date${if (ref.topic.revisionReminderDates.size == 1) "" else "s"}"
+        ref.topic.revisionScheduleType.equals("custom", ignoreCase = true) -> "One revision date"
+        ref.topic.revisionReminderDates.isNotEmpty() ->
+            "${ref.topic.revisionReminderDates.size} revision date${if (ref.topic.revisionReminderDates.size == 1) "" else "s"}"
+        else -> "Revision topic"
+    }
     Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        shape = MaterialTheme.shapes.large,
+        color = if (done) Color(0xFF16A34A).copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(
+            1.dp,
+            if (done) Color(0xFF16A34A).copy(alpha = 0.28f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
+        ),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Planner recommendations", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-            recommendations.forEach { recommendation ->
-                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(
-                        imageVector = Icons.Rounded.AutoAwesome,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp).padding(top = 2.dp),
-                    )
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = ref.topic.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${ref.subject.name} / ${ref.chapter.name}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = listOfNotNull(scheduleLabel, nextDate?.let { "Next: ${readableDate(it)}" }).joinToString(" • "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (done) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF16A34A).copy(alpha = 0.12f),
+                    contentColor = Color(0xFF16A34A),
+                ) {
                     Text(
-                        text = recommendation,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
+                        text = "Done",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
                     )
+                }
+            } else {
+                TextButton(onClick = onMarkDone) {
+                    Text("Mark done")
                 }
             }
         }
@@ -1362,7 +1741,7 @@ internal fun OverallProgressCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Overall progress",
+                        text = "Overall study progress",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSurface
@@ -1372,7 +1751,7 @@ internal fun OverallProgressCard(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                 ) {
                     Text(
-                        text = "Syllabus Track",
+                        text = "Syllabus progress",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
@@ -1425,7 +1804,7 @@ internal fun OverallProgressCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 InsightsInnerStat(
-                    label = "Exam in",
+                    label = "Exam left",
                     value = days?.let { "$it days" } ?: "—",
                     valueColor = if (days != null && days <= 30) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                     icon = Icons.Default.CalendarMonth,
@@ -1433,7 +1812,7 @@ internal fun OverallProgressCard(
                     modifier = Modifier.weight(1f),
                 )
                 InsightsInnerStat(
-                    label = "Topics / day",
+                    label = "Daily target",
                     value = if (dailyGoal > 0) "$dailyGoal topic${if (dailyGoal == 1) "" else "s"}" else "—",
                     valueColor = MaterialTheme.colorScheme.onSurface,
                     icon = Icons.Default.School,
@@ -1647,12 +2026,12 @@ internal fun NextBestActionsPanel(
                 add(
                     StudyRecommendation(
                         id = "reschedule_overdue",
-                        title = "Reschedule Overdue Tasks",
-                        description = "You have $overdueCount overdue topic${if (overdueCount == 1) "" else "s"}. Tap below to automatically distribute them across your upcoming study days.",
-                        actionLabel = "Auto-Schedule",
+                        title = "Move late topics",
+                        description = "You have $overdueCount late topic${if (overdueCount == 1) "" else "s"}. Tap below to spread them across upcoming study days.",
+                        actionLabel = "Move topics",
                         icon = Icons.Default.CalendarMonth,
                         iconTint = Color(0xFFEF4444),
-                        onClick = { actions.autoDistribute(false, true) }
+                        onClick = { actions.autoDistribute(lockExisting = true) }
                     )
                 )
             }
@@ -1660,12 +2039,12 @@ internal fun NextBestActionsPanel(
                 add(
                     StudyRecommendation(
                         id = "adjust_pace",
-                        title = "Extend/Flex Study Pace",
-                        description = "Your schedule is currently overloaded. Redistribute your topics to reduce daily study stress and stay balanced.",
-                        actionLabel = "Reschedule",
+                        title = "Fix daily load",
+                        description = "Your plan has too much work for some days. Spread topics again to make it easier.",
+                        actionLabel = "Spread again",
                         icon = Icons.Default.Refresh,
                         iconTint = Color(0xFFF59E0B),
-                        onClick = { actions.autoDistribute(true, false) }
+                        onClick = { actions.autoDistribute(lockExisting = false) }
                     )
                 )
             }
@@ -1673,9 +2052,9 @@ internal fun NextBestActionsPanel(
                 add(
                     StudyRecommendation(
                         id = "update_exam_date",
-                        title = "Update Exam Date",
-                        description = if (examPassed) "Your exam date has passed. Please update it to recalculate your preparation pace." else "Please set your target exam date to plan your syllabus timelines accurately.",
-                        actionLabel = "Update Date",
+                        title = "Update exam date",
+                        description = if (examPassed) "Your exam date has passed. Update it so the plan can calculate again." else "Set your exam date so the plan can calculate study days.",
+                        actionLabel = "Update date",
                         icon = Icons.Default.Settings,
                         iconTint = Color(0xFF3B82F6),
                         onClick = { /* date picker dialog is opened */ }
@@ -1733,13 +2112,13 @@ internal fun NextBestActionsPanel(
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "Next Best Action: Keep Going!",
+                        text = "Next action: Keep going",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Your planner is fully optimized. Keep following your daily ekagra schedule to hit your target goals!",
+                        text = "Your planner looks fine. Keep following your daily study plan.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
@@ -1753,7 +2132,7 @@ internal fun NextBestActionsPanel(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Next Best Actions",
+                text = "Next actions",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface

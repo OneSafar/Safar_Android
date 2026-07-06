@@ -72,6 +72,7 @@ data class VisualTheme(
     val accent: Color,
     val videoUrl: String = "",
     val musicUrl: String = "",
+    val gradientColors: List<Color>? = null,
 )
 
 val visualThemes = listOf(
@@ -87,6 +88,14 @@ val visualThemes = listOf(
     VisualTheme("Solitude",  "🌙", Color(0xFF1c527c), Color(0xFF7c3aed),
         videoUrl = "https://del1.vultrobjects.com/qms-images/Safar/theme_1.mp4",
         musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3"),
+    VisualTheme("Focus", "🚀", Color(0xFFAAC7FF), Color(0xFF0A305F),
+        gradientColors = listOf(Color(0xFFAAC7FF), Color(0xFF0A305F))),
+    VisualTheme("Habits", "🌿", Color(0xFFA9D0B3), Color(0xFF143723),
+        gradientColors = listOf(Color(0xFFA9D0B3), Color(0xFF143723))),
+    VisualTheme("Journal", "📝", Color(0xFFFFB5A0), Color(0xFF561F0F),
+        gradientColors = listOf(Color(0xFFFFB5A0), Color(0xFF561F0F))),
+    VisualTheme("Peace", "🧘", Color(0xFFDDBCE0), Color(0xFF3F2844),
+        gradientColors = listOf(Color(0xFFDDBCE0), Color(0xFF3F2844))),
 )
 
 // Removed focusMusicTracks in favor of shared AudioLibrary
@@ -95,8 +104,9 @@ val visualThemes = listOf(
 
 internal enum class EkagraNavTab(val icon: ImageVector, val label: String) {
     TIMER    (Icons.Default.Timer,   "Ekagra"),
-    DURATION (Icons.Default.Tune,    "Duration"),
+    DURATION (Icons.Default.Tune,    "Settings"),
     HISTORY  (Icons.Default.History, "History"),
+    MUSIC    (Icons.Default.MusicNote, "Music"),
 }
 
 enum class TimerMode(
@@ -105,9 +115,9 @@ enum class TimerMode(
     val label: String,
     val showInPill: Boolean = true,
 ) {
-    FOCUS(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, "Ekagra"),
+    FOCUS(R.drawable.ic_hourglass_light, R.drawable.ic_hourglass_dark, "Ekagra"),
     BREAK(R.drawable.ic_ekagra_coffee_light, R.drawable.ic_ekagra_coffee_dark, "Break"),
-    LONG_BREAK(R.drawable.ic_ekagra_bed_light, R.drawable.ic_ekagra_bed_dark, "Long Break"),
+    STOPWATCH(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, "Stopwatch"),
 }
 
 // ─── Root screen ───────────────────────────────────────────────────────────────

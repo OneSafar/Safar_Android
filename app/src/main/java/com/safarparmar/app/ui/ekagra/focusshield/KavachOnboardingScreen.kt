@@ -121,6 +121,7 @@ fun KavachOnboardingScreen(
     var hasUsageStats by remember { mutableStateOf(shieldState.hasUsageStats) }
     var hasAccessibility by remember { mutableStateOf(shieldState.hasAccessibilityService) }
     var hasNotifications by remember { mutableStateOf(shieldState.hasNotifications) }
+    var hasNotificationSuppressionAccess by remember { mutableStateOf(shieldState.hasNotificationSuppressionAccess) }
     var selectedPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
     val scope = rememberCoroutineScope()
@@ -137,6 +138,7 @@ fun KavachOnboardingScreen(
                 hasUsageStats = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
                 hasAccessibility = FocusShieldPermissionHelper.hasAccessibilityService(context)
                 hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
+                hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
                 viewModel.refreshPermissions()
             }
         }
@@ -144,8 +146,8 @@ fun KavachOnboardingScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(hasUsageStats, hasAccessibility) {
-        if (hasUsageStats && (!accessibilityRequired || hasAccessibility)) {
+    LaunchedEffect(hasUsageStats, hasAccessibility, hasNotificationSuppressionAccess) {
+        if (hasUsageStats && (!accessibilityRequired || hasAccessibility) && hasNotificationSuppressionAccess) {
             viewModel.setEnabled(true)
             onFinished()
         }
@@ -155,13 +157,19 @@ fun KavachOnboardingScreen(
     var grantedCount = 0
     if (hasUsageStats) grantedCount++
     if (hasAccessibility && accessibilityRequired) grantedCount++
-    if (hasNotifications) grantedCount++
+    if (hasNotificationSuppressionAccess) grantedCount++
     val progress = (grantedCount.toFloat() / totalSteps).coerceAtMost(1f)
     val animatedProgress by animateFloatAsState(targetValue = progress, label = "kavachPermissionProgress")
 
     val isUsageNext = !hasUsageStats
     val isAccessibilityNext = hasUsageStats && accessibilityRequired && !hasAccessibility
-    val isNotificationsNext = hasUsageStats && (!accessibilityRequired || hasAccessibility) && !hasNotifications
+    val isNotificationAccessNext = hasUsageStats &&
+        (!accessibilityRequired || hasAccessibility) &&
+        !hasNotificationSuppressionAccess
+    val isNotificationsNext = hasUsageStats &&
+        (!accessibilityRequired || hasAccessibility) &&
+        hasNotificationSuppressionAccess &&
+        !hasNotifications
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -249,8 +257,8 @@ fun KavachOnboardingScreen(
 
                 if (accessibilityRequired) {
                     KavachRegainPermissionRow(
-                        title = "AccessibilityService API",
-                        subtitle = "Required to monitor app launches and display the blocking shield overlay over distracting apps.",
+                        title = "Accessibility Service",
+                        subtitle = "Required to monitor app launches and display the blocking shield screen over distracting apps.",
                         granted = hasAccessibility,
                         isNext = isAccessibilityNext,
                         colors = colors,
@@ -258,6 +266,19 @@ fun KavachOnboardingScreen(
                     )
                     HorizontalDivider(color = colors.divider)
                 }
+
+                KavachRegainPermissionRow(
+                    title = "Notification Shield",
+                    subtitle = "Required to dismiss notifications from the apps you selected for blocking.",
+                    granted = hasNotificationSuppressionAccess,
+                    isNext = isNotificationAccessNext,
+                    colors = colors,
+                    onClick = {
+                        if (isNotificationAccessNext) selectedPermission = PermissionTarget.NOTIFICATION_ACCESS
+                    },
+                )
+
+                HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
                     title = "Background permission",
@@ -328,6 +349,8 @@ fun KavachOnboardingScreen(
                                 })
                             }
                             PermissionTarget.NOTIFICATIONS -> requestNotificationPermission()
+                            PermissionTarget.NOTIFICATION_ACCESS ->
+                                FocusShieldPermissionHelper.openNotificationListenerSettings(context)
                         }
                     }
                 },
@@ -415,28 +438,40 @@ private fun KavachRegainExplanationSheet(
 
     val title = when (permission) {
         PermissionTarget.USAGE_STATS -> "Allow usage permission to check app use"
-        PermissionTarget.ACCESSIBILITY -> "Allow AccessibilityService API to block apps"
+        PermissionTarget.ACCESSIBILITY -> "Enable KAVACH - Focus Shield"
         PermissionTarget.NOTIFICATIONS -> "Allow notifications for status"
+        PermissionTarget.NOTIFICATION_ACCESS -> "Enable Notification shield"
     }
 
     val bullets = when (permission) {
         PermissionTarget.USAGE_STATS -> listOf(
             "We do not read your messages, passwords, photos, or screen content.",
-            "We only check when you open an app.",
-            "This helps KAVACH block only the apps you choose.",
+            "Usage Access helps SAFAR understand which app is currently open.",
+            "SAFAR uses this only for KAVACH Focus Shield to compare opened apps with the apps you selected for blocking.",
+            "SAFAR does not use Usage Access for ads, marketing, or third-party sharing.",
+            "SAFAR does not upload the names of apps you open or block.",
+            "This helps KAVACH block only the apps you choose during an active Ekagra focus timer session.",
         )
         PermissionTarget.ACCESSIBILITY -> listOf(
-            "SAFAR uses Android AccessibilityService only for KAVACH Focus Shield.",
-            "When KAVACH is enabled, SAFAR detects the package name of the app you open and compares it with the apps you selected to block.",
-            "If a selected app opens during an active Ekagra focus timer session, SAFAR shows the KAVACH block screen so you can return to studying.",
-            "SAFAR does not request the Display over other apps permission. KAVACH shows its own block screen only when a user-selected blocked app is opened during an active Ekagra focus timer session.",
-            "SAFAR does not read your screen content, messages, passwords, typed text, notifications, contacts, photos, or files. SAFAR does not click buttons, perform gestures, change device settings, prevent uninstall, or control your phone.",
-            "All processing happens locally on your device. SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties. You can keep using SAFAR without KAVACH and can disable this permission anytime in Android Settings.",
-            "If you installed SAFAR from APK and cannot see the toggle, open SAFAR App Info, tap the top-right menu, and allow restricted settings.",
+            "KAVACH is optional. It helps you stay focused by blocking only the distracting apps you choose during an active Ekagra focus timer session.",
+            "To do this, SAFAR uses Android Accessibility Service only for KAVACH Focus Shield. When you open an app you selected for blocking, SAFAR detects that app's package name, checks it against your blocked app list, and shows SAFAR's own KAVACH block screen so you can return to your focus session.",
+            "SAFAR does not use Accessibility Service to read your screen, messages, passwords, typed text, notifications, contacts, photos, or files.",
+            "SAFAR does not use Accessibility Service to click buttons, perform gestures, change settings, prevent uninstall, or control your phone.",
+            "SAFAR does not request the Display over other apps permission. KAVACH shows SAFAR's own block screen only when a user-selected blocked app opens during an active focus session.",
+            "SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties. All processing happens locally on your device.",
+            "SAFAR does not upload the names of apps you open or block.",
+            "You can keep using SAFAR without KAVACH, and you can turn this permission off anytime in Android Settings.",
         )
         PermissionTarget.NOTIFICATIONS -> listOf(
             "Receive alerts when the Ekagra timer finishes.",
             "Keep KAVACH status visible in the background.",
+            "Foreground service and media playback notifications keep active Ekagra sessions visible and controllable outside the app.",
+        )
+        PermissionTarget.NOTIFICATION_ACCESS -> listOf(
+            "KAVACH can dismiss notifications only from apps you selected to block.",
+            "This works only while an Ekagra focus timer is running.",
+            "SAFAR does not store notification content or use it for ads.",
+            "You can turn Notification access off anytime in Android Settings.",
         )
     }
 
@@ -529,7 +564,9 @@ private fun KavachRegainExplanationSheet(
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = if (permission == PermissionTarget.ACCESSIBILITY) {
-                            "I Agree - Open Accessibility Settings"
+                            "Agree & enable KAVACH"
+                        } else if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
+                            "Agree & enable Notification Shield"
                         } else {
                             "Allow"
                         },
@@ -552,7 +589,7 @@ private fun KavachRegainExplanationSheet(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "Not Now",
+                            text = "Not now",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = colors.secondaryText,

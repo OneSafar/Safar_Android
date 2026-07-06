@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -63,7 +65,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import kotlin.math.roundToInt
-import androidx.compose.runtime.staticCompositionLocalOf
+
+
 
 @Composable
 internal fun EkagraVideoBackground(videoUrl: String, modifier: Modifier = Modifier) {
@@ -103,8 +106,11 @@ internal fun EkagraVideoBackground(videoUrl: String, modifier: Modifier = Modifi
                 override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
                     val mp = textureView.getTag(R.id.ekagra_player_tag) as? MediaPlayer
                     textureView.setTag(R.id.ekagra_player_tag, null)
-                    try { mp?.stop() } catch (_: Exception) {}
-                    try { mp?.release() } catch (_: Exception) {}
+                    mp?.setSurface(null) // Disconnect surface immediately
+                    Thread { // Run in background to prevent ANR
+                        try { mp?.stop() } catch (_: Exception) {}
+                        try { mp?.release() } catch (_: Exception) {}
+                    }.start()
                     return true
                 }
                 override fun onSurfaceTextureUpdated(p0: SurfaceTexture) = Unit
@@ -135,14 +141,19 @@ internal fun EkagraVideoBackground(videoUrl: String, modifier: Modifier = Modifi
                         isLooping = true; setVolume(0f, 0f)
                         setOnPreparedListener { mp ->
                             Handler(Looper.getMainLooper()).post {
-                                val vW = screenW.toFloat(); val vH = screenH.toFloat()
-                                val vidW = mp.videoWidth.takeIf { it > 0 }?.toFloat() ?: vW
-                                val vidH = mp.videoHeight.takeIf { it > 0 }?.toFloat() ?: vH
-                                val videoAspect = vidW / vidH; val viewAspect = vW / vH
-                                val (scaleX, scaleY) = if (videoAspect > viewAspect) Pair(videoAspect / viewAspect, 1f) else Pair(1f, viewAspect / videoAspect)
-                                tv.scaleX = scaleX; tv.scaleY = scaleY
-                                tv.pivotX = vW / 2f; tv.pivotY = vH / 2f
-                                mp.start()
+                                try {
+                                    val vW = screenW.toFloat(); val vH = screenH.toFloat()
+                                    val vidW = mp.videoWidth.takeIf { it > 0 }?.toFloat() ?: vW
+                                    val vidH = mp.videoHeight.takeIf { it > 0 }?.toFloat() ?: vH
+                                    val videoAspect = vidW / vidH; val viewAspect = vW / vH
+                                    val (scaleX, scaleY) = if (videoAspect > viewAspect) Pair(videoAspect / viewAspect, 1f) else Pair(1f, viewAspect / videoAspect)
+                                    tv.scaleX = scaleX; tv.scaleY = scaleY
+                                    tv.pivotX = vW / 2f; tv.pivotY = vH / 2f
+                                    mp.start()
+                                } catch (e: Exception) {
+                                    // The MediaPlayer might have been released by the background thread
+                                    // before this UI thread runnable executed. Just swallow the exception.
+                                }
                             }
                         }
                         setOnErrorListener { _, _, _ -> true }

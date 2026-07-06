@@ -14,6 +14,9 @@ object PlannerAlertDedupe {
     fun examCountdownKey(planId: String, daysUntilExam: Long): String =
         "alert_${planId}_exam_${daysUntilExam}d"
 
+    fun revisionReminderKey(planId: String, date: LocalDate): String =
+        "alert_${planId}_revision_${date}"
+
     fun weekKey(date: LocalDate): String {
         val fields = WeekFields.of(Locale.getDefault())
         val week = date.get(fields.weekOfWeekBasedYear())

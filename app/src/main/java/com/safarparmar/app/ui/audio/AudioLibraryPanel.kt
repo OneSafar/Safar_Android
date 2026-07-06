@@ -47,10 +47,15 @@ fun AudioLibraryPanel(
     val mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
 
     fun releasePreview() {
-        runCatching { mediaPlayer.value?.stop() }
-        runCatching { mediaPlayer.value?.release() }
+        val player = mediaPlayer.value
         mediaPlayer.value = null
         previewingTrackId = null
+        player?.let {
+            kotlin.concurrent.thread {
+                runCatching { it.stop() }
+                runCatching { it.release() }
+            }
+        }
     }
 
     fun playPreview(track: AudioTrack) {
@@ -131,13 +136,6 @@ fun AudioLibraryPanel(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
-                IconButton(onClick = { isMuted = !isMuted }) {
-                    Icon(
-                        imageVector = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                        contentDescription = if (isMuted) "Unmute Preview" else "Mute Preview",
-                        tint = if (isMuted) scheme.error else scheme.onSurface
-                    )
-                }
             }
 
             // Categories

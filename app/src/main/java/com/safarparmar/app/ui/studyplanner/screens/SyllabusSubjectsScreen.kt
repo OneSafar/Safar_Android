@@ -10,12 +10,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,11 +26,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.StudyChapter
 import com.safarparmar.app.domain.model.studyplanner.StudySubject
+import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarResultSlot
@@ -41,6 +42,10 @@ import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.SubjectUiModel
+import com.safarparmar.app.ui.studyplanner.logic.TopicRef
+import com.safarparmar.app.ui.studyplanner.logic.deleteImpact
+import com.safarparmar.app.ui.studyplanner.logic.findDuplicateSiblingName
+import com.safarparmar.app.ui.studyplanner.logic.todayKey
 
 internal sealed interface SyllabusDialogState {
     object Closed : SyllabusDialogState
@@ -48,6 +53,13 @@ internal sealed interface SyllabusDialogState {
     data class RenameSubject(val subject: SubjectUiModel) : SyllabusDialogState
     data class DeleteSubject(val subject: SubjectUiModel) : SyllabusDialogState
     data class AddChapter(val subject: SubjectUiModel) : SyllabusDialogState
+    data class RenameChapter(val subjectId: String, val chapter: StudyChapter) : SyllabusDialogState
+    data class DeleteChapter(val subjectId: String, val chapter: StudyChapter) : SyllabusDialogState
+    data class AddTopicTo(val subjectId: String, val chapterId: String) : SyllabusDialogState
+    data class BulkAddTo(val subject: StudySubject, val chapter: StudyChapter) : SyllabusDialogState
+    data class RenameTopic(val topic: StudyTopic) : SyllabusDialogState
+    data class DeleteTopic(val topic: StudyTopic) : SyllabusDialogState
+    data class DuplicateNameConfirm(val message: String, val onConfirm: () -> Unit) : SyllabusDialogState
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,6 +79,11 @@ fun SyllabusSubjectsScreen(
     val actions: PlannerActions = viewModel
 
     var dialogState by remember { mutableStateOf<SyllabusDialogState>(SyllabusDialogState.Closed) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val expandedSubjects = remember { mutableStateMapOf<String, Boolean>() }
+    val expandedChapters = remember { mutableStateMapOf<String, Boolean>() }
+    var selectedTopicRef by remember { mutableStateOf<TopicRef?>(null) }
+    var detailNonce by remember { mutableIntStateOf(0) }
 
     BackHandler(onBack = onBack)
 
@@ -76,36 +93,204 @@ fun SyllabusSubjectsScreen(
         }
     }
 
+    val selectedPlan = state.selectedPlan
+    val rawSubjects = selectedPlan?.subjects.orEmpty()
+
+    fun subjectMatchesQuery(subject: StudySubject, query: String): Boolean {
+        val q = query.lowercase()
+        if (subject.name.lowercase().contains(q)) return true
+        return subject.chapters.any { chapter ->
+            chapter.name.lowercase().contains(q) || chapter.topics.any { it.name.lowercase().contains(q) }
+        }
+    }
+
+    fun chapterMatchesQuery(chapter: StudyChapter, query: String): Boolean {
+        val q = query.lowercase()
+        if (chapter.name.lowercase().contains(q)) return true
+        return chapter.topics.any { it.name.lowercase().contains(q) }
+    }
+
+    fun isSubjectExpanded(subjectId: String, subject: StudySubject): Boolean {
+        expandedSubjects[subjectId]?.let { return it }
+        return searchQuery.isNotBlank() && subjectMatchesQuery(subject, searchQuery)
+    }
+
+    fun isChapterExpanded(subjectId: String, chapterId: String, chapter: StudyChapter): Boolean {
+        val key = "$subjectId:$chapterId"
+        expandedChapters[key]?.let { return it }
+        return searchQuery.isNotBlank() && chapterMatchesQuery(chapter, searchQuery)
+    }
+
+    fun requestAddSubject(name: String) {
+        if (findDuplicateSiblingName(name, rawSubjects.map { it.name })) {
+            dialogState = SyllabusDialogState.DuplicateNameConfirm(
+                message = "You already have a subject called '$name'. Add it again?",
+                onConfirm = { actions.addSubject(name) },
+            )
+        } else {
+            actions.addSubject(name)
+        }
+    }
+
+    fun requestRenameSubject(subjectId: String, name: String) {
+        val siblings = rawSubjects.filter { it.id != subjectId }.map { it.name }
+        if (findDuplicateSiblingName(name, siblings)) {
+            dialogState = SyllabusDialogState.DuplicateNameConfirm(
+                message = "You already have a subject called '$name'. Add it again?",
+                onConfirm = { actions.renameSubject(subjectId, name) },
+            )
+        } else {
+            actions.renameSubject(subjectId, name)
+        }
+    }
+
+    fun requestAddChapter(subjectId: String, name: String) {
+        val subject = rawSubjects.find { it.id == subjectId }
+        val siblings = subject?.chapters.orEmpty().map { it.name }
+        if (findDuplicateSiblingName(name, siblings)) {
+            dialogState = SyllabusDialogState.DuplicateNameConfirm(
+                message = "You already have a chapter called '$name'. Add it again?",
+                onConfirm = { actions.addChapter(subjectId, name) },
+            )
+        } else {
+            actions.addChapter(subjectId, name)
+        }
+    }
+
+    fun requestRenameChapter(subjectId: String, chapterId: String, name: String) {
+        val subject = rawSubjects.find { it.id == subjectId }
+        val siblings = subject?.chapters.orEmpty().filter { it.id != chapterId }.map { it.name }
+        if (findDuplicateSiblingName(name, siblings)) {
+            dialogState = SyllabusDialogState.DuplicateNameConfirm(
+                message = "You already have a chapter called '$name'. Add it again?",
+                onConfirm = { actions.renameChapter(subjectId, chapterId, name) },
+            )
+        } else {
+            actions.renameChapter(subjectId, chapterId, name)
+        }
+    }
+
+    fun requestAddTopic(subjectId: String, chapterId: String, name: String) {
+        val chapter = rawSubjects.find { it.id == subjectId }?.chapters?.find { it.id == chapterId }
+        val siblings = chapter?.topics.orEmpty().map { it.name }
+        if (findDuplicateSiblingName(name, siblings)) {
+            dialogState = SyllabusDialogState.DuplicateNameConfirm(
+                message = "You already have a topic called '$name'. Add it again?",
+                onConfirm = { actions.addTopic(subjectId, chapterId, name) },
+            )
+        } else {
+            actions.addTopic(subjectId, chapterId, name)
+        }
+    }
+
+    fun requestRenameTopic(topicId: String, name: String) {
+        actions.updateTopic(topicId, name = name)
+    }
+
     when (val ds = dialogState) {
         is SyllabusDialogState.AddSubject -> {
             TextInputDialog("Add Subject", "Subject name", onDismiss = { dialogState = SyllabusDialogState.Closed }) {
-                actions.addSubject(it)
+                requestAddSubject(it)
                 dialogState = SyllabusDialogState.Closed
             }
         }
         is SyllabusDialogState.RenameSubject -> {
             TextInputDialog("Rename Subject", ds.subject.name, onDismiss = { dialogState = SyllabusDialogState.Closed }) {
-                actions.renameSubject(ds.subject.id, it)
+                requestRenameSubject(ds.subject.id, it)
                 dialogState = SyllabusDialogState.Closed
             }
         }
         is SyllabusDialogState.DeleteSubject -> {
-            ConfirmActionDialog("Delete subject?", "This will delete ${ds.subject.name}.", { dialogState = SyllabusDialogState.Closed }) {
+            val rawSubject = rawSubjects.find { it.id == ds.subject.id }
+            val impact = rawSubject?.deleteImpact()
+            val body = if (impact != null) {
+                "This will remove ${impact.chapterCount} chapters and ${impact.topicCount} topics. " +
+                    "${impact.scheduledTopicCount} of them already have a date set. " +
+                    "You can undo this from the message that appears after."
+            } else {
+                "This will delete ${ds.subject.name}. You can undo this from the message that appears after."
+            }
+            ConfirmActionDialog("Delete this subject?", body, { dialogState = SyllabusDialogState.Closed }) {
                 actions.deleteSubject(ds.subject.id)
                 dialogState = SyllabusDialogState.Closed
             }
         }
         is SyllabusDialogState.AddChapter -> {
             TextInputDialog("Add Chapter", "Chapter name", onDismiss = { dialogState = SyllabusDialogState.Closed }) {
-                actions.addChapter(ds.subject.id, it)
+                requestAddChapter(ds.subject.id, it)
                 dialogState = SyllabusDialogState.Closed
             }
+        }
+        is SyllabusDialogState.RenameChapter -> {
+            TextInputDialog("Rename Chapter", ds.chapter.name, onDismiss = { dialogState = SyllabusDialogState.Closed }) {
+                requestRenameChapter(ds.subjectId, ds.chapter.id, it)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.DeleteChapter -> {
+            val impact = ds.chapter.deleteImpact()
+            val body = "This will remove ${impact.topicCount} topics. ${impact.scheduledTopicCount} of them already have a date set. " +
+                "You can undo this from the message that appears after."
+            ConfirmActionDialog("Delete this chapter?", body, { dialogState = SyllabusDialogState.Closed }) {
+                actions.deleteChapter(ds.subjectId, ds.chapter.id)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.AddTopicTo -> {
+            TextInputDialog("Add Topic", "Topic name", onDismiss = { dialogState = SyllabusDialogState.Closed }) {
+                requestAddTopic(ds.subjectId, ds.chapterId, it)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.BulkAddTo -> {
+            BulkAddSheet(Pair(ds.subject, ds.chapter), state, actions, onDismiss = { dialogState = SyllabusDialogState.Closed })
+        }
+        is SyllabusDialogState.RenameTopic -> {
+            TextInputDialog("Rename Topic", ds.topic.name, onDismiss = { dialogState = SyllabusDialogState.Closed }) {
+                requestRenameTopic(ds.topic.id, it)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.DeleteTopic -> {
+            ConfirmActionDialog(
+                "Delete this topic?",
+                "This will remove '${ds.topic.name}'. You can undo this from the message that appears after.",
+                { dialogState = SyllabusDialogState.Closed },
+            ) {
+                actions.deleteTopic(ds.topic.id)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.DuplicateNameConfirm -> {
+            AlertDialog(
+                onDismissRequest = { dialogState = SyllabusDialogState.Closed },
+                title = { Text("Name already used") },
+                text = { Text(ds.message) },
+                confirmButton = {
+                    TextButton(onClick = { ds.onConfirm(); dialogState = SyllabusDialogState.Closed }) {
+                        Text("Add Anyway")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { dialogState = SyllabusDialogState.Closed }) { Text("Cancel") }
+                },
+            )
         }
         SyllabusDialogState.Closed -> {}
     }
 
-    val selectedPlan = state.selectedPlan
-    val rawSubjects = selectedPlan?.subjects.orEmpty()
+    selectedTopicRef?.let { ref ->
+        PlannerTopicDetailSheet(
+            ref = ref,
+            openNonce = detailNonce,
+            actions = actions,
+            swapCandidates = selectedPlan?.let { plan ->
+                plan.subjects.flatMap { s -> s.chapters.flatMap { c -> c.topics.map { t -> TopicRef(s, c, t) } } }
+            }.orEmpty(),
+            onDismiss = { selectedTopicRef = null },
+        )
+    }
+
     val totalTopics = rawSubjects.sumOf { subject -> subject.chapters.sumOf { it.topics.size } }
     val totalChapters = rawSubjects.sumOf { it.chapters.size }
     val doneTopics = rawSubjects.sumOf { subject ->
@@ -114,6 +299,11 @@ fun SyllabusSubjectsScreen(
     val planProgress = if (totalTopics > 0) (doneTopics * 100) / totalTopics else 0
     val isTemplatePlan = !selectedPlan?.templateId.isNullOrBlank()
     val shouldShowFullImport = rawSubjects.isEmpty() && !isTemplatePlan
+
+    val filteredSubjects = remember(rawSubjects, searchQuery) {
+        if (searchQuery.isBlank()) rawSubjects
+        else rawSubjects.filter { subjectMatchesQuery(it, searchQuery) }
+    }
 
     val currentDensity = LocalDensity.current
     val clampedDensity = remember(currentDensity) {
@@ -194,7 +384,7 @@ fun SyllabusSubjectsScreen(
                             item {
                                 SyllabusQuickActions(
                                     onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
-                                    onBuildPlanner = { actions.autoDistribute(includeRevision = false, lockExisting = true) },
+                                    onBuildPlanner = { actions.autoDistribute(lockExisting = true) },
                                     canBuildPlanner = rawSubjects.isNotEmpty(),
                                 )
                             }
@@ -206,6 +396,26 @@ fun SyllabusSubjectsScreen(
                                         actions = actions,
                                         canUseAiImport = premiumStatus.canUseStudyPlannerInsights,
                                         onUpgrade = { onNavigate(Routes.PREMIUM) },
+                                    )
+                                }
+                            }
+
+                            if (rawSubjects.isNotEmpty()) {
+                                item {
+                                    OutlinedTextField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        placeholder = { Text("Search subjects, chapters, topics") },
+                                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                                        trailingIcon = {
+                                            if (searchQuery.isNotBlank()) {
+                                                IconButton(onClick = { searchQuery = "" }) {
+                                                    Icon(Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
                                     )
                                 }
                             }
@@ -223,34 +433,58 @@ fun SyllabusSubjectsScreen(
                                         onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
                                     )
                                 }
+                            } else if (filteredSubjects.isEmpty()) {
+                                item {
+                                    Text(
+                                        text = "No matches for '$searchQuery'",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(vertical = 24.dp),
+                                    )
+                                }
                             } else {
-                                items(rawSubjects, key = { it.id }) { subject ->
-                                    val subjectUi = subjects.firstOrNull { it.id == subject.id }
-                                    SyllabusSubjectListCard(
+                                items(filteredSubjects, key = { it.id }) { subject ->
+                                    SyllabusSubjectAccordionCard(
                                         subject = subject,
-                                        subjectUi = subjectUi,
-                                        onClick = {
-                                            viewModel.selectSubject(subject.id)
-                                            onNavigate(
-                                                Routes.ROUTE_SYLLABUS_CHAPTERS
-                                                    .replace("{planId}", planId)
-                                                    .replace("{subjectId}", subject.id),
-                                            )
-                                        },
-                                        onRename = {
-                                            subjectUi?.let { dialogState = SyllabusDialogState.RenameSubject(it) }
-                                        },
-                                        onDelete = {
-                                            subjectUi?.let { dialogState = SyllabusDialogState.DeleteSubject(it) }
+                                        isExpanded = isSubjectExpanded(subject.id, subject),
+                                        onToggleExpand = {
+                                            expandedSubjects[subject.id] = !isSubjectExpanded(subject.id, subject)
                                         },
                                         onAddChapter = {
-                                            subjectUi?.let { dialogState = SyllabusDialogState.AddChapter(it) }
+                                            subjects.firstOrNull { it.id == subject.id }?.let { dialogState = SyllabusDialogState.AddChapter(it) }
+                                        },
+                                        onRename = {
+                                            subjects.firstOrNull { it.id == subject.id }?.let { dialogState = SyllabusDialogState.RenameSubject(it) }
+                                        },
+                                        onDelete = {
+                                            subjects.firstOrNull { it.id == subject.id }?.let { dialogState = SyllabusDialogState.DeleteSubject(it) }
+                                        },
+                                        onAddTopic = { chapter -> dialogState = SyllabusDialogState.AddTopicTo(subject.id, chapter.id) },
+                                        onBulkAdd = { chapter -> dialogState = SyllabusDialogState.BulkAddTo(subject, chapter) },
+                                        onRenameChapter = { chapter -> dialogState = SyllabusDialogState.RenameChapter(subject.id, chapter) },
+                                        onDeleteChapter = { chapter -> dialogState = SyllabusDialogState.DeleteChapter(subject.id, chapter) },
+                                        onTopicClick = { chapter, topic ->
+                                            selectedTopicRef = TopicRef(subject, chapter, topic)
+                                            detailNonce++
+                                        },
+                                        onRenameTopic = { _, topic -> dialogState = SyllabusDialogState.RenameTopic(topic) },
+                                        onDeleteTopic = { _, topic -> dialogState = SyllabusDialogState.DeleteTopic(topic) },
+                                        onAssignToday = { topic -> actions.updateTopic(topic.id, plannedDate = todayKey(), pinned = true) },
+                                        isChapterExpanded = { chapterId ->
+                                            val chapter = subject.chapters.find { it.id == chapterId }
+                                            chapter != null && isChapterExpanded(subject.id, chapterId, chapter)
+                                        },
+                                        onToggleChapterExpand = { chapterId ->
+                                            val key = "${subject.id}:$chapterId"
+                                            val chapter = subject.chapters.find { it.id == chapterId }
+                                            val current = chapter != null && isChapterExpanded(subject.id, chapterId, chapter)
+                                            expandedChapters[key] = !current
                                         },
                                     )
                                 }
                             }
 
-                            if (!shouldShowFullImport) {
+                            if (!shouldShowFullImport && rawSubjects.isNotEmpty()) {
                                 item {
                                     SyllabusImportTray(
                                         isTemplatePlan = isTemplatePlan,
@@ -498,10 +732,17 @@ private fun SyllabusEmptySubjectsCard(onAddSubject: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "No Subjects Added",
+                text = "No subjects yet",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = scheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Add your first subject to build your syllabus.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(16.dp))
             FilledTonalButton(
@@ -513,120 +754,14 @@ private fun SyllabusEmptySubjectsCard(onAddSubject: () -> Unit) {
                 ),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp),
             ) {
-                Text("Add Manually", fontWeight = FontWeight.Medium)
+                Text("Add Subject", fontWeight = FontWeight.Medium)
             }
         }
     }
 }
 
 @Composable
-private fun SyllabusSubjectListCard(
-    subject: StudySubject,
-    subjectUi: SubjectUiModel?,
-    onClick: () -> Unit,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onAddChapter: () -> Unit,
-) {
-    val scheme = MaterialTheme.colorScheme
-    val chapterCount = subject.chapters.size
-    val topicCount = subject.chapters.sumOf { it.topics.size }
-    val doneTopics = subject.chapters.sumOf { chapter -> chapter.topics.count { it.status == TopicStatus.DONE } }
-    val progressPercent = if (topicCount > 0) doneTopics.toFloat() / topicCount else 0f
-    val completionPercentage = if (topicCount > 0) (doneTopics * 100) / topicCount else subjectUi?.completionPercentage ?: 0
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        color = scheme.surfaceContainerLowest,
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
-        shadowElevation = 0.dp,
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SubjectInitialBadge(subject.name)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = subject.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        color = scheme.onSurface,
-                    )
-                    Text(
-                        text = "$chapterCount chapters • $topicCount topics",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                    )
-                }
-                SubjectOverflowMenu(
-                    onRename = onRename,
-                    onDelete = onDelete,
-                    onAddChapter = onAddChapter,
-                )
-            }
-            LinearProgressIndicator(
-                progress = { progressPercent },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(CircleShape),
-                color = scheme.primary,
-                trackColor = scheme.surfaceContainerHighest,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "$completionPercentage% complete",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = scheme.onSurfaceVariant,
-                )
-            }
-            if (subject.chapters.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(scheme.surfaceContainerLow)
-                        .padding(vertical = 6.dp),
-                ) {
-                    subject.chapters.take(3).forEachIndexed { index, chapter ->
-                        SyllabusChapterPreviewRow(
-                            chapter = chapter,
-                            showDivider = index < minOf(subject.chapters.size, 3) - 1,
-                        )
-                    }
-                    if (subject.chapters.size > 3) {
-                        Text(
-                            text = "+${subject.chapters.size - 3} more chapters",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = scheme.primary,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SubjectInitialBadge(name: String) {
+internal fun SubjectInitialBadge(name: String) {
     val scheme = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
@@ -641,76 +776,5 @@ private fun SubjectInitialBadge(name: String) {
             fontWeight = FontWeight.ExtraBold,
             color = scheme.onPrimaryContainer,
         )
-    }
-}
-
-@Composable
-private fun SyllabusChapterPreviewRow(chapter: StudyChapter, showDivider: Boolean) {
-    val scheme = MaterialTheme.colorScheme
-    val totalTopics = chapter.topics.size
-    val doneTopics = chapter.topics.count { it.status == TopicStatus.DONE }
-    val percent = if (totalTopics > 0) (doneTopics * 100) / totalTopics else 0
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = if (percent == 100 && totalTopics > 0) Icons.Default.CheckCircle else Icons.Outlined.FolderOpen,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = if (percent == 100 && totalTopics > 0) scheme.primary else scheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = chapter.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = scheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "$totalTopics topics • $percent%",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant,
-                )
-            }
-        }
-        if (showDivider) {
-            HorizontalDivider(
-                modifier = Modifier.padding(start = 42.dp, end = 14.dp),
-                color = scheme.outlineVariant.copy(alpha = 0.45f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun SubjectOverflowMenu(
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onAddChapter: () -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }, modifier = Modifier.size(24.dp)) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "More",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(text = { Text("Add Chapter") }, onClick = { expanded = false; onAddChapter() })
-            DropdownMenuItem(text = { Text("Rename") }, onClick = { expanded = false; onRename() })
-            DropdownMenuItem(
-                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                onClick = { expanded = false; onDelete() },
-            )
-        }
     }
 }

@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.tan
 
 /**
@@ -70,40 +71,39 @@ private val RainbowShimmerColors = listOf(
 )
 
 @Composable
-fun rememberRainbowShimmerBrush(
-    durationMillis: Int = 2800,
-    shimmerWidth: Float = 360f,
-): Brush {
-    val transition = rememberInfiniteTransition(label = "rainbow_text_shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = -shimmerWidth,
-        targetValue = 800f + shimmerWidth,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "rainbow_text_shimmer_translation",
-    )
-    return Brush.linearGradient(
-        colors = RainbowShimmerColors,
-        start = Offset(translateAnim, 0f),
-        end = Offset(translateAnim + shimmerWidth, 0f),
-    )
-}
-
-@Composable
 fun RainbowShimmerText(
     text: String,
     modifier: Modifier = Modifier,
     fontWeight: FontWeight = FontWeight.Normal,
     style: TextStyle = LocalTextStyle.current,
 ) {
-    val brush = rememberRainbowShimmerBrush()
+    val transition = rememberInfiniteTransition(label = "rainbow_text_shimmer")
+    val translateAnim = transition.animateFloat(
+        initialValue = -360f,
+        targetValue = 800f + 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "rainbow_text_shimmer_translation",
+    )
+    
     Text(
         text = text,
-        modifier = modifier,
+        modifier = modifier
+            .graphicsLayer(alpha = 0.99f)
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = RainbowShimmerColors,
+                        start = Offset(translateAnim.value, 0f),
+                        end = Offset(translateAnim.value + 360f, 0f),
+                    ),
+                    blendMode = androidx.compose.ui.graphics.BlendMode.SrcIn
+                )
+            },
         style = style.copy(
-            brush = brush,
             fontWeight = fontWeight,
         ),
         maxLines = 1,

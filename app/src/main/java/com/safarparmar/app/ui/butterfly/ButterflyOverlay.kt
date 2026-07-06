@@ -393,8 +393,8 @@ fun ButterflyOverlay(
                 if (tx < margin) tx = margin
                 if (ty < margin) ty = tooltipAnchorY + 64f
                 if (ty + cardHPx > H - navBarH - margin) ty = H - navBarH - cardHPx - margin
-                tx = tx.coerceIn(margin, W - cardWPx - margin)
-                ty = ty.coerceIn(margin, H - navBarH - cardHPx - margin)
+                tx = tx.coerceIn(margin, maxOf(margin, W - cardWPx - margin))
+                ty = ty.coerceIn(margin, maxOf(margin, H - navBarH - cardHPx - margin))
 
                 TooltipCard(
                     step = step,

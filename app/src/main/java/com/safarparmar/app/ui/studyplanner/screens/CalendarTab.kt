@@ -95,6 +95,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -212,8 +215,10 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.source
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneOffset
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.max
@@ -455,6 +460,22 @@ private enum class CalendarDateStatus(val color: Color) {
     OFF(Color(0xFFF59E0B)),
 }
 
+@Composable
+private fun calendarTopicCardBrush(status: CalendarDateStatus): Brush = when (status) {
+    CalendarDateStatus.PLANNED -> Brush.linearGradient(
+        listOf(Color(0xFF2563EB), Color(0xFF38BDF8)),
+    )
+    CalendarDateStatus.DONE -> Brush.linearGradient(
+        listOf(Color(0xFF16A34A), Color(0xFF86EFAC)),
+    )
+    CalendarDateStatus.OVERDUE -> Brush.linearGradient(
+        listOf(Color(0xFFDC2626), Color(0xFFFB7185)),
+    )
+    CalendarDateStatus.OFF -> Brush.linearGradient(
+        listOf(Color(0xFFF59E0B), Color(0xFFFDE68A)),
+    )
+}
+
 private fun calendarDateStatus(
     dateIso: String,
     items: List<CalendarTopicItem>,
@@ -557,6 +578,36 @@ internal fun CalendarLegendDot(color: Color, label: String) {
     }
 }
 
+private fun calendarTopicStatus(
+    item: CalendarTopicItem,
+    dateIso: String,
+    todayIso: String,
+): CalendarDateStatus = when {
+    dateIso < todayIso && item.status != TopicStatus.DONE -> CalendarDateStatus.OVERDUE
+    item.status == TopicStatus.DONE -> CalendarDateStatus.DONE
+    else -> CalendarDateStatus.PLANNED
+}
+
+private fun calendarTopicStatusLabel(status: CalendarDateStatus): String = when (status) {
+    CalendarDateStatus.PLANNED -> "Planned"
+    CalendarDateStatus.DONE -> "Done"
+    CalendarDateStatus.OVERDUE -> "Overdue"
+    CalendarDateStatus.OFF -> "Off"
+}
+
+private fun calendarRevisionTypeLabel(item: CalendarTopicItem): String? {
+    if (item.status != TopicStatus.REVISION_NEEDED) return null
+    val count = item.revisionReminderDates.size
+    val type = item.revisionScheduleType?.lowercase()
+    return when {
+        type == "spaced" -> "Spaced revision • $count session${if (count == 1) "" else "s"}"
+        type == "custom" -> "Custom revision • one time"
+        count > 1 -> "Spaced revision • $count sessions"
+        count == 1 -> "Custom revision • one time"
+        else -> "Revision scheduled"
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun SelectedDayLogSheet(
@@ -570,19 +621,38 @@ internal fun SelectedDayLogSheet(
     val planned = items.size
     val done = items.count { it.status == TopicStatus.DONE }
     val missed = if (dateIso < todayK) items.count { it.status != TopicStatus.DONE } else 0
-    val refs = remember(plan.subjects) { plan.flattenTopics() }
-    val refsById = remember(refs) { refs.associateBy { it.topic.id } }
-    var selectedTopicRef by remember { mutableStateOf<TopicRef?>(null) }
-    var detailNonce by remember { mutableIntStateOf(0) }
+    var changeDateTarget by remember { mutableStateOf<CalendarTopicItem?>(null) }
 
-    selectedTopicRef?.let { ref ->
-        PlannerTopicDetailSheet(
-            ref = ref,
-            openNonce = detailNonce,
-            actions = actions,
-            swapCandidates = refs,
-            onDismiss = { selectedTopicRef = null },
-        )
+    changeDateTarget?.let { target ->
+        val initialMillis = remember(target.topicId) {
+            (parsePlannerDate(dateIso) ?: LocalDate.now())
+                .atStartOfDay(ZoneOffset.UTC)
+                .toInstant()
+                .toEpochMilli()
+        }
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+        DatePickerDialog(
+            onDismissRequest = { changeDateTarget = null },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val newDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+                            // Single-topic patch — moving one topic's date never rebuilds
+                            // or redistributes the rest of the plan, and the server treats
+                            // the daily goal as advisory, so this never blocks on capacity.
+                            actions.updateTopic(target.topicId, plannedDate = newDate.toString())
+                        }
+                        changeDateTarget = null
+                    },
+                ) { Text("Move") }
+            },
+            dismissButton = {
+                TextButton(onClick = { changeDateTarget = null }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -685,66 +755,105 @@ internal fun SelectedDayLogSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                items.forEach { item ->
-                    PlannerSurface {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            val statusBg = when (item.status) {
-                                TopicStatus.DONE -> MaterialTheme.colorScheme.tertiaryContainer
-                                else -> MaterialTheme.colorScheme.secondaryContainer
-                            }
-                            val statusFg = when (item.status) {
-                                TopicStatus.DONE -> MaterialTheme.colorScheme.onTertiaryContainer
-                                else -> MaterialTheme.colorScheme.onSecondaryContainer
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(item.topicName, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .background(statusBg)
-                                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = plannerTopicStatusDisplayLabel(item.status),
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = statusFg
-                                        )
-                                    )
-                                }
-                            }
-                            Text("${item.subjectName} · ${item.chapterName}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                FilterChip(
-                                    selected = item.status == TopicStatus.DONE,
-                                    onClick = { actions.updateTopic(item.topicId, status = TopicStatus.DONE) },
-                                    label = { Text("Done") },
-                                )
-                                FilterChip(
-                                    selected = item.status == TopicStatus.REVISION_NEEDED,
-                                    onClick = { actions.updateTopic(item.topicId, status = TopicStatus.REVISION_NEEDED) },
-                                    label = { Text("To Revise") },
-                                )
-                                val itemRef = refsById[item.topicId]
-                                if (itemRef != null && refs.any { it.topic.id != item.topicId && !it.topic.plannedDate.isNullOrBlank() && it.topic.plannedDate?.take(10) != itemRef.topic.plannedDate?.take(10) }) {
-                                    FilterChip(
-                                        selected = false,
-                                        onClick = {
-                                            selectedTopicRef = itemRef
-                                            detailNonce++
-                                        },
-                                        label = { Text("Swap Date") },
-                                    )
-                                }
-                            }
-                        }
+                // Compact one-line-per-topic rows in a height-bounded LazyColumn: with
+                // a full daily goal (e.g. 15 topics/day) the old tall cards (name +
+                // subject line + a wrapping row of action chips each) made this sheet
+                // scroll for several screens. Status is shown as a read-only badge —
+                // marking done/revision happens from the topic's own card, not here —
+                // and "Change date" replaces the old swap-only flow with a real date
+                // picker that can move a topic to any date directly.
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(items, key = { it.topicId }) { item ->
+                        CompactDayTopicRow(
+                            item = item,
+                            dateIso = dateIso,
+                            onChangeDate = { changeDateTarget = item },
+                        )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactDayTopicRow(
+    item: CalendarTopicItem,
+    dateIso: String,
+    onChangeDate: () -> Unit,
+) {
+    val todayK = todayKey()
+    val topicStatus = calendarTopicStatus(item, dateIso, todayK)
+    val revisionTypeLabel = calendarRevisionTypeLabel(item)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = Color.Transparent,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.24f)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(calendarTopicCardBrush(topicStatus))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    item.topicName,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "${item.subjectName} · ${item.chapterName}",
+                    fontSize = 11.sp,
+                    color = Color.White.copy(alpha = 0.82f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (revisionTypeLabel != null) {
+                    Text(
+                        revisionTypeLabel,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.92f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.20f))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            ) {
+                Text(
+                    text = calendarTopicStatusLabel(topicStatus),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    ),
+                )
+            }
+            IconButton(onClick = onChangeDate, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.Default.CalendarMonth,
+                    contentDescription = "Change date for ${item.topicName}",
+                    modifier = Modifier.size(18.dp),
+                    tint = Color.White,
+                )
             }
         }
     }

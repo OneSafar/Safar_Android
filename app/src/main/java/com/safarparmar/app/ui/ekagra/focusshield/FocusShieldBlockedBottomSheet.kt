@@ -135,7 +135,7 @@ fun FocusShieldBlockedBottomSheet(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = if (prompt.strict) {
-                    "KAVACH brought you back to Ekagra. Use Quick unlock only when you intentionally need a short window."
+                    "Nice Try! You are in Beast Mode."
                 } else {
                     "KAVACH brought you back to Ekagra. Use Quick unlock only when you intentionally need a short window."
                 },
@@ -146,23 +146,25 @@ fun FocusShieldBlockedBottomSheet(
 
             Spacer(Modifier.height(22.dp))
 
-            Button(
-                onClick = { showQuickUnlockDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(999.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = blue,
-                ),
-            ) {
-                Text(
-                    text = "Quick unlock",
-                    fontWeight = FontWeight.Bold,
-                )
+            if (!prompt.strict) {
+                Button(
+                    onClick = { showQuickUnlockDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(999.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = blue,
+                    ),
+                ) {
+                    Text(
+                        text = "Quick unlock",
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
             }
-            Spacer(Modifier.height(10.dp))
 
             OutlinedButton(
                 onClick = onDismiss,

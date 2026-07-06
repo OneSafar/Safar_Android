@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.auth
 
 import com.safarparmar.app.domain.model.User
 import com.safarparmar.app.domain.model.UserProfile
+import com.safarparmar.app.domain.model.ForgotPasswordResult
 import com.safarparmar.app.domain.repository.AuthRepository
 import com.safarparmar.app.util.Resource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -78,6 +79,49 @@ class AuthViewModelTest {
         assertEquals("Nope", viewModel.uiState.value.error)
     }
 
+    @Test
+    fun `forgot password clicked transitions to email step`() {
+        val viewModel = AuthViewModel(FakeAuthRepository())
+
+        viewModel.onEvent(AuthEvent.ForgotPassword)
+
+        assertTrue(viewModel.uiState.value.isForgotPasswordMode)
+        assertEquals(ForgotPasswordStep.EMAIL, viewModel.uiState.value.forgotPasswordStep)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `submit forgot password email success transitions to reset step`() = runTest {
+        val viewModel = AuthViewModel(FakeAuthRepository())
+
+        viewModel.onEvent(AuthEvent.ForgotPassword)
+        viewModel.onEvent(AuthEvent.EmailChanged("kumar@gmail.com"))
+        viewModel.onEvent(AuthEvent.SubmitForgotPasswordRequest)
+        advanceUntilIdle()
+
+        assertEquals(ForgotPasswordStep.RESET, viewModel.uiState.value.forgotPasswordStep)
+        assertEquals("fake_token", viewModel.uiState.value.forgotPasswordToken)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `submit reset password confirm success resets to login mode`() = runTest {
+        val viewModel = AuthViewModel(FakeAuthRepository())
+
+        viewModel.onEvent(AuthEvent.ForgotPassword)
+        viewModel.onEvent(AuthEvent.EmailChanged("kumar@gmail.com"))
+        viewModel.onEvent(AuthEvent.SubmitForgotPasswordRequest)
+        advanceUntilIdle()
+
+        viewModel.onEvent(AuthEvent.ResetNewPasswordChanged("newpassword123"))
+        viewModel.onEvent(AuthEvent.ResetConfirmPasswordChanged("newpassword123"))
+        viewModel.onEvent(AuthEvent.SubmitResetPasswordConfirm)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isForgotPasswordMode)
+        assertEquals("Password reset successfully. Please log in.", viewModel.uiState.value.error)
+    }
+
     private class FakeAuthRepository(
         private val loginResult: Resource<User> = Resource.Error("unused"),
     ) : AuthRepository {
@@ -95,7 +139,11 @@ class AuthViewModelTest {
             photoUrl: String?,
         ): Resource<User> = Resource.Success(User(id = "new"))
 
-        override suspend fun forgotPassword(email: String): Resource<String> = Resource.Success("ok")
+        override suspend fun forgotPassword(email: String): Resource<ForgotPasswordResult> =
+            Resource.Success(ForgotPasswordResult("ok", "fake_token"))
+
+        override suspend fun resetPasswordConfirm(token: String, newPassword: String): Resource<Unit> =
+            Resource.Success(Unit)
 
         override suspend fun logout(): Resource<Unit> = Resource.Success(Unit)
 

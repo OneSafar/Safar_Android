@@ -49,3 +49,20 @@ data class AdminBroadcastResponse(
     val count: Int? = null,
     val results: List<AdminBroadcastResult>? = null,
 )
+
+data class CustomNotificationDto(
+    val id: String? = null,
+    val type: String? = null,
+    val title: String? = null,
+    val body: String? = null,
+    val channel: String? = null,
+    val deepLink: String? = null,
+    val priority: String? = null,
+    val createdAt: String? = null,
+)
+
+data class NotificationHistoryResponse(
+    val notifications: List<CustomNotificationDto>? = null,
+    val page: Int? = null,
+    val hasMore: Boolean? = null,
+)

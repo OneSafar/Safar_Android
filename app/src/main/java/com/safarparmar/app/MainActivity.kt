@@ -13,7 +13,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import android.util.Rational
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -53,7 +53,7 @@ import com.razorpay.PaymentResultWithDataListener
 import com.safarparmar.app.ui.premium.PaymentEventBus
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
+class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
 
     @Inject
     lateinit var dataStore: SafarDataStore
@@ -76,7 +76,6 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         const val EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE = "focus_shield_blocked_package"
         const val EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME = "focus_shield_blocked_app_name"
         const val EXTRA_FOCUS_SHIELD_STRICT = "focus_shield_strict"
-        const val EXTRA_FOCUS_SHIELD_ALWAYS_ON = "focus_shield_always_on"
         const val EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING = "focus_shield_unlocks_remaining"
         const val EXTRA_FOCUS_SHIELD_UNLOCK_SECONDS = "focus_shield_unlock_seconds"
         const val EXTRA_FOCUS_SHIELD_OPEN_EKAGRA = "focus_shield_open_ekagra"
@@ -100,7 +99,11 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
         // Bind (and start) the TimerService so it survives navigation
         Intent(this, TimerService::class.java).also { intent ->
-            startService(intent)
+            try {
+                startService(intent)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to start TimerService: ${e.message}")
+            }
             bindService(intent, serviceConnection, BIND_AUTO_CREATE)
         }
 

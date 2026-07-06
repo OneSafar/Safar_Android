@@ -50,6 +50,10 @@ fun AppPickerScreen(
     onBack: () -> Unit,
     viewModel: FocusShieldViewModel = hiltViewModel(),
 ) {
+    androidx.activity.compose.BackHandler {
+        onBack()
+    }
+
     val state by viewModel.pickerState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { viewModel.loadApps() }

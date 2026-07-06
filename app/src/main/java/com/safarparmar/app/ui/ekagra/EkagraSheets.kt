@@ -120,56 +120,131 @@ internal fun OrganizeFreeFocusSheet(
     onTitleChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onSaveFree: () -> Unit,
-    onLinkGoal: (com.safarparmar.app.domain.model.Goal) -> Unit,
+    onLinkGoal: (com.safarparmar.app.domain.model.Goal, Boolean) -> Unit,
     onDiscard: () -> Unit,
 ) {
-    val scheme        = MaterialTheme.colorScheme
-    val focusedMins   = ((pending?.totalSeconds ?: 0) - (pending?.secondsLeft ?: 0)).coerceAtLeast(60) / 60
+    val scheme      = MaterialTheme.colorScheme
+    val focusedMins = ((pending?.totalSeconds ?: 0) - (pending?.secondsLeft ?: 0)).coerceAtLeast(60) / 60
+
+    // Which goal is currently selected (pending confirmation)
+    var selectedGoal    by remember { mutableStateOf<com.safarparmar.app.domain.model.Goal?>(null) }
+    var markAsCompleted by remember { mutableStateOf(false) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor   = scheme.surfaceContainerLow,
     ) {
-        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("You focused for ${focusedMins} min.",
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Column(
+            Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                "You focused for ${focusedMins} min.",
+                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+            )
             Text("What were you working on?", fontSize = 13.sp, color = scheme.onSurfaceVariant)
 
-            Text("Link to a goal",
-                fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                color    = scheme.onSurfaceVariant)
+            Text(
+                "Link to a goal",
+                fontSize = 11.sp, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant,
+            )
 
             if (goals.isEmpty()) {
                 Text("No open goals available.", fontSize = 13.sp, color = scheme.onSurfaceVariant)
             } else {
                 goals.take(5).forEach { goal ->
-                    Row(
+                    val isSelected = selectedGoal?.id == goal.id
+                    Column(
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { onLinkGoal(goal) }
-                            // M3 surfaceContainer for list rows
-                            .background(scheme.surfaceContainer)
+                            .background(if (isSelected) scheme.primaryContainer else scheme.surfaceContainer)
+                            .then(if (isSelected) Modifier.border(1.5.dp, scheme.primary, RoundedCornerShape(12.dp)) else Modifier)
+                            .clickable {
+                                selectedGoal = goal
+                                markAsCompleted = false
+                            }
                             .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Icon(Icons.Default.Link, contentDescription = null,
-                            tint = scheme.primary, modifier = Modifier.size(16.dp))
-                        Text(goal.title,
-                            fontSize   = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color      = scheme.onSurface,
-                            modifier   = Modifier.weight(1f),
-                            maxLines   = 1)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(
+                                if (isSelected) Icons.Default.CheckCircle else Icons.Default.Link,
+                                contentDescription = null,
+                                tint = if (isSelected) scheme.primary else scheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                goal.title,
+                                fontSize   = 13.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color      = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
+                                modifier   = Modifier.weight(1f),
+                                maxLines   = 1,
+                            )
+                        }
+                        // "Mark as completed" toggle — only shown for the selected goal
+                        if (isSelected) {
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(scheme.surfaceContainerHighest)
+                                    .clickable { markAsCompleted = !markAsCompleted }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Checkbox(
+                                    checked         = markAsCompleted,
+                                    onCheckedChange = { markAsCompleted = it },
+                                    colors          = CheckboxDefaults.colors(checkedColor = scheme.primary),
+                                )
+                                Column {
+                                    Text(
+                                        "Mark goal as completed",
+                                        fontSize   = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color      = scheme.onSurface,
+                                    )
+                                }
+                            }
+                        }
                     }
+                }
+            }
+
+            // Confirm link button — only shown once a goal is selected
+            if (selectedGoal != null) {
+                Button(
+                    onClick = {
+                        val g = selectedGoal ?: return@Button
+                        onLinkGoal(g, markAsCompleted)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape  = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = scheme.primary,
+                        contentColor   = scheme.onPrimary,
+                    ),
+                ) {
+                    Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        if (markAsCompleted) "Link & Complete Goal" else "Link Session",
+                        fontSize   = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
 
             OutlinedTextField(
                 value         = titleInput,
                 onValueChange = onTitleChange,
-                placeholder   = { Text("Add a title") },
+                placeholder   = { Text("Or add a free title") },
                 singleLine    = true,
                 modifier      = Modifier.fillMaxWidth(),
                 shape         = RoundedCornerShape(12.dp),
@@ -188,7 +263,7 @@ internal fun OrganizeFreeFocusSheet(
                         contentColor   = scheme.onPrimary,
                     ),
                 ) {
-                    Text("Save free ekagra", fontSize = 12.sp)
+                    Text("Save Free", fontSize = 12.sp)
                 }
             }
         }

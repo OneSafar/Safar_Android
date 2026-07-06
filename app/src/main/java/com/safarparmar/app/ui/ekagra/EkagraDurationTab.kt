@@ -72,7 +72,11 @@ internal fun DurationTab(
     breakMinutes: Int,
     onFocusChange: (Int) -> Unit,
     onBreakChange: (Int) -> Unit,
-    onStartFocusSession: () -> Unit,
+    isPomodoroMode: Boolean,
+    onPomodoroChange: (Boolean) -> Unit,
+    isMuted: Boolean,
+    onMuteChange: (Boolean) -> Unit,
+    onSave: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
     Column(
@@ -102,13 +106,36 @@ internal fun DurationTab(
             value         = breakMinutes,
             range         = 1f..60f,
             onValueChange = onBreakChange,
+            enabled       = !isPomodoroMode // Disable manual break duration in Pomodoro mode
+        )
+
+        ToggleCard(
+            icon          = Icons.Default.Loop,
+            title         = "Pomodoro Mode",
+            subtitle      = "(Loops 25m focus & 5m break)",
+            checked       = isPomodoroMode,
+            onCheckedChange = { 
+                onPomodoroChange(it)
+                if (it) {
+                    onFocusChange(25)
+                    onBreakChange(5)
+                }
+            }
+        )
+
+        ToggleCard(
+            icon          = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+            title         = "Audio",
+            subtitle      = if (isMuted) "Background audio is muted" else "Background audio is playing",
+            checked       = !isMuted,
+            onCheckedChange = { onMuteChange(!it) }
         )
 
         Spacer(Modifier.height(6.dp))
 
         // M3 FilledButton — primary CTA, 56dp tall for prominence
         Button(
-            onClick        = onStartFocusSession,
+            onClick        = onSave,
             modifier       = Modifier.fillMaxWidth().height(56.dp),
             shape          = RoundedCornerShape(16.dp),
             colors         = ButtonDefaults.buttonColors(
@@ -117,9 +144,7 @@ internal fun DurationTab(
             ),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
         ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Start ekagra session", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(8.dp))
     }
@@ -132,10 +157,12 @@ internal fun DurationCard(
     value: Int,
     range: ClosedFloatingPointRange<Float>,
     onValueChange: (Int) -> Unit,
+    enabled: Boolean = true
 ) {
     val scheme = MaterialTheme.colorScheme
     var showCustomInput by remember { mutableStateOf(false) }
     var customText      by remember { mutableStateOf("") }
+    val alpha = if (enabled) 1f else 0.5f
 
     // M3 ElevatedCard: surfaceContainerLow + outlineVariant border at 0.5dp
     Card(
@@ -143,7 +170,7 @@ internal fun DurationCard(
         colors    = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border    = BorderStroke(0.5.dp, scheme.outlineVariant),
-        modifier  = Modifier.fillMaxWidth(),
+        modifier  = Modifier.fillMaxWidth().alpha(alpha),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
@@ -200,7 +227,7 @@ internal fun DurationCard(
             // M3 Slider — track = secondaryContainer, thumb + fill = primary
             SlimSlider(
                 value         = value.toFloat(),
-                onValueChange = { onValueChange(it.roundToInt().coerceIn(range.start.toInt(), range.endInclusive.toInt())) },
+                onValueChange = { if (enabled) onValueChange(it.roundToInt().coerceIn(range.start.toInt(), range.endInclusive.toInt())) },
                 valueRange    = range,
                 modifier      = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 activeColor   = scheme.primary,
@@ -220,7 +247,7 @@ internal fun DurationCard(
                             .clip(RoundedCornerShape(10.dp))
                             // M3: primary when selected, surfaceContainerHigh when not
                             .background(if (isSel) scheme.primary else scheme.surfaceContainerHigh)
-                            .clickable { onValueChange(preset) }
+                            .clickable { if (enabled) onValueChange(preset) }
                             .padding(horizontal = 14.dp, vertical = 8.dp),
                     ) {
                         Text(
@@ -233,6 +260,40 @@ internal fun DurationCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+internal fun ToggleCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Card(
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border    = BorderStroke(0.5.dp, scheme.outlineVariant),
+        modifier  = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onCheckedChange(!checked) }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
     }
 }

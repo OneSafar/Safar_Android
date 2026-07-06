@@ -35,6 +35,7 @@ fun SafarDrawerScaffold(
     topBarActions: @Composable RowScope.() -> Unit = {},
     topBarContentColor: Color? = null,
     emphasizeTopBar: Boolean = false,
+    showTopBar: Boolean = true,
     showTopBarTitle: Boolean = true,
     content: @Composable (PaddingValues) -> Unit,
 ) {
@@ -81,76 +82,84 @@ fun SafarDrawerScaffold(
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .height(44.dp)
-                        .padding(horizontal = 4.dp),
-                    contentAlignment = Alignment.Center
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showTopBar,
+                    enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(500)) +
+                            androidx.compose.animation.expandVertically(animationSpec = androidx.compose.animation.core.tween(500)),
+                    exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(500)) +
+                           androidx.compose.animation.shrinkVertically(animationSpec = androidx.compose.animation.core.tween(500))
                 ) {
-                    if (showTopBarTitle) {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .fillMaxWidth()
-                                .padding(horizontal = 48.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            val shouldShowSubtitle = subtitle != null &&
-                                !subtitle.contains("SAFAR", ignoreCase = true) &&
-                                !subtitle.contains("Safar", ignoreCase = true) &&
-                                !subtitle.contains(appName, ignoreCase = true) &&
-                                subtitle.isNotBlank()
-                            if (shouldShowSubtitle) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .height(44.dp)
+                            .padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (showTopBarTitle) {
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 48.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                val shouldShowSubtitle = subtitle != null &&
+                                    !subtitle.contains("SAFAR", ignoreCase = true) &&
+                                    !subtitle.contains("Safar", ignoreCase = true) &&
+                                    !subtitle.contains(appName, ignoreCase = true) &&
+                                    subtitle.isNotBlank()
+                                if (shouldShowSubtitle) {
+                                    Text(
+                                        subtitle!!.uppercase(),
+                                        fontSize = if (emphasizeTopBar) 12.sp else 11.sp,
+                                        lineHeight = 12.sp,
+                                        color = actualContentColor.copy(alpha = if (emphasizeTopBar) 0.82f else 0.7f),
+                                        fontFamily = if (subtitle.uppercase() == "SAFAR") LoraFontFamily else null,
+                                        fontWeight = if (subtitle.uppercase() == "SAFAR") FontWeight.Bold else null,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    )
+                                }
                                 Text(
-                                    subtitle!!.uppercase(),
-                                    fontSize = if (emphasizeTopBar) 12.sp else 11.sp,
-                                    lineHeight = 12.sp,
-                                    color = actualContentColor.copy(alpha = if (emphasizeTopBar) 0.82f else 0.7f),
-                                    fontFamily = if (subtitle.uppercase() == "SAFAR") LoraFontFamily else null,
-                                    fontWeight = if (subtitle.uppercase() == "SAFAR") FontWeight.Bold else null,
+                                    title,
+                                    fontSize = if (emphasizeTopBar) 20.sp else 18.sp,
+                                    lineHeight = if (emphasizeTopBar) 22.sp else 20.sp,
+                                    fontWeight = if (emphasizeTopBar) FontWeight.ExtraBold else FontWeight.Bold,
+                                    fontFamily = if (title.uppercase() == "SAFAR") LoraFontFamily else null,
+                                    color = actualContentColor,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 )
                             }
-                            Text(
-                                title,
-                                fontSize = if (emphasizeTopBar) 20.sp else 18.sp,
-                                lineHeight = if (emphasizeTopBar) 22.sp else 20.sp,
-                                fontWeight = if (emphasizeTopBar) FontWeight.ExtraBold else FontWeight.Bold,
-                                fontFamily = if (title.uppercase() == "SAFAR") LoraFontFamily else null,
-                                color = actualContentColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        }
+
+                        IconButton(
+                            onClick = { scope.launch { drawerState.open() } },
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .padding(start = 4.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Menu,
+                                contentDescription = stringResource(R.string.nav_open_menu),
+                                modifier = Modifier.size(if (emphasizeTopBar) 26.dp else 24.dp),
+                                tint = actualContentColor
                             )
                         }
-                    }
 
-                    IconButton(
-                        onClick = { scope.launch { drawerState.open() } },
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = 4.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.Menu,
-                            contentDescription = stringResource(R.string.nav_open_menu),
-                            modifier = Modifier.size(if (emphasizeTopBar) 26.dp else 24.dp),
-                            tint = actualContentColor
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        topBarActions()
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            topBarActions()
+                        }
                     }
                 }
             },

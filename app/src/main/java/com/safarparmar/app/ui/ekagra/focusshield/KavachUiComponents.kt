@@ -329,9 +329,11 @@ fun KavachPermissionDisclosureCard(
     hasUsageStats: Boolean,
     hasAccessibilityService: Boolean,
     hasNotifications: Boolean,
+    hasNotificationSuppressionAccess: Boolean,
     onOpenUsageAccess: () -> Unit,
     onOpenAccessibility: () -> Unit,
     onOpenNotifications: () -> Unit,
+    onOpenNotificationAccess: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -397,7 +399,7 @@ fun KavachPermissionDisclosureCard(
                     HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
                     KavachPermissionStatusRow(
                         title = "KAVACH Alert",
-                        body = "Uses AccessibilityService for KAVACH app blocking.",
+                        body = "Uses Accessibility Service for KAVACH app blocking.",
                         granted = hasAccessibilityService,
                         required = true,
                         onClick = onOpenAccessibility,
@@ -410,6 +412,14 @@ fun KavachPermissionDisclosureCard(
                     granted = hasNotifications,
                     required = false,
                     onClick = onOpenNotifications,
+                )
+                HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
+                KavachPermissionStatusRow(
+                    title = "Notification Shield",
+                    body = "Dismisses notifications from blocked apps during Ekagra.",
+                    granted = hasNotificationSuppressionAccess,
+                    required = true,
+                    onClick = onOpenNotificationAccess,
                 )
             }
         }
@@ -606,9 +616,11 @@ fun KavachLearnMoreSheet(
     hasUsageStats: Boolean,
     hasAccessibilityService: Boolean,
     hasNotifications: Boolean,
+    hasNotificationSuppressionAccess: Boolean,
     onOpenUsageAccess: () -> Unit,
     onOpenAccessibility: () -> Unit,
     onOpenNotifications: () -> Unit,
+    onOpenNotificationAccess: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -634,6 +646,7 @@ fun KavachLearnMoreSheet(
                 hasUsageStats = hasUsageStats,
                 hasAccessibilityService = hasAccessibilityService,
                 hasNotifications = hasNotifications,
+                hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
                 onOpenUsageAccess = {
                     onDismiss()
                     onOpenUsageAccess()
@@ -645,6 +658,10 @@ fun KavachLearnMoreSheet(
                 onOpenNotifications = {
                     onDismiss()
                     onOpenNotifications()
+                },
+                onOpenNotificationAccess = {
+                    onDismiss()
+                    onOpenNotificationAccess()
                 },
             )
         }
@@ -874,12 +891,9 @@ fun KavachHeroSwitchCard(
 @Composable
 fun KavachControlCenterContainer(
     blockedAppCount: Int,
-    beastModeEnabled: Boolean,
-    emergencyUnlockEnabled: Boolean,
     accent: Color,
     onOpenAppPicker: () -> Unit,
-    onBeastModeChange: (Boolean) -> Unit,
-    onEmergencyUnlockChange: (Boolean) -> Unit,
+    onGoToEkagra: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -889,11 +903,6 @@ fun KavachControlCenterContainer(
         stringResource(R.string.kavach_blocked_apps_none)
     } else {
         stringResource(R.string.kavach_blocked_apps_count, blockedAppCount)
-    }
-    val emergencySubtitle = if (beastModeEnabled) {
-        stringResource(R.string.kavach_emergency_off_beast)
-    } else {
-        stringResource(R.string.kavach_emergency_unlock_subtitle)
     }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(0.dp)) {
         KavachSectionLabel(stringResource(R.string.kavach_section_apps))
@@ -943,17 +952,22 @@ fun KavachControlCenterContainer(
         ) {
             Column {
                 KavachControlRow(
-                    iconRes = R.drawable.ic_zap,
-                    title = stringResource(R.string.kavach_beast_mode_title),
-                    subtitle = stringResource(R.string.kavach_beast_mode_subtitle),
-                    onClick = { onBeastModeChange(!beastModeEnabled) },
+                    iconRes = R.drawable.ic_target,
+                    title = stringResource(R.string.kavach_go_to_ekagra_title),
+                    onClick = onGoToEkagra,
                     isDark = isDark,
                 ) {
-                    KavachSwitch(
-                        checked = beastModeEnabled,
-                        accent = accent,
-                        onCheckedChange = onBeastModeChange,
-                    )
+                    Button(
+                        onClick = onGoToEkagra,
+                        colors = ButtonDefaults.buttonColors(containerColor = accent),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.kavach_go_to_ekagra_button),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
 
             }
@@ -992,7 +1006,7 @@ private fun KavachSwitch(
 fun KavachControlRow(
     iconRes: Int,
     title: String,
-    subtitle: String,
+    subtitle: String? = null,
     onClick: () -> Unit,
     isDark: Boolean,
     enabled: Boolean = true,
@@ -1033,13 +1047,15 @@ fun KavachControlRow(
                 fontWeight = FontWeight.Bold,
                 color = if (isDark) titleColor else KavachDesign.HubText,
             )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                fontSize = 14.sp,
-                color = if (isDark) subtitleColor else KavachDesign.HubTextMuted,
-                lineHeight = 20.sp,
-            )
+            if (subtitle != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 14.sp,
+                    color = if (isDark) subtitleColor else KavachDesign.HubTextMuted,
+                    lineHeight = 20.sp,
+                )
+            }
         }
         Spacer(Modifier.width(12.dp))
         trailingContent()

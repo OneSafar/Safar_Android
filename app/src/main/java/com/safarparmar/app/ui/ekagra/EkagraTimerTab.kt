@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
@@ -108,7 +109,7 @@ internal fun EkagraPipOverlay(
 // ─── Mode pill (icon-only) ─────────────────────────────────────────────────────
 
 @Composable
-internal fun ModePill(selected: TimerMode, onSelect: (TimerMode) -> Unit) {
+internal fun ModePill(selected: TimerMode, accentColor: Color, onSelect: (TimerMode) -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
@@ -130,16 +131,16 @@ internal fun ModePill(selected: TimerMode, onSelect: (TimerMode) -> Unit) {
                         // Fixed 48dp square chip — no text label
                         .size(48.dp)
                         .clip(RoundedCornerShape(50.dp))
-                        // M3 token: primary when selected, transparent when not
-                        .background(if (isSelected) scheme.primary else Color.Transparent)
+                        // Custom token: accentColor when selected, transparent when not
+                        .background(if (isSelected) accentColor else Color.Transparent)
                         .clickable { onSelect(mode) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         painter            = painterResource(iconRes),
                         contentDescription = mode.label, // keep for a11y — screen reader reads this
-                        // M3 token: onPrimary when selected, onSurfaceVariant when not
-                        tint               = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant,
+                        // Custom token: white when selected, onSurfaceVariant when not
+                        tint               = if (isSelected) Color.White else scheme.onSurfaceVariant,
                         modifier           = Modifier.size(19.dp),
                     )
                 }
@@ -161,16 +162,19 @@ internal fun TimerFocusTab(
     mottoText: String,
     kavachActive: Boolean = false,
     kavachBlockedCount: Int = 0,
+    controlsVisible: Boolean = true,
     onOpenKavachSession: () -> Unit = {},
     onModeChange: (TimerMode) -> Unit,
     onPlayPause: () -> Unit,
     canStartBreak: Boolean,
     onStartBreak: () -> Unit,
     onReset: () -> Unit,
+    onGoToDuration: () -> Unit = {},
     shieldState: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldUiState,
     isDarkTheme: Boolean,
     themeAccent: Color,
     onToggleKavach: (Boolean) -> Unit,
+    onToggleStrictMode: (Boolean) -> Unit,
     onOpenAppPicker: () -> Unit,
     onNavigate: (String) -> Unit,
 ) {
@@ -195,13 +199,21 @@ internal fun TimerFocusTab(
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Spacer(Modifier.height(if (isCompactHeight) 16.dp else 56.dp))
-
-            // Icon-only mode pill
-            ModePill(selected = timerMode, onSelect = onModeChange)
-
-            Spacer(Modifier.height(32.dp))
+            AnimatedVisibility(
+                visible = controlsVisible,
+                enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) +
+                        expandVertically(animationSpec = tween(500, easing = FastOutSlowInEasing)),
+                exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) +
+                       shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Spacer(Modifier.height(if (isCompactHeight) 16.dp else 56.dp))
+                    ModePill(selected = timerMode, accentColor = themeAccent, onSelect = onModeChange)
+                    Spacer(Modifier.height(32.dp))
+                }
+            }
 
             // ── Ring — NO card wrapper ───────────────────────────────────────────
             // The ring floats directly on the video background.
@@ -270,14 +282,22 @@ internal fun TimerFocusTab(
                             textAlign    = TextAlign.Center,
                         )
                     }
-                    Text(
-                        if (isRunning) "Ekagra running" else "Ready to ekagra",
-                        fontSize   = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        // M3 onSurfaceVariant
-                        color      = scheme.onSurfaceVariant,
-                        textAlign  = TextAlign.Center,
-                    )
+                    AnimatedVisibility(
+                        visible = controlsVisible,
+                        enter = fadeIn(animationSpec = tween(400, easing = FastOutSlowInEasing)) +
+                                expandVertically(animationSpec = tween(400, easing = FastOutSlowInEasing)),
+                        exit = fadeOut(animationSpec = tween(400, easing = FastOutSlowInEasing)) +
+                               shrinkVertically(animationSpec = tween(400, easing = FastOutSlowInEasing))
+                    ) {
+                        Text(
+                            if (isRunning) "Ekagra running" else "Ready to ekagra",
+                            fontSize   = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            // M3 onSurfaceVariant
+                            color      = scheme.onSurfaceVariant,
+                            textAlign  = TextAlign.Center,
+                        )
+                    }
                 }
             }
 
@@ -291,10 +311,10 @@ internal fun TimerFocusTab(
                     onClick = onReset,
                     modifier = Modifier.weight(1f).height(48.dp),
                     colors   = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = if (isLight) Color(0xD9FFFFFF) else scheme.onSurface,
-                        contentColor   = if (isLight) scheme.onSurface else scheme.surface,
+                        containerColor = themeAccent,
+                        contentColor   = Color.White,
                     ),
-                    border = if (isLight) BorderStroke(1.dp, scheme.outlineVariant) else null,
+                    border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.4f)),
                     elevation = ButtonDefaults.filledTonalButtonElevation(defaultElevation = 2.dp),
                     shape  = RoundedCornerShape(100.dp),
                     contentPadding = PaddingValues(0.dp),
@@ -302,7 +322,7 @@ internal fun TimerFocusTab(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(17.dp))
                         Text(
-                            if (timerMode == TimerMode.FOCUS) "End" else "End Break",
+                            if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH) "End" else "End Break",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
                         )
@@ -314,9 +334,10 @@ internal fun TimerFocusTab(
                     onClick = onPlayPause,
                     modifier = Modifier.weight(1f).height(48.dp),
                     colors   = ButtonDefaults.buttonColors(
-                        containerColor = scheme.primary,
-                        contentColor   = scheme.onPrimary,
+                        containerColor = themeAccent,
+                        contentColor   = Color.White,
                     ),
+                    border    = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.4f)),
                     shape     = RoundedCornerShape(100.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
                     contentPadding = PaddingValues(0.dp),
@@ -333,75 +354,71 @@ internal fun TimerFocusTab(
                 }
             }
 
-            // Take Break — M3 FilledTonalButton, only when a focus session is active
-            if (canStartBreak) {
-                Spacer(Modifier.height(12.dp))
-                val isLight = scheme.background.luminance() > 0.5f
-                FilledTonalButton(
-                    onClick = onStartBreak,
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                    colors   = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = if (isLight) Color(0xD9FFFFFF) else scheme.onSurfaceVariant,
-                        contentColor   = if (isLight) scheme.onSurfaceVariant else scheme.surface,
-                    ),
-                    border = if (isLight) BorderStroke(1.dp, scheme.outlineVariant) else null,
-                    elevation = ButtonDefaults.filledTonalButtonElevation(defaultElevation = 2.dp),
-                    shape  = RoundedCornerShape(100.dp),
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.FreeBreakfast, contentDescription = null, modifier = Modifier.size(17.dp))
-                        Text("Take break", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            AnimatedVisibility(
+                visible = controlsVisible,
+                enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) +
+                        expandVertically(animationSpec = tween(500, easing = FastOutSlowInEasing)),
+                exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) +
+                       shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Take Break — M3 FilledTonalButton, only when a focus session is active
+                    if (canStartBreak) {
+                        Spacer(Modifier.height(12.dp))
+                        val isLight = scheme.background.luminance() > 0.5f
+                        FilledTonalButton(
+                            onClick = onStartBreak,
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            colors   = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = themeAccent,
+                                contentColor   = Color.White,
+                            ),
+                            border    = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.4f)),
+                            elevation = ButtonDefaults.filledTonalButtonElevation(defaultElevation = 2.dp),
+                            shape  = RoundedCornerShape(100.dp),
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.FreeBreakfast, contentDescription = null, modifier = Modifier.size(17.dp))
+                                Text("Take break", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    // Motto line
+                    Text(
+                        text       = mottoText,
+                        fontSize   = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 2.sp,
+                        color      = scheme.onSurfaceVariant,
+                        textAlign  = TextAlign.Center,
+                    )
+
+                    // Kavach active pill
+                    if (kavachActive) {
+                        Spacer(Modifier.height(12.dp))
+                        Surface(
+                            onClick = onOpenKavachSession,
+                            shape   = RoundedCornerShape(100.dp),
+                            color   = com.safarparmar.app.ui.ekagra.focusshield.KavachDesign.Primary.copy(alpha = 0.92f),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                Text(stringResource(R.string.kavach_active_status, kavachBlockedCount),
+                                    color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
                 }
             }
-
-            Spacer(Modifier.weight(1f))
-
-            // Motto line
-            Text(
-                text       = mottoText,
-                fontSize   = 10.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 2.sp,
-                color      = scheme.onSurfaceVariant,
-                textAlign  = TextAlign.Center,
-            )
-
-            // Kavach active pill
-            if (kavachActive) {
-                Spacer(Modifier.height(12.dp))
-                Surface(
-                    onClick = onOpenKavachSession,
-                    shape   = RoundedCornerShape(100.dp),
-                    color   = com.safarparmar.app.ui.ekagra.focusshield.KavachDesign.Primary.copy(alpha = 0.92f),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                        Text(stringResource(R.string.kavach_active_status, kavachBlockedCount),
-                            color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // Inline KAVACH card
-            com.safarparmar.app.ui.ekagra.focusshield.EkagraKavachInlineCard(
-                shieldState = shieldState,
-                accent = themeAccent,
-                isDarkTheme = isDarkTheme,
-                forceExpanded = false,
-                isSessionRunning = isRunning,
-                onToggleEnabled = onToggleKavach,
-                onOpenAppPicker = onOpenAppPicker,
-                onSetupPermissions = { onNavigate(Routes.FOCUS_SHIELD) },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
-            )
         }
     }
 }

@@ -38,6 +38,7 @@ class EkagraRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveSession(
+        clientSessionId: String?,
         mode: String,
         startedAt: String,
         endedAt: String?,
@@ -52,6 +53,7 @@ class EkagraRepositoryImpl @Inject constructor(
         return try {
             val res = focusApi.saveSession(
                 SaveEkagraSessionRequest(
+                    clientSessionId = clientSessionId,
                     mode = mode,
                     startedAt = startedAt,
                     endedAt = endedAt,
@@ -159,5 +161,6 @@ class EkagraRepositoryImpl @Inject constructor(
         taskText = taskText,
         associatedGoalId = associatedGoalId,
         pauseCount = pauseCount ?: 0,
+        timerMode = timerMode,
     )
 }

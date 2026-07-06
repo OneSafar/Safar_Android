@@ -102,4 +102,37 @@ class StudyPlannerUtilsTest {
         assertEquals("Physics", parsed[1].chapters.first().chapterName)
         assertEquals(listOf("Motion"), parsed[1].chapters.first().topics)
     }
+
+    @Test
+    fun `validateSyllabusNodeName blocks blank and whitespace-only names`() {
+        assertEquals("Please type a name first", validateSyllabusNodeName(""))
+        assertEquals("Please type a name first", validateSyllabusNodeName("   "))
+        assertEquals(null, validateSyllabusNodeName("Physics"))
+    }
+
+    @Test
+    fun `findDuplicateSiblingName is case-insensitive and trims`() {
+        val siblings = listOf("Physics", "Chemistry")
+        assertTrue(findDuplicateSiblingName("physics", siblings))
+        assertTrue(findDuplicateSiblingName(" PHYSICS ", siblings))
+        assertTrue(findDuplicateSiblingName("physics", siblings).let { it })
+        assertEquals(false, findDuplicateSiblingName("Biology", siblings))
+    }
+
+    @Test
+    fun `deleteImpact computes chapter and topic counts including scheduled topics`() {
+        val topicA = com.safarparmar.app.domain.model.studyplanner.StudyTopic(id = "t1", name = "A", plannedDate = "2026-05-20")
+        val topicB = com.safarparmar.app.domain.model.studyplanner.StudyTopic(id = "t2", name = "B", plannedDate = null)
+        val chapter = com.safarparmar.app.domain.model.studyplanner.StudyChapter(id = "c1", name = "Chapter 1", topics = listOf(topicA, topicB))
+        val subject = com.safarparmar.app.domain.model.studyplanner.StudySubject(id = "s1", name = "Physics", chapters = listOf(chapter))
+
+        val subjectImpact = subject.deleteImpact()
+        assertEquals(1, subjectImpact.chapterCount)
+        assertEquals(2, subjectImpact.topicCount)
+        assertEquals(1, subjectImpact.scheduledTopicCount)
+
+        val chapterImpact = chapter.deleteImpact()
+        assertEquals(2, chapterImpact.topicCount)
+        assertEquals(1, chapterImpact.scheduledTopicCount)
+    }
 }

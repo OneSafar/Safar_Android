@@ -197,5 +197,6 @@ data class EkagraAnalyticsFocusSession(
     val rawStatus: String = "completed",
     val taskText: String? = null,
     val associatedGoalId: String? = null,
-    val pauseCount: Int = 0
+    val pauseCount: Int = 0,
+    val timerMode: String? = null
 )

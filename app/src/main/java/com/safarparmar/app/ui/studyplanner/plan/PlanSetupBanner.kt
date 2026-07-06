@@ -37,7 +37,6 @@ import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerOnboardingSteps
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
-import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 
 @Composable
 fun PlanSetupBanner(
@@ -54,9 +53,8 @@ fun PlanSetupBanner(
     val hasSchedule = topics.any { !it.topic.plannedDate.isNullOrBlank() } ||
         StudyPlannerOnboardingSteps.BUILD_SCHEDULE in completedSteps
     val reviewedCalendar = StudyPlannerOnboardingSteps.REVIEW_CALENDAR in completedSteps
-    val completedFirstTopic = topics.any { it.topic.status == TopicStatus.DONE } ||
-        StudyPlannerOnboardingSteps.FIRST_TOPIC_DONE in completedSteps
-    val doneCount = listOf(hasDate, hasTopics, hasSchedule, reviewedCalendar, completedFirstTopic).count { it }
+    val doneCount = listOf(hasDate, hasTopics, hasSchedule, reviewedCalendar).count { it }
+    val allStepsDone = doneCount == 4
 
     Surface(
         modifier = modifier
@@ -87,13 +85,13 @@ fun PlanSetupBanner(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (doneCount == 5) "Plan ready" else "Finish setup",
+                        text = if (allStepsDone) "Plan ready" else "Finish setup",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface,
                     )
                     Text(
-                        text = "$doneCount of 5 steps complete",
+                        text = if (allStepsDone) "All steps complete" else "$doneCount of 4 steps complete",
                         fontSize = 12.sp,
                         color = scheme.onSurfaceVariant,
                         maxLines = 1,
@@ -134,12 +132,44 @@ fun PlanSetupBanner(
                 enabled = hasSchedule,
                 onClick = { actions.setSection(PlannerSection.CALENDAR) },
             )
-            PlanSetupStep(
-                label = "Complete first topic",
-                helper = if (hasSchedule) "Study one topic and mark it done." else "Tap Build Planner to create Today's Agenda.",
-                done = completedFirstTopic,
-                enabled = hasSchedule,
-                onClick = { actions.setSection(PlannerSection.PLAN) },
+            if (allStepsDone) {
+                PlanAllSetCard()
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlanAllSetCard() {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(modifier = Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = Color(0xFF16A34A),
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "You're all set",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = scheme.onSurface,
+            )
+            Text(
+                text = "Your plan is ready — head to Today and start with your first topic.",
+                fontSize = 11.sp,
+                color = scheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

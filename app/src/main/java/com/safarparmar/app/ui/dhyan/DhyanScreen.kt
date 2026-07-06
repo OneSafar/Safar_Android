@@ -68,6 +68,7 @@ private data class BreathingTechnique(
     val exhale: Int,
     val holdAfter: Int = 0,
     val pattern: String,
+    val audioUrl: String? = null,
 )
 
 private data class BreathingSound(
@@ -81,8 +82,8 @@ private data class BreathingSound(
 private val techniques = listOf(
     BreathingTechnique("Diaphragmatic", com.safarparmar.app.R.drawable.ic_wind, "Belly breathing for full oxygen exchange", 4, 0, 6, 0, "4-6"),
     BreathingTechnique("Pursed Lip", com.safarparmar.app.R.drawable.ic_wind, "Slows breathing and keeps airways open", 2, 0, 4, 0, "2-4"),
-    BreathingTechnique("Box Breathing", com.safarparmar.app.R.drawable.ic_square, "Rhythmic 4-4-4-4 for stress reduction", 4, 4, 4, 4, "4-4-4-4"),
-    BreathingTechnique("4-7-8 Breathing", com.safarparmar.app.R.drawable.ic_moon, "Deep relaxation for anxiety and sleep", 4, 7, 8, 0, "4-7-8"),
+    BreathingTechnique("Box Breathing", com.safarparmar.app.R.drawable.ic_square, "Rhythmic 4-4-4-4 for stress reduction", 4, 4, 4, 4, "4-4-4-4", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/box_breathing.mp3"),
+    BreathingTechnique("4-7-8 Breathing", com.safarparmar.app.R.drawable.ic_moon, "Deep relaxation for anxiety and sleep", 4, 7, 8, 0, "4-7-8", "https://qms-images.del1.vultrobjects.com/qms-parmar-academy/music/four_seven_eight.mp3"),
     BreathingTechnique("6-7-8 Breathing", com.safarparmar.app.R.drawable.ic_yin_yang, "Slower inhale variation for deeper calm", 6, 7, 8, 0, "6-7-8"),
 )
 
@@ -268,9 +269,14 @@ private fun BreathingTab(
     val mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
 
     fun releasePlayer() {
-        runCatching { mediaPlayer.value?.stop() }
-        runCatching { mediaPlayer.value?.release() }
+        val playerToRelease = mediaPlayer.value
         mediaPlayer.value = null
+        if (playerToRelease != null) {
+            kotlin.concurrent.thread {
+                runCatching { playerToRelease.stop() }
+                runCatching { playerToRelease.release() }
+            }
+        }
     }
 
     LaunchedEffect(isRunning, selectedMusicTrack, selectedBreathingSound, selectedTechnique, isSessionAudioMuted) {
@@ -284,15 +290,19 @@ private fun BreathingTab(
         val shouldPlayBreathingSound = isRunning &&
             !isSessionAudioMuted &&
             technique != null &&
-            (selectedBreathingSound.url.isNotBlank() || selectedBreathingSound.localResId != null)
+            (!technique.audioUrl.isNullOrBlank() || selectedBreathingSound.url.isNotBlank() || selectedBreathingSound.localResId != null)
 
         if (shouldPlayMeditationMusic || shouldPlayBreathingSound) {
             releasePlayer()
             try {
                 val audioUri = if (shouldPlayBreathingSound) {
-                    selectedBreathingSound.localResId?.let {
-                        Uri.parse("android.resource://${context.packageName}/$it")
-                    } ?: Uri.parse(selectedBreathingSound.url)
+                    if (!technique.audioUrl.isNullOrBlank()) {
+                        Uri.parse(technique.audioUrl)
+                    } else {
+                        selectedBreathingSound.localResId?.let {
+                            Uri.parse("android.resource://${context.packageName}/$it")
+                        } ?: Uri.parse(selectedBreathingSound.url)
+                    }
                 } else {
                     if (selectedMusicTrack.isLocal && selectedMusicTrack.localResId != null) {
                         Uri.parse("android.resource://${context.packageName}/${selectedMusicTrack.localResId}")

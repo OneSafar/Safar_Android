@@ -1,5 +1,10 @@
 package com.safarparmar.app.ui.auth
 
+enum class ForgotPasswordStep {
+    EMAIL,
+    RESET
+}
+
 data class AuthUiState(
     val isSignupMode: Boolean = false,
     val isLoading: Boolean = false,
@@ -18,13 +23,23 @@ data class AuthUiState(
     val nameError: String? = null,
     val confirmPasswordError: String? = null,
     val genderError: String? = null,
+    val isForgotPasswordMode: Boolean = false,
+    val forgotPasswordStep: ForgotPasswordStep = ForgotPasswordStep.EMAIL,
+    val forgotPasswordToken: String = "",
+    val resetNewPassword: String = "",
+    val resetConfirmPassword: String = "",
+    val resetNewPasswordError: String? = null,
+    val resetConfirmPasswordError: String? = null,
 )
 
 sealed class AuthEvent {
     object SwitchMode : AuthEvent()
     object Login : AuthEvent()
     object Signup : AuthEvent()
+    data class GoogleLogin(val idToken: String) : AuthEvent()
+    data class Error(val message: String) : AuthEvent()
     object ForgotPassword : AuthEvent()
+    object BackToLoginClicked : AuthEvent()
     object RememberMeToggled : AuthEvent()
     object ClearError : AuthEvent()
     data class EmailChanged(val value: String) : AuthEvent()
@@ -34,4 +49,9 @@ sealed class AuthEvent {
     data class ExamTypeChanged(val value: String) : AuthEvent()
     data class PreparationStageChanged(val value: String) : AuthEvent()
     data class GenderChanged(val value: String) : AuthEvent()
+    data class ResetNewPasswordChanged(val value: String) : AuthEvent()
+    data class ResetConfirmPasswordChanged(val value: String) : AuthEvent()
+    object SubmitForgotPasswordRequest : AuthEvent()
+    object SubmitResetPasswordConfirm : AuthEvent()
 }
+

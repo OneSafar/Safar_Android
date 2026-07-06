@@ -39,11 +39,16 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.domain.model.NotificationFeedItem
+import com.safarparmar.app.domain.model.NotificationFeedSource
+import androidx.compose.material.icons.filled.CheckCircle
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
+import com.safarparmar.app.ui.mehfil.formatPostDate
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.theme.*
 import com.safarparmar.app.util.bounceClick
 import com.safarparmar.app.notifications.NotificationPermissionRequest
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -51,6 +56,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.CheckCircle
 
 private data class HomeSlide(
     val titleRes: Int,
@@ -133,6 +144,7 @@ fun HomeScreen(
     onToggleDarkTheme: () -> Unit = {},
     onNavigateToAuth: () -> Unit = {},
     dataStore: SafarDataStore? = null,
+    notificationBellViewModel: NotificationBellViewModel = hiltViewModel(),
 ) {
     val isLoggedIn by (dataStore?.isLoggedIn ?: kotlinx.coroutines.flow.MutableStateFlow(true))
         .collectAsStateWithLifecycle(initialValue = true)
@@ -158,25 +170,9 @@ fun HomeScreen(
     var showBellDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Fetch active notifications currently in the system tray for our app
-    val activeNotifications = remember(showBellDialog) {
-        if (showBellDialog) {
-            val notificationManager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
-            try {
-                notificationManager?.activeNotifications?.mapNotNull { sbn ->
-                    val extras = sbn.notification.extras
-                    val title = extras.getString(android.app.Notification.EXTRA_TITLE)
-                    val text = extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
-                    if (!title.isNullOrBlank() && !text.isNullOrBlank()) {
-                        title to text
-                    } else null
-                } ?: emptyList()
-            } catch (e: Exception) {
-                emptyList()
-            }
-        } else {
-            emptyList()
-        }
+    val notificationBellState by notificationBellViewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(showBellDialog) {
+        if (showBellDialog) notificationBellViewModel.load()
     }
 
     val appVersion = remember {
@@ -189,144 +185,233 @@ fun HomeScreen(
     }
 
     if (showBellDialog) {
-        AlertDialog(
-            onDismissRequest = { showBellDialog = false },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = null,
-                        tint = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Notifications",
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = LoraFontFamily,
-                        fontSize = 18.sp
-                    )
-                }
+        Dialog(
+            onDismissRequest = {
+                notificationBellViewModel.markAllRead()
+                showBellDialog = false
             },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Unseen Notifications Section
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Unseen Notifications:",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {
+                                notificationBellViewModel.markAllRead()
+                                showBellDialog = false
+                            }
                         )
+                )
 
-                        if (activeNotifications.isEmpty()) {
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                ),
+                Surface(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                        .align(Alignment.CenterEnd),
+                    shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 48.dp, bottom = 24.dp, start = 20.dp, end = 20.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
                                     Text(
-                                        text = "You're all caught up! No unseen alerts.",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center
+                                        text = "Notifications",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        notificationBellViewModel.markAllRead()
+                                        showBellDialog = false
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
-                        } else {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 240.dp)
-                                    .verticalScroll(rememberScrollState())
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                activeNotifications.forEach { (title, body) ->
-                                    Card(
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
+                                Text(
+                                    text = "Unread",
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "Mark all as read",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable {
+                                        notificationBellViewModel.markAllRead()
+                                    }
+                                )
+                            }
+
+                            if (notificationBellState.isLoading) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                                }
+                            } else if (notificationBellState.items.isEmpty()) {
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(24.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Column(
-                                            modifier = Modifier.padding(12.dp),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Text(
-                                                text = title,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp
-                                            )
-                                            Text(
-                                                text = body,
-                                                fontSize = 12.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
+                                        Text(
+                                            text = "You're all caught up! No alerts.",
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            } else {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .verticalScroll(rememberScrollState())
+                                ) {
+                                    notificationBellState.items.forEach { item ->
+                                        NotificationItemRow(
+                                            item = item,
+                                            onItemClick = {
+                                                showBellDialog = false
+                                                notificationBellViewModel.markAllRead()
+                                                val deepLink = item.deepLink
+                                                if (!deepLink.isNullOrBlank()) {
+                                                    val route = com.safarparmar.app.notifications.NotificationDeepLinkHandler.routeFor(deepLink)
+                                                    onNavigate(route)
+                                                }
+                                            }
+                                        )
                                     }
                                 }
                             }
                         }
-                    }
 
-                    // Divider line
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(MaterialTheme.colorScheme.outlineVariant)
-                    )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.clickable {
+                                        notificationBellViewModel.markAllRead()
+                                        showBellDialog = false
+                                        onNavigate(Routes.SETTINGS)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = "Settings",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "Settings",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Text(
+                                    text = "App Version v$appVersion",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
 
-                    // App Version Section
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "App Version",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "v$appVersion",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.primary
-                        )
+                            Button(
+                                onClick = {
+                                    notificationBellViewModel.markAllRead()
+                                    showBellDialog = false
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(50),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Text(
+                                    text = "Close",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showBellDialog = false
-                        onNavigate(Routes.SETTINGS)
-                    }
-                ) {
-                    Text("Settings")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBellDialog = false }) {
-                    Text("Close")
                 }
             }
-        )
+        }
     }
 
     SafarDrawerScaffold(
@@ -340,11 +425,23 @@ fun HomeScreen(
         emphasizeTopBar = true,
         topBarActions = {
             IconButton(onClick = { showBellDialog = true }) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notifications & Updates",
-                    tint = if (isDarkTheme) Color.White else Color.Black
-                )
+                BadgedBox(
+                    badge = {
+                        if (notificationBellState.unreadCount > 0) {
+                            Badge {
+                                Text(
+                                    text = if (notificationBellState.unreadCount > 9) "9+" else notificationBellState.unreadCount.toString()
+                                )
+                            }
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifications & Updates",
+                        tint = if (isDarkTheme) Color.White else Color.Black
+                    )
+                }
             }
         }
     ) { padding ->
@@ -639,6 +736,156 @@ private fun ToolImageCard(
                 scaleX = cardScale
                 scaleY = cardScale
             }
+        )
+    }
+}
+
+@Composable
+private fun NotificationItemRow(
+    item: NotificationFeedItem,
+    onItemClick: () -> Unit
+) {
+    val isUnread = item.isUnread
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isUnread) {
+                MaterialTheme.colorScheme.surface
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isUnread) 2.dp else 0.dp),
+        border = if (isUnread) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)) else null,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onItemClick)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (isUnread) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
+                    Text(
+                        text = item.title,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                
+                if (isUnread) {
+                    val tag = when (item.source) {
+                        NotificationFeedSource.CUSTOM -> "ANNOUNCEMENT"
+                    }
+                    Text(
+                        text = tag,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Read",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            NotificationBodyContent(body = item.body)
+
+            if (item.createdAt.isNotBlank()) {
+                Text(
+                    text = formatPostDate(item.createdAt),
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationBodyContent(body: String) {
+    val lines = body.lines().map { it.trim() }.filter { it.isNotEmpty() }
+    val isAnnouncement = body.contains("Important Update:") || lines.size >= 2
+    
+    if (isAnnouncement) {
+        val header = lines.firstOrNull { it.contains("Important Update:", ignoreCase = true) } ?: "Important Update:"
+        val titleLine = lines.firstOrNull { !it.contains("Important Update:", ignoreCase = true) } ?: ""
+        val remainingText = lines.filter { it != header && it != titleLine }.joinToString("\n")
+        
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_megaphone),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = header,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (titleLine.isNotEmpty()) {
+                        Text(
+                            text = titleLine,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    if (remainingText.isNotEmpty()) {
+                        Text(
+                            text = remainingText,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
+        }
+    } else {
+        Text(
+            text = body,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 18.sp
         )
     }
 }

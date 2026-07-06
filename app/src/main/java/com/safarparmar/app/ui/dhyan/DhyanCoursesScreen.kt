@@ -133,7 +133,9 @@ private fun CoursesTabContent() {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(YoutubeUrls.SAFAR_CHANNEL_URL)))
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(YoutubeUrls.SAFAR_CHANNEL_URL)))
+                    }
                 },
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
@@ -209,7 +211,9 @@ private fun CoursesTabContent() {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(courseUrl)))
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(courseUrl)))
+                    }
                 },
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(0.dp),

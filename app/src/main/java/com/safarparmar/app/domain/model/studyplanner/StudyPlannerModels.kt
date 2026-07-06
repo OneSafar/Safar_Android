@@ -33,6 +33,10 @@ data class StudyTopic(
     val plannedDate: String? = null,
     val completedDate: String? = null,
     val notes: String? = null,
+    val pinned: Boolean? = null,
+    val revisionMarkedAt: String? = null,
+    val revisionReminderDates: List<String> = emptyList(),
+    val revisionScheduleType: String? = null,
 )
 
 @Immutable
@@ -92,6 +96,8 @@ data class StudyPlan(
     val description: String? = null,
     val dailyGoal: Int? = null,
     val offDays: List<Int> = emptyList(),
+    val offDates: List<String> = emptyList(),
+    val autoRollover: Boolean? = null,
     val subjects: List<StudySubject> = emptyList(),
     val features: StudyPlannerFeatureFlags = StudyPlannerFeatureFlags(),
     val templateId: String? = null,
@@ -101,6 +107,30 @@ data class StudyPlan(
     val subjectCount: Int? = null,
     val completionPercent: Int? = null,
     val totalTopics: Int? = null,
+    val rolloverDigest: PlannerRolloverDigest? = null,
+    val undoToken: String? = null,
+    val restoreSnapshots: List<PlannerPlanSnapshot> = emptyList(),
+)
+
+@Immutable
+data class PlannerRolloverDigest(
+    val movedCount: Int = 0,
+    val fromDates: List<String> = emptyList(),
+    val undoToken: String = "",
+)
+
+@Immutable
+data class PlannerPlanSnapshot(
+    val id: String = "",
+    val createdAt: String = "",
+    val reason: String = "",
+    val label: String = "",
+)
+
+@Immutable
+data class RolloverUndoResult(
+    val message: String? = null,
+    val plan: StudyPlan? = null,
 )
 
 @Immutable
@@ -113,6 +143,8 @@ data class CalendarTopicItem(
     val subjectName: String = "",
     val subjectColor: String = "#0ea5e9",
     val status: TopicStatus = TopicStatus.TODO,
+    val revisionReminderDates: List<String> = emptyList(),
+    val revisionScheduleType: String? = null,
 )
 
 @Immutable

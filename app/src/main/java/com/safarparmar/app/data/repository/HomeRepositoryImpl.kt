@@ -316,7 +316,8 @@ class HomeRepositoryImpl @Inject constructor(
         rawStatus = rawStatus ?: "completed",
         taskText = taskText,
         associatedGoalId = associatedGoalId,
-        pauseCount = pauseCount ?: 0
+        pauseCount = pauseCount ?: 0,
+        timerMode = timerMode
     )
 
     private fun MonthlyReportDto.toDomain(): MonthlyReport {
