@@ -1059,20 +1059,20 @@ class TimerService : Service() {
     }
 
     private fun showCompletionNotification() {
+        val completedMode = _timerMode.value
         scope.launch {
             if (!safarDataStore.notificationsEnabled.first() ||
                 !safarDataStore.focusTimerNotificationsEnabled.first()
             ) return@launch
 
-            val mode = _timerMode.value
-            val body = when (mode) {
+            val body = when (completedMode) {
                 TimerMode.FOCUS,
                 TimerMode.POMODORO -> "Ekagra session complete. Great work - take a mindful break."
                 TimerMode.BREAK,
                 TimerMode.STOPWATCH -> "Break finished. Ready for your next session?"
             }
             SafarNotificationManager(this@TimerService).show(
-                title = if (mode == TimerMode.FOCUS) "Ekagra session complete" else "Break finished",
+                title = if (completedMode == TimerMode.FOCUS || completedMode == TimerMode.POMODORO) "Ekagra session complete" else "Break finished",
                 body = body,
                 channelId = SafarNotificationChannels.FOCUS_TIMER,
                 deepLink = "safar://ekagra",
