@@ -1066,6 +1066,15 @@ class TimerService : Service() {
 
     private fun showCompletionNotification() {
         val completedMode = _timerMode.value
+        
+        try {
+            val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+            val ringtone = android.media.RingtoneManager.getRingtone(applicationContext, uri)
+            ringtone?.play()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         scope.launch {
             if (!safarDataStore.notificationsEnabled.first() ||
                 !safarDataStore.focusTimerNotificationsEnabled.first()

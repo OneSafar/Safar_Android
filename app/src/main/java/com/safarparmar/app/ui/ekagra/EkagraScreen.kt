@@ -305,11 +305,22 @@ fun EkagraScreen(
 
     // ── Side-effects ────────────────────────────────────────────────────────────
 
+    val toneGenerator = remember { 
+        runCatching { android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100) }.getOrNull() 
+    }
+    DisposableEffect(Unit) {
+        onDispose { toneGenerator?.release() }
+    }
+
     LaunchedEffect(countdownValue) {
         if (countdownValue > 0) {
+            if (countdownValue <= 3) {
+                runCatching { toneGenerator?.startTone(android.media.ToneGenerator.TONE_CDMA_PIP, 150) }
+            }
             kotlinx.coroutines.delay(1000)
             countdownValue -= 1
             if (countdownValue == 0) {
+                runCatching { toneGenerator?.startTone(android.media.ToneGenerator.TONE_CDMA_ABBR_ALERT, 300) }
                 val wasInactive = timerService?.isActive() == false
                 if (wasInactive) requestNotificationPermission()
                 timerService?.togglePlayPause()
