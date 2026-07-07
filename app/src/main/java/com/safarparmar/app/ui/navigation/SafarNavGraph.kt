@@ -172,6 +172,14 @@ fun SafarNavGraph(
         navController.navigate(route) { popUpTo(0) { inclusive = true } }
     }
 
+    // Safe back — if there's no previous entry to pop to (e.g. user opened a
+    // feature directly from the drawer with nothing behind it), go Home instead
+    // of letting the system close the app.
+    fun safeBack() {
+        val popped = navController.popBackStack()
+        if (!popped) navigate(Routes.HOME)
+    }
+
     fun navigateTowardHomeAfterLogin() {
         scope.launch {
             val done = withContext(Dispatchers.IO) {
@@ -290,7 +298,7 @@ fun SafarNavGraph(
                 achievements = uiState.allAchievements,
                 selectedAchievementId = uiState.activeTitleId,
                 onSelectAchievement = dashVm::selectAchievement,
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
             )
         }
 
@@ -378,19 +386,19 @@ fun SafarNavGraph(
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
                 onToggleDarkTheme = onToggleDarkTheme,
             )
         }
 
         composable(Routes.APP_PICKER) {
             com.safarparmar.app.ui.ekagra.focusshield.AppPickerScreen(
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
             )
         }
 
         composable(Routes.KAVACH_ABOUT) {
-            KavachAboutScreen(onBack = { navController.popBackStack() })
+            KavachAboutScreen(onBack = ::safeBack)
         }
 
         // ── Study Planner ─────────────────────────────────────────────────────
@@ -406,7 +414,7 @@ fun SafarNavGraph(
                 isDarkTheme = isDarkTheme,
                 planId = entry.arguments?.getString("planId"),
                 onNavigate = ::navigate,
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
                 onToggleDarkTheme = onToggleDarkTheme,
             )
         }
@@ -418,7 +426,7 @@ fun SafarNavGraph(
             com.safarparmar.app.ui.studyplanner.create.CreatePlanScreen(
                 canUsePremiumPlannerFeatures = canUsePremiumPlannerFeatures,
                 onUpgrade = { navigate(Routes.PREMIUM) },
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
                 onPlanConfirmed = { confirmedPlanId ->
                     navController.navigate("${Routes.STUDY_PLANNER}?planId=$confirmedPlanId") {
                         popUpTo(Routes.CREATE_PLAN) { inclusive = true }
@@ -449,7 +457,7 @@ fun SafarNavGraph(
                     onNavigate = ::navigate,
                     onBack = {
                         viewModel.setSection(com.safarparmar.app.domain.model.studyplanner.PlannerSection.PLAN)
-                        navController.popBackStack()
+                        safeBack()
                     },
                     onPlannerSectionSelect = { section ->
                         viewModel.setSection(section)
@@ -479,7 +487,7 @@ fun SafarNavGraph(
             val mehfilVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>(parentEntry)
             DmChatScreen(
                 viewModel = mehfilVm,
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
             )
         }
 
@@ -531,7 +539,7 @@ fun SafarNavGraph(
             val sessionId = entry.arguments?.getString("sessionId").orEmpty()
             LiveSessionScreen(
                 sessionId = sessionId,
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
@@ -545,7 +553,7 @@ fun SafarNavGraph(
             val timerService = LocalTimerService.current
             ProfileScreen(
                 isDarkTheme = isDarkTheme,
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
                 onLogout = {
                     timerService?.reset()
                     activity?.onLogout()
@@ -562,7 +570,7 @@ fun SafarNavGraph(
         composable(Routes.SETTINGS) {
             SettingsScreen(
                 isDarkTheme = isDarkTheme,
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
                 onHome = { navigate(Routes.HOME) },
                 onToggleDarkTheme = onToggleDarkTheme,
                 dataStore = dataStore,
@@ -590,7 +598,7 @@ fun SafarNavGraph(
         composable(Routes.PREMIUM) {
             PremiumPaywallScreen(
                 isDarkTheme = isDarkTheme,
-                onBack = { navController.popBackStack() },
+                onBack = ::safeBack,
                 onNavigate = ::navigate,
             )
         }
