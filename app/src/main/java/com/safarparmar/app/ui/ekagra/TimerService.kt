@@ -61,6 +61,7 @@ class TimerService : Service() {
         private const val KEY_SAVED_AT_MS = "saved_at_ms"
         private const val KEY_SUSPENDED_TOTAL_SECONDS = "suspended_total_seconds"
         private const val KEY_SUSPENDED_REMAINING_SECONDS = "suspended_remaining_seconds"
+        private const val KEY_STANDARD_BREAK_SECONDS = "standard_break_seconds"
         private const val KEY_AUTO_SAVE_CLIENT_SESSION_ID = "auto_save_client_session_id"
         private const val KEY_AUTO_SAVE_STARTED_AT = "auto_save_started_at"
         private const val KEY_AUTO_SAVE_TASK_TITLE = "auto_save_task_title"
@@ -144,6 +145,8 @@ class TimerService : Service() {
     val isMuted:      StateFlow<Boolean>   = _isMuted
     val targetPomodoroLoops: StateFlow<Int> = _targetPomodoroLoops
     val pomodorosCompleted: StateFlow<Int> = _pomodorosCompleted
+    
+    private var standardBreakSeconds = 5 * 60
 
     // ── Focus Shield state ─────────────────────────────────────────────────
     private val _focusShieldActive  = MutableStateFlow(false)
@@ -559,11 +562,12 @@ class TimerService : Service() {
             .apply()
     }
 
-    fun setDuration(mode: TimerMode, seconds: Int) {
+    fun setDuration(mode: TimerMode, seconds: Int, breakSeconds: Int = 5 * 60) {
         _timerMode.value    = mode
         val initialSeconds  = if (mode == TimerMode.STOPWATCH) 0 else seconds
         _secondsLeft.value  = initialSeconds
         _totalSeconds.value = initialSeconds
+        standardBreakSeconds = breakSeconds
         _isRunning.value    = false
         suspendedFocusState = null
         tickJob?.cancel()
@@ -740,10 +744,10 @@ class TimerService : Service() {
                         start()
                         return@launch
                     } else {
-                        // Standard auto-start a 5-minute break
+                        // Standard auto-start a break using user's configured duration
                         _timerMode.value = TimerMode.BREAK
-                        _totalSeconds.value = 5 * 60
-                        _secondsLeft.value = 5 * 60
+                        _totalSeconds.value = standardBreakSeconds
+                        _secondsLeft.value = standardBreakSeconds
                         persistTimerState()
                         start()
                         return@launch
@@ -920,6 +924,7 @@ class TimerService : Service() {
             .putLong(KEY_SAVED_AT_MS, System.currentTimeMillis())
             .putInt(KEY_SUSPENDED_TOTAL_SECONDS, suspended?.totalSeconds ?: 0)
             .putInt(KEY_SUSPENDED_REMAINING_SECONDS, suspended?.remainingSeconds ?: 0)
+            .putInt(KEY_STANDARD_BREAK_SECONDS, standardBreakSeconds)
             .apply()
     }
 
@@ -943,6 +948,7 @@ class TimerService : Service() {
         val remaining = (savedRemaining - elapsedWhileRunning).coerceIn(0, total)
         val suspendedTotal = prefs.getInt(KEY_SUSPENDED_TOTAL_SECONDS, 0)
         val suspendedRemaining = prefs.getInt(KEY_SUSPENDED_REMAINING_SECONDS, 0)
+        standardBreakSeconds = prefs.getInt(KEY_STANDARD_BREAK_SECONDS, 5 * 60)
 
         _timerMode.value = mode
         _totalSeconds.value = total

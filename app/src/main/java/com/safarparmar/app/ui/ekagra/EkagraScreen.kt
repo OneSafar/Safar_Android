@@ -234,7 +234,7 @@ fun EkagraScreen(
             return
         }
 
-        timerService?.setDuration(mode, minutes * 60)
+        timerService?.setDuration(mode, minutes * 60, breakMinutes * 60)
         if (mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) {
             timerService?.prepareAutoSaveSession(
                 taskTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
@@ -324,7 +324,7 @@ fun EkagraScreen(
 
     LaunchedEffect(selectedTab) {
         if (selectedTab == EkagraNavTab.TIMER && timerService?.isActive() == false)
-            timerService.setDuration(TimerMode.FOCUS, focusMinutes * 60)
+            timerService.setDuration(TimerMode.FOCUS, focusMinutes * 60, breakMinutes * 60)
     }
     LaunchedEffect(initialView) {
         if (initialView == "analytics") onNavigate(Routes.nishthaAnalytics("ekagra"))
@@ -1014,11 +1014,11 @@ fun EkagraScreen(
                                             }
                                             when {
                                                 mode == TimerMode.FOCUS && timerMode != TimerMode.FOCUS ->
-                                                    if (timerService?.switchToFocusFromBreak() != true) timerService?.setDuration(mode, mins * 60)
+                                                    if (timerService?.switchToFocusFromBreak() != true) timerService?.setDuration(mode, mins * 60, breakMinutes * 60)
                                                 mode != TimerMode.FOCUS && timerMode == TimerMode.FOCUS && timerService?.isActive() == true ->
                                                     timerService.startBreak(mode, mins * 60)
                                                 else ->
-                                                    timerService?.setDuration(mode, mins * 60)
+                                                    timerService?.setDuration(mode, mins * 60, breakMinutes * 60)
                                             }
                                         },
                                         onPlayPause = {
