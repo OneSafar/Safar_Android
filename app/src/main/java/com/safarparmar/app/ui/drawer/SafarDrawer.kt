@@ -207,7 +207,11 @@ private fun DrawerNavRow(
     onCloseDrawer: () -> Unit,
 ) {
     val label = stringResource(item.labelRes)
-    val selected = currentRoute.startsWith(item.route)
+    val currentRouteBase = currentRoute.substringBefore("?")
+    val itemRouteBase = item.route.substringBefore("?")
+    // A drawer item is "selected" when the current route starts with the item's
+    // base route. This covers both the root and any sub-screens of the feature.
+    val selected = currentRouteBase == itemRouteBase || currentRouteBase.startsWith("$itemRouteBase/")
     val fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
     val showLock = item.requiresPremium && !isPremiumActive
 

@@ -71,75 +71,106 @@ fun SafarNavGraph(
         isAdmin || (currentUserEmail?.trim()?.lowercase() in ADMIN_NOTIFICATION_ALLOWED_EMAILS)
     }
 
-    // Drawer destinations are feature roots. Keep only Home beneath a root so the
-    // system Back gesture exits a feature to Home instead of reopening an older one.
-    val featureRootRoutes = remember {
-        setOf(
+    // ── Navigation helper ────────────────────────────────────────────────────
+    //
+    // All feature roots (drawer items) navigate using saveState = true so their
+    // internal back-stack is preserved when the user returns to them.
+    // Sub-screens push normally on top of their feature's own graph.
+
+    fun navigate(route: String) {
+        val routeBase = route.substringBefore("?")
+        val currentRouteBase = currentRoute.substringBefore("?")
+
+        // Feature root routes that live in the drawer — they each have their own
+        // nested nav graph so they independently save/restore back-stack state.
+        val featureGraphRoots = setOf(
             Routes.HOME,
             Routes.DASHBOARD,
             Routes.STUDY_PLANNER,
             Routes.FOCUS_SHIELD,
             Routes.NISHTHA,
-            Routes.NISHTHA_CHECKIN,
-            Routes.NISHTHA_GOALS,
-            Routes.NISHTHA_STREAKS,
-            Routes.NISHTHA_ANALYTICS,
             Routes.EKAGRA,
             Routes.MEHFIL,
             Routes.DHYAN,
             Routes.COURSES,
-            Routes.LIVE_SESSIONS_ROOT,
         )
-    }
 
-    fun navigate(route: String) {
-        val routeBase = route.substringBefore("?")
-        val currentRouteBase = currentRoute.substringBefore("?")
-        val keepKavachInsideEkagra = route == Routes.FOCUS_SHIELD && currentRouteBase == Routes.EKAGRA
-        val isLiveSessionDetail = route.startsWith("live/session/")
-        val isSyllabusDetail = route.startsWith("syllabus/")
-        val needsFocusShieldParent = route == Routes.APP_PICKER || route == Routes.KAVACH_ABOUT
-        val needsDashboardParent = route == Routes.ACHIEVEMENTS
+        when {
+            // DM Chat must stay inside Mehfil's back-stack
+            route == Routes.DM_CHAT -> {
+                navController.navigate(route) {
+                    launchSingleTop = true
+                    popUpTo(Routes.MEHFIL) { inclusive = false }
+                }
+            }
 
-        fun navigateFeatureRoot(route: String) {
-            navController.navigate(route) {
-                popUpTo(Routes.HOME) { inclusive = false }
-                launchSingleTop = true
-                restoreState = false
+            // Live session detail: ensure Courses is on the stack below it
+            route.startsWith("live/session/") && currentRouteBase !in setOf(Routes.COURSES, Routes.LIVE_SESSIONS_ROOT) -> {
+                navController.navigate(Routes.COURSES) {
+                    popUpTo(Routes.HOME) { saveState = true; inclusive = false }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                navController.navigate(route) { launchSingleTop = true }
+            }
+
+            // Syllabus detail: ensure Study Planner is on the stack below it
+            route.startsWith("syllabus/") && currentRouteBase != Routes.STUDY_PLANNER && !currentRouteBase.startsWith("syllabus/") -> {
+                navController.navigate(Routes.STUDY_PLANNER) {
+                    popUpTo(Routes.HOME) { saveState = true; inclusive = false }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                navController.navigate(route) { launchSingleTop = true }
+            }
+
+            // App Picker / Kavach About: ensure Focus Shield or Ekagra is on the stack
+            (route == Routes.APP_PICKER || route == Routes.KAVACH_ABOUT) && currentRouteBase !in setOf(Routes.FOCUS_SHIELD, Routes.EKAGRA) -> {
+                navController.navigate(Routes.FOCUS_SHIELD) {
+                    popUpTo(Routes.HOME) { saveState = true; inclusive = false }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                navController.navigate(route) { launchSingleTop = true }
+            }
+
+            // Achievements: ensure Dashboard is on the stack
+            route == Routes.ACHIEVEMENTS && currentRouteBase != Routes.DASHBOARD -> {
+                navController.navigate(Routes.DASHBOARD) {
+                    popUpTo(Routes.HOME) { saveState = true; inclusive = false }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                navController.navigate(route) { launchSingleTop = true }
+            }
+
+            // Feature root (drawer item) — preserve each feature's back-stack independently
+            routeBase in featureGraphRoots -> {
+                navController.navigate(route) {
+                    // Pop back to Home (not inclusive) so Home is always beneath any feature.
+                    // saveState = true means the CURRENT feature's stack is saved.
+                    popUpTo(Routes.HOME) {
+                        saveState = true
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                    // restoreState = true means the TARGET feature's previously saved stack is restored.
+                    restoreState = true
+                }
+            }
+
+            // All other sub-screens push on top of the current feature's stack
+            else -> {
+                navController.navigate(route) {
+                    launchSingleTop = true
+                }
             }
         }
-
-        if (route == Routes.DM_CHAT) {
-            navController.navigate(route) {
-                launchSingleTop = true
-                popUpTo(Routes.MEHFIL) { inclusive = false }
-            }
-        } else if (isLiveSessionDetail && currentRouteBase !in setOf(Routes.COURSES, Routes.LIVE_SESSIONS_ROOT)) {
-            navigateFeatureRoot(Routes.COURSES)
-            navController.navigate(route) { launchSingleTop = true; restoreState = true }
-        } else if (isSyllabusDetail && currentRouteBase != Routes.STUDY_PLANNER && !currentRouteBase.startsWith("syllabus/")) {
-            navigateFeatureRoot(Routes.STUDY_PLANNER)
-            navController.navigate(route) { launchSingleTop = true; restoreState = true }
-        } else if (needsFocusShieldParent && currentRouteBase !in setOf(Routes.FOCUS_SHIELD, Routes.EKAGRA)) {
-            navigateFeatureRoot(Routes.FOCUS_SHIELD)
-            navController.navigate(route) { launchSingleTop = true; restoreState = true }
-        } else if (needsDashboardParent && currentRouteBase != Routes.DASHBOARD) {
-            navigateFeatureRoot(Routes.DASHBOARD)
-            navController.navigate(route) { launchSingleTop = true; restoreState = true }
-        } else if (keepKavachInsideEkagra) {
-            navController.navigate(route) {
-                launchSingleTop = true
-                restoreState = true
-            }
-        } else if (routeBase in featureRootRoutes) {
-            // Feature roots never inherit prior feature history. Detail screens
-            // intentionally use the branch below so their Back path stays local.
-            navigateFeatureRoot(route)
-        } else {
-            navController.navigate(route) { launchSingleTop = true; restoreState = true }
-        }
     }
-    fun navigateAndClear(route: String) { navController.navigate(route) { popUpTo(0) { inclusive = true } } }
+
+    fun navigateAndClear(route: String) {
+        navController.navigate(route) { popUpTo(0) { inclusive = true } }
+    }
 
     fun navigateTowardHomeAfterLogin() {
         scope.launch {
@@ -162,12 +193,10 @@ fun SafarNavGraph(
     val navigateToEkagra = activity?.navigateToEkagra ?: false
     LaunchedEffect(navigateToEkagra) {
         if (navigateToEkagra) {
-            // Only navigate to Ekagra if the user is still logged in — prevents
-            // a tap on a stale PiP window from bypassing the AUTH screen after logout
             if (isLoggedIn != false && currentRoute != Routes.EKAGRA) {
                 navigate(Routes.EKAGRA)
             }
-            activity?.resetNavigateToEkagra() // always reset, even if we skipped navigation
+            activity?.resetNavigateToEkagra()
         }
     }
 
@@ -198,6 +227,8 @@ fun SafarNavGraph(
         },
     ) {
 
+        // ── Auth / onboarding ─────────────────────────────────────────────────
+
         composable(Routes.SPLASH) {
             SplashScreen(
                 onNavigateToAuth = { navigateAndClear(Routes.AUTH) },
@@ -206,12 +237,14 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.AUTH) { AuthScreen(onNavigateToHome = { navigateTowardHomeAfterLogin() }) }
+        composable(Routes.AUTH) {
+            AuthScreen(onNavigateToHome = { navigateTowardHomeAfterLogin() })
+        }
 
         composable(Routes.LAUNCH_USAGE_QUESTIONNAIRE) {
             LaunchUsageQuestionnaireScreen(
                 dataStore = dataStore,
-                onNavigateHome = { 
+                onNavigateHome = {
                     navigateAndClear(Routes.HOME)
                     navigate(Routes.PREMIUM)
                 },
@@ -222,30 +255,75 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.HOME) { HomeScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onNavigateToAuth = { navigateAndClear(Routes.AUTH) }, dataStore = dataStore) }
+        // ── Home (start destination after login) ──────────────────────────────
+
+        composable(Routes.HOME) {
+            HomeScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                onNavigateToAuth = { navigateAndClear(Routes.AUTH) },
+                dataStore = dataStore,
+            )
+        }
+
+        // ── Dashboard ─────────────────────────────────────────────────────────
 
         composable(Routes.DASHBOARD) {
-            DashboardScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) })
+            DashboardScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                onProfileClick = { navigate(Routes.PROFILE) },
+            )
         }
+
+        composable(Routes.ACHIEVEMENTS) {
+            val parentEntry = remember(currentEntry) {
+                navController.getBackStackEntry(Routes.DASHBOARD)
+            }
+            val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(parentEntry)
+            val uiState by dashVm.uiState.collectAsStateWithLifecycle()
+            AchievementsScreen(
+                achievements = uiState.allAchievements,
+                selectedAchievementId = uiState.activeTitleId,
+                onSelectAchievement = dashVm::selectAchievement,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Nishtha (single composable — tab selected via initialTab arg) ─────
+        // Sub-tabs are managed by FeatureTabBackStack inside NishthaScreen.
+        // They are NOT separate nav destinations — this is intentional to avoid
+        // the back-stack pollution that previously occurred.
 
         composable(Routes.NISHTHA) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) })
+            NishthaScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                onProfileClick = { navigate(Routes.PROFILE) },
+                initialTab = 0,
+            )
         }
 
-        composable(Routes.NISHTHA_CHECKIN) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 0)
-        }
-
-        composable(Routes.NISHTHA_GOALS) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 2)
-        }
-
-        composable(Routes.NISHTHA_STREAKS) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 3)
-        }
-
-        composable(Routes.NISHTHA_ANALYTICS) {
-            NishthaScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme, onProfileClick = { navigate(Routes.PROFILE) }, initialTab = 4)
+        composable(
+            route = Routes.NISHTHA_WITH_TAB,
+            arguments = listOf(
+                navArgument("tab") { type = NavType.IntType; defaultValue = 0 },
+            )
+        ) { entry ->
+            NishthaScreen(
+                currentRoute = Routes.NISHTHA,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                onProfileClick = { navigate(Routes.PROFILE) },
+                initialTab = entry.arguments?.getInt("tab") ?: 0,
+            )
         }
 
         composable(
@@ -255,7 +333,7 @@ fun SafarNavGraph(
             )
         ) { entry ->
             NishthaScreen(
-                currentRoute = Routes.NISHTHA_ANALYTICS,
+                currentRoute = Routes.NISHTHA,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
                 onToggleDarkTheme = onToggleDarkTheme,
@@ -265,8 +343,15 @@ fun SafarNavGraph(
             )
         }
 
+        // ── Ekagra ───────────────────────────────────────────────────────────
+
         composable(Routes.EKAGRA) {
-            EkagraScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleNightMode = onToggleDarkTheme)
+            EkagraScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleNightMode = onToggleDarkTheme,
+            )
         }
 
         composable(
@@ -288,79 +373,6 @@ fun SafarNavGraph(
             )
         }
 
-        composable(
-            route = Routes.STUDY_PLANNER_ROUTE,
-            arguments = listOf(
-                navArgument("planId") { type = NavType.StringType; nullable = true; defaultValue = null }
-            )
-        ) {
-            StudyPlannerScreen(
-                currentRoute = currentRoute,
-                isDarkTheme = isDarkTheme,
-                onNavigate = ::navigate,
-                onBack = { navController.popBackStack() },
-                onToggleDarkTheme = onToggleDarkTheme,
-            )
-        }
-
-        composable(
-            route = Routes.ROUTE_SYLLABUS_SUBJECTS,
-            enterTransition = { slideInHorizontally { it } + fadeIn(tween(220)) },
-            exitTransition = { slideOutHorizontally { -it } + fadeOut(tween(220)) },
-            popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
-            popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) }
-        ) { entry ->
-            if (!studyPlannerPremiumUnlocked) {
-                LaunchedEffect(Unit) { navigate(Routes.PREMIUM) }
-            } else {
-                val parentEntry = remember(entry) { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }
-                val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
-                val planId = entry.arguments?.getString("planId") ?: ""
-                
-                SyllabusSubjectsScreen(
-                    viewModel = viewModel,
-                    planId = planId,
-                    onNavigate = ::navigate,
-                    onBack = {
-                        viewModel.setSection(com.safarparmar.app.domain.model.studyplanner.PlannerSection.PLAN)
-                        navController.popBackStack()
-                    },
-                    onPlannerSectionSelect = { section ->
-                        viewModel.setSection(section)
-                        if (section != com.safarparmar.app.domain.model.studyplanner.PlannerSection.SYLLABUS) {
-                            navController.popBackStack(Routes.STUDY_PLANNER_ROUTE, false)
-                        }
-                    },
-                )
-            }
-        }
-
-        composable(Routes.MEHFIL) {
-            MehfilScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme)
-        }
-
-        composable(Routes.DM_CHAT) {
-            // Scope ViewModel to MEHFIL so state is shared; single popBackStack goes straight back
-            val parentEntry = remember(it) {
-                navController.getBackStackEntry(Routes.MEHFIL)
-            }
-            val mehfilVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>(parentEntry)
-            DmChatScreen(
-                viewModel = mehfilVm,
-                onBack = {
-                    navController.popBackStack(Routes.MEHFIL, inclusive = false)
-                },
-            )
-        }
-
-        composable(Routes.DHYAN) {
-            DhyanScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme)
-        }
-
-        composable(Routes.COURSES) {
-            DhyanCoursesScreen(currentRoute = currentRoute, isDarkTheme = isDarkTheme, onNavigate = ::navigate, onToggleDarkTheme = onToggleDarkTheme)
-        }
-
         composable(Routes.FOCUS_SHIELD) {
             FocusShieldStandaloneScreen(
                 currentRoute = currentRoute,
@@ -379,6 +391,116 @@ fun SafarNavGraph(
 
         composable(Routes.KAVACH_ABOUT) {
             KavachAboutScreen(onBack = { navController.popBackStack() })
+        }
+
+        // ── Study Planner ─────────────────────────────────────────────────────
+
+        composable(
+            route = Routes.STUDY_PLANNER_ROUTE,
+            arguments = listOf(
+                navArgument("planId") { type = NavType.StringType; nullable = true; defaultValue = null }
+            )
+        ) { entry ->
+            StudyPlannerScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                planId = entry.arguments?.getString("planId"),
+                onNavigate = ::navigate,
+                onBack = { navController.popBackStack() },
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(route = Routes.CREATE_PLAN) {
+            val premiumViewModel2: PremiumViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+            val premiumStatus2 by premiumViewModel2.premiumStatus.collectAsStateWithLifecycle()
+            val canUsePremiumPlannerFeatures = premiumStatus2.hasAnyPaidAccess || premiumStatus2.canUseStudyPlannerInsights
+            com.safarparmar.app.ui.studyplanner.create.CreatePlanScreen(
+                canUsePremiumPlannerFeatures = canUsePremiumPlannerFeatures,
+                onUpgrade = { navigate(Routes.PREMIUM) },
+                onBack = { navController.popBackStack() },
+                onPlanConfirmed = { confirmedPlanId ->
+                    navController.navigate("${Routes.STUDY_PLANNER}?planId=$confirmedPlanId") {
+                        popUpTo(Routes.CREATE_PLAN) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(
+            route = Routes.ROUTE_SYLLABUS_SUBJECTS,
+            enterTransition = { slideInHorizontally { it } + fadeIn(tween(220)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(tween(220)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(tween(220)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(tween(220)) },
+        ) { entry ->
+            if (!studyPlannerPremiumUnlocked) {
+                LaunchedEffect(Unit) { navigate(Routes.PREMIUM) }
+            } else {
+                val parentEntry = remember(entry) {
+                    navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE)
+                }
+                val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
+                val planId = entry.arguments?.getString("planId") ?: ""
+
+                SyllabusSubjectsScreen(
+                    viewModel = viewModel,
+                    planId = planId,
+                    onNavigate = ::navigate,
+                    onBack = {
+                        viewModel.setSection(com.safarparmar.app.domain.model.studyplanner.PlannerSection.PLAN)
+                        navController.popBackStack()
+                    },
+                    onPlannerSectionSelect = { section ->
+                        viewModel.setSection(section)
+                        if (section != com.safarparmar.app.domain.model.studyplanner.PlannerSection.SYLLABUS) {
+                            navController.popBackStack(Routes.STUDY_PLANNER_ROUTE, false)
+                        }
+                    },
+                )
+            }
+        }
+
+        // ── Mehfil ───────────────────────────────────────────────────────────
+
+        composable(Routes.MEHFIL) {
+            MehfilScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(Routes.DM_CHAT) {
+            val parentEntry = remember(it) {
+                navController.getBackStackEntry(Routes.MEHFIL)
+            }
+            val mehfilVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>(parentEntry)
+            DmChatScreen(
+                viewModel = mehfilVm,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Dhyan / Courses / Live ────────────────────────────────────────────
+
+        composable(Routes.DHYAN) {
+            DhyanScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(Routes.COURSES) {
+            DhyanCoursesScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
         }
 
         composable(
@@ -417,17 +539,7 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.ACHIEVEMENTS) {
-            val parentEntry = remember(currentEntry) { navController.getBackStackEntry(Routes.DASHBOARD) }
-            val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(parentEntry)
-            val uiState by dashVm.uiState.collectAsStateWithLifecycle()
-            AchievementsScreen(
-                achievements = uiState.allAchievements,
-                selectedAchievementId = uiState.activeTitleId,
-                onSelectAchievement = dashVm::selectAchievement,
-                onBack = { navController.popBackStack() },
-            )
-        }
+        // ── Global / utility screens ─────────────────────────────────────────
 
         composable(Routes.PROFILE) {
             val timerService = LocalTimerService.current
@@ -435,14 +547,14 @@ fun SafarNavGraph(
                 isDarkTheme = isDarkTheme,
                 onBack = { navController.popBackStack() },
                 onLogout = {
-                    timerService?.reset()      // stop timer + clear SharedPrefs theme
-                    activity?.onLogout()       // dismiss PiP, reset nav flag, disable auto-enter
+                    timerService?.reset()
+                    activity?.onLogout()
                     navigateAndClear(Routes.AUTH)
                 },
                 onHome = { navigate(Routes.HOME) },
                 onToggleDarkTheme = onToggleDarkTheme,
                 onLibrary = { navigate(Routes.DASHBOARD) },
-                onProgress = { navigate(Routes.NISHTHA_ANALYTICS) },
+                onProgress = { navigate(Routes.nishthaTab(4)) },
                 onPremium = { navigate(Routes.PREMIUM) },
             )
         }
@@ -456,9 +568,7 @@ fun SafarNavGraph(
                 dataStore = dataStore,
                 canAccessAdminComposer = canAccessAdminComposer,
                 onOpenAdminNotificationComposer = {
-                    if (canAccessAdminComposer) {
-                        navigate(Routes.ADMIN_NOTIFICATIONS)
-                    }
+                    if (canAccessAdminComposer) navigate(Routes.ADMIN_NOTIFICATIONS)
                 },
                 onPremium = { navigate(Routes.PREMIUM) },
             )
@@ -481,7 +591,7 @@ fun SafarNavGraph(
             PremiumPaywallScreen(
                 isDarkTheme = isDarkTheme,
                 onBack = { navController.popBackStack() },
-                onNavigate = ::navigate
+                onNavigate = ::navigate,
             )
         }
     }

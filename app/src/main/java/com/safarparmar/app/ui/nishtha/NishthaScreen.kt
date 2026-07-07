@@ -1,6 +1,5 @@
 package com.safarparmar.app.ui.nishtha
 
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
@@ -57,11 +56,21 @@ fun NishthaScreen(
     var tourState by remember { mutableStateOf<ButterflyTourState?>(null) }
     var analyticsSection by remember { mutableStateOf(analyticsInitialSection) }
     val nishthaNavigate: (String) -> Unit = { route ->
-        if (route.substringBefore("?") == Routes.NISHTHA_ANALYTICS) {
-            analyticsSection = Uri.decode(route.substringAfter("section=", "overview"))
-            tabBackStack.select(NishthaTab.ANALYTICS)
-        } else {
-            onNavigate(route)
+        val routeBase = route.substringBefore("?")
+        val tabArg = if (route.contains("tab=")) route.substringAfter("tab=").substringBefore("&").toIntOrNull() else null
+        when {
+            routeBase == Routes.NISHTHA_ANALYTICS || (routeBase == Routes.NISHTHA && tabArg == 4) -> {
+                // Intercept analytics navigation — switch the tab in-place instead of
+                // pushing a new nav entry (prevents back-stack pollution)
+                analyticsSection = android.net.Uri.decode(route.substringAfter("section=", "overview"))
+                tabBackStack.select(NishthaTab.ANALYTICS)
+            }
+            routeBase == Routes.NISHTHA && tabArg != null -> {
+                // Handle other tab index navigations (from deep links / notifications)
+                val target = NishthaTab.entries.getOrElse(tabArg) { NishthaTab.CHECK_IN }
+                tabBackStack.select(target)
+            }
+            else -> onNavigate(route)
         }
     }
 

@@ -48,15 +48,15 @@ object NotificationDeepLinkHandler {
             }
             "dashboard" -> Routes.DASHBOARD
             "nishtha" -> when (firstSegment) {
-                "checkin" -> Routes.NISHTHA_CHECKIN
-                "journal" -> Routes.NISHTHA_JOURNAL
-                "goals" -> Routes.NISHTHA_GOALS
-                "streaks" -> Routes.NISHTHA_STREAKS
-                "analytics" -> Routes.NISHTHA_ANALYTICS
-                else -> Routes.NISHTHA
+                "checkin"   -> Routes.nishthaTab(0)
+                "journal"   -> Routes.nishthaTab(1)
+                "goals"     -> Routes.nishthaTab(2)
+                "streaks"   -> Routes.nishthaTab(3)
+                "analytics" -> Routes.nishthaTab(4)
+                else        -> Routes.NISHTHA
             }
-            "streaks" -> Routes.NISHTHA_STREAKS
-            "goals" -> Routes.NISHTHA_GOALS
+            "streaks" -> Routes.nishthaTab(3)
+            "goals"   -> Routes.nishthaTab(2)
             "mehfil" -> when (firstSegment) {
                 "dm_chat" -> Routes.DM_CHAT
                 else -> Routes.MEHFIL

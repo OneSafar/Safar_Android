@@ -14,11 +14,13 @@ object Routes {
     const val NISHTHA_GOALS     = "nishtha/goals"
     const val NISHTHA_STREAKS   = "nishtha/streaks"
     const val NISHTHA_ANALYTICS = "nishtha/analytics"
+    const val NISHTHA_WITH_TAB  = "nishtha?tab={tab}"  // single route — tab as arg
     const val NISHTHA_ANALYTICS_SECTION = "nishtha/analytics?section={section}"
     const val EKAGRA = "ekagra"
     const val EKAGRA_LINKED = "ekagra?goalId={goalId}&goalTitle={goalTitle}&view={view}"
     const val STUDY_PLANNER = "study_planner"
     const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}"
+    const val CREATE_PLAN = "study_planner/create"
     const val MEHFIL = "mehfil"
     const val DM_CHAT = "mehfil/dm_chat"
     const val DHYAN  = "dhyan"
@@ -36,6 +38,8 @@ object Routes {
 
     // Syllabus route — single unified accordion-tree screen (subjects/chapters/topics expand in place)
     const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"
+
+    fun nishthaTab(tab: Int): String = "nishtha?tab=$tab"
 
     fun ekagraForGoal(goalId: String, goalTitle: String): String =
         "ekagra?goalId=${android.net.Uri.encode(goalId)}&goalTitle=${android.net.Uri.encode(goalTitle)}"

@@ -484,7 +484,7 @@ private fun StreaksCard(streaks: Streaks, isDark: Boolean, onNavigate: (String) 
             Icon(Icons.Default.Loop, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
             CardTitle(stringResource(R.string.dashboard_streaks), isDark)
             Spacer(Modifier.weight(1f))
-            Text("View →", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onNavigate(Routes.NISHTHA_STREAKS) })
+            Text("View →", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onNavigate(Routes.nishthaTab(3)) })
         }
         Spacer(Modifier.height(12.dp))
         // Table style like screenshot
@@ -798,7 +798,7 @@ private fun TodayGoalsCard(goals: List<Goal>, isDark: Boolean, onNavigate: (Stri
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(
-            onClick = { onNavigate(Routes.NISHTHA_GOALS) },
+            onClick = { onNavigate(Routes.nishthaTab(2)) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
@@ -832,7 +832,7 @@ private fun MonthlyCard(report: MonthlyReport, isDark: Boolean, onNavigate: (Str
         StatRow(stringResource(R.string.dashboard_focus), "${report.totalFocusMinutes}", isDark)
         Spacer(Modifier.height(10.dp))
         OutlinedButton(
-            onClick = { onNavigate(Routes.NISHTHA_ANALYTICS) },
+            onClick = { onNavigate(Routes.nishthaTab(4)) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
