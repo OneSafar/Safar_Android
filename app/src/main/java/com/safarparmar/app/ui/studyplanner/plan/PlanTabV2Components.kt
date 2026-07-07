@@ -386,8 +386,8 @@ private fun QuickLinkText(
     Text(
         text = text,
         modifier = Modifier.clickable(onClick = onClick),
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = if (emphasized) FontWeight.Bold else FontWeight.SemiBold,
         color = color,
     )
 }

@@ -74,9 +74,13 @@ internal fun DurationTab(
     onBreakChange: (Int) -> Unit,
     isMuted: Boolean,
     onMuteChange: (Boolean) -> Unit,
+    onStartPomodoro: (Int) -> Unit,
     onSave: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    var showPomodoroDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var pomodoroLoopsInput by remember { androidx.compose.runtime.mutableStateOf("4") }
+    
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -130,6 +134,51 @@ internal fun DurationTab(
             Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(8.dp))
+        Button(
+            onClick        = { showPomodoroDialog = true },
+            modifier       = Modifier.fillMaxWidth().height(56.dp),
+            shape          = RoundedCornerShape(16.dp),
+            colors         = ButtonDefaults.buttonColors(
+                containerColor = scheme.secondaryContainer,
+                contentColor   = scheme.onSecondaryContainer,
+            ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+        ) {
+            Text("Start Pomodoro Session", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+
+    if (showPomodoroDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPomodoroDialog = false },
+            shape = RoundedCornerShape(24.dp),
+            title = { androidx.compose.material3.Text("Start Pomodoro") },
+            text = {
+                Column {
+                    androidx.compose.material3.Text("How many loops would you like to run?")
+                    Spacer(Modifier.height(8.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = pomodoroLoopsInput,
+                        onValueChange = { pomodoroLoopsInput = it },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showPomodoroDialog = false
+                    onStartPomodoro(pomodoroLoopsInput.toIntOrNull() ?: 4)
+                }) {
+                    androidx.compose.material3.Text("Start")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showPomodoroDialog = false }) {
+                    androidx.compose.material3.Text("Cancel")
+                }
+            }
+        )
     }
 }
 

@@ -178,8 +178,6 @@ fun EkagraScreen(
     var focusMinutes        by remember { mutableIntStateOf(25) }
     var breakMinutes        by remember { mutableIntStateOf(5) }
     var countdownValue      by remember { mutableIntStateOf(0) }
-    var showPomodoroDialog  by remember { mutableStateOf(false) }
-    var pomodoroLoopsInput  by remember { mutableStateOf("4") }
     var longBreakMinutes    by remember { mutableIntStateOf(15) }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -314,12 +312,7 @@ fun EkagraScreen(
             if (countdownValue == 0) {
                 val wasInactive = timerService?.isActive() == false
                 if (wasInactive) requestNotificationPermission()
-                if (timerMode == TimerMode.POMODORO) {
-                    val loops = pomodoroLoopsInput.toIntOrNull() ?: 4
-                    timerService?.startPomodoroSession(loops, focusMinutes, breakMinutes)
-                } else {
-                    timerService?.togglePlayPause()
-                }
+                timerService?.togglePlayPause()
                 if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
                     viewModel.onSessionStarted(taskText, totalSeconds, associatedGoalId, associatedGoalTitle, timerMode.toApiMode())
                 }
@@ -1036,11 +1029,7 @@ fun EkagraScreen(
                                             
                                             if (wasInactive) {
                                                 requestNotificationPermission()
-                                                if (timerMode == TimerMode.POMODORO) {
-                                                    showPomodoroDialog = true
-                                                } else {
-                                                    countdownValue = 3
-                                                }
+                                                countdownValue = 3
                                             } else if (wasRunning) {
                                                 timerService?.togglePlayPause()
                                                 if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
@@ -1078,6 +1067,11 @@ fun EkagraScreen(
                                         onBreakChange = { breakMinutes = it; longBreakMinutes = it },
                                         isMuted = isMuted,
                                         onMuteChange = { timerService?.setMute(it) },
+                                        onStartPomodoro = { loops ->
+                                            timerService?.startPomodoroSession(loops, focusMinutes, breakMinutes)
+                                            countdownValue = 3
+                                            tabBackStack.select(EkagraNavTab.TIMER)
+                                        },
                                         onSave = {
                                             durationPromptActedOn = true
                                             tabBackStack.select(EkagraNavTab.TIMER)
@@ -1120,37 +1114,6 @@ fun EkagraScreen(
                 }
             }
         }
-    }
-
-    if (showPomodoroDialog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showPomodoroDialog = false },
-            title = { androidx.compose.material3.Text("Start Pomodoro") },
-            text = {
-                Column {
-                    androidx.compose.material3.Text("How many loops would you like to run?")
-                    Spacer(Modifier.height(8.dp))
-                    androidx.compose.material3.OutlinedTextField(
-                        value = pomodoroLoopsInput,
-                        onValueChange = { pomodoroLoopsInput = it },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
-                    )
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    showPomodoroDialog = false
-                    countdownValue = 3
-                }) {
-                    androidx.compose.material3.Text("Start")
-                }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showPomodoroDialog = false }) {
-                    androidx.compose.material3.Text("Cancel")
-                }
-            }
-        )
     }
 }
 
