@@ -464,16 +464,7 @@ fun SyllabusSubjectsScreen(
                                 )
                             }
 
-                            if (shouldShowFullImport) {
-                                item {
-                                    SyllabusFullImportCard(
-                                        state = state,
-                                        actions = actions,
-                                        canUseAiImport = premiumStatus.canUseStudyPlannerInsights,
-                                        onUpgrade = { onNavigate(Routes.PREMIUM) },
-                                    )
-                                }
-                            }
+
 
                             if (localSubjects.isNotEmpty()) {
                                 item {
@@ -559,17 +550,7 @@ fun SyllabusSubjectsScreen(
                                 }
                             }
 
-                            if (!shouldShowFullImport && localSubjects.isNotEmpty()) {
-                                item {
-                                    SyllabusImportTray(
-                                        isTemplatePlan = isTemplatePlan,
-                                        state = state,
-                                        actions = actions,
-                                        canUseAiImport = premiumStatus.canUseStudyPlannerInsights,
-                                        onUpgrade = { onNavigate(Routes.PREMIUM) },
-                                    )
-                                }
-                            }
+
                         }
                     }
                 }
