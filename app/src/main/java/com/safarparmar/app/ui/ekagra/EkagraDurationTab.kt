@@ -74,6 +74,8 @@ internal fun DurationTab(
     onBreakChange: (Int) -> Unit,
     isMuted: Boolean,
     onMuteChange: (Boolean) -> Unit,
+    autoStartBreak: Boolean,
+    onAutoStartBreakChange: (Boolean) -> Unit,
     onStartPomodoro: (Int) -> Unit,
     onSave: () -> Unit,
 ) {
@@ -116,6 +118,14 @@ internal fun DurationTab(
             subtitle      = if (isMuted) "Background audio is muted" else "Background audio is playing",
             checked       = !isMuted,
             onCheckedChange = { onMuteChange(!it) }
+        )
+
+        ToggleCard(
+            icon            = Icons.Default.PlayCircle,
+            title           = "Auto-start breaks",
+            subtitle        = if (autoStartBreak) "Break starts automatically when timer ends" else "Break stays paused — you start it when ready",
+            checked         = autoStartBreak,
+            onCheckedChange = onAutoStartBreakChange
         )
 
         Spacer(Modifier.height(6.dp))

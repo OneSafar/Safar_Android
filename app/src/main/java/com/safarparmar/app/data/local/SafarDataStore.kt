@@ -137,6 +137,7 @@ class SafarDataStore @Inject constructor(
 
         val LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED = booleanPreferencesKey("launch_usage_questionnaire_completed")
         val APP_USAGE_MODE = stringPreferencesKey("app_usage_mode")
+        val AUTO_START_BREAK = booleanPreferencesKey("ekagra_auto_start_break")
 
         val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
     }
@@ -308,6 +309,10 @@ class SafarDataStore @Inject constructor(
     val plannerAlertDedupeKeys: Flow<Set<String>> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.PLANNER_ALERT_DEDUPE_KEYS] ?: emptySet() }
+
+    val autoStartBreak: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.AUTO_START_BREAK] ?: true }
 
     val isPremium: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -484,6 +489,8 @@ class SafarDataStore @Inject constructor(
     suspend fun setAppUsageMode(mode: String?) = context.dataStore.edit { prefs ->
         if (mode != null) prefs[Keys.APP_USAGE_MODE] = mode else prefs.remove(Keys.APP_USAGE_MODE)
     }
+
+    suspend fun setAutoStartBreak(enabled: Boolean) = context.dataStore.edit { it[Keys.AUTO_START_BREAK] = enabled }
 
     suspend fun setUserId(id: String?) {
         id?.let { context.dataStore.edit { prefs -> prefs[Keys.USER_ID] = it } }

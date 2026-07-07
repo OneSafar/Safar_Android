@@ -69,6 +69,12 @@ class EkagraViewModel @Inject constructor(
         }
     }
 
+    fun setAutoStartBreak(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStore.setAutoStartBreak(enabled)
+        }
+    }
+
     init {
         // Initial fetch; periodic refresh is now driven from the screen via
         // repeatOnLifecycle so polling pauses when Ekagra is not on top.

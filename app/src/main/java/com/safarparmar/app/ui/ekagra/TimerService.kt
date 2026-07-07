@@ -147,6 +147,7 @@ class TimerService : Service() {
     val pomodorosCompleted: StateFlow<Int> = _pomodorosCompleted
     
     private var standardBreakSeconds = 5 * 60
+    private var autoStartBreak = true // default: auto-start breaks
 
     // ── Focus Shield state ─────────────────────────────────────────────────
     private val _focusShieldActive  = MutableStateFlow(false)
@@ -525,6 +526,11 @@ class TimerService : Service() {
                 cachedUserName = name?.trim().orEmpty()
             }
         }
+        scope.launch {
+            safarDataStore.autoStartBreak.collect { value ->
+                autoStartBreak = value
+            }
+        }
         restorePersistedTimerState()
     }
 
@@ -741,15 +747,20 @@ class TimerService : Service() {
                         _totalSeconds.value = breakLength
                         _secondsLeft.value = breakLength
                         persistTimerState()
-                        start()
+                        start() // Pomodoro always auto-starts break
                         return@launch
                     } else {
-                        // Standard auto-start a break using user's configured duration
+                        // Standard: respect user's auto-start break preference
                         _timerMode.value = TimerMode.BREAK
                         _totalSeconds.value = standardBreakSeconds
                         _secondsLeft.value = standardBreakSeconds
                         persistTimerState()
-                        start()
+                        if (autoStartBreak) {
+                            start()
+                        } else {
+                            // Leave timer paused — user presses play when ready
+                            _isRunning.value = false
+                        }
                         return@launch
                     }
                 }
