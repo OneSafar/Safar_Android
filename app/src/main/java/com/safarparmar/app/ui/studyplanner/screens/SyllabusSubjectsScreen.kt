@@ -573,7 +573,7 @@ private fun SyllabusOverviewCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFFF5F3EF),
+        color = scheme.surfaceContainerHighest,
         border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
         shadowElevation = 1.dp,
     ) {
@@ -828,7 +828,7 @@ private fun SyllabusEmptySubjectsCard(onAddSubject: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F3EF)),
+        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerHighest),
         border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {

@@ -2291,13 +2291,13 @@ internal fun SyllabusFullImportCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        color = Color(0xFFF5F3EF),
+        color = scheme.surfaceContainerHighest,
         border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.55f)),
         shadowElevation = 1.dp,
     ) {
         Column(
             Modifier
-                .background(Color(0xFFF5F3EF))
+                .background(scheme.surfaceContainerHighest)
                 .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
