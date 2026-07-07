@@ -145,9 +145,6 @@ class StudyPlannerViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
     private val firedDailyMilestones = mutableSetOf<String>()
 
-    // Tracks the ordered history of PlannerSections the user has visited inside a plan.
-    // Populated by setSection(); consumed (popped) by navigateBack().
-    private val _sectionBackStack = ArrayDeque<PlannerSection>()
 
     private val _selectedSubjectId = MutableStateFlow<String?>(null)
     val selectedSubjectId = _selectedSubjectId.asStateFlow()
@@ -217,11 +214,6 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun setSection(section: PlannerSection) {
-        val current = _uiState.value.section
-        // Don't push duplicate consecutive entries; do push when genuinely navigating forward.
-        if (current != section) {
-            _sectionBackStack.addLast(current)
-        }
         _uiState.update { it.copy(section = section) }
         if (section == PlannerSection.CALENDAR) {
             val plan = _uiState.value.selectedPlan
@@ -249,15 +241,13 @@ class StudyPlannerViewModel @Inject constructor(
             return false
         }
 
-        // If there's a previous section on the stack, pop back to it.
-        if (_sectionBackStack.isNotEmpty()) {
-            val previous = _sectionBackStack.removeLast()
-            _uiState.update { it.copy(section = previous) }
+        // If the user is not on the PLAN tab, navigating back takes them to PLAN.
+        if (_uiState.value.section != PlannerSection.PLAN) {
+            _uiState.update { it.copy(section = PlannerSection.PLAN) }
             return true
         }
 
-        // Stack is empty: we're at the "first" section the user landed on inside this plan.
-        // The next logical back step is to close the plan and return to the exam list.
+        // If already on PLAN tab, close the plan to return to YOUR_EXAMS.
         closePlan()
         return true
     }
@@ -362,7 +352,6 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun openPlan(planId: String) {
-        _sectionBackStack.clear() // fresh history for every newly-opened plan
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null, section = PlannerSection.PLAN) }
             when (val r = repo.getPlan(planId)) {
@@ -412,7 +401,6 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun closePlan() {
-        _sectionBackStack.clear()
         _uiState.update {
             it.copy(
                 selectedPlan = null,

@@ -83,9 +83,9 @@ internal fun FocusHistoryTab(
     var selectedSubTab by remember { mutableStateOf(0) } // 0 = Ekagra history, 1 = stopwatch history
 
     val currentTabSessions = if (selectedSubTab == 0) {
-        allSessions.filter { it.timerMode != "stopwatch" }
+        allSessions.filterNot { it.timerMode.equals("stopwatch", ignoreCase = true) }
     } else {
-        allSessions.filter { it.timerMode == "stopwatch" }
+        allSessions.filter { it.timerMode.equals("stopwatch", ignoreCase = true) }
     }
 
     var dateFilter by remember { mutableStateOf<DateFilter>(DateFilter.All) }

@@ -134,15 +134,14 @@ internal fun DurationTab(
             Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(8.dp))
-        Button(
+        androidx.compose.material3.OutlinedButton(
             onClick        = { showPomodoroDialog = true },
             modifier       = Modifier.fillMaxWidth().height(56.dp),
             shape          = RoundedCornerShape(16.dp),
-            colors         = ButtonDefaults.buttonColors(
-                containerColor = scheme.secondaryContainer,
-                contentColor   = scheme.onSecondaryContainer,
+            border         = androidx.compose.foundation.BorderStroke(1.dp, scheme.primary),
+            colors         = ButtonDefaults.outlinedButtonColors(
+                contentColor = scheme.primary,
             ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
         ) {
             Text("Start Pomodoro Session", fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
