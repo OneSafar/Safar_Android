@@ -81,6 +81,13 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.TrackChanges
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -251,37 +258,38 @@ internal fun InsightsTab(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                SelectedExamStrip(
-                    plan = plan,
-                    onChangeExam = { actions.setSection(PlannerSection.YOUR_EXAMS) },
-                    outerPadding = PaddingValues(0.dp),
-                )
+                InsightsHeaderRedesign()
             }
             item {
-                OverallProgressCard(
+                InsightsOverallProgressRedesign(
                     completionPercent = insights.summary.completionPercent,
                     doneTopics = rollup.doneTopics,
-                    totalTopics = rollup.totalTopics,
-                    remaining = insights.summary.remainingTopics,
-                    days = examDays,
-                    dailyGoal = dailyGoal,
+                    totalTopics = rollup.totalTopics
                 )
             }
             item {
-                StudyPlannerAchievementsStrip(
-                    achievements = state.plannerAchievements,
+                InsightsMetricSquares(examDays = examDays, dailyGoal = dailyGoal)
+            }
+            item {
+                InsightsStudySpeedCard(
+                    onTrackStatus = insights.summary.onTrackStatus,
+                    paceMessage = paceMessage,
+                    scheduleCoveragePercent = insights.summary.scheduleCoveragePercent
                 )
             }
             item {
-                InsightsPaceForecastCard(
-                    summary = insights.summary,
-                    dailyGoal = dailyGoal,
+                InsightsDetailedMetricsList(
                     requiredPace = requiredPace,
+                    dailyGoal = dailyGoal,
+                    forecastDate = insights.summary.forecastCompletionDate,
+                    studyDaysLeft = insights.summary.availableStudyDays
                 )
             }
-            if (!paceMessage.isNullOrBlank()) {
+            if (insights.summary.onTrackStatus == InsightTrackStatus.BEHIND || insights.summary.onTrackStatus == InsightTrackStatus.AT_RISK) {
                 item {
-                    InsightsPaceBanner(message = paceMessage)
+                    CourseCorrectionCard(
+                        onAdjustPlanClick = { actions.setSection(PlannerSection.SYLLABUS) }
+                    )
                 }
             }
             item {
@@ -298,14 +306,7 @@ internal fun InsightsTab(
                     subjects = insights.subjectRows,
                 )
             }
-            item {
-                NextBestActionsPanel(
-                    plan = plan,
-                    insights = insights,
-                    days = examDays,
-                    actions = actions,
-                )
-            }
+
         }
     }
 }
@@ -2193,5 +2194,424 @@ internal fun PlannerExamDateFieldDialog(
         },
     ) {
         DatePicker(state = datePickerState)
+    }
+}
+
+// --- NEW INSIGHTS REDESIGN ---
+@Composable
+internal fun InsightsHeaderRedesign() {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = "Insights",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "Your strategic readiness overview",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+internal fun InsightsOverallProgressRedesign(
+    completionPercent: Int,
+    doneTopics: Int,
+    totalTopics: Int
+) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = "OVERALL STUDY PROGRESS",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Arc Progress Bar
+            Box(
+                modifier = Modifier.size(160.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                val trackColor = MaterialTheme.colorScheme.surfaceVariant
+                val progressColor = MaterialTheme.colorScheme.primary
+                
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawArc(
+                        color = trackColor,
+                        startAngle = 180f,
+                        sweepAngle = 180f,
+                        useCenter = false,
+                        style = Stroke(width = 16.dp.toPx(), cap = StrokeCap.Round)
+                    )
+                    drawArc(
+                        color = progressColor,
+                        startAngle = 180f,
+                        sweepAngle = 180f * (completionPercent / 100f),
+                        useCenter = false,
+                        style = Stroke(width = 16.dp.toPx(), cap = StrokeCap.Round)
+                    )
+                }
+                
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.offset(y = (-16).dp)
+                ) {
+                    Text(
+                        text = "$completionPercent%",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "PROGRESS",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            Text(
+                text = "$doneTopics of $totalTopics topics complete",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(completionPercent / 100f)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun InsightsMetricSquares(examDays: Int?, dailyGoal: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Exam left card
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            modifier = Modifier.weight(1f)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Timer,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${examDays?.coerceAtLeast(0) ?: "-"}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Exam left (days)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        
+        // Daily target card
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            modifier = Modifier.weight(1f)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.TrackChanges,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "$dailyGoal",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Daily target",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun InsightsStudySpeedCard(
+    onTrackStatus: InsightTrackStatus,
+    paceMessage: String?,
+    scheduleCoveragePercent: Int?
+) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "STUDY SPEED",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    val pillColor = if (onTrackStatus == InsightTrackStatus.BEHIND || onTrackStatus == InsightTrackStatus.AT_RISK) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        Color(0xFF16A34A)
+                    }
+                    val pillText = if (onTrackStatus == InsightTrackStatus.BEHIND) "BEHIND" else if (onTrackStatus == InsightTrackStatus.AT_RISK) "AT RISK" else "ON TRACK"
+                    
+                    Surface(
+                        shape = CircleShape,
+                        color = pillColor.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = pillText,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = pillColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                
+                if (scheduleCoveragePercent != null) {
+                    Text(
+                        text = "$scheduleCoveragePercent% Efficiency",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error // Or dynamic color
+                    )
+                }
+            }
+            
+            if (!paceMessage.isNullOrBlank()) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = paceMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun InsightsDetailedMetricsList(
+    requiredPace: Int,
+    dailyGoal: Int,
+    forecastDate: String?,
+    studyDaysLeft: Int?
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        InsightsMetricRow(
+            icon = Icons.Default.Speed,
+            label = "Need per day",
+            value = "$requiredPace/day"
+        )
+        InsightsMetricRow(
+            icon = Icons.Default.TrackChanges,
+            label = "Your target",
+            value = "$dailyGoal/day"
+        )
+        InsightsMetricRow(
+            icon = Icons.Default.CalendarToday,
+            label = "May finish on",
+            value = forecastDate ?: "Unknown"
+        )
+        InsightsMetricRow(
+            icon = Icons.Default.DateRange,
+            label = "Study days left",
+            value = "${studyDaysLeft ?: "-"}"
+        )
+    }
+}
+
+@Composable
+internal fun InsightsMetricRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+internal fun CourseCorrectionCard(
+    onAdjustPlanClick: () -> Unit
+) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onError
+                )
+                Text(
+                    text = "Course Correction",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onError
+                )
+            }
+            
+            Text(
+                text = "You need more time than you currently have. Try removing some topics or changing the exam date to make your plan manageable.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onError.copy(alpha = 0.9f)
+            )
+            
+            Button(
+                onClick = onAdjustPlanClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onError.copy(alpha = 0.2f),
+                    contentColor = MaterialTheme.colorScheme.onError
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Adjust Study Plan", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
     }
 }

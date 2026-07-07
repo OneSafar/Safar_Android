@@ -5,8 +5,10 @@ import com.safarparmar.app.data.remote.api.BatchTopicUpdateRequest
 import com.safarparmar.app.data.remote.api.ChapterRequest
 import com.safarparmar.app.data.remote.api.CreateFromTemplateRequest
 import com.safarparmar.app.data.remote.api.CreatePlanRequest
+import com.safarparmar.app.data.remote.api.PlanConfirmRequest
+import com.safarparmar.app.data.remote.api.PlanPreviewRequest
+import com.safarparmar.app.data.remote.api.PlanPreviewResult
 import com.safarparmar.app.data.remote.api.SubjectRequest
-import com.safarparmar.app.data.remote.api.BulkImportResponse
 import com.safarparmar.app.data.remote.api.BulkTopicsRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
 import com.safarparmar.app.data.remote.api.RolloverUndoRequest
@@ -36,6 +38,8 @@ interface StudyPlannerRepository {
     suspend fun getTemplates(): Resource<List<ExamTemplateSummary>>
     suspend fun getTemplateDetail(templateId: String): Resource<ExamTemplate>
     suspend fun createPlanFromTemplate(request: CreateFromTemplateRequest): Resource<StudyPlan>
+    suspend fun previewPlan(request: PlanPreviewRequest): Resource<PlanPreviewResult>
+    suspend fun confirmPlan(draftId: String): Resource<StudyPlan>
     suspend fun getPlan(planId: String): Resource<StudyPlan>
     suspend fun updatePlan(planId: String, request: UpdatePlanRequest): Resource<StudyPlan>
     suspend fun undoRollover(planId: String, request: RolloverUndoRequest): Resource<RolloverUndoResult>
@@ -62,8 +66,7 @@ interface StudyPlannerRepository {
     suspend fun updateTopic(planId: String, topicId: String, request: TopicPatchRequest): Resource<StudyPlan>
     suspend fun batchUpdateTopics(planId: String, request: BatchTopicUpdateRequest): Resource<StudyPlan>
     suspend fun deleteTopic(planId: String, topicId: String): Resource<StudyPlan>
-    suspend fun bulkImportSyllabus(planId: String, text: String): Resource<BulkImportResponse>
     suspend fun importManualSyllabus(planId: String, text: String, mode: String): Resource<StudyPlan>
     suspend fun structureSyllabusPreview(request: StructureSyllabusRequest): Resource<StructuredSyllabusPreview>
-    suspend fun applySyllabusAi(planId: String, preview: StructuredSyllabusPreview): Resource<StudyPlan>
+    suspend fun applySyllabusAi(planId: String, preview: StructuredSyllabusPreview, mode: String): Resource<StudyPlan>
 }

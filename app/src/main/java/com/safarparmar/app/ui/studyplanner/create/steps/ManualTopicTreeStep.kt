@@ -1,0 +1,195 @@
+package com.safarparmar.app.ui.studyplanner.create.steps
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.safarparmar.app.ui.studyplanner.components.TextInputDialog
+import com.safarparmar.app.ui.studyplanner.create.DraftChapter
+import com.safarparmar.app.ui.studyplanner.create.DraftSubject
+
+@Composable
+fun ManualTopicTreeStep(
+    subjects: List<DraftSubject>,
+    onAddSubject: (String) -> Unit,
+    onRemoveSubject: (String) -> Unit,
+    onAddChapter: (String, String) -> Unit,
+    onRemoveChapter: (String, String) -> Unit,
+    onAddTopic: (String, String, String) -> Unit,
+    onRemoveTopic: (String, String, String) -> Unit,
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showAddSubjectDialog by remember { mutableStateOf(false) }
+    val totalTopics = subjects.sumOf { s -> s.chapters.sumOf { it.topics.size } }
+
+    Column(
+        modifier = modifier.fillMaxWidth().padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Build your syllabus", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Add the subjects, chapters, and topics you want to study.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(subjects, key = { it.localId }) { subject ->
+                ManualSubjectCard(
+                    subject = subject,
+                    onRemoveSubject = { onRemoveSubject(subject.localId) },
+                    onAddChapter = { name -> onAddChapter(subject.localId, name) },
+                    onRemoveChapter = { chapterId -> onRemoveChapter(subject.localId, chapterId) },
+                    onAddTopic = { chapterId, name -> onAddTopic(subject.localId, chapterId, name) },
+                    onRemoveTopic = { chapterId, topicId -> onRemoveTopic(subject.localId, chapterId, topicId) },
+                )
+            }
+            item {
+                TextButton(onClick = { showAddSubjectDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                    Text("Add your first subject".takeIf { subjects.isEmpty() } ?: "Add subject", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Button(
+            onClick = onContinue,
+            enabled = totalTopics > 0,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Continue", fontWeight = FontWeight.Bold)
+        }
+    }
+
+    if (showAddSubjectDialog) {
+        TextInputDialog(
+            title = "Add subject",
+            label = "Subject name",
+            confirmLabel = "Add",
+            onDismiss = { showAddSubjectDialog = false },
+            onConfirm = { name ->
+                onAddSubject(name)
+                showAddSubjectDialog = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun ManualSubjectCard(
+    subject: DraftSubject,
+    onRemoveSubject: () -> Unit,
+    onAddChapter: (String) -> Unit,
+    onRemoveChapter: (String) -> Unit,
+    onAddTopic: (String, String) -> Unit,
+    onRemoveTopic: (String, String) -> Unit,
+) {
+    var showAddChapterDialog by remember { mutableStateOf(false) }
+    var addTopicForChapterId by remember { mutableStateOf<String?>(null) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(subject.name, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+                IconButton(onClick = onRemoveSubject) {
+                    Icon(Icons.Default.Close, contentDescription = "Remove subject")
+                }
+            }
+            subject.chapters.forEach { chapter ->
+                ManualChapterRow(
+                    chapter = chapter,
+                    onRemoveChapter = { onRemoveChapter(chapter.localId) },
+                    onAddTopic = { addTopicForChapterId = chapter.localId },
+                    onRemoveTopic = { topicId -> onRemoveTopic(chapter.localId, topicId) },
+                )
+            }
+            TextButton(onClick = { showAddChapterDialog = true }) {
+                Text("Add chapter", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+
+    if (showAddChapterDialog) {
+        TextInputDialog(
+            title = "Add chapter",
+            label = "Chapter name",
+            confirmLabel = "Add",
+            onDismiss = { showAddChapterDialog = false },
+            onConfirm = { name ->
+                onAddChapter(name)
+                showAddChapterDialog = false
+            },
+        )
+    }
+
+    addTopicForChapterId?.let { chapterId ->
+        TextInputDialog(
+            title = "Add topic",
+            label = "Topic name",
+            confirmLabel = "Add",
+            onDismiss = { addTopicForChapterId = null },
+            onConfirm = { name ->
+                onAddTopic(chapterId, name)
+                addTopicForChapterId = null
+            },
+        )
+    }
+}
+
+@Composable
+private fun ManualChapterRow(
+    chapter: DraftChapter,
+    onRemoveChapter: () -> Unit,
+    onAddTopic: () -> Unit,
+    onRemoveTopic: (String) -> Unit,
+) {
+    Column(Modifier.padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(chapter.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = onRemoveChapter) {
+                Icon(Icons.Default.Close, contentDescription = "Remove chapter", modifier = Modifier.padding(2.dp))
+            }
+        }
+        chapter.topics.forEach { topic ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(topic.name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                IconButton(onClick = { onRemoveTopic(topic.localId) }) {
+                    Icon(Icons.Default.Close, contentDescription = "Remove topic", modifier = Modifier.padding(2.dp))
+                }
+            }
+        }
+        TextButton(onClick = onAddTopic) {
+            Text("Add topic", style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}

@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,22 +30,29 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.graphics.vector.ImageVector
 
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -68,6 +77,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +85,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +101,7 @@ import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
+import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
@@ -110,8 +122,6 @@ fun PlanStatusCard(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
-    val scheme = MaterialTheme.colorScheme
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     var menuExpanded by remember { mutableStateOf(false) }
 
     val isPlanScheduled = remember(plan) {
@@ -121,7 +131,7 @@ fun PlanStatusCard(
             }
         }
     }
-    
+
     val cardModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
             modifier
@@ -135,168 +145,156 @@ fun PlanStatusCard(
         modifier.fillMaxWidth()
     }
 
-    Column(
-        modifier = cardModifier,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Main Banner Gradient Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    val examDays = daysUntil(plan.examDate)
+
+    Column(modifier = cardModifier) {
+        // ── Hero Banner ──────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(Color(0xFF0B1221), Color(0xFF0F1C35))
+                    )
+                )
+                .padding(horizontal = 20.dp, vertical = 28.dp)
         ) {
-            Box(
+            // Settings menu (top-right)
+            Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Plan options",
+                        tint = Color.White.copy(alpha = 0.7f)
+                    )
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Plan settings") },
+                        leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onSettingsClick()
+                        },
+                    )
+                    if (isPlanScheduled) {
+                        DropdownMenuItem(
+                            text = { Text("Export PDF") },
+                            leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                onExportClick()
+                            },
+                        )
+                    }
+                }
+            }
+
+            // Main content row: Title | Progress Ring | Days Left
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = if (isDark) {
-                                listOf(Color(0xFF1C2022), Color(0xFF262B2C))
-                            } else {
-                                listOf(Color(0xFF0A1931), Color(0xFF15305B))
-                            }
-                        ),
-                        shape = MaterialTheme.shapes.large
-                    )
-                    .padding(20.dp)
+                    .padding(top = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                // Left — Plan title + subtitle
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .widthIn(min = 0.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+                    Text(
+                        text = plan.title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (!plan.examDate.isNullOrBlank()) {
                         Text(
-                            text = plan.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White,
-                            fontSize = 24.sp,
+                            text = plan.examDate.orEmpty().uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.55f),
+                            letterSpacing = 1.5.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                }
 
-                    // Circle Progress Box
-                    Box(
-                        modifier = Modifier.size(80.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                            drawCircle(
-                                color = Color.White.copy(alpha = 0.12f),
-                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.dp.toPx())
-                            )
-                        }
-                        CircularProgressIndicator(
-                            progress = { progress.completionPercent / 100f },
-                            modifier = Modifier.fillMaxSize(),
-                            color = Color(0xFF3B82F6),
-                            strokeWidth = 6.dp,
-                            trackColor = Color.Transparent
+                Spacer(Modifier.width(20.dp))
+
+                // Center — Circular progress ring
+                Box(
+                    modifier = Modifier.size(80.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawCircle(
+                            color = Color.White.copy(alpha = 0.12f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5.dp.toPx())
                         )
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "${progress.completionPercent}%",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "Completed",
-                                fontSize = 8.sp,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
                     }
-
-                    // Vertical Divider
-                    Box(
-                        modifier = Modifier
-                            .height(50.dp)
-                            .width(1.dp)
-                            .background(Color.White.copy(alpha = 0.15f))
+                    CircularProgressIndicator(
+                        progress = { progress.completionPercent / 100f },
+                        modifier = Modifier.fillMaxSize(),
+                        color = Color(0xFF60A5FA),
+                        strokeWidth = 5.dp,
+                        trackColor = Color.Transparent,
                     )
+                    Text(
+                        text = "${progress.completionPercent}%",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                    )
+                }
 
-                    // Countdown Box
-                    val examDays = daysUntil(plan.examDate)
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = plannerExamCountdownHeroNumber(examDays),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFFF59E0B),
-                            fontSize = 28.sp
-                        )
-                        Text(
-                            text = plannerExamCountdownCaption(examDays),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = if (examDays == null || examDays <= 0L) "" else "Until Exam",
-                            fontSize = 8.sp,
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
-                    }
+                Spacer(Modifier.width(16.dp))
 
-                    // Menu Options inside white icon
-                    Box {
-                        IconButton(
-                            onClick = { menuExpanded = true },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Plan options",
-                                tint = Color.White
-                            )
-                        }
-                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Plan settings") },
-                                leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onSettingsClick()
-                                },
-                            )
-                            if (isPlanScheduled) {
-                                DropdownMenuItem(
-                                    text = { Text("Export PDF") },
-                                    leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        onExportClick()
-                                    },
-                                )
-                            }
-                        }
-                    }
+                // Right — Days left
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = plannerExamCountdownHeroNumber(examDays),
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFFF4D6D),
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = plannerExamCountdownCaption(examDays).uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.7f),
+                        letterSpacing = 0.5.sp,
+                        maxLines = 1,
+                    )
                 }
             }
         }
 
-        filters()
+        // ── Filters (tab bar, etc.) rendered below the banner ───────
+        if (true) { // always render, the caller controls content
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                filters()
+            }
+        }
     }
 }
 
+
+
 /**
- * Replaces the old 5-way circular tab bar with a glanceable 3-stat summary (To study /
- * Done / Pending revision, all scoped to today) plus a quiet row of text links for the
- * secondary views (Overdue/Upcoming/Done) — those still exist and are one tap away, but
- * they no longer compete visually with today's numbers.
+ * Premium vertical stat cards — each card spans full width and shows the label
+ * prominently at the top with the number large below and an accent icon on the right.
  */
 @Composable
 fun PlanTodayStatsRow(
@@ -305,43 +303,98 @@ fun PlanTodayStatsRow(
     pendingRevision: Int,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        PlanStatBox(value = toStudy, label = "To study", modifier = Modifier.weight(1f))
-        PlanStatBox(value = done, label = "Done", modifier = Modifier.weight(1f))
-        PlanStatBox(value = pendingRevision, label = "Pending revision", modifier = Modifier.weight(1f))
+        PlanStatCard(
+            value = toStudy,
+            label = "TO STUDY",
+            icon = Icons.Default.Schedule,
+            accentColor = Color(0xFF6366F1),
+            isDark = isDark,
+            modifier = Modifier.fillMaxWidth()
+        )
+        PlanStatCard(
+            value = done,
+            label = "DONE TODAY",
+            icon = Icons.Default.CheckCircle,
+            accentColor = Color(0xFF10B981),
+            isDark = isDark,
+            modifier = Modifier.fillMaxWidth()
+        )
+        PlanStatCard(
+            value = pendingRevision,
+            label = "PENDING REVISION",
+            icon = Icons.Default.SwapHoriz,
+            accentColor = Color(0xFFF59E0B),
+            isDark = isDark,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 @Composable
-private fun PlanStatBox(value: Int, label: String, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .padding(vertical = 10.dp, horizontal = 8.dp),
-        contentAlignment = Alignment.Center,
+private fun PlanStatCard(
+    value: Int,
+    label: String,
+    icon: ImageVector,
+    accentColor: Color,
+    isDark: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val cardBg = if (isDark) Color(0xFF1A1F2E) else Color.White
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = if (isDark) 0.25f else 0.18f)),
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "$value",
-                style = MaterialTheme.typography.titleMedium.copy(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+                    color = accentColor,
+                    letterSpacing = 1.sp,
+                )
+                Text(
+                    text = "$value",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isDark) Color.White else Color(0xFF0F172A),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(accentColor.copy(alpha = if (isDark) 0.18f else 0.10f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
 
+/**
+ * Horizontal tab bar for Today / Overdue / Upcoming / Done views — full-width even
+ * spacing so labels never overflow on any device width.
+ */
 @Composable
 fun PlanTabQuickLinks(
     activeTab: StudyPlannerTab,
@@ -352,44 +405,49 @@ fun PlanTabQuickLinks(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val isDark = !scheme.background.isLightBackground()
+    val tabs = buildList {
+        add(StudyPlannerTab.TODAY to "Today")
+        if (overdueCount > 0) add(StudyPlannerTab.OVERDUE to "Overdue")
+        add(StudyPlannerTab.UPCOMING to "Upcoming")
+        add(StudyPlannerTab.COMPLETED to "Done")
+    }
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (activeTab != StudyPlannerTab.TODAY) {
-            QuickLinkText(text = "Today", onClick = { onTabSelected(StudyPlannerTab.TODAY) }, emphasized = true)
-        }
-        if (overdueCount > 0) {
-            QuickLinkText(
-                text = "Overdue ($overdueCount)",
-                onClick = { onTabSelected(StudyPlannerTab.OVERDUE) },
-                emphasized = activeTab == StudyPlannerTab.OVERDUE,
-                color = scheme.error,
-            )
-        }
-        if (upcomingCount > 0) {
-            QuickLinkText(text = "Upcoming ($upcomingCount)", onClick = { onTabSelected(StudyPlannerTab.UPCOMING) }, emphasized = activeTab == StudyPlannerTab.UPCOMING)
-        }
-        if (completedCount > 0) {
-            QuickLinkText(text = "Done ($completedCount)", onClick = { onTabSelected(StudyPlannerTab.COMPLETED) }, emphasized = activeTab == StudyPlannerTab.COMPLETED)
+        tabs.forEach { (tab, label) ->
+            val selected = activeTab == tab
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(50))
+                    .border(
+                        width = 1.dp,
+                        color = if (selected) Color.Transparent else scheme.outlineVariant,
+                        shape = RoundedCornerShape(50)
+                    )
+                    .background(
+                        if (selected) {
+                            if (isDark) Color(0xFF1E293B) else Color(0xFF0F1C35)
+                        } else Color.Transparent
+                    )
+                    .clickable { onTabSelected(tab) }
+                    .padding(vertical = 12.dp, horizontal = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (selected) Color.White else scheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
-}
-
-@Composable
-private fun QuickLinkText(
-    text: String,
-    onClick: () -> Unit,
-    emphasized: Boolean = false,
-    color: Color = MaterialTheme.colorScheme.primary,
-) {
-    Text(
-        text = text,
-        modifier = Modifier.clickable(onClick = onClick),
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = if (emphasized) FontWeight.Bold else FontWeight.SemiBold,
-        color = color,
-    )
 }
 
 @Composable
@@ -617,7 +675,21 @@ fun PlannerTaskRow(
     var showMenu by remember { mutableStateOf(false) }
     val hasMenu = onEdit != null || onReplace != null || (onRemoveFromToday != null && !done)
 
-    val rowModifier = modifier.fillMaxWidth().let {
+    // A brief scale-pulse whenever this topic's status changes — visual confirmation
+    // that a tap registered, independent of the status-change snackbar shown elsewhere.
+    // Skips the very first composition so rows don't all pulse on initial render/scroll-in.
+    val pulseScale = remember { Animatable(1f) }
+    var isFirstComposition by remember { mutableStateOf(true) }
+    LaunchedEffect(ref.topic.status) {
+        if (isFirstComposition) {
+            isFirstComposition = false
+        } else {
+            pulseScale.snapTo(0.95f)
+            pulseScale.animateTo(1f, animationSpec = spring(dampingRatio = 0.45f, stiffness = 300f))
+        }
+    }
+
+    val rowModifier = modifier.fillMaxWidth().scale(pulseScale.value).let {
         if (onClick != null || hasMenu) {
             it.combinedClickable(
                 onClick = { onClick?.invoke() },
@@ -662,21 +734,24 @@ fun PlannerTaskRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(end = 14.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
         ) {
+            // Left accent bar
             Box(
                 modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
+                    .width(4.dp)
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
                     .background(subjectDotColor(ref.subject.color))
             )
+            Spacer(Modifier.width(14.dp))
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .widthIn(min = 0.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
                     text = ref.topic.name,
@@ -687,9 +762,9 @@ fun PlannerTaskRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${ref.subject.name} / ${ref.chapter.name}",
+                    text = "${ref.subject.name} · ${ref.chapter.name}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF64748B),
+                    color = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF64748B),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -718,6 +793,7 @@ fun PlannerTaskRow(
                     }
                 }
             }
+            Spacer(Modifier.width(8.dp))
             Checkbox(
                 checked = done,
                 onCheckedChange = onDoneChange,
@@ -1611,6 +1687,104 @@ fun AddTopicToTodaySheet(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Shown once, right after a plan is created with "Manual mode", so the user can set which
+ * subject to study first. Uses plain up/down reordering rather than drag-and-drop —
+ * subject count is small (a handful) and this only needs to happen once per plan, so the
+ * extra robustness of arrow buttons over drag gestures is worth the simplicity.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ManualSubjectOrderSheet(
+    subjects: List<com.safarparmar.app.domain.model.studyplanner.StudySubject>,
+    onConfirm: (List<String>) -> Unit,
+    onSkip: () -> Unit,
+) {
+    var ordered by remember(subjects) { mutableStateOf(subjects) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(onDismissRequest = onSkip, sheetState = sheetState) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Which subject first?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "You picked Manual mode — set the order you want to study these subjects in. Topics will be built one subject at a time, in this order.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            ordered.forEachIndexed { index, subject ->
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(
+                            text = "${index + 1}",
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(18.dp),
+                        )
+                        Box(Modifier.size(10.dp).clip(CircleShape).background(subjectDotColor(subject.color)))
+                        Text(
+                            text = subject.name,
+                            modifier = Modifier.weight(1f),
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        IconButton(
+                            onClick = {
+                                if (index > 0) {
+                                    ordered = ordered.toMutableList().apply {
+                                        add(index - 1, removeAt(index))
+                                    }
+                                }
+                            },
+                            enabled = index > 0,
+                        ) {
+                            Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move up")
+                        }
+                        IconButton(
+                            onClick = {
+                                if (index < ordered.lastIndex) {
+                                    ordered = ordered.toMutableList().apply {
+                                        add(index + 1, removeAt(index))
+                                    }
+                                }
+                            },
+                            enabled = index < ordered.lastIndex,
+                        ) {
+                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move down")
+                        }
+                    }
+                }
+            }
+            Button(
+                onClick = { onConfirm(ordered.map { it.id }) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Confirm order", fontWeight = FontWeight.Bold)
+            }
+            TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+                Text("Skip for now")
             }
         }
     }

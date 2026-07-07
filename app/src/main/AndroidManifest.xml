@@ -121,14 +121,6 @@
             </intent-filter>
         </service>
 
-        <activity
-            android:name=".ui.ekagra.focusshield.BlockedAppActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.Safar" />
-
         <!-- Reschedule notification workers after device boot or app update.
              Cat-7 P1 fix: ensures study reminders, planner alerts, and morning nudges
              survive device reboots and app updates without waiting for cold launch. -->

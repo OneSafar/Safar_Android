@@ -41,7 +41,9 @@ interface PlannerActions {
         syllabusText: String? = null,
         openAiImport: Boolean = false,
     )
-    fun createFromTemplate(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>)
+    fun createFromTemplate(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>, manualSubjectOrder: Boolean = false)
+    /** Clears the one-time "show the subject-order sheet" flag set after a Manual-mode plan creation. */
+    fun clearPendingManualSubjectOrder()
     fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>)
     fun deletePlan(planId: String)
     fun updatePlan(request: UpdatePlanRequest)
@@ -97,5 +99,5 @@ interface PlannerActions {
     fun importFullSyllabusFromTxt(text: String, mode: String = "merge")
     fun structureSyllabusPreview(rawText: String, language: String? = null)
     fun updateStructuredPreview(preview: com.safarparmar.app.data.remote.api.StructuredSyllabusPreview?)
-    fun importStructuredSyllabus()
+    fun importStructuredSyllabus(mode: String = "merge")
 }

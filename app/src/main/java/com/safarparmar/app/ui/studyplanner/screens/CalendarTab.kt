@@ -62,6 +62,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -191,6 +193,8 @@ import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
+import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerCalendarStatus
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
 import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
@@ -216,6 +220,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.source
 import java.time.Instant
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneOffset
@@ -254,130 +259,123 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
         }
 
         item {
-            // Month navigation with chevron icons
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+            // Elevated/Border Card containing the entire calendar view
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                color = MaterialTheme.colorScheme.surface,
             ) {
-                IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.ChevronLeft,
-                        contentDescription = "Previous month",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Text(
-                    text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                )
-                IconButton(onClick = { visibleMonth = visibleMonth.plusMonths(1) }) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
-                        contentDescription = "Next month",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-
-        item {
-            // Days of the week row
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-            ) {
-                listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
-                    Text(
-                        text = label,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.width(36.dp)
-                    )
-                }
-            }
-        }
-
-        item {
-            // Grid of elevated day slots
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                weeks.forEach { week ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp, horizontal = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Month navigation
                     Row(
-                        Modifier.fillMaxWidth(),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.ChevronLeft,
+                                contentDescription = "Previous month",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        
+                        Text(
+                            text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
+                        )
+                        
+                        IconButton(onClick = { visibleMonth = visibleMonth.plusMonths(1) }) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
+                                contentDescription = "Next month",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Days of the week row
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceAround,
                     ) {
-                        week.forEach { date ->
-                            Box(
-                                Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .padding(2.dp),
+                        listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
+                            Text(
+                                text = label,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.width(36.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Grid of day slots
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        weeks.forEach { week ->
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceAround,
                             ) {
-                                if (date != null) {
-                                    val dateIso = date.toString()
-                                    val dayItems = state.calendar[dateIso].orEmpty()
-                                    CalendarDayChip(
-                                        dateIso = dateIso,
-                                        items = dayItems,
-                                        selected = sheetDay == dateIso,
-                                        isToday = dateIso == todayK,
-                                        isOff = jsDayOfWeek(date) in plan.offDays.toSet(),
-                                        dense = true,
-                                        onClick = { sheetDay = dateIso },
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
+                                week.forEach { date ->
+                                    Box(
+                                        Modifier
+                                            .weight(1f)
+                                            .aspectRatio(1f)
+                                            .padding(2.dp),
+                                    ) {
+                                        if (date != null) {
+                                            val dateIso = date.toString()
+                                            val dayItems = state.calendar[dateIso].orEmpty()
+                                            CalendarDayChip(
+                                                dateIso = dateIso,
+                                                items = dayItems,
+                                                selected = sheetDay == dateIso,
+                                                isToday = dateIso == todayK,
+                                                isOff = jsDayOfWeek(date) in plan.offDays.toSet(),
+                                                isExamDay = dateIso == plan.examDate?.take(10),
+                                                isWeekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY,
+                                                dense = true,
+                                                onClick = { sheetDay = dateIso },
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
+
+
                 }
-            }
         }
-
-        item {
-            // Legend
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 16.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 2.dp,
-                    shadowElevation = 8.dp,
-                ) {
-                    Row(
-                        Modifier.padding(horizontal = 18.dp, vertical = 13.dp),
-                        horizontalArrangement = Arrangement.spacedBy(18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CalendarLegendDot(CalendarDateStatus.PLANNED.color, "Planned")
-                        CalendarLegendDot(CalendarDateStatus.DONE.color, "Done")
-                        CalendarLegendDot(CalendarDateStatus.OVERDUE.color, "Overdue")
-                        CalendarLegendDot(CalendarDateStatus.OFF.color, "Off")
-                    }
-                }
-            }
-        }
-
-
     }
+}
 }
 
 @Composable
@@ -385,44 +383,93 @@ private fun CalendarPlainHeader(plan: StudyPlan) {
     val examDays = daysUntil(plan.examDate)
     val examDate = readableDate(plan.examDate).takeUnless { it == "Not set" }.orEmpty()
 
-    Column(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 12.dp, bottom = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        color = MaterialTheme.colorScheme.surface,
     ) {
-        Text(
-            text = plan.title.ifBlank { "Calendar" },
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        val caption = plannerExamCountdownCaption(examDays)
-        val subtitle = listOf(caption, examDate).filter { it.isNotBlank() }.joinToString("  •  ")
-        if (subtitle.isNotBlank()) {
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "TARGET EXAM",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        letterSpacing = 0.8.sp
+                    )
+                )
+                Text(
+                    text = plan.title.ifBlank { "Your Study Journey" },
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val daysLabel = when {
+                        examDays == null -> ""
+                        examDays < 0L -> "Exam passed"
+                        examDays == 0L -> "Exam today!"
+                        else -> "$examDays Days To Go"
+                    }
+                    if (daysLabel.isNotEmpty()) {
+                        Text(
+                            text = daysLabel,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = PlannerAccent.Coral
+                            )
+                        )
+                    }
+                    if (daysLabel.isNotEmpty() && examDate.isNotEmpty()) {
+                        Text(
+                            text = " • ",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (examDate.isNotEmpty()) {
+                        Text(
+                            text = examDate,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 private enum class CalendarDateStatus(val color: Color) {
-    PLANNED(Color(0xFF2563EB)),
-    DONE(Color(0xFF7E57D9)),
-    OVERDUE(Color(0xFFDC2626)),
-    OFF(Color(0xFFF59E0B)),
+    PLANNED(PlannerCalendarStatus.Planned),
+    DONE(PlannerCalendarStatus.Done),
+    OVERDUE(PlannerCalendarStatus.Overdue),
 }
 
+/** Resolves done/planned/overdue only — "off day" is rendered as its own independent
+ *  glyph (see [CalendarDayChip]) so a topic scheduled on an off-day no longer silently
+ *  hides the "off" indicator behind a status dot. */
 private fun calendarDateStatus(
     dateIso: String,
     items: List<CalendarTopicItem>,
-    isOff: Boolean,
     todayIso: String,
 ): CalendarDateStatus? {
     val planned = items.size
@@ -432,7 +479,6 @@ private fun calendarDateStatus(
         overdue -> CalendarDateStatus.OVERDUE
         planned > 0 && done == planned -> CalendarDateStatus.DONE
         planned > 0 -> CalendarDateStatus.PLANNED
-        isOff -> CalendarDateStatus.OFF
         else -> null
     }
 }
@@ -444,25 +490,24 @@ internal fun CalendarDayChip(
     selected: Boolean,
     isToday: Boolean,
     isOff: Boolean,
+    isExamDay: Boolean = false,
+    isWeekend: Boolean = false,
     dense: Boolean = false,
     onClick: () -> Unit,
     modifier: Modifier = Modifier.width(54.dp),
 ) {
     val todayK = todayKey()
     val dayNum = LocalDate.parse(dateIso).dayOfMonth.toString()
-    val status = calendarDateStatus(dateIso, items, isOff, todayK)
+    
     val highlightColor = when {
-        isToday -> CalendarDateStatus.PLANNED.color
-        selected -> status?.color ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+        isToday -> MaterialTheme.colorScheme.primary
+        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
         else -> Color.Transparent
     }
-    val highlightAlpha = when {
-        isToday -> 1f
-        selected -> 0.22f
-        else -> 0f
-    }
+    
     val dayTextColor = when {
         isToday -> Color.White
+        isWeekend -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         else -> MaterialTheme.colorScheme.onBackground
     }
 
@@ -479,45 +524,39 @@ internal fun CalendarDayChip(
         ) {
             Box(
                 modifier = Modifier
-                    .size(if (isToday || selected) 46.dp else 38.dp)
+                    .size(if (isToday || selected) 42.dp else 34.dp)
                     .clip(CircleShape)
-                    .background(highlightColor.copy(alpha = highlightAlpha)),
+                    .then(
+                        if (isToday) {
+                            Modifier.background(MaterialTheme.colorScheme.primary)
+                        } else if (selected) {
+                            Modifier.border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
+                        } else {
+                            Modifier
+                        }
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = dayNum,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = if (isToday || selected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                        fontSize = 18.sp,
-                        color = dayTextColor,
+                        fontWeight = if (isToday || selected) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 16.sp,
+                        color = if (isToday) Color.White else dayTextColor,
                     ),
                 )
-            }
-            Spacer(Modifier.height(3.dp))
-            if (status != null) {
-                Box(
-                    Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(status.color)
-                )
-            } else {
-                Spacer(Modifier.size(7.dp))
+                if (isExamDay) {
+                    Icon(
+                        imageVector = Icons.Default.Flag,
+                        contentDescription = "Exam day",
+                        tint = PlannerAccent.Coral,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(10.dp),
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-internal fun CalendarLegendDot(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(Modifier.size(9.dp).clip(CircleShape).background(color))
-        Text(
-            label,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
     }
 }
 
@@ -532,10 +571,9 @@ private fun calendarTopicStatus(
 }
 
 private fun calendarTopicStatusLabel(status: CalendarDateStatus): String = when (status) {
-    CalendarDateStatus.PLANNED -> "Planned"
-    CalendarDateStatus.DONE -> "Done"
-    CalendarDateStatus.OVERDUE -> "Overdue"
-    CalendarDateStatus.OFF -> "Off"
+    CalendarDateStatus.PLANNED -> "To Study"
+    CalendarDateStatus.DONE -> "Completed"
+    CalendarDateStatus.OVERDUE -> "Missed"
 }
 
 private fun calendarRevisionTypeLabel(item: CalendarTopicItem): String? {
@@ -619,16 +657,22 @@ internal fun SelectedDayLogSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Day Plan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    val dateTitle = readableDate(dateIso).split(",").firstOrNull() ?: readableDate(dateIso)
+                    Text(
+                        "Your targets for $dateTitle",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                     Text(readableDate(dateIso), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        DayStatBox(value = planned, label = "Planned", modifier = Modifier.weight(1f))
-                        DayStatBox(value = done, label = "Done", modifier = Modifier.weight(1f))
+                        DayStatBox(value = planned, label = "To Study", modifier = Modifier.weight(1f))
+                        DayStatBox(value = done, label = "Completed", modifier = Modifier.weight(1f))
                         DayStatBox(value = missed, label = "Missed", modifier = Modifier.weight(1f))
                     }
 
@@ -665,23 +709,24 @@ internal fun SelectedDayLogSheet(
 private fun DayStatBox(value: Int, label: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .clip(MaterialTheme.shapes.small)
+            .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .padding(vertical = 10.dp, horizontal = 8.dp),
+            .padding(vertical = 12.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = "$value",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 ),
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
+                style = MaterialTheme.typography.labelMedium.copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
                 ),
             )
         }
@@ -704,12 +749,13 @@ private fun CompactDayTopicRow(
             .clickable(onClick = onChangeDate),
         shape = MaterialTheme.shapes.large,
         color = scheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f)),
+        shadowElevation = 2.dp,
+        tonalElevation = 1.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -718,19 +764,19 @@ private fun CompactDayTopicRow(
                     .clip(CircleShape)
                     .background(subjectDotColor(item.subjectColor)),
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     item.topicName,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     color = scheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     "${item.subjectName} · ${item.chapterName}",
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     color = scheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -738,7 +784,7 @@ private fun CompactDayTopicRow(
                 if (revisionTypeLabel != null) {
                     Text(
                         revisionTypeLabel,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = scheme.primary,
                         maxLines = 1,
@@ -746,22 +792,29 @@ private fun CompactDayTopicRow(
                     )
                 }
             }
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(12.dp))
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
                     .background(scheme.surfaceContainerHigh)
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
                 Text(
                     text = calendarTopicStatusLabel(topicStatus),
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurfaceVariant,
                     ),
                 )
             }
+            Spacer(Modifier.width(12.dp))
+            Icon(
+                imageVector = Icons.Default.CalendarMonth,
+                contentDescription = "Reschedule",
+                tint = scheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

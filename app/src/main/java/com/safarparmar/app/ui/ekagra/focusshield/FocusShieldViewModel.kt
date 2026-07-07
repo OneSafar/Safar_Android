@@ -16,7 +16,6 @@ import javax.inject.Inject
 data class FocusShieldUiState(
     val isEnabled: Boolean = false,
     val isStrictMode: Boolean = false,
-    val allowEmergencyUnlock: Boolean = true,
     val blockedPackages: Set<String> = emptySet(),
     val hasAccessibilityService: Boolean = false,
     val hasNotifications: Boolean = false,
@@ -33,7 +32,6 @@ data class AppPickerUiState(
 private data class FocusShieldSettingsState(
     val enabled: Boolean,
     val strict: Boolean,
-    val emergency: Boolean,
     val packages: Set<String>,
 )
 
@@ -51,13 +49,11 @@ class FocusShieldViewModel @Inject constructor(
     private val shieldSettings = combine(
         repo.isEnabled,
         repo.isStrictMode,
-        repo.allowEmergencyUnlock,
         repo.blockedPackages,
-    ) { enabled, strict, emergency, packages ->
+    ) { enabled, strict, packages ->
         FocusShieldSettingsState(
             enabled = enabled,
             strict = strict,
-            emergency = emergency,
             packages = packages,
         )
     }
@@ -69,7 +65,6 @@ class FocusShieldViewModel @Inject constructor(
         FocusShieldUiState(
             isEnabled = settings.enabled,
             isStrictMode = settings.strict,
-            allowEmergencyUnlock = settings.emergency,
             blockedPackages = settings.packages,
             hasAccessibilityService = FocusShieldPermissionHelper.hasAccessibilityService(app),
             hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(app),
@@ -115,7 +110,6 @@ class FocusShieldViewModel @Inject constructor(
 
     fun setEnabled(enabled: Boolean) = repo.setEnabled(enabled)
     fun setStrictMode(enabled: Boolean) = repo.setStrictMode(enabled)
-    fun setAllowEmergencyUnlock(allow: Boolean) = repo.setAllowEmergencyUnlock(allow)
 
     fun refreshPermissions() {
         // Force a re-emission by triggering one of the combine inputs

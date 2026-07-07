@@ -54,6 +54,12 @@ interface PlannerApi {
     @POST("plans/from-template")
     suspend fun createPlanFromTemplate(@Body request: CreateFromTemplateRequest): Response<StudyPlan>
 
+    @POST("plans/preview")
+    suspend fun previewPlan(@Body request: PlanPreviewRequest): Response<PlanPreviewResult>
+
+    @POST("plans/confirm")
+    suspend fun confirmPlan(@Body request: PlanConfirmRequest): Response<StudyPlan>
+
     @GET("plans/{planId}")
     suspend fun getPlan(
         @Path("planId") planId: String,
@@ -269,6 +275,51 @@ data class ReorderSyllabusRequest(
     val topicIdsByChapterId: Map<String, List<String>>? = null,
 )
 
+/**
+ * Draft → preview → confirm plan creation. `source` picks which of the other
+ * fields are required: "template" needs [templateId] (+ optional
+ * [excludeTopicKeys], a list of [subjectIndex, chapterIndex, topicIndex]
+ * tuples into the template's own array order — template topics have no
+ * stable id server-side, so exclusion is positional); "manual"/"paste" need
+ * [subjects]. Nothing is saved as a real, visible plan until confirmPlan().
+ */
+data class PlanPreviewRequest(
+    val source: String,
+    val title: String? = null,
+    val templateId: String? = null,
+    val excludeTopicKeys: List<List<Int>>? = null,
+    val subjects: List<ImportSyllabusSubjectRequest>? = null,
+    val examDate: String? = null,
+    val dailyGoal: Int? = null,
+    val offDays: List<Int> = emptyList(),
+    val strategy: String? = null,
+    val overloadMode: String? = null,
+)
+
+data class PlanPreviewResult(
+    val draftId: String,
+    val status: String,
+    val title: String? = null,
+    val examDate: String? = null,
+    val dailyGoal: Int? = null,
+    val summary: PlanPreviewSummary,
+    val calendarPreview: CalendarMap = emptyMap(),
+    val warnings: List<String> = emptyList(),
+)
+
+data class PlanPreviewSummary(
+    val subjectCount: Int,
+    val totalTopics: Int,
+    val scheduleAssigned: Int,
+    val scheduleSkipped: Int,
+    val requiredPerDay: Int? = null,
+    val daysUntilExam: Int? = null,
+)
+
+data class PlanConfirmRequest(
+    val draftId: String,
+)
+
 data class SubjectRequest(
     val name: String,
     val color: String? = null,
@@ -336,31 +387,7 @@ data class BatchTopicUpdateRequest(
     val updates: List<BatchTopicUpdateItem>,
 )
 
-data class BulkImportRequest(
-    val subjects: List<BulkImportSubjectRequest>,
-)
 
-data class BulkImportSubjectRequest(
-    val name: String,
-    val chapters: List<BulkImportChapterRequest>,
-)
-
-data class BulkImportChapterRequest(
-    val name: String,
-    val topics: List<String>,
-)
-
-data class BulkImportResponse(
-    val success: Boolean = false,
-    val subjects: Int = 0,
-    val chapters: Int = 0,
-    val topics: Int = 0,
-    val subjectsCreated: Int? = null,
-    val chaptersCreated: Int? = null,
-    val topicsCreated: Int? = null,
-    val message: String? = null,
-    val errorCode: String? = null,
-)
 
 data class StructureSyllabusRequest(
     val rawText: String,
@@ -414,6 +441,7 @@ data class SyllabusStats(
 
 data class SyllabusAiRequest(
     val aiPreview: SyllabusAiPreview,
+    val mode: String = "merge",
 )
 
 data class SyllabusAiPreview(

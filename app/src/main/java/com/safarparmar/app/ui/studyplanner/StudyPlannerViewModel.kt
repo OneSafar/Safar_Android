@@ -123,6 +123,10 @@ data class StudyPlannerUiState(
     val structuredImportError: String? = null,
     val structuredImportSuccessMessage: String? = null,
     val pendingOpenAiImport: Boolean = false,
+    /** Set when a plan was just created with "Manual mode" (user wants to pick their own
+     *  subject order). The Plan tab shows a one-time reorder sheet while this is true,
+     *  then clears it via [PlannerActions.clearPendingManualSubjectOrder]. */
+    val pendingManualSubjectOrder: Boolean = false,
     val isImporting: Boolean = false,
     val importStatus: String? = null,
     val importError: String? = null,
@@ -434,15 +438,19 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    override fun createFromTemplate(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
+    override fun createFromTemplate(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>, manualSubjectOrder: Boolean) {
         val requiredExamDate = examDate?.take(10)?.takeIf { it.isNotBlank() }
         if (requiredExamDate == null) {
             _uiState.update { it.copy(error = "Exam date is required to create a planner.") }
             return
         }
         viewModelScope.launch {
-            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, requiredExamDate, dailyGoal, offDays)
+            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, requiredExamDate, dailyGoal, offDays, manualSubjectOrder)
         }
+    }
+
+    override fun clearPendingManualSubjectOrder() {
+        _uiState.update { it.copy(pendingManualSubjectOrder = false) }
     }
 
     override fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
@@ -553,7 +561,13 @@ class StudyPlannerViewModel @Inject constructor(
         val topicWasToday = todayTopics.any { it.topicId == topicId }
         val wasDone = state.calendar.values.flatten().find { it.topicId == topicId }?.status == TopicStatus.DONE
         val beforeDoneCount = todayTopics.count { it.status == TopicStatus.DONE }
-        mutateSelected(refreshCalendar = true, refreshAnalytics = true, onSuccess = {
+        val statusMessage = when (status) {
+            TopicStatus.DONE -> "Marked done"
+            TopicStatus.TODO -> "Marked as to-do"
+            TopicStatus.REVISION_NEEDED -> "Scheduled for revision"
+            else -> "Saved"
+        }
+        mutateSelected(refreshCalendar = true, refreshAnalytics = true, successMessage = statusMessage, onSuccess = {
             if (topicWasToday && status == TopicStatus.DONE && !wasDone) {
                 checkDailyMilestones(planId, beforeDoneCount)
             }
@@ -827,19 +841,19 @@ class StudyPlannerViewModel @Inject constructor(
         _uiState.update { it.copy(structuredPreview = preview) }
     }
 
-    override fun importStructuredSyllabus() {
+    override fun importStructuredSyllabus(mode: String) {
         val preview = _uiState.value.structuredPreview ?: return
         val planId = _uiState.value.selectedPlan?.id ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isImportingStructuredSyllabus = true, structuredImportError = null, structuredImportSuccessMessage = null) }
-            when (val r = repo.applySyllabusAi(planId, preview)) {
+            when (val r = repo.applySyllabusAi(planId, preview, mode)) {
                 is Resource.Success -> {
                     _uiState.update {
                         it.copy(
                             isImportingStructuredSyllabus = false,
                             selectedPlan = r.data,
                             structuredPreview = null,
-                            structuredImportSuccessMessage = "Syllabus imported successfully!"
+                            structuredImportSuccessMessage = if (mode == "replace") "Syllabus replaced successfully!" else "Syllabus merged successfully!"
                         )
                     }
                     reloadSelected("Syllabus imported")
@@ -1050,6 +1064,7 @@ class StudyPlannerViewModel @Inject constructor(
         examDate: String?,
         dailyGoal: Int,
         offDays: List<Int>,
+        manualSubjectOrder: Boolean = false,
     ) {
         val request = CreateFromTemplateRequest(
             templateId = templateId,
@@ -1074,6 +1089,7 @@ class StudyPlannerViewModel @Inject constructor(
                         selectedPlan = r.data,
                         section = PlannerSection.PLAN,
                         message = "Plan created",
+                        pendingManualSubjectOrder = manualSubjectOrder && r.data.subjects.isNotEmpty(),
                     )
                 }
                 hydratePlanFromServerBestEffort(r.data.id)
@@ -1088,6 +1104,7 @@ class StudyPlannerViewModel @Inject constructor(
                         dailyGoal,
                         offDays,
                         successMessage = "Plan created from saved template.",
+                        manualSubjectOrder = manualSubjectOrder,
                     )
                 } else {
                     _uiState.update { it.copy(mutating = false, error = r.message) }
@@ -1144,6 +1161,7 @@ class StudyPlannerViewModel @Inject constructor(
         dailyGoal: Int,
         offDays: List<Int>,
         successMessage: String = "Plan created",
+        manualSubjectOrder: Boolean = false,
     ) {
         val template = getLocalExamTemplate(templateId)
         if (template == null) {
@@ -1196,6 +1214,7 @@ class StudyPlannerViewModel @Inject constructor(
                 selectedPlan = finalPlan,
                 message = successMessage,
                 section = PlannerSection.PLAN,
+                pendingManualSubjectOrder = manualSubjectOrder && finalPlan.subjects.isNotEmpty(),
             )
         }
         StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLAN_CREATED_TEMPLATE)

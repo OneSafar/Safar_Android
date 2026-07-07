@@ -94,6 +94,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -277,76 +278,6 @@ private data class StudyPlansListState(
     val loading: Boolean = false,
 )
 
-private data class PlannerTemplateOption(
-    val id: String,
-    val title: String,
-    val examBody: String,
-    val categoryLabel: String,
-    val description: String,
-    val topicCount: Int,
-    val dailyGoal: Int,
-    val startColor: Color,
-    val endColor: Color,
-)
-
-private data class PlannerCapacityWarning(
-    val topicCount: Int,
-    val studyDays: Int,
-    val dailyGoal: Int,
-    val requiredPerDay: Int,
-)
-
-private fun countStudyDaysUntilExam(examDateIso: String, offDays: Set<Int>): Int {
-    val examDate = runCatching { LocalDate.parse(examDateIso.take(10)) }.getOrNull() ?: return 0
-    var cursor = LocalDate.now()
-    var count = 0
-    while (cursor.isBefore(examDate)) {
-        if (cursor.dayOfWeek.value % 7 !in offDays) count += 1
-        cursor = cursor.plusDays(1)
-    }
-    return count
-}
-
-private fun buildPlannerCapacityWarning(
-    topicCount: Int,
-    examDateIso: String,
-    dailyGoal: Int,
-    offDays: Set<Int>,
-): PlannerCapacityWarning? {
-    if (topicCount <= 0 || examDateIso.isBlank()) return null
-    val studyDays = countStudyDaysUntilExam(examDateIso, offDays)
-    if (studyDays <= 0) return null
-    val goal = dailyGoal.coerceAtLeast(1)
-    val requiredPerDay = kotlin.math.ceil(topicCount.toDouble() / studyDays.toDouble()).toInt()
-    if (requiredPerDay <= goal) return null
-    return PlannerCapacityWarning(topicCount, studyDays, goal, requiredPerDay)
-}
-
-private val plannerTemplateOptions = listOf(
-    PlannerTemplateOption("ssc-cgl-tier1", "SSC CGL Tier-1", "SSC", "GOVT EXAM", "Combined Graduate Level Examination Tier-1 — 100 questions, 200 marks, 60 minutes", 233, 4, Color(0xFF233B6E), Color(0xFF345895)),
-    PlannerTemplateOption("railway-ntpc", "Railway NTPC CBT-1", "RRB", "GOVT EXAM", "Non-Technical Popular Categories CBT-1 — 100 questions, 100 marks, 90 minutes", 148, 4, Color(0xFF664014), Color(0xFF9A681E)),
-    PlannerTemplateOption("cds-2026", "CDS (Combined Defence Services) 2026", "UPSC", "DEFENCE", "UPSC Combined Defence Services written exam covering English, General Knowledge, Elementary Mathematics, and SSB preparation", 265, 5, Color(0xFF1E3A8A), Color(0xFF2563EB)),
-    PlannerTemplateOption("airforce-exams-2026", "Indian Air Force Exams 2026", "IAF", "DEFENCE", "AFCAT, NDA Air Force Wing, and AFSB/SSB preparation for Indian Air Force officer pathways", 410, 6, Color(0xFF075985), Color(0xFF0EA5E9)),
-    PlannerTemplateOption("neet-ug", "NEET UG", "NTA", "MEDICAL", "National Eligibility cum Entrance Test (UG) — 200 questions across Physics, Chemistry, and Biology", 230, 4, Color(0xFF651F38), Color(0xFF92304F)),
-    PlannerTemplateOption("jee-mains", "JEE Mains", "NTA", "ENGINEERING", "Joint Entrance Examination (Main) — 90 questions across Physics, Chemistry, and Mathematics", 217, 4, Color(0xFF39236B), Color(0xFF5A3A9D)),
-    PlannerTemplateOption("bank-po-prelims", "Bank PO Prelims", "IBPS / SBI", "BANKING", "IBPS PO / SBI PO Preliminary Exam — 100 questions, 100 marks, 60 minutes", 130, 3, Color(0xFF145447), Color(0xFF26735F)),
-)
-
-private fun resolvedPlannerTemplateOptions(
-    liveTemplates: List<ExamTemplateSummary>,
-): List<PlannerTemplateOption> {
-    val liveById = liveTemplates.associateBy { it.id }
-    return plannerTemplateOptions.map { preset ->
-        val live = liveById[preset.id]
-        preset.copy(
-            title = live?.name ?: preset.title,
-            description = live?.description ?: preset.description,
-            topicCount = live?.topicCount ?: preset.topicCount,
-            dailyGoal = live?.recommendedDailyGoal ?: preset.dailyGoal,
-        )
-    }
-}
-
 @Immutable
 private data class StudyPlannerDetailState(
     val calendar: CalendarMap = emptyMap(),
@@ -367,6 +298,7 @@ private data class StudyPlannerDetailState(
     val plannerAchievements: List<Achievement> = emptyList(),
     val planningMode: String = "flex",
     val preferredStudyStrategy: String = "interleaved",
+    val pendingManualSubjectOrder: Boolean = false,
     val activePlanTab: StudyPlannerTab = StudyPlannerTab.TODAY,
 )
 
@@ -381,6 +313,7 @@ private data class StudyPlannerHomeTarget(
 fun StudyPlannerScreen(
     currentRoute: String = Routes.STUDY_PLANNER,
     isDarkTheme: Boolean = false,
+    planId: String? = null,
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
@@ -389,6 +322,16 @@ fun StudyPlannerScreen(
     val premiumViewModel: com.safarparmar.app.ui.premium.PremiumViewModel = hiltViewModel()
     val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val canUsePremiumPlannerFeatures = premiumStatus.hasAnyPaidAccess || premiumStatus.canUseStudyPlannerInsights
+    val actionsForPlanId: PlannerActions = viewModel
+    androidx.compose.runtime.LaunchedEffect(planId) {
+        // Confirming a new plan (created via the CreatePlan wizard) navigates back here
+        // with ?planId=<confirmed id> so the user lands straight on it — on Calendar,
+        // not the exam list or My Plan, per the wizard's "save & land on Calendar" step.
+        planId?.let {
+            actionsForPlanId.openPlan(it)
+            actionsForPlanId.setSection(PlannerSection.CALENDAR)
+        }
+    }
     val initialChromeState = remember(viewModel) {
         val state = viewModel.uiState.value
         StudyPlannerChromeState(
@@ -458,6 +401,7 @@ fun StudyPlannerScreen(
             plannerAchievements = state.plannerAchievements,
             planningMode = state.planningMode,
             preferredStudyStrategy = state.preferredStudyStrategy,
+            pendingManualSubjectOrder = state.pendingManualSubjectOrder,
             activePlanTab = state.activePlanTab,
         )
     }
@@ -483,6 +427,7 @@ fun StudyPlannerScreen(
                     plannerAchievements = state.plannerAchievements,
                     planningMode = state.planningMode,
                     preferredStudyStrategy = state.preferredStudyStrategy,
+                    pendingManualSubjectOrder = state.pendingManualSubjectOrder,
                     activePlanTab = state.activePlanTab,
                 )
             }
@@ -892,53 +837,14 @@ private fun StudyPlansScreen(
     actions: PlannerActions,
     canUsePremiumPlannerFeatures: Boolean,
     onUpgrade: () -> Unit,
+    onNavigate: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onAdvanceTour: () -> Unit = {},
 ) {
-    var showCreate by remember { mutableStateOf(false) }
-    var createMode by remember { mutableStateOf("template") }
-    var showTemplateCatalog by remember { mutableStateOf(false) }
-    var selectedTemplateForSetup by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<StudyPlan?>(null) }
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val quickStartState = remember(
-        state.plans,
-        state.templates,
-        state.loading,
-        importState.isImporting,
-        importState.importStatus,
-        importState.importError,
-        importState.preferredStudyStrategy,
-    ) {
-        StudyPlannerUiState(
-            plans = state.plans,
-            templates = state.templates,
-            loading = state.loading,
-            isImporting = importState.isImporting,
-            importStatus = importState.importStatus,
-            importError = importState.importError,
-            preferredStudyStrategy = importState.preferredStudyStrategy,
-        )
-    }
 
-    LaunchedEffect(importState.isImporting, importState.importResultSummary, importState.importError) {
-        if (showCreate && !importState.isImporting && (importState.importResultSummary != null || importState.importError != null)) {
-            showCreate = false
-        }
-    }
-
-    if (showCreate) {
-        QuickStartSheet(
-            state = quickStartState,
-            actions = actions,
-            initialMode = createMode,
-            fixedTemplateId = selectedTemplateForSetup,
-            canUsePremiumPlannerFeatures = canUsePremiumPlannerFeatures,
-            onUpgrade = onUpgrade,
-            onDismiss = { if (!quickStartState.isImporting) showCreate = false },
-        )
-    }
     pendingDelete?.let { plan ->
         ConfirmActionDialog(
             title = "Delete plan?",
@@ -948,22 +854,7 @@ private fun StudyPlansScreen(
         )
     }
 
-    BackHandler(enabled = showTemplateCatalog) { showTemplateCatalog = false }
-
-    if (showTemplateCatalog) {
-        PlannerTemplateCatalogScreen(
-            templates = resolvedPlannerTemplateOptions(state.templates),
-            canUsePremiumPlannerFeatures = canUsePremiumPlannerFeatures,
-            onBack = { showTemplateCatalog = false },
-            onSelectTemplate = { template ->
-                selectedTemplateForSetup = template.id
-                createMode = "template"
-                showTemplateCatalog = false
-                showCreate = true
-            },
-            onUpgrade = onUpgrade,
-        )
-    } else SafarPullRefreshBox(
+    SafarPullRefreshBox(
         isRefreshing = state.loading && state.plans.isNotEmpty(),
         onRefresh = { actions.refreshPlans() },
         modifier = Modifier.fillMaxSize(),
@@ -1024,7 +915,7 @@ private fun StudyPlansScreen(
                         action = "Plan More Exams",
                         onAction = {
                             onAdvanceTour()
-                            showTemplateCatalog = true
+                            onNavigate(Routes.CREATE_PLAN)
                         },
                     )
                 }
@@ -1047,7 +938,7 @@ private fun StudyPlansScreen(
                     colors = listOf(Color(0xFF3D257B), Color(0xFF5B3B9B)),
                     onClick = {
                         onAdvanceTour()
-                        showTemplateCatalog = true
+                        onNavigate(Routes.CREATE_PLAN)
                     },
                 )
             }
@@ -1059,9 +950,7 @@ private fun StudyPlansScreen(
                     colors = listOf(Color(0xFF174777), Color(0xFF29619C)),
                     onClick = {
                         onAdvanceTour()
-                        selectedTemplateForSetup = null
-                        createMode = "custom"
-                        showCreate = true
+                        onNavigate(Routes.CREATE_PLAN)
                     },
                 )
             }
@@ -1363,7 +1252,7 @@ private fun PlannerThemeActionCard(
 }
 
 @Composable
-private fun PremiumPlannerGateCard(
+internal fun PremiumPlannerGateCard(
     title: String,
     body: String,
     action: String,
@@ -1395,61 +1284,6 @@ private fun PremiumPlannerGateCard(
             TextButton(onClick = onUpgrade) {
                 Text(action, fontWeight = FontWeight.Bold)
             }
-        }
-    }
-}
-
-@Composable
-private fun PlannerTemplateCatalogScreen(
-    templates: List<PlannerTemplateOption>,
-    canUsePremiumPlannerFeatures: Boolean,
-    onBack: () -> Unit,
-    onSelectTemplate: (PlannerTemplateOption) -> Unit,
-    onUpgrade: () -> Unit,
-) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to My Target Exams")
-                }
-                Column {
-                    Text("Plan More Exams", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-                    Text(
-                        if (canUsePremiumPlannerFeatures) "Pick a template to set up your next plan." else "Templates are included with Safar Premium.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-        if (!canUsePremiumPlannerFeatures) {
-            item {
-                PremiumPlannerGateCard(
-                    title = "Templates are premium",
-                    body = "Create custom plans for free, or start Premium to use ready-made exam templates.",
-                    action = "Start 7-day free trial",
-                    onUpgrade = onUpgrade,
-                )
-            }
-        }
-        items(templates, key = { it.id }) { template ->
-            PlannerTemplateSelectionCard(
-                template = template,
-                selected = false,
-                locked = !canUsePremiumPlannerFeatures,
-                onClick = {
-                    if (canUsePremiumPlannerFeatures) onSelectTemplate(template) else onUpgrade()
-                },
-            )
         }
     }
 }
@@ -1743,327 +1577,9 @@ private fun PlanCardCompact(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun QuickStartSheet(
-    state: StudyPlannerUiState,
-    actions: PlannerActions,
-    initialMode: String = "template",
-    fixedTemplateId: String? = null,
-    canUsePremiumPlannerFeatures: Boolean,
-    onUpgrade: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var mode by remember(initialMode, fixedTemplateId, canUsePremiumPlannerFeatures) {
-        mutableStateOf(
-            when {
-                fixedTemplateId != null -> "template"
-                initialMode == "template" && !canUsePremiumPlannerFeatures -> "custom"
-                else -> initialMode
-            }
-        )
-    }
-    val templateOptions = remember(state.templates) { resolvedPlannerTemplateOptions(state.templates) }
-    var templateId by remember(templateOptions, fixedTemplateId) { mutableStateOf(fixedTemplateId ?: templateOptions.firstOrNull()?.id.orEmpty()) }
-    var title by remember { mutableStateOf("") }
-    var examType by remember { mutableStateOf("") }
-    var examDate by remember { mutableStateOf("") }
-    var dailyGoal by remember { mutableStateOf("3") }
-    var pasteSyllabus by remember { mutableStateOf("") }
-    var showSyllabusPaste by remember { mutableStateOf(false) }
-    var examDateError by remember { mutableStateOf(false) }
-    // Weekly off-days aren't chosen here — they default to none and stay editable
-    // later from Plan Settings, so this first screen doesn't grow past one step.
-    val offDays = remember { mutableStateOf(setOf<Int>()) }
-    val selectedTemplate = templateOptions.firstOrNull { it.id == templateId }
-    var capacityWarning by remember { mutableStateOf<PlannerCapacityWarning?>(null) }
-    var showDuplicateNameWarning by remember { mutableStateOf(false) }
-    var preferredStrategy by remember { mutableStateOf(state.preferredStudyStrategy) }
-
-    fun hasDuplicatePlanTitle(planTitle: String): Boolean {
-        val normalizedTitle = planTitle.trim()
-        if (normalizedTitle.isBlank()) return false
-        return state.plans.any { existing ->
-            existing.title.trim().equals(normalizedTitle, ignoreCase = true)
-        }
-    }
-
-    LaunchedEffect(fixedTemplateId, selectedTemplate) {
-        if (fixedTemplateId != null && selectedTemplate != null) {
-            title = selectedTemplate.title
-            examType = selectedTemplate.title
-            dailyGoal = selectedTemplate.dailyGoal.toString()
-        }
-    }
-
-    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
-    val clampedDensity = remember(currentDensity) {
-        androidx.compose.ui.unit.Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
-
-    fun submitPlan(skipCapacityWarning: Boolean = false, allowDuplicateName: Boolean = false) {
-        val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
-        val requiredExamDate = examDate.take(10).takeIf { it.isNotBlank() }
-        if (requiredExamDate == null) {
-            examDateError = true
-            return
-        }
-        val topicCount = if (mode == "template") {
-            selectedTemplate?.topicCount ?: 0
-        } else {
-            parseBulkSyllabus(pasteSyllabus).sumOf { it.second.size }
-        }
-        if (!skipCapacityWarning) {
-            val warning = buildPlannerCapacityWarning(topicCount, examDate, goal, offDays.value)
-            if (warning != null) {
-                capacityWarning = warning
-                return
-            }
-        }
-
-        val hasSyllabusImport = mode == "custom" && pasteSyllabus.isNotBlank()
-        if (mode == "template" && !canUsePremiumPlannerFeatures) {
-            onUpgrade()
-            return
-        }
-        val planTitle = title.trim().ifBlank { "Study Plan" }
-        if (!allowDuplicateName && hasDuplicatePlanTitle(planTitle)) {
-            showDuplicateNameWarning = true
-            return
-        }
-        if (mode == "template" && templateId.isNotBlank()) {
-            actions.createFromTemplate(templateId, planTitle, requiredExamDate, goal, offDays.value.toList())
-            onDismiss()
-        } else {
-            actions.createPlan(
-                title = planTitle,
-                examType = examType.ifBlank { null },
-                examDate = requiredExamDate,
-                dailyGoal = goal,
-                offDays = offDays.value.toList(),
-                syllabusText = pasteSyllabus,
-            )
-            if (!hasSyllabusImport) onDismiss()
-        }
-    }
-
-    capacityWarning?.let { warning ->
-        AlertDialog(
-            onDismissRequest = { capacityWarning = null },
-            icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-            title = { Text("This plan may be too tight") },
-            text = {
-                Text(
-                    "You have ${warning.topicCount} topics and about ${warning.studyDays} study days. " +
-                        "To finish before the exam, this needs around ${warning.requiredPerDay} topics/day, " +
-                        "but your current setting is ${warning.dailyGoal}.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    capacityWarning = null
-                    submitPlan(skipCapacityWarning = true)
-                }) {
-                    Text("Continue anyway")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { capacityWarning = null }) {
-                    Text("Go back")
-                }
-            },
-        )
-    }
-
-    if (showDuplicateNameWarning) {
-        AlertDialog(
-            onDismissRequest = { showDuplicateNameWarning = false },
-            title = { Text("Duplicate Exam Plan") },
-            text = { Text("You already have an Exam Plan with the Same Name. Do you still want to continue ?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDuplicateNameWarning = false
-                        submitPlan(skipCapacityWarning = true, allowDuplicateName = true)
-                    },
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDuplicateNameWarning = false }) {
-                    Text("Cancel")
-                }
-            },
-        )
-    }
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-            Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                PlannerSectionHeader(
-                    title = "New study plan",
-                    subtitle = "A few quick steps and you're set.",
-                )
-                if (fixedTemplateId == null) {
-                    Text("Choose how you want to get started", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
-                    CreatePlanModeCard(
-                        icon = Icons.Default.School,
-                        title = "Use a template",
-                        subtitle = "SSC, UPSC, Railways, Defence — ready to go",
-                        selected = mode == "template",
-                        onClick = { mode = "template" },
-                    )
-                    CreatePlanModeCard(
-                        icon = Icons.Default.Edit,
-                        title = "Build it myself",
-                        subtitle = "Add your own subjects and topics",
-                        selected = mode == "custom",
-                        onClick = { mode = "custom" },
-                    )
-                }
-                if (mode == "template") {
-                    if (!canUsePremiumPlannerFeatures) {
-                        PremiumPlannerGateCard(
-                            title = "Templates are premium",
-                            body = "You can still create a custom plan manually for free.",
-                            action = "Start 7-day free trial",
-                            onUpgrade = onUpgrade,
-                        )
-                    }
-                    if (fixedTemplateId != null && selectedTemplate != null) {
-                        Text(
-                            text = selectedTemplate.title,
-                            modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    } else {
-                        Text("Choose an exam template", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
-                        templateOptions.forEach { template ->
-                            PlannerTemplateSelectionCard(
-                                template = template,
-                                selected = templateId == template.id,
-                                locked = !canUsePremiumPlannerFeatures,
-                                onClick = {
-                                    if (canUsePremiumPlannerFeatures) {
-                                        templateId = template.id
-                                        title = template.title
-                                        examType = template.title
-                                        dailyGoal = template.dailyGoal.toString()
-                                    } else {
-                                        onUpgrade()
-                                    }
-                                },
-                            )
-                        }
-                    }
-                } else {
-                    OutlinedTextField(value = examType, onValueChange = { examType = it }, label = { Text("Exam name") }, modifier = Modifier.fillMaxWidth())
-                    SyllabusPasteStep(
-                        expanded = showSyllabusPaste,
-                        onToggle = { showSyllabusPaste = !showSyllabusPaste },
-                        value = pasteSyllabus,
-                        onValueChange = { pasteSyllabus = it },
-                        topicsDetected = parseBulkSyllabus(pasteSyllabus).sumOf { it.second.size },
-                    )
-                }
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Plan title") }, modifier = Modifier.fillMaxWidth())
-                PlannerExamDateField(
-                    examDateIso = examDate,
-                    onExamDateChange = {
-                        examDate = it
-                        examDateError = false
-                    },
-                    isError = examDateError,
-                )
-                if (examDateError) {
-                    Text(
-                        text = "Exam date is required to create a planner.",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                OutlinedTextField(value = dailyGoal, onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) }, label = { Text("Topics per day") }, modifier = Modifier.fillMaxWidth())
-                Text("How do you like to study?", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
-                StudyStyleOption(
-                    title = "Mixed bag",
-                    body = "Mix subjects daily.",
-                    selected = preferredStrategy == "interleaved",
-                    onClick = {
-                        preferredStrategy = "interleaved"
-                        actions.setPreferredStudyStrategy("interleaved")
-                    },
-                )
-                StudyStyleOption(
-                    title = "Deep focus",
-                    body = "Finish topics in the same order as your syllabus.",
-                    selected = preferredStrategy == "sequential",
-                    onClick = {
-                        preferredStrategy = "sequential"
-                        actions.setPreferredStudyStrategy("sequential")
-                    },
-                )
-                if (state.isImporting) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    Text(
-                        text = state.importStatus ?: "Importing syllabus...",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 4.dp),
-                    )
-                }
-                state.importError?.let { err ->
-                    Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    if (mode == "custom" && pasteSyllabus.isNotBlank()) {
-                        TextButton(
-                            onClick = {
-                                val goal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
-                                val requiredExamDate = examDate.take(10).takeIf { it.isNotBlank() }
-                                if (requiredExamDate == null) {
-                                    examDateError = true
-                                    return@TextButton
-                                }
-                                actions.createPlan(
-                                    title = title.ifBlank { "Study Plan" },
-                                    examType = examType.ifBlank { null },
-                                    examDate = requiredExamDate,
-                                    dailyGoal = goal,
-                                    offDays = offDays.value.toList(),
-                                    syllabusText = pasteSyllabus,
-                                )
-                            },
-                            enabled = !state.isImporting,
-                        ) { Text("Retry syllabus import") }
-                    }
-                }
-                Button(
-                    onClick = {
-                        submitPlan()
-                    },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                    shape = ButtonDefaults.shape,
-                    enabled = !state.isImporting,
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Build my plan")
-                }
-                Spacer(Modifier.height(16.dp))
-            }
-        }
-    }
-}
-
 /** One of the two top-level "how do you want to start" choices in the New Study Plan sheet. */
 @Composable
-private fun CreatePlanModeCard(
+internal fun CreatePlanModeCard(
     icon: ImageVector,
     title: String,
     subtitle: String,
@@ -2098,142 +1614,6 @@ private fun CreatePlanModeCard(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, color = scheme.onSurface)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-            }
-        }
-    }
-}
-
-/**
- * "Add topics" step for a custom plan — a clearly-labeled expandable row instead of a
- * small button with a parenthetical, so pasting a syllabus reads as a real step, not a
- * hidden option.
- */
-@Composable
-private fun SyllabusPasteStep(
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    value: String,
-    onValueChange: (String) -> Unit,
-    topicsDetected: Int,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = scheme.surfaceContainerLow,
-    ) {
-        Column(Modifier.padding(4.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onToggle)
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null, tint = scheme.primary)
-                Column(Modifier.weight(1f)) {
-                    Text("Add your syllabus", fontWeight = FontWeight.Bold, color = scheme.onSurface)
-                    Text("Optional — paste it now or add topics later.", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    tint = scheme.onSurfaceVariant,
-                )
-            }
-            if (expanded) {
-                Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedTextField(value = value, onValueChange = onValueChange, label = { Text("Paste syllabus") }, minLines = 4, modifier = Modifier.fillMaxWidth())
-                    Text("$topicsDetected topics detected", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlannerTemplateSelectionCard(
-    template: PlannerTemplateOption,
-    selected: Boolean,
-    locked: Boolean = false,
-    onClick: () -> Unit,
-) {
-    val cardShape = RoundedCornerShape(22.dp)
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(cardShape)
-            .clickable(onClick = onClick),
-        shape = cardShape,
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(
-            width = if (selected) 2.dp else 1.dp,
-            color = if (selected) Color.White else Color.White.copy(alpha = 0.24f),
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .background(Brush.linearGradient(listOf(template.startColor, template.endColor)))
-                .fillMaxWidth()
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(color = Color.White.copy(alpha = 0.14f), shape = CircleShape) {
-                    Icon(
-                        imageVector = Icons.Default.School,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.padding(10.dp).size(24.dp),
-                    )
-                }
-                Surface(color = Color(0xFF315AAB).copy(alpha = 0.9f), shape = CircleShape) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        if (locked) {
-                            Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-                        }
-                        Text(
-                            text = if (locked) "PREMIUM" else template.categoryLabel,
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                        )
-                    }
-                }
-            }
-            Text(
-                text = template.title,
-                color = Color.White,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "${template.topicCount} topics  •  ${template.examBody}  •  ${template.dailyGoal}/day",
-                color = Color.White.copy(alpha = 0.94f),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-            )
-            if (selected) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                    Text("Selected", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                }
-            } else if (locked) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                    Text("Unlock with Premium", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                }
             }
         }
     }
@@ -2320,6 +1700,7 @@ private fun PlannerHome(
                     actions = actions,
                     canUsePremiumPlannerFeatures = canUsePremiumInsights,
                     onUpgrade = { onNavigate(Routes.PREMIUM) },
+                    onNavigate = onNavigate,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     onAdvanceTour = onAdvanceTour,
@@ -2332,6 +1713,7 @@ private fun PlannerHome(
                         actions = actions,
                         canUsePremiumPlannerFeatures = canUsePremiumInsights,
                         onUpgrade = { onNavigate(Routes.PREMIUM) },
+                        onNavigate = onNavigate,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                         onAdvanceTour = onAdvanceTour,
@@ -2351,6 +1733,7 @@ private fun PlannerHome(
                         onboardingCompletedSteps = detailState.onboardingCompletedSteps,
                         planningMode = detailState.planningMode,
                         preferredStudyStrategy = detailState.preferredStudyStrategy,
+                        pendingManualSubjectOrder = detailState.pendingManualSubjectOrder,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
@@ -2465,245 +1848,16 @@ internal fun PlannerTopicDetailSheet(
     ref: TopicRef,
     openNonce: Int,
     actions: PlannerActions,
-    swapCandidates: List<TopicRef> = emptyList(),
     onDismiss: () -> Unit,
 ) {
     var name by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.name) }
     var notes by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.notes.orEmpty()) }
     var status by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.status) }
-    var showSwapPicker by remember(ref.topic.id, openNonce) { mutableStateOf(false) }
-    var swapSubjectKey by remember(ref.topic.id, openNonce) { mutableStateOf<String?>(null) }
-    var swapChapterKey by remember(ref.topic.id, openNonce) { mutableStateOf<String?>(null) }
-    var swapSearchQuery by remember(ref.topic.id, openNonce) { mutableStateOf("") }
-    val currentDate = ref.topic.plannedDate?.take(10).orEmpty()
-    val dateSwapCandidates = remember(ref.topic.id, currentDate, swapCandidates) {
-        swapCandidates
-            .filter {
-                it.topic.id != ref.topic.id &&
-                    !it.topic.plannedDate.isNullOrBlank() &&
-                    it.topic.plannedDate?.take(10) != currentDate
-            }
-            .sortedWith(
-                compareBy<TopicRef> { it.topic.plannedDate?.take(10).orEmpty() }
-                    .thenBy { it.topic.name.lowercase() },
-            )
-    }
-    data class SwapSubjectGroup(val key: String, val name: String, val refs: List<TopicRef>)
-    data class SwapChapterGroup(val key: String, val name: String, val refs: List<TopicRef>)
-    val swapSubjectGroups = remember(dateSwapCandidates) {
-        dateSwapCandidates
-            .groupBy { it.subject.id.ifBlank { it.subject.name } }
-            .map { (key, refs) -> SwapSubjectGroup(key, refs.first().subject.name, refs) }
-            .sortedBy { it.name.lowercase() }
-    }
-    val selectedSwapSubject = remember(swapSubjectGroups, swapSubjectKey) {
-        swapSubjectGroups.firstOrNull { it.key == swapSubjectKey }
-    }
-    val swapChapterGroups = remember(selectedSwapSubject) {
-        selectedSwapSubject?.refs
-            .orEmpty()
-            .groupBy { it.chapter.id.ifBlank { it.chapter.name } }
-            .map { (key, refs) -> SwapChapterGroup(key, refs.first().chapter.name, refs) }
-            .sortedBy { it.name.lowercase() }
-    }
-    val selectedSwapChapter = remember(swapChapterGroups, swapChapterKey) {
-        swapChapterGroups.firstOrNull { it.key == swapChapterKey }
-    }
-    val filteredSwapTopics = remember(selectedSwapChapter, swapSearchQuery) {
-        val refs = selectedSwapChapter?.refs.orEmpty()
-        if (swapSearchQuery.isBlank()) refs else {
-            val q = swapSearchQuery.lowercase()
-            refs.filter { it.topic.name.lowercase().contains(q) }
-        }
-    }
     val currentDensity = androidx.compose.ui.platform.LocalDensity.current
     val clampedDensity = remember(currentDensity) {
         androidx.compose.ui.unit.Density(
             density = currentDensity.density,
             fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
-    if (showSwapPicker) {
-        AlertDialog(
-            onDismissRequest = { showSwapPicker = false },
-            title = { Text("Swap planned date") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Select subject, chapter, then the scheduled topic to exchange dates with.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        AssistChip(
-                            onClick = {
-                                swapSubjectKey = null
-                                swapChapterKey = null
-                                swapSearchQuery = ""
-                            },
-                            label = { Text("Subject") },
-                        )
-                        AssistChip(
-                            onClick = {
-                                swapChapterKey = null
-                                swapSearchQuery = ""
-                            },
-                            enabled = selectedSwapSubject != null,
-                            label = { Text(selectedSwapSubject?.name ?: "Chapter", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        )
-                        AssistChip(
-                            onClick = {},
-                            enabled = selectedSwapChapter != null,
-                            label = { Text(selectedSwapChapter?.name ?: "Topic", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        )
-                    }
-
-                    when {
-                        selectedSwapSubject == null -> {
-                            LazyColumn(
-                                modifier = Modifier.heightIn(max = 360.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                items(swapSubjectGroups, key = { it.key }) { group ->
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(MaterialTheme.shapes.medium)
-                                            .clickable {
-                                                swapSubjectKey = group.key
-                                                swapChapterKey = null
-                                                swapSearchQuery = ""
-                                            },
-                                        shape = MaterialTheme.shapes.medium,
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                                    ) {
-                                        Row(
-                                            Modifier.padding(12.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        ) {
-                                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(group.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                                val chapterCount = group.refs.map { it.chapter.id.ifBlank { it.chapter.name } }.distinct().size
-                                                Text(
-                                                    "$chapterCount chapters • ${group.refs.size} scheduled topics",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                            }
-                                            Icon(Icons.Default.ChevronRight, contentDescription = null)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        selectedSwapChapter == null -> {
-                            LazyColumn(
-                                modifier = Modifier.heightIn(max = 360.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                items(swapChapterGroups, key = { it.key }) { group ->
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(MaterialTheme.shapes.medium)
-                                            .clickable {
-                                                swapChapterKey = group.key
-                                                swapSearchQuery = ""
-                                            },
-                                        shape = MaterialTheme.shapes.medium,
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                                    ) {
-                                        Row(
-                                            Modifier.padding(12.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        ) {
-                                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(group.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                                Text(
-                                                    "${group.refs.size} scheduled topics",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                            }
-                                            Icon(Icons.Default.ChevronRight, contentDescription = null)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else -> {
-                            OutlinedTextField(
-                                value = swapSearchQuery,
-                                onValueChange = { swapSearchQuery = it },
-                                placeholder = { Text("Search topics in this chapter") },
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                                trailingIcon = {
-                                    if (swapSearchQuery.isNotBlank()) {
-                                        IconButton(onClick = { swapSearchQuery = "" }) {
-                                            Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(18.dp))
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                            )
-                            LazyColumn(
-                                modifier = Modifier.heightIn(max = 320.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                if (filteredSwapTopics.isEmpty()) {
-                                    item {
-                                        Text(
-                                            "No matching topics found in this chapter",
-                                            modifier = Modifier.fillMaxWidth().padding(20.dp),
-                                            textAlign = TextAlign.Center,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
-                                items(filteredSwapTopics, key = { it.topic.id }) { candidate ->
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(MaterialTheme.shapes.medium)
-                                            .clickable {
-                                                actions.swapTopicDates(ref.topic.id, candidate.topic.id)
-                                                showSwapPicker = false
-                                                onDismiss()
-                                            },
-                                        shape = MaterialTheme.shapes.medium,
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                                    ) {
-                                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text(
-                                                text = candidate.topic.name,
-                                                fontWeight = FontWeight.SemiBold,
-                                                maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                            Text(
-                                                text = readableDate(candidate.topic.plannedDate),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showSwapPicker = false }) {
-                    Text("Cancel")
-                }
-            },
         )
     }
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -2714,14 +1868,6 @@ internal fun PlannerTopicDetailSheet(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     plannerTopicStatusSheetChips.forEach { st ->
                         FilterChip(selected = status == st, onClick = { status = st }, label = { Text(plannerTopicStatusDisplayLabel(st)) })
-                    }
-                }
-                if (currentDate.isNotBlank() && dateSwapCandidates.isNotEmpty()) {
-                    OutlinedButton(
-                        onClick = { showSwapPicker = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Swap Date")
                     }
                 }
                 OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, minLines = 3, modifier = Modifier.fillMaxWidth())
@@ -2993,17 +2139,6 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
     }
 }
 
-@Composable internal fun StatusDot(status: TopicStatus) {
-    val color = when (status) {
-        TopicStatus.TODO -> MaterialTheme.colorScheme.outline
-        TopicStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
-        TopicStatus.DONE -> MaterialTheme.colorScheme.tertiary
-        TopicStatus.REVISION_NEEDED -> MaterialTheme.colorScheme.secondary
-        else -> MaterialTheme.colorScheme.outline
-    }
-    Box(Modifier.size(12.dp).clip(CircleShape).background(color))
-}
-
 @Composable internal fun PlannerSurface(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
     Card(
         modifier = modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
@@ -3035,42 +2170,6 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
             Button(onClick = onAction, shape = ButtonDefaults.shape) { Text(action) }
         }
     }
-}
-
-@Composable internal fun TextInputDialog(title: String, label: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
-    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
-    val clampedDensity = remember(currentDensity) {
-        androidx.compose.ui.unit.Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) { Text(title) } },
-        text = {
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-                OutlinedTextField(
-                    text,
-                    { text = it },
-                    label = { Text(label) },
-                    supportingText = { if (text.isBlank()) Text("Please type a name first") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = {
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-                TextButton(enabled = text.trim().length >= 2, onClick = { onConfirm(text.trim()) }) { Text("Save") }
-            }
-        },
-        dismissButton = {
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-            }
-        },
-    )
 }
 
 @Composable internal fun ConfirmActionDialog(title: String, body: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
@@ -3119,16 +2218,12 @@ internal fun SyllabusFullImportCard(
     var mode by remember(aiImportEnabled, canUseAiImport) { mutableStateOf(if (aiImportEnabled && canUseAiImport) "ai" else "manual") }
     var showManualGuide by remember { mutableStateOf(false) }
     var showManualImportChoice by remember { mutableStateOf(false) }
+    var showAiImportChoice by remember { mutableStateOf(false) }
     val manualSyllabusExample = remember {
         """
-        Subject: Maths
-        Chapter: Algebra
-        Topic: Linear Equations
-        Topics: Quadratic Equations, Polynomials
-
-        Subject: Science
-        Unit: Physics
-        Topic: Motion
+        Maths > Algebra > Linear Equations
+        Maths > Algebra > Quadratic Equations
+        Science > Physics > Motion
         """.trimIndent()
     }
     val parsed = remember(text) { parseBulkSubjectsFromTxt(text) }
@@ -3161,7 +2256,7 @@ internal fun SyllabusFullImportCard(
         )
     }
     if (showManualImportChoice) {
-        ManualSyllabusImportChoiceSheet(
+        SyllabusImportChoiceSheet(
             topicCount = topicCount,
             chapterCount = chapterCount,
             onDismiss = { showManualImportChoice = false },
@@ -3175,17 +2270,34 @@ internal fun SyllabusFullImportCard(
             },
         )
     }
+    if (showAiImportChoice) {
+        val aiTopicCount = preview?.stats?.topicCount ?: 0
+        val aiChapterCount = preview?.stats?.chapterCount ?: 0
+        SyllabusImportChoiceSheet(
+            topicCount = aiTopicCount,
+            chapterCount = aiChapterCount,
+            onDismiss = { showAiImportChoice = false },
+            onMerge = {
+                showAiImportChoice = false
+                actions.importStructuredSyllabus("merge")
+            },
+            onReplace = {
+                showAiImportChoice = false
+                actions.importStructuredSyllabus("replace")
+            },
+        )
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        color = scheme.surfaceContainerLowest,
+        color = Color(0xFFF5F3EF),
         border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.55f)),
         shadowElevation = 1.dp,
     ) {
         Column(
             Modifier
-                .background(scheme.surfaceContainerLowest)
+                .background(Color(0xFFF5F3EF))
                 .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -3198,7 +2310,7 @@ internal fun SyllabusFullImportCard(
                 )
                 Text(
                     if (hasExistingSyllabus) {
-                        "Merge new topics or replace the current syllabus when needed."
+                        "Add new topics or change your old syllabus easily."
                     } else {
                         "Paste your syllabus and SAFAR will turn it into subjects, chapters, and topics."
                     },
@@ -3226,7 +2338,7 @@ internal fun SyllabusFullImportCard(
                     },
                     placeholder = {
                         Text(
-                            "Paste your syllabus text...",
+                            "Paste your syllabus here...",
                             color = scheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -3243,27 +2355,34 @@ internal fun SyllabusFullImportCard(
                         cursorColor = scheme.primary,
                         focusedBorderColor = scheme.primary,
                         unfocusedBorderColor = scheme.outline,
-                        focusedContainerColor = scheme.surface,
-                        unfocusedContainerColor = scheme.surface,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
                     )
                 )
+                val isAiBtnEnabled = text.isNotBlank() && !state.isStructuringSyllabus && !state.isImportingStructuredSyllabus
+                val aiBtnGradient = if (isAiBtnEnabled) {
+                    Brush.horizontalGradient(colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
+                } else {
+                    Brush.horizontalGradient(colors = listOf(scheme.onSurface.copy(alpha = 0.12f), scheme.onSurface.copy(alpha = 0.12f)))
+                }
                 Button(
                     onClick = { actions.structureSyllabusPreview(text) },
-                    enabled = text.isNotBlank() && !state.isStructuringSyllabus && !state.isImportingStructuredSyllabus,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    enabled = isAiBtnEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp)
+                        .background(aiBtnGradient, shape = RoundedCornerShape(14.dp)),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = scheme.primary,
-                        contentColor = scheme.onPrimary,
-                        disabledContainerColor = scheme.onSurface.copy(alpha = 0.12f),
-                        disabledContentColor = scheme.onSurface.copy(alpha = 0.38f),
+                        containerColor = Color.Transparent,
+                        contentColor = if (isAiBtnEnabled) Color.White else scheme.onSurface.copy(alpha = 0.38f)
                     )
                 ) {
                     if (state.isStructuringSyllabus) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
-                            color = scheme.onPrimary,
+                            color = Color.White,
                         )
                         Spacer(Modifier.width(8.dp))
                         Text("Organizing your syllabus...", style = MaterialTheme.typography.labelLarge)
@@ -3271,6 +2390,7 @@ internal fun SyllabusFullImportCard(
                         Icon(
                             imageVector = Icons.Rounded.AutoAwesome,
                             contentDescription = null,
+                            tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(8.dp))
@@ -3287,14 +2407,27 @@ internal fun SyllabusFullImportCard(
                         isImporting = state.isImportingStructuredSyllabus,
                         onPreviewChange = actions::updateStructuredPreview,
                     )
+                    val isAddToPlanEnabled = preview.subjects.isNotEmpty() && !state.isImportingStructuredSyllabus
+                    val addToPlanGradient = if (isAddToPlanEnabled) {
+                        Brush.horizontalGradient(colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
+                    } else {
+                        Brush.horizontalGradient(colors = listOf(scheme.onSurface.copy(alpha = 0.12f), scheme.onSurface.copy(alpha = 0.12f)))
+                    }
                     Button(
-                        onClick = { actions.importStructuredSyllabus() },
-                        enabled = preview.subjects.isNotEmpty() && !state.isImportingStructuredSyllabus,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = ButtonDefaults.shape,
+                        onClick = { if (hasExistingSyllabus) showAiImportChoice = true else actions.importStructuredSyllabus("merge") },
+                        enabled = isAddToPlanEnabled,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                            .background(addToPlanGradient, shape = RoundedCornerShape(14.dp)),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = if (isAddToPlanEnabled) Color.White else scheme.onSurface.copy(alpha = 0.38f)
+                        ),
                     ) {
                         if (state.isImportingStructuredSyllabus) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
                             Spacer(Modifier.width(8.dp))
                             Text("Adding syllabus to your plan...")
                         } else {
@@ -3340,8 +2473,8 @@ internal fun SyllabusFullImportCard(
                         cursorColor = scheme.primary,
                         focusedBorderColor = scheme.primary,
                         unfocusedBorderColor = scheme.primary.copy(alpha = 0.32f),
-                        focusedContainerColor = scheme.surface,
-                        unfocusedContainerColor = scheme.surface,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
                     ),
                 )
                 when {
@@ -3350,24 +2483,29 @@ internal fun SyllabusFullImportCard(
                     else -> Text(parsed.exceptionOrNull()?.message ?: "Invalid format", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
                 Text(
-                    "Write one line at a time: Subject, then Chapter or Unit, then Topic. Use Topics: A, B, C to add many topics at once.",
+                    "One topic per line: Subject > Chapter > Topic. Same subject or chapter name on other lines? They group together automatically.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                val isManualBtnEnabled = chapterCount > 0 && parsed.isSuccess && !state.isImporting && !state.mutating
+                val manualBtnGradient = if (isManualBtnEnabled) {
+                    Brush.horizontalGradient(colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
+                } else {
+                    Brush.horizontalGradient(colors = listOf(scheme.onSurface.copy(alpha = 0.12f), scheme.onSurface.copy(alpha = 0.12f)))
+                }
                 Button(
                     onClick = {
                         if (hasExistingSyllabus) showManualImportChoice = true else submitManualSyllabus("merge")
                     },
-                    enabled = chapterCount > 0 && parsed.isSuccess && !state.isImporting && !state.mutating,
+                    enabled = isManualBtnEnabled,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .height(52.dp)
+                        .background(manualBtnGradient, shape = RoundedCornerShape(14.dp)),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = scheme.primary,
-                        contentColor = scheme.onPrimary,
-                        disabledContainerColor = scheme.onSurface.copy(alpha = 0.09f),
-                        disabledContentColor = scheme.onSurface.copy(alpha = 0.28f),
+                        containerColor = Color.Transparent,
+                        contentColor = if (isManualBtnEnabled) Color.White else scheme.onSurface.copy(alpha = 0.38f)
                     ),
                 ) {
                     Text(
@@ -3388,76 +2526,95 @@ private fun SyllabusImportModeTabs(
     onManualClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = scheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.55f)),
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        // AI Scanner Choice Card
+        Surface(
+            onClick = onAiClick,
+            shape = RoundedCornerShape(16.dp),
+            color = if (mode == "ai") scheme.primaryContainer.copy(alpha = 0.5f) else Color.White,
+            border = BorderStroke(
+                width = 1.dp,
+                color = if (mode == "ai") scheme.primary else scheme.outlineVariant.copy(alpha = 0.45f)
+            ),
+            modifier = Modifier.weight(1f)
         ) {
-            SyllabusImportModeTab(
-                label = "AI Import",
-                selected = mode == "ai",
-                locked = !canUseAiImport,
-                onClick = onAiClick,
-                modifier = Modifier.weight(1f),
-            )
-            SyllabusImportModeTab(
-                label = "Manual Setup",
-                selected = mode == "manual",
-                locked = false,
-                onClick = onManualClick,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun SyllabusImportModeTab(
-    label: String,
-    selected: Boolean,
-    locked: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        modifier = modifier
-            .fillMaxHeight()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = if (selected) scheme.surfaceContainerHighest else Color.Transparent,
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                if (locked) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Icon(
-                        Icons.Default.Lock,
+                        imageVector = Icons.Rounded.AutoAwesome,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = scheme.onSurfaceVariant,
+                        tint = if (mode == "ai") scheme.primary else scheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        "AI Scanner",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (mode == "ai") scheme.primary else scheme.onSurface
+                    )
+                    if (!canUseAiImport) {
+                        Spacer(Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Premium Required",
+                            tint = scheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+                Text(
+                    "Copy-paste your syllabus text from any PDF or website.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (mode == "ai") scheme.onSurface else scheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Manual Setup Choice Card
+        Surface(
+            onClick = onManualClick,
+            shape = RoundedCornerShape(16.dp),
+            color = if (mode == "manual") scheme.primaryContainer.copy(alpha = 0.5f) else Color.White,
+            border = BorderStroke(
+                width = 1.dp,
+                color = if (mode == "manual") scheme.primary else scheme.outlineVariant.copy(alpha = 0.45f)
+            ),
+            modifier = Modifier.weight(1f)
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = if (mode == "manual") scheme.primary else scheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        "Type Yourself",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (mode == "manual") scheme.primary else scheme.onSurface
                     )
                 }
                 Text(
-                    label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (selected) scheme.primary else scheme.onSurfaceVariant,
+                    "Type your topics one by one easily.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (mode == "manual") scheme.onSurface else scheme.onSurfaceVariant
                 )
             }
         }
@@ -3641,38 +2798,40 @@ private fun ManualSyllabusExamplePlaceholder() {
                 fontWeight = FontWeight.ExtraBold,
             )
         }
-        ManualExampleLine("Subject:", "Maths", labelColor = if (isDark) Color(0xFFBFD4FF) else Color(0xFF53658F), valueColor = scheme.onSurface)
-        ManualExampleLine("Chapter:", "Algebra", labelColor = if (isDark) Color(0xFFBFD4FF) else Color(0xFF53658F), valueColor = scheme.onSurface)
-        ManualExampleLine("Topic:", "Linear Equations", labelColor = if (isDark) Color(0xFFBFD4FF) else Color(0xFF53658F), valueColor = scheme.onSurface)
-        ManualExampleLine("Topics:", "Quadratic Equations, Polynomials", labelColor = if (isDark) Color(0xFFBFD4FF) else Color(0xFF53658F), valueColor = scheme.onSurface)
+        ManualExampleLine("Maths > Algebra > Linear Equations", textColor = scheme.onSurface, separatorColor = scheme.onSurfaceVariant.copy(alpha = 0.5f))
+        ManualExampleLine("Maths > Algebra > Quadratic Equations", textColor = scheme.onSurface, separatorColor = scheme.onSurfaceVariant.copy(alpha = 0.5f))
+        ManualExampleLine("Science > Physics > Motion", textColor = scheme.onSurface, separatorColor = scheme.onSurfaceVariant.copy(alpha = 0.5f))
     }
 }
 
 @Composable
 private fun ManualExampleLine(
-    label: String,
-    value: String,
-    labelColor: Color,
-    valueColor: Color,
+    text: String,
+    textColor: Color,
+    separatorColor: Color,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = labelColor,
-            fontWeight = FontWeight.ExtraBold,
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = valueColor,
-        )
+    val parts = text.split(" > ")
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        parts.forEachIndexed { index, part ->
+            Text(
+                part,
+                style = MaterialTheme.typography.bodyMedium,
+                color = textColor,
+            )
+            if (index < parts.size - 1) {
+                Text(
+                    ">",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = separatorColor,
+                )
+            }
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ManualSyllabusImportChoiceSheet(
+private fun SyllabusImportChoiceSheet(
     topicCount: Int,
     chapterCount: Int,
     onDismiss: () -> Unit,
@@ -3680,72 +2839,131 @@ private fun ManualSyllabusImportChoiceSheet(
     onReplace: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = scheme.surfaceContainerLow,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = scheme.onSurfaceVariant.copy(alpha = 0.4f)) }
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 22.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Text(
-                "How should we update this syllabus?",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = scheme.onSurface,
-            )
-            Text(
-                "Your editor text will stay here after import, so you can keep editing and import again.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = scheme.onSurfaceVariant,
-            )
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = scheme.surfaceContainerHigh,
-                border = BorderStroke(1.dp, scheme.outlineVariant),
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    "$topicCount topics across $chapterCount chapters found in your text.",
-                    modifier = Modifier.padding(14.dp),
-                    style = MaterialTheme.typography.bodyMedium,
+                    "How should we update this syllabus?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
                     color = scheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Found $topicCount topics across $chapterCount chapters in your text.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.primary,
+                    fontWeight = FontWeight.Bold,
                 )
             }
-            Button(
+
+            // Path 1: Merge
+            Surface(
                 onClick = onMerge,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = scheme.primary,
-                    contentColor = scheme.onPrimary,
-                ),
+                shape = RoundedCornerShape(16.dp),
+                color = scheme.surfaceContainerLowest,
+                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Add new items only", fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(scheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = scheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "Keep existing + Add new",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = scheme.onSurface
+                        )
+                        Text(
+                            "Dono subjects ko jodein",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = scheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Best for small edits. Your current dates, notes, and progress stay safe. Duplicates are automatically skipped.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
-            Text(
-                "Best for small edits. Existing topics, progress, notes, and dates stay safe. Duplicate topics are skipped.",
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant,
-            )
-            OutlinedButton(
+
+            // Path 2: Replace
+            Surface(
                 onClick = onReplace,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(50),
-                border = BorderStroke(1.dp, scheme.error.copy(alpha = 0.65f)),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.error),
+                shape = RoundedCornerShape(16.dp),
+                color = scheme.surfaceContainerLowest,
+                border = BorderStroke(1.dp, scheme.error.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Replace current syllabus", fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(scheme.errorContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = scheme.onErrorContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "Delete current & Start fresh",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = scheme.error
+                        )
+                        Text(
+                            "Purana delete karein aur naya shuru karein",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = scheme.error,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Warning: This will delete all current subjects, progress, and study dates in this plan and replace them completely.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
-            Text(
-                "Use this only when you want the typed syllabus to become the full syllabus for this plan.",
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant,
-            )
+
             TextButton(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
@@ -3780,16 +2998,14 @@ private fun ManualSyllabusGuideDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Text(
-                    "Use these four words to build your syllabus. Put each item on a new line.",
+                    "Use one topic per line to build your syllabus.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = scheme.onSurfaceVariant,
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ManualGuideRule("Subject:", "Write the subject name, like Maths or Science.")
-                    ManualGuideRule("Chapter:", "Write the chapter name under that subject.")
-                    ManualGuideRule("Unit:", "Use this instead of Chapter if your syllabus has units.")
-                    ManualGuideRule("Topic:", "Write one topic under the chapter or unit.")
-                    ManualGuideRule("Topics:", "Write many topics in one line, separated by commas.")
+                    ManualGuideRule("Format", "Subject > Chapter > Topic, one topic per line")
+                    ManualGuideRule("Grouping", "Repeat a subject or chapter name on other lines to group topics together")
+                    ManualGuideRule("Duplicates", "The same topic twice under one chapter is only added once")
                 }
                 Text(
                     "Example",
@@ -3899,49 +3115,289 @@ private fun StructuredSyllabusPreviewEditor(
     isImporting: Boolean,
     onPreviewChange: (StructuredSyllabusPreview?) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("${preview.stats.subjectCount} subjects � ${preview.stats.chapterCount} chapters � ${preview.stats.topicCount} topics", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+    val scheme = MaterialTheme.colorScheme
+    val expandedSubjects = remember { mutableStateMapOf<Int, Boolean>() }
+    val expandedChapters = remember { mutableStateMapOf<String, Boolean>() }
+
+    var editingSubjectIndex by remember { mutableStateOf<Int?>(null) }
+    var editingChapterKey by remember { mutableStateOf<String?>(null) } // "subjectIndex-chapterIndex"
+    var editingTopicKey by remember { mutableStateOf<String?>(null) } // "subjectIndex-chapterIndex-topicIndex"
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "Verify AI Organized Syllabus",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = scheme.onSurface
+            )
+            Text(
+                "${preview.stats.subjectCount} subjects • ${preview.stats.chapterCount} chapters • ${preview.stats.topicCount} topics",
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
         if (preview.warnings.isNotEmpty()) {
-            PlannerSurface {
+            Surface(
+                color = scheme.errorContainer,
+                contentColor = scheme.onErrorContainer,
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, scheme.error.copy(alpha = 0.3f))
+            ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Warnings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                    preview.warnings.forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    Text("Warnings", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    preview.warnings.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
             }
         }
+
         if (preview.subjects.isEmpty()) {
-            Text("No syllabus structure was detected. Edit the text and try again, or use manual format.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "No syllabus structure was detected. Edit the text and try again, or use manual format.",
+                color = scheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
+
         preview.subjects.forEachIndexed { subjectIndex, subject ->
-            PlannerSurface {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = subject.name, onValueChange = { onPreviewChange(preview.renameSubject(subjectIndex, it)) }, label = { Text("Subject") }, modifier = Modifier.weight(1f), singleLine = true, enabled = !isImporting)
-                        IconButton(onClick = { onPreviewChange(preview.deleteSubject(subjectIndex)) }, enabled = !isImporting) { Icon(Icons.Default.Delete, contentDescription = "Delete subject") }
+            val isSubjectExpanded = expandedSubjects[subjectIndex] ?: true
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = scheme.surfaceContainerLowest,
+                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Subject Row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        IconButton(onClick = { expandedSubjects[subjectIndex] = !isSubjectExpanded }) {
+                            Icon(
+                                imageVector = if (isSubjectExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = if (isSubjectExpanded) "Collapse" else "Expand",
+                                tint = scheme.primary
+                            )
+                        }
+
+                        if (editingSubjectIndex == subjectIndex) {
+                            var tempName by remember { mutableStateOf(subject.name) }
+                            OutlinedTextField(
+                                value = tempName,
+                                onValueChange = { tempName = it },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                enabled = !isImporting,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = scheme.surface,
+                                    unfocusedContainerColor = scheme.surface
+                                )
+                            )
+                            IconButton(
+                                onClick = {
+                                    onPreviewChange(preview.renameSubject(subjectIndex, tempName))
+                                    editingSubjectIndex = null
+                                },
+                                enabled = !isImporting && tempName.isNotBlank()
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = "Save name", tint = scheme.primary)
+                            }
+                        } else {
+                            Text(
+                                text = subject.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = scheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { editingSubjectIndex = subjectIndex }, enabled = !isImporting) {
+                                Icon(Icons.Default.Edit, contentDescription = "Rename subject", tint = scheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                            }
+                            IconButton(onClick = { onPreviewChange(preview.deleteSubject(subjectIndex)) }, enabled = !isImporting) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete subject", tint = scheme.error, modifier = Modifier.size(20.dp))
+                            }
+                        }
                     }
-                    subject.chapters.forEachIndexed { chapterIndex, chapter ->
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(value = chapter.name, onValueChange = { onPreviewChange(preview.renameChapter(subjectIndex, chapterIndex, it)) }, label = { Text("Chapter") }, modifier = Modifier.weight(1f), singleLine = true, enabled = !isImporting)
-                                IconButton(onClick = { onPreviewChange(preview.deleteChapter(subjectIndex, chapterIndex)) }, enabled = !isImporting) { Icon(Icons.Default.Delete, contentDescription = "Delete chapter") }
-                            }
-                            chapter.topics.forEachIndexed { topicIndex, topic ->
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 8.dp)) {
-                                    OutlinedTextField(value = topic, onValueChange = { onPreviewChange(preview.renameTopic(subjectIndex, chapterIndex, topicIndex, it)) }, label = { Text("Topic") }, modifier = Modifier.weight(1f), singleLine = true, enabled = !isImporting)
-                                    IconButton(onClick = { onPreviewChange(preview.deleteTopic(subjectIndex, chapterIndex, topicIndex)) }, enabled = !isImporting) { Icon(Icons.Default.Close, contentDescription = "Delete topic") }
+
+                    // Chapters under Subject (Indented)
+                    if (isSubjectExpanded) {
+                        Column(
+                            modifier = Modifier.padding(start = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            subject.chapters.forEachIndexed { chapterIndex, chapter ->
+                                val chapKey = "$subjectIndex-$chapterIndex"
+                                val isChapExpanded = expandedChapters[chapKey] ?: false
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = scheme.surfaceContainerLow,
+                                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.3f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        // Chapter Row
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            IconButton(
+                                                onClick = { expandedChapters[chapKey] = !isChapExpanded },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (isChapExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                    contentDescription = if (isChapExpanded) "Collapse" else "Expand",
+                                                    tint = scheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+
+                                            if (editingChapterKey == chapKey) {
+                                                var tempName by remember { mutableStateOf(chapter.name) }
+                                                OutlinedTextField(
+                                                    value = tempName,
+                                                    onValueChange = { tempName = it },
+                                                    modifier = Modifier.weight(1f),
+                                                    singleLine = true,
+                                                    enabled = !isImporting,
+                                                    colors = OutlinedTextFieldDefaults.colors(
+                                                        focusedContainerColor = scheme.surface,
+                                                        unfocusedContainerColor = scheme.surface
+                                                    )
+                                                )
+                                                IconButton(
+                                                    onClick = {
+                                                        onPreviewChange(preview.renameChapter(subjectIndex, chapterIndex, tempName))
+                                                        editingChapterKey = null
+                                                    },
+                                                    enabled = !isImporting && tempName.isNotBlank()
+                                                ) {
+                                                    Icon(Icons.Default.Check, contentDescription = "Save name", tint = scheme.primary)
+                                                }
+                                            } else {
+                                                Text(
+                                                    text = chapter.name,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = scheme.onSurface,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                IconButton(onClick = { editingChapterKey = chapKey }, enabled = !isImporting, modifier = Modifier.size(32.dp)) {
+                                                    Icon(Icons.Default.Edit, contentDescription = "Rename chapter", tint = scheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                                                }
+                                                IconButton(onClick = { onPreviewChange(preview.deleteChapter(subjectIndex, chapterIndex)) }, enabled = !isImporting, modifier = Modifier.size(32.dp)) {
+                                                    Icon(Icons.Default.Delete, contentDescription = "Delete chapter", tint = scheme.error, modifier = Modifier.size(16.dp))
+                                                }
+                                            }
+                                        }
+
+                                        // Topics under Chapter (Further Indented)
+                                        if (isChapExpanded) {
+                                            Column(
+                                                modifier = Modifier.padding(start = 12.dp),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                chapter.topics.forEachIndexed { topicIndex, topic ->
+                                                    val topKey = "$subjectIndex-$chapterIndex-$topicIndex"
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(6.dp)
+                                                                .clip(CircleShape)
+                                                                .background(scheme.primary.copy(alpha = 0.7f))
+                                                        )
+
+                                                        if (editingTopicKey == topKey) {
+                                                            var tempName by remember { mutableStateOf(topic) }
+                                                            OutlinedTextField(
+                                                                value = tempName,
+                                                                onValueChange = { tempName = it },
+                                                                modifier = Modifier.weight(1f),
+                                                                singleLine = true,
+                                                                enabled = !isImporting,
+                                                                colors = OutlinedTextFieldDefaults.colors(
+                                                                    focusedContainerColor = scheme.surface,
+                                                                    unfocusedContainerColor = scheme.surface
+                                                                )
+                                                            )
+                                                            IconButton(
+                                                                onClick = {
+                                                                    onPreviewChange(preview.renameTopic(subjectIndex, chapterIndex, topicIndex, tempName))
+                                                                    editingTopicKey = null
+                                                                },
+                                                                enabled = !isImporting && tempName.isNotBlank()
+                                                            ) {
+                                                                Icon(Icons.Default.Check, contentDescription = "Save name", tint = scheme.primary)
+                                                            }
+                                                        } else {
+                                                            Text(
+                                                                text = topic,
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = scheme.onSurface,
+                                                                modifier = Modifier.weight(1f)
+                                                            )
+                                                            IconButton(onClick = { editingTopicKey = topKey }, enabled = !isImporting, modifier = Modifier.size(28.dp)) {
+                                                                Icon(Icons.Default.Edit, contentDescription = "Rename topic", tint = scheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                                                            }
+                                                            IconButton(onClick = { onPreviewChange(preview.deleteTopic(subjectIndex, chapterIndex, topicIndex)) }, enabled = !isImporting, modifier = Modifier.size(28.dp)) {
+                                                                Icon(Icons.Default.Close, contentDescription = "Delete topic", tint = scheme.error, modifier = Modifier.size(14.dp))
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                // Add topic helper
+                                                var newTopic by remember(subjectIndex, chapterIndex, preview.stats.topicCount) { mutableStateOf("") }
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                                                ) {
+                                                    OutlinedTextField(
+                                                        value = newTopic,
+                                                        onValueChange = { newTopic = it },
+                                                        placeholder = { Text("Add missing topic...", style = MaterialTheme.typography.bodySmall) },
+                                                        modifier = Modifier.weight(1f),
+                                                        singleLine = true,
+                                                        enabled = !isImporting,
+                                                        colors = OutlinedTextFieldDefaults.colors(
+                                                            focusedContainerColor = scheme.surface,
+                                                            unfocusedContainerColor = scheme.surface
+                                                        )
+                                                    )
+                                                    TextButton(
+                                                        onClick = {
+                                                            onPreviewChange(preview.addTopic(subjectIndex, chapterIndex, newTopic))
+                                                            newTopic = ""
+                                                        },
+                                                        enabled = newTopic.isNotBlank() && !isImporting
+                                                    ) {
+                                                        Text("Add", style = MaterialTheme.typography.labelLarge)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
-                            }
-                            var newTopic by remember(subjectIndex, chapterIndex, preview.stats.topicCount) { mutableStateOf("") }
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(start = 8.dp)) {
-                                OutlinedTextField(value = newTopic, onValueChange = { newTopic = it }, label = { Text("Add missing topic") }, modifier = Modifier.weight(1f), singleLine = true, enabled = !isImporting)
-                                TextButton(onClick = { onPreviewChange(preview.addTopic(subjectIndex, chapterIndex, newTopic)); newTopic = "" }, enabled = newTopic.isNotBlank() && !isImporting) { Text("Add") }
                             }
                         }
                     }
                 }
             }
         }
-        TextButton(onClick = { onPreviewChange(null) }, enabled = !isImporting) { Text("Back to raw text") }
+        TextButton(onClick = { onPreviewChange(null) }, enabled = !isImporting, modifier = Modifier.fillMaxWidth()) {
+            Text("Back to raw text")
+        }
     }
 }
 

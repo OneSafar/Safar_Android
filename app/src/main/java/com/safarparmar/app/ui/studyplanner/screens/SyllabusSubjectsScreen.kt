@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -38,6 +40,7 @@ import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarResultSlot
 import com.safarparmar.app.ui.components.SyllabusRowSkeleton
 import com.safarparmar.app.ui.navigation.Routes
+import com.safarparmar.app.ui.studyplanner.components.TextInputDialog
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
@@ -81,7 +84,6 @@ fun SyllabusSubjectsScreen(
     var dialogState by remember { mutableStateOf<SyllabusDialogState>(SyllabusDialogState.Closed) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val expandedSubjects = remember { mutableStateMapOf<String, Boolean>() }
-    val expandedChapters = remember { mutableStateMapOf<String, Boolean>() }
     var selectedTopicRef by remember { mutableStateOf<TopicRef?>(null) }
     var detailNonce by remember { mutableIntStateOf(0) }
     var showBuildModeSheet by remember { mutableStateOf(false) }
@@ -106,21 +108,9 @@ fun SyllabusSubjectsScreen(
         }
     }
 
-    fun chapterMatchesQuery(chapter: StudyChapter, query: String): Boolean {
-        val q = query.lowercase()
-        if (chapter.name.lowercase().contains(q)) return true
-        return chapter.topics.any { it.name.lowercase().contains(q) }
-    }
-
     fun isSubjectExpanded(subjectId: String, subject: StudySubject): Boolean {
         expandedSubjects[subjectId]?.let { return it }
         return searchQuery.isNotBlank() && subjectMatchesQuery(subject, searchQuery)
-    }
-
-    fun isChapterExpanded(subjectId: String, chapterId: String, chapter: StudyChapter): Boolean {
-        val key = "$subjectId:$chapterId"
-        expandedChapters[key]?.let { return it }
-        return searchQuery.isNotBlank() && chapterMatchesQuery(chapter, searchQuery)
     }
 
     fun requestAddSubject(name: String) {
@@ -286,9 +276,6 @@ fun SyllabusSubjectsScreen(
             ref = ref,
             openNonce = detailNonce,
             actions = actions,
-            swapCandidates = selectedPlan?.let { plan ->
-                plan.subjects.flatMap { s -> s.chapters.flatMap { c -> c.topics.map { t -> TopicRef(s, c, t) } } }
-            }.orEmpty(),
             onDismiss = { selectedTopicRef = null },
         )
     }
@@ -404,7 +391,7 @@ fun SyllabusSubjectsScreen(
     CompositionLocalProvider(LocalDensity provides clampedDensity) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(isSystemInDarkTheme()),
             contentWindowInsets = WindowInsets.safeDrawing.only(
                 WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
             ),
@@ -515,7 +502,7 @@ fun SyllabusSubjectsScreen(
                                 )
                             }
 
-                            if (localSubjects.isEmpty()) {
+                            if (localSubjects.isEmpty() && !shouldShowFullImport) {
                                 item {
                                     SyllabusEmptySubjectsCard(
                                         onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
@@ -568,16 +555,6 @@ fun SyllabusSubjectsScreen(
                                         onDragEnd = { saveSubjectOrder() },
                                         onChapterDragEnd = { chapter -> saveChapterOrder(subject.id) },
                                         onTopicDragEnd = { chapter, topic -> saveTopicOrder(chapter.id) },
-                                        isChapterExpanded = { chapterId ->
-                                            val chapter = subject.chapters.find { it.id == chapterId }
-                                            chapter != null && isChapterExpanded(subject.id, chapterId, chapter)
-                                        },
-                                        onToggleChapterExpand = { chapterId ->
-                                            val key = "${subject.id}:$chapterId"
-                                            val chapter = subject.chapters.find { it.id == chapterId }
-                                            val current = chapter != null && isChapterExpanded(subject.id, chapterId, chapter)
-                                            expandedChapters[key] = !current
-                                        },
                                     )
                                 }
                             }
@@ -615,7 +592,7 @@ private fun SyllabusOverviewCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = scheme.surfaceContainerLowest,
+        color = Color(0xFFF5F3EF),
         border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
         shadowElevation = 1.dp,
     ) {
@@ -869,48 +846,58 @@ private fun SyllabusEmptySubjectsCard(onAddSubject: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLowest),
-        border = BorderStroke(1.dp, scheme.surfaceContainerHighest),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F3EF)),
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 32.dp),
+                .padding(horizontal = 24.dp, vertical = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.FolderOpen,
-                contentDescription = null,
-                tint = scheme.outline,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(scheme.primaryContainer.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.FolderOpen,
+                    contentDescription = null,
+                    tint = scheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "No subjects yet",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Black,
                 color = scheme.onSurface,
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Add your first subject to build your syllabus.",
+                text = "Add your first subject to start building your custom study planner syllabus.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            FilledTonalButton(
+            Spacer(modifier = Modifier.height(20.dp))
+            Button(
                 onClick = onAddSubject,
                 shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = scheme.primaryContainer,
-                    contentColor = scheme.onPrimaryContainer,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = scheme.primary,
+                    contentColor = scheme.onPrimary,
                 ),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp),
+                contentPadding = PaddingValues(horizontal = 28.dp, vertical = 12.dp),
             ) {
-                Text("Add Subject", fontWeight = FontWeight.Medium)
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Add Subject", fontWeight = FontWeight.Bold)
             }
         }
     }

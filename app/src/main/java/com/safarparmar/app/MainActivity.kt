@@ -76,8 +76,6 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         const val EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE = "focus_shield_blocked_package"
         const val EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME = "focus_shield_blocked_app_name"
         const val EXTRA_FOCUS_SHIELD_STRICT = "focus_shield_strict"
-        const val EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING = "focus_shield_unlocks_remaining"
-        const val EXTRA_FOCUS_SHIELD_UNLOCK_SECONDS = "focus_shield_unlock_seconds"
         const val EXTRA_FOCUS_SHIELD_OPEN_EKAGRA = "focus_shield_open_ekagra"
         private const val TABLET_SMALLEST_WIDTH_DP = 600
     }
@@ -255,7 +253,6 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             packageName = blockedPackage,
             appName = appName,
             strict = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_STRICT, false),
-            unlocksRemaining = intent.getIntExtra(EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING, -1),
         )
 
         if (openEkagra) {
@@ -267,8 +264,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         pauseEkagraTimerIfRunning()
         val unlockMinutes = minutes.coerceIn(1, 60)
         val graceUntilMs = System.currentTimeMillis() + unlockMinutes * 60_000L
-        val used = FocusShieldRepository.ShieldPrefs.getUnlocksUsed(this) + 1
-        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(this, graceUntilMs, used)
+        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(this, graceUntilMs)
         dismissFocusShieldBlockPrompt()
         packageManager.getLaunchIntentForPackage(prompt.packageName)
             ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

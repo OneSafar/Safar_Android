@@ -104,6 +104,9 @@ fun NotificationPermissionRequest() {
     ) == PackageManager.PERMISSION_GRANTED
     if (alreadyGranted) return
 
+    // If the user has already dismissed the rationale once, don't nag them again
+    if (context.hasDismissedNotificationRationale()) return
+
     var showDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(
@@ -133,6 +136,7 @@ fun NotificationPermissionRequest() {
             },
             onDismiss = {
                 showDialog = false
+                context.setDismissedNotificationRationale()
             },
         )
     }
@@ -147,7 +151,10 @@ fun NotificationPermissionRequest() {
                 showSettingsDialog = false
                 context.openAppNotificationSettings()
             },
-            onDismiss = { showSettingsDialog = false },
+            onDismiss = {
+                showSettingsDialog = false
+                context.setDismissedNotificationRationale()
+            },
         )
     }
 }
@@ -339,6 +346,20 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
+}
+
+private const val NOTIFICATION_PROMPT_PREFS = "notification_prompt_prefs"
+private const val KEY_DISMISSED_RATIONALE = "dismissed_rationale"
+
+private fun Context.hasDismissedNotificationRationale(): Boolean =
+    getSharedPreferences(NOTIFICATION_PROMPT_PREFS, Context.MODE_PRIVATE)
+        .getBoolean(KEY_DISMISSED_RATIONALE, false)
+
+private fun Context.setDismissedNotificationRationale() {
+    getSharedPreferences(NOTIFICATION_PROMPT_PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean(KEY_DISMISSED_RATIONALE, true)
+        .apply()
 }
 
 private fun Context.openAppNotificationSettings() {

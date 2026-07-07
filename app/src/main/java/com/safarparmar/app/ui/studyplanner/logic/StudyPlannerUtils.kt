@@ -208,133 +208,36 @@ data class BulkChapterParsed(val chapterName: String, val topics: List<String>)
 
 data class BulkSubjectParsed(val subjectName: String, val chapters: List<BulkChapterParsed>)
 
-const val BULK_IMPORT_PLACEHOLDER_NAME = "Untitled"
-
-fun isBulkPlaceholderChapter(chapter: StudyChapter): Boolean =
-    chapter.name.trim().equals(BULK_IMPORT_PLACEHOLDER_NAME, ignoreCase = true)
-
-private fun normalizeBulkTopicToken(input: String): String =
-    input.trim()
-
-private fun splitBulkTopicTokens(input: String, allowCommaSeparated: Boolean): List<String> {
-    val normalized = normalizeBulkTopicToken(input)
-    if (normalized.isBlank()) return emptyList()
-    val tokens = if (allowCommaSeparated) normalized.split(",") else listOf(normalized)
-    return tokens.map { it.trim() }.filter { it.isNotBlank() }
-}
-
-fun extractBulkTopicsFromSyllabusCode(text: String): String {
-    val seen = mutableSetOf<String>()
-    val topics = text.lineSequence()
-        .map { it.trim() }
-        .filter { it.startsWith(">") }
-        .map { normalizeBulkTopicToken(it) }
-        .filter { it.isNotBlank() }
-        .filter { seen.add(it.lowercase(Locale.US)) }
-        .toList()
-    return topics.joinToString("\n")
-}
-
-/**
- * Student-readable manual import: `Subject:`, `Chapter:`/`Unit:`, `Topic:`, and
- * comma-separated topic lists after `Topics:`.
- */
 fun parseBulkSubjectsFromTxt(text: String): Result<List<BulkSubjectParsed>> = runCatching {
-    val rawLines = text.split("\r?\n".toRegex())
-    val subjectIndexByKey = mutableMapOf<String, Int>()
-    val chapterIndexBySubjectKey = mutableMapOf<String, MutableMap<String, Int>>()
-    val topicSeenByChapter = mutableMapOf<String, MutableSet<String>>()
-    val subjects = mutableListOf<Pair<String, MutableList<Pair<String, MutableList<String>>>>>()
+    data class MutableChapter(val name: String, val topics: MutableList<String> = mutableListOf())
+    data class MutableSubject(val name: String, val chapters: LinkedHashMap<String, MutableChapter> = LinkedHashMap())
 
-    fun ensureSubject(name: String): Int {
-        val normalizedName = name.trim().ifBlank { BULK_IMPORT_PLACEHOLDER_NAME }
-        val subjectKey = normalizedName.lowercase(Locale.US)
-        subjectIndexByKey[subjectKey]?.let { return it }
-        subjects += normalizedName to mutableListOf()
-        val nextIndex = subjects.lastIndex
-        subjectIndexByKey[subjectKey] = nextIndex
-        chapterIndexBySubjectKey[subjectKey] = mutableMapOf()
-        return nextIndex
-    }
+    val subjects = LinkedHashMap<String, MutableSubject>()
+    val seenTopicKeys = mutableSetOf<String>()
 
-    fun ensureChapter(subjectIndex: Int?, name: String): Int {
-        val resolvedSubjectIndex = subjectIndex ?: ensureSubject(BULK_IMPORT_PLACEHOLDER_NAME)
-        val normalizedName = name.trim().ifBlank { BULK_IMPORT_PLACEHOLDER_NAME }
-        val subjectName = subjects[resolvedSubjectIndex].first
+    text.split("\r?\n".toRegex()).forEachIndexed { index, rawLine ->
+        val line = rawLine.trim()
+        if (line.isEmpty()) return@forEachIndexed
+        val parts = line.split(">").map { it.trim() }
+        require(parts.size == 3 && parts.all { it.isNotEmpty() }) {
+            "Line ${index + 1}: use the format Subject > Chapter > Topic"
+        }
+        val (subjectName, chapterName, topicName) = parts
         val subjectKey = subjectName.lowercase(Locale.US)
-        val chapterMap = chapterIndexBySubjectKey[subjectKey] ?: error("Could not track chapter structure.")
-        val chapterKey = normalizedName.lowercase(Locale.US)
-        chapterMap[chapterKey]?.let { return it }
-        subjects[resolvedSubjectIndex].second += normalizedName to mutableListOf()
-        val nextIndex = subjects[resolvedSubjectIndex].second.lastIndex
-        chapterMap[chapterKey] = nextIndex
-        topicSeenByChapter.getOrPut("$subjectKey::$chapterKey") { mutableSetOf() }
-        return nextIndex
-    }
-
-    fun addTopic(subjectIndex: Int?, chapterIndex: Int?, topicRaw: String, allowCommaSeparated: Boolean = false) {
-        val resolvedSubjectIndex = subjectIndex ?: ensureSubject(BULK_IMPORT_PLACEHOLDER_NAME)
-        val resolvedChapterIndex = chapterIndex ?: ensureChapter(resolvedSubjectIndex, BULK_IMPORT_PLACEHOLDER_NAME)
-        val subjectName = subjects[resolvedSubjectIndex].first
-        val chapterName = subjects[resolvedSubjectIndex].second[resolvedChapterIndex].first
-        val chapterKey = "${subjectName.lowercase(Locale.US)}::${chapterName.lowercase(Locale.US)}"
-        val seen = topicSeenByChapter.getOrPut(chapterKey) { mutableSetOf() }
-        splitBulkTopicTokens(topicRaw, allowCommaSeparated).forEach { topic ->
-            val tk = topic.lowercase(Locale.US)
-            if (tk in seen) return@forEach
-            seen += tk
-            subjects[resolvedSubjectIndex].second[resolvedChapterIndex].second += topic
+        val subject = subjects.getOrPut(subjectKey) { MutableSubject(subjectName) }
+        val chapterKey = chapterName.lowercase(Locale.US)
+        val chapter = subject.chapters.getOrPut(chapterKey) { MutableChapter(chapterName) }
+        if (seenTopicKeys.add("$subjectKey::$chapterKey::${topicName.lowercase(Locale.US)}")) {
+            chapter.topics += topicName
         }
     }
 
-    var activeSubjectIndex: Int? = null
-    var activeChapterIndex: Int? = null
-
-    val oldSymbolHeading = Regex("""^[-_>]\s+.*$""")
-    val subjectHeading = Regex("""^(?:subject|sub|विषय)\s*[:：\-]\s*(.*)$""", RegexOption.IGNORE_CASE)
-    val chapterHeading = Regex("""^(?:chapter|chap|unit|lesson|अध्याय)\s*[:：\-]\s*(.*)$""", RegexOption.IGNORE_CASE)
-    val labeledTopicHeading = Regex("""^(?:topic|topics|टॉपिक)\s*[:：\-]\s*(.*)$""", RegexOption.IGNORE_CASE)
-
-    for (index in rawLines.indices) {
-        val line = rawLines[index].trim()
-        if (line.isEmpty()) continue
-        require(!oldSymbolHeading.matches(line)) {
-            "Use labels instead: Subject:, Chapter:, and Topic:."
-        }
-
-        val sm = subjectHeading.matchEntire(line)
-        if (sm != null) {
-            activeSubjectIndex = ensureSubject(sm.groupValues[1])
-            activeChapterIndex = null
-            continue
-        }
-        val cm = chapterHeading.matchEntire(line)
-        if (cm != null) {
-            if (activeSubjectIndex == null) activeSubjectIndex = ensureSubject(BULK_IMPORT_PLACEHOLDER_NAME)
-            activeChapterIndex = ensureChapter(activeSubjectIndex, cm.groupValues[1])
-            continue
-        }
-        val ltm = labeledTopicHeading.matchEntire(line)
-        if (ltm != null) {
-            if (activeSubjectIndex == null) activeSubjectIndex = ensureSubject(BULK_IMPORT_PLACEHOLDER_NAME)
-            if (activeChapterIndex == null) activeChapterIndex = ensureChapter(activeSubjectIndex, BULK_IMPORT_PLACEHOLDER_NAME)
-            addTopic(activeSubjectIndex, activeChapterIndex, ltm.groupValues[1], allowCommaSeparated = true)
-            continue
-        }
-        if (activeSubjectIndex == null) activeSubjectIndex = ensureSubject(BULK_IMPORT_PLACEHOLDER_NAME)
-        if (activeChapterIndex == null) activeChapterIndex = ensureChapter(activeSubjectIndex, BULK_IMPORT_PLACEHOLDER_NAME)
-        addTopic(activeSubjectIndex, activeChapterIndex, line)
+    require(subjects.isNotEmpty()) {
+        "No syllabus content found. Add a line like Maths > Algebra > Linear Equations."
     }
 
-    require(subjects.isNotEmpty()) { "No syllabus content found." }
-
-    subjects.map { (subjectName, chapters) ->
-        BulkSubjectParsed(
-            subjectName = subjectName,
-            chapters = chapters.map { (chapterName, topics) ->
-                BulkChapterParsed(chapterName = chapterName, topics = topics.toList())
-            },
-        )
+    subjects.values.map { s ->
+        BulkSubjectParsed(s.name, s.chapters.values.map { BulkChapterParsed(it.name, it.topics.toList()) })
     }
 }
 

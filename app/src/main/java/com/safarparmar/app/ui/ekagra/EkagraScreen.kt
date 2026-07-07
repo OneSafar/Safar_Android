@@ -201,7 +201,7 @@ fun EkagraScreen(
         timerService?.saveTheme(visualThemes.indexOf(selectedTheme), selectedMusicTrack.name)
 
         val service = timerService
-        if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && service?.switchToFocusFromBreak() == true) {
+        if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && service?.switchToFocusFromBreak() == true) {
             service.prepareAutoSaveSession(
                 taskTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
                 goalId = associatedGoalId,
@@ -218,7 +218,7 @@ fun EkagraScreen(
             return
         }
 
-        if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH) && timerService?.isActive() == true) {
+        if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) && timerService?.isActive() == true) {
             timerService.prepareAutoSaveSession(
                 taskTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
                 goalId = associatedGoalId,
@@ -274,7 +274,7 @@ fun EkagraScreen(
     fun endCurrentSession() {
         captureKavachSessionSummary()
         val service = timerService
-        if (timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && service?.switchToFocusFromBreak() == true) {
+        if (timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && service?.switchToFocusFromBreak() == true) {
             activeSession?.let { session ->
                 viewModel.pauseActiveSession(
                     service.totalSeconds.value,
@@ -286,7 +286,7 @@ fun EkagraScreen(
             return
         }
         val session = activeSession
-        if (session != null && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH)) {
+        if (session != null && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO)) {
             timerService?.pause()
             pendingEndedSession = PendingEndedEkagraSession(
                 sessionId    = session.id,
@@ -449,7 +449,7 @@ fun EkagraScreen(
         if (totalSeconds > 0) 1f - secondsLeft.toFloat() / totalSeconds else 0f
     }
     val mottoText = when {
-        timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerRunning -> "BREAK TIME - KAVACH PAUSED"
+        timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && timerRunning -> "BREAK TIME"
         timerMode == TimerMode.FOCUS && timerRunning && focusShieldActive -> "STUDY TIME - KAVACH ENABLED"
         timerRunning -> "STAY FOCUSED, YOU'RE DOING GREAT!"
         else         -> "READY TO FOCUS?"
@@ -564,14 +564,6 @@ fun EkagraScreen(
                         blockedAttempts = kavachSummaryAttempts,
                         onBack  = { showKavachSessionSummary = false },
                         onDone  = { showKavachSessionSummary = false; focusShieldViewModel.clearSessionStats() },
-                    )
-                }
-                showKavachActiveSession && focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS -> {
-                    com.safarparmar.app.ui.ekagra.focusshield.KavachActiveSessionScreen(
-                        secondsLeft  = secondsLeft,
-                        blockedCount = blockedHitCount,
-                        onBack       = { showKavachActiveSession = false },
-                        onEndSession = { endCurrentSession() },
                     )
                 }
                 // ── PiP overlay ─────────────────────────────────────────────────
@@ -868,16 +860,22 @@ fun EkagraScreen(
                                                 Icon(if (isMuted) androidx.compose.material.icons.Icons.Default.VolumeUp else androidx.compose.material.icons.Icons.Default.VolumeOff, contentDescription = null)
                                             }
                                         )
-                                        androidx.compose.material3.DropdownMenuItem(
-                                            text = { Text(if (shieldState.isEnabled) "Disable Kavach" else "Enable Kavach") },
-                                            onClick = { 
-                                                focusShieldViewModel.setEnabled(!shieldState.isEnabled)
-                                                showOverflowMenu = false
-                                            },
-                                            leadingIcon = {
-                                                Icon(androidx.compose.material.icons.Icons.Default.Shield, contentDescription = null)
-                                            }
-                                        )
+                                        val hasAllPermissions = shieldState.hasUsageStats &&
+                                                                shieldState.hasAccessibilityService &&
+                                                                shieldState.hasNotificationSuppressionAccess &&
+                                                                shieldState.hasNotifications
+                                        if (!hasAllPermissions) {
+                                            androidx.compose.material3.DropdownMenuItem(
+                                                text = { Text("Kavach Setup") },
+                                                onClick = { 
+                                                    onNavigate(com.safarparmar.app.ui.navigation.Routes.FOCUS_SHIELD)
+                                                    showOverflowMenu = false
+                                                },
+                                                leadingIcon = {
+                                                    Icon(androidx.compose.material.icons.Icons.Default.Shield, contentDescription = null)
+                                                }
+                                            )
+                                        }
                                         androidx.compose.material3.DropdownMenuItem(
                                             text = { Text(if (shieldState.isStrictMode) "Disable Beast Mode" else "Enable Beast Mode") },
                                             onClick = { 
@@ -911,12 +909,12 @@ fun EkagraScreen(
                                     // visual theme instead of snapping to the new colours.
                                     val topColor by animateColorAsState(
                                         targetValue = colors[0],
-                                        animationSpec = tween(900),
+                                        animationSpec = tween(1200),
                                         label = "bgTopColor",
                                     )
                                     val bottomColor by animateColorAsState(
                                         targetValue = colors[1],
-                                        animationSpec = tween(900),
+                                        animationSpec = tween(1200),
                                         label = "bgBottomColor",
                                     )
 
@@ -925,7 +923,7 @@ fun EkagraScreen(
                                         initialValue = 0f,
                                         targetValue = 360f,
                                         animationSpec = infiniteRepeatable(
-                                            animation = tween(durationMillis = 20000, easing = LinearEasing),
+                                            animation = tween(durationMillis = 30000, easing = LinearEasing),
                                             repeatMode = RepeatMode.Restart
                                         ),
                                         label = "gradientAngle"
@@ -1062,7 +1060,7 @@ fun EkagraScreen(
                                                 }
                                             }
                                         },
-                                        canStartBreak = timerMode == TimerMode.FOCUS && timerService?.isActive() == true,
+                                        canStartBreak = (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO) && timerService?.isActive() == true,
                                         onStartBreak  = {
                                             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             timerService?.startBreak(TimerMode.BREAK, breakMinutes * 60)

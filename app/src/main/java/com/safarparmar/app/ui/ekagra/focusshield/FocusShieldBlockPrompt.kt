@@ -4,6 +4,5 @@ data class FocusShieldBlockPrompt(
     val packageName: String,
     val appName: String,
     val strict: Boolean,
-    val unlocksRemaining: Int,
     val eventId: Long = System.currentTimeMillis(),
 )

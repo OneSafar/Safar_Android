@@ -111,37 +111,54 @@ internal fun EkagraPipOverlay(
 @Composable
 internal fun ModePill(selected: TimerMode, accentColor: Color, onSelect: (TimerMode) -> Unit) {
     val scheme = MaterialTheme.colorScheme
+    val modes = remember { TimerMode.entries.filter { it.showInPill } }
+    val selectedIndex = when {
+        selected == TimerMode.POMODORO -> 0
+        else -> modes.indexOf(selected).coerceAtLeast(0)
+    }
+
+    val animatedXOffset by animateDpAsState(
+        targetValue = (selectedIndex * 52).dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "modePillIndicator"
+    )
+
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50.dp))
-            // M3 token: surfaceContainerHigh
-            .background(scheme.surfaceContainerHigh)
-            .border(0.5.dp, scheme.outlineVariant, RoundedCornerShape(50.dp))
+            .background(scheme.surfaceContainerHigh.copy(alpha = 0.8f))
+            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(50.dp))
             .padding(4.dp),
     ) {
+        // Sliding indicator background
+        Box(
+            modifier = Modifier
+                .offset(x = animatedXOffset)
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(accentColor)
+        )
+
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            TimerMode.entries.filter { it.showInPill }.forEach { mode ->
-                val isSelected = mode == selected
-                // Icon resource: use light (white) icon when selected on primary bg,
-                // dark icon when unselected on surfaceContainerHigh bg.
+            modes.forEachIndexed { index, mode ->
+                val isSelected = index == selectedIndex
                 val iconRes = if (isSelected) mode.lightIconRes else mode.darkIconRes
 
                 Box(
                     modifier = Modifier
-                        // Fixed 48dp square chip — no text label
                         .size(48.dp)
-                        .clip(RoundedCornerShape(50.dp))
-                        // Custom token: accentColor when selected, transparent when not
-                        .background(if (isSelected) accentColor else Color.Transparent)
+                        .clip(CircleShape)
                         .clickable { onSelect(mode) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         painter            = painterResource(iconRes),
-                        contentDescription = mode.label, // keep for a11y — screen reader reads this
-                        // Custom token: white when selected, onSurfaceVariant when not
-                        tint               = if (isSelected) Color.White else scheme.onSurfaceVariant,
-                        modifier           = Modifier.size(19.dp),
+                        contentDescription = mode.label,
+                        tint               = if (isSelected) Color.White else scheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier           = Modifier.size(20.dp),
                     )
                 }
             }
@@ -151,6 +168,7 @@ internal fun ModePill(selected: TimerMode, accentColor: Color, onSelect: (TimerM
 
 // ─── Timer / Focus tab ─────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 internal fun TimerFocusTab(
     modifier: Modifier,
@@ -180,13 +198,9 @@ internal fun TimerFocusTab(
     onNavigate: (String) -> Unit,
 ) {
     val scheme  = MaterialTheme.colorScheme
-    // On the timer tab the background is always the video scrim (dark).
-    // Use onSurface tokens from our M3 scheme, which the dark themeColorScheme
-    // already resolves to light colours.
     val configuration   = LocalConfiguration.current
     val isCompactHeight = configuration.screenHeightDp < 600
 
-    // Pulse animation for the ring inner glow
     val pulse by animateFloatAsState(
         targetValue    = if (isRunning) 1f else 0f,
         animationSpec  = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
@@ -211,13 +225,42 @@ internal fun TimerFocusTab(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Spacer(Modifier.height(if (isCompactHeight) 16.dp else 56.dp))
+                    
+                    val hasAllPermissions = shieldState.hasUsageStats &&
+                                            shieldState.hasAccessibilityService &&
+                                            shieldState.hasNotificationSuppressionAccess &&
+                                            shieldState.hasNotifications
+
+                    if (hasAllPermissions) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onToggleKavach(!shieldState.isEnabled) }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = null,
+                                tint = if (shieldState.isEnabled) themeAccent else Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = if (shieldState.isEnabled) "Kavach enabled" else "Kavach disabled",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (shieldState.isEnabled) themeAccent else Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+
                     ModePill(selected = timerMode, accentColor = themeAccent, onSelect = onModeChange)
                     Spacer(Modifier.height(32.dp))
                 }
             }
 
-            // ── Ring — NO card wrapper ───────────────────────────────────────────
-            // The ring floats directly on the video background.
             val clampedProgress = progress.coerceIn(0f, 1f)
             val isLight = scheme.background.luminance() > 0.5f
             val ringColor = scheme.primary
@@ -241,7 +284,7 @@ internal fun TimerFocusTab(
                     strokeWidth   = 14.dp,
                     strokeCap     = StrokeCap.Round,
                 )
-                // Progress glow bloom ring (thicker, translucent, pulses when running)
+                // Progress glow bloom ring
                 CircularProgressIndicator(
                     progress      = { clampedProgress },
                     modifier      = Modifier.fillMaxSize(),
@@ -257,14 +300,42 @@ internal fun TimerFocusTab(
                     strokeWidth   = 14.dp,
                     strokeCap     = StrokeCap.Round,
                 )
-                // Subtle inner glow, pulses when running
+
+                // Glowing pointer dot at the sweeping tip of the progress bar
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokeWidthPx = 14.dp.toPx()
+                    val radiusPx = (size.width - strokeWidthPx) / 2f
+                    val centerX = size.width / 2f
+                    val centerY = size.height / 2f
+                    val angleRad = (clampedProgress * 360f - 90f) * (Math.PI / 180f)
+                    val endX = centerX + radiusPx * kotlin.math.cos(angleRad).toFloat()
+                    val endY = centerY + radiusPx * kotlin.math.sin(angleRad).toFloat()
+                    
+                    if (clampedProgress > 0f) {
+                        val glowRadius = (8.dp.toPx()) + (pulse * 4.dp.toPx())
+                        drawCircle(
+                            color = ringColor.copy(alpha = 0.4f + pulse * 0.2f),
+                            radius = glowRadius,
+                            center = androidx.compose.ui.geometry.Offset(endX, endY)
+                        )
+                        drawCircle(
+                            color = Color.White,
+                            radius = 4.dp.toPx(),
+                            center = androidx.compose.ui.geometry.Offset(endX, endY)
+                        )
+                    }
+                }
+
+                // Frosted glass inner center circle
                 Box(
                     Modifier
-                        .size((180 + pulse * 10).dp)
+                        .size(190.dp)
                         .clip(CircleShape)
-                        .background(scheme.primary.copy(alpha = 0.05f + pulse * 0.04f)),
+                        .background(Color.White.copy(alpha = 0.04f))
+                        .border(0.5.dp, Color.White.copy(alpha = 0.12f), CircleShape)
                 )
-                // Timer text
+
+                // Timer text inside inner circle
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -317,42 +388,40 @@ internal fun TimerFocusTab(
 
             Spacer(Modifier.height(32.dp))
 
-            // ── Control buttons ──────────────────────────────────────────────────
+            // Control buttons styled as squircles
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                // End — Glassmorphic semi-transparent white style
+                // End / Reset button
                 FilledTonalButton(
                     onClick = onReset,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(50.dp),
                     colors   = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = Color.White.copy(alpha = 0.12f),
+                        containerColor = Color.White.copy(alpha = 0.08f),
                         contentColor   = Color.White,
                     ),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
-                    elevation = ButtonDefaults.filledTonalButtonElevation(defaultElevation = 0.dp),
-                    shape  = RoundedCornerShape(100.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                    shape  = RoundedCornerShape(16.dp),
                     contentPadding = PaddingValues(0.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(17.dp))
+                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
                         Text(
-                            if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH) "End" else "End Break",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
+                            if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) "End" else "End Break",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                 }
 
-                // Start/Pause — Solid white container with theme accent text
+                // Start/Pause button
                 Button(
                     onClick = onPlayPause,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(50.dp),
                     colors   = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
                         contentColor   = themeAccent,
                     ),
-                    border    = null,
-                    shape     = RoundedCornerShape(100.dp),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
+                    shape     = RoundedCornerShape(16.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
                     contentPadding = PaddingValues(0.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -362,7 +431,7 @@ internal fun TimerFocusTab(
                             else -> "Start"
                         }
                         Icon(if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Text(playPauseLabel, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(playPauseLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -375,31 +444,28 @@ internal fun TimerFocusTab(
                        shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Take Break — Glassmorphic semi-transparent white style, only when a focus session is active
                     if (canStartBreak) {
                         Spacer(Modifier.height(12.dp))
                         FilledTonalButton(
                             onClick = onStartBreak,
-                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
                             colors   = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color.White.copy(alpha = 0.12f),
+                                containerColor = Color.White.copy(alpha = 0.08f),
                                 contentColor   = Color.White,
                             ),
-                            border    = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
-                            elevation = ButtonDefaults.filledTonalButtonElevation(defaultElevation = 0.dp),
-                            shape  = RoundedCornerShape(100.dp),
+                            border    = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                            shape  = RoundedCornerShape(16.dp),
                             contentPadding = PaddingValues(0.dp),
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.FreeBreakfast, contentDescription = null, modifier = Modifier.size(17.dp))
-                                Text("Take break", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Default.FreeBreakfast, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Text("Take break", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
 
                     Spacer(Modifier.height(24.dp))
 
-                    // Motto line
                     Text(
                         text       = mottoText,
                         fontSize   = 10.sp,
@@ -408,26 +474,6 @@ internal fun TimerFocusTab(
                         color      = Color.White.copy(alpha = 0.7f),
                         textAlign  = TextAlign.Center,
                     )
-
-                    // Kavach active pill
-                    if (kavachActive) {
-                        Spacer(Modifier.height(12.dp))
-                        Surface(
-                            onClick = onOpenKavachSession,
-                            shape   = RoundedCornerShape(100.dp),
-                            color   = com.safarparmar.app.ui.ekagra.focusshield.KavachDesign.Primary.copy(alpha = 0.92f),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                Text(stringResource(R.string.kavach_active_status, kavachBlockedCount),
-                                    color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                    }
 
                 }
             }

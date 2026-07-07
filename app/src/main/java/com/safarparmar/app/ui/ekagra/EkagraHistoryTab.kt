@@ -272,7 +272,7 @@ internal fun FocusHistoryTab(
                 CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
                     Text(formatMinutes(tabFocusMins), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = scheme.primary)
                 }
-                Text("TOTAL FOCUS TIME",
+                Text(if (selectedSubTab == 0) "TOTAL FOCUS TIME" else "TOTAL TIME",
                     fontSize      = 11.sp,
                     fontWeight    = FontWeight.Bold,
                     letterSpacing = 0.5.sp,
@@ -295,15 +295,9 @@ internal fun FocusHistoryTab(
             )
         } else {
             HistorySection(
-                title      = "Stopwatch linked to goal",
-                sessions   = linkedSessions,
-                emptyText  = "No linked stopwatch sessions found.",
-                onSessionClick = onSessionClick,
-            )
-            HistorySection(
-                title      = "Unlinked stopwatch sessions",
-                sessions   = freeSessions,
-                emptyText  = "No unlinked stopwatch sessions found.",
+                title      = "Just stopwatch sessions",
+                sessions   = filteredSessions,
+                emptyText  = "No stopwatch sessions found.",
                 onSessionClick = onSessionClick,
             )
         }

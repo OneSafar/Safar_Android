@@ -2,7 +2,6 @@ package com.safarparmar.app.data.repository
 
 import com.safarparmar.app.data.remote.api.AutoDistributeRequest
 import com.safarparmar.app.data.remote.api.BatchTopicUpdateRequest
-import com.safarparmar.app.data.remote.api.BulkImportResponse
 import com.safarparmar.app.data.remote.api.BulkTopicsRequest
 import com.safarparmar.app.data.remote.api.ChapterRequest
 import com.safarparmar.app.data.remote.api.CreateFromTemplateRequest
@@ -12,6 +11,9 @@ import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusSubjectRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusTopicRequest
 import com.safarparmar.app.data.remote.api.PlannerApi
+import com.safarparmar.app.data.remote.api.PlanConfirmRequest
+import com.safarparmar.app.data.remote.api.PlanPreviewRequest
+import com.safarparmar.app.data.remote.api.PlanPreviewResult
 import com.safarparmar.app.data.remote.api.DeleteUndoRequest
 import com.safarparmar.app.data.remote.api.PlanRestoreResult
 import com.safarparmar.app.data.remote.api.ReorderSyllabusRequest
@@ -69,6 +71,8 @@ class StudyPlannerRepositoryImpl @Inject constructor(
     override suspend fun getTemplates(): Resource<List<ExamTemplateSummary>> = safeApiCall { api.getTemplates() }
     override suspend fun getTemplateDetail(templateId: String): Resource<ExamTemplate> = safeApiCall { api.getTemplateDetail(templateId) }
     override suspend fun createPlanFromTemplate(request: CreateFromTemplateRequest): Resource<StudyPlan> = safeApiCall { api.createPlanFromTemplate(request) }
+    override suspend fun previewPlan(request: PlanPreviewRequest): Resource<PlanPreviewResult> = safeApiCall { api.previewPlan(request) }
+    override suspend fun confirmPlan(draftId: String): Resource<StudyPlan> = safeApiCall { api.confirmPlan(PlanConfirmRequest(draftId)) }
     override suspend fun getPlan(planId: String): Resource<StudyPlan> = safeApiCall {
         api.getPlan(planId, LocalDate.now().toString(), ZoneId.systemDefault().id)
     }
@@ -98,36 +102,6 @@ class StudyPlannerRepositoryImpl @Inject constructor(
     override suspend fun updateTopic(planId: String, topicId: String, request: TopicPatchRequest): Resource<StudyPlan> = safeApiCall { api.updateTopic(planId, topicId, request) }
     override suspend fun batchUpdateTopics(planId: String, request: BatchTopicUpdateRequest): Resource<StudyPlan> = safeApiCall { api.batchUpdateTopics(planId, request) }
     override suspend fun deleteTopic(planId: String, topicId: String): Resource<StudyPlan> = safeApiCall { api.deleteTopic(planId, topicId) }
-
-    override suspend fun bulkImportSyllabus(planId: String, text: String): Resource<BulkImportResponse> {
-        val parsed = parseBulkSubjectsFromTxt(text).getOrElse {
-            return Resource.Error(it.message ?: "Invalid syllabus format.")
-        }
-        if (parsed.isEmpty()) return Resource.Error("No syllabus content found.")
-        val request = buildImportRequestFromParsed(parsed, mode = "merge")
-        if (request.subjects.isEmpty()) return Resource.Error("No syllabus content found.")
-
-        val subjectCount = request.subjects.size
-        val chapterCount = countBulkSubjectsChapters(parsed)
-        val topicCount = countBulkSubjectsTopics(parsed)
-
-        return when (val result = importSyllabus(planId, request)) {
-            is Resource.Success -> Resource.Success(
-                BulkImportResponse(
-                    success = true,
-                    subjects = subjectCount,
-                    chapters = chapterCount,
-                    topics = topicCount,
-                    subjectsCreated = subjectCount,
-                    chaptersCreated = chapterCount,
-                    topicsCreated = topicCount,
-                    message = "Imported $subjectCount subjects, $chapterCount chapters, $topicCount topics",
-                ),
-            )
-            is Resource.Error -> Resource.Error(result.message, result.code, result.errorCode)
-            is Resource.Loading -> Resource.Error("Import interrupted.")
-        }
-    }
 
     override suspend fun importManualSyllabus(planId: String, text: String, mode: String): Resource<StudyPlan> {
         val resolvedMode = mode.trim().lowercase().takeIf { it == "merge" || it == "replace" } ?: "merge"
@@ -180,9 +154,9 @@ class StudyPlannerRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun applySyllabusAi(planId: String, preview: StructuredSyllabusPreview): Resource<StudyPlan> {
+    override suspend fun applySyllabusAi(planId: String, preview: StructuredSyllabusPreview, mode: String): Resource<StudyPlan> {
         return when (val r = safeApiCall {
-            api.applySyllabusAi(planId, SyllabusAiRequest(aiPreview = preview.toSyllabusAiPreview()))
+            api.applySyllabusAi(planId, SyllabusAiRequest(aiPreview = preview.toSyllabusAiPreview(), mode = mode))
         }) {
             is Resource.Success -> {
                 val plan = r.data.plan

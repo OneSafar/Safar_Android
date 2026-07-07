@@ -19,13 +19,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -64,6 +69,7 @@ import com.safarparmar.app.domain.model.studyplanner.StudyChapter
 import com.safarparmar.app.domain.model.studyplanner.StudySubject
 import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.logic.percentDone
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
 
@@ -93,8 +99,6 @@ internal fun SyllabusSubjectAccordionCard(
     onDragEnd: () -> Unit = {},
     onChapterDragEnd: (StudyChapter) -> Unit = {},
     onTopicDragEnd: (StudyChapter, StudyTopic) -> Unit = { _, _ -> },
-    isChapterExpanded: (String) -> Boolean,
-    onToggleChapterExpand: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -245,8 +249,6 @@ internal fun SyllabusSubjectAccordionCard(
                             key(chapter.id) {
                                 SyllabusChapterAccordionRow(
                                     chapter = chapter,
-                                    isExpanded = isChapterExpanded(chapter.id),
-                                    onToggleExpand = { onToggleChapterExpand(chapter.id) },
                                     onAddTopic = { onAddTopic(chapter) },
                                     onBulkAdd = { onBulkAdd(chapter) },
                                     onRename = { onRenameChapter(chapter) },
@@ -272,11 +274,16 @@ internal fun SyllabusSubjectAccordionCard(
     }
 }
 
+/**
+ * A chapter row is always collapsed to name + count + a slim progress bar — tapping it
+ * opens [ChapterTopicsSheet] instead of inlining every topic into this accordion. A
+ * chapter with 50 topics used to push everything below it far down the outer subject
+ * list; the sheet gives each chapter's topic list its own single, unambiguous scroll
+ * container instead of nesting one inside the subject-level LazyColumn.
+ */
 @Composable
 private fun SyllabusChapterAccordionRow(
     chapter: StudyChapter,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
     onAddTopic: () -> Unit,
     onBulkAdd: () -> Unit,
     onRename: () -> Unit,
@@ -295,7 +302,7 @@ private fun SyllabusChapterAccordionRow(
 ) {
     val scheme = MaterialTheme.colorScheme
     val completion = chapter.percentDone()
-    val rotation by animateFloatAsState(if (isExpanded) 180f else 0f, label = "chapterChevron")
+    var showTopicsSheet by remember { mutableStateOf(false) }
 
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
@@ -338,7 +345,7 @@ private fun SyllabusChapterAccordionRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onToggleExpand)
+                .clickable(onClick = { showTopicsSheet = true })
                 .padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -401,54 +408,46 @@ private fun SyllabusChapterAccordionRow(
             }
             SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete)
             Icon(
-                imageVector = Icons.Default.ExpandMore,
-                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "View topics",
                 tint = scheme.onSurfaceVariant,
-                modifier = Modifier
-                    .size(22.dp)
-                    .rotate(rotation),
+                modifier = Modifier.size(22.dp),
             )
         }
+        LinearProgressIndicator(
+            progress = { completion / 100f },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp)
+                .padding(bottom = 8.dp)
+                .height(4.dp)
+                .clip(CircleShape),
+            color = PlannerAccent.Teal,
+            trackColor = scheme.surfaceContainerHighest,
+        )
+    }
 
-        if (isExpanded) {
-            if (chapter.topics.isEmpty()) {
-                Text(
-                    text = "No topics yet. Tap + to add one, or Add Many to paste a list.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                )
-            } else {
-                Column(modifier = Modifier.padding(bottom = 6.dp)) {
-                    chapter.topics.forEachIndexed { index, topic ->
-                        key(topic.id) {
-                            SyllabusTopicAccordionRow(
-                                topic = topic,
-                                onClick = { onTopicClick(topic) },
-                                onRename = { onRenameTopic(topic) },
-                                onDelete = { onDeleteTopic(topic) },
-                                onAssignToday = { onAssignToday(topic) },
-                                canReorder = canReorder,
-                                onMoveUp = { onMoveTopicUp(topic) },
-                                onMoveDown = { onMoveTopicDown(topic) },
-                                onDragEnd = { onTopicDragEnd(topic) }
-                            )
-                            if (index < chapter.topics.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 40.dp, end = 12.dp),
-                                    color = scheme.outlineVariant.copy(alpha = 0.4f),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    if (showTopicsSheet) {
+        ChapterTopicsSheet(
+            chapterName = chapter.name,
+            topics = chapter.topics,
+            onDismiss = { showTopicsSheet = false },
+            onAddTopic = onAddTopic,
+            onBulkAdd = onBulkAdd,
+            onTopicClick = onTopicClick,
+            onRenameTopic = onRenameTopic,
+            onDeleteTopic = onDeleteTopic,
+            onAssignToday = onAssignToday,
+            canReorder = canReorder,
+            onMoveTopicUp = onMoveTopicUp,
+            onMoveTopicDown = onMoveTopicDown,
+            onTopicDragEnd = onTopicDragEnd,
+        )
     }
 }
 
 @Composable
-private fun SyllabusTopicAccordionRow(
+internal fun SyllabusTopicAccordionRow(
     topic: StudyTopic,
     onClick: () -> Unit,
     onRename: () -> Unit,
@@ -510,7 +509,7 @@ private fun SyllabusTopicAccordionRow(
                     .size(28.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                StatusDot(topic.status)
+                TopicStatusBadge(topic.status)
             }
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -633,6 +632,27 @@ private fun RowActionIconButton(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp),
         )
+    }
+}
+
+/**
+ * Topic status affordance — a ~24dp icon badge instead of a plain 12dp color dot, so
+ * status is legible and tappable-looking at a glance while browsing a long chapter, not
+ * just a faint colored speck. Shape + icon carries the meaning, not color alone.
+ */
+@Composable
+internal fun TopicStatusBadge(status: TopicStatus) {
+    val (background, tint, icon) = when (status) {
+        TopicStatus.DONE -> Triple(PlannerAccent.Teal.copy(alpha = 0.18f), PlannerAccent.Teal, Icons.Default.Check)
+        TopicStatus.REVISION_NEEDED -> Triple(PlannerAccent.Amber.copy(alpha = 0.18f), PlannerAccent.Amber, Icons.Default.Schedule)
+        TopicStatus.IN_PROGRESS -> Triple(PlannerAccent.Coral.copy(alpha = 0.18f), PlannerAccent.Coral, Icons.Default.PlayArrow)
+        else -> Triple(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.colorScheme.outline, Icons.Outlined.Circle)
+    }
+    Box(
+        modifier = Modifier.size(24.dp).clip(CircleShape).background(background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = status.name, tint = tint, modifier = Modifier.size(14.dp))
     }
 }
 

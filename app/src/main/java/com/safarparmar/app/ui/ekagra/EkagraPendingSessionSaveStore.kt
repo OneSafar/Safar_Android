@@ -80,6 +80,8 @@ object EkagraPendingSessionSaveStore {
                     .put("shieldEnabled", session.shieldEnabled),
             )
         }
+        // commit() (not apply()) — this queue must survive an immediate process death,
+        // e.g. a session completing right before the OS kills the app for memory.
         prefs(context).edit().putString(KEY_QUEUE_JSON, array.toString()).commit()
     }
 

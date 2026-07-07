@@ -113,6 +113,7 @@ fun PlanTabScreen(
     onboardingCompletedSteps: Set<String> = emptySet(),
     planningMode: String = "flex",
     preferredStudyStrategy: String = "interleaved",
+    pendingManualSubjectOrder: Boolean = false,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
@@ -192,6 +193,12 @@ fun PlanTabScreen(
     var editTopicRef by remember { mutableStateOf<TopicRef?>(null) }
     var revisionTopicRef by remember { mutableStateOf<TopicRef?>(null) }
     var showUnscheduledTopicsScreen by remember { mutableStateOf(false) }
+    var showManualOrderSheet by remember(plan.id) { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(pendingManualSubjectOrder, plan.subjects) {
+        if (pendingManualSubjectOrder && plan.subjects.isNotEmpty()) {
+            showManualOrderSheet = true
+        }
+    }
     val unscheduledTopics = remember(refs) {
         refs.filter { it.topic.plannedDate.isNullOrBlank() && it.topic.status != TopicStatus.DONE }
     }
@@ -291,6 +298,10 @@ fun PlanTabScreen(
 
     // ── Build Planner Strategy Sheet (Replacing Build Schedule Mode Sheet) ──
     pendingDistributeAction?.let { lockExisting ->
+        // lockExisting=false is set only by the "Rebuild Plan" entry point (only shown
+        // once a schedule already exists) — lockExisting=true is the first-ever build.
+        val isRebuild = !lockExisting
+        val currentStyleLabel = if (preferredStudyStrategy == "sequential") "Deep Focus mode" else "Balanced mode"
         ModalBottomSheet(
             onDismissRequest = { pendingDistributeAction = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -303,20 +314,41 @@ fun PlanTabScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Build planner",
+                    text = if (isRebuild) "Rebuild your plan" else "Build planner",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = "Choose how SAFAR should place your topics on study days.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                if (isRebuild) {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ) {
+                        Text(
+                            text = "Currently: $currentStyleLabel",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(
+                        text = "This reschedules your remaining, unfinished topics — today's list and anything already done stays untouched.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                } else {
+                    Text(
+                        text = "Choose how SAFAR should place your topics on study days.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
 
                 StudyStyleOption(
-                    title = "Mixed bag",
+                    title = "Balanced mode",
                     body = "Mix subjects daily.",
                     recommended = preferredStudyStrategy == "interleaved",
                     onClick = {
@@ -325,7 +357,7 @@ fun PlanTabScreen(
                     },
                 )
                 StudyStyleOption(
-                    title = "Deep focus",
+                    title = "Deep Focus mode",
                     body = "Finish topics in the same order as your syllabus.",
                     recommended = preferredStudyStrategy == "sequential",
                     onClick = {
@@ -336,6 +368,22 @@ fun PlanTabScreen(
                 Spacer(Modifier.height(12.dp))
             }
         }
+    }
+
+    // ── Manual mode: set subject priority order right after creation ──
+    if (showManualOrderSheet) {
+        ManualSubjectOrderSheet(
+            subjects = plan.subjects,
+            onConfirm = { orderedIds ->
+                actions.reorderSyllabus(subjectIds = orderedIds)
+                actions.clearPendingManualSubjectOrder()
+                showManualOrderSheet = false
+            },
+            onSkip = {
+                actions.clearPendingManualSubjectOrder()
+                showManualOrderSheet = false
+            },
+        )
     }
 
     // ── Replace Topic Sheet ────────────────────────────────────────
@@ -416,6 +464,9 @@ fun PlanTabScreen(
         )
     }
 
+    val remainingToday = todayTopics.filter { it.topic.status != TopicStatus.DONE }
+    val todayCompleted = todayTopics.isNotEmpty() && remainingToday.isEmpty()
+
     Box(modifier = Modifier.fillMaxSize()) {
       if (!hasTopics) {
         EmptyPlanTabState(onCreateClick = { showCreatePlanSheet = true })
@@ -435,11 +486,12 @@ fun PlanTabScreen(
                     animatedVisibilityScope = animatedVisibilityScope,
                     filters = {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            PlanTodayStatsRow(
-                                toStudy = todayTopics.size,
-                                done = todayDoneCount,
-                                pendingRevision = revisionTopics.size,
-                            )
+                            if (unscheduledTopics.isNotEmpty()) {
+                                UnscheduledWarningBanner(
+                                    count = unscheduledTopics.size,
+                                    onClick = { showUnscheduledTopicsScreen = true }
+                                )
+                            }
                             PlanTabQuickLinks(
                                 activeTab = activeTab,
                                 onTabSelected = { actions.setPlanTab(it) },
@@ -448,28 +500,8 @@ fun PlanTabScreen(
                                 completedCount = completedTopics.size,
                             )
                         }
-                    },
+                    }
                 )
-            }
-
-            item(key = "actions", contentType = "actions") {
-                PlanActionRow(
-                    onAddTopics = { onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", plan.id)) },
-                    onSchedule = { pendingDistributeAction = true },
-                    // "Rebuild Plan" only makes sense once a schedule already exists.
-                    // Before that, show "Build Planner" (via showSchedule) instead.
-                    onRebuildPlan = if (hasSchedule) { { pendingDistributeAction = false } } else null,
-                    showSchedule = !hasSchedule,
-                )
-            }
-
-            if (unscheduledTopics.isNotEmpty()) {
-                item(key = "unscheduled_warning", contentType = "unscheduled_warning") {
-                    UnscheduledWarningBanner(
-                        count = unscheduledTopics.size,
-                        onClick = { showUnscheduledTopicsScreen = true }
-                    )
-                }
             }
 
             if (showSetupGuide) {
@@ -486,9 +518,6 @@ fun PlanTabScreen(
             // Tab Content Items
             when (activeTab) {
                 StudyPlannerTab.TODAY -> {
-                    val remainingToday = todayTopics.filter { it.topic.status != TopicStatus.DONE }
-                    val todayCompleted = todayTopics.isNotEmpty() && remainingToday.isEmpty()
-
                     if (todayTopics.isEmpty()) {
                         item(key = "today_empty") {
                             Card(
@@ -582,76 +611,6 @@ fun PlanTabScreen(
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF047857),
                                             )
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            item(key = "today_flow_hero") {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = MaterialTheme.shapes.large,
-                                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                                ) {
-                                    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .background(
-                                                brush = Brush.linearGradient(
-                                                    colors = if (isDark) {
-                                                        listOf(Color(0xFF1C2022), Color(0xFF181C1E))
-                                                    } else {
-                                                        listOf(Color(0xFFF3E8FF), Color(0xFFD8B4FE))
-                                                    }
-                                                )
-                                            )
-                                            .padding(20.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                        ) {
-                                            Column(
-                                                modifier = Modifier.weight(1f),
-                                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                                            ) {
-                                                Text(
-                                                    text = "Start Studying",
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.Black,
-                                                    color = if (isDark) Color.White else Color(0xFF581C87)
-                                                )
-                                                Text(
-                                                    text = "Enter distraction-free Flow Mode to complete your tasks one by one.",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = if (isDark) Color.White.copy(alpha = 0.8f) else Color(0xFF6B21A8)
-                                                )
-                                                Spacer(Modifier.height(8.dp))
-                                                Button(
-                                                    onClick = {
-                                                        skippedFlowTopicIds = emptySet()
-                                                        isFlowModeActive = true
-                                                    },
-                                                    colors = ButtonDefaults.buttonColors(
-                                                        containerColor = if (isDark) Color(0xFFA855F7) else Color(0xFF7E22CE),
-                                                        contentColor = Color.White
-                                                    ),
-                                                    shape = ButtonDefaults.shape,
-                                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                                                ) {
-                                                    Icon(Icons.Default.Adjust, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                    Spacer(Modifier.width(6.dp))
-                                                    Text(
-                                                        text = "Start Study Flow (${remainingToday.size} left)",
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 12.sp
-                                                    )
-                                                }
-                                            }
-                                            Text("⚡", fontSize = 44.sp)
                                         }
                                     }
                                 }
@@ -955,6 +914,16 @@ fun PlanTabScreen(
                 }
             }
         }
+      }
+
+      if (hasTopics && activeTab == StudyPlannerTab.TODAY && !todayCompleted && todayTopics.isNotEmpty()) {
+          StartStudyFlowBar(
+              onClick = {
+                  skippedFlowTopicIds = emptySet()
+                  isFlowModeActive = true
+              },
+              modifier = Modifier.align(Alignment.BottomCenter)
+          )
       }
 
         // Fullscreen Flow Mode Overlay

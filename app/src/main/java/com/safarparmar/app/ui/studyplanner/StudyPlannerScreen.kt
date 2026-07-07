@@ -7,6 +7,7 @@ import com.safarparmar.app.ui.navigation.Routes
 fun StudyPlannerScreen(
     currentRoute: String = Routes.STUDY_PLANNER,
     isDarkTheme: Boolean = false,
+    planId: String? = null,
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
@@ -15,6 +16,7 @@ fun StudyPlannerScreen(
     com.safarparmar.app.ui.studyplanner.screens.StudyPlannerScreen(
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
+        planId = planId,
         onNavigate = onNavigate,
         onBack = onBack,
         onToggleDarkTheme = onToggleDarkTheme,

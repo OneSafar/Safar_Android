@@ -314,10 +314,9 @@ class EkagraViewModel @Inject constructor(
         val shieldWasActive = focusShieldRepo.sessionActive.value || focusShieldRepo.isEnabled.value
 
         viewModelScope.launch {
-            if (!sessionId.startsWith("local-")) {
-                repo.deleteSession(sessionId)
-            }
-            repo.saveSession(
+            // Save the new record before touching the old one — if the save fails (no
+            // network, process death), we must not have already deleted the original.
+            val saveResult = repo.saveSession(
                 clientSessionId = sessionId.takeIf { it.startsWith("local-") },
                 mode = mode,
                 startedAt = started,
@@ -330,11 +329,22 @@ class EkagraViewModel @Inject constructor(
                 markGoalComplete = markGoalComplete,
                 shieldEnabled = shieldWasActive,
             )
-            if (activeSessionId == sessionId || current?.id == sessionId) clearLocalDraft()
             focusShieldRepo.deactivateSession()
-            loadStats()
-            refreshEkagra()
-            loadTasks()
+            when (saveResult) {
+                is Resource.Success -> {
+                    if (!sessionId.startsWith("local-")) {
+                        repo.deleteSession(sessionId)
+                    }
+                    if (activeSessionId == sessionId || current?.id == sessionId) clearLocalDraft()
+                    loadStats()
+                    refreshEkagra()
+                    loadTasks()
+                }
+                is Resource.Error, is Resource.Loading -> {
+                    // Save failed — keep the local draft intact instead of discarding this
+                    // session's data, so the user can retry ending it later.
+                }
+            }
         }
     }
 

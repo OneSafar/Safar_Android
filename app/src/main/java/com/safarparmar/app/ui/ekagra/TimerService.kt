@@ -21,7 +21,6 @@ import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.notifications.NotificationDeepLinkHandler
 import com.safarparmar.app.notifications.SafarNotificationChannels
 import com.safarparmar.app.notifications.SafarNotificationManager
-import com.safarparmar.app.ui.ekagra.focusshield.BlockedAppActivity
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
@@ -197,27 +196,7 @@ class TimerService : Service() {
         }
         FocusShieldPermissionHelper.requestNotificationListenerRebind(this)
 
-        _focusShieldActive.value = true
         val strict = _strictMode.value
-
-        // Read emergency unlock policy synchronously from DataStore so block UI can honour it.
-        scope.launch {
-            val allowEmergency = safarDataStore.focusShieldEmergencyUnlock.first()
-            val unlockLimit = if (allowEmergency && !strict)
-                safarDataStore.focusShieldEmergencyUnlocksPerSession.first()
-            else 0
-            val unlockSeconds = safarDataStore.focusShieldEmergencyUnlockSeconds.first()
-            // Write to SharedPreferences (survives process death!). Reset session counters.
-            FocusShieldRepository.ShieldPrefs.write(
-                ctx = this@TimerService,
-                active = true,
-                packages = pkgs,
-                strict = strict,
-                unlockLimit = unlockLimit,
-                unlockSeconds = unlockSeconds,
-                resetUnlocks = true,
-            )
-        }
 
         // Also update volatile snapshot for in-process fast access
         FocusShieldRepository.Snapshot.active = true
@@ -225,8 +204,16 @@ class TimerService : Service() {
         FocusShieldRepository.Snapshot.strict = strict
 
         debugFocusShield("TimerService.enableFocusShieldForSession()")
-        focusShieldRepo().activateForSession()
-        showFocusShieldActiveNotification()
+        val repo = focusShieldRepo()
+        repo.activateForSession()
+        val activated = repo.sessionActive.value
+        _focusShieldActive.value = activated
+        if (activated) {
+            showFocusShieldActiveNotification()
+        } else {
+            debugFocusShield("TimerService.enableFocusShieldForSession() failed to activate: ${repo.activationBlockedReason.value}")
+            showFocusShieldFailedNotification(repo.activationBlockedReason.value)
+        }
     }
 
     fun disableFocusShieldForSession(force: Boolean = false) {
@@ -324,7 +311,7 @@ class TimerService : Service() {
 
     private fun handleFocusShieldBlockedIntent(intent: Intent?) {
         val blockedPackage = intent
-            ?.getStringExtra(BlockedAppActivity.EXTRA_BLOCKED_PACKAGE)
+            ?.getStringExtra(FocusShieldRepository.EXTRA_BLOCKED_PACKAGE)
             .orEmpty()
         if (blockedPackage.isBlank()) return
         if (isHomePackage(blockedPackage)) return
@@ -355,14 +342,6 @@ class TimerService : Service() {
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE, blockedPackage)
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME, appName)
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_STRICT, strict)
-                putExtra(
-                    MainActivity.EXTRA_FOCUS_SHIELD_UNLOCKS_REMAINING,
-                    FocusShieldRepository.ShieldPrefs.getUnlocksRemaining(this@TimerService),
-                )
-                putExtra(
-                    MainActivity.EXTRA_FOCUS_SHIELD_UNLOCK_SECONDS,
-                    FocusShieldRepository.ShieldPrefs.getUnlockSeconds(this@TimerService),
-                )
                 putExtra(MainActivity.EXTRA_FOCUS_SHIELD_OPEN_EKAGRA, openEkagra)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -420,6 +399,35 @@ class TimerService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .build()
+
+        getSystemService(NotificationManager::class.java)
+            .notify(FOCUS_SHIELD_ACTIVE_NOTIFICATION_ID, notification)
+    }
+
+    private fun showFocusShieldFailedNotification(reason: String?) {
+        val focusPendingIntent = PendingIntent.getActivity(
+            this,
+            4,
+            NotificationDeepLinkHandler.activityIntent(this, "safar://ekagra"),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val body = personalizeNotificationBody(
+            reason ?: "KAVACH couldn't start this session. Check its permissions in settings.",
+        )
+
+        val notification = NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
+            .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
+            .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
+            .setContentTitle("KAVACH is not active")
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(focusPendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .build()
 
@@ -620,10 +628,10 @@ class TimerService : Service() {
     }
 
     fun switchToFocusFromBreak(): Boolean {
-        val focusState = suspendedFocusState ?: return _timerMode.value == TimerMode.FOCUS
+        val focusState = suspendedFocusState ?: return _timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.POMODORO
         tickJob?.cancel()
         suspendedFocusState = null
-        _timerMode.value = TimerMode.FOCUS
+        _timerMode.value = if (_targetPomodoroLoops.value > 0) TimerMode.POMODORO else TimerMode.FOCUS
         _totalSeconds.value = focusState.totalSeconds
         _secondsLeft.value = focusState.remainingSeconds.coerceIn(1, focusState.totalSeconds)
         _isRunning.value = false
@@ -636,10 +644,10 @@ class TimerService : Service() {
     }
 
     fun startBreak(mode: TimerMode, seconds: Int): Boolean {
-        if (mode == TimerMode.FOCUS || seconds <= 0) return false
+        if (mode == TimerMode.FOCUS || mode == TimerMode.POMODORO || seconds <= 0) return false
 
         val focusState = when {
-            _timerMode.value == TimerMode.FOCUS && _secondsLeft.value > 0 -> {
+            (_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.POMODORO) && _secondsLeft.value > 0 -> {
                 SuspendedFocusState(
                     totalSeconds = _totalSeconds.value,
                     remainingSeconds = _secondsLeft.value,
@@ -688,10 +696,9 @@ class TimerService : Service() {
                 val now = SystemClock.elapsedRealtime()
                 val elapsedSeconds = ((now - lastTickElapsedMs) / 1000L).toInt().coerceAtLeast(1)
                 lastTickElapsedMs = now
-                if (elapsedSeconds > 10 * 60) {
-                    pause()
-                    break
-                }
+                // elapsedRealtime() keeps advancing through sleep/Doze, so a large gap here means
+                // the device really was asleep that long — apply it normally instead of silently
+                // pausing and tearing down the Shield with no explanation to the user.
                 if (_timerMode.value == TimerMode.STOPWATCH) {
                     _secondsLeft.value = _secondsLeft.value + elapsedSeconds
                 } else {
@@ -908,7 +915,9 @@ class TimerService : Service() {
     ) {
         val total = totalSeconds.coerceAtLeast(60)
         val elapsed = if (mode == TimerMode.STOPWATCH) remainingSeconds else (total - remainingSeconds.coerceIn(0, total)).coerceAtLeast(0)
-        if (elapsed <= 0) return
+        // Below 60s of real focus, don't credit a phantom 1-minute session — enqueueCompletedFocusSessionSave
+        // floors actualSeconds to 60, which would otherwise inflate a few-second attempt into a full minute.
+        if (elapsed < 60) return
         enqueueCompletedFocusSessionSave(
             totalSeconds = if (mode == TimerMode.STOPWATCH) remainingSeconds else total,
             actualSeconds = elapsed,
