@@ -186,6 +186,7 @@ import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
+import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
 import com.safarparmar.app.ui.studyplanner.components.subjectHeaderBrush
 import com.safarparmar.app.ui.studyplanner.components.subjectMeterBrush
 import com.safarparmar.app.ui.studyplanner.components.topicHierarchyBrush
@@ -197,6 +198,7 @@ import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.plan.PlanTabScreen
+import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -284,9 +286,6 @@ internal fun InsightsTab(
             }
             item {
                 ConsistencyStreakCard(consistency = insights.consistency)
-            }
-            item {
-                ConsistencyInsightsCard(consistency = insights.consistency)
             }
             item {
                 InsightsRevisionStudyCardWidget(
@@ -955,13 +954,13 @@ internal fun SubjectProgressChart(
 @Composable
 private fun StudentSubjectBar(row: PlannerInsightSubjectRow) {
     val progress = (row.completionPercent / 100f).coerceIn(0f, 1f)
-    val tint = when {
-        row.overdueTopics > 0 -> MaterialTheme.colorScheme.error
-        row.completionPercent < 25 -> Color(0xFFF59E0B)
-        else -> MaterialTheme.colorScheme.primary
-    }
+    // The bar itself is the subject's own color (same dot color used on Today's Plan
+    // and Calendar) so a subject looks the same everywhere; overdue status is conveyed
+    // through the "overdue" text instead of recoloring the bar.
+    val subjectColor = subjectDotColor(row.subjectColor)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(9.dp).clip(CircleShape).background(subjectColor))
             Text(
                 row.subjectName,
                 fontWeight = FontWeight.Bold,
@@ -969,7 +968,7 @@ private fun StudentSubjectBar(row: PlannerInsightSubjectRow) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text("${row.completionPercent}%", fontWeight = FontWeight.Black, color = tint)
+            Text("${row.completionPercent}%", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
         }
         Box(
             Modifier
@@ -984,81 +983,15 @@ private fun StudentSubjectBar(row: PlannerInsightSubjectRow) {
                         .fillMaxHeight()
                         .fillMaxWidth(progress)
                         .clip(CircleShape)
-                        .background(tint),
+                        .background(subjectColor),
                 )
             }
         }
         Text(
             text = "${row.remainingTopics} topics left${if (row.overdueTopics > 0) " • ${row.overdueTopics} overdue" else ""}",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (row.overdueTopics > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-@Composable
-internal fun ConsistencyInsightsCard(consistency: PlannerInsightConsistency) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Study regularity / Missed days", fontWeight = FontWeight.Black, fontSize = 18.sp)
-            if (consistency.missedDays.isEmpty()) {
-                Text(
-                    text = "No missed planned topics recently.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                consistency.missedDays.forEach { day ->
-                    val date = runCatching { LocalDate.parse(day.date.take(10)) }.getOrNull()
-                    val label = date?.dayOfWeek?.getDisplayName(TextStyle.SHORT, Locale.getDefault()) ?: day.date.takeLast(2)
-                    
-                    val completionPercent = if (day.plannedCount > 0) {
-                        (day.doneCount.toFloat() / day.plannedCount.toFloat())
-                    } else {
-                        0f
-                    }
-                    val displayPercent = (completionPercent * 100).toInt()
-
-                    val tint = when {
-                        completionPercent < 0.25f -> MaterialTheme.colorScheme.error
-                        completionPercent < 0.75f -> Color(0xFFF59E0B)
-                        else -> MaterialTheme.colorScheme.primary
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(label, modifier = Modifier.width(34.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(12.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
-                        ) {
-                            if (completionPercent > 0f) {
-                                Box(
-                                    Modifier
-                                        .fillMaxHeight()
-                                        .fillMaxWidth(completionPercent.coerceIn(0.06f, 1f))
-                                        .clip(CircleShape)
-                                        .background(tint),
-                                )
-                            }
-                        }
-                        Text("$displayPercent%", modifier = Modifier.width(36.dp), textAlign = TextAlign.End, fontWeight = FontWeight.Black)
-                    }
-                }
-                Text(
-                    text = "Shows how much you completed on days where some planned topics were left.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
     }
 }
 
@@ -1425,7 +1358,7 @@ internal fun InsightsRevisionStudyCardWidget(
     val revisionRefs = remember(plan.subjects) {
         plan.flattenTopics()
             .filter { ref ->
-                ref.topic.revisionReminderDates.isNotEmpty() ||
+                ref.topic.revisionReminderDates.orEmpty().isNotEmpty() ||
                     !ref.topic.revisionMarkedAt.isNullOrBlank() ||
                     ref.topic.status == TopicStatus.REVISION_NEEDED
             }
@@ -1512,50 +1445,20 @@ internal fun InsightsRevisionStudyCardWidget(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
                 InsightsInnerStat(
                     label = "Revision done",
                     value = "$done/$total",
                     valueColor = if (done > 0) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurface,
                     icon = Icons.Default.Check,
                     iconTint = if (done > 0) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            actions.setPlanTab(StudyPlannerTab.REVISION)
+                            actions.setSection(PlannerSection.PLAN)
+                        },
                 )
-                InsightsInnerStat(
-                    label = "No date topics",
-                    value = plan.flattenTopics().count { it.topic.status != TopicStatus.DONE && it.topic.plannedDate.isNullOrBlank() }.toString(),
-                    valueColor = MaterialTheme.colorScheme.onSurface,
-                    icon = Icons.AutoMirrored.Filled.PlaylistAdd,
-                    iconTint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            if (revisionRefs.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Revision list",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    visibleRefs.forEach { ref ->
-                        RevisionTopicMiniRow(
-                            ref = ref,
-                            onMarkDone = {
-                                actions.updateTopic(
-                                    topicId = ref.topic.id,
-                                    status = TopicStatus.DONE,
-                                )
-                            },
-                        )
-                    }
-                    if (revisionRefs.size > 4) {
-                        TextButton(onClick = { showAll = !showAll }) {
-                            Text(if (showAll) "Show less" else "Show all revision topics")
-                        }
-                    }
-                }
             }
         }
     }
@@ -1568,12 +1471,13 @@ private fun RevisionTopicMiniRow(
 ) {
     val done = ref.topic.status == TopicStatus.DONE
     val nextDate = ref.topic.plannedDate?.take(10)?.takeIf { it.isNotBlank() }
+    val reminderDates = ref.topic.revisionReminderDates.orEmpty()
     val scheduleLabel = when {
         ref.topic.revisionScheduleType.equals("spaced", ignoreCase = true) ->
-            "Spaced revision • ${ref.topic.revisionReminderDates.size} date${if (ref.topic.revisionReminderDates.size == 1) "" else "s"}"
+            "Spaced revision • ${reminderDates.size} date${if (reminderDates.size == 1) "" else "s"}"
         ref.topic.revisionScheduleType.equals("custom", ignoreCase = true) -> "One revision date"
-        ref.topic.revisionReminderDates.isNotEmpty() ->
-            "${ref.topic.revisionReminderDates.size} revision date${if (ref.topic.revisionReminderDates.size == 1) "" else "s"}"
+        reminderDates.isNotEmpty() ->
+            "${reminderDates.size} revision date${if (reminderDates.size == 1) "" else "s"}"
         else -> "Revision topic"
     }
     Surface(
@@ -1635,6 +1539,13 @@ private fun RevisionTopicMiniRow(
     }
 }
 
+/**
+ * "Your study streak" — merges what used to be two separate cards (a celebratory streak
+ * card and a harshly-toned "Study regularity / Missed days" card showing the same
+ * underlying [consistency] data) into one. Days that had unfinished topics are still
+ * shown, but as a soft secondary line in neutral tones rather than a red/amber bar list,
+ * so falling behind reads as a nudge, not a scolding.
+ */
 @Composable
 internal fun ConsistencyStreakCard(consistency: com.safarparmar.app.ui.studyplanner.logic.PlannerInsightConsistency) {
     val isDark = isSystemInDarkTheme()
@@ -1709,6 +1620,14 @@ internal fun ConsistencyStreakCard(consistency: com.safarparmar.app.ui.studyplan
                             fontWeight = FontWeight.SemiBold
                         )
                     }
+                }
+                if (consistency.missedDays.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.12f))
+                    Text(
+                        text = "A few days had some topics left — that's okay, keep going.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.75f),
+                    )
                 }
             }
         }

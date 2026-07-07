@@ -8,6 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
 
 import androidx.compose.material3.CircularProgressIndicator
@@ -85,9 +87,11 @@ import com.safarparmar.app.domain.model.studyplanner.PlanProgress
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.ui.studyplanner.PlannerActions
+import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
+import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
 import com.safarparmar.app.ui.studyplanner.logic.daysUntil
 import com.safarparmar.app.ui.studyplanner.logic.plannerExamCountdownCaption
@@ -148,7 +152,7 @@ fun PlanStatusCard(
                     .background(
                         brush = Brush.linearGradient(
                             colors = if (isDark) {
-                                listOf(Color(0xFF0F172A), Color(0xFF1E293B))
+                                listOf(Color(0xFF1C2022), Color(0xFF262B2C))
                             } else {
                                 listOf(Color(0xFF0A1931), Color(0xFF15305B))
                             }
@@ -288,98 +292,104 @@ fun PlanStatusCard(
     }
 }
 
+/**
+ * Replaces the old 5-way circular tab bar with a glanceable 3-stat summary (To study /
+ * Done / Pending revision, all scoped to today) plus a quiet row of text links for the
+ * secondary views (Overdue/Upcoming/Done) — those still exist and are one tap away, but
+ * they no longer compete visually with today's numbers.
+ */
 @Composable
-fun PlanTabFiltersRow(
+fun PlanTodayStatsRow(
+    toStudy: Int,
+    done: Int,
+    pendingRevision: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        PlanStatBox(value = toStudy, label = "To study", modifier = Modifier.weight(1f))
+        PlanStatBox(value = done, label = "Done", modifier = Modifier.weight(1f))
+        PlanStatBox(value = pendingRevision, label = "Pending revision", modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun PlanStatBox(value: Int, label: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(vertical = 10.dp, horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "$value",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                ),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+fun PlanTabQuickLinks(
     activeTab: StudyPlannerTab,
     onTabSelected: (StudyPlannerTab) -> Unit,
-    todayCount: Int,
     overdueCount: Int,
     upcomingCount: Int,
     completedCount: Int,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val scheme = MaterialTheme.colorScheme
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        StudyPlannerTab.entries.forEach { tab ->
-            val isSelected = activeTab == tab
-            val count = when (tab) {
-                StudyPlannerTab.TODAY -> todayCount
-                StudyPlannerTab.OVERDUE -> overdueCount
-                StudyPlannerTab.UPCOMING -> upcomingCount
-                StudyPlannerTab.COMPLETED -> completedCount
-            }
-            val tabBg = if (isSelected) {
-                Brush.horizontalGradient(
-                    colors = if (isDark) {
-                        listOf(Color(0xFF38BDF8), Color(0xFF818CF8))
-                    } else {
-                        listOf(Color(0xFF0F172A), Color(0xFF1E293B))
-                    },
-                )
-            } else {
-                Brush.horizontalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                    ),
-                )
-            }
-            val textColor = if (isSelected) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            }
-            val border = if (isSelected) {
-                null
-            } else {
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onTabSelected(tab) },
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = when (tab) {
-                        StudyPlannerTab.TODAY -> "Today"
-                        StudyPlannerTab.OVERDUE -> "Overdue"
-                        StudyPlannerTab.UPCOMING -> "Upcoming"
-                        StudyPlannerTab.COMPLETED -> "Done"
-                    },
-                    fontSize = 11.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = textColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(tabBg)
-                        .then(if (border != null) Modifier.border(border, CircleShape) else Modifier),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = count.toString(),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                    )
-                }
-            }
+        if (activeTab != StudyPlannerTab.TODAY) {
+            QuickLinkText(text = "Today", onClick = { onTabSelected(StudyPlannerTab.TODAY) }, emphasized = true)
+        }
+        if (overdueCount > 0) {
+            QuickLinkText(
+                text = "Overdue ($overdueCount)",
+                onClick = { onTabSelected(StudyPlannerTab.OVERDUE) },
+                emphasized = activeTab == StudyPlannerTab.OVERDUE,
+                color = scheme.error,
+            )
+        }
+        if (upcomingCount > 0) {
+            QuickLinkText(text = "Upcoming ($upcomingCount)", onClick = { onTabSelected(StudyPlannerTab.UPCOMING) }, emphasized = activeTab == StudyPlannerTab.UPCOMING)
+        }
+        if (completedCount > 0) {
+            QuickLinkText(text = "Done ($completedCount)", onClick = { onTabSelected(StudyPlannerTab.COMPLETED) }, emphasized = activeTab == StudyPlannerTab.COMPLETED)
         }
     }
+}
+
+@Composable
+private fun QuickLinkText(
+    text: String,
+    onClick: () -> Unit,
+    emphasized: Boolean = false,
+    color: Color = MaterialTheme.colorScheme.primary,
+) {
+    Text(
+        text = text,
+        modifier = Modifier.clickable(onClick = onClick),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
+        color = color,
+    )
 }
 
 @Composable
@@ -406,7 +416,7 @@ fun TodayMissionCard(
                     .background(
                         brush = Brush.horizontalGradient(
                             colors = if (isDark) {
-                                listOf(Color(0xFF1E1B18), Color(0xFF35261B))
+                                listOf(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.surfaceContainerHigh)
                             } else {
                                 listOf(Color(0xFFFFF7ED), Color(0xFFFED7AA))
                             }
@@ -579,6 +589,7 @@ fun PlanActionRow(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun PlannerTaskRow(
     ref: TopicRef,
@@ -594,28 +605,27 @@ fun PlannerTaskRow(
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val done = ref.topic.status == TopicStatus.DONE
     val needsRevision = ref.topic.status == TopicStatus.REVISION_NEEDED
-    val dotColor = when {
-        done -> Color(0xFF10B981)
-        needsRevision -> Color(0xFFF59E0B)
-        accent == PlanTaskRowAccent.Overdue -> scheme.error
-        else -> scheme.primary
-    }
     val cardBgColor = when {
         done -> if (isDark) Color(0xFF163B2A) else Color(0xFFECFDF5)
         needsRevision -> if (isDark) Color(0xFF3B2F16) else Color(0xFFFFFBEB)
         accent == PlanTaskRowAccent.Overdue -> if (isDark) Color(0xFF3B1E1E) else Color(0xFFFEF2F2)
         else -> if (isDark) Color(0xFF1E293B) else Color.White
     }
-    val animatedDotColor by animateColorAsState(dotColor, label = "planTaskDot")
     val animatedCardBgColor by animateColorAsState(cardBgColor, label = "planTaskBg")
     val borderStroke = if (done || needsRevision || accent == PlanTaskRowAccent.Overdue) null else BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
-    
-    val rowModifier = if (onClick != null) {
-        modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    } else {
-        modifier.fillMaxWidth()
+
+    var showMenu by remember { mutableStateOf(false) }
+    val hasMenu = onEdit != null || onReplace != null || (onRemoveFromToday != null && !done)
+
+    val rowModifier = modifier.fillMaxWidth().let {
+        if (onClick != null || hasMenu) {
+            it.combinedClickable(
+                onClick = { onClick?.invoke() },
+                onLongClick = { if (hasMenu) showMenu = true },
+            )
+        } else {
+            it
+        }
     }
 
     Card(
@@ -625,6 +635,30 @@ fun PlannerTaskRow(
         border = borderStroke,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
+        Box {
+        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+            if (onEdit != null) {
+                DropdownMenuItem(
+                    text = { Text("Edit topic") },
+                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                    onClick = { showMenu = false; onEdit() },
+                )
+            }
+            if (onReplace != null) {
+                DropdownMenuItem(
+                    text = { Text("Replace topic") },
+                    leadingIcon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
+                    onClick = { showMenu = false; onReplace() },
+                )
+            }
+            if (onRemoveFromToday != null && !done) {
+                DropdownMenuItem(
+                    text = { Text("Remove from today") },
+                    leadingIcon = { Icon(Icons.Default.RemoveCircleOutline, contentDescription = null) },
+                    onClick = { showMenu = false; onRemoveFromToday() },
+                )
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -636,7 +670,7 @@ fun PlannerTaskRow(
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(animatedDotColor)
+                    .background(subjectDotColor(ref.subject.color))
             )
             Column(
                 modifier = Modifier
@@ -684,52 +718,6 @@ fun PlannerTaskRow(
                     }
                 }
             }
-            if (onReplace != null || onRemoveFromToday != null || onEdit != null) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(0.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (onEdit != null) {
-                        IconButton(
-                            onClick = onEdit,
-                            modifier = Modifier.size(32.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit topic",
-                                tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                    if (onReplace != null) {
-                        IconButton(
-                            onClick = onReplace,
-                            modifier = Modifier.size(32.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SwapHoriz,
-                                contentDescription = "Replace topic",
-                                tint = if (isDark) Color(0xFF38BDF8) else Color(0xFF0369A1),
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                    if (onRemoveFromToday != null && !done) {
-                        IconButton(
-                            onClick = onRemoveFromToday,
-                            modifier = Modifier.size(32.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.RemoveCircleOutline,
-                                contentDescription = "Remove from today",
-                                tint = if (isDark) Color(0xFFF87171) else Color(0xFFDC2626),
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                }
-            }
             Checkbox(
                 checked = done,
                 onCheckedChange = onDoneChange,
@@ -740,6 +728,67 @@ fun PlannerTaskRow(
                     checkmarkColor = Color.White,
                 ),
             )
+        }
+        }
+    }
+}
+
+/**
+ * One "how do you like to study" choice card — shared by the Create Plan sheet and the
+ * post-creation Build Planner sheet so the same two options look identical everywhere.
+ */
+@Composable
+fun StudyStyleOption(
+    title: String,
+    body: String,
+    selected: Boolean = false,
+    recommended: Boolean = false,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = if (selected) scheme.primaryContainer.copy(alpha = 0.5f) else scheme.surfaceContainerLow,
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.45f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = scheme.onSurface,
+                )
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+            if (recommended) {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = scheme.primary.copy(alpha = 0.14f),
+                ) {
+                    Text(
+                        text = "Your usual",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.primary,
+                    )
+                }
+            }
         }
     }
 }

@@ -13,6 +13,11 @@ object SafarSemanticColors {
     fun profileBackground(isDarkTheme: Boolean): Color =
         if (isDarkTheme) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background
 
+    /** Warm off-white canvas for the Study Planner feature only — not the app-wide theme. */
+    @Composable
+    fun plannerBackground(isDarkTheme: Boolean): Color =
+        if (isDarkTheme) MaterialTheme.colorScheme.background else PlannerWarmBackground
+
     @Composable
     fun profilePrimaryContainer(isDarkTheme: Boolean): Color =
         if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary

@@ -127,7 +127,7 @@ class PlannerAlertsWorker(
 
                 val revisionTopicsDue = allTopics.filter { topic ->
                     topic.status == TopicStatus.REVISION_NEEDED &&
-                        topic.revisionReminderDates.any { date ->
+                        topic.revisionReminderDates.orEmpty().any { date ->
                             runCatching { LocalDate.parse(date.take(10)) }.getOrNull()
                                 ?.let { it == today } == true
                         }

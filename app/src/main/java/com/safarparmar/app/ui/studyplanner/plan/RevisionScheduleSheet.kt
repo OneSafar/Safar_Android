@@ -1,8 +1,10 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,8 +32,13 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,6 +90,8 @@ fun RevisionScheduleSheet(
     examDate: String?,
     onRevisionScheduled: (dates: List<String>, scheduleType: String) -> Unit,
     onDismiss: () -> Unit,
+    isAlreadyRevisionNeeded: Boolean = false,
+    onCancelRevision: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val today = remember { LocalDate.now() }
@@ -116,76 +125,121 @@ fun RevisionScheduleSheet(
         },
     )
 
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val millis = datePickerState.selectedDateMillis
-                        if (millis != null) {
-                            val picked = Instant.ofEpochMilli(millis)
-                                .atZone(ZoneOffset.UTC).toLocalDate().toString()
-                            onRevisionScheduled(listOf(picked), "custom")
-                            onDismiss()
-                        }
-                        showDatePicker = false
-                    },
-                ) { Text("Set Revision Date") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
-        return
-    }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            // Header
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        if (showDatePicker) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(
-                    "Schedule Revision",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold,
+                    text = "Select Revision Date",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = topicName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+
+                DatePicker(
+                    state = datePickerState,
+                    showModeToggle = false,
+                    modifier = Modifier.fillMaxWidth()
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = { showDatePicker = false },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Back", fontWeight = FontWeight.Bold)
+                    }
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            val millis = datePickerState.selectedDateMillis
+                            if (millis != null) {
+                                val picked = Instant.ofEpochMilli(millis)
+                                    .atZone(ZoneOffset.UTC).toLocalDate().toString()
+                                onRevisionScheduled(listOf(picked), "custom")
+                                onDismiss()
+                            }
+                            showDatePicker = false
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text("Set Date", fontWeight = FontWeight.Bold)
+                    }
+                }
             }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                // Header
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        "Schedule Revision",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = topicName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-            // Option 1: Spaced Revision
-            SpacedRevisionOptionCard(
-                dates = spacedDates,
-                today = today,
-                onSchedule = { selectedDates ->
-                    onRevisionScheduled(selectedDates, "spaced")
-                    onDismiss()
-                },
-            )
+                // Option 1: Spaced Revision
+                SpacedRevisionOptionCard(
+                    dates = spacedDates,
+                    today = today,
+                    onSchedule = { selectedDates ->
+                        onRevisionScheduled(selectedDates, "spaced")
+                        onDismiss()
+                    },
+                )
 
-            // Option 2: Custom Date
-            CustomDateOptionCard(onClick = { showDatePicker = true })
+                // Option 2: Custom Date
+                CustomDateOptionCard(onClick = { showDatePicker = true })
+
+                if (isAlreadyRevisionNeeded && onCancelRevision != null) {
+                    OutlinedButton(
+                        onClick = {
+                            onCancelRevision()
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+                    ) {
+                        Text("Remove Revision Schedule", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     }
 }
@@ -198,8 +252,8 @@ private fun SpacedRevisionOptionCard(
 ) {
     val scheme = MaterialTheme.colorScheme
     val hasSlots = dates.isNotEmpty()
-    var selectedCount by remember(dates) { mutableStateOf(dates.size.coerceAtLeast(1)) }
-    val selectedDates = remember(dates, selectedCount) { dates.take(selectedCount.coerceIn(1, dates.size.coerceAtLeast(1))) }
+    var selectedCount by remember(dates) { mutableStateOf(dates.size.coerceAtMost(5).coerceAtLeast(1)) }
+    val selectedDates = remember(dates, selectedCount) { dates.take(selectedCount.coerceIn(1, dates.size.coerceAtMost(5).coerceAtLeast(1))) }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -218,7 +272,12 @@ private fun SpacedRevisionOptionCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("🧠", fontSize = 26.sp)
+                Icon(
+                    painter = painterResource(id = com.safarparmar.app.R.drawable.ic_brain),
+                    contentDescription = null,
+                    tint = if (hasSlots) scheme.primary else scheme.onSurfaceVariant,
+                    modifier = Modifier.size(32.dp)
+                )
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         "Spaced Revision",
@@ -236,38 +295,53 @@ private fun SpacedRevisionOptionCard(
             }
 
             if (hasSlots) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    dates.indices.forEach { index ->
-                        val count = index + 1
-                        val lastDate = selectedPreviewLastDate(dates.take(count))
+                val maxRevisions = dates.size.coerceAtMost(5)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Number of revisions:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.onPrimaryContainer,
+                        )
                         Row(
-	                            modifier = Modifier
-	                                .fillMaxWidth()
-	                                .clip(RoundedCornerShape(12.dp))
-	                                .clickable { selectedCount = count }
-	                                .padding(vertical = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            RadioButton(
-                                selected = selectedCount == count,
-                                onClick = { selectedCount = count },
-                            )
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(
-                                    text = "$count spaced revision${if (count == 1) "" else "s"}",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = scheme.onPrimaryContainer,
-                                )
-                                Text(
-                                    text = "Last reminder: $lastDate",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.onPrimaryContainer.copy(alpha = 0.75f),
-                                )
+                            for (count in 1..maxRevisions) {
+                                val isSelected = count == selectedCount
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) scheme.primary else scheme.onPrimaryContainer.copy(alpha = 0.08f))
+                                        .clickable { selectedCount = count },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "$count",
+                                        color = if (isSelected) scheme.onPrimary else scheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
                             }
                         }
                     }
+                    val lastDate = selectedPreviewLastDate(selectedDates)
+                    Text(
+                        text = "Last reminder: $lastDate",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onPrimaryContainer.copy(alpha = 0.75f),
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -395,7 +469,7 @@ private fun CustomDateOptionCard(onClick: () -> Unit) {
                     color = scheme.onSurface,
                 )
                 Text(
-                    "Pick a specific date — one-time revision",
+                    "Pick a specific date",
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant,
                 )

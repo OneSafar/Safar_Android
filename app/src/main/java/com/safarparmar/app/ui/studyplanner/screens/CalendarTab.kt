@@ -56,11 +56,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Analytics
@@ -109,6 +107,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
@@ -194,6 +193,7 @@ import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
+import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
 import com.safarparmar.app.ui.studyplanner.components.subjectHeaderBrush
 import com.safarparmar.app.ui.studyplanner.components.subjectMeterBrush
 import com.safarparmar.app.ui.studyplanner.components.topicHierarchyBrush
@@ -250,7 +250,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            CalendarCountdownBanner(plan = plan)
+            CalendarPlainHeader(plan = plan)
         }
 
         item {
@@ -381,74 +381,33 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
 }
 
 @Composable
-private fun CalendarCountdownBanner(plan: StudyPlan) {
+private fun CalendarPlainHeader(plan: StudyPlan) {
     val examDays = daysUntil(plan.examDate)
-    val hero = plannerExamCountdownHeroNumber(examDays)
     val examDate = readableDate(plan.examDate).takeUnless { it == "Not set" }.orEmpty()
 
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 18.dp)
-            .height(162.dp),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            .padding(top = 12.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Box(Modifier.fillMaxSize()) {
-            Image(
-                painter = painterResource(id = R.drawable.calendar_countdown_banner),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
+        Text(
+            text = plan.title.ifBlank { "Calendar" },
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        val caption = plannerExamCountdownCaption(examDays)
+        val subtitle = listOf(caption, examDate).filter { it.isNotBlank() }.joinToString("  •  ")
+        if (subtitle.isNotBlank()) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 32.dp, vertical = 24.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = hero,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 66.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                    ),
-                )
-                Spacer(Modifier.width(14.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = plannerExamCountdownCaption(examDays),
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontStyle = FontStyle.Italic,
-                            color = Color.White,
-                        ),
-                    )
-                    val secondary = plannerExamCountdownCaptionSecondary(examDays)
-                    if (secondary.isNotBlank()) {
-                        Text(
-                            text = secondary,
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontStyle = FontStyle.Italic,
-                                color = Color.White,
-                            ),
-                        )
-                    }
-                    if (examDate.isNotBlank()) {
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = examDate,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Medium,
-                                color = Color.White.copy(alpha = 0.9f),
-                            ),
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -458,22 +417,6 @@ private enum class CalendarDateStatus(val color: Color) {
     DONE(Color(0xFF7E57D9)),
     OVERDUE(Color(0xFFDC2626)),
     OFF(Color(0xFFF59E0B)),
-}
-
-@Composable
-private fun calendarTopicCardBrush(status: CalendarDateStatus): Brush = when (status) {
-    CalendarDateStatus.PLANNED -> Brush.linearGradient(
-        listOf(Color(0xFF2563EB), Color(0xFF38BDF8)),
-    )
-    CalendarDateStatus.DONE -> Brush.linearGradient(
-        listOf(Color(0xFF16A34A), Color(0xFF86EFAC)),
-    )
-    CalendarDateStatus.OVERDUE -> Brush.linearGradient(
-        listOf(Color(0xFFDC2626), Color(0xFFFB7185)),
-    )
-    CalendarDateStatus.OFF -> Brush.linearGradient(
-        listOf(Color(0xFFF59E0B), Color(0xFFFDE68A)),
-    )
 }
 
 private fun calendarDateStatus(
@@ -597,7 +540,7 @@ private fun calendarTopicStatusLabel(status: CalendarDateStatus): String = when 
 
 private fun calendarRevisionTypeLabel(item: CalendarTopicItem): String? {
     if (item.status != TopicStatus.REVISION_NEEDED) return null
-    val count = item.revisionReminderDates.size
+    val count = item.revisionReminderDates.orEmpty().size
     val type = item.revisionScheduleType?.lowercase()
     return when {
         type == "spaced" -> "Spaced revision • $count session${if (count == 1) "" else "s"}"
@@ -655,128 +598,92 @@ internal fun SelectedDayLogSheet(
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            Modifier
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 28.dp),
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        // Everything — header, badges, AND the topic rows — lives in one single
+        // LazyColumn. Nesting a scrollable LazyColumn inside a Modifier.verticalScroll
+        // Column (the old layout) creates two competing vertical-scroll containers;
+        // Compose can't always tell whether a drag should scroll the inner list or
+        // drag the sheet itself, so scrolling through topics could accidentally
+        // swipe the whole sheet closed. A single flat LazyColumn removes the
+        // ambiguity — there is only one scrollable, so the sheet's own
+        // nested-scroll-to-dismiss only kicks in once that one list is at its top.
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 480.dp)
+                .padding(horizontal = 20.dp),
+            contentPadding = PaddingValues(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Day Plan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(readableDate(dateIso), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Planned Badge
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(vertical = 8.dp, horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "$planned",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        )
-                        Text(
-                            text = "Planned",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                            )
-                        )
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Day Plan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(readableDate(dateIso), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        DayStatBox(value = planned, label = "Planned", modifier = Modifier.weight(1f))
+                        DayStatBox(value = done, label = "Done", modifier = Modifier.weight(1f))
+                        DayStatBox(value = missed, label = "Missed", modifier = Modifier.weight(1f))
                     }
-                }
-                // Done Badge
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(MaterialTheme.colorScheme.tertiaryContainer)
-                        .padding(vertical = 8.dp, horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                    HorizontalDivider()
+                    if (items.isEmpty()) {
                         Text(
-                            text = "$done",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        )
-                        Text(
-                            text = "Done",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
-                            )
-                        )
-                    }
-                }
-                // Missed Badge
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(MaterialTheme.colorScheme.errorContainer)
-                        .padding(vertical = 8.dp, horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "$missed",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        )
-                        Text(
-                            text = "Missed",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
-                            )
+                            "No topics planned for this day.",
+                            modifier = Modifier.padding(vertical = 24.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
             }
-            
-            HorizontalDivider()
-            if (items.isEmpty()) {
-                Text(
-                    "No topics planned for this day.",
-                    modifier = Modifier.padding(vertical = 24.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+
+            // Compact one-line-per-topic rows: with a full daily goal (e.g. 15
+            // topics/day) the old tall cards (name + subject line + a wrapping row
+            // of action chips each) made this sheet scroll for several screens.
+            // Status is shown as a read-only badge — marking done/revision happens
+            // from the topic's own card, not here — and "Change date" replaces the
+            // old swap-only flow with a real date picker that can move a topic to
+            // any date directly.
+            items(items, key = { it.topicId }) { item ->
+                CompactDayTopicRow(
+                    item = item,
+                    dateIso = dateIso,
+                    onChangeDate = { changeDateTarget = item },
                 )
-            } else {
-                // Compact one-line-per-topic rows in a height-bounded LazyColumn: with
-                // a full daily goal (e.g. 15 topics/day) the old tall cards (name +
-                // subject line + a wrapping row of action chips each) made this sheet
-                // scroll for several screens. Status is shown as a read-only badge —
-                // marking done/revision happens from the topic's own card, not here —
-                // and "Change date" replaces the old swap-only flow with a real date
-                // picker that can move a topic to any date directly.
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 360.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    items(items, key = { it.topicId }) { item ->
-                        CompactDayTopicRow(
-                            item = item,
-                            dateIso = dateIso,
-                            onChangeDate = { changeDateTarget = item },
-                        )
-                    }
-                }
             }
+        }
+    }
+}
+
+@Composable
+private fun DayStatBox(value: Int, label: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(vertical = 10.dp, horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "$value",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                ),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+            )
         }
     }
 }
@@ -790,33 +697,41 @@ private fun CompactDayTopicRow(
     val todayK = todayKey()
     val topicStatus = calendarTopicStatus(item, dateIso, todayK)
     val revisionTypeLabel = calendarRevisionTypeLabel(item)
+    val scheme = MaterialTheme.colorScheme
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onChangeDate),
         shape = MaterialTheme.shapes.large,
-        color = Color.Transparent,
-        shadowElevation = 0.dp,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.24f)),
+        color = scheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f)),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(calendarTopicCardBrush(topicStatus))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(subjectDotColor(item.subjectColor)),
+            )
+            Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     item.topicName,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
-                    color = Color.White,
+                    color = scheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     "${item.subjectName} · ${item.chapterName}",
                     fontSize = 11.sp,
-                    color = Color.White.copy(alpha = 0.82f),
+                    color = scheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -825,7 +740,7 @@ private fun CompactDayTopicRow(
                         revisionTypeLabel,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.92f),
+                        color = scheme.primary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -835,7 +750,7 @@ private fun CompactDayTopicRow(
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.20f))
+                    .background(scheme.surfaceContainerHigh)
                     .padding(horizontal = 8.dp, vertical = 3.dp),
             ) {
                 Text(
@@ -843,16 +758,8 @@ private fun CompactDayTopicRow(
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = scheme.onSurfaceVariant,
                     ),
-                )
-            }
-            IconButton(onClick = onChangeDate, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    Icons.Default.CalendarMonth,
-                    contentDescription = "Change date for ${item.topicName}",
-                    modifier = Modifier.size(18.dp),
-                    tint = Color.White,
                 )
             }
         }

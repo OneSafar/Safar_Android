@@ -84,6 +84,7 @@ fun SyllabusSubjectsScreen(
     val expandedChapters = remember { mutableStateMapOf<String, Boolean>() }
     var selectedTopicRef by remember { mutableStateOf<TopicRef?>(null) }
     var detailNonce by remember { mutableIntStateOf(0) }
+    var showBuildModeSheet by remember { mutableStateOf(false) }
 
     BackHandler(onBack = onBack)
 
@@ -95,6 +96,7 @@ fun SyllabusSubjectsScreen(
 
     val selectedPlan = state.selectedPlan
     val rawSubjects = selectedPlan?.subjects.orEmpty()
+    var localSubjects by remember(rawSubjects) { mutableStateOf(rawSubjects) }
 
     fun subjectMatchesQuery(subject: StudySubject, query: String): Boolean {
         val q = query.lowercase()
@@ -291,18 +293,104 @@ fun SyllabusSubjectsScreen(
         )
     }
 
-    val totalTopics = rawSubjects.sumOf { subject -> subject.chapters.sumOf { it.topics.size } }
-    val totalChapters = rawSubjects.sumOf { it.chapters.size }
-    val doneTopics = rawSubjects.sumOf { subject ->
+    if (showBuildModeSheet) {
+        PlannerBuildModeSheet(
+            onDismiss = { showBuildModeSheet = false },
+            onBalanced = {
+                showBuildModeSheet = false
+                actions.autoDistribute(lockExisting = true, strategy = "interleaved")
+            },
+            onInOrder = {
+                showBuildModeSheet = false
+                actions.autoDistribute(lockExisting = true, strategy = "sequential")
+            },
+        )
+    }
+
+    val totalTopics = localSubjects.sumOf { subject -> subject.chapters.sumOf { it.topics.size } }
+    val totalChapters = localSubjects.sumOf { it.chapters.size }
+    val doneTopics = localSubjects.sumOf { subject ->
         subject.chapters.sumOf { chapter -> chapter.topics.count { it.status == TopicStatus.DONE } }
     }
     val planProgress = if (totalTopics > 0) (doneTopics * 100) / totalTopics else 0
     val isTemplatePlan = !selectedPlan?.templateId.isNullOrBlank()
-    val shouldShowFullImport = rawSubjects.isEmpty() && !isTemplatePlan
+    val shouldShowFullImport = localSubjects.isEmpty() && !isTemplatePlan
 
-    val filteredSubjects = remember(rawSubjects, searchQuery) {
-        if (searchQuery.isBlank()) rawSubjects
-        else rawSubjects.filter { subjectMatchesQuery(it, searchQuery) }
+    val filteredSubjects = remember(localSubjects, searchQuery) {
+        if (searchQuery.isBlank()) localSubjects
+        else localSubjects.filter { subjectMatchesQuery(it, searchQuery) }
+    }
+    val canReorderSyllabus = searchQuery.isBlank() && !state.mutating
+
+    fun <T> moveItem(items: List<T>, fromIndex: Int, toIndex: Int): List<T> {
+        if (fromIndex !in items.indices || toIndex !in items.indices || fromIndex == toIndex) return items
+        return items.toMutableList().apply {
+            add(toIndex, removeAt(fromIndex))
+        }
+    }
+
+    fun moveSubject(subjectId: String, direction: Int) {
+        val fromIndex = localSubjects.indexOfFirst { it.id == subjectId }
+        val nextSubjects = moveItem(localSubjects, fromIndex, fromIndex + direction)
+        if (nextSubjects !== localSubjects) {
+            localSubjects = nextSubjects
+        }
+    }
+
+    fun saveSubjectOrder() {
+        actions.reorderSyllabus(subjectIds = localSubjects.map { it.id })
+    }
+
+    fun moveChapter(subjectId: String, chapterId: String, direction: Int) {
+        val subjectIndex = localSubjects.indexOfFirst { it.id == subjectId }
+        if (subjectIndex == -1) return
+        val subject = localSubjects[subjectIndex]
+        val fromIndex = subject.chapters.indexOfFirst { it.id == chapterId }
+        val nextChapters = moveItem(subject.chapters, fromIndex, fromIndex + direction)
+        if (nextChapters !== subject.chapters) {
+            localSubjects = localSubjects.toMutableList().apply {
+                this[subjectIndex] = subject.copy(chapters = nextChapters)
+            }
+        }
+    }
+
+    fun saveChapterOrder(subjectId: String) {
+        val subject = localSubjects.find { it.id == subjectId } ?: return
+        actions.reorderSyllabus(chapterIdsBySubjectId = mapOf(subjectId to subject.chapters.map { it.id }))
+    }
+
+    fun moveTopic(chapterId: String, topicId: String, direction: Int) {
+        var subjectIndex = -1
+        var chapterIndex = -1
+        for (si in localSubjects.indices) {
+            val ci = localSubjects[si].chapters.indexOfFirst { it.id == chapterId }
+            if (ci != -1) {
+                subjectIndex = si
+                chapterIndex = ci
+                break
+            }
+        }
+        if (subjectIndex == -1 || chapterIndex == -1) return
+        val subject = localSubjects[subjectIndex]
+        val chapter = subject.chapters[chapterIndex]
+        val fromIndex = chapter.topics.indexOfFirst { it.id == topicId }
+        val nextTopics = moveItem(chapter.topics, fromIndex, fromIndex + direction)
+        if (nextTopics !== chapter.topics) {
+            localSubjects = localSubjects.toMutableList().apply {
+                this[subjectIndex] = subject.copy(
+                    chapters = subject.chapters.toMutableList().apply {
+                        this[chapterIndex] = chapter.copy(topics = nextTopics)
+                    }
+                )
+            }
+        }
+    }
+
+    fun saveTopicOrder(chapterId: String) {
+        val chapter = localSubjects.asSequence()
+            .flatMap { it.chapters.asSequence() }
+            .firstOrNull { it.id == chapterId } ?: return
+        actions.reorderSyllabus(topicIdsByChapterId = mapOf(chapterId to chapter.topics.map { it.id }))
     }
 
     val currentDensity = LocalDensity.current
@@ -374,7 +462,7 @@ fun SyllabusSubjectsScreen(
                                     planTitle = selectedPlan?.title.orEmpty().ifBlank { "Study Plan" },
                                     examType = selectedPlan?.examType,
                                     progress = planProgress,
-                                    subjectCount = rawSubjects.size,
+                                    subjectCount = localSubjects.size,
                                     chapterCount = totalChapters,
                                     topicCount = totalTopics,
                                     isTemplatePlan = isTemplatePlan,
@@ -384,8 +472,8 @@ fun SyllabusSubjectsScreen(
                             item {
                                 SyllabusQuickActions(
                                     onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
-                                    onBuildPlanner = { actions.autoDistribute(lockExisting = true) },
-                                    canBuildPlanner = rawSubjects.isNotEmpty(),
+                                    onBuildPlanner = { showBuildModeSheet = true },
+                                    canBuildPlanner = localSubjects.isNotEmpty(),
                                 )
                             }
 
@@ -400,7 +488,7 @@ fun SyllabusSubjectsScreen(
                                 }
                             }
 
-                            if (rawSubjects.isNotEmpty()) {
+                            if (localSubjects.isNotEmpty()) {
                                 item {
                                     OutlinedTextField(
                                         value = searchQuery,
@@ -423,11 +511,11 @@ fun SyllabusSubjectsScreen(
                             item {
                                 SyllabusSectionHeader(
                                     title = if (isTemplatePlan) "Template syllabus" else "Your syllabus",
-                                    subtitle = "$totalChapters chapters • $totalTopics topics",
+                                    subtitle = if (isTemplatePlan) null else "$totalChapters chapters • $totalTopics topics",
                                 )
                             }
 
-                            if (rawSubjects.isEmpty()) {
+                            if (localSubjects.isEmpty()) {
                                 item {
                                     SyllabusEmptySubjectsCard(
                                         onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
@@ -470,6 +558,16 @@ fun SyllabusSubjectsScreen(
                                         onRenameTopic = { _, topic -> dialogState = SyllabusDialogState.RenameTopic(topic) },
                                         onDeleteTopic = { _, topic -> dialogState = SyllabusDialogState.DeleteTopic(topic) },
                                         onAssignToday = { topic -> actions.updateTopic(topic.id, plannedDate = todayKey(), pinned = true) },
+                                        canReorder = canReorderSyllabus,
+                                        onMoveSubjectUp = { moveSubject(subject.id, -1) },
+                                        onMoveSubjectDown = { moveSubject(subject.id, 1) },
+                                        onMoveChapterUp = { chapter -> moveChapter(subject.id, chapter.id, -1) },
+                                        onMoveChapterDown = { chapter -> moveChapter(subject.id, chapter.id, 1) },
+                                        onMoveTopicUp = { chapter, topic -> moveTopic(chapter.id, topic.id, -1) },
+                                        onMoveTopicDown = { chapter, topic -> moveTopic(chapter.id, topic.id, 1) },
+                                        onDragEnd = { saveSubjectOrder() },
+                                        onChapterDragEnd = { chapter -> saveChapterOrder(subject.id) },
+                                        onTopicDragEnd = { chapter, topic -> saveTopicOrder(chapter.id) },
                                         isChapterExpanded = { chapterId ->
                                             val chapter = subject.chapters.find { it.id == chapterId }
                                             chapter != null && isChapterExpanded(subject.id, chapterId, chapter)
@@ -484,7 +582,7 @@ fun SyllabusSubjectsScreen(
                                 }
                             }
 
-                            if (!shouldShowFullImport && rawSubjects.isNotEmpty()) {
+                            if (!shouldShowFullImport && localSubjects.isNotEmpty()) {
                                 item {
                                     SyllabusImportTray(
                                         isTemplatePlan = isTemplatePlan,
@@ -634,6 +732,62 @@ private fun SyllabusQuickActions(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlannerBuildModeSheet(
+    onDismiss: () -> Unit,
+    onBalanced: () -> Unit,
+    onInOrder: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Build planner",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+            )
+            Text(
+                text = "Choose how SAFAR should place your topics on study days.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SyllabusBuildChoiceCard(
+                title = "Balanced plan",
+                body = "Mix subjects daily.",
+                onClick = onBalanced,
+            )
+            SyllabusBuildChoiceCard(
+                title = "In order plan",
+                body = "Finish topics in the same order as your syllabus.",
+                onClick = onInOrder,
+            )
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun SyllabusBuildChoiceCard(
+    title: String,
+    body: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+            Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
 @Composable
 private fun SyllabusImportTray(
     isTemplatePlan: Boolean,
@@ -692,7 +846,7 @@ private fun SyllabusImportTray(
 }
 
 @Composable
-private fun SyllabusSectionHeader(title: String, subtitle: String) {
+private fun SyllabusSectionHeader(title: String, subtitle: String? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Text(
             text = title,
@@ -700,11 +854,13 @@ private fun SyllabusSectionHeader(title: String, subtitle: String) {
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

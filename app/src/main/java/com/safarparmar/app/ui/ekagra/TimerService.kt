@@ -132,15 +132,17 @@ class TimerService : Service() {
     private val _isRunning    = MutableStateFlow(false)
     private val _timerMode    = MutableStateFlow(TimerMode.FOCUS)
     private val _isMuted      = MutableStateFlow(false)
-    private val _isPomodoroMode = MutableStateFlow(false)
+    private val _targetPomodoroLoops = MutableStateFlow(0)
     private val _pomodorosCompleted = MutableStateFlow(0)
+    private var pomodoroFocusSeconds = 25 * 60
+    private var pomodoroBreakSeconds = 5 * 60
 
     val secondsLeft:  StateFlow<Int>       = _secondsLeft
     val totalSeconds: StateFlow<Int>       = _totalSeconds
     val isRunning:    StateFlow<Boolean>   = _isRunning
     val timerMode:    StateFlow<TimerMode> = _timerMode
     val isMuted:      StateFlow<Boolean>   = _isMuted
-    val isPomodoroMode: StateFlow<Boolean> = _isPomodoroMode
+    val targetPomodoroLoops: StateFlow<Int> = _targetPomodoroLoops
     val pomodorosCompleted: StateFlow<Int> = _pomodorosCompleted
 
     // ── Focus Shield state ─────────────────────────────────────────────────
@@ -470,11 +472,13 @@ class TimerService : Service() {
         }
     }
 
-    fun setPomodoroMode(enabled: Boolean) {
-        _isPomodoroMode.value = enabled
-        if (!enabled) {
-            _pomodorosCompleted.value = 0
-        }
+    fun startPomodoroSession(loops: Int, focusMinutes: Int, breakMinutes: Int) {
+        _targetPomodoroLoops.value = loops
+        _pomodorosCompleted.value = 0
+        pomodoroFocusSeconds = focusMinutes * 60
+        pomodoroBreakSeconds = breakMinutes * 60
+        setDuration(TimerMode.POMODORO, pomodoroFocusSeconds)
+        start()
     }
 
     fun setMusic(url: String) {
@@ -701,7 +705,7 @@ class TimerService : Service() {
                 }
                 
                 _isRunning.value = false
-                if (_timerMode.value == TimerMode.FOCUS) {
+                if (_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.POMODORO) {
                     enqueueCompletedFocusSessionSave(
                         totalSeconds = _totalSeconds.value,
                         actualSeconds = _totalSeconds.value,
@@ -714,29 +718,43 @@ class TimerService : Service() {
                     disableFocusShieldForSession()
                     stopFocusShieldMonitor()
                     showCompletionNotification()
+                    
                     // Handle next session based on Pomodoro mode
-                    if (_isPomodoroMode.value) {
+                    if (_timerMode.value == TimerMode.POMODORO) {
                         _pomodorosCompleted.value += 1
+                        if (_pomodorosCompleted.value >= _targetPomodoroLoops.value) {
+                            // Target loops reached, end completely
+                            _targetPomodoroLoops.value = 0
+                            _timerMode.value = TimerMode.FOCUS // Reset to standard focus
+                            _totalSeconds.value = pomodoroFocusSeconds
+                            _secondsLeft.value = pomodoroFocusSeconds
+                            persistTimerState()
+                            return@launch
+                        }
+                        
                         _timerMode.value = TimerMode.BREAK
-                        val breakLength = if (_pomodorosCompleted.value % 4 == 0) 15 * 60 else 5 * 60
+                        val breakLength = if (_pomodorosCompleted.value % 4 == 0) 15 * 60 else pomodoroBreakSeconds
                         _totalSeconds.value = breakLength
                         _secondsLeft.value = breakLength
+                        persistTimerState()
+                        start()
+                        return@launch
                     } else {
                         // Standard auto-start a 5-minute break
                         _timerMode.value = TimerMode.BREAK
                         _totalSeconds.value = 5 * 60
                         _secondsLeft.value = 5 * 60
+                        persistTimerState()
+                        start()
+                        return@launch
                     }
-                    persistTimerState()
-                    start()
-                    return@launch
                 }
                 
-                // If it was a BREAK and Pomodoro is on, loop back to FOCUS
-                if (_timerMode.value == TimerMode.BREAK && _isPomodoroMode.value) {
-                    _timerMode.value = TimerMode.FOCUS
-                    _totalSeconds.value = 25 * 60
-                    _secondsLeft.value = 25 * 60
+                // If it was a BREAK and we are in the middle of a Pomodoro loop
+                if (_timerMode.value == TimerMode.BREAK && _targetPomodoroLoops.value > 0) {
+                    _timerMode.value = TimerMode.POMODORO
+                    _totalSeconds.value = pomodoroFocusSeconds
+                    _secondsLeft.value = pomodoroFocusSeconds
                     persistTimerState()
                     start()
                     return@launch
@@ -1048,7 +1066,8 @@ class TimerService : Service() {
 
             val mode = _timerMode.value
             val body = when (mode) {
-                TimerMode.FOCUS -> "Ekagra session complete. Great work - take a mindful break."
+                TimerMode.FOCUS,
+                TimerMode.POMODORO -> "Ekagra session complete. Great work - take a mindful break."
                 TimerMode.BREAK,
                 TimerMode.STOPWATCH -> "Break finished. Ready for your next session?"
             }

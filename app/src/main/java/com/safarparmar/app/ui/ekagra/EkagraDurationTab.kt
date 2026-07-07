@@ -67,13 +67,11 @@ import androidx.compose.runtime.staticCompositionLocalOf
 
 @Composable
 internal fun DurationTab(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     focusMinutes: Int,
     breakMinutes: Int,
     onFocusChange: (Int) -> Unit,
     onBreakChange: (Int) -> Unit,
-    isPomodoroMode: Boolean,
-    onPomodoroChange: (Boolean) -> Unit,
     isMuted: Boolean,
     onMuteChange: (Boolean) -> Unit,
     onSave: () -> Unit,
@@ -106,21 +104,6 @@ internal fun DurationTab(
             value         = breakMinutes,
             range         = 1f..60f,
             onValueChange = onBreakChange,
-            enabled       = !isPomodoroMode // Disable manual break duration in Pomodoro mode
-        )
-
-        ToggleCard(
-            icon          = Icons.Default.Loop,
-            title         = "Pomodoro Mode",
-            subtitle      = "(Loops 25m focus & 5m break)",
-            checked       = isPomodoroMode,
-            onCheckedChange = { 
-                onPomodoroChange(it)
-                if (it) {
-                    onFocusChange(25)
-                    onBreakChange(5)
-                }
-            }
         )
 
         ToggleCard(

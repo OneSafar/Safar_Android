@@ -104,6 +104,7 @@ object PlannerInsightsCalculator {
             PlannerInsightSubjectRow(
                 subjectId = sub.id,
                 subjectName = sub.name,
+                subjectColor = sub.color,
                 completionPercent = sub.percentDone(),
                 remainingTopics = rem,
                 overdueTopics = stTopics.count { t ->

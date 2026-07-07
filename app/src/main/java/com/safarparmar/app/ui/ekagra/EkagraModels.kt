@@ -118,6 +118,7 @@ enum class TimerMode(
     FOCUS(R.drawable.ic_hourglass_light, R.drawable.ic_hourglass_dark, "Ekagra"),
     BREAK(R.drawable.ic_ekagra_coffee_light, R.drawable.ic_ekagra_coffee_dark, "Break"),
     STOPWATCH(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, "Stopwatch"),
+    POMODORO(R.drawable.ic_ekagra_timer_light, R.drawable.ic_ekagra_timer_dark, "Pomodoro")
 }
 
 // ─── Root screen ───────────────────────────────────────────────────────────────

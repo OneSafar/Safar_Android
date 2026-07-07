@@ -12,6 +12,7 @@ import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
 import com.safarparmar.app.data.remote.api.RolloverUndoRequest
 import com.safarparmar.app.data.remote.api.DeleteUndoRequest
 import com.safarparmar.app.data.remote.api.PlanRestoreResult
+import com.safarparmar.app.data.remote.api.ReorderSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructuredSyllabusPreview
 import com.safarparmar.app.data.remote.api.TopicPatchRequest
@@ -43,6 +44,7 @@ interface StudyPlannerRepository {
     suspend fun getCalendar(planId: String): Resource<CalendarMap>
     suspend fun getAnalytics(planId: String): Resource<PlannerAnalytics>
     suspend fun autoDistribute(planId: String, request: AutoDistributeRequest): Resource<AutoDistributeResult>
+    suspend fun reorderSyllabus(planId: String, request: ReorderSyllabusRequest): Resource<StudyPlan>
     suspend fun addSubject(planId: String, request: SubjectRequest): Resource<StudyPlan>
     suspend fun renameSubject(planId: String, subjectId: String, request: SubjectRequest): Resource<StudyPlan>
     suspend fun deleteSubject(planId: String, subjectId: String): Resource<StudyPlan>

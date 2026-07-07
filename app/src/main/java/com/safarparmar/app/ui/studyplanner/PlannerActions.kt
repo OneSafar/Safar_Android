@@ -4,8 +4,17 @@ import com.safarparmar.app.data.remote.api.UpdatePlanRequest
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 
+enum class StudyPlannerTab {
+    TODAY,
+    OVERDUE,
+    UPCOMING,
+    REVISION,
+    COMPLETED
+}
+
 interface PlannerActions {
     fun setSection(section: PlannerSection)
+    fun setPlanTab(tab: StudyPlannerTab)
     /**
      * Handles an internal back-press.
      * Returns true  → the ViewModel consumed it (moved to previous section or closed the plan).
@@ -17,11 +26,21 @@ interface PlannerActions {
     fun undoDelete()
     /** Persists the plan's Flexible/Strict scheduling mode ("flex" or "strict"). */
     fun setPlanningMode(mode: String)
+    /** Persists the "how do you like to study" default ("interleaved" or "sequential"). */
+    fun setPreferredStudyStrategy(strategy: String)
     fun setError(message: String)
     fun refreshPlans()
     fun openPlan(planId: String)
     fun closePlan()
-    fun createPlan(title: String, examType: String?, examDate: String?, dailyGoal: Int, offDays: List<Int>, syllabusText: String? = null)
+    fun createPlan(
+        title: String,
+        examType: String?,
+        examDate: String?,
+        dailyGoal: Int,
+        offDays: List<Int>,
+        syllabusText: String? = null,
+        openAiImport: Boolean = false,
+    )
     fun createFromTemplate(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>)
     fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>)
     fun deletePlan(planId: String)
@@ -58,8 +77,15 @@ interface PlannerActions {
         revisionDates: List<String>,
         revisionScheduleType: String? = null,
     )
+    fun cancelRevision(topicId: String)
     fun deleteTopic(topicId: String)
-    fun autoDistribute(lockExisting: Boolean, overloadMode: String? = null)
+    fun autoDistribute(lockExisting: Boolean, overloadMode: String? = null, strategy: String? = null)
+    fun reorderSyllabus(
+        subjectIds: List<String>? = null,
+        chapterIdsBySubjectId: Map<String, List<String>>? = null,
+        topicIdsByChapterId: Map<String, List<String>>? = null,
+    )
+    fun clearPendingAiImport()
     fun markOnboardingStepDone(step: String)
     fun clearFutureDates()
     fun moveTopicsToDate(topicIds: List<String>, date: String)

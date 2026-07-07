@@ -50,7 +50,15 @@ import android.util.Rational
 import android.view.TextureView
 import android.graphics.SurfaceTexture
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
@@ -93,6 +101,7 @@ fun EkagraScreen(
     val context              = LocalContext.current
     val requestNotificationPermission = rememberNotificationPermissionRequester()
     val shieldState          by focusShieldViewModel.shieldState.collectAsStateWithLifecycle()
+    val haptics              = LocalHapticFeedback.current
 
     // fallback flows when timerService is null
     val fallbackSecondsLeft      = remember { MutableStateFlow(25 * 60) }
@@ -106,7 +115,6 @@ fun EkagraScreen(
     val timerRunning      by (timerService?.isRunning          ?: fallbackTimerRunning).collectAsStateWithLifecycle()
     val timerMode         by (timerService?.timerMode          ?: fallbackTimerMode).collectAsStateWithLifecycle()
     val focusShieldActive by (timerService?.focusShieldActive  ?: fallbackFocusShieldActive).collectAsStateWithLifecycle()
-    val isPomodoroMode    by (timerService?.isPomodoroMode     ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
     val isMuted           by (timerService?.isMuted            ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
     val blockedHitCount   by focusShieldViewModel.blockedHitCount.collectAsStateWithLifecycle()
 
@@ -169,6 +177,9 @@ fun EkagraScreen(
     var taskText            by remember(linkedGoalId, linkedGoalTitle) { mutableStateOf(linkedGoalTitle.orEmpty()) }
     var focusMinutes        by remember { mutableIntStateOf(25) }
     var breakMinutes        by remember { mutableIntStateOf(5) }
+    var countdownValue      by remember { mutableIntStateOf(0) }
+    var showPomodoroDialog  by remember { mutableStateOf(false) }
+    var pomodoroLoopsInput  by remember { mutableStateOf("4") }
     var longBreakMinutes    by remember { mutableIntStateOf(15) }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -295,6 +306,26 @@ fun EkagraScreen(
     }
 
     // ── Side-effects ────────────────────────────────────────────────────────────
+
+    LaunchedEffect(countdownValue) {
+        if (countdownValue > 0) {
+            kotlinx.coroutines.delay(1000)
+            countdownValue -= 1
+            if (countdownValue == 0) {
+                val wasInactive = timerService?.isActive() == false
+                if (wasInactive) requestNotificationPermission()
+                if (timerMode == TimerMode.POMODORO) {
+                    val loops = pomodoroLoopsInput.toIntOrNull() ?: 4
+                    timerService?.startPomodoroSession(loops, focusMinutes, breakMinutes)
+                } else {
+                    timerService?.togglePlayPause()
+                }
+                if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
+                    viewModel.onSessionStarted(taskText, totalSeconds, associatedGoalId, associatedGoalTitle, timerMode.toApiMode())
+                }
+            }
+        }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -651,10 +682,15 @@ fun EkagraScreen(
                         androidx.compose.ui.window.Dialog(
                             onDismissRequest = { showDurationPromptDialog = false },
                         ) {
-                            // Card — light blue-tinted surface matching reference design
+                            // Card — light blue-tinted surface in light mode; follows the
+                            // theme's dark surfaces at night instead of glaring light-blue.
+                            val dialogBg     = if (isDarkTheme) themeColorScheme.surfaceContainerHigh else Color(0xFFEAEEF8)
+                            val dialogTitle  = if (isDarkTheme) themeColorScheme.onSurface else Color(0xFF1A1C1E)
+                            val dialogBody   = if (isDarkTheme) themeColorScheme.onSurfaceVariant else Color(0xFF44474A)
+                            val dialogAccent = if (isDarkTheme) themeColorScheme.primary else Color(0xFF1A4FC4)
                             Surface(
                                 shape = RoundedCornerShape(24.dp),
-                                color = Color(0xFFEAEEF8),
+                                color = dialogBg,
                                 tonalElevation = 0.dp,
                                 shadowElevation = 8.dp,
                                 modifier = Modifier
@@ -673,14 +709,14 @@ fun EkagraScreen(
                                         text = "Set Duration",
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF1A1C1E),
+                                        color = dialogTitle,
                                     )
                                     Spacer(Modifier.height(12.dp))
                                     // Body
                                     Text(
                                         text = "Would you like to set your own duration before starting?",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = Color(0xFF44474A),
+                                        color = dialogBody,
                                         lineHeight = 20.sp,
                                     )
                                     Spacer(Modifier.height(20.dp))
@@ -698,15 +734,15 @@ fun EkagraScreen(
                                             checked = dontShowDurationPromptAgain,
                                             onCheckedChange = { dontShowDurationPromptAgain = it },
                                             colors = CheckboxDefaults.colors(
-                                                checkedColor = Color(0xFF1A4FC4),
-                                                uncheckedColor = Color(0xFF6B7280),
+                                                checkedColor = dialogAccent,
+                                                uncheckedColor = dialogBody,
                                                 checkmarkColor = Color.White,
                                             ),
                                         )
                                         Text(
                                             text = "Do not show this again",
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = Color(0xFF1A1C1E),
+                                            color = dialogTitle,
                                         )
                                     }
                                     Spacer(Modifier.height(24.dp))
@@ -740,7 +776,7 @@ fun EkagraScreen(
                                                 text = "Start anyway",
                                                 style = MaterialTheme.typography.labelLarge,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = Color(0xFF1A4FC4),
+                                                color = dialogAccent,
                                             )
                                         }
                                         Spacer(Modifier.width(4.dp))
@@ -758,7 +794,7 @@ fun EkagraScreen(
                                                 text = "Yes",
                                                 style = MaterialTheme.typography.labelLarge,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = Color(0xFF1A4FC4),
+                                                color = dialogAccent,
                                             )
                                         }
                                     }
@@ -768,6 +804,15 @@ fun EkagraScreen(
                     }
 
                     // ── Main scaffold ────────────────────────────────────────────
+                    // Top-bar content sits over the video scrim on the Timer tab and
+                    // over a plain surface elsewhere — animate the tint so switching
+                    // tabs fades the icons instead of snapping between colours.
+                    val topBarTint by animateColorAsState(
+                        targetValue = if (selectedTab == EkagraNavTab.TIMER) Color.White
+                                      else themeColorScheme.onSurface,
+                        animationSpec = tween(350),
+                        label = "topBarTint",
+                    )
                     Box(
                         Modifier
                             .fillMaxSize()
@@ -782,11 +827,9 @@ fun EkagraScreen(
                             onToggleDarkTheme  = onToggleNightMode,
                             showTopBar         = true,
                             // Top-bar text is always white when timer tab is showing (video bg)
-                            topBarContentColor = if (selectedTab == EkagraNavTab.TIMER) Color.White
-                                                 else MaterialTheme.colorScheme.onSurface,
+                            topBarContentColor = topBarTint,
                             topBarActions = {
-                                val tintColor = if (selectedTab == EkagraNavTab.TIMER) Color.White
-                                                else MaterialTheme.colorScheme.onSurface
+                                val tintColor = topBarTint
                                 IconButton(onClick = { tourState?.start() }) {
                                     Image(
                                         painter = painterResource(R.drawable.ic_butterfly_tour),
@@ -855,24 +898,58 @@ fun EkagraScreen(
                             if (selectedTab == EkagraNavTab.TIMER) {
                                 val colors = selectedTheme.gradientColors
                                 if (colors != null) {
-                                    val topColor = colors[0]
-                                    val bottomColor = colors[1]
-                                    val dynamicGradient = remember(topColor, bottomColor) {
+                                    // Cross-fade palette swaps when the user picks a new
+                                    // visual theme instead of snapping to the new colours.
+                                    val topColor by animateColorAsState(
+                                        targetValue = colors[0],
+                                        animationSpec = tween(900),
+                                        label = "bgTopColor",
+                                    )
+                                    val bottomColor by animateColorAsState(
+                                        targetValue = colors[1],
+                                        animationSpec = tween(900),
+                                        label = "bgBottomColor",
+                                    )
+
+                                    val infiniteTransition = rememberInfiniteTransition(label = "gradientAnimation")
+                                    val angle by infiniteTransition.animateFloat(
+                                        initialValue = 0f,
+                                        targetValue = 360f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(durationMillis = 20000, easing = LinearEasing),
+                                            repeatMode = RepeatMode.Restart
+                                        ),
+                                        label = "gradientAngle"
+                                    )
+
+                                    val configuration = LocalConfiguration.current
+                                    val density = LocalDensity.current
+                                    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+                                    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+
+                                    val dynamicGradient = remember(topColor, bottomColor, angle, screenWidthPx, screenHeightPx) {
+                                        val radians = (angle * Math.PI / 180f).toFloat()
+                                        val centerX = screenWidthPx * (0.5f + 0.25f * kotlin.math.cos(radians))
+                                        val centerY = screenHeightPx * (0.5f + 0.25f * kotlin.math.sin(radians))
                                         androidx.compose.ui.graphics.Brush.radialGradient(
                                             colors = listOf(topColor, bottomColor),
-                                            radius = 3000f,
-                                            center = androidx.compose.ui.geometry.Offset(0f, 0f)
+                                            radius = maxOf(screenWidthPx, screenHeightPx) * 1.5f,
+                                            center = androidx.compose.ui.geometry.Offset(centerX, centerY)
                                         )
                                     }
                                     Box(modifier = Modifier.fillMaxSize().background(dynamicGradient))
                                 } else {
                                     EkagraVideoBackground(videoUrl = selectedTheme.videoUrl, modifier = Modifier.fillMaxSize())
                                 }
-                                val scrimAlpha = when {
-                                    timerImmersiveActive -> 0.12f
-                                    isDarkTheme -> 0.55f
-                                    else -> 0.38f
-                                }
+                                val scrimAlpha by animateFloatAsState(
+                                    targetValue = when {
+                                        timerImmersiveActive -> 0.12f
+                                        isDarkTheme -> 0.55f
+                                        else -> 0.38f
+                                    },
+                                    animationSpec = tween(600),
+                                    label = "scrimAlpha",
+                                )
                                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = scrimAlpha)))
                             }
 
@@ -891,6 +968,7 @@ fun EkagraScreen(
                                         EkagraBottomNav(
                                             selectedTab = selectedTab,
                                             onSelect    = { tab ->
+                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 if (tab == EkagraNavTab.MUSIC) showAudioLibraryPanel = true
                                                 else tabBackStack.select(tab)
                                             },
@@ -900,7 +978,18 @@ fun EkagraScreen(
                                     }
                                 },
                             ) { innerPadding ->
-                                when (selectedTab) {
+                                // Cross-fade with a gentle rise between tabs — the old
+                                // instant snap made switching feel abrupt and unpolished.
+                                AnimatedContent(
+                                    targetState = selectedTab,
+                                    transitionSpec = {
+                                        (fadeIn(tween(240, delayMillis = 40)) +
+                                            slideInVertically(tween(300, easing = FastOutSlowInEasing)) { it / 24 })
+                                            .togetherWith(fadeOut(tween(120)))
+                                    },
+                                    label = "ekagraTabContent",
+                                ) { tab ->
+                                when (tab) {
 
                                     EkagraNavTab.TIMER -> TimerFocusTab(
                                         modifier = Modifier
@@ -913,15 +1002,17 @@ fun EkagraScreen(
                                         progress           = progress,
                                         hasProgress        = if (timerMode == TimerMode.STOPWATCH) secondsLeft > 0 else secondsLeft < totalSeconds,
                                         mottoText          = mottoText,
+                                        countdownValue     = countdownValue,
                                         kavachActive       = focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS,
                                         kavachBlockedCount = blockedHitCount,
                                         controlsVisible    = true,
                                         onOpenKavachSession = { showKavachActiveSession = true },
                                         onModeChange = { mode ->
                                             if (mode == timerMode) return@TimerFocusTab
+                                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             val mins = when (mode) {
-                                                TimerMode.FOCUS      -> focusMinutes
-                                                TimerMode.BREAK      -> breakMinutes
+                                                TimerMode.FOCUS, TimerMode.POMODORO -> focusMinutes
+                                                TimerMode.BREAK -> breakMinutes
                                                 TimerMode.STOPWATCH  -> 0
                                             }
                                             when {
@@ -934,30 +1025,40 @@ fun EkagraScreen(
                                             }
                                         },
                                         onPlayPause = {
+                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                             val wasRunning  = timerRunning
                                             val wasInactive = timerService?.isActive() == false
                                             
-                                            if (wasInactive && showDurationPrompt && !durationPromptActedOn && timerMode == TimerMode.FOCUS) {
+                                            if (wasInactive && showDurationPrompt && !durationPromptActedOn && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO)) {
                                                 showDurationPromptDialog = true
                                                 return@TimerFocusTab
                                             }
                                             
-                                            if (wasInactive) requestNotificationPermission()
-                                            timerService?.togglePlayPause()
-                                            when {
-                                                wasInactive && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH) ->
-                                                    viewModel.onSessionStarted(taskText, totalSeconds,
-                                                        associatedGoalId, associatedGoalTitle, timerMode.toApiMode())
-                                                wasRunning && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH) ->
+                                            if (wasInactive) {
+                                                requestNotificationPermission()
+                                                if (timerMode == TimerMode.POMODORO) {
+                                                    showPomodoroDialog = true
+                                                } else {
+                                                    countdownValue = 3
+                                                }
+                                            } else if (wasRunning) {
+                                                timerService?.togglePlayPause()
+                                                if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
                                                     viewModel.pauseActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(), associatedGoalTitle)
-                                                (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH) ->
-                                                    viewModel.syncActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(),
-                                                        true, associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() })
+                                                }
+                                            } else {
+                                                countdownValue = 3
                                             }
                                         },
                                         canStartBreak = timerMode == TimerMode.FOCUS && timerService?.isActive() == true,
-                                        onStartBreak  = { timerService?.startBreak(TimerMode.BREAK, breakMinutes * 60) },
-                                        onReset       = { endCurrentSession() },
+                                        onStartBreak  = {
+                                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            timerService?.startBreak(TimerMode.BREAK, breakMinutes * 60)
+                                        },
+                                        onReset       = {
+                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            endCurrentSession()
+                                        },
                                         onGoToDuration = { tabBackStack.select(EkagraNavTab.DURATION) },
                                         shieldState   = shieldState,
                                         isDarkTheme   = isDarkTheme,
@@ -975,8 +1076,6 @@ fun EkagraScreen(
                                         breakMinutes  = breakMinutes,
                                         onFocusChange = { focusMinutes = it },
                                         onBreakChange = { breakMinutes = it; longBreakMinutes = it },
-                                        isPomodoroMode = isPomodoroMode,
-                                        onPomodoroChange = { timerService?.setPomodoroMode(it) },
                                         isMuted = isMuted,
                                         onMuteChange = { timerService?.setMute(it) },
                                         onSave = {
@@ -1006,6 +1105,7 @@ fun EkagraScreen(
                                     
                                     EkagraNavTab.MUSIC -> {}
                                 }
+                                }
                             }
                         }
                     }
@@ -1021,6 +1121,37 @@ fun EkagraScreen(
             }
         }
     }
+
+    if (showPomodoroDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPomodoroDialog = false },
+            title = { androidx.compose.material3.Text("Start Pomodoro") },
+            text = {
+                Column {
+                    androidx.compose.material3.Text("How many loops would you like to run?")
+                    Spacer(Modifier.height(8.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = pomodoroLoopsInput,
+                        onValueChange = { pomodoroLoopsInput = it },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showPomodoroDialog = false
+                    countdownValue = 3
+                }) {
+                    androidx.compose.material3.Text("Start")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showPomodoroDialog = false }) {
+                    androidx.compose.material3.Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -1033,6 +1164,7 @@ fun MusicPromptDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
         title = {
             Text(
                 text = "Play Ambient Music?",
@@ -1069,14 +1201,14 @@ fun MusicPromptDialog(
             Button(
                 onClick = { onYes(dontShowAgain) }
             ) {
-                Text("Yes")
+                Text("Yes", fontWeight = FontWeight.SemiBold)
             }
         },
         dismissButton = {
             TextButton(
                 onClick = { onNo(dontShowAgain) }
             ) {
-                Text("No")
+                Text("No", fontWeight = FontWeight.SemiBold)
             }
         }
     )

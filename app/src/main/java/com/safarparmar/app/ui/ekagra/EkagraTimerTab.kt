@@ -160,6 +160,7 @@ internal fun TimerFocusTab(
     progress: Float,
     hasProgress: Boolean,
     mottoText: String,
+    countdownValue: Int,
     kavachActive: Boolean = false,
     kavachBlockedCount: Int = 0,
     controlsVisible: Boolean = true,
@@ -272,15 +273,24 @@ internal fun TimerFocusTab(
                     CompositionLocalProvider(
                         LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))
                     ) {
-                        Text(
-                            "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
-                            fontSize     = 54.sp,
-                            fontWeight   = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            // M3 onSurface — white in dark theme
-                            color        = scheme.onSurface,
-                            textAlign    = TextAlign.Center,
-                        )
+                        if (countdownValue > 0) {
+                            Text(
+                                countdownValue.toString(),
+                                fontSize     = 80.sp,
+                                fontWeight   = FontWeight.Bold,
+                                color        = Color.White,
+                                textAlign    = TextAlign.Center,
+                            )
+                        } else {
+                            Text(
+                                "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
+                                fontSize     = 54.sp,
+                                fontWeight   = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                color        = Color.White,
+                                textAlign    = TextAlign.Center,
+                            )
+                        }
                     }
                     AnimatedVisibility(
                         visible = controlsVisible,
@@ -293,8 +303,7 @@ internal fun TimerFocusTab(
                             if (isRunning) "Ekagra running" else "Ready to ekagra",
                             fontSize   = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            // M3 onSurfaceVariant
-                            color      = scheme.onSurfaceVariant,
+                            color      = Color.White.copy(alpha = 0.7f),
                             textAlign  = TextAlign.Center,
                         )
                     }
@@ -305,17 +314,16 @@ internal fun TimerFocusTab(
 
             // ── Control buttons ──────────────────────────────────────────────────
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                // End — M3 FilledTonalButton style
-                val isLight = scheme.background.luminance() > 0.5f
+                // End — Glassmorphic semi-transparent white style
                 FilledTonalButton(
                     onClick = onReset,
                     modifier = Modifier.weight(1f).height(48.dp),
                     colors   = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = themeAccent,
+                        containerColor = Color.White.copy(alpha = 0.12f),
                         contentColor   = Color.White,
                     ),
-                    border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.4f)),
-                    elevation = ButtonDefaults.filledTonalButtonElevation(defaultElevation = 2.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
+                    elevation = ButtonDefaults.filledTonalButtonElevation(defaultElevation = 0.dp),
                     shape  = RoundedCornerShape(100.dp),
                     contentPadding = PaddingValues(0.dp),
                 ) {
@@ -329,17 +337,17 @@ internal fun TimerFocusTab(
                     }
                 }
 
-                // Start/Pause — M3 FilledButton
+                // Start/Pause — Solid white container with theme accent text
                 Button(
                     onClick = onPlayPause,
                     modifier = Modifier.weight(1f).height(48.dp),
                     colors   = ButtonDefaults.buttonColors(
-                        containerColor = themeAccent,
-                        contentColor   = Color.White,
+                        containerColor = Color.White,
+                        contentColor   = themeAccent,
                     ),
-                    border    = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.4f)),
+                    border    = null,
                     shape     = RoundedCornerShape(100.dp),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
                     contentPadding = PaddingValues(0.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -362,19 +370,18 @@ internal fun TimerFocusTab(
                        shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Take Break — M3 FilledTonalButton, only when a focus session is active
+                    // Take Break — Glassmorphic semi-transparent white style, only when a focus session is active
                     if (canStartBreak) {
                         Spacer(Modifier.height(12.dp))
-                        val isLight = scheme.background.luminance() > 0.5f
                         FilledTonalButton(
                             onClick = onStartBreak,
                             modifier = Modifier.fillMaxWidth().height(44.dp),
                             colors   = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = themeAccent,
+                                containerColor = Color.White.copy(alpha = 0.12f),
                                 contentColor   = Color.White,
                             ),
-                            border    = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.4f)),
-                            elevation = ButtonDefaults.filledTonalButtonElevation(defaultElevation = 2.dp),
+                            border    = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
+                            elevation = ButtonDefaults.filledTonalButtonElevation(defaultElevation = 0.dp),
                             shape  = RoundedCornerShape(100.dp),
                             contentPadding = PaddingValues(0.dp),
                         ) {
@@ -393,7 +400,7 @@ internal fun TimerFocusTab(
                         fontSize   = 10.sp,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 2.sp,
-                        color      = scheme.onSurfaceVariant,
+                        color      = Color.White.copy(alpha = 0.7f),
                         textAlign  = TextAlign.Center,
                     )
 

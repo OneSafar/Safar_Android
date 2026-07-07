@@ -15,6 +15,7 @@ import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusSubjectRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusChapterRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusTopicRequest
+import com.safarparmar.app.data.remote.api.ReorderSyllabusRequest
 import com.safarparmar.app.data.remote.api.RolloverUndoRequest
 import com.safarparmar.app.data.remote.api.DeleteUndoRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
@@ -108,6 +109,9 @@ data class StudyPlannerUiState(
     val lastUndoableActionLabel: String? = null,
     /** Per-plan scheduling mode: "flex" (allow over-goal days) or "strict". */
     val planningMode: String = "flex",
+    /** "How do you like to study" default: "interleaved" (mix subjects) or "sequential"
+     *  (deep focus). Chosen during plan creation, reused as the Build Planner default. */
+    val preferredStudyStrategy: String = "interleaved",
     val onboardingSkipped: Boolean = false,
     val selectedSubjectId: String? = null,
     val selectedChapterId: String? = null,
@@ -118,6 +122,7 @@ data class StudyPlannerUiState(
     val structureError: String? = null,
     val structuredImportError: String? = null,
     val structuredImportSuccessMessage: String? = null,
+    val pendingOpenAiImport: Boolean = false,
     val isImporting: Boolean = false,
     val importStatus: String? = null,
     val importError: String? = null,
@@ -125,6 +130,7 @@ data class StudyPlannerUiState(
     val hydrateWarning: String? = null,
     val onboardingCompletedSteps: Set<String> = emptySet(),
     val plannerAchievements: List<Achievement> = emptyList(),
+    val activePlanTab: StudyPlannerTab = StudyPlannerTab.TODAY,
 )
 
 @HiltViewModel
@@ -192,6 +198,11 @@ class StudyPlannerViewModel @Inject constructor(
         val planId = savedStateHandle.get<String>("planId")
         if (!planId.isNullOrBlank()) {
             openPlan(planId)
+        } else {
+            viewModelScope.launch {
+                val strategy = dataStore.plannerPreferredStrategy(null).first()
+                _uiState.update { it.copy(preferredStudyStrategy = strategy) }
+            }
         }
     }
 
@@ -217,6 +228,10 @@ class StudyPlannerViewModel @Inject constructor(
             val hasSchedule = plan?.flattenTopics()?.any { !it.topic.plannedDate.isNullOrBlank() } == true
             if (hasSchedule) markOnboardingStepDone(StudyPlannerOnboardingSteps.REVIEW_CALENDAR)
         }
+    }
+
+    override fun setPlanTab(tab: StudyPlannerTab) {
+        _uiState.update { it.copy(activePlanTab = tab) }
     }
 
     /**
@@ -265,6 +280,12 @@ class StudyPlannerViewModel @Inject constructor(
         val planId = _uiState.value.selectedPlan?.id ?: return
         _uiState.update { it.copy(planningMode = normalized) }
         viewModelScope.launch { dataStore.setPlannerPlanningMode(planId, normalized) }
+    }
+
+    override fun setPreferredStudyStrategy(strategy: String) {
+        val normalized = if (strategy == "sequential") "sequential" else "interleaved"
+        _uiState.update { it.copy(preferredStudyStrategy = normalized) }
+        viewModelScope.launch { dataStore.setPlannerPreferredStrategy(_uiState.value.selectedPlan?.id, normalized) }
     }
 
     override fun undoDelete() {
@@ -362,6 +383,7 @@ class StudyPlannerViewModel @Inject constructor(
                     }
                     refreshOnboardingProgress(planId)
                     refreshPlanningMode(planId)
+                    refreshPreferredStudyStrategy(planId)
                     refreshCalendar(planId)
                     refreshAnalytics(planId)
                     refreshPlannerAchievements()
@@ -379,6 +401,16 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
+    private fun refreshPreferredStudyStrategy(planId: String) = viewModelScope.launch {
+        // Per-plan value if this plan already recorded one, else the last global choice —
+        // so opening a plan created before a preference was ever picked still shows it.
+        val perPlan = dataStore.plannerPreferredStrategy(planId).first()
+        val strategy = if (perPlan == "interleaved") dataStore.plannerPreferredStrategy(null).first() else perPlan
+        _uiState.update { state ->
+            if (state.selectedPlan?.id == planId) state.copy(preferredStudyStrategy = strategy) else state
+        }
+    }
+
     override fun closePlan() {
         _sectionBackStack.clear()
         _uiState.update {
@@ -393,14 +425,22 @@ class StudyPlannerViewModel @Inject constructor(
         refreshPlans()
     }
 
-    override fun createPlan(title: String, examType: String?, examDate: String?, dailyGoal: Int, offDays: List<Int>, syllabusText: String?) {
+    override fun createPlan(
+        title: String,
+        examType: String?,
+        examDate: String?,
+        dailyGoal: Int,
+        offDays: List<Int>,
+        syllabusText: String?,
+        openAiImport: Boolean,
+    ) {
         val requiredExamDate = examDate?.take(10)?.takeIf { it.isNotBlank() }
         if (requiredExamDate == null) {
             _uiState.update { it.copy(error = "Exam date is required to create a planner.") }
             return
         }
         viewModelScope.launch {
-            mutatePlanList {
+            mutatePlanList(openAiImport = openAiImport) {
                 repo.createPlan(CreatePlanRequest(title = title, examType = examType, examDate = requiredExamDate, dailyGoal = dailyGoal, offDays = offDays))
             }
         }
@@ -585,12 +625,31 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    override fun autoDistribute(lockExisting: Boolean, overloadMode: String?) {
+    override fun cancelRevision(topicId: String) {
+        val today = todayKey()
+        mutateSelected(refreshCalendar = true) { planId ->
+            repo.updateTopic(
+                planId,
+                topicId,
+                TopicPatchRequest(
+                    status = TopicStatus.DONE,
+                    plannedDate = "",
+                    revisionMarkedAt = null,
+                    revisionReminderDates = emptyList(),
+                    revisionScheduleType = null,
+                    clientDateKey = today,
+                )
+            )
+        }
+    }
+
+    override fun autoDistribute(lockExisting: Boolean, overloadMode: String?, strategy: String?) {
         if (_uiState.value.selectedPlan?.examDate.isNullOrBlank()) {
             _uiState.update { it.copy(error = "Set an exam date before building the planner.") }
             return
         }
         val resolvedMode = overloadMode ?: _uiState.value.planningMode
+        val resolvedStrategy = strategy?.takeIf { it == "interleaved" || it == "sequential" }
         mutateAuto {
             repo.autoDistribute(
                 it,
@@ -599,9 +658,53 @@ class StudyPlannerViewModel @Inject constructor(
                     includeRevisionNeeded = false,
                     lockExistingDates = lockExisting,
                     overloadMode = resolvedMode,
+                    strategy = resolvedStrategy,
                 ),
             )
         }
+    }
+
+    override fun reorderSyllabus(
+        subjectIds: List<String>?,
+        chapterIdsBySubjectId: Map<String, List<String>>?,
+        topicIdsByChapterId: Map<String, List<String>>?,
+    ) {
+        val planId = _uiState.value.selectedPlan?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, error = null) }
+            val request = ReorderSyllabusRequest(
+                subjectIds = subjectIds,
+                chapterIdsBySubjectId = chapterIdsBySubjectId,
+                topicIdsByChapterId = topicIdsByChapterId,
+            )
+            // Reordering a chapter then immediately reordering a topic inside it (or
+            // any two reorders fired close together) can lose the server's optimistic
+            // version-lock race and come back as a 409 even though nothing was
+            // actually wrong — same fix as mutateSelected: resend once after a short
+            // delay, by which point the earlier write has committed.
+            var result = repo.reorderSyllabus(planId, request)
+            if (result is Resource.Error && result.code == 409) {
+                delay(300)
+                result = repo.reorderSyllabus(planId, request)
+            }
+            when (val r = result) {
+                is Resource.Success -> _uiState.update {
+                    it.copy(
+                        mutating = false,
+                        selectedPlan = r.data,
+                        message = "Syllabus order updated",
+                        deleteUndoToken = r.data.undoToken?.takeIf { it.isNotBlank() },
+                        lastUndoableActionLabel = "Syllabus order",
+                    )
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    override fun clearPendingAiImport() {
+        _uiState.update { it.copy(pendingOpenAiImport = false) }
     }
 
     override fun markOnboardingStepDone(step: String) {
@@ -871,7 +974,21 @@ class StudyPlannerViewModel @Inject constructor(
         when (val r = call(planId)) {
             is Resource.Success -> {
                 dataStore.setStudyPlannerOnboardingStepDone(planId, StudyPlannerOnboardingSteps.BUILD_SCHEDULE, true)
-                _uiState.update { it.copy(mutating = false, selectedPlan = r.data.plan ?: it.selectedPlan, message = "Assigned ${r.data.assigned}; skipped ${r.data.skipped}") }
+                val totalTopicsCount = _uiState.value.selectedPlan?.subjects?.sumOf { subject ->
+                    subject.chapters.sumOf { it.topics.size }
+                } ?: 0
+                val msg = when {
+                    r.data.assigned == 0 && r.data.skipped == 0 -> {
+                        if (totalTopicsCount == 0) {
+                            "Please create at least one topic in each subject to build a plan."
+                        } else {
+                            "All topics are already scheduled!"
+                        }
+                    }
+                    r.data.skipped == 0 -> "All ${r.data.assigned} topics scheduled successfully!"
+                    else -> "Scheduled ${r.data.assigned} topics. ${r.data.skipped} skipped due to limited time."
+                }
+                _uiState.update { it.copy(mutating = false, selectedPlan = r.data.plan ?: it.selectedPlan, message = msg) }
                 refreshOnboardingProgress(planId)
                 reloadSelected()
             }
@@ -904,7 +1021,20 @@ class StudyPlannerViewModel @Inject constructor(
         viewModelScope.launch {
             val planId = _uiState.value.selectedPlan?.id ?: return@launch
             _uiState.update { it.copy(mutating = true, error = null) }
-            when (val r = call(planId)) {
+            // The server uses optimistic version-locking: it reads the plan, computes
+            // the change, then writes back only if nobody else wrote in between. Two
+            // requests fired close together (e.g. adding a topic right after adding its
+            // chapter, before the first write has settled) can lose that race and get a
+            // 409 "modified by another request" response even though nothing was
+            // actually wrong. The retry below just re-sends the exact same mutation —
+            // by the time it lands, the earlier write has committed, so the server's
+            // fresh read no longer conflicts with anything.
+            var result = call(planId)
+            if (result is Resource.Error && result.code == 409) {
+                delay(300)
+                result = call(planId)
+            }
+            when (val r = result) {
                 is Resource.Success -> {
                     val undoToken = r.data.undoToken?.takeIf { it.isNotBlank() }
                     _uiState.update {
@@ -939,7 +1069,7 @@ class StudyPlannerViewModel @Inject constructor(
             examDate = examDate,
             dailyGoal = dailyGoal,
             offDays = offDays,
-            autoDistribute = true,
+            autoDistribute = false,
         )
         _uiState.update { it.copy(mutating = true, error = null) }
         when (val r = repo.createPlanFromTemplate(request)) {
@@ -1000,13 +1130,19 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    private suspend fun mutatePlanList(call: suspend () -> Resource<StudyPlan>) {
+    private suspend fun mutatePlanList(openAiImport: Boolean = false, call: suspend () -> Resource<StudyPlan>) {
         _uiState.update { it.copy(mutating = true, error = null) }
         when (val r = call()) {
             is Resource.Success -> {
                 _uiState.update { it.copy(mutating = false, message = "Plan created") }
                 refreshPlans()
-                _uiState.update { it.copy(selectedPlan = r.data, section = PlannerSection.YOUR_EXAMS) }
+                _uiState.update {
+                    it.copy(
+                        selectedPlan = r.data,
+                        section = if (openAiImport) PlannerSection.SYLLABUS else PlannerSection.YOUR_EXAMS,
+                        pendingOpenAiImport = openAiImport,
+                    )
+                }
             }
             is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
             is Resource.Loading -> Unit
@@ -1066,27 +1202,10 @@ class StudyPlannerViewModel @Inject constructor(
             is Resource.Loading -> return
         }
 
-        // Trigger autoDistribute locally to match the server autoDistribute flow
-        val finalPlanWithSchedule = if (!examDate.isNullOrBlank()) {
-            when (val res = repo.autoDistribute(
-                finalPlan.id,
-                AutoDistributeRequest(
-                    fromDate = todayKey(),
-                    includeRevisionNeeded = false,
-                    lockExistingDates = false,
-                )
-            )) {
-                is Resource.Success -> res.data.plan ?: finalPlan
-                else -> finalPlan
-            }
-        } else {
-            finalPlan
-        }
-
         _uiState.update {
             it.copy(
                 mutating = false,
-                selectedPlan = finalPlanWithSchedule,
+                selectedPlan = finalPlan,
                 message = successMessage,
                 section = PlannerSection.PLAN,
             )

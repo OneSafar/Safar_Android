@@ -205,6 +205,7 @@ import com.safarparmar.app.ui.theme.*
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
+import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
@@ -220,6 +221,7 @@ import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.plan.PlanTabScreen
+import com.safarparmar.app.ui.studyplanner.plan.StudyStyleOption
 import com.safarparmar.app.ui.butterfly.ButterflyTourState
 import com.safarparmar.app.ui.tour.TourManager
 import com.safarparmar.app.ui.tour.studyPlannerTourSteps
@@ -364,6 +366,8 @@ private data class StudyPlannerDetailState(
     val onboardingCompletedSteps: Set<String> = emptySet(),
     val plannerAchievements: List<Achievement> = emptyList(),
     val planningMode: String = "flex",
+    val preferredStudyStrategy: String = "interleaved",
+    val activePlanTab: StudyPlannerTab = StudyPlannerTab.TODAY,
 )
 
 @Immutable
@@ -453,6 +457,8 @@ fun StudyPlannerScreen(
             onboardingCompletedSteps = state.onboardingCompletedSteps,
             plannerAchievements = state.plannerAchievements,
             planningMode = state.planningMode,
+            preferredStudyStrategy = state.preferredStudyStrategy,
+            activePlanTab = state.activePlanTab,
         )
     }
     val detailState by remember(viewModel) {
@@ -476,6 +482,8 @@ fun StudyPlannerScreen(
                     onboardingCompletedSteps = state.onboardingCompletedSteps,
                     plannerAchievements = state.plannerAchievements,
                     planningMode = state.planningMode,
+                    preferredStudyStrategy = state.preferredStudyStrategy,
+                    activePlanTab = state.activePlanTab,
                 )
             }
             .distinctUntilChanged()
@@ -690,7 +698,7 @@ fun StudyPlannerScreen(
         ) { padding ->
             Scaffold(
                 modifier = Modifier.padding(top = padding.calculateTopPadding()),
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = SafarSemanticColors.plannerBackground(isDarkTheme),
                 contentWindowInsets = WindowInsets.safeDrawing.only(
                     androidx.compose.foundation.layout.WindowInsetsSides.Horizontal
                 ),
@@ -893,6 +901,7 @@ private fun StudyPlansScreen(
     var showTemplateCatalog by remember { mutableStateOf(false) }
     var selectedTemplateForSetup by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<StudyPlan?>(null) }
+    val isDark = isSystemInDarkTheme()
     val quickStartState = remember(
         state.plans,
         state.templates,
@@ -900,6 +909,7 @@ private fun StudyPlansScreen(
         importState.isImporting,
         importState.importStatus,
         importState.importError,
+        importState.preferredStudyStrategy,
     ) {
         StudyPlannerUiState(
             plans = state.plans,
@@ -908,6 +918,7 @@ private fun StudyPlansScreen(
             isImporting = importState.isImporting,
             importStatus = importState.importStatus,
             importError = importState.importError,
+            preferredStudyStrategy = importState.preferredStudyStrategy,
         )
     }
 
@@ -976,23 +987,23 @@ private fun StudyPlansScreen(
                             text = "My Target Exams",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = if (isDark) Color(0xFFE0E3E5) else Color(0xFF1A1C1E),
                         )
                         Text(
                             text = "Choose an exam to create a focused study plan.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isDark) Color(0xFFC4C7C7) else Color(0xFF5E6266),
                         )
                     }
                     Surface(
-                        color = Color(0xFFF0EAFE),
+                        color = if (isDark) Color(0xFF2D1F4D) else Color(0xFFF0EAFE),
                         shape = CircleShape,
                         modifier = Modifier.size(72.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.EmojiEvents,
                             contentDescription = null,
-                            tint = Color(0xFF7C5AD9),
+                            tint = if (isDark) Color(0xFFB39DDB) else Color(0xFF7C5AD9),
                             modifier = Modifier.padding(16.dp).size(40.dp),
                         )
                     }
@@ -1103,11 +1114,11 @@ private fun PlannerCard(
 @Composable
 private fun PlannerEmptyState(title: String, body: String, action: String, onAction: () -> Unit) {
     val isDark = isSystemInDarkTheme()
-    val cardColor = if (isDark) Color(0xFF141A1F) else MaterialTheme.colorScheme.surface
-    val borderColor = if (isDark) Color(0xFF2A333C) else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
-    val iconBackground = if (isDark) Color(0xFF0A4E70) else MaterialTheme.colorScheme.primaryContainer
-    val buttonColor = if (isDark) Color(0xFF8CC7F2) else MaterialTheme.colorScheme.primary
-    val buttonContent = if (isDark) Color(0xFF062235) else MaterialTheme.colorScheme.onPrimary
+    val cardColor = if (isDark) Color(0xFF181C1E) else MaterialTheme.colorScheme.surface
+    val borderColor = if (isDark) Color(0xFF444748).copy(alpha = 0.45f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+    val iconBackground = if (isDark) Color(0xFF2C353D) else MaterialTheme.colorScheme.primaryContainer
+    val buttonColor = if (isDark) Color(0xFFE0E3E5) else MaterialTheme.colorScheme.primary
+    val buttonContent = if (isDark) Color(0xFF101416) else MaterialTheme.colorScheme.onPrimary
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -1164,15 +1175,26 @@ private data class TargetExamTone(
     val chipBackground: Color,
 )
 
-private fun targetExamTone(planId: String): TargetExamTone {
-    val tones = listOf(
-        TargetExamTone(Color(0xFF4FAD38), Color(0xFFE6F3E2), Color(0xFFECF6E9)),
-        TargetExamTone(Color(0xFF8358D3), Color(0xFFEDE7FB), Color(0xFFF1ECFC)),
-        TargetExamTone(Color(0xFFFF8A37), Color(0xFFFFECDD), Color(0xFFFFF0E5)),
-        TargetExamTone(Color(0xFF438DDD), Color(0xFFE3F0FD), Color(0xFFEAF3FE)),
-        TargetExamTone(Color(0xFF45A1A7), Color(0xFFE0F2F3), Color(0xFFE8F5F5)),
-        TargetExamTone(Color(0xFFE477A1), Color(0xFFFBE7EF), Color(0xFFFCECF2)),
-    )
+private fun targetExamTone(planId: String, isDark: Boolean): TargetExamTone {
+    val tones = if (isDark) {
+        listOf(
+            TargetExamTone(Color(0xFF81C784), Color(0xFF1B3B22), Color(0xFF2E5B36)), // Green
+            TargetExamTone(Color(0xFFB39DDB), Color(0xFF2D1F4D), Color(0xFF453075)), // Purple
+            TargetExamTone(Color(0xFFFFB74D), Color(0xFF4E2C0F), Color(0xFF75451D)), // Orange
+            TargetExamTone(Color(0xFF64B5F6), Color(0xFF0F3156), Color(0xFF1B4E85)), // Blue
+            TargetExamTone(Color(0xFF4DD0E1), Color(0xFF0D3A40), Color(0xFF185D66)), // Teal
+            TargetExamTone(Color(0xFFF06292), Color(0xFF451325), Color(0xFF6B223E)), // Pink
+        )
+    } else {
+        listOf(
+            TargetExamTone(Color(0xFF4FAD38), Color(0xFFE6F3E2), Color(0xFFECF6E9)),
+            TargetExamTone(Color(0xFF8358D3), Color(0xFFEDE7FB), Color(0xFFF1ECFC)),
+            TargetExamTone(Color(0xFFFF8A37), Color(0xFFFFECDD), Color(0xFFFFF0E5)),
+            TargetExamTone(Color(0xFF438DDD), Color(0xFFE3F0FD), Color(0xFFEAF3FE)),
+            TargetExamTone(Color(0xFF45A1A7), Color(0xFFE0F2F3), Color(0xFFE8F5F5)),
+            TargetExamTone(Color(0xFFE477A1), Color(0xFFFBE7EF), Color(0xFFFCECF2)),
+        )
+    }
     return tones[(planId.hashCode() and Int.MAX_VALUE) % tones.size]
 }
 
@@ -1182,7 +1204,8 @@ private fun PlannerTargetExamRow(
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val tone = targetExamTone(plan.id)
+    val isDark = isSystemInDarkTheme()
+    val tone = targetExamTone(plan.id, isDark)
     val title = plan.title.ifBlank { plan.examType ?: "Study plan" }
     val subtitle = plan.examType
         ?.takeIf { it.isNotBlank() && !it.equals(title, ignoreCase = true) }
@@ -1190,13 +1213,17 @@ private fun PlannerTargetExamRow(
     val days = daysUntil(plan.examDate)
     var menuExpanded by remember { mutableStateOf(false) }
 
+    val cardBg = if (isDark) Color(0xFF181C1E) else Color.White
+    val cardBorder = if (isDark) Color(0xFF444748).copy(alpha = 0.45f) else Color.Transparent
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = if (isDark) BorderStroke(1.dp, cardBorder) else null,
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 3.dp),
     ) {
         Row(
             modifier = Modifier
@@ -1229,7 +1256,7 @@ private fun PlannerTargetExamRow(
             ) {
                 Text(
                     text = title,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (isDark) Color(0xFFE0E3E5) else Color(0xFF1A1C1E),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
@@ -1237,7 +1264,7 @@ private fun PlannerTargetExamRow(
                 )
                 Text(
                     text = subtitle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isDark) Color(0xFFC4C7C7) else Color(0xFF5E6266),
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -1258,7 +1285,7 @@ private fun PlannerTargetExamRow(
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "Open $title options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (isDark) Color(0xFFC4C7C7) else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
@@ -1281,37 +1308,53 @@ private fun PlannerThemeActionCard(
     colors: List<Color>,
     onClick: () -> Unit,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) Color(0xFF181C1E) else Color.Transparent
+    val border = if (isDark) BorderStroke(1.dp, Color(0xFF444748).copy(alpha = 0.45f)) else null
+    val contentColor = if (isDark) Color(0xFFE0E3E5) else Color.White
+    val subColor = if (isDark) Color(0xFFC4C7C7) else Color.White.copy(alpha = 0.86f)
+
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = border,
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 3.dp),
     ) {
         Row(
             modifier = Modifier
-                .background(Brush.linearGradient(colors))
+                .then(
+                    if (!isDark) Modifier.background(Brush.linearGradient(colors))
+                    else Modifier
+                )
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Surface(color = Color.White.copy(alpha = 0.12f), shape = RoundedCornerShape(14.dp)) {
+            Surface(
+                color = if (isDark) Color(0xFF2C353D) else Color.White.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(14.dp)
+            ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = if (isDark) Color(0xFFBCC7DD) else Color.White,
                     modifier = Modifier.padding(13.dp).size(28.dp),
                 )
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                Text(subtitle, color = Color.White.copy(alpha = 0.86f), style = MaterialTheme.typography.bodyMedium)
+                Text(title, color = contentColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                Text(subtitle, color = subColor, style = MaterialTheme.typography.bodyMedium)
             }
-            Surface(color = Color.White.copy(alpha = 0.14f), shape = CircleShape) {
+            Surface(
+                color = if (isDark) Color(0xFF2C353D) else Color.White.copy(alpha = 0.14f),
+                shape = CircleShape
+            ) {
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = title,
-                    tint = Color.White,
+                    tint = if (isDark) Color(0xFFE0E3E5) else Color.White,
                     modifier = Modifier.padding(8.dp).size(24.dp),
                 )
             }
@@ -1727,12 +1770,15 @@ private fun QuickStartSheet(
     var examDate by remember { mutableStateOf("") }
     var dailyGoal by remember { mutableStateOf("3") }
     var pasteSyllabus by remember { mutableStateOf("") }
-    var showAdvanced by remember { mutableStateOf(false) }
+    var showSyllabusPaste by remember { mutableStateOf(false) }
     var examDateError by remember { mutableStateOf(false) }
+    // Weekly off-days aren't chosen here — they default to none and stay editable
+    // later from Plan Settings, so this first screen doesn't grow past one step.
     val offDays = remember { mutableStateOf(setOf<Int>()) }
     val selectedTemplate = templateOptions.firstOrNull { it.id == templateId }
     var capacityWarning by remember { mutableStateOf<PlannerCapacityWarning?>(null) }
     var showDuplicateNameWarning by remember { mutableStateOf(false) }
+    var preferredStrategy by remember { mutableStateOf(state.preferredStudyStrategy) }
 
     fun hasDuplicatePlanTitle(planTitle: String): Boolean {
         val normalizedTitle = planTitle.trim()
@@ -1857,16 +1903,27 @@ private fun QuickStartSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-            Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 PlannerSectionHeader(
-                    title = "Create plan",
-                    subtitle = "Select exam and exam date.",
+                    title = "New study plan",
+                    subtitle = "A few quick steps and you're set.",
                 )
                 if (fixedTemplateId == null) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = mode == "template", onClick = { mode = "template" }, label = { Text("Template") })
-                        FilterChip(selected = mode == "custom", onClick = { mode = "custom" }, label = { Text("Custom") })
-                    }
+                    Text("Choose how you want to get started", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                    CreatePlanModeCard(
+                        icon = Icons.Default.School,
+                        title = "Use a template",
+                        subtitle = "SSC, UPSC, Railways, Defence — ready to go",
+                        selected = mode == "template",
+                        onClick = { mode = "template" },
+                    )
+                    CreatePlanModeCard(
+                        icon = Icons.Default.Edit,
+                        title = "Build it myself",
+                        subtitle = "Add your own subjects and topics",
+                        selected = mode == "custom",
+                        onClick = { mode = "custom" },
+                    )
                 }
                 if (mode == "template") {
                     if (!canUsePremiumPlannerFeatures) {
@@ -1909,15 +1966,13 @@ private fun QuickStartSheet(
                     }
                 } else {
                     OutlinedTextField(value = examType, onValueChange = { examType = it }, label = { Text("Exam name") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = ButtonDefaults.outlinedShape) {
-                        Icon(if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Paste syllabus (optional)")
-                    }
-                    if (showAdvanced) {
-                        OutlinedTextField(value = pasteSyllabus, onValueChange = { pasteSyllabus = it }, label = { Text("Paste syllabus") }, minLines = 4, modifier = Modifier.fillMaxWidth())
-                        Text("${parseBulkSyllabus(pasteSyllabus).sumOf { it.second.size }} topics detected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    SyllabusPasteStep(
+                        expanded = showSyllabusPaste,
+                        onToggle = { showSyllabusPaste = !showSyllabusPaste },
+                        value = pasteSyllabus,
+                        onValueChange = { pasteSyllabus = it },
+                        topicsDetected = parseBulkSyllabus(pasteSyllabus).sumOf { it.second.size },
+                    )
                 }
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Plan title") }, modifier = Modifier.fillMaxWidth())
                 PlannerExamDateField(
@@ -1936,16 +1991,25 @@ private fun QuickStartSheet(
                     )
                 }
                 OutlinedTextField(value = dailyGoal, onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) }, label = { Text("Topics per day") }, modifier = Modifier.fillMaxWidth())
-                OutlinedButton(onClick = { showAdvanced = !showAdvanced }, shape = ButtonDefaults.outlinedShape) {
-                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (showAdvanced) "Hide weekly off days" else "Weekly off days")
-                }
-                if (showAdvanced) {
-                    OffDayPicker(selected = offDays.value, onToggle = { day ->
-                        offDays.value = if (day in offDays.value) offDays.value - day else offDays.value + day
-                    })
-                }
+                Text("How do you like to study?", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                StudyStyleOption(
+                    title = "Mixed bag",
+                    body = "Mix subjects daily.",
+                    selected = preferredStrategy == "interleaved",
+                    onClick = {
+                        preferredStrategy = "interleaved"
+                        actions.setPreferredStudyStrategy("interleaved")
+                    },
+                )
+                StudyStyleOption(
+                    title = "Deep focus",
+                    body = "Finish topics in the same order as your syllabus.",
+                    selected = preferredStrategy == "sequential",
+                    onClick = {
+                        preferredStrategy = "sequential"
+                        actions.setPreferredStudyStrategy("sequential")
+                    },
+                )
                 if (state.isImporting) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Text(
@@ -1989,9 +2053,100 @@ private fun QuickStartSheet(
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Create Plan")
+                    Text("Build my plan")
                 }
                 Spacer(Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+/** One of the two top-level "how do you want to start" choices in the New Study Plan sheet. */
+@Composable
+private fun CreatePlanModeCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = if (selected) scheme.primaryContainer.copy(alpha = 0.5f) else scheme.surfaceContainerLow,
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.45f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Surface(shape = CircleShape, color = scheme.primary.copy(alpha = 0.12f)) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = scheme.primary,
+                    modifier = Modifier.padding(10.dp).size(22.dp),
+                )
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, color = scheme.onSurface)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/**
+ * "Add topics" step for a custom plan — a clearly-labeled expandable row instead of a
+ * small button with a parenthetical, so pasting a syllabus reads as a real step, not a
+ * hidden option.
+ */
+@Composable
+private fun SyllabusPasteStep(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    value: String,
+    onValueChange: (String) -> Unit,
+    topicsDetected: Int,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = scheme.surfaceContainerLow,
+    ) {
+        Column(Modifier.padding(4.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null, tint = scheme.primary)
+                Column(Modifier.weight(1f)) {
+                    Text("Add your syllabus", fontWeight = FontWeight.Bold, color = scheme.onSurface)
+                    Text("Optional — paste it now or add topics later.", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = scheme.onSurfaceVariant,
+                )
+            }
+            if (expanded) {
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedTextField(value = value, onValueChange = onValueChange, label = { Text("Paste syllabus") }, minLines = 4, modifier = Modifier.fillMaxWidth())
+                    Text("$topicsDetected topics detected", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+                }
             }
         }
     }
@@ -2185,6 +2340,7 @@ private fun PlannerHome(
                     PlanTabScreen(
                         plan = plan,
                         actions = actions,
+                        activeTab = detailState.activePlanTab,
                         onNavigate = { route ->
                             if (route.startsWith("syllabus/subjects/")) {
                                 actions.setSection(PlannerSection.SYLLABUS)
@@ -2194,6 +2350,7 @@ private fun PlannerHome(
                         },
                         onboardingCompletedSteps = detailState.onboardingCompletedSteps,
                         planningMode = detailState.planningMode,
+                        preferredStudyStrategy = detailState.preferredStudyStrategy,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                     )

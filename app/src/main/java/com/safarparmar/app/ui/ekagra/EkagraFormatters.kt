@@ -99,6 +99,7 @@ internal fun formatDateTime(iso: String?): String {
 
 internal fun TimerMode.toApiMode(): String = when (this) {
     TimerMode.FOCUS      -> "Timer"
+    TimerMode.POMODORO   -> "Timer" // A pomodoro focus session is just a "Timer" session in the backend
     TimerMode.BREAK      -> "short"
     TimerMode.STOPWATCH  -> "stopwatch"
 }

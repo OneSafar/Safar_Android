@@ -75,7 +75,7 @@ fun PlanSetupBanner(
                 Surface(
                     modifier = Modifier.size(38.dp),
                     shape = CircleShape,
-                    color = Color(0xFFFFEEF8),
+                    color = scheme.tertiaryContainer.copy(alpha = 0.6f),
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_butterfly_tour),

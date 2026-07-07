@@ -19,8 +19,16 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 
-val ExpressiveCardShape = RoundedCornerShape(32.dp)
-val ExpressiveButtonShape = RoundedCornerShape(24.dp)
+val ExpressiveCardShape = RoundedCornerShape(8.dp)
+val ExpressiveButtonShape = RoundedCornerShape(4.dp)
+
+val SafarShapes = androidx.compose.material3.Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(4.dp),
+    medium = RoundedCornerShape(4.dp),
+    large = RoundedCornerShape(8.dp),
+    extraLarge = RoundedCornerShape(8.dp)
+)
 
 // Expressive Gradients
 val LightExpressiveGradient = Brush.verticalGradient(
@@ -32,8 +40,8 @@ val LightExpressiveGradient = Brush.verticalGradient(
 
 val DarkExpressiveGradient = Brush.verticalGradient(
     colors = listOf(
-        Color(0xFF272C35), // SafarSurfaceVariantDark / PrimaryContainer dark
-        Color(0xFF181B20)  // SafarSurfaceDark
+        Color(0xFF1C2022), // surfaceContainerDark
+        Color(0xFF101416)  // surfaceDark
     )
 )
 
@@ -149,6 +157,7 @@ fun SafarTheme(
     CompositionLocalProvider(LocalDensity provides customDensity) {
         MaterialTheme(
             colorScheme = colorScheme,
+            shapes = SafarShapes,
             typography  = SafarTypography,
         ) {
             ProvideTextStyle(

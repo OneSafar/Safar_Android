@@ -17,14 +17,19 @@ val provider = GoogleFont.Provider(
 
 val MulishFontFamily = FontFamily(
     androidx.compose.ui.text.googlefonts.Font(
-        googleFont = GoogleFont("Mulish"),
+        googleFont = GoogleFont("Hanken Grotesk"),
         fontProvider = provider,
     )
 )
 
 val PoppinsFontFamily = MulishFontFamily
 
-val LoraFontFamily = MulishFontFamily
+val LoraFontFamily = FontFamily(
+    androidx.compose.ui.text.googlefonts.Font(
+        googleFont = GoogleFont("EB Garamond"),
+        fontProvider = provider,
+    )
+)
 
 val SafarTypography = Typography(
     displayLarge  = TextStyle(fontFamily = LoraFontFamily, fontWeight = FontWeight.Bold,     fontSize = 57.sp, lineHeight = 64.sp, letterSpacing = (-0.25).sp),

@@ -87,6 +87,24 @@ fun subjectHeaderBrush(subjectIndex: Int, totalSubjects: Int): Brush {
 
 /**
 
+ * The one canonical color for a subject, parsed from its stored `color` hex field — the
+ * same field the PDF export already reads via its own hex parser. Every place that shows
+ * a subject (dots, chart bars) should call this instead of deriving a color from the
+ * subject's position in a list, so a subject looks identical everywhere, including in
+ * the exported PDF.
+
+ */
+
+fun subjectDotColor(colorHex: String): Color = runCatching {
+
+    Color(AndroidColor.parseColor(colorHex))
+
+}.getOrDefault(Color(0xFF0EA5E9))
+
+
+
+/**
+
  * Same hue family as [subjectHeaderBrush], stronger saturation for liquid meter fills.
 
  */

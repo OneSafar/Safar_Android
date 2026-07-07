@@ -260,6 +260,7 @@ data class AutoDistributeRequest(
     val lockExistingDates: Boolean = true,
     val includeRevisionNeeded: Boolean = false,
     val overloadMode: String? = null,
+    val strategy: String? = null,
 )
 
 data class ReorderSyllabusRequest(

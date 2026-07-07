@@ -14,6 +14,7 @@ import com.safarparmar.app.data.remote.api.ImportSyllabusTopicRequest
 import com.safarparmar.app.data.remote.api.PlannerApi
 import com.safarparmar.app.data.remote.api.DeleteUndoRequest
 import com.safarparmar.app.data.remote.api.PlanRestoreResult
+import com.safarparmar.app.data.remote.api.ReorderSyllabusRequest
 import com.safarparmar.app.data.remote.api.RolloverUndoRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusResponse
@@ -78,6 +79,7 @@ class StudyPlannerRepositoryImpl @Inject constructor(
     override suspend fun getCalendar(planId: String): Resource<CalendarMap> = safeApiCall { api.getCalendar(planId) }
     override suspend fun getAnalytics(planId: String): Resource<PlannerAnalytics> = safeApiCall { api.getAnalytics(planId) }
     override suspend fun autoDistribute(planId: String, request: AutoDistributeRequest): Resource<AutoDistributeResult> = safeApiCall { api.autoDistribute(planId, request) }
+    override suspend fun reorderSyllabus(planId: String, request: ReorderSyllabusRequest): Resource<StudyPlan> = safeApiCall { api.reorderSyllabus(planId, request) }
     override suspend fun addSubject(planId: String, request: SubjectRequest): Resource<StudyPlan> = safeApiCall { api.addSubject(planId, request) }
     override suspend fun renameSubject(planId: String, subjectId: String, request: SubjectRequest): Resource<StudyPlan> = safeApiCall { api.renameSubject(planId, subjectId, request) }
     override suspend fun deleteSubject(planId: String, subjectId: String): Resource<StudyPlan> = safeApiCall { api.deleteSubject(planId, subjectId) }

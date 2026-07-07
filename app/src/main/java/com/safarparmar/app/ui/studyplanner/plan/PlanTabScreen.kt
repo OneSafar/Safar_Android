@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Adjust
@@ -80,6 +81,7 @@ import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.PlannerActions
+import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.studyplanner.StudyPlannerOnboardingSteps
 import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
@@ -89,22 +91,28 @@ import com.safarparmar.app.ui.studyplanner.logic.rollup
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
-enum class StudyPlannerTab {
-    TODAY,
-    OVERDUE,
-    UPCOMING,
-    COMPLETED
-}
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.SelectableDates
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.CalendarMonth
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun PlanTabScreen(
     plan: StudyPlan,
     actions: PlannerActions,
+    activeTab: StudyPlannerTab,
     onNavigate: (String) -> Unit,
     onboardingCompletedSteps: Set<String> = emptySet(),
     planningMode: String = "flex",
+    preferredStudyStrategy: String = "interleaved",
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
@@ -113,6 +121,9 @@ fun PlanTabScreen(
     
     val todayTopics = remember(refs, today) {
         refs.filter { it.topic.plannedDate?.take(10) == today }
+    }
+    val todayDoneCount = remember(todayTopics) {
+        todayTopics.count { it.topic.status == TopicStatus.DONE }
     }
     val overdueTopics = remember(refs, today) {
         refs.filter { (it.topic.plannedDate?.take(10) ?: "9999") < today && it.topic.status != TopicStatus.DONE }
@@ -164,7 +175,6 @@ fun PlanTabScreen(
         },
     )
 
-    var activeTab by remember(plan.id) { mutableStateOf(StudyPlannerTab.TODAY) }
     var isFlowModeActive by remember(plan.id) { mutableStateOf(false) }
     var skippedFlowTopicIds by remember(plan.id, today) { mutableStateOf(emptySet<String>()) }
 
@@ -181,6 +191,13 @@ fun PlanTabScreen(
     var showAddCustomTopic by remember { mutableStateOf(false) }
     var editTopicRef by remember { mutableStateOf<TopicRef?>(null) }
     var revisionTopicRef by remember { mutableStateOf<TopicRef?>(null) }
+    var showUnscheduledTopicsScreen by remember { mutableStateOf(false) }
+    val unscheduledTopics = remember(refs) {
+        refs.filter { it.topic.plannedDate.isNullOrBlank() && it.topic.status != TopicStatus.DONE }
+    }
+    val revisionTopics = remember(refs) {
+        refs.filter { it.topic.status == TopicStatus.REVISION_NEEDED }
+    }
 
     fun exportPlan() {
         exportLauncher.launch("${plan.title.replace(" ", "_")}_Syllabus.pdf")
@@ -258,6 +275,8 @@ fun PlanTabScreen(
                 actions.markForRevision(ref.topic.id, dates, scheduleType)
             },
             onDismiss = { revisionTopicRef = null },
+            isAlreadyRevisionNeeded = ref.topic.status == TopicStatus.REVISION_NEEDED,
+            onCancelRevision = { actions.cancelRevision(ref.topic.id) }
         )
     }
 
@@ -270,8 +289,8 @@ fun PlanTabScreen(
     }
 
 
-    // ── Build Schedule Mode Sheet ─────────────────────────────────────────
-    pendingDistributeAction?.let { action ->
+    // ── Build Planner Strategy Sheet (Replacing Build Schedule Mode Sheet) ──
+    pendingDistributeAction?.let { lockExisting ->
         ModalBottomSheet(
             onDismissRequest = { pendingDistributeAction = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -279,70 +298,42 @@ fun PlanTabScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(20.dp)
                     .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Build Schedule Mode",
+                    text = "Build planner",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "How should we handle situations where there are more topics than available days before your exam?",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "Choose how SAFAR should place your topics on study days.",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                // Strict Mode Option
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                StudyStyleOption(
+                    title = "Mixed bag",
+                    body = "Mix subjects daily.",
+                    recommended = preferredStudyStrategy == "interleaved",
                     onClick = {
-                        actions.autoDistribute(action, "strict")
+                        actions.autoDistribute(lockExisting = lockExisting, strategy = "interleaved")
                         pendingDistributeAction = null
-                    }
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Strict Mode", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "Keep exactly to your daily goal. If topics don't fit, they'll remain unscheduled.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
-
-                // Flex Mode Option
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    },
+                )
+                StudyStyleOption(
+                    title = "Deep focus",
+                    body = "Finish topics in the same order as your syllabus.",
+                    recommended = preferredStudyStrategy == "sequential",
                     onClick = {
-                        actions.autoDistribute(action, "flex")
+                        actions.autoDistribute(lockExisting = lockExisting, strategy = "sequential")
                         pendingDistributeAction = null
-                    }
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Flex Mode (Recommended)", 
-                            fontWeight = FontWeight.Bold, 
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            "Distribute all remaining topics evenly across available days before the exam, temporarily raising your daily goal if needed.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
+                    },
+                )
+                Spacer(Modifier.height(12.dp))
             }
         }
     }
@@ -413,7 +404,22 @@ fun PlanTabScreen(
         )
     }
 
+    var showCreatePlanSheet by remember { mutableStateOf(false) }
+
+    if (showCreatePlanSheet) {
+        CreatePlanPromptSheet(
+            onGoToSyllabus = {
+                showCreatePlanSheet = false
+                onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", plan.id))
+            },
+            onDismiss = { showCreatePlanSheet = false },
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
+      if (!hasTopics) {
+        EmptyPlanTabState(onCreateClick = { showCreatePlanSheet = true })
+      } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 112.dp),
@@ -428,14 +434,20 @@ fun PlanTabScreen(
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     filters = {
-                        PlanTabFiltersRow(
-                            activeTab = activeTab,
-                            onTabSelected = { activeTab = it },
-                            todayCount = todayTopics.size,
-                            overdueCount = overdueTopics.size,
-                            upcomingCount = upcomingTopics.size,
-                            completedCount = completedTopics.size,
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            PlanTodayStatsRow(
+                                toStudy = todayTopics.size,
+                                done = todayDoneCount,
+                                pendingRevision = revisionTopics.size,
+                            )
+                            PlanTabQuickLinks(
+                                activeTab = activeTab,
+                                onTabSelected = { actions.setPlanTab(it) },
+                                overdueCount = overdueTopics.size,
+                                upcomingCount = upcomingTopics.size,
+                                completedCount = completedTopics.size,
+                            )
+                        }
                     },
                 )
             }
@@ -444,9 +456,20 @@ fun PlanTabScreen(
                 PlanActionRow(
                     onAddTopics = { onNavigate(Routes.ROUTE_SYLLABUS_SUBJECTS.replace("{planId}", plan.id)) },
                     onSchedule = { pendingDistributeAction = true },
-                    onRebuildPlan = { pendingDistributeAction = false },
-                    showSchedule = false,
+                    // "Rebuild Plan" only makes sense once a schedule already exists.
+                    // Before that, show "Build Planner" (via showSchedule) instead.
+                    onRebuildPlan = if (hasSchedule) { { pendingDistributeAction = false } } else null,
+                    showSchedule = !hasSchedule,
                 )
+            }
+
+            if (unscheduledTopics.isNotEmpty()) {
+                item(key = "unscheduled_warning", contentType = "unscheduled_warning") {
+                    UnscheduledWarningBanner(
+                        count = unscheduledTopics.size,
+                        onClick = { showUnscheduledTopicsScreen = true }
+                    )
+                }
             }
 
             if (showSetupGuide) {
@@ -493,7 +516,7 @@ fun PlanTabScreen(
                                         ) {
                                             Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
                                             Spacer(Modifier.width(6.dp))
-                                            Text("Pull Existing", fontWeight = FontWeight.Bold)
+                                            Text("Add from Syllabus", fontWeight = FontWeight.Bold)
                                         }
                                         TextButton(
                                             onClick = { showAddCustomTopic = true },
@@ -522,7 +545,7 @@ fun PlanTabScreen(
                                             .background(
                                                 brush = Brush.horizontalGradient(
                                                     colors = if (isDark) {
-                                                        listOf(Color(0xFF14532D), Color(0xFF064E3B))
+                                                        listOf(Color(0xFF151C1A), Color(0xFF1E2824))
                                                     } else {
                                                         listOf(Color(0xFFDCFCE7), Color(0xFFA7F3D0))
                                                     }
@@ -537,7 +560,7 @@ fun PlanTabScreen(
                                             modifier = Modifier
                                                 .size(54.dp)
                                                 .background(
-                                                    color = if (isDark) Color(0xFF15803D) else Color(0xFF4ADE80),
+                                                    color = if (isDark) Color(0xFF2D3732) else Color(0xFF4ADE80),
                                                     shape = CircleShape
                                                 ),
                                             contentAlignment = Alignment.Center
@@ -578,7 +601,7 @@ fun PlanTabScreen(
                                             .background(
                                                 brush = Brush.linearGradient(
                                                     colors = if (isDark) {
-                                                        listOf(Color(0xFF311042), Color(0xFF1E1B4B))
+                                                        listOf(Color(0xFF1C2022), Color(0xFF181C1E))
                                                     } else {
                                                         listOf(Color(0xFFF3E8FF), Color(0xFFD8B4FE))
                                                     }
@@ -667,7 +690,7 @@ fun PlanTabScreen(
                                 ) {
                                     Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(6.dp))
-                                    Text("Pull Existing", fontWeight = FontWeight.Bold)
+                                    Text("Add from Syllabus", fontWeight = FontWeight.Bold)
                                 }
                                 TextButton(
                                     onClick = { showAddCustomTopic = true },
@@ -828,6 +851,58 @@ fun PlanTabScreen(
                     }
                 }
 
+                StudyPlannerTab.REVISION -> {
+                    if (revisionTopics.isEmpty()) {
+                        item(key = "revision_empty") {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.large,
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text("🧠", fontSize = 36.sp)
+                                    Text(
+                                        text = "No Revision Scheduled",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Topics marked for revision will show up here to help you consolidate your learning.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        item(key = "revision_list_header") {
+                            PlanSectionHeader(title = "Revision Tasks", trailing = "${revisionTopics.size} total")
+                        }
+                        items(
+                            items = revisionTopics,
+                            key = { ref -> "revision_${ref.topic.id}" },
+                            contentType = { "revisionTopic" }
+                        ) { ref ->
+                            PlannerTaskRow(
+                                ref = ref,
+                                accent = PlanTaskRowAccent.Planned,
+                                onDoneChange = { done ->
+                                    handleTopicDoneCheck(ref, done)
+                                },
+                                onEdit = { revisionTopicRef = ref }
+                            )
+                        }
+                    }
+                }
+
                 StudyPlannerTab.COMPLETED -> {
                     if (completedTopics.isEmpty()) {
                         item(key = "completed_empty") {
@@ -880,6 +955,7 @@ fun PlanTabScreen(
                 }
             }
         }
+      }
 
         // Fullscreen Flow Mode Overlay
         if (isFlowModeActive) {
@@ -915,13 +991,13 @@ fun PlanTabScreen(
                     .fillMaxSize()
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF0F172A),
-                                Color(0xFF1E1B4B),
-                                Color(0xFF2E1065)
-                            )
-                        )
-                    )
+                               colors = listOf(
+                                   Color(0xFF101416),
+                                   Color(0xFF181C1E),
+                                   Color(0xFF0B0F10)
+                               )
+                           )
+                       )
                     .clickable(enabled = true, onClick = {}) // block clicks to background
                     .padding(24.dp)
                     .navigationBarsPadding(),
@@ -1157,6 +1233,81 @@ fun PlanTabScreen(
                 }
             }
         }
+        if (showUnscheduledTopicsScreen) {
+            UnscheduledTopicsScreen(
+                plan = plan,
+                unscheduledTopics = unscheduledTopics,
+                actions = actions,
+                onDismiss = { showUnscheduledTopicsScreen = false }
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyPlanTabState(onCreateClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("📚", fontSize = 48.sp)
+            Text(
+                text = "Your plan is empty",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = scheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "Add subjects and topics first. Then you can build your study schedule.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Button(
+                onClick = onCreateClick,
+                modifier = Modifier.heightIn(min = 52.dp),
+                shape = ButtonDefaults.shape,
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Create your plan", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreatePlanPromptSheet(
+    onGoToSyllabus: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text("Let's set up your plan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                text = "First, add your subjects and topics in the Syllabus tab. Once that's done, come back here to build your study schedule.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(4.dp))
+            Button(
+                onClick = onGoToSyllabus,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                shape = ButtonDefaults.shape,
+            ) {
+                Text("Go to Syllabus", fontWeight = FontWeight.Bold)
+            }
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text("Cancel")
+            }
+        }
     }
 }
 
@@ -1245,4 +1396,248 @@ private fun EditTopicDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+@Composable
+private fun UnscheduledWarningBanner(
+    count: Int,
+    onClick: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = scheme.errorContainer.copy(alpha = 0.35f)
+        ),
+        border = BorderStroke(1.dp, scheme.error.copy(alpha = 0.2f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = "Warning",
+                tint = scheme.error,
+                modifier = Modifier.size(24.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "$count Unscheduled Topics",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onErrorContainer
+                )
+                Text(
+                    text = "Topics are in your syllabus but not scheduled. Tap to schedule them.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant
+                )
+            }
+            TextButton(
+                onClick = onClick,
+                colors = ButtonDefaults.textButtonColors(contentColor = scheme.error)
+            ) {
+                Text("Schedule", fontWeight = FontWeight.ExtraBold)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UnscheduledTopicsScreen(
+    plan: StudyPlan,
+    unscheduledTopics: List<TopicRef>,
+    actions: PlannerActions,
+    onDismiss: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    var selectedTopicForDatePicker by remember { mutableStateOf<TopicRef?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredTopics = remember(unscheduledTopics, searchQuery) {
+        if (searchQuery.isBlank()) {
+            unscheduledTopics
+        } else {
+            val q = searchQuery.lowercase()
+            unscheduledTopics.filter { it.topic.name.lowercase().contains(q) }
+        }
+    }
+
+    if (selectedTopicForDatePicker != null) {
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = System.currentTimeMillis(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val picked = Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate()
+                    return !picked.isBefore(today)
+                }
+            }
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { selectedTopicForDatePicker = null },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val ld = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+                            selectedTopicForDatePicker?.let { ref ->
+                                actions.updateTopic(topicId = ref.topic.id, plannedDate = ld.toString(), pinned = true)
+                            }
+                        }
+                        selectedTopicForDatePicker = null
+                    }
+                ) {
+                    Text("OK", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedTopicForDatePicker = null }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = scheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+        ) {
+            // Header Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = scheme.onSurface
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Unscheduled Topics",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = scheme.onSurface
+                    )
+                    Text(
+                        text = "${unscheduledTopics.size} topics left to plan",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search unscheduled topics...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            if (filteredTopics.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (searchQuery.isBlank()) "All topics are scheduled!" else "No matches for '$searchQuery'",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(filteredTopics, key = { it.topic.id }) { ref ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedTopicForDatePicker = ref },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
+                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        text = ref.topic.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.onSurface
+                                    )
+                                    Text(
+                                        text = "${ref.subject.name} • ${ref.chapter.name}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = scheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(scheme.primaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarMonth,
+                                        contentDescription = "Schedule",
+                                        tint = scheme.onPrimaryContainer,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

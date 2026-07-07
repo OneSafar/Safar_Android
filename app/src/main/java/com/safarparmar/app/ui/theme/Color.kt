@@ -67,6 +67,8 @@ val TealTint08Dark = Color(0x141FE0BA)
 val TealTint15Dark = Color(0x261FE0BA)
 val TealTint25Dark = Color(0x401FE0BA)
 
+val PlannerWarmBackground = Color(0xFFF5F3EF)
+
 val Emerald600 = Color(0xFF059669)
 val Emerald500 = Color(0xFF10B981)
 val Emerald400 = Color(0xFF34D399)

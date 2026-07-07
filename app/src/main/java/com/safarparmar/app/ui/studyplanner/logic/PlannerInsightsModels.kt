@@ -38,6 +38,7 @@ data class PlannerInsightWorkload(
 data class PlannerInsightSubjectRow(
     val subjectId: String,
     val subjectName: String,
+    val subjectColor: String,
     val completionPercent: Int,
     val remainingTopics: Int,
     val overdueTopics: Int,

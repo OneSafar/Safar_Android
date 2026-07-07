@@ -35,6 +35,9 @@ class SafarDataStore @Inject constructor(
     private fun plannerPlanningModeKey(planId: String): Preferences.Key<String> =
         stringPreferencesKey("study_planner_planning_mode_$planId")
 
+    private fun plannerPreferredStrategyKey(planId: String?): Preferences.Key<String> =
+        stringPreferencesKey("study_planner_preferred_strategy_${planId ?: "default"}")
+
     private val securePrefs: SharedPreferences by lazy {
         try {
             createSecurePrefs()
@@ -394,6 +397,25 @@ class SafarDataStore @Inject constructor(
 
     suspend fun setPlannerPlanningMode(planId: String, mode: String) =
         context.dataStore.edit { it[plannerPlanningModeKey(planId)] = mode }
+
+    /**
+     * "How do you like to study" preference: "interleaved" (mix subjects daily) or
+     * "sequential" (finish topics in order). Stored on-device, same pattern as
+     * [plannerPlanningMode] — purely a UI default for the Build Planner strategy
+     * picker, not a new server-side field. Defaults to "interleaved".
+     *
+     * [planId] is null for the choice made during plan *creation* (no plan exists yet,
+     * so it's recorded under a shared "default" bucket) and set once a plan exists, so
+     * the Build Planner sheet for that specific plan can remember its own choice
+     * afterwards.
+     */
+    fun plannerPreferredStrategy(planId: String? = null): Flow<String> =
+        context.dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[plannerPreferredStrategyKey(planId)] ?: "interleaved" }
+
+    suspend fun setPlannerPreferredStrategy(planId: String?, strategy: String) =
+        context.dataStore.edit { it[plannerPreferredStrategyKey(planId)] = strategy }
 
     suspend fun setStudyPlannerOnboardingStepDone(planId: String, step: String, done: Boolean) =
         context.dataStore.edit { prefs ->
