@@ -1068,9 +1068,12 @@ class TimerService : Service() {
         val completedMode = _timerMode.value
         
         try {
-            val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
-            val ringtone = android.media.RingtoneManager.getRingtone(applicationContext, uri)
-            ringtone?.play()
+            val toneG = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100)
+            toneG.startTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 1000)
+            scope.launch {
+                kotlinx.coroutines.delay(1500)
+                runCatching { toneG.release() }
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
