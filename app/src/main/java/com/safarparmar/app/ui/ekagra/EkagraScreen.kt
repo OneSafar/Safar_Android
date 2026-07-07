@@ -1044,14 +1044,21 @@ fun EkagraScreen(
                                             
                                             if (wasInactive) {
                                                 requestNotificationPermission()
-                                                countdownValue = 3
+                                                if (timerMode == TimerMode.BREAK) {
+                                                    timerService?.togglePlayPause()
+                                                } else {
+                                                    countdownValue = 3
+                                                }
                                             } else if (wasRunning) {
                                                 timerService?.togglePlayPause()
                                                 if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
                                                     viewModel.pauseActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(), associatedGoalTitle)
                                                 }
                                             } else {
-                                                countdownValue = 3
+                                                timerService?.togglePlayPause()
+                                                if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
+                                                    viewModel.syncActiveSession(totalSeconds, secondsLeft, timerMode.toApiMode(), true, associatedGoalTitle)
+                                                }
                                             }
                                         },
                                         canStartBreak = timerMode == TimerMode.FOCUS && timerService?.isActive() == true,

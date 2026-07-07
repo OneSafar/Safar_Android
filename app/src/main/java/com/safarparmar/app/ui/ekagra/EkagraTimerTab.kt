@@ -299,8 +299,13 @@ internal fun TimerFocusTab(
                         exit = fadeOut(animationSpec = tween(400, easing = FastOutSlowInEasing)) +
                                shrinkVertically(animationSpec = tween(400, easing = FastOutSlowInEasing))
                     ) {
+                        val subtext = when (timerMode) {
+                            TimerMode.STOPWATCH -> if (isRunning) "Stopwatch running" else "Ready to start"
+                            TimerMode.BREAK -> if (isRunning) "Break running" else "Ready to break"
+                            else -> if (isRunning) "Ekagra running" else "Ready to ekagra"
+                        }
                         Text(
-                            if (isRunning) "Ekagra running" else "Ready to ekagra",
+                            subtext,
                             fontSize   = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color      = Color.White.copy(alpha = 0.7f),

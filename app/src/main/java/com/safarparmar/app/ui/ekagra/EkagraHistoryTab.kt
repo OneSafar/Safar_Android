@@ -392,8 +392,22 @@ internal fun FocusSessionRow(
                         )
                     }
                 }
-                Text("Planned ${session.durationMinutes}m · Actual ${session.actualMinutes}m",
-                    fontSize = 12.sp, color = scheme.onSurfaceVariant)
+                if (session.timerMode?.equals("stopwatch", ignoreCase = true) == true) {
+                    val startInstant = parseInstantOrNull(session.startedAt)
+                    val endInstant = parseInstantOrNull(session.endedAt)
+                    val elapsedSeconds = if (startInstant != null && endInstant != null) {
+                        java.time.Duration.between(startInstant, endInstant).seconds.coerceAtLeast(0)
+                    } else {
+                        session.actualMinutes * 60L
+                    }
+                    val mins = elapsedSeconds / 60
+                    val secs = elapsedSeconds % 60
+                    Text("Elapsed %02d:%02d".format(mins, secs),
+                        fontSize = 12.sp, color = scheme.onSurfaceVariant)
+                } else {
+                    Text("Planned ${session.durationMinutes}m · Actual ${session.actualMinutes}m",
+                        fontSize = 12.sp, color = scheme.onSurfaceVariant)
+                }
             }
             // Time — primary colour, consistent with ring and total card
             Text(
