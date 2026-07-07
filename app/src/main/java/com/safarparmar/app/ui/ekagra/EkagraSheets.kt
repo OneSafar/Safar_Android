@@ -124,7 +124,14 @@ internal fun OrganizeFreeFocusSheet(
     onDiscard: () -> Unit,
 ) {
     val scheme      = MaterialTheme.colorScheme
-    val focusedMins = ((pending?.totalSeconds ?: 0) - (pending?.secondsLeft ?: 0)).coerceAtLeast(60) / 60
+    val focusedSeconds = pending?.let {
+        if (it.mode.equals("stopwatch", ignoreCase = true)) {
+            it.secondsLeft
+        } else {
+            it.totalSeconds - it.secondsLeft
+        }
+    } ?: 0
+    val focusedMins = focusedSeconds.coerceAtLeast(60) / 60
 
     // Which goal is currently selected (pending confirmation)
     var selectedGoal    by remember { mutableStateOf<com.safarparmar.app.domain.model.Goal?>(null) }

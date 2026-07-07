@@ -438,6 +438,7 @@ fun EkagraScreen(
     }
     val mottoText = when {
         timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerRunning -> "BREAK TIME - KAVACH PAUSED"
+        timerMode == TimerMode.FOCUS && timerRunning && focusShieldActive -> "STUDY TIME - KAVACH ENABLED"
         timerRunning -> "STAY FOCUSED, YOU'RE DOING GREAT!"
         else         -> "READY TO FOCUS?"
     }
@@ -638,21 +639,24 @@ fun EkagraScreen(
                     }
                     if (showOrganizeSheet) {
                         val pending = pendingEndedSession
+                        fun savePendingAsFree() {
+                            if (pending != null) {
+                                viewModel.completeSession(pending.sessionId, pending.totalSeconds,
+                                    pending.secondsLeft, pending.mode, pending.startedAt,
+                                    titleInput.ifBlank { "Untitled" }, null, null, false, pending.endedAt)
+                                timerService?.reset(); associatedGoalId = null
+                                associatedGoalTitle = null; pendingEndedSession = null; showOrganizeSheet = false
+                            } else {
+                                showOrganizeSheet = false
+                            }
+                        }
                         OrganizeFreeFocusSheet(
                             pending       = pending,
                             goals         = openGoals,
                             titleInput    = titleInput,
                             onTitleChange = { titleInput = it },
-                            onDismiss     = { showOrganizeSheet = false },
-                            onSaveFree    = {
-                                if (pending != null) {
-                                    viewModel.completeSession(pending.sessionId, pending.totalSeconds,
-                                        pending.secondsLeft, pending.mode, pending.startedAt,
-                                        titleInput.ifBlank { "Untitled" }, null, null, false, pending.endedAt)
-                                    timerService?.reset(); associatedGoalId = null
-                                    associatedGoalTitle = null; pendingEndedSession = null; showOrganizeSheet = false
-                                }
-                            },
+                            onDismiss     = { savePendingAsFree() },
+                            onSaveFree    = { savePendingAsFree() },
                             onLinkGoal = { goal, shouldMarkComplete ->
                                 if (pending != null) {
                                     viewModel.linkGoalAndCompleteSession(pending.sessionId, goal,
@@ -1083,7 +1087,7 @@ fun EkagraScreen(
                                                                       bottom = innerPadding.calculateBottomPadding()),
                                         analytics = ekagraAnalytics,
                                         onSessionClick = { session ->
-                                            val isStopwatch = session.timerMode == "stopwatch"
+                                            val isStopwatch = session.timerMode.equals("stopwatch", ignoreCase = true)
                                             pendingEndedSession = PendingEndedEkagraSession(
                                                 sessionId = session.id,
                                                 totalSeconds = if (isStopwatch) session.actualMinutes * 60 else session.durationMinutes * 60,

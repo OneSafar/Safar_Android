@@ -901,7 +901,7 @@ private fun StudyPlansScreen(
     var showTemplateCatalog by remember { mutableStateOf(false) }
     var selectedTemplateForSetup by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<StudyPlan?>(null) }
-    val isDark = isSystemInDarkTheme()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val quickStartState = remember(
         state.plans,
         state.templates,
@@ -1096,7 +1096,7 @@ private fun PlannerCard(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val cardGradient = if (isDark) DarkExpressiveGradient else LightExpressiveGradient
     Card(
         modifier = modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
@@ -1113,7 +1113,7 @@ private fun PlannerCard(
 
 @Composable
 private fun PlannerEmptyState(title: String, body: String, action: String, onAction: () -> Unit) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val cardColor = if (isDark) Color(0xFF181C1E) else MaterialTheme.colorScheme.surface
     val borderColor = if (isDark) Color(0xFF444748).copy(alpha = 0.45f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
     val iconBackground = if (isDark) Color(0xFF2C353D) else MaterialTheme.colorScheme.primaryContainer
@@ -1204,7 +1204,7 @@ private fun PlannerTargetExamRow(
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val tone = targetExamTone(plan.id, isDark)
     val title = plan.title.ifBlank { plan.examType ?: "Study plan" }
     val subtitle = plan.examType
@@ -1308,7 +1308,7 @@ private fun PlannerThemeActionCard(
     colors: List<Color>,
     onClick: () -> Unit,
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val cardBg = if (isDark) Color(0xFF181C1E) else Color.Transparent
     val border = if (isDark) BorderStroke(1.dp, Color(0xFF444748).copy(alpha = 0.45f)) else null
     val contentColor = if (isDark) Color(0xFFE0E3E5) else Color.White
@@ -3467,7 +3467,7 @@ private fun SyllabusImportModeTab(
 @Composable
 private fun AiSyllabusPremiumCard(onUpgrade: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
-    val isDark = isSystemInDarkTheme()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val blue = Color(0xFF2563EB)
     val deepBlue = Color(0xFF1D4ED8)
     val gradientColors = if (isDark) {
@@ -3567,7 +3567,7 @@ private fun AiSyllabusPremiumCard(onUpgrade: () -> Unit) {
 @Composable
 private fun ManualSyllabusHelpRow(onGuideClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
-    val isDark = isSystemInDarkTheme()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -3627,7 +3627,7 @@ private fun ManualSyllabusHelpRow(onGuideClick: () -> Unit) {
 @Composable
 private fun ManualSyllabusExamplePlaceholder() {
     val scheme = MaterialTheme.colorScheme
-    val isDark = isSystemInDarkTheme()
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Surface(
             shape = RoundedCornerShape(50),
