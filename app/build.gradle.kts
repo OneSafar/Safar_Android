@@ -145,6 +145,11 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Bundle native debug symbols so Play Console can symbolicate native
+            // crashes/ANRs (silences the "no debug symbols" upload warning).
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
