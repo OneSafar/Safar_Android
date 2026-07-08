@@ -75,7 +75,7 @@ internal fun EkagraBottomNav(
 
     val isLight = scheme.background.luminance() > 0.5f
     val containerColor = if (isOnVideo) {
-        if (isLight) Color(0xD9FFFFFF) else Color(0xCC0F1115)
+        scheme.surfaceContainer.copy(alpha = 0.8f)
     } else {
         scheme.surfaceContainer
     }

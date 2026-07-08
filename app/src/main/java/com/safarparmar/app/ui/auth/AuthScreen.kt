@@ -593,38 +593,40 @@ fun LoginContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // OR Divider
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            HorizontalDivider(
-                modifier = Modifier.weight(1f),
-                color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
-            )
-            Text(
-                text = "OR",
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = palette.supportingText,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
-            HorizontalDivider(
-                modifier = Modifier.weight(1f),
-                color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        GoogleSignInButton(
-            onClick = onGoogleClick,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        // Google Sign-In temporarily hidden — rolling it out on the website first,
+        // then here. Re-enable both the divider and button together once ready.
+        // // OR Divider
+        // Row(
+        //     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        //     verticalAlignment = Alignment.CenterVertically,
+        //     horizontalArrangement = Arrangement.Center
+        // ) {
+        //     HorizontalDivider(
+        //         modifier = Modifier.weight(1f),
+        //         color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
+        //     )
+        //     Text(
+        //         text = "OR",
+        //         modifier = Modifier.padding(horizontal = 16.dp),
+        //         color = palette.supportingText,
+        //         fontSize = 12.sp,
+        //         fontWeight = FontWeight.Medium
+        //     )
+        //     HorizontalDivider(
+        //         modifier = Modifier.weight(1f),
+        //         color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
+        //     )
+        // }
+        //
+        // Spacer(modifier = Modifier.height(16.dp))
+        //
+        // GoogleSignInButton(
+        //     onClick = onGoogleClick,
+        //     modifier = Modifier.padding(bottom = 8.dp)
+        // )
 
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // Footer Links
         Row(
             modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
@@ -825,38 +827,40 @@ fun SignupContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // OR Divider
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            HorizontalDivider(
-                modifier = Modifier.weight(1f),
-                color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
-            )
-            Text(
-                text = "OR",
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = palette.supportingText,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
-            HorizontalDivider(
-                modifier = Modifier.weight(1f),
-                color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        GoogleSignInButton(
-            onClick = onGoogleClick,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        // Google Sign-In temporarily hidden — rolling it out on the website first,
+        // then here. Re-enable both the divider and button together once ready.
+        // // OR Divider
+        // Row(
+        //     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        //     verticalAlignment = Alignment.CenterVertically,
+        //     horizontalArrangement = Arrangement.Center
+        // ) {
+        //     HorizontalDivider(
+        //         modifier = Modifier.weight(1f),
+        //         color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
+        //     )
+        //     Text(
+        //         text = "OR",
+        //         modifier = Modifier.padding(horizontal = 16.dp),
+        //         color = palette.supportingText,
+        //         fontSize = 12.sp,
+        //         fontWeight = FontWeight.Medium
+        //     )
+        //     HorizontalDivider(
+        //         modifier = Modifier.weight(1f),
+        //         color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
+        //     )
+        // }
+        //
+        // Spacer(modifier = Modifier.height(16.dp))
+        //
+        // GoogleSignInButton(
+        //     onClick = onGoogleClick,
+        //     modifier = Modifier.padding(bottom = 8.dp)
+        // )
 
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // Footer Links
         Row(
             modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),

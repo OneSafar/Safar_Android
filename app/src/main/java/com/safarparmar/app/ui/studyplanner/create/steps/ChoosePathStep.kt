@@ -35,6 +35,7 @@ fun ChoosePathStep(
             "Choose how you want to start",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp),
         )
         CreatePlanModeCard(
             icon = Icons.Default.School,

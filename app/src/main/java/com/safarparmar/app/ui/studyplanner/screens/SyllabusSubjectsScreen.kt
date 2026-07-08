@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -25,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
@@ -40,12 +43,12 @@ import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarResultSlot
 import com.safarparmar.app.ui.components.SyllabusRowSkeleton
 import com.safarparmar.app.ui.navigation.Routes
+import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.components.TextInputDialog
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.SubjectUiModel
-import com.safarparmar.app.ui.studyplanner.logic.TopicRef
 import com.safarparmar.app.ui.studyplanner.logic.deleteImpact
 import com.safarparmar.app.ui.studyplanner.logic.findDuplicateSiblingName
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
@@ -58,8 +61,6 @@ internal sealed interface SyllabusDialogState {
     data class AddChapter(val subject: SubjectUiModel) : SyllabusDialogState
     data class RenameChapter(val subjectId: String, val chapter: StudyChapter) : SyllabusDialogState
     data class DeleteChapter(val subjectId: String, val chapter: StudyChapter) : SyllabusDialogState
-    data class AddTopicTo(val subjectId: String, val chapterId: String) : SyllabusDialogState
-    data class BulkAddTo(val subject: StudySubject, val chapter: StudyChapter) : SyllabusDialogState
     data class RenameTopic(val topic: StudyTopic) : SyllabusDialogState
     data class DeleteTopic(val topic: StudyTopic) : SyllabusDialogState
     data class DuplicateNameConfirm(val message: String, val onConfirm: () -> Unit) : SyllabusDialogState
@@ -70,6 +71,7 @@ internal sealed interface SyllabusDialogState {
 fun SyllabusSubjectsScreen(
     viewModel: StudyPlannerViewModel,
     planId: String,
+    isDarkTheme: Boolean = isSystemInDarkTheme(),
     onNavigate: (String) -> Unit,
     onBack: () -> Unit,
     onPlannerSectionSelect: (PlannerSection) -> Unit,
@@ -83,12 +85,11 @@ fun SyllabusSubjectsScreen(
 
     var dialogState by remember { mutableStateOf<SyllabusDialogState>(SyllabusDialogState.Closed) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    val expandedSubjects = remember { mutableStateMapOf<String, Boolean>() }
-    var selectedTopicRef by remember { mutableStateOf<TopicRef?>(null) }
-    var detailNonce by remember { mutableIntStateOf(0) }
-    var showBuildModeSheet by remember { mutableStateOf(false) }
+    var activeSubjectId by rememberSaveable { mutableStateOf<String?>(null) }
 
-    BackHandler(onBack = onBack)
+    BackHandler {
+        if (activeSubjectId != null) activeSubjectId = null else onBack()
+    }
 
     LaunchedEffect(planId) {
         if (state.selectedPlan?.id != planId) {
@@ -108,10 +109,7 @@ fun SyllabusSubjectsScreen(
         }
     }
 
-    fun isSubjectExpanded(subjectId: String, subject: StudySubject): Boolean {
-        expandedSubjects[subjectId]?.let { return it }
-        return searchQuery.isNotBlank() && subjectMatchesQuery(subject, searchQuery)
-    }
+
 
     fun requestAddSubject(name: String) {
         if (findDuplicateSiblingName(name, rawSubjects.map { it.name })) {
@@ -162,136 +160,34 @@ fun SyllabusSubjectsScreen(
         }
     }
 
-    fun requestAddTopic(subjectId: String, chapterId: String, name: String) {
-        val chapter = rawSubjects.find { it.id == subjectId }?.chapters?.find { it.id == chapterId }
-        val siblings = chapter?.topics.orEmpty().map { it.name }
-        if (findDuplicateSiblingName(name, siblings)) {
-            dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                message = "You already have a topic called '$name'. Add it again?",
-                onConfirm = { actions.addTopic(subjectId, chapterId, name) },
-            )
-        } else {
-            actions.addTopic(subjectId, chapterId, name)
+    // A comma in the typed name is treated as a bulk add — "Analogy, Blood Relations,
+    // Coding-Decoding" adds all three in one go instead of requiring the removed
+    // separate "Add Many topics" sheet. Duplicate-name confirmation only applies to
+    // the single-topic path; a batch is added as-is (a duplicate confirm dialog per
+    // item wouldn't scale to a comma-separated list).
+    fun requestAddTopic(subjectId: String, chapterId: String, rawInput: String) {
+        val names = rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        when (names.size) {
+            0 -> Unit
+            1 -> {
+                val name = names[0]
+                val chapter = rawSubjects.find { it.id == subjectId }?.chapters?.find { it.id == chapterId }
+                val siblings = chapter?.topics.orEmpty().map { it.name }
+                if (findDuplicateSiblingName(name, siblings)) {
+                    dialogState = SyllabusDialogState.DuplicateNameConfirm(
+                        message = "You already have a topic called '$name'. Add it again?",
+                        onConfirm = { actions.addTopic(subjectId, chapterId, name) },
+                    )
+                } else {
+                    actions.addTopic(subjectId, chapterId, name)
+                }
+            }
+            else -> actions.addTopics(subjectId, chapterId, names)
         }
     }
 
     fun requestRenameTopic(topicId: String, name: String) {
         actions.updateTopic(topicId, name = name)
-    }
-
-    when (val ds = dialogState) {
-        is SyllabusDialogState.AddSubject -> {
-            TextInputDialog("Add Subject", "Subject name", onDismiss = { dialogState = SyllabusDialogState.Closed }) {
-                requestAddSubject(it)
-                dialogState = SyllabusDialogState.Closed
-            }
-        }
-        is SyllabusDialogState.RenameSubject -> {
-            TextInputDialog("Rename Subject", ds.subject.name, onDismiss = { dialogState = SyllabusDialogState.Closed }) {
-                requestRenameSubject(ds.subject.id, it)
-                dialogState = SyllabusDialogState.Closed
-            }
-        }
-        is SyllabusDialogState.DeleteSubject -> {
-            val rawSubject = rawSubjects.find { it.id == ds.subject.id }
-            val impact = rawSubject?.deleteImpact()
-            val body = if (impact != null) {
-                "This will remove ${impact.chapterCount} chapters and ${impact.topicCount} topics. " +
-                    "${impact.scheduledTopicCount} of them already have a date set. " +
-                    "You can undo this from the message that appears after."
-            } else {
-                "This will delete ${ds.subject.name}. You can undo this from the message that appears after."
-            }
-            ConfirmActionDialog("Delete this subject?", body, { dialogState = SyllabusDialogState.Closed }) {
-                actions.deleteSubject(ds.subject.id)
-                dialogState = SyllabusDialogState.Closed
-            }
-        }
-        is SyllabusDialogState.AddChapter -> {
-            TextInputDialog("Add Chapter", "Chapter name", onDismiss = { dialogState = SyllabusDialogState.Closed }) {
-                requestAddChapter(ds.subject.id, it)
-                dialogState = SyllabusDialogState.Closed
-            }
-        }
-        is SyllabusDialogState.RenameChapter -> {
-            TextInputDialog("Rename Chapter", ds.chapter.name, onDismiss = { dialogState = SyllabusDialogState.Closed }) {
-                requestRenameChapter(ds.subjectId, ds.chapter.id, it)
-                dialogState = SyllabusDialogState.Closed
-            }
-        }
-        is SyllabusDialogState.DeleteChapter -> {
-            val impact = ds.chapter.deleteImpact()
-            val body = "This will remove ${impact.topicCount} topics. ${impact.scheduledTopicCount} of them already have a date set. " +
-                "You can undo this from the message that appears after."
-            ConfirmActionDialog("Delete this chapter?", body, { dialogState = SyllabusDialogState.Closed }) {
-                actions.deleteChapter(ds.subjectId, ds.chapter.id)
-                dialogState = SyllabusDialogState.Closed
-            }
-        }
-        is SyllabusDialogState.AddTopicTo -> {
-            TextInputDialog("Add Topic", "Topic name", onDismiss = { dialogState = SyllabusDialogState.Closed }) {
-                requestAddTopic(ds.subjectId, ds.chapterId, it)
-                dialogState = SyllabusDialogState.Closed
-            }
-        }
-        is SyllabusDialogState.BulkAddTo -> {
-            BulkAddSheet(Pair(ds.subject, ds.chapter), state, actions, onDismiss = { dialogState = SyllabusDialogState.Closed })
-        }
-        is SyllabusDialogState.RenameTopic -> {
-            TextInputDialog("Rename Topic", ds.topic.name, onDismiss = { dialogState = SyllabusDialogState.Closed }) {
-                requestRenameTopic(ds.topic.id, it)
-                dialogState = SyllabusDialogState.Closed
-            }
-        }
-        is SyllabusDialogState.DeleteTopic -> {
-            ConfirmActionDialog(
-                "Delete this topic?",
-                "This will remove '${ds.topic.name}'. You can undo this from the message that appears after.",
-                { dialogState = SyllabusDialogState.Closed },
-            ) {
-                actions.deleteTopic(ds.topic.id)
-                dialogState = SyllabusDialogState.Closed
-            }
-        }
-        is SyllabusDialogState.DuplicateNameConfirm -> {
-            AlertDialog(
-                onDismissRequest = { dialogState = SyllabusDialogState.Closed },
-                title = { Text("Name already used") },
-                text = { Text(ds.message) },
-                confirmButton = {
-                    TextButton(onClick = { ds.onConfirm(); dialogState = SyllabusDialogState.Closed }) {
-                        Text("Add Anyway")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { dialogState = SyllabusDialogState.Closed }) { Text("Cancel") }
-                },
-            )
-        }
-        SyllabusDialogState.Closed -> {}
-    }
-
-    selectedTopicRef?.let { ref ->
-        PlannerTopicDetailSheet(
-            ref = ref,
-            openNonce = detailNonce,
-            actions = actions,
-            onDismiss = { selectedTopicRef = null },
-        )
-    }
-
-    if (showBuildModeSheet) {
-        PlannerBuildModeSheet(
-            onDismiss = { showBuildModeSheet = false },
-            onBalanced = {
-                showBuildModeSheet = false
-                actions.autoDistribute(lockExisting = true, strategy = "interleaved")
-            },
-            onInOrder = {
-                showBuildModeSheet = false
-                actions.autoDistribute(lockExisting = true, strategy = "sequential")
-            },
-        )
     }
 
     val totalTopics = localSubjects.sumOf { subject -> subject.chapters.sumOf { it.topics.size } }
@@ -389,9 +285,97 @@ fun SyllabusSubjectsScreen(
     }
 
     CompositionLocalProvider(LocalDensity provides clampedDensity) {
+        androidx.compose.animation.AnimatedContent(
+            targetState = activeSubjectId,
+            label = "drill_down",
+            transitionSpec = {
+                (androidx.compose.animation.slideInHorizontally { it } + androidx.compose.animation.fadeIn()).togetherWith(
+                    androidx.compose.animation.slideOutHorizontally { -it } + androidx.compose.animation.fadeOut()
+                )
+            }
+        ) { currentSubjectId ->
+            if (currentSubjectId != null) {
+                val subject = localSubjects.find { it.id == currentSubjectId }
+                if (subject == null) {
+                    activeSubjectId = null
+                    return@AnimatedContent
+                }
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(isDarkTheme),
+                    contentWindowInsets = WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
+                    ),
+                    topBar = {
+                        @OptIn(ExperimentalMaterial3Api::class)
+                        androidx.compose.material3.TopAppBar(
+                            title = { Text(subject.name, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                            navigationIcon = {
+                                IconButton(onClick = { activeSubjectId = null }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                }
+                            },
+                            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                            )
+                        )
+                    },
+                ) { padding ->
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        item {
+                            SyllabusAddButton(
+                                label = "Add Chapter",
+                                onClick = {
+                                    subjects.firstOrNull { it.id == subject.id }?.let {
+                                        dialogState = SyllabusDialogState.AddChapter(it)
+                                    }
+                                },
+                            )
+                        }
+                        if (subject.chapters.isEmpty()) {
+                            item {
+                                Text(
+                                    text = "No chapters yet. Tap Add Chapter to add one.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(24.dp),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                )
+                            }
+                        } else {
+                            items(subject.chapters, key = { it.id }) { chapter ->
+                                SyllabusChapterAccordionRow(
+                                    chapter = chapter,
+                                    onAddTopic = { name -> requestAddTopic(subject.id, chapter.id, name) },
+                                    onRename = { dialogState = SyllabusDialogState.RenameChapter(subject.id, chapter) },
+                                    onDelete = { dialogState = SyllabusDialogState.DeleteChapter(subject.id, chapter) },
+                                    // Renaming/deleting/scheduling a topic are all reachable
+                                    // from its overflow menu — there's no separate detail
+                                    // sheet to open on tap (that sheet was removed).
+                                    onTopicClick = {},
+                                    onRenameTopic = { topic -> dialogState = SyllabusDialogState.RenameTopic(topic) },
+                                    onDeleteTopic = { topic -> dialogState = SyllabusDialogState.DeleteTopic(topic) },
+                                    onAssignToday = { topic -> actions.updateTopic(topic.id, plannedDate = todayKey(), pinned = true) },
+                                    canReorder = canReorderSyllabus,
+                                    onMoveChapterUp = { moveChapter(subject.id, chapter.id, -1) },
+                                    onMoveChapterDown = { moveChapter(subject.id, chapter.id, 1) },
+                                    onMoveTopicUp = { topic -> moveTopic(chapter.id, topic.id, -1) },
+                                    onMoveTopicDown = { topic -> moveTopic(chapter.id, topic.id, 1) },
+                                    onDragEnd = { saveChapterOrder(subject.id) },
+                                    onTopicDragEnd = { saveTopicOrder(chapter.id) },
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(isSystemInDarkTheme()),
+            containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(isDarkTheme),
             contentWindowInsets = WindowInsets.safeDrawing.only(
                 WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
             ),
@@ -401,15 +385,6 @@ fun SyllabusSubjectsScreen(
                         selected = PlannerSection.SYLLABUS,
                         onSelect = onPlannerSectionSelect,
                     )
-                }
-            },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { dialogState = SyllabusDialogState.AddSubject },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Subject")
                 }
             },
         ) { padding ->
@@ -440,7 +415,7 @@ fun SyllabusSubjectsScreen(
                                 start = 16.dp,
                                 end = 16.dp,
                                 top = 4.dp,
-                                bottom = 96.dp,
+                                bottom = 24.dp,
                             ),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
@@ -457,10 +432,9 @@ fun SyllabusSubjectsScreen(
                             }
 
                             item {
-                                SyllabusQuickActions(
-                                    onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
-                                    onBuildPlanner = { showBuildModeSheet = true },
-                                    canBuildPlanner = localSubjects.isNotEmpty(),
+                                SyllabusBuildButton(
+                                    onClick = { actions.autoDistribute(lockExisting = true, strategy = "sequential") },
+                                    enabled = localSubjects.isNotEmpty(),
                                 )
                             }
 
@@ -488,7 +462,7 @@ fun SyllabusSubjectsScreen(
 
                             item {
                                 SyllabusSectionHeader(
-                                    title = if (isTemplatePlan) "Template syllabus" else "Your syllabus",
+                                    title = if (isTemplatePlan) "Syllabus" else "Your syllabus",
                                     subtitle = if (isTemplatePlan) null else "$totalChapters chapters • $totalTopics topics",
                                 )
                             }
@@ -509,13 +483,16 @@ fun SyllabusSubjectsScreen(
                                     )
                                 }
                             } else {
+                                item {
+                                    SyllabusAddButton(
+                                        label = "Add Subject",
+                                        onClick = { dialogState = SyllabusDialogState.AddSubject },
+                                    )
+                                }
                                 items(filteredSubjects, key = { it.id }) { subject ->
                                     SyllabusSubjectAccordionCard(
                                         subject = subject,
-                                        isExpanded = isSubjectExpanded(subject.id, subject),
-                                        onToggleExpand = {
-                                            expandedSubjects[subject.id] = !isSubjectExpanded(subject.id, subject)
-                                        },
+                                        onClick = { activeSubjectId = subject.id },
                                         onAddChapter = {
                                             subjects.firstOrNull { it.id == subject.id }?.let { dialogState = SyllabusDialogState.AddChapter(it) }
                                         },
@@ -525,27 +502,10 @@ fun SyllabusSubjectsScreen(
                                         onDelete = {
                                             subjects.firstOrNull { it.id == subject.id }?.let { dialogState = SyllabusDialogState.DeleteSubject(it) }
                                         },
-                                        onAddTopic = { chapter -> dialogState = SyllabusDialogState.AddTopicTo(subject.id, chapter.id) },
-                                        onBulkAdd = { chapter -> dialogState = SyllabusDialogState.BulkAddTo(subject, chapter) },
-                                        onRenameChapter = { chapter -> dialogState = SyllabusDialogState.RenameChapter(subject.id, chapter) },
-                                        onDeleteChapter = { chapter -> dialogState = SyllabusDialogState.DeleteChapter(subject.id, chapter) },
-                                        onTopicClick = { chapter, topic ->
-                                            selectedTopicRef = TopicRef(subject, chapter, topic)
-                                            detailNonce++
-                                        },
-                                        onRenameTopic = { _, topic -> dialogState = SyllabusDialogState.RenameTopic(topic) },
-                                        onDeleteTopic = { _, topic -> dialogState = SyllabusDialogState.DeleteTopic(topic) },
-                                        onAssignToday = { topic -> actions.updateTopic(topic.id, plannedDate = todayKey(), pinned = true) },
                                         canReorder = canReorderSyllabus,
                                         onMoveSubjectUp = { moveSubject(subject.id, -1) },
                                         onMoveSubjectDown = { moveSubject(subject.id, 1) },
-                                        onMoveChapterUp = { chapter -> moveChapter(subject.id, chapter.id, -1) },
-                                        onMoveChapterDown = { chapter -> moveChapter(subject.id, chapter.id, 1) },
-                                        onMoveTopicUp = { chapter, topic -> moveTopic(chapter.id, topic.id, -1) },
-                                        onMoveTopicDown = { chapter, topic -> moveTopic(chapter.id, topic.id, 1) },
                                         onDragEnd = { saveSubjectOrder() },
-                                        onChapterDragEnd = { chapter -> saveChapterOrder(subject.id) },
-                                        onTopicDragEnd = { chapter, topic -> saveTopicOrder(chapter.id) },
                                     )
                                 }
                             }
@@ -556,6 +516,123 @@ fun SyllabusSubjectsScreen(
                 }
             }
         }
+            }
+        }
+    }
+
+    // Rendered after the Scaffold (which owns the ChapterTopicsSheet bottom sheet
+    // deep in its subject list) so these dialogs compose — and therefore attach
+    // their window — last. Two floating Compose surfaces stack in window-attach
+    // order, not source position within the tree; putting these dialogs first used
+    // to mean the bottom sheet's window attached afterward and painted on top of
+    // the "Add Topic" dialog, hiding it. Composing them last here fixes that for
+    // every dialog, not just AddTopicTo.
+    when (val ds = dialogState) {
+        is SyllabusDialogState.AddSubject -> {
+            TextInputDialog(
+                "Add Subject",
+                "Subject name",
+                onDismiss = { dialogState = SyllabusDialogState.Closed },
+                emptyHint = "Please type the subject name",
+            ) {
+                requestAddSubject(it)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.RenameSubject -> {
+            TextInputDialog(
+                "Rename Subject",
+                ds.subject.name,
+                onDismiss = { dialogState = SyllabusDialogState.Closed },
+                emptyHint = "Please type the subject name",
+            ) {
+                requestRenameSubject(ds.subject.id, it)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.DeleteSubject -> {
+            val rawSubject = rawSubjects.find { it.id == ds.subject.id }
+            val impact = rawSubject?.deleteImpact()
+            val body = if (impact != null) {
+                "This will remove ${impact.chapterCount} chapters and ${impact.topicCount} topics. " +
+                    "${impact.scheduledTopicCount} of them already have a date set. " +
+                    "You can undo this from the message that appears after."
+            } else {
+                "This will delete ${ds.subject.name}. You can undo this from the message that appears after."
+            }
+            ConfirmActionDialog("Delete this subject?", body, { dialogState = SyllabusDialogState.Closed }) {
+                actions.deleteSubject(ds.subject.id)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.AddChapter -> {
+            TextInputDialog(
+                "Add Chapter",
+                "Chapter name",
+                onDismiss = { dialogState = SyllabusDialogState.Closed },
+                emptyHint = "Please type the chapter name",
+            ) {
+                requestAddChapter(ds.subject.id, it)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.RenameChapter -> {
+            TextInputDialog(
+                "Rename Chapter",
+                ds.chapter.name,
+                onDismiss = { dialogState = SyllabusDialogState.Closed },
+                emptyHint = "Please type the chapter name",
+            ) {
+                requestRenameChapter(ds.subjectId, ds.chapter.id, it)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.DeleteChapter -> {
+            val impact = ds.chapter.deleteImpact()
+            val body = "This will remove ${impact.topicCount} topics. ${impact.scheduledTopicCount} of them already have a date set. " +
+                "You can undo this from the message that appears after."
+            ConfirmActionDialog("Delete this chapter?", body, { dialogState = SyllabusDialogState.Closed }) {
+                actions.deleteChapter(ds.subjectId, ds.chapter.id)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.RenameTopic -> {
+            TextInputDialog(
+                "Rename Topic",
+                ds.topic.name,
+                onDismiss = { dialogState = SyllabusDialogState.Closed },
+                emptyHint = "Please type the topic name",
+            ) {
+                requestRenameTopic(ds.topic.id, it)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.DeleteTopic -> {
+            ConfirmActionDialog(
+                "Delete this topic?",
+                "This will remove '${ds.topic.name}'. You can undo this from the message that appears after.",
+                { dialogState = SyllabusDialogState.Closed },
+            ) {
+                actions.deleteTopic(ds.topic.id)
+                dialogState = SyllabusDialogState.Closed
+            }
+        }
+        is SyllabusDialogState.DuplicateNameConfirm -> {
+            AlertDialog(
+                onDismissRequest = { dialogState = SyllabusDialogState.Closed },
+                title = { Text("Name already used") },
+                text = { Text(ds.message) },
+                confirmButton = {
+                    TextButton(onClick = { ds.onConfirm(); dialogState = SyllabusDialogState.Closed }) {
+                        Text("Add Anyway")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { dialogState = SyllabusDialogState.Closed }) { Text("Cancel") }
+                },
+            )
+        }
+        SyllabusDialogState.Closed -> {}
     }
 }
 
@@ -606,7 +683,7 @@ private fun SyllabusOverviewCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = listOfNotNull(examType?.takeIf { it.isNotBlank() }, if (isTemplatePlan) "Predefined template" else "Custom syllabus").joinToString(" • "),
+                        text = listOfNotNull(examType?.takeIf { it.isNotBlank() }, if (isTemplatePlan) "Syllabus" else "Custom syllabus").joinToString(" • "),
                         style = MaterialTheme.typography.bodySmall,
                         color = scheme.onSurfaceVariant,
                         maxLines = 1,
@@ -656,93 +733,60 @@ private fun SyllabusMetaPill(label: String, value: String, modifier: Modifier = 
     }
 }
 
+/** Rectangular "Add X" action pinned above a list (subjects, chapters, or topics)
+ *  instead of a floating action button — a FAB visually sits on top of the cards
+ *  underneath it, which reads as covering/obscuring content rather than being a
+ *  clearly separate action. A distinct teal fill (vs. the blue "Build re-ordered
+ *  syllabus" button) makes it unmistakably the "add" action at a glance. */
 @Composable
-private fun SyllabusQuickActions(
-    onAddSubject: () -> Unit,
-    onBuildPlanner: () -> Unit,
-    canBuildPlanner: Boolean,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        OutlinedButton(
-            onClick = onAddSubject,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 48.dp),
-            shape = RoundedCornerShape(14.dp),
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Add Subject", maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Button(
-            onClick = onBuildPlanner,
-            enabled = canBuildPlanner,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 48.dp),
-            shape = RoundedCornerShape(14.dp),
-        ) {
-            Text("Build Planner", maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PlannerBuildModeSheet(
-    onDismiss: () -> Unit,
-    onBalanced: () -> Unit,
-    onInOrder: () -> Unit,
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = "Build planner",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-            )
-            Text(
-                text = "Choose how SAFAR should place your topics on study days.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SyllabusBuildChoiceCard(
-                title = "Balanced plan",
-                body = "Mix subjects daily.",
-                onClick = onBalanced,
-            )
-            SyllabusBuildChoiceCard(
-                title = "In order plan",
-                body = "Finish topics in the same order as your syllabus.",
-                onClick = onInOrder,
-            )
-            Spacer(Modifier.height(12.dp))
-        }
-    }
-}
-
-@Composable
-private fun SyllabusBuildChoiceCard(
-    title: String,
-    body: String,
+internal fun SyllabusAddButton(
+    label: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+    Button(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = PlannerAccent.Teal,
+            contentColor = Color.White,
+        ),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-            Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Replaces the old "Add Subject" + "Build Planner" pair — the FAB already covers
+ *  adding a subject, so this single button just builds the plan in exactly the
+ *  order the syllabus is arranged on screen (the "in order" strategy). */
+@Composable
+private fun SyllabusBuildButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val buildGradient = if (enabled) {
+        Brush.horizontalGradient(colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
+    } else {
+        Brush.horizontalGradient(colors = listOf(scheme.onSurface.copy(alpha = 0.12f), scheme.onSurface.copy(alpha = 0.12f)))
+    }
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .background(buildGradient, shape = RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent,
+            contentColor = if (enabled) Color.White else scheme.onSurface.copy(alpha = 0.38f),
+        ),
+    ) {
+        Text("Build re-ordered syllabus", maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -772,7 +816,7 @@ private fun SyllabusImportTray(
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = if (isTemplatePlan) "Need to update this syllabus?" else "Import or update syllabus",
+                        text = if (isTemplatePlan) "Copy-paste in the syllabus screen" else "Import or update syllabus",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = scheme.onSurface,
@@ -867,16 +911,20 @@ private fun SyllabusEmptySubjectsCard(onAddSubject: () -> Unit) {
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(20.dp))
+            val addSubGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
             Button(
                 onClick = onAddSubject,
                 shape = RoundedCornerShape(50),
+                modifier = Modifier
+                    .background(addSubGradient, shape = RoundedCornerShape(50))
+                    .heightIn(min = 44.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = scheme.primary,
-                    contentColor = scheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    contentColor = Color.White,
                 ),
                 contentPadding = PaddingValues(horizontal = 28.dp, vertical = 12.dp),
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                 Spacer(Modifier.width(8.dp))
                 Text("Add Subject", fontWeight = FontWeight.Bold)
             }

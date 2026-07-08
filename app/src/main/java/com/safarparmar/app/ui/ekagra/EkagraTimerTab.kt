@@ -50,6 +50,7 @@ import android.view.TextureView
 import android.graphics.SurfaceTexture
 import androidx.annotation.DrawableRes
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
@@ -234,27 +235,41 @@ internal fun TimerFocusTab(
                     if (hasAllPermissions) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(scheme.surfaceContainerHigh.copy(alpha = 0.8f))
+                                .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(50.dp))
                                 .clickable { onToggleKavach(!shieldState.isEnabled) }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Shield,
                                 contentDescription = null,
-                                tint = if (shieldState.isEnabled) themeAccent else Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier.size(14.dp)
+                                tint = if (shieldState.isEnabled) themeAccent else scheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = if (shieldState.isEnabled) "Kavach enabled" else "Kavach disabled",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (shieldState.isEnabled) themeAccent else Color.White.copy(alpha = 0.8f)
+                                text = if (shieldState.isEnabled) "Kavach On" else "Kavach Off",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (shieldState.isEnabled) themeAccent else scheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            )
+                            Switch(
+                                checked = shieldState.isEnabled,
+                                onCheckedChange = { onToggleKavach(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = themeAccent,
+                                    uncheckedThumbColor = scheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    uncheckedTrackColor = scheme.surfaceContainerHigh,
+                                    uncheckedBorderColor = scheme.outlineVariant
+                                ),
+                                modifier = Modifier.scale(0.8f)
                             )
                         }
+                        Spacer(Modifier.height(16.dp))
                     }
-                    Spacer(Modifier.height(12.dp))
 
                     ModePill(selected = timerMode, accentColor = themeAccent, onSelect = onModeChange)
                     Spacer(Modifier.height(32.dp))

@@ -170,7 +170,7 @@ val studyPlannerTourSteps = listOf(
     ),
     // Step 1 (YOUR_EXAMS)
     ButterflyTourStep(
-        title   = "Plan More Exams",
+        title   = "Plan Your Exams",
         message = "Tap here to choose another exam template.",
         anchorX = 0.88f, anchorY = 0.36f,
         tooltipSide = TooltipSide.LEFT,
@@ -260,7 +260,7 @@ val studyPlannerTourSteps = listOf(
     ),
     // Step 13 (INSIGHTS)
     ButterflyTourStep(
-        title   = "Insights",
+        title   = "Progress",
         message = "See where you are lagging and what to do next.",
         anchorX = 0.5f, anchorY = 0.3f,
         tooltipSide = TooltipSide.BOTTOM,

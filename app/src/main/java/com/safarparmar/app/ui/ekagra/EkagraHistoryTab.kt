@@ -78,15 +78,19 @@ internal fun FocusHistoryTab(
     onSessionClick: (com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit = {}
 ) {
     val scheme = MaterialTheme.colorScheme
-    val allSessions = analytics.focusSessions
+    val allSessions = remember(analytics.focusSessions) {
+        analytics.focusSessions.sortedByDescending { it.endedAt ?: it.startedAt }
+    }
 
-    var selectedSubTab by remember { mutableStateOf(0) } // 0 = Ekagra history, 1 = stopwatch history
+    var selectedSubTab by remember { mutableStateOf(0) } // 0 = Ekagra History, 1 = Stopwatch History
 
     val currentTabSessions = if (selectedSubTab == 0) {
         allSessions.filterNot { it.timerMode.equals("stopwatch", ignoreCase = true) }
     } else {
         allSessions.filter { it.timerMode.equals("stopwatch", ignoreCase = true) }
     }
+
+    val tabAccentColor = if (selectedSubTab == 0) scheme.primary else scheme.secondary
 
     var dateFilter by remember { mutableStateOf<DateFilter>(DateFilter.All) }
 
@@ -122,18 +126,22 @@ internal fun FocusHistoryTab(
         TabRow(
             selectedTabIndex = selectedSubTab,
             containerColor = Color.Transparent,
-            contentColor = scheme.primary,
+            contentColor = tabAccentColor,
             modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
         ) {
             Tab(
                 selected = selectedSubTab == 0,
                 onClick = { selectedSubTab = 0 },
-                text = { Text("Ekagra history", fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+                text = { Text("Ekagra History", fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+                selectedContentColor = scheme.primary,
+                unselectedContentColor = scheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
             Tab(
                 selected = selectedSubTab == 1,
                 onClick = { selectedSubTab = 1 },
-                text = { Text("stopwatch history", fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+                text = { Text("Stopwatch History", fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+                selectedContentColor = scheme.secondary,
+                unselectedContentColor = scheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
         }
 
@@ -148,15 +156,23 @@ internal fun FocusHistoryTab(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val chipColors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = tabAccentColor.copy(alpha = 0.12f),
+                selectedLabelColor = tabAccentColor,
+                selectedLeadingIconColor = tabAccentColor,
+            )
+
             FilterChip(
                 selected = dateFilter == DateFilter.All,
                 onClick = { dateFilter = DateFilter.All },
-                label = { Text("All") }
+                label = { Text("All") },
+                colors = chipColors
             )
             FilterChip(
                 selected = dateFilter == DateFilter.Today,
                 onClick = { dateFilter = DateFilter.Today },
-                label = { Text("Today") }
+                label = { Text("Today") },
+                colors = chipColors
             )
 
             
@@ -194,7 +210,8 @@ internal fun FocusHistoryTab(
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
-                }
+                },
+                colors = chipColors
             )
         }
 
@@ -250,7 +267,7 @@ internal fun FocusHistoryTab(
 
         Column(Modifier.fillMaxWidth()) {
             Text(
-                if (selectedSubTab == 0) "Ekagra history" else "Stopwatch history",
+                if (selectedSubTab == 0) "Ekagra History" else "Stopwatch History",
                 style      = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color      = scheme.onSurface
@@ -270,7 +287,7 @@ internal fun FocusHistoryTab(
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
-                    Text(formatMinutes(tabFocusMins), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = scheme.primary)
+                    Text(formatMinutes(tabFocusMins), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = tabAccentColor)
                 }
                 Text(if (selectedSubTab == 0) "TOTAL FOCUS TIME" else "TOTAL TIME",
                     fontSize      = 11.sp,
@@ -285,12 +302,14 @@ internal fun FocusHistoryTab(
                 title      = "Sessions linked to a goal",
                 sessions   = linkedSessions,
                 emptyText  = "No linked sessions found.",
+                accentColor = tabAccentColor,
                 onSessionClick = onSessionClick,
             )
             HistorySection(
                 title      = "Sessions Not Linked",
                 sessions   = freeSessions,
                 emptyText  = "No unlinked sessions found.",
+                accentColor = tabAccentColor,
                 onSessionClick = onSessionClick,
             )
         } else {
@@ -298,6 +317,7 @@ internal fun FocusHistoryTab(
                 title      = "Just stopwatch sessions",
                 sessions   = filteredSessions,
                 emptyText  = "No stopwatch sessions found.",
+                accentColor = tabAccentColor,
                 onSessionClick = onSessionClick,
             )
         }
@@ -310,6 +330,7 @@ internal fun HistorySection(
     subtitle: String? = null,
     sessions: List<com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession>,
     emptyText: String,
+    accentColor: Color,
     onSessionClick: (com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit = {}
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -338,7 +359,7 @@ internal fun HistorySection(
                 }
             } else {
                 sessions.forEach { session ->
-                    FocusSessionRow(session, onClick = { onSessionClick(session) })
+                    FocusSessionRow(session, accentColor = accentColor, onClick = { onSessionClick(session) })
                     Spacer(Modifier.height(8.dp))
                 }
             }
@@ -349,6 +370,7 @@ internal fun HistorySection(
 @Composable
 internal fun FocusSessionRow(
     session: com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession,
+    accentColor: Color,
     onClick: () -> Unit = {}
 ) {
     val scheme    = MaterialTheme.colorScheme
@@ -403,12 +425,12 @@ internal fun FocusSessionRow(
                         fontSize = 12.sp, color = scheme.onSurfaceVariant)
                 }
             }
-            // Time — primary colour, consistent with ring and total card
+            // Time — theme shade colour, consistent with total card
             Text(
                 formatDateTime(session.endedAt ?: session.startedAt),
                 fontSize   = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color      = scheme.primary,
+                color      = accentColor,
             )
         }
     }

@@ -79,18 +79,29 @@ internal fun HistoryTab(goals: List<Goal>) {
         }
     }
 
+    val historyThemeColor = Color(0xFF5B21B6)
+
     Column(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Archive", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("Archive", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = historyThemeColor)
             Text("Review what was completed on a specific day.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = { showHistoryDatePicker = true }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
+                OutlinedButton(
+                    onClick = { showHistoryDatePicker = true },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = historyThemeColor),
+                    border = BorderStroke(1.dp, historyThemeColor.copy(alpha = 0.4f))
+                ) {
                     Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(selectedDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())), fontSize = 13.sp)
                 }
                 if (selectedDate != today) {
-                    TextButton(onClick = { selectedDate = today }) { Text("Reset", fontSize = 12.sp) }
+                    TextButton(
+                        onClick = { selectedDate = today },
+                        colors = ButtonDefaults.textButtonColors(contentColor = historyThemeColor)
+                    ) { Text("Reset", fontSize = 12.sp) }
                 }
             }
         }

@@ -159,120 +159,121 @@ fun PlanStatusCard(
                 )
                 .padding(horizontal = 20.dp, vertical = 28.dp)
         ) {
-            // Settings menu (top-right)
-            Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier.size(36.dp)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Plan options",
-                        tint = Color.White.copy(alpha = 0.7f)
-                    )
-                }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Plan settings") },
-                        leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onSettingsClick()
-                        },
-                    )
-                    if (isPlanScheduled) {
-                        DropdownMenuItem(
-                            text = { Text("Export PDF") },
-                            leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
-                            onClick = {
-                                menuExpanded = false
-                                onExportClick()
-                            },
-                        )
-                    }
-                }
-            }
-
-            // Main content row: Title | Progress Ring | Days Left
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                // Left — Plan title + subtitle
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = plan.title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (!plan.examDate.isNullOrBlank()) {
+                    // Left — Plan title + subtitle
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
-                            text = plan.examDate.orEmpty().uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White.copy(alpha = 0.55f),
-                            letterSpacing = 1.5.sp,
-                            maxLines = 1,
+                            text = plan.title,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        if (!plan.examDate.isNullOrBlank()) {
+                            Text(
+                                text = readableDate(plan.examDate).uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.55f),
+                                letterSpacing = 1.5.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.width(16.dp))
+
+                    // Right — Days left & Settings
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = plannerExamCountdownHeroNumber(examDays),
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFFFF4D6D),
+                                maxLines = 1,
+                            )
+                            Text(
+                                text = plannerExamCountdownCaption(examDays).uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.7f),
+                                letterSpacing = 0.5.sp,
+                                maxLines = 1,
+                            )
+                        }
+
+                        // Settings menu
+                        Box {
+                            IconButton(
+                                onClick = { menuExpanded = true },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Plan options",
+                                    tint = Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Plan settings") },
+                                    leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onSettingsClick()
+                                    },
+                                )
+                                if (isPlanScheduled) {
+                                    DropdownMenuItem(
+                                        text = { Text("Export PDF") },
+                                        leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                                        onClick = {
+                                            menuExpanded = false
+                                            onExportClick()
+                                        },
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
-                Spacer(Modifier.width(20.dp))
+                Spacer(Modifier.height(24.dp))
 
-                // Center — Circular progress ring
-                Box(
-                    modifier = Modifier.size(80.dp),
-                    contentAlignment = Alignment.Center
+                // Bottom row: Horizontal Progress bar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                        drawCircle(
-                            color = Color.White.copy(alpha = 0.12f),
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5.dp.toPx())
-                        )
-                    }
-                    CircularProgressIndicator(
+                    LinearProgressIndicator(
                         progress = { progress.completionPercent / 100f },
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
                         color = Color(0xFF60A5FA),
-                        strokeWidth = 5.dp,
-                        trackColor = Color.Transparent,
+                        trackColor = Color.White.copy(alpha = 0.12f),
                     )
                     Text(
                         text = "${progress.completionPercent}%",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
-                    )
-                }
-
-                Spacer(Modifier.width(16.dp))
-
-                // Right — Days left
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = plannerExamCountdownHeroNumber(examDays),
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFFFF4D6D),
-                        maxLines = 1,
-                    )
-                    Text(
-                        text = plannerExamCountdownCaption(examDays).uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.7f),
-                        letterSpacing = 0.5.sp,
-                        maxLines = 1,
                     )
                 }
             }
@@ -664,9 +665,9 @@ fun PlannerTaskRow(
     val done = ref.topic.status == TopicStatus.DONE
     val needsRevision = ref.topic.status == TopicStatus.REVISION_NEEDED
     val cardBgColor = when {
-        done -> if (isDark) Color(0xFF163B2A) else Color(0xFFECFDF5)
-        needsRevision -> if (isDark) Color(0xFF3B2F16) else Color(0xFFFFFBEB)
-        accent == PlanTaskRowAccent.Overdue -> if (isDark) Color(0xFF3B1E1E) else Color(0xFFFEF2F2)
+        done -> if (isDark) Color(0xFF102A20) else Color(0xFFECFDF5)
+        needsRevision -> if (isDark) Color(0xFF2B2015) else Color(0xFFFFFBEB)
+        accent == PlanTaskRowAccent.Overdue -> if (isDark) Color(0xFF2D181A) else Color(0xFFFEF2F2)
         else -> if (isDark) Color(0xFF1E293B) else Color.White
     }
     val animatedCardBgColor by animateColorAsState(cardBgColor, label = "planTaskBg")
@@ -739,12 +740,18 @@ fun PlannerTaskRow(
             horizontalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             // Left accent bar
+            val leftBarColor = when {
+                done -> Color(0xFF10B981) // Green
+                needsRevision -> Color(0xFFF97316) // Orange
+                accent == PlanTaskRowAccent.Overdue -> Color(0xFFEF4444) // Red
+                else -> subjectDotColor(ref.subject.color)
+            }
             Box(
                 modifier = Modifier
                     .width(4.dp)
                     .height(56.dp)
                     .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
-                    .background(subjectDotColor(ref.subject.color))
+                    .background(leftBarColor)
             )
             Spacer(Modifier.width(14.dp))
             Column(

@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,11 +28,21 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
@@ -53,12 +64,24 @@ fun PlanSettingsStep(
     error: String?,
     premiumRequired: Boolean,
     onBuildPlan: () -> Unit,
+    onOpenDeepFocusOrder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val selectedStyle = when {
         strategy == "sequential" -> "deep_focus"
         overloadMode == "strict" -> "balanced"
         else -> "mixed_bag"
+    }
+
+    val context = LocalContext.current
+    var buildAttempted by remember { mutableStateOf(false) }
+    var toastTrigger by remember { mutableIntStateOf(0) }
+    val examDateOnly = examDate.take(10)
+
+    LaunchedEffect(toastTrigger) {
+        if (toastTrigger > 0) {
+            Toast.makeText(context, "Please select exam date", Toast.LENGTH_SHORT).show()
+        }
     }
 
     Column(
@@ -68,7 +91,11 @@ fun PlanSettingsStep(
         Text("A few details", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
 
         SettingsSection(title = "When is your exam?") {
-            PlannerExamDateField(examDateIso = examDate, onExamDateChange = onExamDateChange)
+            PlannerExamDateField(
+                examDateIso = examDate,
+                onExamDateChange = onExamDateChange,
+                isError = buildAttempted && examDateOnly.isBlank(),
+            )
         }
 
         SettingsSection(title = "How many days a week do you want to study?") {
@@ -81,15 +108,18 @@ fun PlanSettingsStep(
                     icon = Icons.Default.CenterFocusStrong,
                     accent = PlannerAccent.Coral,
                     title = "Deep Focus",
-                    body = "Finish topics in syllabus order.",
+                    body = "Focus on one subject at a time.",
                     selected = selectedStyle == "deep_focus",
-                    onClick = { onStudyStyleChange("deep_focus") },
+                    onClick = {
+                        onStudyStyleChange("deep_focus")
+                        onOpenDeepFocusOrder()
+                    },
                 )
                 StudyStyleIconOption(
                     icon = Icons.Default.Shuffle,
                     accent = PlannerAccent.Teal,
                     title = "Mixed Bag",
-                    body = "Mix subjects across the week.",
+                    body = "Choose topics from two or more different subjects.",
                     selected = selectedStyle == "mixed_bag",
                     onClick = { onStudyStyleChange("mixed_bag") },
                 )
@@ -97,14 +127,13 @@ fun PlanSettingsStep(
                     icon = Icons.Default.Bolt,
                     accent = PlannerAccent.Amber,
                     title = "Balanced",
-                    body = "Keep your daily load steady.",
+                    body = "Study a little bit of all your subjects every day.",
                     selected = selectedStyle == "balanced",
                     onClick = { onStudyStyleChange("balanced") },
                 )
             }
         }
 
-        val examDateOnly = examDate.take(10)
         val studyDaysEstimate = runCatching {
             val exam = java.time.LocalDate.parse(examDateOnly)
             val today = java.time.LocalDate.now()
@@ -120,7 +149,21 @@ fun PlanSettingsStep(
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                     ) {
                         Text(
-                            "You have $topicCount topics and $studyDaysEstimate study days. We recommend $recommended topics/day to finish comfortably before your exam.",
+                            text = buildAnnotatedString {
+                                append("With ")
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("$topicCount topics")
+                                }
+                                append(" over ")
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("$studyDaysEstimate study days")
+                                }
+                                append(", we recommend studying ")
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("$recommended topics/day")
+                                }
+                                append(".")
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.padding(12.dp),
@@ -147,8 +190,14 @@ fun PlanSettingsStep(
         }
 
         Button(
-            onClick = onBuildPlan,
-            enabled = examDateOnly.isNotBlank(),
+            onClick = {
+                if (examDateOnly.isBlank()) {
+                    buildAttempted = true
+                    toastTrigger++
+                } else {
+                    onBuildPlan()
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Build my plan", fontWeight = FontWeight.Bold)

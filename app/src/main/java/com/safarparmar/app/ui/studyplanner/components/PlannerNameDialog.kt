@@ -29,6 +29,7 @@ fun TextInputDialog(
     label: String,
     onDismiss: () -> Unit,
     confirmLabel: String = "Save",
+    emptyHint: String = "Please type a name first",
     onConfirm: (String) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
@@ -48,7 +49,7 @@ fun TextInputDialog(
                     text,
                     { text = it },
                     label = { Text(label) },
-                    supportingText = { if (text.isBlank()) Text("Please type a name first") },
+                    supportingText = { if (text.isBlank()) Text(emptyHint) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

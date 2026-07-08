@@ -6,6 +6,7 @@ import android.graphics.Color as AndroidColor
 
 import androidx.compose.foundation.background
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 
 import androidx.compose.foundation.layout.heightIn
@@ -304,13 +305,20 @@ fun examUrgencyBrush(days: Long?): Brush = when {
 
 
 fun examBadgeContentColor(days: Long?): Color = when {
+    days == null -> Color(0xFF64748B) // Slate 500
+    days < 0 -> Color(0xFF94A3B8) // Slate 400
+    days < 10 -> Color(0xFFDC2626) // Red 600
+    days < 30 -> Color(0xFFD97706) // Amber 600
+    else -> Color(0xFF0284C7) // Sky 600
+}
 
-    days == null -> NavyInk
-
-    days < 0 -> NavyInk.copy(alpha = 0.85f)
-
-    else -> Color.White
-
+@Composable
+fun examBadgeBackgroundColor(days: Long?): Color = when {
+    days == null -> Color(0xFFF1F5F9) // Slate 100
+    days < 0 -> Color(0xFFF8FAFC) // Slate 50
+    days < 10 -> Color(0xFFFEF2F2) // Red 50
+    days < 30 -> Color(0xFFFFFBEB) // Amber 50
+    else -> Color(0xFFF0F9FF) // Sky 50
 }
 
 
@@ -332,14 +340,9 @@ fun ExamDaysCountdownBadge(
     Box(
 
         modifier = modifier
-
-            .widthIn(min = 52.dp, max = 160.dp)
-
-            .heightIn(min = 36.dp, max = 56.dp)
-
-            .background(examUrgencyBrush(days), shape)
-
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .background(examBadgeBackgroundColor(days), shape)
+            .border(1.dp, examBadgeContentColor(days).copy(alpha = 0.2f), shape)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
 
         contentAlignment = Alignment.Center,
 
@@ -350,10 +353,8 @@ fun ExamDaysCountdownBadge(
             text = label,
 
             color = examBadgeContentColor(days),
-
-            fontSize = 11.sp,
-
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
 
             maxLines = 2,
 

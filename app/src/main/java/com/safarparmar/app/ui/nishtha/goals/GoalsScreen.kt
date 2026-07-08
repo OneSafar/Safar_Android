@@ -11,17 +11,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -153,30 +159,22 @@ fun GoalsScreen(
                             Text("HOURS", fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
                             Spacer(Modifier.height(6.dp))
-                            Box(
-                                modifier = Modifier.size(width = 90.dp, height = 72.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                                    .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("%02d".format(studyHours), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            }
+                            TimeDigitField(
+                                value = studyHours,
+                                onValueChange = { studyHours = it },
+                                maxValue = 99,
+                            )
                         }
                         Text(":", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 20.dp))
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("MINUTES", fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
                             Spacer(Modifier.height(6.dp))
-                            Box(
-                                modifier = Modifier.size(width = 90.dp, height = 72.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                                    .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("%02d".format(studyMinutes), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            }
+                            TimeDigitField(
+                                value = studyMinutes,
+                                onValueChange = { studyMinutes = it },
+                                maxValue = 59,
+                            )
                         }
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -451,6 +449,8 @@ fun GoalsScreen(
                 OutlinedButton(
                     onClick = { showStatusSheet = true },
                     shape = ButtonDefaults.outlinedShape,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E3A8A)),
+                    border = BorderStroke(1.dp, Color(0xFF1E3A8A).copy(alpha = 0.4f)),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     modifier = Modifier.heightIn(min = 44.dp)
                 ) {
@@ -461,6 +461,8 @@ fun GoalsScreen(
                 OutlinedButton(
                     onClick = { onNavigate(Routes.nishthaAnalytics("goals")) },
                     shape = ButtonDefaults.outlinedShape,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF065F46)),
+                    border = BorderStroke(1.dp, Color(0xFF065F46).copy(alpha = 0.4f)),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     modifier = Modifier.heightIn(min = 44.dp)
                 ) {
@@ -471,6 +473,7 @@ fun GoalsScreen(
                 Button(
                     onClick = { showAddSheet = true },
                     shape = ButtonDefaults.shape,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A), contentColor = Color.White),
                     modifier = Modifier.heightIn(min = 44.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                 ) {
@@ -480,8 +483,31 @@ fun GoalsScreen(
                 }
             }
         }
-        TabRow(selectedTabIndex = selectedTab, containerColor = MaterialTheme.colorScheme.surface) {
-            tabs.forEachIndexed { i, title -> Tab(selected = selectedTab == i, onClick = { selectedTab = i }, text = { Text(title, fontSize = 13.sp) }) }
+        val tabSelectedColor = if (selectedTab == 0) Color(0xFF065F46) else Color(0xFF5B21B6)
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = MaterialTheme.colorScheme.surface,
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                    color = tabSelectedColor
+                )
+            }
+        ) {
+            tabs.forEachIndexed { i, title ->
+                Tab(
+                    selected = selectedTab == i,
+                    onClick = { selectedTab = i },
+                    text = {
+                        Text(
+                            title,
+                            fontSize = 13.sp,
+                            color = if (selectedTab == i) tabSelectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (selectedTab == i) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                )
+            }
         }
         when (selectedTab) {
             0 -> GoalsTab(
@@ -517,5 +543,41 @@ fun GoalsScreen(
             )
             1 -> HistoryTab(uiState.goals)
         }
+    }
+}
+
+/** A tappable, typeable hours/minutes digit box for the "How long did you study?"
+ *  dialog — previously a plain [Text] with no input handling at all, so the quick-add
+ *  chips were the only way to set a value. */
+@Composable
+private fun TimeDigitField(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    maxValue: Int,
+) {
+    Box(
+        modifier = Modifier.size(width = 90.dp, height = 72.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+            .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicTextField(
+            value = "%02d".format(value),
+            onValueChange = { raw ->
+                val digits = raw.filter(Char::isDigit).take(2)
+                onValueChange((digits.toIntOrNull() ?: 0).coerceIn(0, maxValue))
+            },
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = TextStyle(
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+            ),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        )
     }
 }

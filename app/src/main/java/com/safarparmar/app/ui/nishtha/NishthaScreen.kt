@@ -1,6 +1,8 @@
 package com.safarparmar.app.ui.nishtha
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
@@ -17,7 +19,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safarparmar.app.R
 import com.safarparmar.app.ui.butterfly.ButterflyTourState
-import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.analytics.NishthaAnalyticsScreen
@@ -35,6 +36,7 @@ enum class NishthaTab(val labelRes: Int, val icon: ImageVector) {
     ANALYTICS(R.string.nishtha_tab_analytics, Icons.Default.BarChart),
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun NishthaScreen(
     currentRoute: String = Routes.NISHTHA,
@@ -47,11 +49,7 @@ fun NishthaScreen(
     viewModel: NishthaViewModel = hiltViewModel(),
 ) {
     val initialNishthaTab = NishthaTab.entries.getOrElse(initialTab) { NishthaTab.CHECK_IN }
-    val tabBackStack = rememberFeatureTabBackStack(
-        initialTab = initialNishthaTab,
-        rootTab = NishthaTab.CHECK_IN,
-    )
-    val selectedTab = tabBackStack.currentTab
+    var selectedTab by remember { mutableStateOf(initialNishthaTab) }
     var journalOpenCount by remember { mutableStateOf(0) }
     var tourState by remember { mutableStateOf<ButterflyTourState?>(null) }
     var analyticsSection by remember { mutableStateOf(analyticsInitialSection) }
@@ -63,30 +61,30 @@ fun NishthaScreen(
                 // Intercept analytics navigation — switch the tab in-place instead of
                 // pushing a new nav entry (prevents back-stack pollution)
                 analyticsSection = android.net.Uri.decode(route.substringAfter("section=", "overview"))
-                tabBackStack.select(NishthaTab.ANALYTICS)
+                selectedTab = NishthaTab.ANALYTICS
             }
             routeBase == Routes.NISHTHA && tabArg != null -> {
                 // Handle other tab index navigations (from deep links / notifications)
                 val target = NishthaTab.entries.getOrElse(tabArg) { NishthaTab.CHECK_IN }
-                tabBackStack.select(target)
+                selectedTab = target
             }
             else -> onNavigate(route)
         }
     }
 
-    BackHandler(enabled = tabBackStack.hasHistory) {
-        tabBackStack.goBack()
+    BackHandler(enabled = selectedTab != NishthaTab.CHECK_IN) {
+        selectedTab = NishthaTab.CHECK_IN
     }
 
     LaunchedEffect(tourState?.isVisible, tourState?.currentStepIndex) {
         val state = tourState ?: return@LaunchedEffect
         if (!state.isVisible) return@LaunchedEffect
         when (state.currentStepIndex) {
-            0, 1 -> tabBackStack.select(NishthaTab.CHECK_IN)
-            2 -> tabBackStack.select(NishthaTab.JOURNAL)
-            3 -> tabBackStack.select(NishthaTab.GOALS)
-            4 -> tabBackStack.select(NishthaTab.STREAKS)
-            5 -> tabBackStack.select(NishthaTab.ANALYTICS)
+            0, 1 -> selectedTab = NishthaTab.CHECK_IN
+            2 -> selectedTab = NishthaTab.JOURNAL
+            3 -> selectedTab = NishthaTab.GOALS
+            4 -> selectedTab = NishthaTab.STREAKS
+            5 -> selectedTab = NishthaTab.ANALYTICS
         }
     }
 
@@ -121,7 +119,7 @@ fun NishthaScreen(
                                 selected = selectedTab == tab,
                                 onClick = {
                                     if (tab == NishthaTab.JOURNAL) journalOpenCount++
-                                    tabBackStack.select(tab)
+                                    selectedTab = tab
                                 },
                                 icon = { Icon(tab.icon, contentDescription = stringResource(tab.labelRes)) },
                                 label = {
@@ -151,12 +149,21 @@ fun NishthaScreen(
                             bottom = innerPadding.calculateBottomPadding(),
                         )
                 ) {
-                    when (selectedTab) {
-                        NishthaTab.CHECK_IN  -> CheckInScreen()
-                        NishthaTab.JOURNAL   -> JournalScreen(openSheetOnLoad = journalOpenCount > 0)
-                        NishthaTab.GOALS     -> GoalsScreen(onNavigate = nishthaNavigate)
-                        NishthaTab.STREAKS   -> StreaksScreen()
-                        NishthaTab.ANALYTICS -> NishthaAnalyticsScreen(onNavigate = nishthaNavigate, initialSection = analyticsSection)
+                    SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
+                        AnimatedContent(
+                            targetState = selectedTab,
+                            transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
+                            label = "NishthaTabTransition",
+                            modifier = Modifier.fillMaxSize(),
+                        ) { targetTab ->
+                            when (targetTab) {
+                                NishthaTab.CHECK_IN  -> CheckInScreen()
+                                NishthaTab.JOURNAL   -> JournalScreen(openSheetOnLoad = journalOpenCount > 0)
+                                NishthaTab.GOALS     -> GoalsScreen(onNavigate = nishthaNavigate)
+                                NishthaTab.STREAKS   -> StreaksScreen()
+                                NishthaTab.ANALYTICS -> NishthaAnalyticsScreen(onNavigate = nishthaNavigate, initialSection = analyticsSection)
+                            }
+                        }
                     }
                 }
             }

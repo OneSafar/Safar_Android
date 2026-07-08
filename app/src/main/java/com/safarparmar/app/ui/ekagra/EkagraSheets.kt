@@ -144,10 +144,14 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
                                                     .alpha(0.35f)
                                             )
                                         } else {
+                                            // Same accent color that drives the entire screen's
+                                            // dynamic color scheme once this theme is selected
+                                            // (see `themeColorScheme` in EkagraScreen.kt) — the
+                                            // swatch is never a color the user won't actually see.
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxSize()
-                                                    .background(theme.bg)
+                                                    .background(theme.accent)
                                                     .alpha(0.25f)
                                             )
                                         }

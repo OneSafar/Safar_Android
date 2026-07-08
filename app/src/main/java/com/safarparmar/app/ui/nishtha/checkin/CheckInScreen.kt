@@ -54,6 +54,7 @@ fun SlimSlider(
     modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
     activeColor: Color = MaterialTheme.colorScheme.primary,
+    activeBrush: Brush? = null,
     inactiveColor: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
 ) {
     val density = LocalDensity.current
@@ -100,7 +101,10 @@ fun SlimSlider(
                     .height(trackHeightDp)
                     .align(Alignment.CenterStart)
                     .clip(RoundedCornerShape(1.dp))
-                    .background(activeColor)
+                    .let { 
+                        if (activeBrush != null) it.background(activeBrush) 
+                        else it.background(activeColor) 
+                    }
             )
         }
         // Thumb — small circular notch
@@ -229,6 +233,15 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                         Text(stringResource(R.string.checkin_intensity), style = MaterialTheme.typography.titleSmall)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.checkin_low), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            
+                            val defaultPrimary = MaterialTheme.colorScheme.primary
+                            val baseColor = selectedMood?.color ?: defaultPrimary
+                            val startColor = baseColor.copy(alpha = 0.3f)
+                            val sliderGradient = remember(baseColor) {
+                                Brush.horizontalGradient(listOf(startColor, baseColor))
+                            }
+                            val thumbColor = androidx.compose.ui.graphics.lerp(startColor, baseColor, intensity)
+
                             // ── SlimSlider replaces the old M3 Slider ──────────────────────
                             SlimSlider(
                                 value = intensity,
@@ -236,7 +249,8 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(horizontal = 12.dp),
-                                activeColor = MaterialTheme.colorScheme.primary,
+                                activeColor = thumbColor,
+                                activeBrush = sliderGradient,
                             )
                             Text(stringResource(R.string.checkin_high), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -244,7 +258,7 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
                         Text(
                             "$intensityInt/5",
                             fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = selectedMood?.color ?: MaterialTheme.colorScheme.primary,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
                     }

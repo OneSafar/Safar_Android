@@ -288,12 +288,37 @@ data class PlanPreviewRequest(
     val title: String? = null,
     val templateId: String? = null,
     val excludeTopicKeys: List<List<Int>>? = null,
+    /** New chapters the user appended to a template subject (drill-down "+" on the
+     *  chapters screen), each carrying its own topics — merged server-side before
+     *  [excludeTopicKeys] filtering runs. */
+    val extraChapters: List<TemplateExtraChapterRequest>? = null,
+    /** New topics the user appended to an existing template chapter (drill-down "+"
+     *  on the topics screen). [chapterIndex] refers to the chapter's original,
+     *  pre-addition index within the subject. */
+    val extraTopics: List<TemplateExtraTopicRequest>? = null,
+    /** "Deep Focus" drag-reorder, applied server-side after the subject/chapter tree
+     *  is materialized from whichever source was used — keyed by name, not index,
+     *  since it's captured against the tree as the user last saw it. */
+    val subjectOrder: List<String>? = null,
+    val chapterOrder: Map<String, List<String>>? = null,
     val subjects: List<ImportSyllabusSubjectRequest>? = null,
     val examDate: String? = null,
     val dailyGoal: Int? = null,
     val offDays: List<Int> = emptyList(),
     val strategy: String? = null,
     val overloadMode: String? = null,
+)
+
+data class TemplateExtraChapterRequest(
+    val subjectIndex: Int,
+    val name: String,
+    val topics: List<String>,
+)
+
+data class TemplateExtraTopicRequest(
+    val subjectIndex: Int,
+    val chapterIndex: Int,
+    val name: String,
 )
 
 data class PlanPreviewResult(

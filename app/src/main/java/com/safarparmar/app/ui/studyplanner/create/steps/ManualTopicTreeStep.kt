@@ -1,15 +1,20 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -58,6 +63,12 @@ fun ManualTopicTreeStep(
         )
 
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item {
+                TextButton(onClick = { showAddSubjectDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                    Text("Add your first subject".takeIf { subjects.isEmpty() } ?: "Add subject", fontWeight = FontWeight.Bold)
+                }
+            }
             items(subjects, key = { it.localId }) { subject ->
                 ManualSubjectCard(
                     subject = subject,
@@ -68,10 +79,19 @@ fun ManualTopicTreeStep(
                     onRemoveTopic = { chapterId, topicId -> onRemoveTopic(subject.localId, chapterId, topicId) },
                 )
             }
-            item {
-                TextButton(onClick = { showAddSubjectDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                    Text("Add your first subject".takeIf { subjects.isEmpty() } ?: "Add subject", fontWeight = FontWeight.Bold)
+            if (subjects.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(top = 80.dp),
+                        contentAlignment = Alignment.TopCenter,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.AutoStories,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f),
+                            modifier = Modifier.size(96.dp),
+                        )
+                    }
                 }
             }
         }
@@ -82,6 +102,11 @@ fun ManualTopicTreeStep(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Continue", fontWeight = FontWeight.Bold)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.padding(start = 8.dp).size(18.dp),
+            )
         }
     }
 
@@ -90,6 +115,7 @@ fun ManualTopicTreeStep(
             title = "Add subject",
             label = "Subject name",
             confirmLabel = "Add",
+            emptyHint = "Please type the subject name",
             onDismiss = { showAddSubjectDialog = false },
             onConfirm = { name ->
                 onAddSubject(name)
@@ -141,6 +167,7 @@ private fun ManualSubjectCard(
             title = "Add chapter",
             label = "Chapter name",
             confirmLabel = "Add",
+            emptyHint = "Please type the chapter name",
             onDismiss = { showAddChapterDialog = false },
             onConfirm = { name ->
                 onAddChapter(name)
@@ -154,6 +181,7 @@ private fun ManualSubjectCard(
             title = "Add topic",
             label = "Topic name",
             confirmLabel = "Add",
+            emptyHint = "Please type the topic name",
             onDismiss = { addTopicForChapterId = null },
             onConfirm = { name ->
                 onAddTopic(chapterId, name)

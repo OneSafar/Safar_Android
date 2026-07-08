@@ -45,6 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.studyplanner.create.steps.BuildingPreviewStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ChoosePathStep
+import com.safarparmar.app.ui.studyplanner.create.steps.DeepFocusOrderStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ManualTopicTreeStep
 import com.safarparmar.app.ui.studyplanner.create.steps.PasteSyllabusStep
 import com.safarparmar.app.ui.studyplanner.create.steps.PlanPreviewStep
@@ -55,10 +56,11 @@ import kotlinx.coroutines.delay
 
 private fun stepTitle(step: CreatePlanStep): String = when (step) {
     CreatePlanStep.ChoosePath -> "New study plan"
-    CreatePlanStep.TemplatePicker -> "Choose a template"
+    CreatePlanStep.TemplatePicker -> "Templates"
     CreatePlanStep.ManualTopicTree -> "Build it myself"
     CreatePlanStep.PasteSyllabus -> "Paste your syllabus"
     CreatePlanStep.PlanSettings -> "Plan settings"
+    CreatePlanStep.DeepFocusOrder -> "Order your syllabus"
     CreatePlanStep.BuildingPreview -> "Building your plan"
     CreatePlanStep.Preview -> "Review your plan"
 }
@@ -91,7 +93,9 @@ fun CreatePlanScreen(
     fun handleBack() {
         when (state.step) {
             CreatePlanStep.ChoosePath -> onBack()
-            CreatePlanStep.TemplatePicker -> if (state.selectedTemplateId != null) {
+            CreatePlanStep.TemplatePicker -> if (state.drillSubjectIndex != null) {
+                viewModel.drillBack()
+            } else if (state.selectedTemplateId != null) {
                 viewModel.clearSelectedTemplate()
             } else {
                 viewModel.goToStep(CreatePlanStep.ChoosePath)
@@ -105,6 +109,7 @@ fun CreatePlanScreen(
                     null -> CreatePlanStep.ChoosePath
                 },
             )
+            CreatePlanStep.DeepFocusOrder -> viewModel.goToStep(CreatePlanStep.PlanSettings)
             CreatePlanStep.BuildingPreview -> Unit // wait for the request to resolve
             CreatePlanStep.Preview -> {
                 viewModel.discardDraft()
@@ -164,10 +169,23 @@ fun CreatePlanScreen(
                     templateDetail = state.templateDetail,
                     loadingTemplateDetail = state.loadingTemplateDetail,
                     excludedTopicKeys = state.excludedTopicKeys,
+                    templateExtraChapters = state.templateExtraChapters,
+                    templateExtraTopics = state.templateExtraTopics,
+                    drillSubjectIndex = state.drillSubjectIndex,
+                    drillChapter = state.drillChapter,
                     canUsePremiumPlannerFeatures = canUsePremiumPlannerFeatures,
                     onUpgrade = onUpgrade,
                     onSelectTemplate = viewModel::selectTemplate,
+                    onDrillIntoSubject = viewModel::drillIntoSubject,
+                    onDrillIntoChapter = viewModel::drillIntoChapter,
+                    onDrillBack = { viewModel.drillBack() },
                     onToggleTopic = viewModel::toggleExcludedTopic,
+                    onAddChapter = viewModel::addTemplateChapter,
+                    onRemoveChapter = viewModel::removeTemplateChapter,
+                    onAddTopicToNewChapter = viewModel::addTemplateTopicToNewChapter,
+                    onRemoveTopicFromNewChapter = viewModel::removeTemplateTopicFromNewChapter,
+                    onAddTopic = viewModel::addTemplateTopic,
+                    onRemoveTopic = viewModel::removeTemplateTopic,
                     onContinue = { viewModel.goToStep(CreatePlanStep.PlanSettings) },
                     modifier = Modifier.padding(padding),
                 )
@@ -210,6 +228,13 @@ fun CreatePlanScreen(
                     error = state.previewError,
                     premiumRequired = state.premiumRequired,
                     onBuildPlan = viewModel::buildPreview,
+                    onOpenDeepFocusOrder = viewModel::openDeepFocusOrder,
+                    modifier = Modifier.padding(padding),
+                )
+                CreatePlanStep.DeepFocusOrder -> DeepFocusOrderStep(
+                    outline = viewModel.deepFocusOutline(),
+                    onMoveSubject = viewModel::moveDeepFocusSubject,
+                    onMoveChapter = viewModel::moveDeepFocusChapter,
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.BuildingPreview -> BuildingPreviewStep(modifier = Modifier.padding(padding))

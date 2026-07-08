@@ -140,7 +140,7 @@ internal fun Goal.progressLabel(): String = when (unitType) {
 internal fun statusBadgeBg(status: String): Color = when (status) {
     "missed", "expired", "cancelled" -> MaterialTheme.colorScheme.error.copy(0.12f)
     "in_progress", "partial" -> Color(0xFFFFB300).copy(alpha = 0.14f)
-    "completed" -> MaterialTheme.colorScheme.primary.copy(0.12f)
+    "completed" -> Color(0xFF065F46).copy(alpha = 0.12f)
     else -> MaterialTheme.colorScheme.surfaceVariant
 }
 
@@ -148,6 +148,6 @@ internal fun statusBadgeBg(status: String): Color = when (status) {
 internal fun statusBadgeFg(status: String): Color = when (status) {
     "missed", "expired", "cancelled" -> MaterialTheme.colorScheme.error
     "in_progress", "partial" -> Color(0xFFB26A00)
-    "completed" -> MaterialTheme.colorScheme.primary
+    "completed" -> Color(0xFF065F46)
     else -> MaterialTheme.colorScheme.onSurfaceVariant
 }

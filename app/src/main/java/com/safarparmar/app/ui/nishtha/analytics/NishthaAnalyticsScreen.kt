@@ -160,10 +160,10 @@ fun NishthaAnalyticsScreen(
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            AnalyticsSectionChip("Overview", selectedSection == "overview") { selectedSection = "overview" }
-            AnalyticsSectionChip("Goals", selectedSection == "goals") { selectedSection = "goals" }
-            AnalyticsSectionChip("Ekagra", selectedSection == "ekagra") { selectedSection = "ekagra" }
-            AnalyticsSectionChip("Monthly Review", selectedSection == "monthly") { selectedSection = "monthly" }
+            AnalyticsSectionChip("Overview", selectedSection == "overview", Color(0xFF1E3A8A)) { selectedSection = "overview" }
+            AnalyticsSectionChip("Goals", selectedSection == "goals", Color(0xFF065F46)) { selectedSection = "goals" }
+            AnalyticsSectionChip("Ekagra", selectedSection == "ekagra", Color(0xFF9A3412)) { selectedSection = "ekagra" }
+            AnalyticsSectionChip("Monthly Review", selectedSection == "monthly", Color(0xFF5B21B6)) { selectedSection = "monthly" }
         }
 
         Box(Modifier.fillMaxSize()) {
@@ -193,11 +193,11 @@ fun NishthaAnalyticsScreen(
 }
 
 @Composable
-private fun AnalyticsSectionChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun AnalyticsSectionChip(label: String, selected: Boolean, selectedColor: Color, onClick: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(12.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+            .background(if (selected) selectedColor else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (selected) selectedColor.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
@@ -239,7 +239,7 @@ private fun MonthlyReviewSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Color(0xFF5B21B6), modifier = Modifier.size(20.dp))
                 Text(
                     selectedMonthLabel,
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
@@ -272,7 +272,8 @@ private fun MonthlyReviewSection(
                         )
                         Button(
                             onClick = onGenerate,
-                            shape = ButtonDefaults.shape
+                            shape = ButtonDefaults.shape,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5B21B6), contentColor = Color.White)
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
@@ -288,9 +289,9 @@ private fun MonthlyReviewSection(
 
 @Composable
 private fun ReportContent(report: MonthlyReport, achievements: List<com.safarparmar.app.domain.model.Achievement> = emptyList(), onNavigate: (String) -> Unit = {}) {
-    ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, MaterialTheme.colorScheme.secondary)
-    ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, MaterialTheme.colorScheme.tertiary)
-    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.totalFocusMinutes}m/day", report.focusMessage, MaterialTheme.colorScheme.primary)
+    ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, Color(0xFF5B21B6))
+    ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, Color(0xFF065F46))
+    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.totalFocusMinutes}m/day", report.focusMessage, Color(0xFF9A3412))
 
     // Skill Radar — rendered as horizontal progress bars
     if (report.radar.isNotEmpty()) {
@@ -312,7 +313,7 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safarpar
                         LinearProgressIndicator(
                             progress = { (item.score / 100.0).toFloat().coerceIn(0f, 1f) },
                             modifier = Modifier.weight(1f).height(7.dp),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = Color(0xFF5B21B6),
                             trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                         )
                         Text(
@@ -345,10 +346,10 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safarpar
                         stringResource(R.string.analytics_30_day),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = Color(0xFF5B21B6)
                     )
                 }
-                val dotColor = MaterialTheme.colorScheme.primary
+                val dotColor = Color(0xFF5B21B6)
                 val emptyColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     days.chunked(14).forEach { row ->
@@ -386,7 +387,7 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safarpar
                     Text(
                         stringResource(R.string.analytics_power_mode),
                         fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = Color(0xFF5B21B6)
                     )
                 }
             }

@@ -65,10 +65,34 @@ import java.util.*
 import kotlin.math.roundToInt
 import androidx.compose.runtime.staticCompositionLocalOf
 
+/**
+ * Named, in-app-official colors for the Ekagra visual themes — real color names
+ * (not made-up labels), each used as [VisualTheme.accent] which drives the whole
+ * screen's dynamic M3 color scheme (see `themeColorScheme` in EkagraScreen.kt) and,
+ * for gradient themes, the background gradient itself. There used to be a second,
+ * separate `bg` color per theme that only ever painted the theme picker's preview
+ * swatch and nothing else on the real screen — so the swatch could show a color
+ * the user would never actually see applied. That field is gone; the picker now
+ * reads the same named color the rest of the screen uses.
+ */
+object EkagraThemeColor {
+    val Cerulean = Color(0xFF1b8ec3)
+    val KellyGreen = Color(0xFF1cbc31)
+    val ForestGreen = Color(0xFF2e7144)
+    val Violet = Color(0xFF7c3aed)
+    val Periwinkle = Color(0xFFAAC7FF)
+    val Navy = Color(0xFF0A305F)
+    val SageGreen = Color(0xFFA9D0B3)
+    val HunterGreen = Color(0xFF143723)
+    val Peach = Color(0xFFFFB5A0)
+    val Mahogany = Color(0xFF561F0F)
+    val Thistle = Color(0xFFDDBCE0)
+    val Eggplant = Color(0xFF3F2844)
+}
+
 data class VisualTheme(
     val name: String,
     val emoji: String,
-    val bg: Color,
     val accent: Color,
     val videoUrl: String = "",
     val musicUrl: String = "",
@@ -76,26 +100,26 @@ data class VisualTheme(
 )
 
 val visualThemes = listOf(
-    VisualTheme("Serene",    "🌊", Color(0xFF0a4d68), Color(0xFF1b8ec3),
+    VisualTheme("Serene",    "🌊", EkagraThemeColor.Cerulean,
         videoUrl = "https://del1.vultrobjects.com/qms-images/Safar/theme_2.mp4",
         musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/music_1.mp3"),
-    VisualTheme("Nostalgia", "🌿", Color(0xFFf97316), Color(0xFF1cbc31),
+    VisualTheme("Nostalgia", "🌿", EkagraThemeColor.KellyGreen,
         videoUrl = "https://del1.vultrobjects.com/qms-images/Safar/theme_3.mp4",
         musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/relaxingtime-sleep-music-vol16-195422.mp3"),
-    VisualTheme("Amber",     "🍂", Color(0xFF1e3a5f), Color(0xFF2e7144),
+    VisualTheme("Amber",     "🍂", EkagraThemeColor.ForestGreen,
         videoUrl = "https://del1.vultrobjects.com/qms-images/Safar/theme_4.mp4",
         musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/WhatsApp_Audio_2026-02-18_at_10.05.04_AM.mpeg"),
-    VisualTheme("Solitude",  "🌙", Color(0xFF1c527c), Color(0xFF7c3aed),
+    VisualTheme("Solitude",  "🌙", EkagraThemeColor.Violet,
         videoUrl = "https://del1.vultrobjects.com/qms-images/Safar/theme_1.mp4",
         musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3"),
-    VisualTheme("Focus", "🚀", Color(0xFFAAC7FF), Color(0xFF0A305F),
-        gradientColors = listOf(Color(0xFFAAC7FF), Color(0xFF0A305F))),
-    VisualTheme("Habits", "🌿", Color(0xFFA9D0B3), Color(0xFF143723),
-        gradientColors = listOf(Color(0xFFA9D0B3), Color(0xFF143723))),
-    VisualTheme("Journal", "📝", Color(0xFFFFB5A0), Color(0xFF561F0F),
-        gradientColors = listOf(Color(0xFFFFB5A0), Color(0xFF561F0F))),
-    VisualTheme("Peace", "🧘", Color(0xFFDDBCE0), Color(0xFF3F2844),
-        gradientColors = listOf(Color(0xFFDDBCE0), Color(0xFF3F2844))),
+    VisualTheme("Focus", "🚀", EkagraThemeColor.Navy,
+        gradientColors = listOf(EkagraThemeColor.Periwinkle, EkagraThemeColor.Navy)),
+    VisualTheme("Habits", "🌿", EkagraThemeColor.HunterGreen,
+        gradientColors = listOf(EkagraThemeColor.SageGreen, EkagraThemeColor.HunterGreen)),
+    VisualTheme("Journal", "📝", EkagraThemeColor.Mahogany,
+        gradientColors = listOf(EkagraThemeColor.Peach, EkagraThemeColor.Mahogany)),
+    VisualTheme("Peace", "🧘", EkagraThemeColor.Eggplant,
+        gradientColors = listOf(EkagraThemeColor.Thistle, EkagraThemeColor.Eggplant)),
 )
 
 // Removed focusMusicTracks in favor of shared AudioLibrary

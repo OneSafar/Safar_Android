@@ -47,7 +47,6 @@ import com.safarparmar.app.ui.studyplanner.logic.countBulkSubjectsChapters
 import com.safarparmar.app.ui.studyplanner.logic.countBulkSubjectsTopics
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
 import com.safarparmar.app.ui.studyplanner.logic.parseBulkSubjectsFromTxt
-import com.safarparmar.app.ui.studyplanner.logic.parseBulkSyllabus
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
 import com.safarparmar.app.ui.studyplanner.templates.getLocalExamTemplate
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -496,10 +495,47 @@ class StudyPlannerViewModel @Inject constructor(
         successMessage = "Chapter deleted",
         undoLabel = "Chapter deletion",
     ) { planId -> repo.deleteChapter(planId, subjectId, chapterId) }
-    override fun addTopic(subjectId: String, chapterId: String, name: String) =
-        mutateSelected(onSuccess = { refreshPlannerAchievements() }) { planId ->
-            repo.addTopic(planId, subjectId, chapterId, TopicRequest(name))
+    override fun addTopic(subjectId: String, chapterId: String, name: String) = addTopics(subjectId, chapterId, listOf(name))
+
+    override fun addTopics(subjectId: String, chapterId: String, names: List<String>) {
+        val cleanNames = names.map { it.trim() }.filter { it.isNotBlank() }
+        if (cleanNames.isEmpty()) return
+        val planId = _uiState.value.selectedPlan?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, error = null) }
+            var latestPlan: StudyPlan? = null
+            for (name in cleanNames) {
+                when (val r = repo.addTopic(planId, subjectId, chapterId, TopicRequest(name))) {
+                    is Resource.Success -> latestPlan = r.data
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(mutating = false, error = r.message) }
+                        return@launch
+                    }
+                    is Resource.Loading -> Unit
+                }
+            }
+            val plan = latestPlan ?: return@launch
+            _uiState.update {
+                it.copy(
+                    selectedPlan = plan,
+                    mutating = false,
+                    message = if (cleanNames.size > 1) "${cleanNames.size} topics added" else "Saved",
+                )
+            }
+            refreshPlannerAchievements()
+
+            // New topics land at the end server-side — move them to the front of the
+            // chapter's topic list so the user sees what they just added without
+            // scrolling, then persist that as the chapter's real order.
+            val chapter = plan.subjects.find { it.id == subjectId }?.chapters?.find { it.id == chapterId }
+            if (chapter != null && chapter.topics.size > cleanNames.size) {
+                val ids = chapter.topics.map { it.id }
+                val newest = ids.takeLast(cleanNames.size)
+                val rest = ids.dropLast(cleanNames.size)
+                reorderSyllabus(topicIdsByChapterId = mapOf(chapterId to (newest + rest)))
+            }
         }
+    }
 
     override fun addCustomTopicToToday(name: String) {
         val cleaned = name.trim()
@@ -744,16 +780,6 @@ class StudyPlannerViewModel @Inject constructor(
             _uiState.update { it.copy(mutating = true) }
             refs.forEach { repo.updateTopic(_uiState.value.selectedPlan?.id.orEmpty(), it.topic.id, TopicPatchRequest(status = TopicStatus.TODO, plannedDate = "", notes = it.topic.notes)) }
             reloadSelected("Plan reset")
-        }
-    }
-
-    override fun bulkAdd(subjectId: String, chapterId: String, text: String) {
-        val topics = parseBulkSyllabus(text).flatMap { it.second }.filter { it.isNotBlank() }
-        viewModelScope.launch {
-            val planId = _uiState.value.selectedPlan?.id ?: return@launch
-            _uiState.update { it.copy(mutating = true) }
-            topics.forEach { repo.addTopic(planId, subjectId, chapterId, TopicRequest(it)) }
-            reloadSelected("${topics.size} topics imported")
         }
     }
 

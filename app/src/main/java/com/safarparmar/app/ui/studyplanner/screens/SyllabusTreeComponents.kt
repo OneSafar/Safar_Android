@@ -4,7 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +19,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
@@ -50,14 +47,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.zIndex
-import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -76,36 +71,20 @@ import com.safarparmar.app.ui.studyplanner.logic.readableDate
 @Composable
 internal fun SyllabusSubjectAccordionCard(
     subject: StudySubject,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
+    onClick: () -> Unit,
     onAddChapter: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
-    onAddTopic: (StudyChapter) -> Unit,
-    onBulkAdd: (StudyChapter) -> Unit,
-    onRenameChapter: (StudyChapter) -> Unit,
-    onDeleteChapter: (StudyChapter) -> Unit,
-    onTopicClick: (StudyChapter, StudyTopic) -> Unit,
-    onRenameTopic: (StudyChapter, StudyTopic) -> Unit,
-    onDeleteTopic: (StudyChapter, StudyTopic) -> Unit,
-    onAssignToday: (StudyTopic) -> Unit,
     canReorder: Boolean = false,
     onMoveSubjectUp: () -> Unit = {},
     onMoveSubjectDown: () -> Unit = {},
-    onMoveChapterUp: (StudyChapter) -> Unit = {},
-    onMoveChapterDown: (StudyChapter) -> Unit = {},
-    onMoveTopicUp: (StudyChapter, StudyTopic) -> Unit = { _, _ -> },
-    onMoveTopicDown: (StudyChapter, StudyTopic) -> Unit = { _, _ -> },
     onDragEnd: () -> Unit = {},
-    onChapterDragEnd: (StudyChapter) -> Unit = {},
-    onTopicDragEnd: (StudyChapter, StudyTopic) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
     val chapterCount = subject.chapters.size
     val topicCount = subject.chapters.sumOf { it.topics.size }
     val completion = subject.percentDone()
-    val rotation by animateFloatAsState(if (isExpanded) 180f else 0f, label = "subjectChevron")
 
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
@@ -145,7 +124,51 @@ internal fun SyllabusSubjectAccordionCard(
                 shadowElevation = elevation * density
                 shape = RoundedCornerShape(18.dp)
                 clip = false
-            },
+            }
+            .then(
+                // No dedicated drag-handle icon — press and hold anywhere on the card,
+                // then drag, to reorder. A quick tap still falls through to
+                // onClick below since long-press-drag only engages after the
+                // long-press threshold.
+                if (canReorder) {
+                    Modifier.pointerInput(Unit) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                isDragging = true
+                                dragOffsetY = 0f
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            },
+                            onDragEnd = {
+                                isDragging = false
+                                dragOffsetY = 0f
+                                onDragEnd()
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                                dragOffsetY = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                dragOffsetY += dragAmount.y
+                                val threshold = itemHeightPx * 0.75f
+                                if (threshold > 0) {
+                                    if (dragOffsetY >= threshold) {
+                                        onMoveSubjectDown()
+                                        dragOffsetY -= itemHeightPx
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    } else if (dragOffsetY <= -threshold) {
+                                        onMoveSubjectUp()
+                                        dragOffsetY += itemHeightPx
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                }
+                            },
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            ),
         shape = RoundedCornerShape(18.dp),
         color = if (isDragging) scheme.surfaceContainerLow else scheme.surfaceContainerLowest,
         border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
@@ -154,7 +177,7 @@ internal fun SyllabusSubjectAccordionCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onToggleExpand)
+                    .clickable(onClick = onClick)
                     .padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -180,44 +203,7 @@ internal fun SyllabusSubjectAccordionCard(
                     contentDescription = "Add chapter",
                     onClick = onAddChapter,
                 )
-                if (canReorder) {
-                    DragReorderHandle(
-                        onDragStart = {
-                            isDragging = true
-                            dragOffsetY = 0f
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        },
-                        onDragEnd = {
-                            isDragging = false
-                            dragOffsetY = 0f
-                            onDragEnd()
-                        },
-                        onDrag = { dragDeltaY ->
-                            dragOffsetY += dragDeltaY
-                            val threshold = itemHeightPx * 0.75f
-                            if (threshold > 0) {
-                                if (dragOffsetY >= threshold) {
-                                    onMoveSubjectDown()
-                                    dragOffsetY -= itemHeightPx
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                } else if (dragOffsetY <= -threshold) {
-                                    onMoveSubjectUp()
-                                    dragOffsetY += itemHeightPx
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                }
-                            }
-                        }
-                    )
-                }
                 SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete)
-                Icon(
-                    imageVector = Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = scheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .rotate(rotation),
-                )
             }
 
             LinearProgressIndicator(
@@ -230,46 +216,6 @@ internal fun SyllabusSubjectAccordionCard(
                 color = scheme.primary,
                 trackColor = scheme.surfaceContainerHighest,
             )
-
-            if (isExpanded) {
-                if (subject.chapters.isEmpty()) {
-                    Text(
-                        text = "No chapters yet. Tap + to add one.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
-                    )
-                } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 14.dp, end = 8.dp, top = 4.dp),
-                    ) {
-                        subject.chapters.forEach { chapter ->
-                            key(chapter.id) {
-                                SyllabusChapterAccordionRow(
-                                    chapter = chapter,
-                                    onAddTopic = { onAddTopic(chapter) },
-                                    onBulkAdd = { onBulkAdd(chapter) },
-                                    onRename = { onRenameChapter(chapter) },
-                                    onDelete = { onDeleteChapter(chapter) },
-                                    onTopicClick = { topic -> onTopicClick(chapter, topic) },
-                                    onRenameTopic = { topic -> onRenameTopic(chapter, topic) },
-                                    onDeleteTopic = { topic -> onDeleteTopic(chapter, topic) },
-                                    onAssignToday = onAssignToday,
-                                    canReorder = canReorder,
-                                    onMoveChapterUp = { onMoveChapterUp(chapter) },
-                                    onMoveChapterDown = { onMoveChapterDown(chapter) },
-                                    onMoveTopicUp = { topic -> onMoveTopicUp(chapter, topic) },
-                                    onMoveTopicDown = { topic -> onMoveTopicDown(chapter, topic) },
-                                    onDragEnd = { onChapterDragEnd(chapter) },
-                                    onTopicDragEnd = { topic -> onTopicDragEnd(chapter, topic) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -282,10 +228,9 @@ internal fun SyllabusSubjectAccordionCard(
  * container instead of nesting one inside the subject-level LazyColumn.
  */
 @Composable
-private fun SyllabusChapterAccordionRow(
+internal fun SyllabusChapterAccordionRow(
     chapter: StudyChapter,
-    onAddTopic: () -> Unit,
-    onBulkAdd: () -> Unit,
+    onAddTopic: (String) -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onTopicClick: (StudyTopic) -> Unit,
@@ -340,7 +285,51 @@ private fun SyllabusChapterAccordionRow(
                 clip = false
             }
             .clip(RoundedCornerShape(14.dp))
-            .background(if (isDragging) scheme.surfaceContainerHighest else scheme.surfaceContainerLow),
+            .background(if (isDragging) scheme.surfaceContainerHighest else scheme.surfaceContainerLow)
+            .then(
+                // No dedicated drag-handle icon — press and hold anywhere on the row,
+                // then drag, to reorder. A quick tap still opens the topics sheet
+                // below since long-press-drag only engages after the long-press
+                // threshold.
+                if (canReorder) {
+                    Modifier.pointerInput(Unit) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                isDragging = true
+                                dragOffsetY = 0f
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            },
+                            onDragEnd = {
+                                isDragging = false
+                                dragOffsetY = 0f
+                                onDragEnd()
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                                dragOffsetY = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                dragOffsetY += dragAmount.y
+                                val threshold = itemHeightPx * 0.75f
+                                if (threshold > 0) {
+                                    if (dragOffsetY >= threshold) {
+                                        onMoveChapterDown()
+                                        dragOffsetY -= itemHeightPx
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    } else if (dragOffsetY <= -threshold) {
+                                        onMoveChapterUp()
+                                        dragOffsetY += itemHeightPx
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                }
+                            },
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            ),
     ) {
         Row(
             modifier = Modifier
@@ -364,55 +353,7 @@ private fun SyllabusChapterAccordionRow(
                     color = scheme.onSurfaceVariant,
                 )
             }
-            RowActionIconButton(
-                icon = Icons.Default.Add,
-                contentDescription = "Add topic",
-                onClick = onAddTopic,
-            )
-            IconButton(onClick = onBulkAdd, modifier = Modifier.size(44.dp)) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
-                    contentDescription = "Add Many topics",
-                    tint = scheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            if (canReorder) {
-                DragReorderHandle(
-                    onDragStart = {
-                        isDragging = true
-                        dragOffsetY = 0f
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    },
-                    onDragEnd = {
-                        isDragging = false
-                        dragOffsetY = 0f
-                        onDragEnd()
-                    },
-                    onDrag = { dragDeltaY ->
-                        dragOffsetY += dragDeltaY
-                        val threshold = itemHeightPx * 0.75f
-                        if (threshold > 0) {
-                            if (dragOffsetY >= threshold) {
-                                onMoveChapterDown()
-                                dragOffsetY -= itemHeightPx
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            } else if (dragOffsetY <= -threshold) {
-                                onMoveChapterUp()
-                                dragOffsetY += itemHeightPx
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            }
-                        }
-                    }
-                )
-            }
             SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete)
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "View topics",
-                tint = scheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp),
-            )
         }
         LinearProgressIndicator(
             progress = { completion / 100f },
@@ -433,7 +374,6 @@ private fun SyllabusChapterAccordionRow(
             topics = chapter.topics,
             onDismiss = { showTopicsSheet = false },
             onAddTopic = onAddTopic,
-            onBulkAdd = onBulkAdd,
             onTopicClick = onTopicClick,
             onRenameTopic = onRenameTopic,
             onDeleteTopic = onDeleteTopic,
@@ -495,7 +435,49 @@ internal fun SyllabusTopicAccordionRow(
                 shadowElevation = elevation * density
                 shape = RoundedCornerShape(8.dp)
                 clip = false
-            },
+            }
+            .then(
+                // No dedicated drag-handle icon — press and hold anywhere on the row,
+                // then drag, to reorder. A quick tap still opens the topic detail
+                // sheet since long-press-drag only engages after the long-press
+                // threshold.
+                if (canReorder) {
+                    Modifier.pointerInput(Unit) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                isDragging = true
+                                dragOffsetY = 0f
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            },
+                            onDragEnd = {
+                                isDragging = false
+                                dragOffsetY = 0f
+                                onDragEnd()
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                                dragOffsetY = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                dragOffsetY += dragAmount.y
+                                val threshold = itemHeightPx * 0.75f
+                                if (dragOffsetY > threshold) {
+                                    onMoveDown()
+                                    dragOffsetY -= itemHeightPx
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                } else if (dragOffsetY < -threshold) {
+                                    onMoveUp()
+                                    dragOffsetY += itemHeightPx
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            },
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            ),
         color = if (isDragging) scheme.surfaceContainerHighest else Color.Transparent,
     ) {
         Row(
@@ -554,67 +536,8 @@ internal fun SyllabusTopicAccordionRow(
                     }
                 }
             }
-            if (canReorder) {
-                DragReorderHandle(
-                    onDragStart = {
-                        isDragging = true
-                        dragOffsetY = 0f
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    },
-                    onDragEnd = {
-                        isDragging = false
-                        dragOffsetY = 0f
-                        onDragEnd()
-                    },
-                    onDrag = { dragDeltaY ->
-                        dragOffsetY += dragDeltaY
-                        val threshold = itemHeightPx * 0.75f
-                        if (dragOffsetY > threshold) {
-                            onMoveDown()
-                            dragOffsetY -= itemHeightPx
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        } else if (dragOffsetY < -threshold) {
-                            onMoveUp()
-                            dragOffsetY += itemHeightPx
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        }
-                    }
-                )
-            }
             SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete)
         }
-    }
-}
-
-@Composable
-private fun DragReorderHandle(
-    onDragStart: () -> Unit,
-    onDragEnd: () -> Unit,
-    onDrag: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .size(width = 36.dp, height = 44.dp)
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { _ -> onDragStart() },
-                    onDragEnd = { onDragEnd() },
-                    onDragCancel = { onDragEnd() },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount.y)
-                    }
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Default.Reorder,
-            contentDescription = "Drag to reorder",
-            modifier = Modifier.size(22.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        )
     }
 }
 

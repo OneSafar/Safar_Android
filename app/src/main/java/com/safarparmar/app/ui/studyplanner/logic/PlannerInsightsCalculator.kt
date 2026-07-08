@@ -267,7 +267,7 @@ object PlannerInsightsCalculator {
         val dayLabels = listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
         val bestLabel = dayLabels[bestDow.coerceIn(0, 6)]
 
-        val streak = computeStreak(completedByDate, todayIso)
+        val streak = computeStreak(completedByDate, todayIso, calendar)
 
         val pastDays = calendar.keys
             .filter { it < todayIso }
@@ -292,13 +292,35 @@ object PlannerInsightsCalculator {
         )
     }
 
-    private fun computeStreak(completedByDate: Map<String, Int>, todayIso: String): Int {
+    private fun computeStreak(
+        completedByDate: Map<String, Int>,
+        todayIso: String,
+        calendar: Map<String, List<CalendarTopicItem>>
+    ): Int {
         var streak = 0
         var cursor = LocalDate.parse(todayIso)
         repeat(730) {
             val key = cursor.toString()
-            if ((completedByDate[key] ?: 0) <= 0) return streak
-            streak++
+            val completedCount = completedByDate[key] ?: 0
+            val plannedItems = calendar[key].orEmpty()
+            val plannedCount = plannedItems.size
+            val doneCount = plannedItems.count { it.status == TopicStatus.DONE }
+
+            val hasDoneAtLeastOne = completedCount > 0
+            
+            val isFullyCompleted = if (plannedCount > 0) {
+                hasDoneAtLeastOne && (doneCount == plannedCount)
+            } else {
+                hasDoneAtLeastOne
+            }
+
+            if (isFullyCompleted) {
+                streak++
+            } else {
+                if (key != todayIso) {
+                    return streak
+                }
+            }
             cursor = cursor.minusDays(1)
         }
         return streak

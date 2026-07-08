@@ -55,6 +55,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -306,7 +307,25 @@ internal fun InsightsTab(
                     subjects = insights.subjectRows,
                 )
             }
-
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "“Jo Paani se Nahayega Woh Libaaz Badelga , Jo Paseene Se Nahayega Woh Ithihaas Badlega”",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontStyle = FontStyle.Italic,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        ),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -1384,7 +1403,7 @@ internal fun InsightsRevisionStudyCardWidget(
 
     Surface(
         shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -1394,8 +1413,8 @@ internal fun InsightsRevisionStudyCardWidget(
                     modifier = Modifier
                         .size(58.dp)
                         .clip(CircleShape)
-                        .background(tint.copy(alpha = 0.12f))
-                        .border(1.dp, tint.copy(alpha = 0.28f), CircleShape),
+                        .background(tint.copy(alpha = 0.15f))
+                        .border(1.dp, tint.copy(alpha = 0.35f), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -1425,6 +1444,7 @@ internal fun InsightsRevisionStudyCardWidget(
                 }
             }
 
+            val progressBrush = Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFF10B981)))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1441,8 +1461,25 @@ internal fun InsightsRevisionStudyCardWidget(
                             .fillMaxHeight()
                             .fillMaxWidth(animatedProgress.coerceIn(0.04f, 1f))
                             .clip(CircleShape)
-                            .background(tint),
+                            .background(progressBrush),
                     )
+                }
+            }
+
+            if (total > 0) {
+                visibleRefs.forEach { ref ->
+                    RevisionTopicMiniRow(
+                        ref = ref,
+                        onMarkDone = { actions.updateTopic(ref.topic.id, status = TopicStatus.DONE) },
+                    )
+                }
+                if (total > 4) {
+                    TextButton(
+                        onClick = { showAll = !showAll },
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    ) {
+                        Text(if (showAll) "Show less" else "Show all $total topics")
+                    }
                 }
             }
 
@@ -1450,9 +1487,9 @@ internal fun InsightsRevisionStudyCardWidget(
                 InsightsInnerStat(
                     label = "Revision done",
                     value = "$done/$total",
-                    valueColor = if (done > 0) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurface,
+                    valueColor = if (done > 0) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface,
                     icon = Icons.Default.Check,
-                    iconTint = if (done > 0) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconTint = if (done > 0) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .weight(1f)
                         .clickable {
@@ -1481,59 +1518,73 @@ private fun RevisionTopicMiniRow(
             "${reminderDates.size} revision date${if (reminderDates.size == 1) "" else "s"}"
         else -> "Revision topic"
     }
+    val statusColor = if (done) Color(0xFF10B981) else Color(0xFFF59E0B)
     Surface(
-        shape = MaterialTheme.shapes.large,
-        color = if (done) Color(0xFF16A34A).copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(
-            1.dp,
-            if (done) Color(0xFF16A34A).copy(alpha = 0.28f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
-        ),
+        shape = RoundedCornerShape(12.dp),
+        color = statusColor.copy(alpha = 0.06f),
+        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.2f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .width(3.dp)
+                    .clip(RoundedCornerShape(1.5.dp))
+                    .background(statusColor)
+            )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = ref.topic.name,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${ref.subject.name} / ${ref.chapter.name}",
+                    text = "${ref.subject.name} • ${ref.chapter.name}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = listOfNotNull(scheduleLabel, nextDate?.let { "Next: ${readableDate(it)}" }).joinToString(" • "),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = statusColor,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
             if (done) {
+                Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = "Completed",
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
                 Surface(
-                    shape = CircleShape,
-                    color = Color(0xFF16A34A).copy(alpha = 0.12f),
-                    contentColor = Color(0xFF16A34A),
+                    onClick = onMarkDone,
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF59E0B).copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.3f))
                 ) {
                     Text(
-                        text = "Done",
+                        text = "Mark done",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Black,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF59E0B)
+                        ),
                     )
-                }
-            } else {
-                TextButton(onClick = onMarkDone) {
-                    Text("Mark done")
                 }
             }
         }
@@ -1570,66 +1621,118 @@ internal fun ConsistencyStreakCard(consistency: com.safarparmar.app.ui.studyplan
             .fillMaxWidth()
             .background(Brush.horizontalGradient(gradientColors), MaterialTheme.shapes.extraLarge),
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f))
-                    .border(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f), CircleShape),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(
-                    imageVector = if (consistency.studyStreak > 0) Icons.Rounded.Whatshot else Icons.Rounded.EmojiEvents,
-                    contentDescription = "Streak",
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(32.dp)
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f))
+                        .border(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (consistency.studyStreak > 0) Icons.Rounded.Whatshot else Icons.Rounded.EmojiEvents,
+                        contentDescription = "Streak",
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = if (consistency.studyStreak > 0) "${consistency.studyStreak} Day Streak!" else "Start Your Study Streak!",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    if (consistency.bestStudyWeekday.isNotEmpty() && consistency.studyStreak > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = "Best day: ${consistency.bestStudyWeekday}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+
+            WeekStreakChips(heatmap = consistency.heatmap)
+
+            if (consistency.missedDays.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.12f))
+                Text(
+                    text = "A few days had some topics left — that's okay, keep going.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.75f),
                 )
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = if (consistency.studyStreak > 0) "${consistency.studyStreak} Day Streak!" else "Start Your Study Streak!",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                )
-                Text(
-                    text = "${consistency.activeDaysLast14} active days of last 14",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f),
-                    fontWeight = FontWeight.Medium
-                )
-                if (consistency.bestStudyWeekday.isNotEmpty() && consistency.studyStreak > 0) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f),
-                            modifier = Modifier.size(12.dp)
+        }
+    }
+}
+
+/** A Mon–Sun strip of the last 7 study days — a lit dot for a day with at least one
+ *  completed topic, a hollow ring otherwise — replacing the old plain "N active days
+ *  of last 14" line with something scannable at a glance. */
+@Composable
+private fun WeekStreakChips(heatmap: List<HeatmapCell>) {
+    val days = heatmap.takeLast(7)
+    if (days.isEmpty()) return
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        days.forEach { cell ->
+            val date = runCatching { LocalDate.parse(cell.date) }.getOrNull()
+            val dayLabel = date?.dayOfWeek?.getDisplayName(TextStyle.SHORT, Locale.getDefault())?.take(1) ?: "?"
+            val active = cell.count > 0
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (active) MaterialTheme.colorScheme.tertiary
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
                         )
-                        Text(
-                            text = "Best day: ${consistency.bestStudyWeekday}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
-                            fontWeight = FontWeight.SemiBold
+                        .border(
+                            1.dp,
+                            if (active) Color.Transparent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                            CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (active) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Studied",
+                            tint = MaterialTheme.colorScheme.onTertiary,
+                            modifier = Modifier.size(14.dp),
                         )
                     }
                 }
-                if (consistency.missedDays.isNotEmpty()) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.12f))
-                    Text(
-                        text = "A few days had some topics left — that's okay, keep going.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.75f),
-                    )
-                }
+                Text(
+                    text = dayLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }
@@ -1755,7 +1858,7 @@ internal fun InsightsInnerStat(
 ) {
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = modifier,
     ) {
@@ -1927,234 +2030,7 @@ internal fun InsightsLaggingSubjectsCard(chapters: List<PlannerInsightLaggingCha
     }
 }
 
-@Composable
-internal fun NextBestActionsPanel(
-    plan: StudyPlan,
-    insights: PlannerInsights,
-    days: Int?,
-    actions: PlannerActions,
-    modifier: Modifier = Modifier
-) {
-    val overdueCount = insights.backlog.overdueTotal
-    val isBehind = insights.summary.onTrackStatus == InsightTrackStatus.BEHIND
-    val examPassed = days != null && days < 0
-    val examNotSet = plan.examDate.isNullOrBlank()
 
-    val recommendations = remember(overdueCount, isBehind, examPassed, examNotSet, plan.id) {
-        mutableListOf<StudyRecommendation>().apply {
-            if (overdueCount > 0) {
-                add(
-                    StudyRecommendation(
-                        id = "reschedule_overdue",
-                        title = "Move late topics",
-                        description = "You have $overdueCount late topic${if (overdueCount == 1) "" else "s"}. Tap below to spread them across upcoming study days.",
-                        actionLabel = "Move topics",
-                        icon = Icons.Default.CalendarMonth,
-                        iconTint = Color(0xFFEF4444),
-                        onClick = { actions.autoDistribute(lockExisting = true) }
-                    )
-                )
-            }
-            if (isBehind) {
-                add(
-                    StudyRecommendation(
-                        id = "adjust_pace",
-                        title = "Fix daily load",
-                        description = "Your plan has too much work for some days. Spread topics again to make it easier.",
-                        actionLabel = "Spread again",
-                        icon = Icons.Default.Refresh,
-                        iconTint = Color(0xFFF59E0B),
-                        onClick = { actions.autoDistribute(lockExisting = false) }
-                    )
-                )
-            }
-            if (examPassed || examNotSet) {
-                add(
-                    StudyRecommendation(
-                        id = "update_exam_date",
-                        title = "Update exam date",
-                        description = if (examPassed) "Your exam date has passed. Update it so the plan can calculate again." else "Set your exam date so the plan can calculate study days.",
-                        actionLabel = "Update date",
-                        icon = Icons.Default.Settings,
-                        iconTint = Color(0xFF3B82F6),
-                        onClick = { /* date picker dialog is opened */ }
-                    )
-                )
-            }
-        }
-    }
-
-    var showDatePicker by remember { mutableStateOf(false) }
-    if (showDatePicker) {
-        PlannerExamDateFieldDialog(
-            examDateIso = plan.examDate.orEmpty(),
-            onExamDateChange = { newDate ->
-                actions.updatePlan(
-                    UpdatePlanRequest(
-                        title = plan.title,
-                        examType = plan.examType,
-                        examDate = newDate.ifBlank { null },
-                        dailyGoal = plan.dailyGoal ?: 3,
-                        offDays = plan.offDays,
-                    )
-                )
-                showDatePicker = false
-            },
-            onDismiss = { showDatePicker = false }
-        )
-    }
-
-    if (recommendations.isEmpty()) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            modifier = modifier.fillMaxWidth(),
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF10B981).copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.CheckCircle,
-                        contentDescription = null,
-                        tint = Color(0xFF10B981),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = "Next action: Keep going",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Your planner looks fine. Keep following your daily study plan.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
-    } else {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "Next actions",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            recommendations.forEach { recommendation ->
-                RecommendationCard(
-                    recommendation = recommendation,
-                    onActionClick = {
-                        if (recommendation.id == "update_exam_date") {
-                            showDatePicker = true
-                        } else {
-                            recommendation.onClick()
-                        }
-                    }
-                )
-            }
-        }
-    }
-}
-
-internal data class StudyRecommendation(
-    val id: String,
-    val title: String,
-    val description: String,
-    val actionLabel: String,
-    val icon: ImageVector,
-    val iconTint: Color,
-    val onClick: () -> Unit
-)
-
-@Composable
-internal fun RecommendationCard(
-    recommendation: StudyRecommendation,
-    onActionClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(recommendation.iconTint.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = recommendation.icon,
-                    contentDescription = null,
-                    tint = recommendation.iconTint,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = recommendation.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = recommendation.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 16.sp
-                )
-                Spacer(Modifier.height(4.dp))
-                Button(
-                    onClick = onActionClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = recommendation.iconTint,
-                        contentColor = Color.White
-                    ),
-                    shape = ButtonDefaults.shape,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                    modifier = Modifier.heightIn(min = 36.dp)
-                ) {
-                    Text(
-                        text = recommendation.actionLabel,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -2205,13 +2081,13 @@ internal fun InsightsHeaderRedesign() {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = "Insights",
+            text = "Progress",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Your strategic readiness overview",
+            text = "See how your studying is going",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -2356,7 +2232,7 @@ internal fun InsightsMetricSquares(examDays: Int?, dailyGoal: Int) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Exam left (days)",
+                    text = "Exam days left",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

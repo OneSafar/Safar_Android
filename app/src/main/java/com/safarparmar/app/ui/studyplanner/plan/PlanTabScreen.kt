@@ -146,14 +146,7 @@ fun PlanTabScreen(
     val completedTopics = remember(refs) {
         refs.filter { it.topic.status == TopicStatus.DONE }
     }
-    val hasDate = !plan.examDate.isNullOrBlank()
     val hasTopics = refs.isNotEmpty()
-    val hasSchedule = refs.any { !it.topic.plannedDate.isNullOrBlank() } ||
-        StudyPlannerOnboardingSteps.BUILD_SCHEDULE in onboardingCompletedSteps
-    val hasReviewedCalendar = StudyPlannerOnboardingSteps.REVIEW_CALENDAR in onboardingCompletedSteps
-    val hasCompletedFirstTopic = completedTopics.isNotEmpty() ||
-        StudyPlannerOnboardingSteps.FIRST_TOPIC_DONE in onboardingCompletedSteps
-    val showSetupGuide = !(hasDate && hasTopics && hasSchedule && hasReviewedCalendar && hasCompletedFirstTopic)
     
     val progress = remember(plan.id, plan.subjects) { plan.rollup() }
 
@@ -175,9 +168,6 @@ fun PlanTabScreen(
             }
         },
     )
-
-    var isFlowModeActive by remember(plan.id) { mutableStateOf(false) }
-    var skippedFlowTopicIds by remember(plan.id, today) { mutableStateOf(emptySet<String>()) }
 
     var showSettings by remember(plan.id) { mutableStateOf(false) }
     var resetConfirm by remember { mutableStateOf(false) }
@@ -502,17 +492,6 @@ fun PlanTabScreen(
                         }
                     }
                 )
-            }
-
-            if (showSetupGuide) {
-                item(key = "setupGuide", contentType = "setupGuide") {
-                    PlanSetupBanner(
-                        plan = plan,
-                        actions = actions,
-                        completedSteps = onboardingCompletedSteps,
-                        onEditPlanDetails = { showSettings = true },
-                    )
-                }
             }
 
             // Tab Content Items
@@ -917,291 +896,17 @@ fun PlanTabScreen(
       }
 
       if (hasTopics && activeTab == StudyPlannerTab.TODAY && !todayCompleted && todayTopics.isNotEmpty()) {
-          StartStudyFlowBar(
+          DoneForTheDayBar(
               onClick = {
-                  skippedFlowTopicIds = emptySet()
-                  isFlowModeActive = true
+                  val incompleteTopics = todayTopics.filter { it.topic.status != TopicStatus.DONE }
+                  val topicIds = incompleteTopics.map { it.topic.id }
+                  if (topicIds.isNotEmpty()) {
+                      actions.clearTopicDates(topicIds)
+                  }
               },
               modifier = Modifier.align(Alignment.BottomCenter)
           )
       }
-
-        // Fullscreen Flow Mode Overlay
-        if (isFlowModeActive) {
-            val incompleteTopics = todayTopics.filter { it.topic.status != TopicStatus.DONE }
-            val availableTopics = incompleteTopics.filter { it.topic.id !in skippedFlowTopicIds }
-            val totalCount = todayTopics.size
-            val completedCount = totalCount - incompleteTopics.size
-            val activeTopic = availableTopics.firstOrNull()
-
-            // Breathing pulse animations
-            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-            val scale by infiniteTransition.animateFloat(
-                initialValue = 0.98f,
-                targetValue = 1.02f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1200, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "scale"
-            )
-            val alpha by infiniteTransition.animateFloat(
-                initialValue = 0.85f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1200, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "alpha"
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                               colors = listOf(
-                                   Color(0xFF101416),
-                                   Color(0xFF181C1E),
-                                   Color(0xFF0B0F10)
-                               )
-                           )
-                       )
-                    .clickable(enabled = true, onClick = {}) // block clicks to background
-                    .padding(24.dp)
-                    .navigationBarsPadding(),
-                contentAlignment = Alignment.Center
-            ) {
-                // Exit button at top right
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 16.dp),
-                    contentAlignment = Alignment.TopEnd
-                ) {
-                    IconButton(
-                        onClick = { isFlowModeActive = false },
-                        modifier = Modifier
-                            .background(Color.White.copy(alpha = 0.1f), CircleShape)
-                            .size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Exit Flow Mode",
-                            tint = Color.White
-                        )
-                    }
-                }
-
-                if (activeTopic != null) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(32.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        // Focus progress bar
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth(0.85f)
-                        ) {
-                            Text(
-                                text = "Topics Queue: $completedCount of $totalCount Done",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            LinearProgressIndicator(
-                                progress = { if (totalCount > 0) completedCount.toFloat() / totalCount else 0f },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(CircleShape),
-                                color = Color(0xFFA855F7),
-                                trackColor = Color.White.copy(alpha = 0.1f)
-                            )
-                        }
-
-                        Spacer(Modifier.height(16.dp))
-
-                        // Pulsing Focus Zone
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    scaleX = scale
-                                    scaleY = scale
-                                }
-                        ) {
-                            Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = Color(0xFFA855F7).copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, Color(0xFFA855F7).copy(alpha = 0.5f))
-                            ) {
-                                Text(
-                                    text = "ACTIVE FOCUS TOPIC",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Black,
-                                    color = Color(0xFFC084FC)
-                                )
-                            }
-
-                            Text(
-                                text = activeTopic.topic.name,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Black,
-                                color = Color.White,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
-
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = activeTopic.subject.name,
-                                    color = Color.White.copy(alpha = 0.6f),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = "•",
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    fontSize = 13.sp
-                                )
-                                Text(
-                                    text = activeTopic.chapter.name,
-                                    color = Color.White.copy(alpha = 0.6f),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.height(32.dp))
-
-                        // Actions
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxWidth(0.85f)
-                        ) {
-                            Button(
-                                onClick = {
-                                    actions.updateTopic(activeTopic.topic.id, status = TopicStatus.DONE)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 60.dp)
-                                    .shadow(16.dp, shape = CircleShape, ambientColor = Color(0xFFA855F7), spotColor = Color(0xFFA855F7)),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF9333EA),
-                                    contentColor = Color.White
-                                ),
-                                shape = CircleShape
-                            ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(22.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Mark as Completed", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                            OutlinedButton(
-                                onClick = {
-                                    skippedFlowTopicIds = skippedFlowTopicIds + activeTopic.topic.id
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 54.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color.White.copy(alpha = 0.9f)
-                                ),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
-                                shape = CircleShape
-                            ) {
-                                Text("Skip for now", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                        }
-                    }
-                } else if (incompleteTopics.isNotEmpty()) {
-                    // All remaining topics were skipped in this Flow session only.
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(24.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Skipped for now",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White,
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "Skipped topics stay unticked in Today's Study Plan. Start Study Flow again when you want to continue them.",
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 15.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = { isFlowModeActive = false },
-                            modifier = Modifier
-                                .fillMaxWidth(0.6f)
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF1E1B4B)),
-                            shape = CircleShape
-                        ) {
-                            Text("Back to Planner", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                } else {
-                    // Celebration screen
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(24.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "🎉",
-                            fontSize = 64.sp
-                        )
-                        Text(
-                            text = "Session Complete!",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White,
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "Outstanding! You have successfully completed all your planned tasks for today.",
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 15.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = { isFlowModeActive = false },
-                            modifier = Modifier
-                                .fillMaxWidth(0.6f)
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF1E1B4B)),
-                            shape = CircleShape
-                        ) {
-                            Text("Back to Planner", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
         if (showUnscheduledTopicsScreen) {
             UnscheduledTopicsScreen(
                 plan = plan,
@@ -1419,7 +1124,7 @@ private fun UnscheduledWarningBanner(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UnscheduledTopicsScreen(
+internal fun UnscheduledTopicsScreen(
     plan: StudyPlan,
     unscheduledTopics: List<TopicRef>,
     actions: PlannerActions,
@@ -1607,6 +1312,39 @@ private fun UnscheduledTopicsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DoneForTheDayBar(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.Transparent)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF0B1221),
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = "DONE FOR THE DAY",
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp,
+                fontSize = 16.sp
+            )
         }
     }
 }

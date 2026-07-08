@@ -53,7 +53,12 @@ interface PlannerActions {
     fun addChapter(subjectId: String, name: String)
     fun renameChapter(subjectId: String, chapterId: String, name: String)
     fun deleteChapter(subjectId: String, chapterId: String)
+    /** Adds a single topic, then moves it to the front of the chapter's topic list
+     *  so the user sees it immediately without scrolling. */
     fun addTopic(subjectId: String, chapterId: String, name: String)
+    /** Adds several topics at once (e.g. from a comma-separated "Add Topic" entry),
+     *  landing them at the front of the chapter in the order given. */
+    fun addTopics(subjectId: String, chapterId: String, names: List<String>)
     /**
      * Adds a brand-new, user-typed topic straight into Today's Study Plan. It is
      * filed under an auto-created "Extra Topics" subject/chapter and pinned to
@@ -95,7 +100,6 @@ interface PlannerActions {
     fun swapTopicDates(firstTopicId: String, secondTopicId: String)
     fun replaceTopicToday(currentTopicId: String, replacementTopicId: String, todayDate: String)
     fun resetPlan()
-    fun bulkAdd(subjectId: String, chapterId: String, text: String)
     fun importFullSyllabusFromTxt(text: String, mode: String = "merge")
     fun structureSyllabusPreview(rawText: String, language: String? = null)
     fun updateStructuredPreview(preview: com.safarparmar.app.data.remote.api.StructuredSyllabusPreview?)

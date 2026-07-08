@@ -58,12 +58,20 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
+import com.safarparmar.app.ui.theme.Blue500
+import com.safarparmar.app.ui.theme.Emerald500
+import com.safarparmar.app.ui.theme.Orange500
+import com.safarparmar.app.ui.theme.Rose500
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.TrackChanges
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -148,7 +156,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Brush
+
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.PathEffect
@@ -197,7 +205,6 @@ import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.components.PlannerCalendarStatus
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
-import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
 import com.safarparmar.app.ui.studyplanner.components.subjectHeaderBrush
 import com.safarparmar.app.ui.studyplanner.components.subjectMeterBrush
 import com.safarparmar.app.ui.studyplanner.components.topicHierarchyBrush
@@ -206,10 +213,12 @@ import com.safarparmar.app.ui.studyplanner.logic.*
 import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
+import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.plan.PlanTabScreen
+import com.safarparmar.app.ui.studyplanner.plan.UnscheduledTopicsScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -236,6 +245,20 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
     val monthSlots = remember(visibleMonth) { monthCalendarSlots(visibleMonth) }
     val weeks = remember(monthSlots) { monthSlots.chunked(7) }
     var sheetDay by remember { mutableStateOf<String?>(null) }
+    var showUnscheduledTopicsScreen by remember { mutableStateOf(false) }
+
+    if (showUnscheduledTopicsScreen) {
+        val refs = remember(plan.subjects) { plan.flattenTopics() }
+        val unscheduledTopics = remember(refs) {
+            refs.filter { it.topic.plannedDate.isNullOrBlank() && it.topic.status != TopicStatus.DONE }
+        }
+        UnscheduledTopicsScreen(
+            plan = plan,
+            unscheduledTopics = unscheduledTopics,
+            actions = actions,
+            onDismiss = { showUnscheduledTopicsScreen = false }
+        )
+    }
 
     sheetDay?.let { day ->
         SelectedDayLogSheet(
@@ -373,9 +396,59 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
 
 
                 }
+            }
+        }
+        
+        item {
+            val revisionGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF3E7C8C), Color(0xFF29638A)))
+            Button(
+                onClick = { actions.setPlanTab(StudyPlannerTab.REVISION) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+                    .background(revisionGradient, shape = RoundedCornerShape(12.dp)),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Rounded.CheckCircle, 
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("View Revision Topics", fontWeight = FontWeight.Bold)
+            }
+        }
+
+        item {
+            val unscheduledGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF991B1B), Color(0xFF7F1D1D)))
+            Button(
+                onClick = { showUnscheduledTopicsScreen = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+                    .background(unscheduledGradient, shape = RoundedCornerShape(12.dp)),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Rounded.List, 
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("View Unscheduled Topics", fontWeight = FontWeight.Bold)
+            }
         }
     }
-}
 }
 
 @Composable
@@ -410,58 +483,39 @@ private fun CalendarPlainHeader(plan: StudyPlan) {
                         letterSpacing = 0.8.sp
                     )
                 )
-                Text(
-                    text = plan.title.ifBlank { "Your Study Journey" },
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val daysLabel = when {
-                        examDays == null -> ""
-                        examDays < 0L -> "Exam passed"
-                        examDays == 0L -> "Exam today!"
-                        else -> "$examDays Days To Go"
-                    }
-                    if (daysLabel.isNotEmpty()) {
-                        Text(
-                            text = daysLabel,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = PlannerAccent.Coral
-                            )
-                        )
-                    }
-                    if (daysLabel.isNotEmpty() && examDate.isNotEmpty()) {
-                        Text(
-                            text = " • ",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (examDate.isNotEmpty()) {
-                        Text(
-                            text = examDate,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = plan.title.ifBlank { "Your Study Journey" },
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                }
+                if (examDate.isNotEmpty()) {
+                    Text(
+                        text = examDate,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
+            ExamDaysCountdownBadge(days = examDays)
         }
     }
 }
 
 private enum class CalendarDateStatus(val color: Color) {
-    PLANNED(PlannerCalendarStatus.Planned),
-    DONE(PlannerCalendarStatus.Done),
-    OVERDUE(PlannerCalendarStatus.Overdue),
+    PLANNED(Blue500),
+    DONE(Emerald500),
+    OVERDUE(Rose500),
+    REVISE(Orange500)
 }
 
 /** Resolves done/planned/overdue only — "off day" is rendered as its own independent
@@ -565,15 +619,10 @@ private fun calendarTopicStatus(
     dateIso: String,
     todayIso: String,
 ): CalendarDateStatus = when {
+    item.status == TopicStatus.REVISION_NEEDED -> CalendarDateStatus.REVISE
     dateIso < todayIso && item.status != TopicStatus.DONE -> CalendarDateStatus.OVERDUE
     item.status == TopicStatus.DONE -> CalendarDateStatus.DONE
     else -> CalendarDateStatus.PLANNED
-}
-
-private fun calendarTopicStatusLabel(status: CalendarDateStatus): String = when (status) {
-    CalendarDateStatus.PLANNED -> "To Study"
-    CalendarDateStatus.DONE -> "Completed"
-    CalendarDateStatus.OVERDUE -> "Missed"
 }
 
 private fun calendarRevisionTypeLabel(item: CalendarTopicItem): String? {
@@ -599,9 +648,10 @@ internal fun SelectedDayLogSheet(
     onDismiss: () -> Unit,
 ) {
     val todayK = todayKey()
-    val planned = items.size
-    val done = items.count { it.status == TopicStatus.DONE }
-    val missed = if (dateIso < todayK) items.count { it.status != TopicStatus.DONE } else 0
+    val planned = items.count { calendarTopicStatus(it, dateIso, todayK) == CalendarDateStatus.PLANNED }
+    val done = items.count { calendarTopicStatus(it, dateIso, todayK) == CalendarDateStatus.DONE }
+    val missed = items.count { calendarTopicStatus(it, dateIso, todayK) == CalendarDateStatus.OVERDUE }
+    val revisedCount = items.count { calendarTopicStatus(it, dateIso, todayK) == CalendarDateStatus.REVISE }
     var changeDateTarget by remember { mutableStateOf<CalendarTopicItem?>(null) }
 
     changeDateTarget?.let { target ->
@@ -669,11 +719,12 @@ internal fun SelectedDayLogSheet(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        DayStatBox(value = planned, label = "To Study", modifier = Modifier.weight(1f))
-                        DayStatBox(value = done, label = "Completed", modifier = Modifier.weight(1f))
-                        DayStatBox(value = missed, label = "Missed", modifier = Modifier.weight(1f))
+                        DayStatBox(value = planned, label = "To Study", color = Blue500, icon = Icons.AutoMirrored.Filled.MenuBook, modifier = Modifier.weight(1f))
+                        DayStatBox(value = done, label = "Completed", color = Emerald500, icon = Icons.Rounded.CheckCircle, modifier = Modifier.weight(1f))
+                        DayStatBox(value = revisedCount, label = "To Revise", color = Orange500, icon = Icons.Default.TrackChanges, modifier = Modifier.weight(1f))
+                        DayStatBox(value = missed, label = "Missed", color = Rose500, icon = Icons.Default.Cancel, modifier = Modifier.weight(1f))
                     }
 
                     HorizontalDivider()
@@ -706,30 +757,61 @@ internal fun SelectedDayLogSheet(
 }
 
 @Composable
-private fun DayStatBox(value: Int, label: String, modifier: Modifier = Modifier) {
-    Box(
+private fun DayStatBox(
+    value: Int,
+    label: String,
+    color: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    val gradient = Brush.verticalGradient(
+        colors = listOf(color.copy(alpha = 0.7f), color)
+    )
+    Column(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        contentAlignment = Alignment.Center,
+            .clip(RoundedCornerShape(12.dp))
+            .background(gradient)
+            .padding(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "$value",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
-                ),
-            )
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopStart
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+            }
         }
+        
+        Spacer(Modifier.height(4.dp))
+        
+        Text(
+            text = "$value",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White,
+                fontSize = 28.sp
+            ),
+        )
+        
+        Spacer(Modifier.height(4.dp))
+        
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                color = Color.White.copy(alpha = 0.9f),
+                fontWeight = FontWeight.Medium,
+                fontSize = 11.sp
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -743,28 +825,31 @@ private fun CompactDayTopicRow(
     val topicStatus = calendarTopicStatus(item, dateIso, todayK)
     val revisionTypeLabel = calendarRevisionTypeLabel(item)
     val scheme = MaterialTheme.colorScheme
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onChangeDate),
-        shape = MaterialTheme.shapes.large,
-        color = scheme.surfaceContainerLow,
-        shadowElevation = 2.dp,
-        tonalElevation = 1.dp
+        shape = RoundedCornerShape(12.dp),
+        color = topicStatus.color.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, topicStatus.color.copy(alpha = 0.25f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(subjectDotColor(item.subjectColor)),
+                    .height(24.dp)
+                    .width(3.dp)
+                    .clip(RoundedCornerShape(1.5.dp))
+                    .background(topicStatus.color),
             )
             Spacer(Modifier.width(12.dp))
+            CalendarStatusBadge(topicStatus)
+            Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     item.topicName,
@@ -793,27 +878,60 @@ private fun CompactDayTopicRow(
                 }
             }
             Spacer(Modifier.width(12.dp))
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(scheme.surfaceContainerHigh)
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-            ) {
-                Text(
-                    text = calendarTopicStatusLabel(topicStatus),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.onSurfaceVariant,
-                    ),
-                )
-            }
-            Spacer(Modifier.width(12.dp))
+            ChangeDatePill(onClick = onChangeDate)
+        }
+    }
+}
+
+/** Ring-with-dot for "to study"/"to revise" (still pending), a filled checkmark for
+ *  done, a filled X for missed — promoted from a plain 10dp status dot to a legible
+ *  circular badge. */
+@Composable
+private fun CalendarStatusBadge(status: CalendarDateStatus) {
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .background(Color.White),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (status) {
+            CalendarDateStatus.DONE -> Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = status.color, modifier = Modifier.size(18.dp))
+            CalendarDateStatus.OVERDUE -> Icon(Icons.Default.Cancel, contentDescription = null, tint = status.color, modifier = Modifier.size(18.dp))
+            else -> Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(status.color))
+        }
+    }
+}
+
+/** "Change Date" action, styled as a light pill rather than plain text — a consistent
+ *  blue affordance across every card regardless of that card's own status tint, so it
+ *  always reads as the tappable action rather than more status color. */
+@Composable
+private fun ChangeDatePill(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        color = Blue500.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, Blue500.copy(alpha = 0.35f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Change Date",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Blue500,
+                ),
+            )
+            Spacer(Modifier.width(6.dp))
             Icon(
                 imageVector = Icons.Default.CalendarMonth,
                 contentDescription = "Reschedule",
-                tint = scheme.primary,
-                modifier = Modifier.size(18.dp)
+                tint = Blue500,
+                modifier = Modifier.size(16.dp)
             )
         }
     }

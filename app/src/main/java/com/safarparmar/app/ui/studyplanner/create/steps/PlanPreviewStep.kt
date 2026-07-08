@@ -1,27 +1,43 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.safarparmar.app.data.remote.api.PlanPreviewResult
-import java.time.DayOfWeek
+import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -43,7 +59,7 @@ private fun buildWeeks(preview: PlanPreviewResult): List<PreviewWeek> {
     val allDays = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.toList()
     return allDays.chunked(7).mapIndexed { index, week ->
         PreviewWeek(
-            label = "Week ${index + 1} — ${week.first().format(dayFormatter)} to ${week.last().format(dayFormatter)}",
+            label = "Week ${index + 1}",
             days = week.map { date -> date to (byDate[date.toString()] ?: emptyList()) },
         )
     }
@@ -63,6 +79,17 @@ fun PlanPreviewStep(
         preview.examDate?.take(10)?.let { runCatching { LocalDate.parse(it).format(dayFormatter) }.getOrNull() }
     }
 
+    var weekIndex by remember(weeks) { mutableIntStateOf(0) }
+    val week = weeks.getOrNull(weekIndex)
+
+    var dayIndex by remember(weekIndex, weeks) {
+        val today = LocalDate.now()
+        val defaultIndex = week?.days?.indexOfFirst { it.first == today }?.takeIf { it >= 0 }
+            ?: week?.days?.indexOfFirst { it.second.isNotEmpty() }?.takeIf { it >= 0 }
+            ?: 0
+        mutableIntStateOf(defaultIndex)
+    }
+
     Column(
         modifier = modifier.fillMaxWidth().padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -75,32 +102,57 @@ fun PlanPreviewStep(
             SummaryStat(value = (preview.summary.daysUntilExam ?: 0).toString(), label = "Days to exam")
         }
 
-        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(weeks, key = { it.label }) { week ->
-                Column(Modifier.padding(bottom = 10.dp)) {
-                    Text(week.label, fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleSmall)
-                    androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 4.dp))
-                    week.days.forEach { (date, topics) ->
-                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-                            Text(
-                                date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()) + ":",
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(end = 6.dp),
-                            )
-                            if (topics.isEmpty()) {
-                                Text("Rest day 🌿", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            } else {
-                                Text(topics.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
+        if (week == null) {
+            Text(
+                "We couldn't build a schedule preview yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                WeekNavHeader(
+                    weekNumber = weekIndex + 1,
+                    rangeLabel = "${week.days.first().first.format(dayFormatter)} – ${week.days.last().first.format(dayFormatter)}",
+                    onPrevious = { weekIndex = (weekIndex - 1).coerceAtLeast(0) },
+                    onNext = { weekIndex = (weekIndex + 1).coerceAtMost(weeks.lastIndex) },
+                    hasPrevious = weekIndex > 0,
+                    hasNext = weekIndex < weeks.lastIndex,
+                )
+
+                DayChipRow(
+                    days = week.days.map { it.first },
+                    selectedIndex = dayIndex,
+                    onSelect = { dayIndex = it },
+                )
+
+                val selectedDay = week.days.getOrNull(dayIndex)
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (selectedDay != null) {
+                        if (selectedDay.second.isEmpty()) {
+                            item {
+                                Text(
+                                    "Rest day 🌿",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 8.dp),
+                                )
+                            }
+                        } else {
+                            items(selectedDay.second) { topicName ->
+                                TopicPill(topicName)
                             }
                         }
                     }
-                }
-            }
-            if (examDateLabel != null) {
-                item {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
-                    Text("Exam Date: $examDateLabel 🎯", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    if (examDateLabel != null) {
+                        item {
+                            Text(
+                                "Exam Date: $examDateLabel 🎯",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -111,15 +163,121 @@ fun PlanPreviewStep(
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(onClick = onAdjust, modifier = Modifier.weight(1f), enabled = !isConfirming) {
-                Text("Let me adjust")
+                Text("Go Back")
             }
             Button(onClick = onConfirm, modifier = Modifier.weight(1f), enabled = !isConfirming) {
                 if (isConfirming) {
                     CircularProgressIndicator(modifier = Modifier.padding(2.dp))
                 } else {
-                    Text("Looks good — save my plan", fontWeight = FontWeight.Bold)
+                    Text("Looks Good", fontWeight = FontWeight.Bold)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun WeekNavHeader(
+    weekNumber: Int,
+    rangeLabel: String,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    hasPrevious: Boolean,
+    hasNext: Boolean,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = PlannerAccent.Teal.copy(alpha = 0.14f),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onPrevious, enabled = hasPrevious) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Previous week",
+                    tint = if (hasPrevious) PlannerAccent.Teal else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                )
+            }
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "WEEK $weekNumber",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PlannerAccent.Teal,
+                )
+                Text(
+                    rangeLabel,
+                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            IconButton(onClick = onNext, enabled = hasNext) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Next week",
+                    tint = if (hasNext) PlannerAccent.Teal else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayChipRow(
+    days: List<LocalDate>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        days.forEachIndexed { index, date ->
+            val selected = index == selectedIndex
+            Surface(
+                modifier = Modifier.weight(1f).clickable { onSelect(index) },
+                shape = RoundedCornerShape(50),
+                color = if (selected) PlannerAccent.Teal else MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopicPill(name: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier.size(8.dp).clip(CircleShape).background(PlannerAccent.Teal),
+            )
+            Text(
+                name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 12.dp),
+            )
         }
     }
 }

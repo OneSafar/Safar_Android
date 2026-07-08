@@ -79,6 +79,13 @@ import androidx.compose.runtime.staticCompositionLocalOf
 
 val LocalTimerService = staticCompositionLocalOf<TimerService?> { null }
 
+private fun blendColors(color1: Color, color2: Color, ratio: Float): Color {
+    val r = color1.red * ratio + color2.red * (1f - ratio)
+    val g = color1.green * ratio + color2.green * (1f - ratio)
+    val b = color1.blue * ratio + color2.blue * (1f - ratio)
+    return Color(r.coerceIn(0f, 1f), g.coerceIn(0f, 1f), b.coerceIn(0f, 1f))
+}
+
 // ─── Video background (unchanged) ──────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -486,8 +493,23 @@ fun EkagraScreen(
 
     // ── M3 dynamic color scheme (theme-aware) ────────────────────────────────────
     val themeColorScheme = remember(selectedTheme, isDarkTheme) {
-        val seed = selectedTheme.accent
+        val seed = if (!isDarkTheme && selectedTheme.name == "Focus") Color(0xFF9A3412) else selectedTheme.accent
         if (isDarkTheme) {
+            val bgTint = blendColors(seed, Color(0xFF0F1115), 0.08f)
+            val surfaceTint = blendColors(seed, Color(0xFF111416), 0.10f)
+            val surfaceVariantTint = blendColors(seed, Color(0xFF272C35), 0.12f)
+            val containerLowestTint = blendColors(seed, Color(0xFF0C0E10), 0.05f)
+            val containerLowTint = blendColors(seed, Color(0xFF191C1F), 0.08f)
+            val containerTint = blendColors(seed, Color(0xFF1D2024), 0.10f)
+            val containerHighTint = blendColors(seed, Color(0xFF272A2E), 0.12f)
+            val containerHighestTint = blendColors(seed, Color(0xFF323538), 0.15f)
+            val outlineTint = blendColors(seed, Color(0xFF8C9399), 0.35f)
+            val outlineVariantTint = blendColors(seed, Color(0xFF42494F), 0.20f)
+            
+            val onBgTint = blendColors(seed, Color(0xFFE7EBEF), 0.05f)
+            val onSurfaceTint = blendColors(seed, Color(0xFFE1E2E5), 0.05f)
+            val onSurfaceVariantTint = blendColors(seed, Color(0xFFC2C9CF), 0.10f)
+
             darkColorScheme(
                 primary                = seed,
                 onPrimary              = Color.White,
@@ -497,24 +519,39 @@ fun EkagraScreen(
                 onSecondary            = Color.White,
                 secondaryContainer     = seed.copy(alpha = 0.18f),
                 onSecondaryContainer   = seed.copy(alpha = 0.88f),
-                background             = Color(0xFF0F1115),
-                onBackground           = Color(0xFFE7EBEF),
-                surface                = Color(0xFF111416),
-                onSurface              = Color(0xFFE1E2E5),
-                surfaceVariant         = Color(0xFF272C35),
-                onSurfaceVariant       = Color(0xFFC2C9CF),
-                surfaceContainerLowest = Color(0xFF0C0E10),
-                surfaceContainerLow    = Color(0xFF191C1F),
-                surfaceContainer       = Color(0xFF1D2024),
-                surfaceContainerHigh   = Color(0xFF272A2E),
-                surfaceContainerHighest= Color(0xFF323538),
-                outline                = Color(0xFF8C9399),
-                outlineVariant         = Color(0xFF42494F),
+                background             = bgTint,
+                onBackground           = onBgTint,
+                surface                = surfaceTint,
+                onSurface              = onSurfaceTint,
+                surfaceVariant         = surfaceVariantTint,
+                onSurfaceVariant       = onSurfaceVariantTint,
+                surfaceContainerLowest = containerLowestTint,
+                surfaceContainerLow    = containerLowTint,
+                surfaceContainer       = containerTint,
+                surfaceContainerHigh   = containerHighTint,
+                surfaceContainerHighest= containerHighestTint,
+                outline                = outlineTint,
+                outlineVariant         = outlineVariantTint,
                 tertiary               = Color(0xFFC8BFFF),
                 tertiaryContainer      = Color(0xFF43398A),
                 onTertiaryContainer    = Color(0xFFE3DFFF),
             )
         } else {
+            val bgTint = blendColors(seed, Color(0xFFF8F9FB), 0.04f)
+            val surfaceTint = blendColors(seed, Color(0xFFF8F9FB), 0.04f)
+            val surfaceVariantTint = blendColors(seed, Color(0xFFE4E8EC), 0.08f)
+            val containerLowestTint = blendColors(seed, Color(0xFFFFFFFF), 0.00f)
+            val containerLowTint = blendColors(seed, Color(0xFFF2F4F6), 0.04f)
+            val containerTint = blendColors(seed, Color(0xFFEBEEF1), 0.06f)
+            val containerHighTint = blendColors(seed, Color(0xFFE4E8EC), 0.08f)
+            val containerHighestTint = blendColors(seed, Color(0xFFDEE2E7), 0.10f)
+            val outlineTint = blendColors(seed, Color(0xFF72797F), 0.25f)
+            val outlineVariantTint = blendColors(seed, Color(0xFFC2C9CF), 0.10f)
+            
+            val onBgTint = blendColors(seed, Color(0xFF191C1F), 0.10f)
+            val onSurfaceTint = blendColors(seed, Color(0xFF191C1F), 0.10f)
+            val onSurfaceVariantTint = blendColors(seed, Color(0xFF42494F), 0.15f)
+
             lightColorScheme(
                 primary                = seed,
                 onPrimary              = Color.White,
@@ -524,19 +561,19 @@ fun EkagraScreen(
                 onSecondary            = Color.White,
                 secondaryContainer     = seed.copy(alpha = 0.12f),
                 onSecondaryContainer   = seed.copy(alpha = 0.85f),
-                background             = Color(0xFFF8F9FB),
-                onBackground           = Color(0xFF191C1F),
-                surface                = Color(0xFFF8F9FB),
-                onSurface              = Color(0xFF191C1F),
-                surfaceVariant         = Color(0xFFE4E8EC),
-                onSurfaceVariant       = Color(0xFF42494F),
-                surfaceContainerLowest = Color(0xFFFFFFFF),
-                surfaceContainerLow    = Color(0xFFF2F4F6),
-                surfaceContainer       = Color(0xFFEBEEF1),
-                surfaceContainerHigh   = Color(0xFFE4E8EC),
-                surfaceContainerHighest= Color(0xFFDEE2E7),
-                outline                = Color(0xFF72797F),
-                outlineVariant         = Color(0xFFC2C9CF),
+                background             = bgTint,
+                onBackground           = onBgTint,
+                surface                = surfaceTint,
+                onSurface              = onSurfaceTint,
+                surfaceVariant         = surfaceVariantTint,
+                onSurfaceVariant       = onSurfaceVariantTint,
+                surfaceContainerLowest = containerLowestTint,
+                surfaceContainerLow    = containerLowTint,
+                surfaceContainer       = containerTint,
+                surfaceContainerHigh   = containerHighTint,
+                surfaceContainerHighest= containerHighestTint,
+                outline                = outlineTint,
+                outlineVariant         = outlineVariantTint,
                 tertiary               = Color(0xFF5C5490),
                 tertiaryContainer      = Color(0xFFE3DFFF),
                 onTertiaryContainer    = Color(0xFF19115B),
@@ -685,10 +722,10 @@ fun EkagraScreen(
                         ) {
                             // Card — light blue-tinted surface in light mode; follows the
                             // theme's dark surfaces at night instead of glaring light-blue.
-                            val dialogBg     = if (isDarkTheme) themeColorScheme.surfaceContainerHigh else Color(0xFFEAEEF8)
-                            val dialogTitle  = if (isDarkTheme) themeColorScheme.onSurface else Color(0xFF1A1C1E)
-                            val dialogBody   = if (isDarkTheme) themeColorScheme.onSurfaceVariant else Color(0xFF44474A)
-                            val dialogAccent = if (isDarkTheme) themeColorScheme.primary else Color(0xFF1A4FC4)
+                            val dialogBg     = themeColorScheme.surfaceContainerHigh
+                            val dialogTitle  = themeColorScheme.onSurface
+                            val dialogBody   = themeColorScheme.onSurfaceVariant
+                            val dialogAccent = themeColorScheme.primary
                             Surface(
                                 shape = RoundedCornerShape(24.dp),
                                 color = dialogBg,

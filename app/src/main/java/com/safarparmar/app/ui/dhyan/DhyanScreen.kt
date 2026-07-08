@@ -101,6 +101,10 @@ private enum class DhyanBreathPhase(val label: String) {
     INHALE("INHALE"), HOLD("HOLD"), EXHALE("EXHALE"), HOLD_AFTER("REST")
 }
 
+private enum class DhyanAudioSource {
+    MUSIC, BREATHING_SOUND
+}
+
 // musicOptions removed in favor of shared AudioLibrary
 
 // ─── Screen ────────────────────────────────────────────────────────────────────
@@ -122,6 +126,15 @@ fun DhyanScreen(
     // null = no technique chosen (show image), non-null = show animation
     var selectedTechnique   by remember { mutableStateOf<BreathingTechnique?>(null) }
     var tourState           by remember { mutableStateOf<com.safarparmar.app.ui.butterfly.ButterflyTourState?>(null) }
+    var activeAudioSource   by remember { mutableStateOf(DhyanAudioSource.MUSIC) }
+
+    LaunchedEffect(selectedTechnique) {
+        if (selectedTechnique == null) {
+            activeAudioSource = DhyanAudioSource.MUSIC
+        } else {
+            activeAudioSource = DhyanAudioSource.BREATHING_SOUND
+        }
+    }
 
     val themeVm: ThemeViewModel = hiltViewModel()
     val dhyanVm: DhyanViewModel = hiltViewModel()
@@ -135,15 +148,21 @@ fun DhyanScreen(
             onNavigate        = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
             topBarActions = {
-                IconButton(onClick = {
-                    if (selectedTechnique == null) showAudioLibraryPanel = true
-                    else showBreathingSoundSheet = true
-                }) {
+                IconButton(onClick = { showAudioLibraryPanel = true }) {
                     Icon(
                         imageVector = Icons.Default.MusicNote,
-                        contentDescription = if (selectedTechnique == null) "Meditation Audio Library" else "Breathing Sounds",
+                        contentDescription = "Meditation Audio Library",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
+                }
+                if (selectedTechnique != null) {
+                    IconButton(onClick = { showBreathingSoundSheet = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Air,
+                            contentDescription = "Breathing Sounds",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
                 IconButton(onClick = { tourState?.start() }) {
                     Image(
@@ -165,9 +184,19 @@ fun DhyanScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            if (isDarkTheme) Color.Black.copy(alpha = 0.55f)
-                            else Color.White.copy(alpha = 0.65f)
+                        .then(
+                            if (isDarkTheme) {
+                                Modifier.background(
+                                    Brush.radialGradient(
+                                        colors = listOf(
+                                            Color(0xFF231229).copy(alpha = 0.88f),
+                                            Color(0xFF050406).copy(alpha = 0.98f)
+                                        )
+                                    )
+                                )
+                            } else {
+                                Modifier.background(Color.White.copy(alpha = 0.65f))
+                            }
                         )
                 )
 
@@ -181,6 +210,8 @@ fun DhyanScreen(
                         selectedTechnique = selectedTechnique,
                         selectedMusicTrack = selectedMusicTrack,
                         selectedBreathingSound = selectedBreathingSound,
+                        activeAudioSource = activeAudioSource,
+                        onActiveAudioSourceChange = { activeAudioSource = it },
                         onBreatheWithMe   = { showTechniquesSheet = true },
                         onClearTechnique  = { selectedTechnique = null },
                         onSessionComplete = { minutes -> dhyanVm.trackCompletedSession(minutes) },
@@ -202,6 +233,7 @@ fun DhyanScreen(
                 selectedTechnique = selectedTechnique,
                 onSelectTechnique = {
                     selectedTechnique = it
+                    activeAudioSource = DhyanAudioSource.BREATHING_SOUND
                     showTechniquesSheet = false
                 },
                 onDismiss = { showTechniquesSheet = false },
@@ -213,6 +245,7 @@ fun DhyanScreen(
                 selectedTrackId = selectedMusicTrack.id,
                 onTrackSelect = {
                     selectedMusicTrack = it
+                    activeAudioSource = DhyanAudioSource.MUSIC
                     com.safarparmar.app.ui.audio.AudioLibrary.persistTrackId(context, it.id)
                 },
                 onDismiss = { showAudioLibraryPanel = false }
@@ -224,6 +257,7 @@ fun DhyanScreen(
                 selectedSound = selectedBreathingSound,
                 onSelectSound = {
                     selectedBreathingSound = it
+                    activeAudioSource = DhyanAudioSource.BREATHING_SOUND
                     showBreathingSoundSheet = false
                 },
                 onDismiss = { showBreathingSoundSheet = false },
@@ -240,6 +274,8 @@ private fun BreathingTab(
     selectedTechnique: BreathingTechnique?,
     selectedMusicTrack: com.safarparmar.app.ui.audio.AudioTrack,
     selectedBreathingSound: BreathingSound,
+    activeAudioSource: DhyanAudioSource,
+    onActiveAudioSourceChange: (DhyanAudioSource) -> Unit,
     onBreatheWithMe: () -> Unit,
     onClearTechnique: () -> Unit,
     onSessionComplete: (Int) -> Unit,
@@ -248,9 +284,9 @@ private fun BreathingTab(
     val MediumRosePink = Color(0xFFF49BB7)
     val DeepCalmingPink = Color(0xFFE37A9A)
 
-    val DarkLotusPink = Color(0xFF8C4A60)
-    val DarkMediumRosePink = Color(0xFF6E2F44)
-    val DarkDeepCalmingPink = Color(0xFF4C182A)
+    val DarkLotusPink = Color(0xFFE05282)
+    val DarkMediumRosePink = Color(0xFFB82D5C)
+    val DarkDeepCalmingPink = Color(0xFF8A133B)
 
     val currentLotusPink = if (isDarkTheme) DarkLotusPink else LightLotusPink
     val currentRosePink = if (isDarkTheme) DarkMediumRosePink else MediumRosePink
@@ -279,17 +315,22 @@ private fun BreathingTab(
         }
     }
 
-    LaunchedEffect(isRunning, selectedMusicTrack, selectedBreathingSound, selectedTechnique, isSessionAudioMuted) {
+    LaunchedEffect(isRunning, selectedMusicTrack, selectedBreathingSound, selectedTechnique, isSessionAudioMuted, activeAudioSource) {
         val technique = selectedTechnique
+        val isMusicSelected = activeAudioSource == DhyanAudioSource.MUSIC
+        val isBreathingSoundSelected = activeAudioSource == DhyanAudioSource.BREATHING_SOUND
+
         val shouldPlayMeditationMusic = isRunning &&
             !isSessionAudioMuted &&
-            technique == null &&
+            (technique == null || isMusicSelected) &&
             selectedMusicTrack.url.isNotBlank() &&
             selectedMusicTrack.name != "None" &&
             selectedMusicTrack.id != "none-track"
+
         val shouldPlayBreathingSound = isRunning &&
             !isSessionAudioMuted &&
             technique != null &&
+            isBreathingSoundSelected &&
             (!technique.audioUrl.isNullOrBlank() || selectedBreathingSound.url.isNotBlank() || selectedBreathingSound.localResId != null)
 
         if (shouldPlayMeditationMusic || shouldPlayBreathingSound) {
@@ -404,7 +445,14 @@ private fun BreathingTab(
         ) {
             AnimatedContent(
                 targetState = selectedTechnique,
-                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(250)) },
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(500, easing = EaseInOut)) + 
+                     scaleIn(initialScale = 0.92f, animationSpec = tween(500, easing = EaseInOut)))
+                    .togetherWith(
+                        fadeOut(animationSpec = tween(350, easing = EaseInOut)) + 
+                        scaleOut(targetScale = 0.95f, animationSpec = tween(350, easing = EaseInOut))
+                    )
+                },
                 label = "vizSwitch",
             ) { technique ->
                 if (technique == null) {
@@ -473,38 +521,18 @@ private fun BreathingTab(
                                 color         = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Row(
-                            verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        Box(
+                            Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .background(MaterialTheme.colorScheme.primary.copy(0.12f))
+                                .padding(horizontal = 12.dp, vertical = 5.dp)
                         ) {
-                            Box(
-                                Modifier
-                                    .clip(MaterialTheme.shapes.small)
-                                    .background(MaterialTheme.colorScheme.primary.copy(0.12f))
-                                    .padding(horizontal = 12.dp, vertical = 5.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(painter = androidx.compose.ui.res.painterResource(id = technique.iconRes), contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                                    Text("${technique.name} · ${technique.pattern}",
-                                        fontSize   = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color      = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(0.12f))
-                                    .clickable { onClearTechnique(); resetTimer(null) },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Clear technique",
-                                    tint     = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(14.dp),
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(painter = androidx.compose.ui.res.painterResource(id = technique.iconRes), contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                Text("${technique.name} · ${technique.pattern}",
+                                    fontSize   = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color      = MaterialTheme.colorScheme.primary,
                                 )
                             }
                         }
@@ -608,63 +636,178 @@ private fun BreathingTab(
 
         Spacer(Modifier.height(16.dp))
 
-        // Breathe with me button
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.large)
-                .background(dhyanGradient)
-                .clickable(onClick = onBreatheWithMe)
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Air, null, modifier = Modifier.size(18.dp), tint = Color.White)
-                Text("Breathe with me", fontWeight = FontWeight.Bold, color = Color.White)
+        // Breathe with me / Close Breathing buttons
+        if (selectedTechnique == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.large)
+                    .background(dhyanGradient)
+                    .clickable(onClick = onBreatheWithMe)
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Air, null, modifier = Modifier.size(18.dp), tint = Color.White)
+                    Text("Breathe with me", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Exit Breathing Button
+                OutlinedButton(
+                    onClick = onClearTechnique,
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.large,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                    contentPadding = PaddingValues(vertical = 12.dp)
+                ) {
+                    Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Close Breathing", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                }
+
+                // Change Technique Button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(MaterialTheme.shapes.large)
+                        .background(dhyanGradient)
+                        .clickable(onClick = onBreatheWithMe)
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp), tint = Color.White)
+                        Text("Change", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                    }
+                }
             }
         }
 
-        if (selectedTechnique == null && selectedMusicTrack.name != "None" && selectedMusicTrack.id != "none-track") {
-            Spacer(Modifier.height(8.dp))
-            Card(
-                shape     = MaterialTheme.shapes.medium,
-                modifier  = Modifier.fillMaxWidth(),
-                colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(0.dp),
-                border    = CardDefaults.outlinedCardBorder(),
-            ) {
-                Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                    Text(selectedMusicTrack.name, fontSize = 12.sp, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
-                    Text(
-                        if (isSessionAudioMuted) "MUTED" else if (isRunning) "PLAYING" else "READY",
-                        fontSize   = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = if (isRunning && !isSessionAudioMuted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        if (selectedTechnique == null) {
+            if (selectedMusicTrack.name != "None" && selectedMusicTrack.id != "none-track") {
+                Spacer(Modifier.height(8.dp))
+                Card(
+                    shape     = MaterialTheme.shapes.medium,
+                    modifier  = Modifier.fillMaxWidth(),
+                    colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border    = CardDefaults.outlinedCardBorder(),
+                ) {
+                    Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Text(selectedMusicTrack.name, fontSize = 12.sp, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                        Text(
+                            if (isSessionAudioMuted) "MUTED" else if (isRunning) "PLAYING" else "READY",
+                            fontSize   = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color      = if (isRunning && !isSessionAudioMuted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
-        } else if (selectedTechnique != null) {
+        } else {
             Spacer(Modifier.height(8.dp))
-            Card(
-                shape     = MaterialTheme.shapes.medium,
-                modifier  = Modifier.fillMaxWidth(),
-                colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(0.dp),
-                border    = CardDefaults.outlinedCardBorder(),
-            ) {
-                Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Default.Air, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(selectedBreathingSound.name, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                        Text("Breathing sound", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val isBreathingActive = activeAudioSource == DhyanAudioSource.BREATHING_SOUND
+                Card(
+                    shape     = MaterialTheme.shapes.medium,
+                    modifier  = Modifier
+                        .fillMaxWidth()
+                        .clickable { onActiveAudioSourceChange(DhyanAudioSource.BREATHING_SOUND) },
+                    colors    = CardDefaults.cardColors(
+                        containerColor = if (isBreathingActive) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border    = if (isBreathingActive) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else CardDefaults.outlinedCardBorder(),
+                ) {
+                    Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(
+                            Icons.Default.Air, 
+                            null, 
+                            tint = if (isBreathingActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, 
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                selectedBreathingSound.name, 
+                                fontSize = 12.sp, 
+                                fontWeight = FontWeight.Medium,
+                                color = if (isBreathingActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text("Breathing sound", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (isBreathingActive) {
+                            Text(
+                                if (isSessionAudioMuted) "MUTED" else if (isRunning) "PLAYING" else "READY",
+                                fontSize   = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color      = if (isRunning && !isSessionAudioMuted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            Text(
+                                "PAUSED",
+                                fontSize   = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color      = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            )
+                        }
                     }
-                    Text(
-                        if (isSessionAudioMuted) "MUTED" else if (isRunning && (selectedBreathingSound.url.isNotBlank() || selectedBreathingSound.localResId != null)) "PLAYING" else "SILENT",
-                        fontSize   = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = if (!isSessionAudioMuted && (selectedBreathingSound.url.isNotBlank() || selectedBreathingSound.localResId != null)) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                }
+
+                if (selectedMusicTrack.name != "None" && selectedMusicTrack.id != "none-track") {
+                    val isMusicActive = activeAudioSource == DhyanAudioSource.MUSIC
+                    Card(
+                        shape     = MaterialTheme.shapes.medium,
+                        modifier  = Modifier
+                            .fillMaxWidth()
+                            .clickable { onActiveAudioSourceChange(DhyanAudioSource.MUSIC) },
+                        colors    = CardDefaults.cardColors(
+                            containerColor = if (isMusicActive) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                        border    = if (isMusicActive) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else CardDefaults.outlinedCardBorder(),
+                    ) {
+                        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Icon(
+                                Icons.Default.MusicNote, 
+                                null, 
+                                tint = if (isMusicActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, 
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    selectedMusicTrack.name, 
+                                    fontSize = 12.sp, 
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (isMusicActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text("Background music", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (isMusicActive) {
+                                Text(
+                                    if (isSessionAudioMuted) "MUTED" else if (isRunning) "PLAYING" else "READY",
+                                    fontSize   = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = if (isRunning && !isSessionAudioMuted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            } else {
+                                Text(
+                                    "PAUSED",
+                                    fontSize   = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -60,6 +60,7 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
     var bodyInput by remember { mutableStateOf("") }
     var promptContext by remember { mutableStateOf<String?>(null) }
     var showJournals by remember { mutableStateOf(false) }
+    var selectedJournal by remember { mutableStateOf<JournalEntry?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val pagerState = rememberPagerState { journalPrompts.size }
 
@@ -218,7 +219,7 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(uiState.journals, key = { it.id }) { entry -> JournalCard(entry) }
+                    items(uiState.journals, key = { it.id }) { entry -> JournalCard(entry, onClick = { selectedJournal = entry }) }
                 }
                 }
             } else if (!showJournals) {
@@ -246,10 +247,59 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
             Icon(Icons.Default.Add, contentDescription = "New entry", tint = MaterialTheme.colorScheme.onPrimary)
         }
     }
+
+    if (selectedJournal != null) {
+        ModalBottomSheet(
+            onDismissRequest = { selectedJournal = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        ) {
+            val entry = selectedJournal!!
+            val dateStr = remember(entry.timestamp) { formatJournalDate(entry.timestamp) }
+            val title = remember(entry.content) { Regex("<h[23]>(.*?)</h[23]>").find(entry.content)?.groupValues?.get(1)?.trim() }
+            val body = remember(entry.content) {
+                entry.content
+                    .replace(Regex("<h[23]>.*?</h[23]>"), "")
+                    .replace(Regex("<[^>]*>"), "")
+                    .replace("&nbsp;", " ")
+                    .trim()
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 40.dp, top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(dateStr, fontSize = 13.sp, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Medium)
+                if (title != null) {
+                    Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                }
+                Text(
+                    body,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 24.sp
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { selectedJournal = null },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = ButtonDefaults.shape
+                ) {
+                    Text("Close")
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun JournalCard(entry: JournalEntry) {
+private fun JournalCard(entry: JournalEntry, onClick: () -> Unit) {
     val dateStr = remember(entry.timestamp) { formatJournalDate(entry.timestamp) }
     val title = remember(entry.content) { Regex("<h[23]>(.*?)</h[23]>").find(entry.content)?.groupValues?.get(1)?.trim() }
     // Strip h2/h3 tags first, then strip all remaining tags → clean body text only
@@ -262,7 +312,13 @@ private fun JournalCard(entry: JournalEntry) {
             .take(120)
     }
 
-    Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(dateStr, fontSize = 11.sp, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Medium)
             if (title != null) Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold))

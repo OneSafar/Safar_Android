@@ -141,7 +141,6 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -226,11 +225,9 @@ import com.safarparmar.app.ui.studyplanner.plan.StudyStyleOption
 import com.safarparmar.app.ui.butterfly.ButterflyTourState
 import com.safarparmar.app.ui.tour.TourManager
 import com.safarparmar.app.ui.tour.studyPlannerTourSteps
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -245,14 +242,6 @@ private val plannerTopicStatusFilterChips = listOf(
     TopicStatus.TODO,
     TopicStatus.DONE,
 )
-
-private val plannerTopicStatusSheetChips = listOf(
-    TopicStatus.DONE,
-    TopicStatus.REVISION_NEEDED,
-)
-
-internal fun plannerTopicStatusDisplayLabel(status: TopicStatus): String =
-    status.label
 
 private fun syllabusTopicMatchesFilter(topicStatus: TopicStatus, filter: TopicStatus?): Boolean {
     if (filter == null) return true
@@ -912,7 +901,7 @@ private fun StudyPlansScreen(
                     PlannerEmptyState(
                         title = "No target exam yet",
                         body = "Plan an exam and it will appear here.",
-                        action = "Plan More Exams",
+                        action = "Plan Your Exams",
                         onAction = {
                             onAdvanceTour()
                             onNavigate(Routes.CREATE_PLAN)
@@ -932,7 +921,7 @@ private fun StudyPlansScreen(
             item {
                 Spacer(Modifier.height(10.dp))
                 PlannerThemeActionCard(
-                    title = "Plan More Exams",
+                    title = "Plan Your Exams",
                     subtitle = "Add more exams to your planner",
                     icon = Icons.AutoMirrored.Filled.LibraryBooks,
                     colors = listOf(Color(0xFF3D257B), Color(0xFF5B3B9B)),
@@ -1593,21 +1582,17 @@ internal fun CreatePlanModeCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         color = if (selected) scheme.primaryContainer.copy(alpha = 0.5f) else scheme.surfaceContainerLow,
-        border = BorderStroke(
-            width = if (selected) 2.dp else 1.dp,
-            color = if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.45f),
-        ),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Surface(shape = CircleShape, color = scheme.primary.copy(alpha = 0.12f)) {
+            Surface(shape = CircleShape, color = scheme.onSurface.copy(alpha = 0.06f)) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = scheme.primary,
+                    tint = scheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.padding(10.dp).size(22.dp),
                 )
             }
@@ -1742,6 +1727,7 @@ private fun PlannerHome(
                         SyllabusSubjectsScreen(
                             viewModel = viewModel,
                             planId = plan.id,
+                            isDarkTheme = isSystemInDarkTheme(),
                             onNavigate = onNavigate,
                             onBack = { actions.setSection(PlannerSection.PLAN) },
                             onPlannerSectionSelect = { section ->
@@ -1842,103 +1828,11 @@ internal fun AddTopicsToPlanButton(onClick: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-internal fun PlannerTopicDetailSheet(
-    ref: TopicRef,
-    openNonce: Int,
-    actions: PlannerActions,
-    onDismiss: () -> Unit,
-) {
-    var name by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.name) }
-    var notes by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.notes.orEmpty()) }
-    var status by remember(ref.topic.id, openNonce) { mutableStateOf(ref.topic.status) }
-    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
-    val clampedDensity = remember(currentDensity) {
-        androidx.compose.ui.unit.Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(ref.chapter.name, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(name, { name = it }, label = { Text("Topic") }, modifier = Modifier.fillMaxWidth())
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    plannerTopicStatusSheetChips.forEach { st ->
-                        FilterChip(selected = status == st, onClick = { status = st }, label = { Text(plannerTopicStatusDisplayLabel(st)) })
-                    }
-                }
-                OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(
-                        onClick = { actions.deleteTopic(ref.topic.id); onDismiss() },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
-                    ) {
-                        Text("Delete")
-                    }
-                    Button(
-                        onClick = {
-                            actions.updateTopic(ref.topic.id, status, name, notes = notes)
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Save", fontWeight = FontWeight.Bold)
-                    }
-                }
-                Spacer(Modifier.height(20.dp))
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun BulkAddSheet(
-    target: Pair<StudySubject, StudyChapter>,
-    state: StudyPlannerUiState,
-    actions: PlannerActions,
-    onDismiss: () -> Unit,
-) {
-    var text by remember { mutableStateOf("") }
-    val count by produceState(0, text) {
-        value = withContext(Dispatchers.Default) {
-            parseBulkSyllabus(text).flatMap { it.second }.size
-        }
-    }
-    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
-    val clampedDensity = remember(currentDensity) {
-        androidx.compose.ui.unit.Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Add Many Topics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("${target.first.name} • ${target.second.name}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AssistChip(onClick = {}, label = { Text("Paste Text") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, Modifier.size(16.dp)) })
-                }
-                OutlinedTextField(text, { text = it }, label = { Text("Paste topics or chapter lines") }, minLines = 6, modifier = Modifier.fillMaxWidth())
-                Text("$count topics detected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(onClick = { actions.bulkAdd(target.first.id, target.second.id, text); onDismiss() }, modifier = Modifier.fillMaxWidth(), enabled = count > 0) { Text("Add Topics") }
-                Spacer(Modifier.height(20.dp))
-            }
-        }
-    }
-}
-
 @Composable
 internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSection) -> Unit) {
     val sections = listOf(
-        PlannerSection.YOUR_EXAMS,
         PlannerSection.PLAN,
+        PlannerSection.YOUR_EXAMS,
         PlannerSection.SYLLABUS,
         PlannerSection.CALENDAR,
         PlannerSection.INSIGHTS,
