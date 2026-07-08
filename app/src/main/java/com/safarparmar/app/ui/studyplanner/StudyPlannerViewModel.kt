@@ -126,6 +126,10 @@ data class StudyPlannerUiState(
      *  subject order). The Plan tab shows a one-time reorder sheet while this is true,
      *  then clears it via [PlannerActions.clearPendingManualSubjectOrder]. */
     val pendingManualSubjectOrder: Boolean = false,
+    /** Set when Insights navigates the user to Calendar to resolve overdue/unplanned
+     *  topics. CalendarTab opens the Missed Topics sheet automatically while this is
+     *  true, then clears it via [PlannerActions.clearPendingOpenMissedTopics]. */
+    val pendingOpenMissedTopics: Boolean = false,
     val isImporting: Boolean = false,
     val importStatus: String? = null,
     val importError: String? = null,
@@ -450,6 +454,14 @@ class StudyPlannerViewModel @Inject constructor(
 
     override fun clearPendingManualSubjectOrder() {
         _uiState.update { it.copy(pendingManualSubjectOrder = false) }
+    }
+
+    override fun openMissedTopics() {
+        _uiState.update { it.copy(section = PlannerSection.CALENDAR, pendingOpenMissedTopics = true) }
+    }
+
+    override fun clearPendingOpenMissedTopics() {
+        _uiState.update { it.copy(pendingOpenMissedTopics = false) }
     }
 
     override fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) {

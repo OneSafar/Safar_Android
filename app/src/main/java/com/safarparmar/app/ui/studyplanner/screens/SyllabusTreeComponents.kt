@@ -150,13 +150,20 @@ internal fun SyllabusSubjectAccordionCard(
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 dragOffsetY += dragAmount.y
-                                val threshold = itemHeightPx * 0.75f
+                                // Swap at the midpoint (50%) rather than waiting for
+                                // 75% of the row to pass. `while` (not `if`) lets a
+                                // single continuous drag carry the card past EVERY
+                                // other card — each time the finger clears the next
+                                // sibling's midpoint another swap fires — instead of
+                                // stopping after one neighbour on a fast/long drag.
+                                val threshold = itemHeightPx * 0.5f
                                 if (threshold > 0) {
-                                    if (dragOffsetY >= threshold) {
+                                    while (dragOffsetY >= threshold) {
                                         onMoveSubjectDown()
                                         dragOffsetY -= itemHeightPx
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    } else if (dragOffsetY <= -threshold) {
+                                    }
+                                    while (dragOffsetY <= -threshold) {
                                         onMoveSubjectUp()
                                         dragOffsetY += itemHeightPx
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -230,24 +237,17 @@ internal fun SyllabusSubjectAccordionCard(
 @Composable
 internal fun SyllabusChapterAccordionRow(
     chapter: StudyChapter,
-    onAddTopic: (String) -> Unit,
+    onOpenTopics: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
-    onTopicClick: (StudyTopic) -> Unit,
-    onRenameTopic: (StudyTopic) -> Unit,
-    onDeleteTopic: (StudyTopic) -> Unit,
-    onAssignToday: (StudyTopic) -> Unit,
     canReorder: Boolean,
     onMoveChapterUp: () -> Unit,
     onMoveChapterDown: () -> Unit,
-    onMoveTopicUp: (StudyTopic) -> Unit,
-    onMoveTopicDown: (StudyTopic) -> Unit,
     onDragEnd: () -> Unit = {},
-    onTopicDragEnd: (StudyTopic) -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
     val completion = chapter.percentDone()
-    var showTopicsSheet by remember { mutableStateOf(false) }
 
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
@@ -269,7 +269,7 @@ internal fun SyllabusChapterAccordionRow(
     val haptic = LocalHapticFeedback.current
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 6.dp)
             .zIndex(if (isDragging) 1f else 0f)
@@ -311,13 +311,20 @@ internal fun SyllabusChapterAccordionRow(
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 dragOffsetY += dragAmount.y
-                                val threshold = itemHeightPx * 0.75f
+                                // Swap at the midpoint (50%) rather than waiting for
+                                // 75% of the row to pass. `while` (not `if`) lets a
+                                // single continuous drag carry the card past EVERY
+                                // other card — each time the finger clears the next
+                                // sibling's midpoint another swap fires — instead of
+                                // stopping after one neighbour on a fast/long drag.
+                                val threshold = itemHeightPx * 0.5f
                                 if (threshold > 0) {
-                                    if (dragOffsetY >= threshold) {
+                                    while (dragOffsetY >= threshold) {
                                         onMoveChapterDown()
                                         dragOffsetY -= itemHeightPx
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    } else if (dragOffsetY <= -threshold) {
+                                    }
+                                    while (dragOffsetY <= -threshold) {
                                         onMoveChapterUp()
                                         dragOffsetY += itemHeightPx
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -334,7 +341,7 @@ internal fun SyllabusChapterAccordionRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = { showTopicsSheet = true })
+                .clickable(onClick = onOpenTopics)
                 .padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -367,23 +374,6 @@ internal fun SyllabusChapterAccordionRow(
             trackColor = scheme.surfaceContainerHighest,
         )
     }
-
-    if (showTopicsSheet) {
-        ChapterTopicsSheet(
-            chapterName = chapter.name,
-            topics = chapter.topics,
-            onDismiss = { showTopicsSheet = false },
-            onAddTopic = onAddTopic,
-            onTopicClick = onTopicClick,
-            onRenameTopic = onRenameTopic,
-            onDeleteTopic = onDeleteTopic,
-            onAssignToday = onAssignToday,
-            canReorder = canReorder,
-            onMoveTopicUp = onMoveTopicUp,
-            onMoveTopicDown = onMoveTopicDown,
-            onTopicDragEnd = onTopicDragEnd,
-        )
-    }
 }
 
 @Composable
@@ -397,6 +387,8 @@ internal fun SyllabusTopicAccordionRow(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onDragEnd: () -> Unit = {},
+    onChangeDate: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
     val isDone = topic.status == TopicStatus.DONE
@@ -422,7 +414,7 @@ internal fun SyllabusTopicAccordionRow(
     val haptic = LocalHapticFeedback.current
 
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .zIndex(if (isDragging) 1f else 0f)
             .onGloballyPositioned { coordinates ->
@@ -461,15 +453,27 @@ internal fun SyllabusTopicAccordionRow(
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 dragOffsetY += dragAmount.y
-                                val threshold = itemHeightPx * 0.75f
-                                if (dragOffsetY > threshold) {
-                                    onMoveDown()
-                                    dragOffsetY -= itemHeightPx
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                } else if (dragOffsetY < -threshold) {
-                                    onMoveUp()
-                                    dragOffsetY += itemHeightPx
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                // Swap at the midpoint (50%) rather than waiting for
+                                // 75% of the row to pass. `while` (not `if`) lets a
+                                // single continuous drag carry the card past EVERY
+                                // other card — each time the finger clears the next
+                                // sibling's midpoint another swap fires — instead of
+                                // stopping after one neighbour on a fast/long drag.
+                                // Guarded on itemHeightPx > 0 so a drag that starts
+                                // before the row's first layout pass can't fire a
+                                // spurious swap against a zero threshold.
+                                val threshold = itemHeightPx * 0.5f
+                                if (threshold > 0) {
+                                    while (dragOffsetY > threshold) {
+                                        onMoveDown()
+                                        dragOffsetY -= itemHeightPx
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    while (dragOffsetY < -threshold) {
+                                        onMoveUp()
+                                        dragOffsetY += itemHeightPx
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
                                 }
                             },
                         )
@@ -536,7 +540,7 @@ internal fun SyllabusTopicAccordionRow(
                     }
                 }
             }
-            SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete)
+            SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete, onChangeDate = onChangeDate)
         }
     }
 }
@@ -579,9 +583,9 @@ internal fun TopicStatusBadge(status: TopicStatus) {
     }
 }
 
-/** Overflow menu reserved for Rename/Delete only — Add actions are direct-tap icons, not menu items. */
+/** Overflow menu reserved for Rename/Delete/Change Date only — Add actions are direct-tap icons, not menu items. */
 @Composable
-private fun SubjectOverflowMenuMinimal(onRename: () -> Unit, onDelete: () -> Unit) {
+private fun SubjectOverflowMenuMinimal(onRename: () -> Unit, onDelete: () -> Unit, onChangeDate: (() -> Unit)? = null) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }, modifier = Modifier.size(44.dp)) {
@@ -589,6 +593,9 @@ private fun SubjectOverflowMenuMinimal(onRename: () -> Unit, onDelete: () -> Uni
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(text = { Text("Rename") }, onClick = { expanded = false; onRename() })
+            if (onChangeDate != null) {
+                DropdownMenuItem(text = { Text("Change Date") }, onClick = { expanded = false; onChangeDate() })
+            }
             DropdownMenuItem(
                 text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
                 onClick = { expanded = false; onDelete() },

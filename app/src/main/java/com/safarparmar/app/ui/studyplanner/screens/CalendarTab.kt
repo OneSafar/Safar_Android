@@ -96,6 +96,7 @@ import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -247,17 +248,11 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
     var sheetDay by remember { mutableStateOf<String?>(null) }
     var showUnscheduledTopicsScreen by remember { mutableStateOf(false) }
 
-    if (showUnscheduledTopicsScreen) {
-        val refs = remember(plan.subjects) { plan.flattenTopics() }
-        val unscheduledTopics = remember(refs) {
-            refs.filter { it.topic.plannedDate.isNullOrBlank() && it.topic.status != TopicStatus.DONE }
+    LaunchedEffect(state.pendingOpenMissedTopics) {
+        if (state.pendingOpenMissedTopics) {
+            showUnscheduledTopicsScreen = true
+            actions.clearPendingOpenMissedTopics()
         }
-        UnscheduledTopicsScreen(
-            plan = plan,
-            unscheduledTopics = unscheduledTopics,
-            actions = actions,
-            onDismiss = { showUnscheduledTopicsScreen = false }
-        )
     }
 
     sheetDay?.let { day ->
@@ -270,183 +265,202 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
         )
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                CalendarPlainHeader(plan = plan)
+            }
 
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        item {
-            CalendarPlainHeader(plan = plan)
-        }
-
-        item {
-            // Elevated/Border Card containing the entire calendar view
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                color = MaterialTheme.colorScheme.surface,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp, horizontal = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            item {
+                // Elevated/Border Card containing the entire calendar view
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    color = MaterialTheme.colorScheme.surface,
                 ) {
-                    // Month navigation
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
-                            Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.ChevronLeft,
-                                contentDescription = "Previous month",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        
-                        Text(
-                            text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
-                        )
-                        
-                        IconButton(onClick = { visibleMonth = visibleMonth.plusMonths(1) }) {
-                            Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
-                                contentDescription = "Next month",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Days of the week row
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceAround,
-                    ) {
-                        listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
-                            Text(
-                                text = label,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.width(36.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Grid of day slots
                     Column(
-                        Modifier
+                        modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                            .padding(vertical = 16.dp, horizontal = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        weeks.forEach { week ->
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceAround,
-                            ) {
-                                week.forEach { date ->
-                                    Box(
-                                        Modifier
-                                            .weight(1f)
-                                            .aspectRatio(1f)
-                                            .padding(2.dp),
-                                    ) {
-                                        if (date != null) {
-                                            val dateIso = date.toString()
-                                            val dayItems = state.calendar[dateIso].orEmpty()
-                                            CalendarDayChip(
-                                                dateIso = dateIso,
-                                                items = dayItems,
-                                                selected = sheetDay == dateIso,
-                                                isToday = dateIso == todayK,
-                                                isOff = jsDayOfWeek(date) in plan.offDays.toSet(),
-                                                isExamDay = dateIso == plan.examDate?.take(10),
-                                                isWeekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY,
-                                                dense = true,
-                                                onClick = { sheetDay = dateIso },
-                                                modifier = Modifier.fillMaxSize(),
-                                            )
+                        // Month navigation
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Default.ChevronLeft,
+                                    contentDescription = "Previous month",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                            
+                            Text(
+                                text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                            )
+                            
+                            IconButton(onClick = { visibleMonth = visibleMonth.plusMonths(1) }) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
+                                    contentDescription = "Next month",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Days of the week row
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                        ) {
+                            listOf("S", "M", "T", "W", "T", "F", "S").forEach { label ->
+                                Text(
+                                    text = label,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.width(36.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Grid of day slots
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            weeks.forEach { week ->
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceAround,
+                                ) {
+                                    week.forEach { date ->
+                                        Box(
+                                            Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .padding(2.dp),
+                                        ) {
+                                            if (date != null) {
+                                                val dateIso = date.toString()
+                                                val dayItems = state.calendar[dateIso].orEmpty()
+                                                CalendarDayChip(
+                                                    dateIso = dateIso,
+                                                    items = dayItems,
+                                                    selected = sheetDay == dateIso,
+                                                    isToday = dateIso == todayK,
+                                                    isOff = jsDayOfWeek(date) in plan.offDays.toSet(),
+                                                    isExamDay = dateIso == plan.examDate?.take(10),
+                                                    isWeekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY,
+                                                    dense = true,
+                                                    onClick = { sheetDay = dateIso },
+                                                    modifier = Modifier.fillMaxSize(),
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
+
+
                     }
+                }
+            }
+            
+            item {
+                val revisionGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF3E7C8C), Color(0xFF29638A)))
+                Button(
+                    onClick = {
+                        actions.setPlanTab(StudyPlannerTab.REVISION)
+                        actions.setSection(PlannerSection.PLAN)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                        .background(revisionGradient, shape = RoundedCornerShape(12.dp)),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Rounded.CheckCircle, 
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("View Revision Topics", fontWeight = FontWeight.Bold)
+                }
+            }
 
-
+            item {
+                val unscheduledGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF991B1B), Color(0xFF7F1D1D)))
+                Button(
+                    onClick = { showUnscheduledTopicsScreen = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .background(unscheduledGradient, shape = RoundedCornerShape(12.dp)),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.List, 
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("View Missed Topics", fontWeight = FontWeight.Bold)
                 }
             }
         }
-        
-        item {
-            val revisionGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF3E7C8C), Color(0xFF29638A)))
-            Button(
-                onClick = { actions.setPlanTab(StudyPlannerTab.REVISION) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
-                    .background(revisionGradient, shape = RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.White
-                )
-            ) {
-                Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Rounded.CheckCircle, 
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("View Revision Topics", fontWeight = FontWeight.Bold)
-            }
-        }
 
-        item {
-            val unscheduledGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF991B1B), Color(0xFF7F1D1D)))
-            Button(
-                onClick = { showUnscheduledTopicsScreen = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp)
-                    .background(unscheduledGradient, shape = RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.White
-                )
-            ) {
-                Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Rounded.List, 
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("View Unscheduled Topics", fontWeight = FontWeight.Bold)
+        if (showUnscheduledTopicsScreen) {
+            val refs = remember(plan.subjects) { plan.flattenTopics() }
+            val unscheduledTopics = remember(refs, todayK) {
+                refs.filter { ref ->
+                    val date = ref.topic.plannedDate
+                    ref.topic.status != TopicStatus.DONE && (date.isNullOrBlank() || date.take(10) < todayK)
+                }
             }
+            UnscheduledTopicsScreen(
+                plan = plan,
+                unscheduledTopics = unscheduledTopics,
+                actions = actions,
+                onDismiss = { showUnscheduledTopicsScreen = false }
+            )
         }
     }
 }
@@ -459,7 +473,7 @@ private fun CalendarPlainHeader(plan: StudyPlan) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 8.dp),
+            .padding(bottom = 8.dp),
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         color = MaterialTheme.colorScheme.surface,

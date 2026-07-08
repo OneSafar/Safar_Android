@@ -31,6 +31,7 @@ enum class CreatePlanStep {
     PasteSyllabus,
     PlanSettings,
     DeepFocusOrder,
+    MixedBagSubjectPicker,
     BuildingPreview,
     Preview,
 }
@@ -45,10 +46,15 @@ sealed interface TemplateChapterRef {
     data class Custom(val localId: String) : TemplateChapterRef
 }
 
-/** A subject in the "Deep Focus" reorder outline — just names, since that screen
- *  only orders subjects/chapters and never touches topics. */
+/** A chapter in the "Deep Focus" reorder outline, with the topic names inside it in
+ *  their current order. */
 @Immutable
-data class DeepFocusOutlineSubject(val name: String, val chapterNames: List<String>)
+data class DeepFocusOutlineChapter(val name: String, val topicNames: List<String>)
+
+/** A subject in the "Deep Focus" reorder outline — subjects, chapters, and topics are
+ *  all orderable here, matching the live Syllabus screen's own drag-reorder exactly. */
+@Immutable
+data class DeepFocusOutlineSubject(val name: String, val chapters: List<DeepFocusOutlineChapter>)
 
 /** A client-only, throwaway-if-abandoned topic. [localId] exists purely for
  *  Compose list keys / add-remove addressing — discarded once /preview
@@ -122,11 +128,22 @@ data class CreatePlanUiState(
     val premiumRequired: Boolean = false,
     val error: String? = null,
 
-    // Deep Focus drag-reorder — subject order, then chapter order within each
-    // subject (keyed by subject name). Seeded from whichever source is active
-    // the first time the user opens the reorder screen, then preserved verbatim.
+    // Deep Focus drag-reorder — subject order, chapter order per subject (keyed by
+    // subject name), and topic order per chapter (keyed by subject name + chapter
+    // name, since chapter names aren't globally unique). Seeded from whichever
+    // source is active the first time the user opens the reorder screen, then
+    // preserved verbatim. [deepFocusDrillSubjectIndex] tracks which subject's
+    // chapter list the user has drilled into on that screen (null = subject list).
     val deepFocusSubjectOrder: List<String>? = null,
     val deepFocusChapterOrder: Map<String, List<String>> = emptyMap(),
+    val deepFocusTopicOrder: Map<Pair<String, String>, List<String>> = emptyMap(),
+    val deepFocusDrillSubjectIndex: Int? = null,
+
+    // Mixed Bag "difficult subjects" split — null means the user hasn't been asked
+    // (or the picker hasn't run) yet; an empty list means they explicitly skipped
+    // it; a non-empty list is the 2-3 subject names that should get topics every
+    // day, with the rest rotating in on alternate days.
+    val mixedBagPrioritySubjects: List<String>? = null,
 )
 
 @HiltViewModel
@@ -437,8 +454,8 @@ class CreatePlanViewModel @Inject constructor(
 
     // ── Deep Focus reorder ───────────────────────────────────────────
 
-    /** The current subject/chapter outline for whichever source is active, with
-     *  empty chapters/subjects dropped — mirrors exactly what ends up in the
+    /** The current subject/chapter/topic outline for whichever source is active,
+     *  with empty chapters/subjects dropped — mirrors exactly what ends up in the
      *  built plan (template exclusions/extras applied, manual/paste as-is). */
     private fun currentOutline(): List<DeepFocusOutlineSubject> {
         val state = _uiState.value
@@ -447,28 +464,29 @@ class CreatePlanViewModel @Inject constructor(
                 val excluded = state.excludedTopicKeys
                 val template = state.templateDetail ?: return emptyList()
                 template.subjects.mapIndexedNotNull { si, subject ->
-                    val originalChapterNames = subject.chapters.mapIndexedNotNull { ci, chapter ->
-                        val topicCount = chapter.topics.withIndex().count { (ti, _) -> Triple(si, ci, ti) !in excluded } +
-                            state.templateExtraTopics[si to ci].orEmpty().size
-                        chapter.name.takeIf { topicCount > 0 }
+                    val originalChapters = subject.chapters.mapIndexedNotNull { ci, chapter ->
+                        val topicNames = chapter.topics.withIndex()
+                            .filter { (ti, _) -> Triple(si, ci, ti) !in excluded }
+                            .map { (_, name) -> name } + state.templateExtraTopics[si to ci].orEmpty().map { it.name }
+                        if (topicNames.isEmpty()) null else DeepFocusOutlineChapter(chapter.name, topicNames)
                     }
-                    val extraChapterNames = state.templateExtraChapters[si].orEmpty()
+                    val extraChapters = state.templateExtraChapters[si].orEmpty()
                         .filter { it.topics.isNotEmpty() }
-                        .map { it.name }
-                    val chapterNames = originalChapterNames + extraChapterNames
-                    if (chapterNames.isEmpty()) null else DeepFocusOutlineSubject(subject.name, chapterNames)
+                        .map { DeepFocusOutlineChapter(it.name, it.topics.map { t -> t.name }) }
+                    val chapters = originalChapters + extraChapters
+                    if (chapters.isEmpty()) null else DeepFocusOutlineSubject(subject.name, chapters)
                 }
             }
-            PlanSource.Manual -> state.manualSubjects
-                .filter { subject -> subject.chapters.any { it.topics.isNotEmpty() } }
-                .map { subject ->
-                    DeepFocusOutlineSubject(subject.name, subject.chapters.filter { it.topics.isNotEmpty() }.map { it.name })
-                }
-            PlanSource.Paste -> state.structuredPreview?.subjects
-                ?.filter { subject -> subject.chapters.any { it.topics.isNotEmpty() } }
-                ?.map { subject ->
-                    DeepFocusOutlineSubject(subject.name, subject.chapters.filter { it.topics.isNotEmpty() }.map { it.name })
-                } ?: emptyList()
+            PlanSource.Manual -> state.manualSubjects.mapNotNull { subject ->
+                val chapters = subject.chapters.filter { it.topics.isNotEmpty() }
+                    .map { DeepFocusOutlineChapter(it.name, it.topics.map { t -> t.name }) }
+                if (chapters.isEmpty()) null else DeepFocusOutlineSubject(subject.name, chapters)
+            }
+            PlanSource.Paste -> state.structuredPreview?.subjects?.mapNotNull { subject ->
+                val chapters = subject.chapters.filter { it.topics.isNotEmpty() }
+                    .map { DeepFocusOutlineChapter(it.name, it.topics) }
+                if (chapters.isEmpty()) null else DeepFocusOutlineSubject(subject.name, chapters)
+            } ?: emptyList()
             null -> emptyList()
         }
     }
@@ -477,37 +495,58 @@ class CreatePlanViewModel @Inject constructor(
      *  already set: entries that still exist keep their position, brand-new
      *  ones are appended, removed ones are dropped — so revisiting the reorder
      *  screen after tweaking exclusions never silently discards the user's work
-     *  or shows stale subjects/chapters. */
+     *  or shows stale subjects/chapters/topics. */
     private fun mergeOutlineOrder(
         current: List<DeepFocusOutlineSubject>,
         prevSubjectOrder: List<String>?,
         prevChapterOrder: Map<String, List<String>>,
+        prevTopicOrder: Map<Pair<String, String>, List<String>>,
     ): List<DeepFocusOutlineSubject> {
         val bySubjectName = current.associateBy { it.name }
-        val orderedNames = (prevSubjectOrder.orEmpty().filter { it in bySubjectName }) +
+        val orderedSubjectNames = (prevSubjectOrder.orEmpty().filter { it in bySubjectName }) +
             current.map { it.name }.filter { it !in prevSubjectOrder.orEmpty() }
-        return orderedNames.distinct().map { name ->
-            val subject = bySubjectName.getValue(name)
-            val prevChapters = prevChapterOrder[name]
-            val chapterNames = if (prevChapters != null) {
-                val currentSet = subject.chapterNames.toSet()
-                prevChapters.filter { it in currentSet } + subject.chapterNames.filter { it !in prevChapters }
+        return orderedSubjectNames.distinct().map { subjectName ->
+            val subject = bySubjectName.getValue(subjectName)
+            val byChapterName = subject.chapters.associateBy { it.name }
+            val prevChapters = prevChapterOrder[subjectName]
+            val orderedChapterNames = if (prevChapters != null) {
+                val currentSet = byChapterName.keys
+                prevChapters.filter { it in currentSet } + subject.chapters.map { it.name }.filter { it !in prevChapters }
             } else {
-                subject.chapterNames
+                subject.chapters.map { it.name }
             }
-            DeepFocusOutlineSubject(name, chapterNames)
+            val chapters = orderedChapterNames.distinct().map { chapterName ->
+                val chapter = byChapterName.getValue(chapterName)
+                val prevTopics = prevTopicOrder[subjectName to chapterName]
+                val topicNames = if (prevTopics != null) {
+                    val currentTopicSet = chapter.topicNames.toSet()
+                    prevTopics.filter { it in currentTopicSet } + chapter.topicNames.filter { it !in prevTopics }
+                } else {
+                    chapter.topicNames
+                }
+                DeepFocusOutlineChapter(chapterName, topicNames)
+            }
+            DeepFocusOutlineSubject(subjectName, chapters)
         }
     }
 
     /** Opens the Deep Focus reorder screen, seeding/reconciling its order from
-     *  whatever subjects/chapters are currently active. */
+     *  whatever subjects/chapters/topics are currently active, and resetting the
+     *  drill-down position back to the subject list. */
     fun openDeepFocusOrder() {
         _uiState.update { state ->
-            val merged = mergeOutlineOrder(currentOutline(), state.deepFocusSubjectOrder, state.deepFocusChapterOrder)
+            val merged = mergeOutlineOrder(
+                currentOutline(),
+                state.deepFocusSubjectOrder,
+                state.deepFocusChapterOrder,
+                state.deepFocusTopicOrder,
+            )
             state.copy(
                 step = CreatePlanStep.DeepFocusOrder,
                 deepFocusSubjectOrder = merged.map { it.name },
-                deepFocusChapterOrder = merged.associate { it.name to it.chapterNames },
+                deepFocusChapterOrder = merged.associate { it.name to it.chapters.map { c -> c.name } },
+                deepFocusTopicOrder = merged.flatMap { s -> s.chapters.map { c -> (s.name to c.name) to c.topicNames } }.toMap(),
+                deepFocusDrillSubjectIndex = null,
             )
         }
     }
@@ -515,7 +554,28 @@ class CreatePlanViewModel @Inject constructor(
     fun deepFocusOutline(): List<DeepFocusOutlineSubject> {
         val state = _uiState.value
         val order = state.deepFocusSubjectOrder ?: return currentOutline()
-        return order.mapNotNull { name -> state.deepFocusChapterOrder[name]?.let { DeepFocusOutlineSubject(name, it) } }
+        return order.mapNotNull { subjectName ->
+            val chapterNames = state.deepFocusChapterOrder[subjectName] ?: return@mapNotNull null
+            val chapters = chapterNames.mapNotNull { chapterName ->
+                state.deepFocusTopicOrder[subjectName to chapterName]?.let { DeepFocusOutlineChapter(chapterName, it) }
+            }
+            DeepFocusOutlineSubject(subjectName, chapters)
+        }
+    }
+
+    fun drillIntoDeepFocusSubject(index: Int) = _uiState.update { it.copy(deepFocusDrillSubjectIndex = index) }
+
+    /** Pops the drill-down back to the subject list. Returns true if there was a
+     *  level to pop, false if already at the subject list (caller should then fall
+     *  back to leaving the whole reorder screen). */
+    fun drillBackDeepFocus(): Boolean {
+        val state = _uiState.value
+        return if (state.deepFocusDrillSubjectIndex != null) {
+            _uiState.update { it.copy(deepFocusDrillSubjectIndex = null) }
+            true
+        } else {
+            false
+        }
     }
 
     fun moveDeepFocusSubject(fromIndex: Int, toIndex: Int) {
@@ -533,6 +593,36 @@ class CreatePlanViewModel @Inject constructor(
             val reordered = chapters.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
             state.copy(deepFocusChapterOrder = state.deepFocusChapterOrder + (subjectName to reordered))
         }
+    }
+
+    fun moveDeepFocusTopic(subjectName: String, chapterName: String, fromIndex: Int, toIndex: Int) {
+        _uiState.update { state ->
+            val key = subjectName to chapterName
+            val topics = state.deepFocusTopicOrder[key] ?: return@update state
+            if (fromIndex !in topics.indices || toIndex !in topics.indices) return@update state
+            val reordered = topics.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
+            state.copy(deepFocusTopicOrder = state.deepFocusTopicOrder + (key to reordered))
+        }
+    }
+
+    // ── Mixed Bag "difficult subjects" picker ────────────────────────
+
+    /** Subject names for whichever source is active — used to populate the "choose
+     *  your 2-3 most difficult subjects" picker. */
+    fun currentSubjectNames(): List<String> = currentOutline().map { it.name }
+
+    fun openMixedBagPicker() = _uiState.update { it.copy(step = CreatePlanStep.MixedBagSubjectPicker) }
+
+    /** Confirms the chosen "difficult" subjects (topics from these land every day;
+     *  the rest rotate in one-at-a-time on alternate days) and returns to settings. */
+    fun setMixedBagPrioritySubjects(names: List<String>) {
+        _uiState.update { it.copy(mixedBagPrioritySubjects = names, step = CreatePlanStep.PlanSettings) }
+    }
+
+    /** The alternate-day split is optional — skipping just falls back to the plain
+     *  interleaved mix with no subject getting special daily treatment. */
+    fun skipMixedBagSplit() {
+        _uiState.update { it.copy(mixedBagPrioritySubjects = emptyList(), step = CreatePlanStep.PlanSettings) }
     }
 
     /** Total topic count already gathered for whichever source is active — used
@@ -564,6 +654,21 @@ class CreatePlanViewModel @Inject constructor(
         val source = state.source ?: return
         val subjectOrder = state.deepFocusSubjectOrder
         val chapterOrder = state.deepFocusChapterOrder.ifEmpty { null }
+        // Nest (subjectName, chapterName) -> topics into subjectName -> chapterName ->
+        // topics for the wire format — a flat Pair-keyed map isn't JSON-friendly.
+        val topicOrder = state.deepFocusTopicOrder.entries
+            .groupBy({ it.key.first }, { it.key.second to it.value })
+            .mapValues { (_, pairs) -> pairs.toMap() }
+            .ifEmpty { null }
+        // A non-empty priority-subject split upgrades "interleaved" (Mixed Bag) into
+        // the dedicated "priority_split" strategy; every other style (deep focus's
+        // sequential, balanced's plain interleaved) is unaffected.
+        val prioritySubjects = state.mixedBagPrioritySubjects?.takeIf { it.isNotEmpty() }
+        val effectiveStrategy = if (state.strategy == "interleaved" && prioritySubjects != null) {
+            "priority_split"
+        } else {
+            state.strategy
+        }
         val request = when (source) {
             PlanSource.Template -> {
                 val templateId = state.selectedTemplateId ?: return
@@ -588,10 +693,12 @@ class CreatePlanViewModel @Inject constructor(
                     },
                     subjectOrder = subjectOrder,
                     chapterOrder = chapterOrder,
+                    topicOrder = topicOrder,
+                    prioritySubjects = prioritySubjects,
                     examDate = state.examDate.ifBlank { null },
                     dailyGoal = state.dailyGoal.toIntOrNull(),
                     offDays = state.offDays.toList(),
-                    strategy = state.strategy,
+                    strategy = effectiveStrategy,
                     overloadMode = state.overloadMode,
                 )
             }
@@ -601,10 +708,12 @@ class CreatePlanViewModel @Inject constructor(
                 subjects = state.manualSubjects.toImportRequest(),
                 subjectOrder = subjectOrder,
                 chapterOrder = chapterOrder,
+                topicOrder = topicOrder,
+                prioritySubjects = prioritySubjects,
                 examDate = state.examDate.ifBlank { null },
                 dailyGoal = state.dailyGoal.toIntOrNull(),
                 offDays = state.offDays.toList(),
-                strategy = state.strategy,
+                strategy = effectiveStrategy,
                 overloadMode = state.overloadMode,
             )
             PlanSource.Paste -> {
@@ -625,10 +734,12 @@ class CreatePlanViewModel @Inject constructor(
                     },
                     subjectOrder = subjectOrder,
                     chapterOrder = chapterOrder,
+                    topicOrder = topicOrder,
+                    prioritySubjects = prioritySubjects,
                     examDate = state.examDate.ifBlank { null },
                     dailyGoal = state.dailyGoal.toIntOrNull(),
                     offDays = state.offDays.toList(),
-                    strategy = state.strategy,
+                    strategy = effectiveStrategy,
                     overloadMode = state.overloadMode,
                 )
             }
@@ -678,6 +789,31 @@ class CreatePlanViewModel @Inject constructor(
                     } else {
                         _uiState.update { it.copy(isConfirming = false, error = r.message) }
                     }
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun renamePreviewTopic(topicId: String, newName: String) {
+        val currentPreview = _uiState.value.previewResult ?: return
+        val draftId = currentPreview.draftId
+
+        // Optimistically update the UI state
+        val updatedCalendar = currentPreview.calendarPreview.mapValues { (_, topics) ->
+            topics.map { if (it.topicId == topicId) it.copy(topicName = newName) else it }
+        }
+        val updatedPreview = currentPreview.copy(calendarPreview = updatedCalendar)
+        _uiState.update { it.copy(previewResult = updatedPreview) }
+
+        // Call the backend to update the topic in the draft plan
+        viewModelScope.launch {
+            val patch = com.safarparmar.app.data.remote.api.TopicPatchRequest(name = newName)
+            when (repo.updateTopic(draftId, topicId, patch)) {
+                is Resource.Success -> Unit // Already updated optimistically
+                is Resource.Error -> {
+                    // Revert on failure
+                    _uiState.update { it.copy(previewResult = currentPreview) }
                 }
                 is Resource.Loading -> Unit
             }

@@ -24,8 +24,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,17 +47,17 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import com.safarparmar.app.domain.model.studyplanner.CalendarTopicItem
 
 private val dayFormatter = DateTimeFormatter.ofPattern("MMM d")
 
-private data class PreviewWeek(val label: String, val days: List<Pair<LocalDate, List<String>>>)
+private data class PreviewWeek(val label: String, val days: List<Pair<LocalDate, List<CalendarTopicItem>>>)
 
 /** Groups the (sparse — only study days are keys) calendarPreview map into 7-day weeks
  *  running from the first scheduled date, filling gaps as rest days so the student sees
  *  their whole week, not just the days with topics. */
 private fun buildWeeks(preview: PlanPreviewResult): List<PreviewWeek> {
-    val byDate = preview.calendarPreview.mapValues { (_, topics) -> topics.map { it.topicName } }
-    val dates = byDate.keys.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val dates = preview.calendarPreview.keys.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
     if (dates.isEmpty()) return emptyList()
     val start = dates.min()
     val end = dates.max()
@@ -60,7 +65,7 @@ private fun buildWeeks(preview: PlanPreviewResult): List<PreviewWeek> {
     return allDays.chunked(7).mapIndexed { index, week ->
         PreviewWeek(
             label = "Week ${index + 1}",
-            days = week.map { date -> date to (byDate[date.toString()] ?: emptyList()) },
+            days = week.map { date -> date to (preview.calendarPreview[date.toString()] ?: emptyList()) },
         )
     }
 }
@@ -72,6 +77,7 @@ fun PlanPreviewStep(
     error: String?,
     onConfirm: () -> Unit,
     onAdjust: () -> Unit,
+    onEditTopic: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val weeks = remember(preview) { buildWeeks(preview) }
@@ -138,8 +144,11 @@ fun PlanPreviewStep(
                                 )
                             }
                         } else {
-                            items(selectedDay.second) { topicName ->
-                                TopicPill(topicName)
+                            items(selectedDay.second) { topic ->
+                                TopicPill(
+                                    topic = topic,
+                                    onEditTopic = onEditTopic
+                                )
                             }
                         }
                     }
@@ -257,7 +266,45 @@ private fun DayChipRow(
 }
 
 @Composable
-private fun TopicPill(name: String) {
+private fun TopicPill(
+    topic: CalendarTopicItem,
+    onEditTopic: (String, String) -> Unit,
+) {
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editName by remember(topic.topicName) { mutableStateOf(topic.topicName) }
+
+    if (showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Edit Topic Name") },
+            text = {
+                OutlinedTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (editName.isNotBlank() && editName != topic.topicName) {
+                            onEditTopic(topic.topicId, editName)
+                        }
+                        showEditDialog = false
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -271,13 +318,27 @@ private fun TopicPill(name: String) {
                 modifier = Modifier.size(8.dp).clip(CircleShape).background(PlannerAccent.Teal),
             )
             Text(
-                name,
+                topic.topicName,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = 12.dp),
+                modifier = Modifier.padding(start = 12.dp).weight(1f),
             )
+            IconButton(
+                onClick = {
+                    editName = topic.topicName
+                    showEditDialog = true
+                },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edit topic",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }

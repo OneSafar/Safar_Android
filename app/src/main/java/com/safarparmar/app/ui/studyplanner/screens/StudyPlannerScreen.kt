@@ -285,7 +285,6 @@ private data class StudyPlannerDetailState(
     val hydrateWarning: String? = null,
     val onboardingCompletedSteps: Set<String> = emptySet(),
     val plannerAchievements: List<Achievement> = emptyList(),
-    val planningMode: String = "flex",
     val preferredStudyStrategy: String = "interleaved",
     val pendingManualSubjectOrder: Boolean = false,
     val activePlanTab: StudyPlannerTab = StudyPlannerTab.TODAY,
@@ -388,7 +387,6 @@ fun StudyPlannerScreen(
             hydrateWarning = state.hydrateWarning,
             onboardingCompletedSteps = state.onboardingCompletedSteps,
             plannerAchievements = state.plannerAchievements,
-            planningMode = state.planningMode,
             preferredStudyStrategy = state.preferredStudyStrategy,
             pendingManualSubjectOrder = state.pendingManualSubjectOrder,
             activePlanTab = state.activePlanTab,
@@ -414,7 +412,6 @@ fun StudyPlannerScreen(
                     hydrateWarning = state.hydrateWarning,
                     onboardingCompletedSteps = state.onboardingCompletedSteps,
                     plannerAchievements = state.plannerAchievements,
-                    planningMode = state.planningMode,
                     preferredStudyStrategy = state.preferredStudyStrategy,
                     pendingManualSubjectOrder = state.pendingManualSubjectOrder,
                     activePlanTab = state.activePlanTab,
@@ -624,11 +621,7 @@ fun StudyPlannerScreen(
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
             showTopBarTitle = chromeState.section != PlannerSection.SYLLABUS,
-            topBarActions = {
-                IconButton(onClick = { tourState?.startDirectly() }) {
-                    Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Tour")
-                }
-            },
+            topBarActions = {},
         ) { padding ->
             Scaffold(
                 modifier = Modifier.padding(top = padding.calculateTopPadding()),
@@ -704,13 +697,7 @@ fun StudyPlannerScreen(
                         isRefreshing = chromeState.loading && hasCachedContent,
                         modifier = Modifier.align(Alignment.TopCenter),
                     )
-                    TourManager(
-                        dataStore = viewModel.dataStore,
-                        steps = studyPlannerTourSteps,
-                        section = "study_planner",
-                        askOnFirstVisit = false,
-                        onTourStateReady = { tourState = it },
-                    )
+
                     if (!canUsePremiumPlannerFeatures) {
                         StudyPlannerPremiumLockOverlay(
                             modifier = Modifier.fillMaxSize(),
@@ -843,104 +830,143 @@ private fun StudyPlansScreen(
         )
     }
 
-    SafarPullRefreshBox(
-        isRefreshing = state.loading && state.plans.isNotEmpty(),
-        onRefresh = { actions.refreshPlans() },
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, top = 22.dp, end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+    Column(modifier = Modifier.fillMaxSize()) {
+        SafarPullRefreshBox(
+            isRefreshing = state.loading && state.plans.isNotEmpty(),
+            onRefresh = { actions.refreshPlans() },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(
-                            text = "My Target Exams",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) Color(0xFFE0E3E5) else Color(0xFF1A1C1E),
-                        )
-                        Text(
-                            text = "Choose an exam to create a focused study plan.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isDark) Color(0xFFC4C7C7) else Color(0xFF5E6266),
-                        )
-                    }
-                    Surface(
-                        color = if (isDark) Color(0xFF2D1F4D) else Color(0xFFF0EAFE),
-                        shape = CircleShape,
-                        modifier = Modifier.size(72.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.EmojiEvents,
-                            contentDescription = null,
-                            tint = if (isDark) Color(0xFFB39DDB) else Color(0xFF7C5AD9),
-                            modifier = Modifier.padding(16.dp).size(40.dp),
-                        )
-                    }
-                }
-            }
-
-            if (state.loading && state.plans.isEmpty()) {
-                items(3) {
-                    PlanCardSkeleton(modifier = Modifier.padding(vertical = 4.dp))
-                }
-            }
-
-            if (state.plans.isEmpty() && !state.loading) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, top = 22.dp, end = 16.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 item {
-                    PlannerEmptyState(
-                        title = "No target exam yet",
-                        body = "Plan an exam and it will appear here.",
-                        action = "Plan Your Exams",
-                        onAction = {
-                            onAdvanceTour()
-                            onNavigate(Routes.CREATE_PLAN)
-                        },
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                text = "My Target Exams",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isDark) Color(0xFFE0E3E5) else Color(0xFF1A1C1E),
+                            )
+                            Text(
+                                text = "Choose an exam to create a focused study plan.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isDark) Color(0xFFC4C7C7) else Color(0xFF5E6266),
+                            )
+                        }
+                        Surface(
+                            color = if (isDark) Color(0xFF2D1F4D) else Color(0xFFF0EAFE),
+                            shape = CircleShape,
+                            modifier = Modifier.size(72.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.EmojiEvents,
+                                contentDescription = null,
+                                tint = if (isDark) Color(0xFFB39DDB) else Color(0xFF7C5AD9),
+                                modifier = Modifier.padding(16.dp).size(40.dp),
+                            )
+                        }
+                    }
                 }
-            } else if (state.plans.isNotEmpty()) {
-                items(state.plans, key = { it.id }) { plan ->
-                    PlannerTargetExamRow(
-                        plan = plan,
-                        onOpen = { actions.openPlan(plan.id) },
-                        onDelete = { pendingDelete = plan },
-                    )
-                }
-            }
 
-            item {
-                Spacer(Modifier.height(10.dp))
-                PlannerThemeActionCard(
-                    title = "Plan Your Exams",
-                    subtitle = "Add more exams to your planner",
-                    icon = Icons.AutoMirrored.Filled.LibraryBooks,
-                    colors = listOf(Color(0xFF3D257B), Color(0xFF5B3B9B)),
-                    onClick = {
-                        onAdvanceTour()
-                        onNavigate(Routes.CREATE_PLAN)
-                    },
-                )
+                if (state.loading && state.plans.isEmpty()) {
+                    items(3) {
+                        PlanCardSkeleton(modifier = Modifier.padding(vertical = 4.dp))
+                    }
+                }
+
+                if (state.plans.isEmpty() && !state.loading) {
+                    item {
+                        PlannerEmptyState(
+                            title = "No target exam yet",
+                            body = "Plan an exam and it will appear here.",
+                            action = "Plan Your Exams",
+                            onAction = {
+                                onAdvanceTour()
+                                onNavigate(Routes.CREATE_PLAN)
+                            },
+                        )
+                    }
+                } else if (state.plans.isNotEmpty()) {
+                    items(state.plans, key = { it.id }) { plan ->
+                        PlannerTargetExamRow(
+                            plan = plan,
+                            onOpen = { actions.openPlan(plan.id) },
+                            onDelete = { pendingDelete = plan },
+                        )
+                    }
+                }
             }
-            item {
-                PlannerThemeActionCard(
-                    title = "Custom Plan",
-                    subtitle = "Create your own personalized plan",
-                    icon = Icons.Default.Edit,
-                    colors = listOf(Color(0xFF174777), Color(0xFF29619C)),
-                    onClick = {
-                        onAdvanceTour()
-                        onNavigate(Routes.CREATE_PLAN)
-                    },
+        }
+
+        // Pinned "Create Your New Plan" bar — only when plans exist, so it never
+        // scrolls out of view on this important create-plan surface. In the empty
+        // state the "No target exam yet" card already carries the create action.
+        if (state.plans.isNotEmpty()) {
+            PlannerCreateNewPlanBar(
+                isDark = isDark,
+                onClick = {
+                    onAdvanceTour()
+                    onNavigate(Routes.CREATE_PLAN)
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlannerCreateNewPlanBar(
+    isDark: Boolean,
+    onClick: () -> Unit,
+) {
+    val gradient = Brush.horizontalGradient(listOf(Color(0xFF3D257B), Color(0xFF5B3B9B)))
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 12.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(gradient)
+                    .clickable(onClick = onClick)
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Surface(
+                    color = Color.White.copy(alpha = 0.18f),
+                    shape = CircleShape,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(4.dp).size(22.dp),
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "Create Your New Plan",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
                 )
             }
         }
@@ -1161,7 +1187,7 @@ private fun PlannerTargetExamRow(
             Box {
                 IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(28.dp)) {
                     Icon(
-                        imageVector = Icons.Default.ChevronRight,
+                        imageVector = Icons.Default.MoreVert,
                         contentDescription = "Open $title options",
                         tint = if (isDark) Color(0xFFC4C7C7) else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1173,68 +1199,6 @@ private fun PlannerTargetExamRow(
                         onClick = { menuExpanded = false; onDelete() },
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlannerThemeActionCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    colors: List<Color>,
-    onClick: () -> Unit,
-) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val cardBg = if (isDark) Color(0xFF181C1E) else Color.Transparent
-    val border = if (isDark) BorderStroke(1.dp, Color(0xFF444748).copy(alpha = 0.45f)) else null
-    val contentColor = if (isDark) Color(0xFFE0E3E5) else Color.White
-    val subColor = if (isDark) Color(0xFFC4C7C7) else Color.White.copy(alpha = 0.86f)
-
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = border,
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 3.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .then(
-                    if (!isDark) Modifier.background(Brush.linearGradient(colors))
-                    else Modifier
-                )
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Surface(
-                color = if (isDark) Color(0xFF2C353D) else Color.White.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (isDark) Color(0xFFBCC7DD) else Color.White,
-                    modifier = Modifier.padding(13.dp).size(28.dp),
-                )
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, color = contentColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                Text(subtitle, color = subColor, style = MaterialTheme.typography.bodyMedium)
-            }
-            Surface(
-                color = if (isDark) Color(0xFF2C353D) else Color.White.copy(alpha = 0.14f),
-                shape = CircleShape
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = title,
-                    tint = if (isDark) Color(0xFFE0E3E5) else Color.White,
-                    modifier = Modifier.padding(8.dp).size(24.dp),
-                )
             }
         }
     }
@@ -1716,7 +1680,6 @@ private fun PlannerHome(
                             }
                         },
                         onboardingCompletedSteps = detailState.onboardingCompletedSteps,
-                        planningMode = detailState.planningMode,
                         preferredStudyStrategy = detailState.preferredStudyStrategy,
                         pendingManualSubjectOrder = detailState.pendingManualSubjectOrder,
                         sharedTransitionScope = sharedTransitionScope,

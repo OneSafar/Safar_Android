@@ -65,6 +65,7 @@ fun PlanSettingsStep(
     premiumRequired: Boolean,
     onBuildPlan: () -> Unit,
     onOpenDeepFocusOrder: () -> Unit,
+    onOpenMixedBagPicker: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val selectedStyle = when {
@@ -121,7 +122,10 @@ fun PlanSettingsStep(
                     title = "Mixed Bag",
                     body = "Choose topics from two or more different subjects.",
                     selected = selectedStyle == "mixed_bag",
-                    onClick = { onStudyStyleChange("mixed_bag") },
+                    onClick = {
+                        onStudyStyleChange("mixed_bag")
+                        onOpenMixedBagPicker()
+                    },
                 )
                 StudyStyleIconOption(
                     icon = Icons.Default.Bolt,

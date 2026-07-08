@@ -111,7 +111,6 @@ fun PlanTabScreen(
     activeTab: StudyPlannerTab,
     onNavigate: (String) -> Unit,
     onboardingCompletedSteps: Set<String> = emptySet(),
-    planningMode: String = "flex",
     preferredStudyStrategy: String = "interleaved",
     pendingManualSubjectOrder: Boolean = false,
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -204,7 +203,6 @@ fun PlanTabScreen(
         PlanSettingsSheet(
             plan = plan,
             actions = actions,
-            planningMode = planningMode,
             onExport = ::exportPlan,
             onReset = { resetConfirm = true },
             onDismiss = { showSettings = false },
@@ -1208,13 +1206,13 @@ internal fun UnscheduledTopicsScreen(
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Unscheduled Topics",
+                        text = "Missed Topics",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = scheme.onSurface
                     )
                     Text(
-                        text = "${unscheduledTopics.size} topics left to plan",
+                        text = "${unscheduledTopics.size} topics need a date",
                         style = MaterialTheme.typography.bodySmall,
                         color = scheme.onSurfaceVariant
                     )
@@ -1225,7 +1223,7 @@ internal fun UnscheduledTopicsScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search unscheduled topics...") },
+                placeholder = { Text("Search missed topics...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
@@ -1321,6 +1319,7 @@ private fun DoneForTheDayBar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1334,8 +1333,8 @@ private fun DoneForTheDayBar(
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF0B1221),
-                contentColor = Color.White
+                containerColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0B1221),
+                contentColor = if (isDark) Color(0xFF0B1221) else Color.White
             ),
             shape = RoundedCornerShape(12.dp)
         ) {

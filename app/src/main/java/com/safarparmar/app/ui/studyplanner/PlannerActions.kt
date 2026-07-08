@@ -15,6 +15,10 @@ enum class StudyPlannerTab {
 interface PlannerActions {
     fun setSection(section: PlannerSection)
     fun setPlanTab(tab: StudyPlannerTab)
+    /** Navigates to Calendar and opens the Missed Topics sheet, e.g. from an
+     *  Insights card about overdue/unplanned topics. */
+    fun openMissedTopics()
+    fun clearPendingOpenMissedTopics()
     /**
      * Handles an internal back-press.
      * Returns true  → the ViewModel consumed it (moved to previous section or closed the plan).

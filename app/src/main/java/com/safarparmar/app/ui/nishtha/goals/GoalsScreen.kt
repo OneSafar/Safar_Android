@@ -555,6 +555,15 @@ private fun TimeDigitField(
     onValueChange: (Int) -> Unit,
     maxValue: Int,
 ) {
+    var textValue by remember { mutableStateOf(if (value == 0) "" else value.toString()) }
+
+    // Sync from outside if value changed independently of typing (e.g. from quick-add chips)
+    LaunchedEffect(value) {
+        if (textValue.toIntOrNull() != value) {
+            textValue = if (value == 0) "" else value.toString()
+        }
+    }
+
     Box(
         modifier = Modifier.size(width = 90.dp, height = 72.dp)
             .clip(RoundedCornerShape(16.dp))
@@ -563,10 +572,17 @@ private fun TimeDigitField(
         contentAlignment = Alignment.Center,
     ) {
         BasicTextField(
-            value = "%02d".format(value),
+            value = textValue,
             onValueChange = { raw ->
                 val digits = raw.filter(Char::isDigit).take(2)
-                onValueChange((digits.toIntOrNull() ?: 0).coerceIn(0, maxValue))
+                textValue = digits
+                val parsed = digits.toIntOrNull() ?: 0
+                if (parsed > maxValue) {
+                    textValue = maxValue.toString()
+                    onValueChange(maxValue)
+                } else {
+                    onValueChange(parsed)
+                }
             },
             modifier = Modifier.fillMaxWidth(),
             textStyle = TextStyle(
@@ -578,6 +594,25 @@ private fun TimeDigitField(
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (textValue.isEmpty()) {
+                        Text(
+                            text = "00",
+                            style = TextStyle(
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                textAlign = TextAlign.Center,
+                            )
+                        )
+                    }
+                    innerTextField()
+                }
+            }
         )
     }
 }

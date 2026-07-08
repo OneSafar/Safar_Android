@@ -63,8 +63,6 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -946,7 +944,6 @@ fun PlanTextLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifie
 fun PlanSettingsSheet(
     plan: StudyPlan,
     actions: PlannerActions,
-    planningMode: String = "flex",
     onExport: () -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit,
@@ -967,54 +964,119 @@ fun PlanSettingsSheet(
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val scheme = MaterialTheme.colorScheme
+    val premiumGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF3E7C8C), Color(0xFF29638A)))
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = scheme.surface,
     ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding(),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            item { Text("Plan settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
             item {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Plan title") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(premiumGradient),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("Plan Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                        Text(
+                            "Fine-tune your exam and study routine",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
             item {
-                OutlinedTextField(
-                    value = examType,
-                    onValueChange = { examType = it },
-                    label = { Text("Exam type") },
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
+                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Text(
+                            "EXAM DETAILS",
+                            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.8.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                        OutlinedTextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            label = { Text("Plan title") },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = examType,
+                            onValueChange = { examType = it },
+                            label = { Text("Exam type") },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        PlannerExamDateField(examDateIso = examDate, onExamDateChange = { examDate = it })
+                    }
+                }
             }
-            item { PlannerExamDateField(examDateIso = examDate, onExamDateChange = { examDate = it }) }
             item {
-                OutlinedTextField(
-                    value = dailyGoal,
-                    onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) },
-                    label = { Text("Topics per day") },
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
+                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-            }
-            item {
-                PlanRestDaysRow(
-                    selected = offDays,
-                    onToggle = { day ->
-                        offDays = if (day in offDays) offDays - day else offDays + day
-                    },
-                )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Text(
+                            "STUDY LOAD",
+                            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.8.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                        OutlinedTextField(
+                            value = dailyGoal,
+                            onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) },
+                            label = { Text("Topics per day") },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        PlanRestDaysRow(
+                            selected = offDays,
+                            onToggle = { day ->
+                                offDays = if (day in offDays) offDays - day else offDays + day
+                            },
+                        )
+                    }
+                }
             }
             item {
                 Button(
@@ -1030,56 +1092,31 @@ fun PlanSettingsSheet(
                         )
                         onDismiss()
                     },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
-                    shape = ButtonDefaults.shape,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp)
+                        .background(premiumGradient, shape = RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = Color.White,
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                 ) {
-                    Text("Save details")
+                    Text("Save details", fontWeight = FontWeight.Bold)
                 }
             }
-            item { HorizontalDivider() }
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Scheduling mode", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        text = "How the planner distributes topics when there are more than your days allow.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        FilterChip(
-                            selected = planningMode != "strict",
-                            onClick = { actions.setPlanningMode("flex") },
-                            label = { Text("Flexible") },
-                            modifier = Modifier.weight(1f),
-                        )
-                        FilterChip(
-                            selected = planningMode == "strict",
-                            onClick = { actions.setPlanningMode("strict") },
-                            label = { Text("Strict") },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    Text(
-                        text = if (planningMode == "strict")
-                            "Strict: keep exactly to your daily goal; extra topics stay unscheduled."
-                        else
-                            "Flexible: fit all topics before the exam, raising some days above the goal if needed.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            item { HorizontalDivider() }
             if (isPlanScheduled) {
                 item {
                     OutlinedButton(
                         onClick = onExport,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                        shape = ButtonDefaults.outlinedShape,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, scheme.outlineVariant),
                     ) {
                         Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Export PDF")
+                        Text("Export PDF", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

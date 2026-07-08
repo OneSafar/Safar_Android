@@ -272,6 +272,9 @@ internal fun InsightsTab(
                 InsightsMetricSquares(examDays = examDays, dailyGoal = dailyGoal)
             }
             item {
+                ConsistencyStreakCard(consistency = insights.consistency)
+            }
+            item {
                 InsightsStudySpeedCard(
                     onTrackStatus = insights.summary.onTrackStatus,
                     paceMessage = paceMessage,
@@ -292,9 +295,6 @@ internal fun InsightsTab(
                         onAdjustPlanClick = { actions.setSection(PlannerSection.SYLLABUS) }
                     )
                 }
-            }
-            item {
-                ConsistencyStreakCard(consistency = insights.consistency)
             }
             item {
                 InsightsRevisionStudyCardWidget(
@@ -871,20 +871,20 @@ internal fun StudentNextStepCard(
             action = { actions.setSection(PlannerSection.PLAN) }
         }
         unplanned > 0 -> {
-            title = "Tap Build Planner"
-            body = "$unplanned topics have no study date. Go to Syllabus and tap Build Planner."
-            button = "Go to Syllabus"
+            title = "Assign missed topics"
+            body = "$unplanned topics have no study date. Pick dates for them in Missed Topics."
+            button = "View Missed Topics"
             icon = Icons.AutoMirrored.Filled.PlaylistAdd
             tint = Color(0xFFF59E0B)
-            action = { actions.setSection(PlannerSection.SYLLABUS) }
+            action = { actions.openMissedTopics() }
         }
         overdue > 0 -> {
             title = "Clear overdue first"
             body = "$overdue topics are late. Finish them before starting new topics."
-            button = "Go to Plan"
+            button = "View Missed Topics"
             icon = Icons.Default.Warning
             tint = MaterialTheme.colorScheme.error
-            action = { actions.setSection(PlannerSection.PLAN) }
+            action = { actions.openMissedTopics() }
         }
         insights.summary.onTrackStatus == InsightTrackStatus.BEHIND -> {
             title = "You are behind"

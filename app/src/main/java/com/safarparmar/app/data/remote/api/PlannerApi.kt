@@ -301,6 +301,13 @@ data class PlanPreviewRequest(
      *  since it's captured against the tree as the user last saw it. */
     val subjectOrder: List<String>? = null,
     val chapterOrder: Map<String, List<String>>? = null,
+    /** Topic order within each chapter: subjectName -> chapterName -> topic names. */
+    val topicOrder: Map<String, Map<String, List<String>>>? = null,
+    /** "Mixed Bag" split-focus: the 2-3 subject names the user flagged as most
+     *  difficult. When present with `strategy: "interleaved"`, the server upgrades
+     *  scheduling to "priority_split" — these subjects get topics every study day,
+     *  the rest rotate in one at a time on alternate days. */
+    val prioritySubjects: List<String>? = null,
     val subjects: List<ImportSyllabusSubjectRequest>? = null,
     val examDate: String? = null,
     val dailyGoal: Int? = null,

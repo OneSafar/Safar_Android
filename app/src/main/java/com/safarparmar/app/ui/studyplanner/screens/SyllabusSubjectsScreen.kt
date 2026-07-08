@@ -86,6 +86,14 @@ fun SyllabusSubjectsScreen(
     var dialogState by remember { mutableStateOf<SyllabusDialogState>(SyllabusDialogState.Closed) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var activeSubjectId by rememberSaveable { mutableStateOf<String?>(null) }
+    // Hoisted here (rather than owned by the chapter row itself) so the sheet always
+    // reads its topic list fresh from the same reactive `localSubjects`/`state` this
+    // whole screen renders from — the topic row previously owned its own "is the sheet
+    // open" flag and closed over a `chapter` parameter that could lag one recomposition
+    // behind a just-added topic, which is what made a freshly added topic only show up
+    // after leaving and reopening the sheet.
+    var openTopicsChapterId by rememberSaveable { mutableStateOf<String?>(null) }
+    var topicForDatePicker by remember { mutableStateOf<StudyTopic?>(null) }
 
     BackHandler {
         if (activeSubjectId != null) activeSubjectId = null else onBack()
@@ -350,29 +358,85 @@ fun SyllabusSubjectsScreen(
                             items(subject.chapters, key = { it.id }) { chapter ->
                                 SyllabusChapterAccordionRow(
                                     chapter = chapter,
-                                    onAddTopic = { name -> requestAddTopic(subject.id, chapter.id, name) },
+                                    onOpenTopics = { openTopicsChapterId = chapter.id },
                                     onRename = { dialogState = SyllabusDialogState.RenameChapter(subject.id, chapter) },
                                     onDelete = { dialogState = SyllabusDialogState.DeleteChapter(subject.id, chapter) },
-                                    // Renaming/deleting/scheduling a topic are all reachable
-                                    // from its overflow menu — there's no separate detail
-                                    // sheet to open on tap (that sheet was removed).
-                                    onTopicClick = {},
-                                    onRenameTopic = { topic -> dialogState = SyllabusDialogState.RenameTopic(topic) },
-                                    onDeleteTopic = { topic -> dialogState = SyllabusDialogState.DeleteTopic(topic) },
-                                    onAssignToday = { topic -> actions.updateTopic(topic.id, plannedDate = todayKey(), pinned = true) },
                                     canReorder = canReorderSyllabus,
                                     onMoveChapterUp = { moveChapter(subject.id, chapter.id, -1) },
                                     onMoveChapterDown = { moveChapter(subject.id, chapter.id, 1) },
-                                    onMoveTopicUp = { topic -> moveTopic(chapter.id, topic.id, -1) },
-                                    onMoveTopicDown = { topic -> moveTopic(chapter.id, topic.id, 1) },
                                     onDragEnd = { saveChapterOrder(subject.id) },
-                                    onTopicDragEnd = { saveTopicOrder(chapter.id) },
+                                    modifier = Modifier.animateItem(),
                                 )
                             }
                         }
                     }
                 }
+
+                // Looked up fresh from `subject.chapters` (itself derived from
+                // `localSubjects`/`state.selectedPlan`) on every recomposition, keyed
+                // only by id — so a topic added while this sheet is open shows up
+                // immediately instead of needing the sheet to be reopened.
+                val openChapter = openTopicsChapterId?.let { id -> subject.chapters.find { it.id == id } }
+                if (openChapter != null) {
+                    ChapterTopicsSheet(
+                        chapterName = openChapter.name,
+                        topics = openChapter.topics,
+                        onDismiss = { openTopicsChapterId = null },
+                        onAddTopic = { name -> requestAddTopic(subject.id, openChapter.id, name) },
+                        // Renaming/deleting/scheduling a topic are all reachable from its
+                        // overflow menu — there's no separate detail sheet to open on tap
+                        // (that sheet was removed).
+                        onTopicClick = {},
+                        onRenameTopic = { topic -> dialogState = SyllabusDialogState.RenameTopic(topic) },
+                        onDeleteTopic = { topic -> dialogState = SyllabusDialogState.DeleteTopic(topic) },
+                        onAssignToday = { topic -> actions.updateTopic(topic.id, plannedDate = todayKey(), pinned = true) },
+                        canReorder = canReorderSyllabus,
+                        onMoveTopicUp = { topic -> moveTopic(openChapter.id, topic.id, -1) },
+                        onMoveTopicDown = { topic -> moveTopic(openChapter.id, topic.id, 1) },
+                        onTopicDragEnd = { saveTopicOrder(openChapter.id) },
+                        onChangeDate = { topic -> topicForDatePicker = topic },
+                    )
+                }
             } else {
+        if (topicForDatePicker != null) {
+            val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = System.currentTimeMillis(),
+                selectableDates = object : SelectableDates {
+                    override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                        val picked = java.time.Instant.ofEpochMilli(utcTimeMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                        return !picked.isBefore(today)
+                    }
+                }
+            )
+
+            DatePickerDialog(
+                onDismissRequest = { topicForDatePicker = null },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            datePickerState.selectedDateMillis?.let { millis ->
+                                val ld = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                                topicForDatePicker?.let { topic ->
+                                    actions.updateTopic(topicId = topic.id, plannedDate = ld.toString(), pinned = true)
+                                }
+                            }
+                            topicForDatePicker = null
+                        }
+                    ) {
+                        Text("OK", fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { topicForDatePicker = null }) {
+                        Text("Cancel")
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(isDarkTheme),

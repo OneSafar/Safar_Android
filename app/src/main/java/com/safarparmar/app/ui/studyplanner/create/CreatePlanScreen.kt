@@ -47,6 +47,7 @@ import com.safarparmar.app.ui.studyplanner.create.steps.BuildingPreviewStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ChoosePathStep
 import com.safarparmar.app.ui.studyplanner.create.steps.DeepFocusOrderStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ManualTopicTreeStep
+import com.safarparmar.app.ui.studyplanner.create.steps.MixedBagSubjectPickerStep
 import com.safarparmar.app.ui.studyplanner.create.steps.PasteSyllabusStep
 import com.safarparmar.app.ui.studyplanner.create.steps.PlanPreviewStep
 import com.safarparmar.app.ui.studyplanner.create.steps.PlanSettingsStep
@@ -61,6 +62,7 @@ private fun stepTitle(step: CreatePlanStep): String = when (step) {
     CreatePlanStep.PasteSyllabus -> "Paste your syllabus"
     CreatePlanStep.PlanSettings -> "Plan settings"
     CreatePlanStep.DeepFocusOrder -> "Order your syllabus"
+    CreatePlanStep.MixedBagSubjectPicker -> "Split focus"
     CreatePlanStep.BuildingPreview -> "Building your plan"
     CreatePlanStep.Preview -> "Review your plan"
 }
@@ -109,7 +111,10 @@ fun CreatePlanScreen(
                     null -> CreatePlanStep.ChoosePath
                 },
             )
-            CreatePlanStep.DeepFocusOrder -> viewModel.goToStep(CreatePlanStep.PlanSettings)
+            CreatePlanStep.DeepFocusOrder -> if (!viewModel.drillBackDeepFocus()) {
+                viewModel.goToStep(CreatePlanStep.PlanSettings)
+            }
+            CreatePlanStep.MixedBagSubjectPicker -> viewModel.goToStep(CreatePlanStep.PlanSettings)
             CreatePlanStep.BuildingPreview -> Unit // wait for the request to resolve
             CreatePlanStep.Preview -> {
                 viewModel.discardDraft()
@@ -229,12 +234,22 @@ fun CreatePlanScreen(
                     premiumRequired = state.premiumRequired,
                     onBuildPlan = viewModel::buildPreview,
                     onOpenDeepFocusOrder = viewModel::openDeepFocusOrder,
+                    onOpenMixedBagPicker = viewModel::openMixedBagPicker,
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.DeepFocusOrder -> DeepFocusOrderStep(
                     outline = viewModel.deepFocusOutline(),
+                    drillSubjectIndex = state.deepFocusDrillSubjectIndex,
+                    onDrillIntoSubject = viewModel::drillIntoDeepFocusSubject,
                     onMoveSubject = viewModel::moveDeepFocusSubject,
                     onMoveChapter = viewModel::moveDeepFocusChapter,
+                    onMoveTopic = viewModel::moveDeepFocusTopic,
+                    modifier = Modifier.padding(padding),
+                )
+                CreatePlanStep.MixedBagSubjectPicker -> MixedBagSubjectPickerStep(
+                    subjectNames = viewModel.currentSubjectNames(),
+                    onConfirm = viewModel::setMixedBagPrioritySubjects,
+                    onSkip = viewModel::skipMixedBagSplit,
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.BuildingPreview -> BuildingPreviewStep(modifier = Modifier.padding(padding))
@@ -248,6 +263,7 @@ fun CreatePlanScreen(
                             viewModel.discardDraft()
                             viewModel.goToStep(CreatePlanStep.PlanSettings)
                         },
+                        onEditTopic = viewModel::renamePreviewTopic,
                         modifier = Modifier.padding(padding),
                     )
                 }

@@ -868,13 +868,6 @@ fun EkagraScreen(
                             topBarContentColor = topBarTint,
                             topBarActions = {
                                 val tintColor = topBarTint
-                                IconButton(onClick = { tourState?.start() }) {
-                                    Image(
-                                        painter = painterResource(R.drawable.ic_butterfly_tour),
-                                        contentDescription = "Guide",
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
                                 IconButton(onClick = { showThemeDialog = true }) {
                                     Icon(Icons.Default.Palette, contentDescription = "Theme", tint = tintColor)
                                 }
@@ -1164,13 +1157,7 @@ fun EkagraScreen(
                         }
                     }
 
-                    com.safarparmar.app.ui.tour.TourManager(
-                        dataStore       = viewModel.dataStore,
-                        steps           = com.safarparmar.app.ui.tour.ekagraTourSteps,
-                        section         = "ekagra",
-                        askOnFirstVisit = true,
-                        onTourStateReady = { tourState = it },
-                    )
+
                 }
             }
         }
