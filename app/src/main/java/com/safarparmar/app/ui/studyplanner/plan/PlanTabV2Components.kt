@@ -120,8 +120,6 @@ fun PlanStatusCard(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
-
     val isPlanScheduled = remember(plan) {
         plan.subjects.isNotEmpty() && plan.subjects.any { s ->
             s.chapters.any { c ->
@@ -194,7 +192,7 @@ fun PlanStatusCard(
                     // Right — Days left & Settings
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
@@ -214,37 +212,20 @@ fun PlanStatusCard(
                             )
                         }
 
-                        // Settings menu
-                        Box {
+                        // Plan settings is hidden for now — export is the only
+                        // action surfaced here until the settings entry point
+                        // is redesigned.
+                        if (isPlanScheduled) {
                             IconButton(
-                                onClick = { menuExpanded = true },
-                                modifier = Modifier.size(36.dp)
+                                onClick = onExportClick,
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "Plan options",
-                                    tint = Color.White.copy(alpha = 0.7f)
+                                    imageVector = Icons.Default.FileDownload,
+                                    contentDescription = "Export PDF",
+                                    tint = Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(32.dp)
                                 )
-                            }
-                            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("Plan settings") },
-                                    leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                                    onClick = {
-                                        menuExpanded = false
-                                        onSettingsClick()
-                                    },
-                                )
-                                if (isPlanScheduled) {
-                                    DropdownMenuItem(
-                                        text = { Text("Export PDF") },
-                                        leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
-                                        onClick = {
-                                            menuExpanded = false
-                                            onExportClick()
-                                        },
-                                    )
-                                }
                             }
                         }
                     }

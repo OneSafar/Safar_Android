@@ -241,15 +241,6 @@ internal fun InsightsTab(
     val examDays = daysUntil(plan.examDate)
         ?.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())
         ?.toInt()
-    val paceMessage = remember(insights.summary, insights.backlog, dailyGoal, requiredPace) {
-        buildInsightsPaceMessage(
-            summary = insights.summary,
-            backlog = insights.backlog,
-            dailyGoal = dailyGoal,
-            requiredPace = requiredPace,
-        )
-    }
-
     Column(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -277,7 +268,6 @@ internal fun InsightsTab(
             item {
                 InsightsStudySpeedCard(
                     onTrackStatus = insights.summary.onTrackStatus,
-                    paceMessage = paceMessage,
                     scheduleCoveragePercent = insights.summary.scheduleCoveragePercent
                 )
             }
@@ -288,13 +278,6 @@ internal fun InsightsTab(
                     forecastDate = insights.summary.forecastCompletionDate,
                     studyDaysLeft = insights.summary.availableStudyDays
                 )
-            }
-            if (insights.summary.onTrackStatus == InsightTrackStatus.BEHIND || insights.summary.onTrackStatus == InsightTrackStatus.AT_RISK) {
-                item {
-                    CourseCorrectionCard(
-                        onAdjustPlanClick = { actions.setSection(PlannerSection.SYLLABUS) }
-                    )
-                }
             }
             item {
                 InsightsRevisionStudyCardWidget(
@@ -327,37 +310,6 @@ internal fun InsightsTab(
                 }
             }
         }
-    }
-}
-
-internal fun buildInsightsPaceMessage(
-    summary: PlannerInsightSummary,
-    backlog: PlannerInsightBacklog,
-    dailyGoal: Int,
-    requiredPace: Int,
-): String? {
-    if (summary.remainingTopics <= 0) return null
-    if (summary.onTrackStatus != InsightTrackStatus.BEHIND && summary.onTrackStatus != InsightTrackStatus.AT_RISK) return null
-
-    val targetPace = requiredPace.takeIf { it > 0 } ?: dailyGoal.coerceAtLeast(1)
-    val targetTopicText = "Try $targetPace topic${if (targetPace == 1) "" else "s"} per day"
-    val overflowStudyDays = summary.daysBuffer?.takeIf { it < 0 }?.let { -it } ?: 0
-
-    return when {
-        summary.daysUntilExam != null && summary.daysUntilExam < 0 ->
-            "This exam date has passed. Update the exam date or archive this plan."
-
-        backlog.overdueTotal > 0 && overflowStudyDays > 0 ->
-            "${backlog.overdueTotal} topic${if (backlog.overdueTotal == 1) " is" else "s are"} overdue, and you may not finish before the exam. $targetTopicText, remove some topics, or change the exam date."
-
-        backlog.overdueTotal > 0 ->
-            "${backlog.overdueTotal} topic${if (backlog.overdueTotal == 1) " is" else "s are"} overdue. $targetTopicText to recover."
-
-        overflowStudyDays > 0 ->
-            "This plan needs more time. At ${dailyGoal.coerceAtLeast(1)} topic${if (dailyGoal == 1) "" else "s"} per day, you may not finish before the exam. $targetTopicText, remove some topics, or change the exam date."
-
-        else ->
-            "This plan is tight. $targetTopicText to stay on track."
     }
 }
 
@@ -2275,7 +2227,6 @@ internal fun InsightsMetricSquares(examDays: Int?, dailyGoal: Int) {
 @Composable
 internal fun InsightsStudySpeedCard(
     onTrackStatus: InsightTrackStatus,
-    paceMessage: String?,
     scheduleCoveragePercent: Int?
 ) {
     Surface(
@@ -2332,31 +2283,6 @@ internal fun InsightsStudySpeedCard(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error // Or dynamic color
                     )
-                }
-            }
-            
-            if (!paceMessage.isNullOrBlank()) {
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            text = paceMessage,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
                 }
             }
         }
@@ -2437,57 +2363,3 @@ internal fun InsightsMetricRow(
     }
 }
 
-@Composable
-internal fun CourseCorrectionCard(
-    onAdjustPlanClick: () -> Unit
-) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.error,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onError
-                )
-                Text(
-                    text = "Course Correction",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onError
-                )
-            }
-            
-            Text(
-                text = "You need more time than you currently have. Try removing some topics or changing the exam date to make your plan manageable.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onError.copy(alpha = 0.9f)
-            )
-            
-            Button(
-                onClick = onAdjustPlanClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onError.copy(alpha = 0.2f),
-                    contentColor = MaterialTheme.colorScheme.onError
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Adjust Study Plan", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
-    }
-}
