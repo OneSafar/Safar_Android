@@ -4,6 +4,7 @@ import com.safarparmar.app.data.remote.dto.DeleteEkagraSessionResponse
 import com.safarparmar.app.data.remote.dto.EkagraAnalyticsStatsDto
 import com.safarparmar.app.data.remote.dto.EkagraSessionsResponse
 import com.safarparmar.app.data.remote.dto.FocusStatsResponse
+import com.safarparmar.app.data.remote.dto.LinkedEkagraSessionsResponse
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionRequest
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionResponse
 import retrofit2.Response
@@ -27,6 +28,9 @@ interface FocusApi {
 
     @GET("ekagra-sessions/analytics")
     suspend fun getEkagraAnalytics(): Response<EkagraAnalyticsStatsDto>
+
+    @GET("ekagra-sessions/linked-sessions")
+    suspend fun getLinkedSessions(): Response<LinkedEkagraSessionsResponse>
 
     @POST("ekagra-sessions/save")
     suspend fun saveSession(@Body request: SaveEkagraSessionRequest): Response<SaveEkagraSessionResponse>

@@ -15,6 +15,7 @@ interface EkagraRepository {
         endedAt: String?,
         plannedDurationMinutes: Int,
         actualDurationMinutes: Int,
+        actualDurationSeconds: Int? = null,
         goalId: String? = null,
         goalTitle: String? = null,
         taskTitle: String? = null,
@@ -22,4 +23,5 @@ interface EkagraRepository {
         shieldEnabled: Boolean = false,
     ): Resource<EkagraSession>
     suspend fun deleteSession(sessionId: String): Resource<Unit>
+    suspend fun getLinkedSessions(): Resource<List<com.safarparmar.app.domain.model.GoalLinkedSession>>
 }

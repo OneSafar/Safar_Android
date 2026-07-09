@@ -54,6 +54,7 @@ data class SaveEkagraSessionRequest(
     val endedAt: String? = null,
     val plannedDurationMinutes: Int,
     val actualDurationMinutes: Int,
+    val actualDurationSeconds: Int? = null,
     val goalId: String? = null,
     val goalTitle: String? = null,
     val completed: Boolean = true,
@@ -72,6 +73,23 @@ data class SaveEkagraSessionResponse(
 data class DeleteEkagraSessionResponse(
     val ok: Boolean = false,
     val deletedId: String? = null,
+)
+
+data class LinkedEkagraSessionDto(
+    val id: String = "",
+    val goalId: String = "",
+    val goalTitle: String? = null,
+    val goalExists: Boolean = true,
+    val durationMinutes: Int = 0,
+    val durationSeconds: Int = 0,
+    val startedAt: String? = null,
+    val endedAt: String? = null,
+    val timerMode: String? = null,
+    val source: String = "ekagra_timer",
+)
+
+data class LinkedEkagraSessionsResponse(
+    val sessions: List<LinkedEkagraSessionDto> = emptyList(),
 )
 
 data class FocusStatsResponse(

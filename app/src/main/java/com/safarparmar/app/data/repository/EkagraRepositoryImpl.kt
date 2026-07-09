@@ -7,11 +7,13 @@ import com.safarparmar.app.data.remote.dto.EkagraAnalyticsStatsDto
 import com.safarparmar.app.data.remote.dto.EkagraTimerDurationUsageDto
 import com.safarparmar.app.data.remote.dto.EkagraSession
 import com.safarparmar.app.data.remote.dto.FocusStatsResponse
+import com.safarparmar.app.data.remote.dto.LinkedEkagraSessionDto
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionRequest
 import com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession
 import com.safarparmar.app.domain.model.EkagraAnalyticsRecentSession
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.domain.model.EkagraTimerDurationUsage
+import com.safarparmar.app.domain.model.GoalLinkedSession
 import com.safarparmar.app.domain.repository.EkagraRepository
 import com.safarparmar.app.util.Resource
 import com.safarparmar.app.util.safeApiCall
@@ -37,6 +39,16 @@ class EkagraRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getLinkedSessions(): Resource<List<GoalLinkedSession>> {
+        return try {
+            val res = focusApi.getLinkedSessions()
+            if (res.isSuccessful) Resource.Success(res.body()?.sessions.orEmpty().map { it.toDomain() })
+            else Resource.Error("Linked sessions failed: ${res.code()}")
+        } catch (e: Exception) {
+            Resource.Error("Network error: ${e.message}")
+        }
+    }
+
     override suspend fun saveSession(
         clientSessionId: String?,
         mode: String,
@@ -44,6 +56,7 @@ class EkagraRepositoryImpl @Inject constructor(
         endedAt: String?,
         plannedDurationMinutes: Int,
         actualDurationMinutes: Int,
+        actualDurationSeconds: Int?,
         goalId: String?,
         goalTitle: String?,
         taskTitle: String?,
@@ -59,6 +72,7 @@ class EkagraRepositoryImpl @Inject constructor(
                     endedAt = endedAt,
                     plannedDurationMinutes = plannedDurationMinutes,
                     actualDurationMinutes = actualDurationMinutes,
+                    actualDurationSeconds = actualDurationSeconds ?: (actualDurationMinutes * 60),
                     goalId = goalId,
                     goalTitle = goalTitle,
                     taskTitle = taskTitle,
@@ -110,6 +124,10 @@ class EkagraRepositoryImpl @Inject constructor(
 
     private fun EkagraAnalyticsStatsDto.toDomain() = EkagraAnalyticsStats(
         totalFocusMinutes = totalFocusMinutes ?: 0,
+        goalLinkedTime = goalLinkedTime ?: 0,
+        untitledTime = untitledTime ?: 0,
+        goalLinkedSessionCount = goalLinkedSessionCount ?: 0,
+        untitledSessionCount = untitledSessionCount ?: 0,
         totalBreakMinutes = totalBreakMinutes ?: 0,
         timerUsageCount = timerUsageCount ?: 0,
         breakSessionsCount = breakSessionsCount ?: 0,
@@ -143,9 +161,11 @@ class EkagraRepositoryImpl @Inject constructor(
         endedAt = endedAt,
         durationMinutes = durationMinutes ?: 0,
         actualMinutes = actualMinutes ?: 0,
+        actualSeconds = actualSeconds ?: 0,
         completed = completed ?: false,
         taskText = taskText,
         associatedGoalId = associatedGoalId,
+        isGoalLinked = isGoalLinked ?: false,
         pauseCount = pauseCount ?: 0,
         sessionType = sessionType ?: "ekagra",
     )
@@ -156,11 +176,26 @@ class EkagraRepositoryImpl @Inject constructor(
         endedAt = endedAt,
         durationMinutes = durationMinutes ?: 0,
         actualMinutes = actualMinutes ?: 0,
+        actualSeconds = actualSeconds ?: 0,
         status = status ?: "completed",
         rawStatus = rawStatus ?: "completed",
         taskText = taskText,
         associatedGoalId = associatedGoalId,
+        isGoalLinked = isGoalLinked ?: false,
         pauseCount = pauseCount ?: 0,
         timerMode = timerMode,
+    )
+
+    private fun LinkedEkagraSessionDto.toDomain() = GoalLinkedSession(
+        id = id,
+        goalId = goalId,
+        goalTitle = goalTitle,
+        goalExists = goalExists,
+        durationMinutes = durationMinutes,
+        durationSeconds = durationSeconds,
+        startedAt = startedAt,
+        endedAt = endedAt,
+        timerMode = timerMode,
+        source = source,
     )
 }

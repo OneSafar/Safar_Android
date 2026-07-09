@@ -251,8 +251,8 @@ fun GoalsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     buildList {
                         if (editGoalKind == "one_time") add(Triple("one_time", "One-time (legacy)", "No fixed day. Complete it whenever."))
-                        if (editGoalKind == "repeat") add(Triple("repeat", "Repeat (legacy)", "Recurs daily. Carries forward if not completed."))
                         add(Triple("today", "Today", "A task for today only. Disappears tomorrow."))
+                        add(Triple("repeat", "Repeat", "Recurs automatically every day. Edit it once and future days pick up the change."))
                         add(Triple("scheduled", "Scheduled", "Set a goal for a future date."))
                     }.forEach { (value, label, hint) ->
                         AssistOptionRow(
@@ -264,6 +264,7 @@ fun GoalsScreen(
                                 if (value == "scheduled" && !selectedDate.isAfter(LocalDate.now(IstDateUtils.zone))) {
                                     selectedDate = LocalDate.now(IstDateUtils.zone).plusDays(1)
                                 }
+                                if (value == "repeat") editCarryForward = "full"
                             }
                         )
                     }
@@ -350,6 +351,7 @@ fun GoalsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
                         Triple("today", "Today", "A task for today only. Disappears tomorrow."),
+                        Triple("repeat", "Repeat", "Recurs automatically every day. Edit it once and future days pick up the change."),
                         Triple("scheduled", "Scheduled", "Set a goal for a future date.")
                     ).forEach { (value, label, hint) ->
                         AssistOptionRow(
@@ -358,7 +360,7 @@ fun GoalsScreen(
                             subtitle = hint,
                             onClick = {
                                 newGoalKind = value
-                                newCarryForward = "none"
+                                newCarryForward = if (value == "repeat") "full" else "none"
                                 selectedDate = if (value == "scheduled") LocalDate.now(IstDateUtils.zone).plusDays(1) else LocalDate.now(IstDateUtils.zone)
                             }
                         )
@@ -389,7 +391,7 @@ fun GoalsScreen(
                             targetValue = null,
                             achievedValue = 0,
                             status = "not_started",
-                            carryForwardMode = "none"
+                            carryForwardMode = newCarryForward
                         )
                     },
                     enabled = newTitle.isNotBlank() && !uiState.isSavingGoal,

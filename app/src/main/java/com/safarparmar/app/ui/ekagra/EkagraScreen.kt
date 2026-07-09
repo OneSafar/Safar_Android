@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -70,6 +71,7 @@ import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import com.safarparmar.app.util.IstDateUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -680,18 +682,36 @@ fun EkagraScreen(
                     }
                     if (showOrganizeSheet) {
                         val pending = pendingEndedSession
-                        fun savePendingAsFree() {
-                            if (pending != null) {
-                                viewModel.completeSession(pending.sessionId, pending.totalSeconds,
-                                    pending.secondsLeft, pending.mode, pending.startedAt,
-                                    titleInput.ifBlank { "Untitled" }, null, null, false, pending.endedAt)
-                                timerService?.reset(); associatedGoalId = null
-                                associatedGoalTitle = null; pendingEndedSession = null; showOrganizeSheet = false
-                            } else {
+                        val organizeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+                        val organizeSheetScope = rememberCoroutineScope()
+
+                        // ModalBottomSheet must finish its hide animation before we tear the
+                        // composable down, otherwise its scrim/Popup can be left behind
+                        // half-animated — showing as a stuck, dimmed screen until back is pressed.
+                        fun closeOrganizeSheet(onClosed: () -> Unit) {
+                            organizeSheetScope.launch {
+                                organizeSheetState.hide()
+                            }.invokeOnCompletion {
+                                onClosed()
                                 showOrganizeSheet = false
                             }
                         }
+
+                        fun savePendingAsFree() {
+                            if (pending != null) {
+                                closeOrganizeSheet {
+                                    viewModel.completeSession(pending.sessionId, pending.totalSeconds,
+                                        pending.secondsLeft, pending.mode, pending.startedAt,
+                                        titleInput.ifBlank { "Untitled" }, null, null, false, pending.endedAt)
+                                    timerService?.reset(); associatedGoalId = null
+                                    associatedGoalTitle = null; pendingEndedSession = null
+                                }
+                            } else {
+                                closeOrganizeSheet {}
+                            }
+                        }
                         OrganizeFreeFocusSheet(
+                            sheetState    = organizeSheetState,
                             pending       = pending,
                             goals         = openGoals,
                             titleInput    = titleInput,
@@ -700,18 +720,22 @@ fun EkagraScreen(
                             onSaveFree    = { savePendingAsFree() },
                             onLinkGoal = { goal, shouldMarkComplete ->
                                 if (pending != null) {
-                                    viewModel.linkGoalAndCompleteSession(pending.sessionId, goal,
-                                        pending.totalSeconds, pending.secondsLeft, pending.mode, pending.startedAt,
-                                        shouldMarkComplete, pending.endedAt)
-                                    timerService?.reset(); associatedGoalId = null
-                                    associatedGoalTitle = null; pendingEndedSession = null; showOrganizeSheet = false
+                                    closeOrganizeSheet {
+                                        viewModel.linkGoalAndCompleteSession(pending.sessionId, goal,
+                                            pending.totalSeconds, pending.secondsLeft, pending.mode, pending.startedAt,
+                                            shouldMarkComplete, pending.endedAt)
+                                        timerService?.reset(); associatedGoalId = null
+                                        associatedGoalTitle = null; pendingEndedSession = null
+                                    }
                                 }
                             },
                             onDiscard = {
                                 if (pending != null) {
-                                    viewModel.discardSession(pending.sessionId)
-                                    timerService?.reset(); associatedGoalId = null
-                                    associatedGoalTitle = null; pendingEndedSession = null; showOrganizeSheet = false
+                                    closeOrganizeSheet {
+                                        viewModel.discardSession(pending.sessionId)
+                                        timerService?.reset(); associatedGoalId = null
+                                        associatedGoalTitle = null; pendingEndedSession = null
+                                    }
                                 }
                             },
                         )
@@ -1157,7 +1181,23 @@ fun EkagraScreen(
                         }
                     }
 
-
+                    // Full-screen countdown blocker — sits above the whole scaffold
+                    // (topbar, buttons, everything), so no tap can reach anything
+                    // underneath while the 3-2-1 countdown is running. Fades out
+                    // smoothly once the countdown hits 0 and the timer starts.
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = countdownValue > 0,
+                        enter = fadeIn(animationSpec = tween(200)),
+                        exit = fadeOut(animationSpec = tween(600, easing = FastOutSlowInEasing)),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.55f))
+                                .pointerInput(Unit) { detectTapGestures { } }
+                        )
+                    }
                 }
             }
         }

@@ -817,6 +817,7 @@ private fun StudyPlansScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onAdvanceTour: () -> Unit = {},
+    selectedPlanId: String? = null,
 ) {
     var pendingDelete by remember { mutableStateOf<StudyPlan?>(null) }
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
@@ -900,6 +901,7 @@ private fun StudyPlansScreen(
                     items(state.plans, key = { it.id }) { plan ->
                         PlannerTargetExamRow(
                             plan = plan,
+                            isActive = plan.id == selectedPlanId,
                             onOpen = { actions.openPlan(plan.id) },
                             onDelete = { pendingDelete = plan },
                         )
@@ -1103,8 +1105,53 @@ private fun targetExamTone(planId: String, isDark: Boolean): TargetExamTone {
 }
 
 @Composable
+private fun ActivePlanBadge(isDark: Boolean) {
+    // Light mode: solid deep-purple pill (high contrast on white card)
+    // Dark mode: translucent green pill (already high contrast on dark card)
+    val activeColor = if (isDark) Color(0xFF10B981) else Color(0xFF4A2D8F)
+    val pillBg     = if (isDark) activeColor.copy(alpha = 0.18f) else activeColor
+    val textColor  = if (isDark) activeColor else Color.White
+    val dotColor   = if (isDark) activeColor else Color.White
+
+    val infiniteTransition = rememberInfiniteTransition(label = "activeDotPulse")
+    val dotAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = androidx.compose.animation.core.EaseInOut),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "dotAlpha",
+    )
+
+    Surface(
+        color = pillBg,
+        shape = RoundedCornerShape(50),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .background(dotColor.copy(alpha = dotAlpha), CircleShape),
+            )
+            Text(
+                text = "Active",
+                color = textColor,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
 private fun PlannerTargetExamRow(
     plan: StudyPlan,
+    isActive: Boolean = false,
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -1117,8 +1164,19 @@ private fun PlannerTargetExamRow(
     val days = daysUntil(plan.examDate)
     var menuExpanded by remember { mutableStateOf(false) }
 
+    val activeGreen = Color(0xFF10B981)
+    val activePurple = Color(0xFF4A2D8F)
+    // Active indicator color: green in dark mode (high contrast on dark card),
+    // deep purple in light mode (high contrast on white card, matches brand).
+    val activeAccent = if (isDark) activeGreen else activePurple
     val cardBg = if (isDark) Color(0xFF181C1E) else Color.White
-    val cardBorder = if (isDark) Color(0xFF444748).copy(alpha = 0.45f) else Color.Transparent
+    val cardBorder = when {
+        isActive && isDark  -> activeAccent.copy(alpha = 0.55f)
+        isActive            -> activeAccent               // full-opacity purple on white = clearly visible
+        isDark              -> Color(0xFF444748).copy(alpha = 0.45f)
+        else                -> Color.Transparent
+    }
+    val accentBarColor = if (isActive) activeAccent else tone.accent
 
     Card(
         modifier = Modifier
@@ -1126,7 +1184,7 @@ private fun PlannerTargetExamRow(
             .clickable(onClick = onOpen),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = if (isDark) BorderStroke(1.dp, cardBorder) else null,
+        border = if (isActive || isDark) BorderStroke(if (isActive) 1.5.dp else 1.dp, cardBorder) else null,
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 3.dp),
     ) {
         Row(
@@ -1148,11 +1206,12 @@ private fun PlannerTargetExamRow(
                     modifier = Modifier.padding(17.dp).size(30.dp),
                 )
             }
+            // Left-edge accent bar — green when active, plan tone otherwise
             Box(
                 modifier = Modifier
                     .width(3.dp)
                     .height(48.dp)
-                    .background(tone.accent, CircleShape),
+                    .background(accentBarColor, CircleShape),
             )
             Column(
                 modifier = Modifier.weight(1f),
@@ -1173,6 +1232,10 @@ private fun PlannerTargetExamRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // Active indicator badge — only shown for the currently open plan
+                if (isActive) {
+                    ActivePlanBadge(isDark = isDark)
+                }
             }
             Surface(color = tone.chipBackground, shape = RoundedCornerShape(12.dp)) {
                 Text(
@@ -1653,6 +1716,7 @@ private fun PlannerHome(
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     onAdvanceTour = onAdvanceTour,
+                    selectedPlanId = chromeState.selectedPlan?.id,
                 )
             } else {
                 when (chromeState.section) {
@@ -1666,6 +1730,7 @@ private fun PlannerHome(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                         onAdvanceTour = onAdvanceTour,
+                        selectedPlanId = chromeState.selectedPlan?.id,
                     )
                     PlannerSection.PLAN -> {
                     PlanTabScreen(

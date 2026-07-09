@@ -6,6 +6,7 @@ import com.safarparmar.app.data.remote.dto.EkagraSession
 import com.safarparmar.app.data.remote.dto.FocusStatsResponse
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.domain.model.Goal
+import com.safarparmar.app.domain.model.GoalLinkedSession
 import com.safarparmar.app.domain.repository.EkagraRepository
 import com.safarparmar.app.domain.repository.HomeRepository
 import com.safarparmar.app.util.IstDateUtils
@@ -53,6 +54,18 @@ class EkagraViewModel @Inject constructor(
 
     private val _allGoals = MutableStateFlow<List<Goal>>(emptyList())
     val allGoals = _allGoals.asStateFlow()
+
+    private val _linkedSessions = MutableStateFlow<List<GoalLinkedSession>>(emptyList())
+    val linkedSessions = _linkedSessions.asStateFlow()
+
+    fun loadLinkedSessions() {
+        viewModelScope.launch {
+            when (val r = repo.getLinkedSessions()) {
+                is Resource.Success -> _linkedSessions.value = r.data
+                is Resource.Error, is Resource.Loading -> Unit
+            }
+        }
+    }
 
     private var activeSessionId: String? = null
     private var sessionStartedAt: String? = null
@@ -294,11 +307,10 @@ class EkagraViewModel @Inject constructor(
         endedAt: String? = null,
     ) {
         val current = _activeSession.value
-        val actualMinutes = if (mode == "stopwatch") {
-            (secondsLeft / 60.0).roundToInt()
-        } else {
-            ((totalSeconds - secondsLeft) / 60.0).roundToInt()
-        }
+        val actualSeconds = if (mode == "stopwatch") secondsLeft else (totalSeconds - secondsLeft)
+        // Kept for the backend's older minute-level fields and for planned-vs-actual
+        // fallbacks — actualSeconds is the precise value now used for aggregation.
+        val actualMinutes = (actualSeconds / 60.0).roundToInt()
         val plannedMinutes = if (mode == "stopwatch") 0 else (totalSeconds / 60.0).roundToInt()
         val started = startedAt ?: current?.sessionStartedAt ?: sessionStartedAt ?: if (mode == "stopwatch") {
             Instant.now().minusSeconds(secondsLeft.toLong()).toString()
@@ -323,6 +335,7 @@ class EkagraViewModel @Inject constructor(
                 endedAt = endedAt ?: Instant.now().toString(),
                 plannedDurationMinutes = plannedMinutes,
                 actualDurationMinutes = actualMinutes,
+                actualDurationSeconds = actualSeconds,
                 goalId = cleanGoalId?.takeIf { it.isNotBlank() && !it.startsWith("named:") },
                 goalTitle = cleanGoalTitle,
                 taskTitle = cleanTitle,

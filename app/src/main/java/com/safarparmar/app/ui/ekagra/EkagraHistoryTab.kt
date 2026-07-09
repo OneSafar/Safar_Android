@@ -110,9 +110,13 @@ internal fun FocusHistoryTab(
         }
     }
 
-    val linkedSessions = filteredSessions.filter { !it.associatedGoalId.isNullOrBlank() && it.associatedGoalId?.startsWith("named:") != true }
-    val freeSessions = filteredSessions.filterNot { !it.associatedGoalId.isNullOrBlank() && it.associatedGoalId?.startsWith("named:") != true }
-    val tabFocusMins = filteredSessions.sumOf { it.actualMinutes }
+    // Goal-linked sessions live in Goal History now, not here — Ekagra History
+    // is only for untitled/free-focus sessions.
+    val freeSessions = filteredSessions.filterNot { it.isGoalLinked }
+    // Sum in seconds and round once — summing already-rounded per-session
+    // minutes compounds rounding error (e.g. ten 30s sessions would read as
+    // 10 min total instead of 5).
+    val tabFocusMins = (freeSessions.sumOf { it.actualSeconds } / 60.0).roundToInt()
 
     Column(
         modifier = modifier
@@ -299,23 +303,16 @@ internal fun FocusHistoryTab(
 
         if (selectedSubTab == 0) {
             HistorySection(
-                title      = "Sessions linked to a goal",
-                sessions   = linkedSessions,
-                emptyText  = "No linked sessions found.",
-                accentColor = tabAccentColor,
-                onSessionClick = onSessionClick,
-            )
-            HistorySection(
-                title      = "Sessions Not Linked",
+                title      = "Ekagra Sessions",
                 sessions   = freeSessions,
-                emptyText  = "No unlinked sessions found.",
+                emptyText  = "No sessions found.",
                 accentColor = tabAccentColor,
                 onSessionClick = onSessionClick,
             )
         } else {
             HistorySection(
                 title      = "Just stopwatch sessions",
-                sessions   = filteredSessions,
+                sessions   = filteredSessions.filterNot { it.isGoalLinked },
                 emptyText  = "No stopwatch sessions found.",
                 accentColor = tabAccentColor,
                 onSessionClick = onSessionClick,
@@ -374,7 +371,6 @@ internal fun FocusSessionRow(
     onClick: () -> Unit = {}
 ) {
     val scheme    = MaterialTheme.colorScheme
-    val isLinked  = !session.associatedGoalId.isNullOrBlank() && session.associatedGoalId?.startsWith("named:") != true
 
     Card(
         shape     = RoundedCornerShape(12.dp),
@@ -394,34 +390,30 @@ internal fun FocusSessionRow(
                         color      = scheme.onSurface,
                         maxLines   = 1,
                         modifier   = Modifier.weight(1f, fill = false))
-                    if (isLinked) {
-                        // M3 tertiaryContainer badge — complementary accent role
-                        Text(
-                            "Linked",
-                            fontSize   = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color      = scheme.onTertiaryContainer,
-                            modifier   = Modifier
-                                .clip(RoundedCornerShape(50.dp))
-                                .background(scheme.tertiaryContainer)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                        )
-                    }
                 }
-                if (session.timerMode?.equals("stopwatch", ignoreCase = true) == true) {
+                // Prefer the backend's exact actualSeconds; fall back to the
+                // timestamp diff (older docs), then to the rounded-minutes field.
+                fun exactElapsedSeconds(): Long {
+                    if (session.actualSeconds > 0) return session.actualSeconds.toLong()
                     val startInstant = parseInstantOrNull(session.startedAt)
                     val endInstant = parseInstantOrNull(session.endedAt)
-                    val elapsedSeconds = if (startInstant != null && endInstant != null) {
-                        java.time.Duration.between(startInstant, endInstant).seconds.coerceAtLeast(0)
-                    } else {
-                        session.actualMinutes * 60L
+                    if (startInstant != null && endInstant != null) {
+                        return java.time.Duration.between(startInstant, endInstant).seconds.coerceAtLeast(0)
                     }
+                    return session.actualMinutes * 60L
+                }
+                if (session.timerMode?.equals("stopwatch", ignoreCase = true) == true) {
+                    val elapsedSeconds = exactElapsedSeconds()
                     val mins = elapsedSeconds / 60
                     val secs = elapsedSeconds % 60
                     Text("Elapsed %02d:%02d".format(mins, secs),
                         fontSize = 12.sp, color = scheme.onSurfaceVariant)
                 } else {
-                    Text("Planned ${session.durationMinutes}m · Actual ${session.actualMinutes}m",
+                    val actualElapsedSeconds = exactElapsedSeconds()
+                    val actualMins = actualElapsedSeconds / 60
+                    val actualSecs = actualElapsedSeconds % 60
+                    val actualLabel = if (actualSecs > 0) "${actualMins}m ${actualSecs}s" else "${actualMins}m"
+                    Text("Planned ${session.durationMinutes}m · Actual $actualLabel",
                         fontSize = 12.sp, color = scheme.onSurfaceVariant)
                 }
             }

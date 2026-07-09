@@ -149,8 +149,6 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
 @Composable
 internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
     val accent = Color(0xFF9A3412)
-    val linkedSessionCount = analytics.focusSessions.count { !it.associatedGoalId.isNullOrBlank() }
-    val freeFocusSessionCount = analytics.focusSessions.count { it.associatedGoalId.isNullOrBlank() }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -166,9 +164,23 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
             CleanMetricCard("Average session length", formatStudyTime(analytics.averageTimerMinutes), null, accent, Modifier.weight(1f))
             CleanMetricCard("Most used duration", analytics.mostUsedTimerDurationMinutes?.let { formatStudyTime(it) } ?: "-", null, accent, Modifier.weight(1f))
         }
+        // Time breakdown — straight from the backend's goalLinkedTime/untitledTime
+        // aggregation, no client-side re-derivation.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CleanMetricCard("Goal-linked ekagra", linkedSessionCount.toString(), "Saved sessions assigned to goals", accent, Modifier.weight(1f))
-            CleanMetricCard("Free ekagra", freeFocusSessionCount.toString(), "Saved sessions without a goal", accent, Modifier.weight(1f))
+            CleanMetricCard(
+                "Goal-linked time",
+                formatStudyTime(analytics.goalLinkedTime),
+                "${analytics.goalLinkedSessionCount} session${if (analytics.goalLinkedSessionCount == 1) "" else "s"}",
+                accent,
+                Modifier.weight(1f),
+            )
+            CleanMetricCard(
+                "Untitled time",
+                formatStudyTime(analytics.untitledTime),
+                "${analytics.untitledSessionCount} session${if (analytics.untitledSessionCount == 1) "" else "s"}",
+                accent,
+                Modifier.weight(1f),
+            )
         }
         TimerDurationUsageCard(analytics.timerDurationUsage, accent)
     }

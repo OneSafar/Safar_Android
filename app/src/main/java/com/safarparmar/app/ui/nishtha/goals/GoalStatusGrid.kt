@@ -51,7 +51,11 @@ import java.util.Locale
 internal fun StatusGrid(goals: List<Goal>, ekagraAnalytics: com.safarparmar.app.domain.model.EkagraAnalyticsStats) {
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = goals.filter { it.source != "ekagra" }
-    val pending = standardGoals.filter { !it.completed && it.lifecycleStatus !in listOf("abandoned", "rolled_over") && !it.isDormant(todayKey) }
+    val pending = standardGoals.filter {
+        !it.completed && it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
+            !(it.lifecycleStatus == "missed" && it.nextInstanceCreated) &&
+            !it.isDormant(todayKey)
+    }
     val scheduled = standardGoals.filter { !it.completed && it.isDormant(todayKey) }
     val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
     val doneToday = manualCompletedGoals.count { it.completedDateKey() == todayKey }

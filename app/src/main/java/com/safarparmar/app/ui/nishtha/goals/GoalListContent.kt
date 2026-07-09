@@ -65,8 +65,16 @@ internal fun GoalsTab(
 ) {
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = goals.filter { it.source != "ekagra" }
+    // A goal that is missed but already spawned its next auto-repeat instance is
+    // superseded — it must not linger on the board or it piles up forever (every
+    // missed day would add one more stale card that never goes away).
     val pending = goals
-        .filter { !it.completed && it.source != "ekagra" && it.lifecycleStatus !in listOf("abandoned", "rolled_over") && !it.isDormant(todayKey) }
+        .filter {
+            !it.completed && it.source != "ekagra" &&
+                it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
+                !(it.lifecycleStatus == "missed" && it.nextInstanceCreated) &&
+                !it.isDormant(todayKey)
+        }
         .sortedBy { it.startedAt ?: it.createdAt ?: it.scheduledDate ?: "" }
     val scheduled = goals
         .filter { !it.completed && it.isDormant(todayKey) }

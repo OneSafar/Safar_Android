@@ -74,6 +74,7 @@ data class GoalDto(
     @SerializedName("lifecycle_status")  val lifecycleStatusSnake: String? = null,
     @SerializedName("rollover_prompt_pending") val rolloverPromptPendingSnake: Boolean? = null,
     @SerializedName("source_goal_id")     val sourceGoalIdSnake: String? = null,
+    @SerializedName("next_instance_created") val nextInstanceCreatedSnake: Boolean? = null,
     val completedAt: String? = null,
     val scheduledDate: String? = null,
     val lifecycleStatus: String? = null
@@ -237,6 +238,10 @@ data class GoalFocusSummaryItemDto(val totalMinutes: Int? = 0, val sessionCount:
 
 data class EkagraAnalyticsStatsDto(
     val totalFocusMinutes: Int? = 0,
+    val goalLinkedTime: Int? = 0,
+    val untitledTime: Int? = 0,
+    val goalLinkedSessionCount: Int? = 0,
+    val untitledSessionCount: Int? = 0,
     val totalBreakMinutes: Int? = 0,
     val timerUsageCount: Int? = 0,
     val breakSessionsCount: Int? = 0,
@@ -270,9 +275,11 @@ data class EkagraAnalyticsRecentSessionDto(
     val endedAt: String? = null,
     val durationMinutes: Int? = 0,
     val actualMinutes: Int? = 0,
+    val actualSeconds: Int? = 0,
     val completed: Boolean? = false,
     val taskText: String? = null,
     val associatedGoalId: String? = null,
+    val isGoalLinked: Boolean? = false,
     val pauseCount: Int? = 0,
     val sessionType: String? = null
 )
@@ -283,10 +290,12 @@ data class EkagraAnalyticsFocusSessionDto(
     val endedAt: String? = null,
     val durationMinutes: Int? = 0,
     val actualMinutes: Int? = 0,
+    val actualSeconds: Int? = 0,
     val status: String? = null,
     val rawStatus: String? = null,
     val taskText: String? = null,
     val associatedGoalId: String? = null,
+    val isGoalLinked: Boolean? = false,
     val pauseCount: Int? = 0,
     val timerMode: String? = null
 )

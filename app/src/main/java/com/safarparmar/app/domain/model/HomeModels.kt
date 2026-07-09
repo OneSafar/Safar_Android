@@ -50,6 +50,7 @@ data class Goal(
     val lifecycleStatus: String? = null,
     val rolloverPromptPending: Boolean = false,
     val sourceGoalId: String? = null,
+    val nextInstanceCreated: Boolean = false,
     val type: String? = null,
     val subtasks: List<GoalSubtask> = emptyList()
 )
@@ -144,6 +145,10 @@ data class LoginHistoryEntry(val timestamp: String = "")
 @Immutable
 data class EkagraAnalyticsStats(
     val totalFocusMinutes: Int = 0,
+    val goalLinkedTime: Int = 0,
+    val untitledTime: Int = 0,
+    val goalLinkedSessionCount: Int = 0,
+    val untitledSessionCount: Int = 0,
     val totalBreakMinutes: Int = 0,
     val timerUsageCount: Int = 0,
     val breakSessionsCount: Int = 0,
@@ -179,9 +184,11 @@ data class EkagraAnalyticsRecentSession(
     val endedAt: String? = null,
     val durationMinutes: Int = 0,
     val actualMinutes: Int = 0,
+    val actualSeconds: Int = 0,
     val completed: Boolean = false,
     val taskText: String? = null,
     val associatedGoalId: String? = null,
+    val isGoalLinked: Boolean = false,
     val pauseCount: Int = 0,
     val sessionType: String = "ekagra"
 )
@@ -193,10 +200,26 @@ data class EkagraAnalyticsFocusSession(
     val endedAt: String? = null,
     val durationMinutes: Int = 0,
     val actualMinutes: Int = 0,
+    val actualSeconds: Int = 0,
     val status: String = "completed",
     val rawStatus: String = "completed",
     val taskText: String? = null,
     val associatedGoalId: String? = null,
+    val isGoalLinked: Boolean = false,
     val pauseCount: Int = 0,
     val timerMode: String? = null
+)
+
+@Immutable
+data class GoalLinkedSession(
+    val id: String = "",
+    val goalId: String = "",
+    val goalTitle: String? = null,
+    val goalExists: Boolean = true,
+    val durationMinutes: Int = 0,
+    val durationSeconds: Int = 0,
+    val startedAt: String? = null,
+    val endedAt: String? = null,
+    val timerMode: String? = null,
+    val source: String = "ekagra_timer",
 )

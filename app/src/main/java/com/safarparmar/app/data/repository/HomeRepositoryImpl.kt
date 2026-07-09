@@ -220,7 +220,7 @@ class HomeRepositoryImpl @Inject constructor(
         targetValue     = targetValue ?: targetValueSnake,
         achievedValue   = achievedValue ?: achievedValueSnake ?: if (completed == true) 1 else 0,
         status          = status ?: statusSnake ?: if (completed == true) "completed" else "not_started",
-        carryForwardMode = carryForwardMode ?: carryForwardModeSnake ?: if ((goalKind ?: goalKindSnake) == "repeat") "ask" else "none",
+        carryForwardMode = carryForwardMode ?: carryForwardModeSnake ?: if ((goalKind ?: goalKindSnake) == "repeat") "full" else "none",
         category        = category ?: "other",
         priority        = priority ?: "medium",
         completed       = completed ?: false,
@@ -233,6 +233,7 @@ class HomeRepositoryImpl @Inject constructor(
         lifecycleStatus = lifecycleStatus ?: lifecycleStatusSnake,
         rolloverPromptPending = rolloverPromptPendingSnake ?: false,
         sourceGoalId    = sourceGoalIdSnake,
+        nextInstanceCreated = nextInstanceCreatedSnake ?: false,
         type            = type,
         subtasks        = subtasks?.mapNotNull { it.toGoalSubtask() } ?: emptyList()
     )
@@ -266,6 +267,10 @@ class HomeRepositoryImpl @Inject constructor(
 
     private fun EkagraAnalyticsStatsDto.toDomain() = EkagraAnalyticsStats(
         totalFocusMinutes = totalFocusMinutes ?: 0,
+        goalLinkedTime = goalLinkedTime ?: 0,
+        untitledTime = untitledTime ?: 0,
+        goalLinkedSessionCount = goalLinkedSessionCount ?: 0,
+        untitledSessionCount = untitledSessionCount ?: 0,
         totalBreakMinutes = totalBreakMinutes ?: 0,
         timerUsageCount = timerUsageCount ?: 0,
         breakSessionsCount = breakSessionsCount ?: 0,
@@ -299,9 +304,11 @@ class HomeRepositoryImpl @Inject constructor(
         endedAt = endedAt,
         durationMinutes = durationMinutes ?: 0,
         actualMinutes = actualMinutes ?: 0,
+        actualSeconds = actualSeconds ?: 0,
         completed = completed ?: false,
         taskText = taskText,
         associatedGoalId = associatedGoalId,
+        isGoalLinked = isGoalLinked ?: false,
         pauseCount = pauseCount ?: 0,
         sessionType = sessionType ?: "ekagra"
     )
@@ -312,10 +319,12 @@ class HomeRepositoryImpl @Inject constructor(
         endedAt = endedAt,
         durationMinutes = durationMinutes ?: 0,
         actualMinutes = actualMinutes ?: 0,
+        actualSeconds = actualSeconds ?: 0,
         status = status ?: "completed",
         rawStatus = rawStatus ?: "completed",
         taskText = taskText,
         associatedGoalId = associatedGoalId,
+        isGoalLinked = isGoalLinked ?: false,
         pauseCount = pauseCount ?: 0,
         timerMode = timerMode
     )

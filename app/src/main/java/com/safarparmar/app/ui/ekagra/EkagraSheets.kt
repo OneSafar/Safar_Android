@@ -221,6 +221,7 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun OrganizeFreeFocusSheet(
+    sheetState: SheetState,
     pending: PendingEndedEkagraSession?,
     goals: List<com.safarparmar.app.domain.model.Goal>,
     titleInput: String,
@@ -238,13 +239,20 @@ internal fun OrganizeFreeFocusSheet(
             it.totalSeconds - it.secondsLeft
         }
     } ?: 0
-    val focusedMins = focusedSeconds.coerceAtLeast(60) / 60
+    val focusedMins = focusedSeconds / 60
+    val focusedSecsRemainder = focusedSeconds % 60
+    val focusedTimeLabel = when {
+        focusedMins > 0 && focusedSecsRemainder > 0 -> "$focusedMins min $focusedSecsRemainder sec"
+        focusedMins > 0 -> "$focusedMins min"
+        else -> "$focusedSecsRemainder sec"
+    }
 
     var selectedGoal    by remember { mutableStateOf<com.safarparmar.app.domain.model.Goal?>(null) }
     var markAsCompleted by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState       = sheetState,
         containerColor   = scheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         dragHandle = { BottomSheetDefaults.DragHandle(color = scheme.onSurfaceVariant.copy(alpha = 0.4f)) }
@@ -282,7 +290,7 @@ internal fun OrganizeFreeFocusSheet(
                     )
                 }
                 Text(
-                    "You focused for ${focusedMins} min",
+                    "You focused for $focusedTimeLabel",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = scheme.onSurface
