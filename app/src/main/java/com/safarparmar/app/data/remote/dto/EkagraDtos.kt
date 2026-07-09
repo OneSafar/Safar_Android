@@ -57,6 +57,10 @@ data class SaveEkagraSessionRequest(
     val actualDurationSeconds: Int? = null,
     val goalId: String? = null,
     val goalTitle: String? = null,
+    val topicId: String? = null,
+    val planId: String? = null,
+    val topicTitle: String? = null,
+    val markTopicDone: Boolean = false,
     val completed: Boolean = true,
     val taskTitle: String? = null,
     val source: String? = "android",
@@ -90,6 +94,24 @@ data class LinkedEkagraSessionDto(
 
 data class LinkedEkagraSessionsResponse(
     val sessions: List<LinkedEkagraSessionDto> = emptyList(),
+)
+
+data class TopicLinkedSessionDto(
+    val id: String = "",
+    val topicId: String = "",
+    val planId: String = "",
+    val topicTitle: String? = null,
+    val topicExists: Boolean = true,
+    val durationMinutes: Int = 0,
+    val durationSeconds: Int = 0,
+    val startedAt: String? = null,
+    val endedAt: String? = null,
+    val timerMode: String? = null,
+    val source: String = "ekagra_timer",
+)
+
+data class TopicLinkedSessionsResponse(
+    val sessions: List<TopicLinkedSessionDto> = emptyList(),
 )
 
 data class FocusStatsResponse(

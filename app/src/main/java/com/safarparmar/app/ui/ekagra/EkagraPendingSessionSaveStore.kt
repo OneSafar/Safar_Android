@@ -11,8 +11,12 @@ data class PendingEkagraSessionSave(
     val endedAt: String,
     val plannedDurationMinutes: Int,
     val actualDurationMinutes: Int,
+    val actualDurationSeconds: Int? = null,
     val goalId: String?,
     val goalTitle: String?,
+    val topicId: String? = null,
+    val planId: String? = null,
+    val topicTitle: String? = null,
     val taskTitle: String,
     val shieldEnabled: Boolean,
 )
@@ -52,8 +56,12 @@ object EkagraPendingSessionSaveStore {
                             endedAt = item.optString("endedAt"),
                             plannedDurationMinutes = item.optInt("plannedDurationMinutes", 1).coerceAtLeast(1),
                             actualDurationMinutes = item.optInt("actualDurationMinutes", 1).coerceAtLeast(1),
+                            actualDurationSeconds = if (item.has("actualDurationSeconds")) item.optInt("actualDurationSeconds").coerceAtLeast(0) else null,
                             goalId = item.optString("goalId").takeIf { it.isNotBlank() },
                             goalTitle = item.optString("goalTitle").takeIf { it.isNotBlank() },
+                            topicId = item.optString("topicId").takeIf { it.isNotBlank() },
+                            planId = item.optString("planId").takeIf { it.isNotBlank() },
+                            topicTitle = item.optString("topicTitle").takeIf { it.isNotBlank() },
                             taskTitle = item.optString("taskTitle", "Untitled").ifBlank { "Untitled" },
                             shieldEnabled = item.optBoolean("shieldEnabled", false),
                         ),
@@ -74,8 +82,12 @@ object EkagraPendingSessionSaveStore {
                     .put("endedAt", session.endedAt)
                     .put("plannedDurationMinutes", session.plannedDurationMinutes)
                     .put("actualDurationMinutes", session.actualDurationMinutes)
+                    .apply { session.actualDurationSeconds?.let { put("actualDurationSeconds", it) } }
                     .put("goalId", session.goalId)
                     .put("goalTitle", session.goalTitle)
+                    .put("topicId", session.topicId)
+                    .put("planId", session.planId)
+                    .put("topicTitle", session.topicTitle)
                     .put("taskTitle", session.taskTitle)
                     .put("shieldEnabled", session.shieldEnabled),
             )

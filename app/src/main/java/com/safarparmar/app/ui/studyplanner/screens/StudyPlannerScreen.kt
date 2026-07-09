@@ -1158,9 +1158,7 @@ private fun PlannerTargetExamRow(
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val tone = targetExamTone(plan.id, isDark)
     val title = plan.title.ifBlank { plan.examType ?: "Study plan" }
-    val subtitle = plan.examType
-        ?.takeIf { it.isNotBlank() && !it.equals(title, ignoreCase = true) }
-        ?: "Strategy • Practice • Success"
+    val subtitle = "Strategy • Practice • Success"
     val days = daysUntil(plan.examDate)
     var menuExpanded by remember { mutableStateOf(false) }
 

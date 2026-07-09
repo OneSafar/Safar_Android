@@ -381,6 +381,25 @@ fun SafarNavGraph(
             )
         }
 
+        composable(
+            route = Routes.EKAGRA_TOPIC_LINKED,
+            arguments = listOf(
+                navArgument("topicId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("topicTitle") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("planId") { type = NavType.StringType; nullable = true; defaultValue = null },
+            )
+        ) { entry ->
+            EkagraScreen(
+                currentRoute = Routes.EKAGRA,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleNightMode = onToggleDarkTheme,
+                linkedTopicId = entry.arguments?.getString("topicId"),
+                linkedTopicTitle = entry.arguments?.getString("topicTitle"),
+                linkedPlanId = entry.arguments?.getString("planId"),
+            )
+        }
+
         composable(Routes.FOCUS_SHIELD) {
             FocusShieldStandaloneScreen(
                 currentRoute = currentRoute,

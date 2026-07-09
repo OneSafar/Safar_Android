@@ -7,6 +7,7 @@ import com.safarparmar.app.data.remote.dto.FocusStatsResponse
 import com.safarparmar.app.data.remote.dto.LinkedEkagraSessionsResponse
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionRequest
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionResponse
+import com.safarparmar.app.data.remote.dto.TopicLinkedSessionsResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -31,6 +32,9 @@ interface FocusApi {
 
     @GET("ekagra-sessions/linked-sessions")
     suspend fun getLinkedSessions(): Response<LinkedEkagraSessionsResponse>
+
+    @GET("ekagra-sessions/topic-linked-sessions")
+    suspend fun getTopicLinkedSessions(@Query("planId") planId: String? = null): Response<TopicLinkedSessionsResponse>
 
     @POST("ekagra-sessions/save")
     suspend fun saveSession(@Body request: SaveEkagraSessionRequest): Response<SaveEkagraSessionResponse>

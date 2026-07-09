@@ -611,6 +611,7 @@ fun PlanTabScreen(
                                 onReplace = { replaceSheetTopic = ref },
                                 onRemoveFromToday = { removeFromTodayConfirmTopic = ref },
                                 onEdit = { editTopicRef = ref },
+                                onFocus = { onNavigate(Routes.ekagraForTopic(ref.topic.id, ref.topic.name, plan.id)) },
                             )
                         }
 

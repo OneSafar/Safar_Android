@@ -228,6 +228,7 @@ internal fun OrganizeFreeFocusSheet(
     onTitleChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onSaveFree: () -> Unit,
+    onSaveTopic: (Boolean) -> Unit = {},
     onLinkGoal: (com.safarparmar.app.domain.model.Goal, Boolean) -> Unit,
     onDiscard: () -> Unit,
 ) {
@@ -262,7 +263,8 @@ internal fun OrganizeFreeFocusSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 40.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -302,6 +304,92 @@ internal fun OrganizeFreeFocusSheet(
                     textAlign = TextAlign.Center
                 )
             }
+
+            if (pending != null && pending.topicId != null) {
+                // This session was started from the Study Planner's "Focus" button
+                // on a topic — no goal list here, just the one topic it was for.
+                var markTopicDone by remember { mutableStateOf(true) }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "STUDIED",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.primary,
+                        letterSpacing = 1.5.sp
+                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = pending.topicTitle ?: "Untitled topic",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = scheme.onSurface,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
+                                    .clickable { markTopicDone = !markTopicDone }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Checkbox(
+                                    checked = markTopicDone,
+                                    onCheckedChange = { markTopicDone = it },
+                                    colors = CheckboxDefaults.colors(checkedColor = scheme.primary)
+                                )
+                                Text(
+                                    text = "Mark this topic as done",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedButton(
+                        onClick = onDiscard,
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, scheme.outline.copy(alpha = 0.4f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.error)
+                    ) {
+                        Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Discard", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = { onSaveTopic(markTopicDone) },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = scheme.secondaryContainer,
+                            contentColor = scheme.onSecondaryContainer
+                        )
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Save", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else {
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -423,7 +511,7 @@ internal fun OrganizeFreeFocusSheet(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    "OR SAVE AS FREE FOCUS",
+                    "QUICK SAVE",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onSurfaceVariant,
@@ -470,8 +558,10 @@ internal fun OrganizeFreeFocusSheet(
                 ) {
                     Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Save Free", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Save", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
+            }
+
             }
         }
     }

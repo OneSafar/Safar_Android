@@ -67,6 +67,18 @@ class EkagraViewModel @Inject constructor(
         }
     }
 
+    private val _topicLinkedSessions = MutableStateFlow<List<com.safarparmar.app.domain.model.TopicLinkedSession>>(emptyList())
+    val topicLinkedSessions = _topicLinkedSessions.asStateFlow()
+
+    fun loadTopicLinkedSessions(planId: String? = null) {
+        viewModelScope.launch {
+            when (val r = repo.getTopicLinkedSessions(planId)) {
+                is Resource.Success -> _topicLinkedSessions.value = r.data
+                is Resource.Error, is Resource.Loading -> Unit
+            }
+        }
+    }
+
     private var activeSessionId: String? = null
     private var sessionStartedAt: String? = null
 
@@ -305,6 +317,10 @@ class EkagraViewModel @Inject constructor(
         goalTitle: String? = null,
         markGoalComplete: Boolean = false,
         endedAt: String? = null,
+        topicId: String? = null,
+        planId: String? = null,
+        topicTitle: String? = null,
+        markTopicDone: Boolean = false,
     ) {
         val current = _activeSession.value
         val actualSeconds = if (mode == "stopwatch") secondsLeft else (totalSeconds - secondsLeft)
@@ -322,6 +338,7 @@ class EkagraViewModel @Inject constructor(
         val cleanTitle = taskTitle?.trim()?.takeIf { it.isNotBlank() && it != "Untitled" }
             ?: current?.sessionTitle?.trim()?.takeIf { it.isNotBlank() && it != "Untitled" }
             ?: cleanGoalTitle
+            ?: topicTitle
             ?: "Untitled"
         val shieldWasActive = focusShieldRepo.sessionActive.value || focusShieldRepo.isEnabled.value
 
@@ -338,6 +355,10 @@ class EkagraViewModel @Inject constructor(
                 actualDurationSeconds = actualSeconds,
                 goalId = cleanGoalId?.takeIf { it.isNotBlank() && !it.startsWith("named:") },
                 goalTitle = cleanGoalTitle,
+                topicId = topicId,
+                planId = planId,
+                topicTitle = topicTitle,
+                markTopicDone = markTopicDone,
                 taskTitle = cleanTitle,
                 markGoalComplete = markGoalComplete,
                 shieldEnabled = shieldWasActive,
@@ -349,6 +370,12 @@ class EkagraViewModel @Inject constructor(
                         repo.deleteSession(sessionId)
                     }
                     if (activeSessionId == sessionId || current?.id == sessionId) clearLocalDraft()
+                    // Tell the Study Planner (if open in another ViewModel) to reload
+                    // this plan so the just-completed topic flips to done live, rather
+                    // than only on the planner's next cold load.
+                    if (markTopicDone && !topicId.isNullOrBlank() && !planId.isNullOrBlank()) {
+                        com.safarparmar.app.ui.studyplanner.PlannerTopicEventBus.postTopicCompleted(planId)
+                    }
                     loadStats()
                     refreshEkagra()
                     loadTasks()

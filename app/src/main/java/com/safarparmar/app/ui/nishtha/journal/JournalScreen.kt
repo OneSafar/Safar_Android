@@ -90,7 +90,7 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp).padding(bottom = 40.dp),
+                    .padding(horizontal = 20.dp).padding(bottom = 40.dp).imePadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text("New Entry", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))

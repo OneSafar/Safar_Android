@@ -60,6 +60,12 @@ fun GoalsScreen(
     viewModel: NishthaViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Automatically refresh goals when this screen comes into focus
+    LaunchedEffect(Unit) {
+        viewModel.onEvent(NishthaEvent.LoadGoals)
+    }
+    
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Goals", "History")
@@ -235,7 +241,7 @@ fun GoalsScreen(
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp).padding(bottom = 40.dp),
+                    .padding(horizontal = 20.dp).padding(bottom = 40.dp).imePadding(),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Text("Edit Goal", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
@@ -335,7 +341,7 @@ fun GoalsScreen(
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp),
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp).imePadding(),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Text("New Goal", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))

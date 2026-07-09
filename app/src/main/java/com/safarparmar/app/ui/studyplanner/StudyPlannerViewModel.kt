@@ -50,6 +50,7 @@ import com.safarparmar.app.ui.studyplanner.logic.parseBulkSubjectsFromTxt
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
 import com.safarparmar.app.ui.studyplanner.templates.getLocalExamTemplate
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -206,6 +207,17 @@ class StudyPlannerViewModel @Inject constructor(
             viewModelScope.launch {
                 val strategy = dataStore.plannerPreferredStrategy(null).first()
                 _uiState.update { it.copy(preferredStudyStrategy = strategy) }
+            }
+        }
+
+        // Live-refresh when an Ekagra session marks one of this plan's topics done
+        // from the other feature's ViewModel — reload silently so the topic flips
+        // to done without waiting for the planner's next cold load.
+        viewModelScope.launch {
+            PlannerTopicEventBus.topicCompletedFromEkagra.collect { completedPlanId ->
+                if (_uiState.value.selectedPlan?.id == completedPlanId) {
+                    reloadSelected()
+                }
             }
         }
     }

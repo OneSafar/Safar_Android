@@ -9,11 +9,13 @@ import com.safarparmar.app.data.remote.dto.EkagraSession
 import com.safarparmar.app.data.remote.dto.FocusStatsResponse
 import com.safarparmar.app.data.remote.dto.LinkedEkagraSessionDto
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionRequest
+import com.safarparmar.app.data.remote.dto.TopicLinkedSessionDto
 import com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession
 import com.safarparmar.app.domain.model.EkagraAnalyticsRecentSession
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.domain.model.EkagraTimerDurationUsage
 import com.safarparmar.app.domain.model.GoalLinkedSession
+import com.safarparmar.app.domain.model.TopicLinkedSession
 import com.safarparmar.app.domain.repository.EkagraRepository
 import com.safarparmar.app.util.Resource
 import com.safarparmar.app.util.safeApiCall
@@ -49,6 +51,16 @@ class EkagraRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getTopicLinkedSessions(planId: String?): Resource<List<TopicLinkedSession>> {
+        return try {
+            val res = focusApi.getTopicLinkedSessions(planId)
+            if (res.isSuccessful) Resource.Success(res.body()?.sessions.orEmpty().map { it.toDomain() })
+            else Resource.Error("Topic-linked sessions failed: ${res.code()}")
+        } catch (e: Exception) {
+            Resource.Error("Network error: ${e.message}")
+        }
+    }
+
     override suspend fun saveSession(
         clientSessionId: String?,
         mode: String,
@@ -59,6 +71,10 @@ class EkagraRepositoryImpl @Inject constructor(
         actualDurationSeconds: Int?,
         goalId: String?,
         goalTitle: String?,
+        topicId: String?,
+        planId: String?,
+        topicTitle: String?,
+        markTopicDone: Boolean,
         taskTitle: String?,
         markGoalComplete: Boolean,
         shieldEnabled: Boolean,
@@ -75,6 +91,10 @@ class EkagraRepositoryImpl @Inject constructor(
                     actualDurationSeconds = actualDurationSeconds ?: (actualDurationMinutes * 60),
                     goalId = goalId,
                     goalTitle = goalTitle,
+                    topicId = topicId,
+                    planId = planId,
+                    topicTitle = topicTitle,
+                    markTopicDone = markTopicDone,
                     taskTitle = taskTitle,
                     markGoalComplete = markGoalComplete,
                     kavachEnabled = shieldEnabled,
@@ -125,8 +145,10 @@ class EkagraRepositoryImpl @Inject constructor(
     private fun EkagraAnalyticsStatsDto.toDomain() = EkagraAnalyticsStats(
         totalFocusMinutes = totalFocusMinutes ?: 0,
         goalLinkedTime = goalLinkedTime ?: 0,
+        topicLinkedTime = topicLinkedTime ?: 0,
         untitledTime = untitledTime ?: 0,
         goalLinkedSessionCount = goalLinkedSessionCount ?: 0,
+        topicLinkedSessionCount = topicLinkedSessionCount ?: 0,
         untitledSessionCount = untitledSessionCount ?: 0,
         totalBreakMinutes = totalBreakMinutes ?: 0,
         timerUsageCount = timerUsageCount ?: 0,
@@ -191,6 +213,20 @@ class EkagraRepositoryImpl @Inject constructor(
         goalId = goalId,
         goalTitle = goalTitle,
         goalExists = goalExists,
+        durationMinutes = durationMinutes,
+        durationSeconds = durationSeconds,
+        startedAt = startedAt,
+        endedAt = endedAt,
+        timerMode = timerMode,
+        source = source,
+    )
+
+    private fun TopicLinkedSessionDto.toDomain() = TopicLinkedSession(
+        id = id,
+        topicId = topicId,
+        planId = planId,
+        topicTitle = topicTitle,
+        topicExists = topicExists,
         durationMinutes = durationMinutes,
         durationSeconds = durationSeconds,
         startedAt = startedAt,

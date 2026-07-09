@@ -146,8 +146,10 @@ data class LoginHistoryEntry(val timestamp: String = "")
 data class EkagraAnalyticsStats(
     val totalFocusMinutes: Int = 0,
     val goalLinkedTime: Int = 0,
+    val topicLinkedTime: Int = 0,
     val untitledTime: Int = 0,
     val goalLinkedSessionCount: Int = 0,
+    val topicLinkedSessionCount: Int = 0,
     val untitledSessionCount: Int = 0,
     val totalBreakMinutes: Int = 0,
     val timerUsageCount: Int = 0,
@@ -216,6 +218,21 @@ data class GoalLinkedSession(
     val goalId: String = "",
     val goalTitle: String? = null,
     val goalExists: Boolean = true,
+    val durationMinutes: Int = 0,
+    val durationSeconds: Int = 0,
+    val startedAt: String? = null,
+    val endedAt: String? = null,
+    val timerMode: String? = null,
+    val source: String = "ekagra_timer",
+)
+
+@Immutable
+data class TopicLinkedSession(
+    val id: String = "",
+    val topicId: String = "",
+    val planId: String = "",
+    val topicTitle: String? = null,
+    val topicExists: Boolean = true,
     val durationMinutes: Int = 0,
     val durationSeconds: Int = 0,
     val startedAt: String? = null,

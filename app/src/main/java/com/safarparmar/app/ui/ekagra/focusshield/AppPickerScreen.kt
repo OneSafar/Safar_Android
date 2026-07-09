@@ -129,6 +129,58 @@ fun AppPickerScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
+            // Bulk selection buttons
+            androidx.compose.foundation.lazy.LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    androidx.compose.material3.Button(
+                        onClick = { viewModel.selectDistractingApps() },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = KavachDesign.Primary,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text("Select Distracting", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                item {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = { viewModel.selectAllApps() },
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            contentColor = KavachDesign.TextMain
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, KavachDesign.Border),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text("Select All", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+                item {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = { viewModel.deselectAllApps() },
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            contentColor = KavachDesign.TextMain
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, KavachDesign.Border),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text("Clear All", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+            androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
+
             if (state.isLoading && filteredApps.isEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),

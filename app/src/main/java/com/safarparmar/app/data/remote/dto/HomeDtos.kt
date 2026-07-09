@@ -239,8 +239,10 @@ data class GoalFocusSummaryItemDto(val totalMinutes: Int? = 0, val sessionCount:
 data class EkagraAnalyticsStatsDto(
     val totalFocusMinutes: Int? = 0,
     val goalLinkedTime: Int? = 0,
+    val topicLinkedTime: Int? = 0,
     val untitledTime: Int? = 0,
     val goalLinkedSessionCount: Int? = 0,
+    val topicLinkedSessionCount: Int? = 0,
     val untitledSessionCount: Int? = 0,
     val totalBreakMinutes: Int? = 0,
     val timerUsageCount: Int? = 0,

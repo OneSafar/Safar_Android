@@ -241,6 +241,16 @@ internal fun InsightsTab(
     val examDays = daysUntil(plan.examDate)
         ?.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())
         ?.toInt()
+
+    // Real study time, sourced from Ekagra sessions linked to this plan's topics —
+    // the planner otherwise only ever knows "done" vs "not done", never how long
+    // a topic actually took.
+    val ekagraViewModel = hiltViewModel<com.safarparmar.app.ui.ekagra.EkagraViewModel>()
+    val topicLinkedSessions by ekagraViewModel.topicLinkedSessions.collectAsStateWithLifecycle()
+    // Keyed on updatedAt (not just id) so the list refreshes after the plan is
+    // reloaded live — e.g. when an Ekagra session just linked a new topic session.
+    LaunchedEffect(plan.id, plan.updatedAt) { ekagraViewModel.loadTopicLinkedSessions(plan.id) }
+
     Column(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -290,6 +300,11 @@ internal fun InsightsTab(
                     subjects = insights.subjectRows,
                 )
             }
+            if (topicLinkedSessions.isNotEmpty()) {
+                item {
+                    LinkedEkagraSessionsCard(sessions = topicLinkedSessions)
+                }
+            }
             item {
                 Box(
                     modifier = Modifier
@@ -306,6 +321,70 @@ internal fun InsightsTab(
                         ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Real study time per topic, sourced from Ekagra sessions linked via the
+ * topic row's "Focus with Ekagra" action — the only place in the planner
+ * that shows actual time spent, as opposed to just done/not-done.
+ */
+@Composable
+internal fun LinkedEkagraSessionsCard(sessions: List<com.safarparmar.app.domain.model.TopicLinkedSession>) {
+    val scheme = MaterialTheme.colorScheme
+    val accent = Color(0xFF9A3412)
+    val totalSeconds = sessions.sumOf { it.durationSeconds }
+    val totalMinutes = totalSeconds / 60
+
+    androidx.compose.material3.Card(
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = scheme.surface),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, scheme.outline.copy(alpha = 0.25f)),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Linked Ekagra Sessions", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = accent)
+                Text("${totalMinutes} min total", fontSize = 12.sp, color = scheme.onSurfaceVariant)
+            }
+            sessions.take(10).forEach { session ->
+                val mins = session.durationSeconds / 60
+                val secs = session.durationSeconds % 60
+                val durationLabel = if (secs > 0) "${mins}m ${secs}s" else "${mins}m"
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(scheme.surfaceContainerLow)
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = session.topicTitle ?: if (session.topicExists) "Untitled topic" else "Deleted topic",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = scheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(durationLabel, fontSize = 12.sp, color = scheme.onSurfaceVariant)
+                    }
+                    Text(
+                        "Ekagra",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onTertiaryContainer,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(scheme.tertiaryContainer)
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
                     )
                 }
             }

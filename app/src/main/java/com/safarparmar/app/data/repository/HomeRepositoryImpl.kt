@@ -268,8 +268,10 @@ class HomeRepositoryImpl @Inject constructor(
     private fun EkagraAnalyticsStatsDto.toDomain() = EkagraAnalyticsStats(
         totalFocusMinutes = totalFocusMinutes ?: 0,
         goalLinkedTime = goalLinkedTime ?: 0,
+        topicLinkedTime = topicLinkedTime ?: 0,
         untitledTime = untitledTime ?: 0,
         goalLinkedSessionCount = goalLinkedSessionCount ?: 0,
+        topicLinkedSessionCount = topicLinkedSessionCount ?: 0,
         untitledSessionCount = untitledSessionCount ?: 0,
         totalBreakMinutes = totalBreakMinutes ?: 0,
         timerUsageCount = timerUsageCount ?: 0,

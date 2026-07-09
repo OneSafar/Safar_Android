@@ -72,6 +72,12 @@ internal data class PendingEndedEkagraSession(
     val mode: String,
     val startedAt: String?,
     val endedAt: String? = null,
+    // Set only when this session was started pre-linked to a Study Planner
+    // topic (via the topic row's "Focus" button) — mutually exclusive with
+    // goal-linking in practice, since the two entry points are separate.
+    val topicId: String? = null,
+    val planId: String? = null,
+    val topicTitle: String? = null,
 )
 
 // ─── Utility functions ─────────────────────────────────────────────────────────

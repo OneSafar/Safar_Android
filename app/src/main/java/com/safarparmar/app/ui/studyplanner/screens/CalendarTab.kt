@@ -840,10 +840,12 @@ private fun CompactDayTopicRow(
     val revisionTypeLabel = calendarRevisionTypeLabel(item)
     val scheme = MaterialTheme.colorScheme
     
+    var showFullName by remember { mutableStateOf(false) }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onChangeDate),
+            .clickable { showFullName = !showFullName },
         shape = RoundedCornerShape(12.dp),
         color = topicStatus.color.copy(alpha = 0.12f),
         border = BorderStroke(1.dp, topicStatus.color.copy(alpha = 0.25f))
@@ -870,15 +872,15 @@ private fun CompactDayTopicRow(
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = scheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = if (showFullName) Int.MAX_VALUE else 1,
+                    overflow = if (showFullName) TextOverflow.Clip else TextOverflow.Ellipsis,
                 )
                 Text(
                     "${item.subjectName} · ${item.chapterName}",
                     fontSize = 12.sp,
                     color = scheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = if (showFullName) Int.MAX_VALUE else 1,
+                    overflow = if (showFullName) TextOverflow.Clip else TextOverflow.Ellipsis,
                 )
                 if (revisionTypeLabel != null) {
                     Text(
@@ -939,13 +941,6 @@ private fun ChangeDatePill(onClick: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     color = Blue500,
                 ),
-            )
-            Spacer(Modifier.width(6.dp))
-            Icon(
-                imageVector = Icons.Default.CalendarMonth,
-                contentDescription = "Reschedule",
-                tint = Blue500,
-                modifier = Modifier.size(16.dp)
             )
         }
     }

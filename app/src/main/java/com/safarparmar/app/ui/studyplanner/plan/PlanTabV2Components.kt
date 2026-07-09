@@ -10,7 +10,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +50,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.BottomSheetDefaults
@@ -627,7 +627,6 @@ fun PlanActionRow(
     }
 }
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun PlannerTaskRow(
     ref: TopicRef,
@@ -637,6 +636,7 @@ fun PlannerTaskRow(
     onReplace: (() -> Unit)? = null,
     onRemoveFromToday: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
+    onFocus: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -653,7 +653,7 @@ fun PlannerTaskRow(
     val borderStroke = if (done || needsRevision || accent == PlanTaskRowAccent.Overdue) null else BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
 
     var showMenu by remember { mutableStateOf(false) }
-    val hasMenu = onEdit != null || onReplace != null || (onRemoveFromToday != null && !done)
+    val hasMenu = onEdit != null || onReplace != null || (onRemoveFromToday != null && !done) || (onFocus != null && !done)
 
     // A brief scale-pulse whenever this topic's status changes — visual confirmation
     // that a tap registered, independent of the status-change snackbar shown elsewhere.
@@ -670,11 +670,8 @@ fun PlannerTaskRow(
     }
 
     val rowModifier = modifier.fillMaxWidth().scale(pulseScale.value).let {
-        if (onClick != null || hasMenu) {
-            it.combinedClickable(
-                onClick = { onClick?.invoke() },
-                onLongClick = { if (hasMenu) showMenu = true },
-            )
+        if (onClick != null) {
+            it.clickable { onClick.invoke() }
         } else {
             it
         }
@@ -687,30 +684,6 @@ fun PlannerTaskRow(
         border = borderStroke,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Box {
-        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-            if (onEdit != null) {
-                DropdownMenuItem(
-                    text = { Text("Edit topic") },
-                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                    onClick = { showMenu = false; onEdit() },
-                )
-            }
-            if (onReplace != null) {
-                DropdownMenuItem(
-                    text = { Text("Replace topic") },
-                    leadingIcon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
-                    onClick = { showMenu = false; onReplace() },
-                )
-            }
-            if (onRemoveFromToday != null && !done) {
-                DropdownMenuItem(
-                    text = { Text("Remove from today") },
-                    leadingIcon = { Icon(Icons.Default.RemoveCircleOutline, contentDescription = null) },
-                    onClick = { showMenu = false; onRemoveFromToday() },
-                )
-            }
-        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -790,7 +763,51 @@ fun PlannerTaskRow(
                     checkmarkColor = Color.White,
                 ),
             )
-        }
+            if (hasMenu) {
+                Spacer(Modifier.width(8.dp))
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More options",
+                            tint = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF64748B)
+                        )
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        if (onFocus != null && !done) {
+                            DropdownMenuItem(
+                                text = { Text("Focus with Ekagra") },
+                                leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
+                                onClick = { showMenu = false; onFocus() },
+                            )
+                        }
+                        if (onEdit != null) {
+                            DropdownMenuItem(
+                                text = { Text("Edit topic") },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                onClick = { showMenu = false; onEdit() },
+                            )
+                        }
+                        if (onReplace != null) {
+                            DropdownMenuItem(
+                                text = { Text("Replace topic") },
+                                leadingIcon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
+                                onClick = { showMenu = false; onReplace() },
+                            )
+                        }
+                        if (onRemoveFromToday != null && !done) {
+                            DropdownMenuItem(
+                                text = { Text("Remove from today") },
+                                leadingIcon = { Icon(Icons.Default.RemoveCircleOutline, contentDescription = null) },
+                                onClick = { showMenu = false; onRemoveFromToday() },
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1009,14 +1026,6 @@ fun PlanSettingsSheet(
                             value = title,
                             onValueChange = { title = it },
                             label = { Text("Plan title") },
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = examType,
-                            onValueChange = { examType = it },
-                            label = { Text("Exam type") },
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,

@@ -158,7 +158,7 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
         Text("Focused metrics from Ekagra timer sessions.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             CleanMetricCard("Total ekagra time", formatStudyTime(analytics.totalFocusMinutes), null, accent, Modifier.weight(1f))
-            CleanMetricCard("Breaks taken", analytics.breakSessionsCount.toString(), "Short ${analytics.shortBreakSessionsCount} | Long ${analytics.longBreakSessionsCount}", accent, Modifier.weight(1f))
+            CleanMetricCard("Breaks taken", analytics.breakSessionsCount.toString(), "Short ${analytics.shortBreakSessionsCount}", accent, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             CleanMetricCard("Average session length", formatStudyTime(analytics.averageTimerMinutes), null, accent, Modifier.weight(1f))
@@ -178,6 +178,15 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
                 "Untitled time",
                 formatStudyTime(analytics.untitledTime),
                 "${analytics.untitledSessionCount} session${if (analytics.untitledSessionCount == 1) "" else "s"}",
+                accent,
+                Modifier.weight(1f),
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            CleanMetricCard(
+                "Topic-linked time",
+                formatStudyTime(analytics.topicLinkedTime),
+                "${analytics.topicLinkedSessionCount} session${if (analytics.topicLinkedSessionCount == 1) "" else "s"} · Study Planner",
                 accent,
                 Modifier.weight(1f),
             )

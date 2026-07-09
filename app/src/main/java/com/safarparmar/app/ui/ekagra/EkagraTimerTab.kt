@@ -359,24 +359,18 @@ internal fun TimerFocusTab(
                     CompositionLocalProvider(
                         LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))
                     ) {
-                        if (countdownValue > 0) {
-                            Text(
-                                countdownValue.toString(),
-                                fontSize     = 80.sp,
-                                fontWeight   = FontWeight.Bold,
-                                color        = Color.White,
-                                textAlign    = TextAlign.Center,
-                            )
-                        } else {
-                            Text(
-                                "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
-                                fontSize     = 54.sp,
-                                fontWeight   = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                                color        = Color.White,
-                                textAlign    = TextAlign.Center,
-                            )
-                        }
+                        // The 3-2-1 countdown itself is rendered by the full-screen
+                        // scrim in EkagraScreen (above the dim overlay, not inside
+                        // this ring) — this inner circle only ever shows the running
+                        // mm:ss once the countdown finishes.
+                        Text(
+                            "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
+                            fontSize     = 54.sp,
+                            fontWeight   = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color        = Color.White,
+                            textAlign    = TextAlign.Center,
+                        )
                     }
                     AnimatedVisibility(
                         visible = controlsVisible,

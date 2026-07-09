@@ -106,6 +106,48 @@ class FocusShieldViewModel @Inject constructor(
         )
     }
 
+    fun selectAllApps() {
+        val allPackages = _pickerState.value.allApps.map { it.packageName }.toSet()
+        repo.setBlockedPackages(allPackages)
+        _pickerState.value = _pickerState.value.copy(
+            allApps = _pickerState.value.allApps.map { it.copy(isBlocked = true) }
+        )
+    }
+
+    fun deselectAllApps() {
+        repo.setBlockedPackages(emptySet())
+        _pickerState.value = _pickerState.value.copy(
+            allApps = _pickerState.value.allApps.map { it.copy(isBlocked = false) }
+        )
+    }
+
+    fun selectDistractingApps() {
+        val distractingPackages = setOf(
+            "com.instagram.android",
+            "com.facebook.katana",
+            "com.facebook.orca",
+            "com.whatsapp",
+            "com.snapchat.android",
+            "com.twitter.android",
+            "com.zhiliaoapp.musically",
+            "com.ss.android.ugc.trill",
+            "tv.twitch.android.app",
+            "com.netflix.mediaclient",
+            "com.google.android.youtube",
+            "com.reddit.frontpage"
+        )
+        val current = repo.blockedPackages.value.toMutableSet()
+        val appsToBlock = _pickerState.value.allApps.filter { it.packageName in distractingPackages }.map { it.packageName }
+        current.addAll(appsToBlock)
+        repo.setBlockedPackages(current)
+        
+        _pickerState.value = _pickerState.value.copy(
+            allApps = _pickerState.value.allApps.map {
+                if (it.packageName in distractingPackages) it.copy(isBlocked = true) else it
+            }
+        )
+    }
+
     // ── Shield settings actions ──────────────────────────────────────────────
 
     fun setEnabled(enabled: Boolean) = repo.setEnabled(enabled)

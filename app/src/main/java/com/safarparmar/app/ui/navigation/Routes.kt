@@ -18,6 +18,7 @@ object Routes {
     const val NISHTHA_ANALYTICS_SECTION = "nishtha/analytics?section={section}"
     const val EKAGRA = "ekagra"
     const val EKAGRA_LINKED = "ekagra?goalId={goalId}&goalTitle={goalTitle}&view={view}"
+    const val EKAGRA_TOPIC_LINKED = "ekagra?topicId={topicId}&topicTitle={topicTitle}&planId={planId}"
     const val STUDY_PLANNER = "study_planner"
     const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}"
     const val CREATE_PLAN = "study_planner/create"
@@ -43,6 +44,9 @@ object Routes {
 
     fun ekagraForGoal(goalId: String, goalTitle: String): String =
         "ekagra?goalId=${android.net.Uri.encode(goalId)}&goalTitle=${android.net.Uri.encode(goalTitle)}"
+
+    fun ekagraForTopic(topicId: String, topicTitle: String, planId: String): String =
+        "ekagra?topicId=${android.net.Uri.encode(topicId)}&topicTitle=${android.net.Uri.encode(topicTitle)}&planId=${android.net.Uri.encode(planId)}"
 
     fun nishthaAnalytics(section: String = "overview"): String =
         "nishtha/analytics?section=${android.net.Uri.encode(section)}"

@@ -66,6 +66,9 @@ class TimerService : Service() {
         private const val KEY_AUTO_SAVE_TASK_TITLE = "auto_save_task_title"
         private const val KEY_AUTO_SAVE_GOAL_ID = "auto_save_goal_id"
         private const val KEY_AUTO_SAVE_GOAL_TITLE = "auto_save_goal_title"
+        private const val KEY_AUTO_SAVE_TOPIC_ID = "auto_save_topic_id"
+        private const val KEY_AUTO_SAVE_PLAN_ID = "auto_save_plan_id"
+        private const val KEY_AUTO_SAVE_TOPIC_TITLE = "auto_save_topic_title"
         private const val DEFAULT_UNTITLED_SESSION_TITLE = "Untitled"
         private val KNOWN_HOME_PACKAGES = setOf(
             "com.miui.home",
@@ -124,6 +127,13 @@ class TimerService : Service() {
         val taskTitle: String?,
         val goalId: String?,
         val goalTitle: String?,
+        // Study-planner topic link, preserved across process death so a session
+        // that crash-recovers still credits its time to the right topic. The
+        // topic is never auto-marked-done here — the user never got to confirm
+        // that checkbox — only the association is kept.
+        val topicId: String?,
+        val planId: String?,
+        val topicTitle: String?,
     )
 
     // ── Exposed state ─────────────────────────────────────────────────────────
@@ -608,6 +618,9 @@ class TimerService : Service() {
         taskTitle: String?,
         goalId: String?,
         goalTitle: String?,
+        topicId: String? = null,
+        planId: String? = null,
+        topicTitle: String? = null,
         forceNew: Boolean = false,
     ) {
         val current = autoSaveMetadata
@@ -618,6 +631,9 @@ class TimerService : Service() {
             taskTitle = taskTitle?.trim()?.takeIf { it.isNotBlank() } ?: current?.taskTitle,
             goalId = goalId?.takeIf { it.isNotBlank() && !it.startsWith("named:") } ?: current?.goalId,
             goalTitle = goalTitle?.trim()?.takeIf { it.isNotBlank() } ?: current?.goalTitle,
+            topicId = topicId?.takeIf { it.isNotBlank() } ?: current?.topicId,
+            planId = planId?.takeIf { it.isNotBlank() } ?: current?.planId,
+            topicTitle = topicTitle?.trim()?.takeIf { it.isNotBlank() } ?: current?.topicTitle,
         )
         sessionSaveQueuedThisRun = false
         persistAutoSaveMetadata()
@@ -782,6 +798,12 @@ class TimerService : Service() {
                     return@launch
                 }
                 
+                // The break just finished with nothing to resume into (not a
+                // Pomodoro loop, no suspended focus session) — reset secondsLeft
+                // back to the full break length so the UI offers a fresh "Start"
+                // instead of a dead "Resume" that start() would silently reject
+                // (start() bails out whenever secondsLeft <= 0).
+                _secondsLeft.value = _totalSeconds.value
                 clearPersistedTimerState()
                 releaseMusic()
                 clearTheme()
@@ -850,6 +872,9 @@ class TimerService : Service() {
             .putString(KEY_AUTO_SAVE_TASK_TITLE, metadata.taskTitle)
             .putString(KEY_AUTO_SAVE_GOAL_ID, metadata.goalId)
             .putString(KEY_AUTO_SAVE_GOAL_TITLE, metadata.goalTitle)
+            .putString(KEY_AUTO_SAVE_TOPIC_ID, metadata.topicId)
+            .putString(KEY_AUTO_SAVE_PLAN_ID, metadata.planId)
+            .putString(KEY_AUTO_SAVE_TOPIC_TITLE, metadata.topicTitle)
             .apply()
     }
 
@@ -865,6 +890,9 @@ class TimerService : Service() {
                 taskTitle = prefs.getString(KEY_AUTO_SAVE_TASK_TITLE, null)?.takeIf { it.isNotBlank() },
                 goalId = prefs.getString(KEY_AUTO_SAVE_GOAL_ID, null)?.takeIf { it.isNotBlank() },
                 goalTitle = prefs.getString(KEY_AUTO_SAVE_GOAL_TITLE, null)?.takeIf { it.isNotBlank() },
+                topicId = prefs.getString(KEY_AUTO_SAVE_TOPIC_ID, null)?.takeIf { it.isNotBlank() },
+                planId = prefs.getString(KEY_AUTO_SAVE_PLAN_ID, null)?.takeIf { it.isNotBlank() },
+                topicTitle = prefs.getString(KEY_AUTO_SAVE_TOPIC_TITLE, null)?.takeIf { it.isNotBlank() },
             )
         } else {
             null
@@ -885,9 +913,13 @@ class TimerService : Service() {
             taskTitle = null,
             goalId = null,
             goalTitle = null,
+            topicId = null,
+            planId = null,
+            topicTitle = null,
         )
         val title = metadata.taskTitle
             ?: metadata.goalTitle
+            ?: metadata.topicTitle
             ?: DEFAULT_UNTITLED_SESSION_TITLE
         EkagraPendingSessionSaveStore.enqueue(
             this,
@@ -898,8 +930,12 @@ class TimerService : Service() {
                 endedAt = endedAt,
                 plannedDurationMinutes = if (mode == TimerMode.STOPWATCH) 0 else (total + 59) / 60,
                 actualDurationMinutes = (actual + 59) / 60,
+                actualDurationSeconds = actual,
                 goalId = metadata.goalId,
                 goalTitle = metadata.goalTitle,
+                topicId = metadata.topicId,
+                planId = metadata.planId,
+                topicTitle = metadata.topicTitle,
                 taskTitle = title,
                 shieldEnabled = _focusShieldActive.value || FocusShieldRepository.ShieldPrefs.isActive(this),
             ),

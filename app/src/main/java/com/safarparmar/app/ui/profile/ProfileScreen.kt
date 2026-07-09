@@ -224,6 +224,7 @@ fun ProfileScreen(
                         .fillMaxSize()
                         .padding(paddingValues)
                         .verticalScroll(rememberScrollState())
+                        .imePadding()
                         .padding(horizontal = 20.dp, vertical = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {

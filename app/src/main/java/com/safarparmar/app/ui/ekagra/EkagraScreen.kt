@@ -99,6 +99,9 @@ fun EkagraScreen(
     onToggleNightMode: () -> Unit = {},
     linkedGoalId: String? = null,
     linkedGoalTitle: String? = null,
+    linkedTopicId: String? = null,
+    linkedTopicTitle: String? = null,
+    linkedPlanId: String? = null,
     initialView: String? = null,
     viewModel: EkagraViewModel = hiltViewModel(),
     focusShieldViewModel: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldViewModel = hiltViewModel(),
@@ -183,7 +186,12 @@ fun EkagraScreen(
 
     var associatedGoalId    by remember(linkedGoalId)    { mutableStateOf(linkedGoalId) }
     var associatedGoalTitle by remember(linkedGoalTitle) { mutableStateOf(linkedGoalTitle) }
-    var taskText            by remember(linkedGoalId, linkedGoalTitle) { mutableStateOf(linkedGoalTitle.orEmpty()) }
+    var associatedTopicId    by remember(linkedTopicId)    { mutableStateOf(linkedTopicId) }
+    var associatedPlanId     by remember(linkedPlanId)     { mutableStateOf(linkedPlanId) }
+    var associatedTopicTitle by remember(linkedTopicTitle) { mutableStateOf(linkedTopicTitle) }
+    var taskText            by remember(linkedGoalId, linkedGoalTitle, linkedTopicId, linkedTopicTitle) {
+        mutableStateOf(linkedGoalTitle ?: linkedTopicTitle.orEmpty())
+    }
     var focusMinutes        by remember { mutableIntStateOf(25) }
     var breakMinutes        by remember { mutableIntStateOf(5) }
     var countdownValue      by remember { mutableIntStateOf(0) }
@@ -212,9 +220,12 @@ fun EkagraScreen(
         val service = timerService
         if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && service?.switchToFocusFromBreak() == true) {
             service.prepareAutoSaveSession(
-                taskTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
+                taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
                 goalId = associatedGoalId,
                 goalTitle = associatedGoalTitle,
+                topicId = associatedTopicId,
+                planId = associatedPlanId,
+                topicTitle = associatedTopicTitle,
             )
             service.start()
             viewModel.syncActiveSession(
@@ -229,9 +240,12 @@ fun EkagraScreen(
 
         if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) && timerService?.isActive() == true) {
             timerService.prepareAutoSaveSession(
-                taskTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
+                taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
                 goalId = associatedGoalId,
                 goalTitle = associatedGoalTitle,
+                topicId = associatedTopicId,
+                planId = associatedPlanId,
+                topicTitle = associatedTopicTitle,
             )
             timerService.start()
             viewModel.syncActiveSession(
@@ -247,9 +261,12 @@ fun EkagraScreen(
         timerService?.setDuration(mode, minutes * 60, breakMinutes * 60)
         if (mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) {
             timerService?.prepareAutoSaveSession(
-                taskTitle = associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() },
+                taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
                 goalId = associatedGoalId,
                 goalTitle = associatedGoalTitle,
+                topicId = associatedTopicId,
+                planId = associatedPlanId,
+                topicTitle = associatedTopicTitle,
                 forceNew = true,
             )
         }
@@ -271,6 +288,7 @@ fun EkagraScreen(
         activeSession?.id?.let { viewModel.discardSession(it) }
         timerService?.reset()
         associatedGoalId = null; associatedGoalTitle = null
+        associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
     }
 
     fun captureKavachSessionSummary() {
@@ -303,6 +321,9 @@ fun EkagraScreen(
                 secondsLeft  = secondsLeft,
                 mode         = timerMode.toApiMode(),
                 startedAt    = session.sessionStartedAt,
+                topicId      = associatedTopicId,
+                planId       = associatedPlanId,
+                topicTitle   = associatedTopicTitle,
             )
             titleInput = session.sessionTitle ?: taskText
             showOrganizeSheet = true
@@ -311,6 +332,7 @@ fun EkagraScreen(
         viewModel.onSessionCompleted(totalSeconds, secondsLeft, timerMode.toApiMode())
         timerService?.reset()
         associatedGoalId = null; associatedGoalTitle = null
+        associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
     }
 
     // ── Side-effects ────────────────────────────────────────────────────────────
@@ -427,6 +449,7 @@ fun EkagraScreen(
                 viewModel.loadEkagraAnalytics()
                 associatedGoalId = null
                 associatedGoalTitle = null
+                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
                 return@LaunchedEffect
             }
             // No auto-break started — normal focus-end cleanup.
@@ -442,11 +465,13 @@ fun EkagraScreen(
                 timerService?.reset()
                 associatedGoalId = null
                 associatedGoalTitle = null
+                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
                 return@LaunchedEffect
             }
             viewModel.loadEkagraAnalytics()
             timerService?.reset()
             associatedGoalId = null; associatedGoalTitle = null
+            associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
         }
     }
 
@@ -697,17 +722,43 @@ fun EkagraScreen(
                             }
                         }
 
+                        fun clearAssociations() {
+                            timerService?.reset(); associatedGoalId = null
+                            associatedGoalTitle = null; pendingEndedSession = null
+                            associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+                        }
+
                         fun savePendingAsFree() {
                             if (pending != null) {
                                 closeOrganizeSheet {
                                     viewModel.completeSession(pending.sessionId, pending.totalSeconds,
                                         pending.secondsLeft, pending.mode, pending.startedAt,
                                         titleInput.ifBlank { "Untitled" }, null, null, false, pending.endedAt)
-                                    timerService?.reset(); associatedGoalId = null
-                                    associatedGoalTitle = null; pendingEndedSession = null
+                                    clearAssociations()
                                 }
                             } else {
                                 closeOrganizeSheet {}
+                            }
+                        }
+
+                        fun saveTopicLinkedSession(markDone: Boolean) {
+                            if (pending != null && pending.topicId != null && pending.planId != null) {
+                                closeOrganizeSheet {
+                                    viewModel.completeSession(
+                                        sessionId = pending.sessionId,
+                                        totalSeconds = pending.totalSeconds,
+                                        secondsLeft = pending.secondsLeft,
+                                        mode = pending.mode,
+                                        startedAt = pending.startedAt,
+                                        taskTitle = pending.topicTitle,
+                                        endedAt = pending.endedAt,
+                                        topicId = pending.topicId,
+                                        planId = pending.planId,
+                                        topicTitle = pending.topicTitle,
+                                        markTopicDone = markDone,
+                                    )
+                                    clearAssociations()
+                                }
                             }
                         }
                         OrganizeFreeFocusSheet(
@@ -716,16 +767,16 @@ fun EkagraScreen(
                             goals         = openGoals,
                             titleInput    = titleInput,
                             onTitleChange = { titleInput = it },
-                            onDismiss     = { savePendingAsFree() },
+                            onDismiss     = { if (pending?.topicId != null) saveTopicLinkedSession(false) else savePendingAsFree() },
                             onSaveFree    = { savePendingAsFree() },
+                            onSaveTopic   = { markDone -> saveTopicLinkedSession(markDone) },
                             onLinkGoal = { goal, shouldMarkComplete ->
                                 if (pending != null) {
                                     closeOrganizeSheet {
                                         viewModel.linkGoalAndCompleteSession(pending.sessionId, goal,
                                             pending.totalSeconds, pending.secondsLeft, pending.mode, pending.startedAt,
                                             shouldMarkComplete, pending.endedAt)
-                                        timerService?.reset(); associatedGoalId = null
-                                        associatedGoalTitle = null; pendingEndedSession = null
+                                        clearAssociations()
                                     }
                                 }
                             },
@@ -733,8 +784,7 @@ fun EkagraScreen(
                                 if (pending != null) {
                                     closeOrganizeSheet {
                                         viewModel.discardSession(pending.sessionId)
-                                        timerService?.reset(); associatedGoalId = null
-                                        associatedGoalTitle = null; pendingEndedSession = null
+                                        clearAssociations()
                                     }
                                 }
                             },
@@ -1195,8 +1245,21 @@ fun EkagraScreen(
                             Modifier
                                 .fillMaxSize()
                                 .background(Color.Black.copy(alpha = 0.55f))
-                                .pointerInput(Unit) { detectTapGestures { } }
-                        )
+                                .pointerInput(Unit) { detectTapGestures { } },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            // Drawn as this scrim's own content (not inside the ring
+                            // card below), so it composes above the dim overlay
+                            // instead of being covered by it.
+                            Text(
+                                text = countdownValue.toString(),
+                                fontFamily = com.safarparmar.app.ui.theme.PoppinsFontFamily,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 160.sp,
+                                color = Color.White,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
                 }
             }
