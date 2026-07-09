@@ -75,6 +75,7 @@ internal fun SyllabusSubjectAccordionCard(
     onAddChapter: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
+    onMarkDone: () -> Unit,
     canReorder: Boolean = false,
     onMoveSubjectUp: () -> Unit = {},
     onMoveSubjectDown: () -> Unit = {},
@@ -210,7 +211,7 @@ internal fun SyllabusSubjectAccordionCard(
                     contentDescription = "Add chapter",
                     onClick = onAddChapter,
                 )
-                SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete)
+                SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete, onMarkDone = onMarkDone)
             }
 
             LinearProgressIndicator(
@@ -240,6 +241,7 @@ internal fun SyllabusChapterAccordionRow(
     onOpenTopics: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
+    onMarkDone: () -> Unit,
     canReorder: Boolean,
     onMoveChapterUp: () -> Unit,
     onMoveChapterDown: () -> Unit,
@@ -360,7 +362,7 @@ internal fun SyllabusChapterAccordionRow(
                     color = scheme.onSurfaceVariant,
                 )
             }
-            SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete)
+            SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete, onMarkDone = onMarkDone)
         }
         LinearProgressIndicator(
             progress = { completion / 100f },
@@ -388,6 +390,8 @@ internal fun SyllabusTopicAccordionRow(
     onMoveDown: () -> Unit,
     onDragEnd: () -> Unit = {},
     onChangeDate: () -> Unit = {},
+    onMarkDone: () -> Unit = {},
+    onToRevise: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -540,7 +544,13 @@ internal fun SyllabusTopicAccordionRow(
                     }
                 }
             }
-            SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete, onChangeDate = onChangeDate)
+            SubjectOverflowMenuMinimal(
+                onRename = onRename,
+                onDelete = onDelete,
+                onChangeDate = onChangeDate,
+                onMarkDone = onMarkDone,
+                onToRevise = onToRevise
+            )
         }
     }
 }
@@ -585,7 +595,13 @@ internal fun TopicStatusBadge(status: TopicStatus) {
 
 /** Overflow menu reserved for Rename/Delete/Change Date only — Add actions are direct-tap icons, not menu items. */
 @Composable
-private fun SubjectOverflowMenuMinimal(onRename: () -> Unit, onDelete: () -> Unit, onChangeDate: (() -> Unit)? = null) {
+private fun SubjectOverflowMenuMinimal(
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+    onChangeDate: (() -> Unit)? = null,
+    onMarkDone: (() -> Unit)? = null,
+    onToRevise: (() -> Unit)? = null,
+) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }, modifier = Modifier.size(44.dp)) {
@@ -595,6 +611,12 @@ private fun SubjectOverflowMenuMinimal(onRename: () -> Unit, onDelete: () -> Uni
             DropdownMenuItem(text = { Text("Rename") }, onClick = { expanded = false; onRename() })
             if (onChangeDate != null) {
                 DropdownMenuItem(text = { Text("Change Date") }, onClick = { expanded = false; onChangeDate() })
+            }
+            if (onMarkDone != null) {
+                DropdownMenuItem(text = { Text("Mark Done") }, onClick = { expanded = false; onMarkDone() })
+            }
+            if (onToRevise != null) {
+                DropdownMenuItem(text = { Text("To Revise") }, onClick = { expanded = false; onToRevise() })
             }
             DropdownMenuItem(
                 text = { Text("Delete", color = MaterialTheme.colorScheme.error) },

@@ -77,6 +77,7 @@ interface PlannerActions {
         notes: String? = null,
         pinned: Boolean? = null,
     )
+    fun batchMarkTopicsDone(topicIds: List<String>)
     /**
      * Sets a topic to REVISION_NEEDED and schedules [revisionDates] on it.
      * The first date becomes the new plannedDate so the topic reappears in

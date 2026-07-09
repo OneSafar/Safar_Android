@@ -61,6 +61,8 @@ internal fun ChapterTopicsSheet(
     onMoveTopicDown: (StudyTopic) -> Unit,
     onTopicDragEnd: (StudyTopic) -> Unit,
     onChangeDate: (StudyTopic) -> Unit = {},
+    onMarkDoneTopic: (StudyTopic) -> Unit = {},
+    onToReviseTopic: (StudyTopic) -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scheme = MaterialTheme.colorScheme
@@ -144,6 +146,8 @@ internal fun ChapterTopicsSheet(
                                 onMoveDown = { onMoveTopicDown(topic) },
                                 onDragEnd = { onTopicDragEnd(topic) },
                                 onChangeDate = { onChangeDate(topic) },
+                                onMarkDone = { onMarkDoneTopic(topic) },
+                                onToRevise = { onToReviseTopic(topic) },
                                 modifier = Modifier.animateItem(),
                             )
                             if (index < topics.lastIndex) {

@@ -400,7 +400,7 @@ fun PlanTabScreen(
     removeFromTodayConfirmTopic?.let { ref ->
         PlanConfirmDialog(
             title = "Remove from today?",
-            body = "\"${ref.topic.name}\" will be unscheduled. You can re-add it later.",
+            body = "\"${ref.topic.name}\" will be marked as Not Assigned. You can re-add it later.",
             onDismiss = { removeFromTodayConfirmTopic = null },
             onConfirm = {
                 actions.clearTopicDates(listOf(ref.topic.id))
@@ -1100,13 +1100,13 @@ private fun UnscheduledWarningBanner(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "$count Unscheduled Topics",
+                    text = "$count Not Assigned Topics",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onErrorContainer
                 )
                 Text(
-                    text = "Topics are in your syllabus but not scheduled. Tap to schedule them.",
+                    text = "Topics are in your syllabus but not assigned. Tap to assign them.",
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant
                 )

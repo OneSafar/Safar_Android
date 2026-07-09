@@ -1519,7 +1519,7 @@ fun ReplaceTopicSheet(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     Text(
-                                        text = if (hasDate) "Scheduled ${readableDate(ref.topic.plannedDate)}" else "Unscheduled topic",
+                                        text = if (hasDate) "Scheduled ${readableDate(ref.topic.plannedDate)}" else "Not Assigned topic",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = scheme.onSurfaceVariant,
                                         maxLines = 1,

@@ -63,6 +63,7 @@ internal sealed interface SyllabusDialogState {
     data class DeleteChapter(val subjectId: String, val chapter: StudyChapter) : SyllabusDialogState
     data class RenameTopic(val topic: StudyTopic) : SyllabusDialogState
     data class DeleteTopic(val topic: StudyTopic) : SyllabusDialogState
+    data class ReviseTopic(val topic: StudyTopic) : SyllabusDialogState
     data class DuplicateNameConfirm(val message: String, val onConfirm: () -> Unit) : SyllabusDialogState
 }
 
@@ -361,6 +362,7 @@ fun SyllabusSubjectsScreen(
                                     onOpenTopics = { openTopicsChapterId = chapter.id },
                                     onRename = { dialogState = SyllabusDialogState.RenameChapter(subject.id, chapter) },
                                     onDelete = { dialogState = SyllabusDialogState.DeleteChapter(subject.id, chapter) },
+                                    onMarkDone = { actions.batchMarkTopicsDone(chapter.topics.map { it.id }) },
                                     canReorder = canReorderSyllabus,
                                     onMoveChapterUp = { moveChapter(subject.id, chapter.id, -1) },
                                     onMoveChapterDown = { moveChapter(subject.id, chapter.id, 1) },
@@ -395,6 +397,8 @@ fun SyllabusSubjectsScreen(
                         onMoveTopicDown = { topic -> moveTopic(openChapter.id, topic.id, 1) },
                         onTopicDragEnd = { saveTopicOrder(openChapter.id) },
                         onChangeDate = { topic -> topicForDatePicker = topic },
+                        onMarkDoneTopic = { topic -> actions.batchMarkTopicsDone(listOf(topic.id)) },
+                        onToReviseTopic = { topic -> dialogState = SyllabusDialogState.ReviseTopic(topic) },
                     )
                 }
             } else {
@@ -566,6 +570,9 @@ fun SyllabusSubjectsScreen(
                                         onDelete = {
                                             subjects.firstOrNull { it.id == subject.id }?.let { dialogState = SyllabusDialogState.DeleteSubject(it) }
                                         },
+                                        onMarkDone = {
+                                            actions.batchMarkTopicsDone(subject.chapters.flatMap { it.topics }.map { it.id })
+                                        },
                                         canReorder = canReorderSyllabus,
                                         onMoveSubjectUp = { moveSubject(subject.id, -1) },
                                         onMoveSubjectDown = { moveSubject(subject.id, 1) },
@@ -680,6 +687,22 @@ fun SyllabusSubjectsScreen(
                 actions.deleteTopic(ds.topic.id)
                 dialogState = SyllabusDialogState.Closed
             }
+        }
+        is SyllabusDialogState.ReviseTopic -> {
+            ReviseTopicBottomSheet(
+                topic = ds.topic,
+                onDismiss = { dialogState = SyllabusDialogState.Closed },
+                onSpacedRepetition = { topic ->
+                    val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
+                    val dates = listOf(1L, 3L, 7L, 14L, 30L).map { today.plusDays(it).toString() }
+                    actions.markForRevision(topic.id, dates, "spaced_repetition")
+                    dialogState = SyllabusDialogState.Closed
+                },
+                onCustomDate = { topic ->
+                    dialogState = SyllabusDialogState.Closed
+                    topicForDatePicker = topic
+                }
+            )
         }
         is SyllabusDialogState.DuplicateNameConfirm -> {
             AlertDialog(
@@ -1012,5 +1035,53 @@ internal fun SubjectInitialBadge(name: String) {
             fontWeight = FontWeight.ExtraBold,
             color = scheme.onPrimaryContainer,
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReviseTopicBottomSheet(
+    topic: StudyTopic,
+    onDismiss: () -> Unit,
+    onSpacedRepetition: (StudyTopic) -> Unit,
+    onCustomDate: (StudyTopic) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(isSystemInDarkTheme()),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "Revise: ${topic.name}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "How would you like to schedule revision?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Button(
+                onClick = { onSpacedRepetition(topic) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Spaced Repetition")
+            }
+            OutlinedButton(
+                onClick = { onCustomDate(topic) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Set Custom Date")
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
