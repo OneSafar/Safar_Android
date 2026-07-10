@@ -261,7 +261,7 @@ fun PlanStatusCard(
         // ── Filters (tab bar, etc.) rendered below the banner ───────
         if (true) { // always render, the caller controls content
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 filters()
@@ -1898,7 +1898,7 @@ fun DailyTodoSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(start = 16.dp, top = 0.dp, end = 16.dp, bottom = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Header
