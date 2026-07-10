@@ -1826,6 +1826,61 @@ fun ManualSubjectOrderSheet(
 }
 
 @Composable
+fun AnimatedCheckCircle(
+    isDone: Boolean,
+    scheme: androidx.compose.material3.ColorScheme,
+    modifier: Modifier = Modifier
+) {
+    val checkScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isDone) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ),
+        label = "checkScale"
+    )
+    
+    val outerScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isDone) 1.05f else 1.0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioHighBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ),
+        label = "outerScale"
+    )
+
+    Box(
+        modifier = modifier
+            .size(24.dp)
+            .scale(outerScale),
+        contentAlignment = Alignment.Center
+    ) {
+        // Hollow circle
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .border(
+                    width = 2.dp,
+                    color = if (isDone) scheme.primary.copy(alpha = 0.5f) else scheme.outline.copy(alpha = 0.6f),
+                    shape = CircleShape
+                )
+        )
+        
+        // Checked circle scaling up on top
+        if (checkScale > 0f) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Checked",
+                tint = scheme.primary,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(checkScale)
+            )
+        }
+    }
+}
+
+@Composable
 fun DailyTodoSection(
     plan: com.safarparmar.app.domain.model.studyplanner.StudyPlan,
     actions: com.safarparmar.app.ui.studyplanner.PlannerActions,
@@ -1840,8 +1895,13 @@ fun DailyTodoSection(
     val logs = plan.dailyTodoLogs?.get(todayStr).orEmpty()
     val isAllDone = todos.isNotEmpty() && todos.all { it.id in logs }
     
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1852,14 +1912,12 @@ fun DailyTodoSection(
                 TextButton(
                     onClick = {
                         if (isAllDone) {
-                            // untick all
                             actions.updatePlan(
                                 com.safarparmar.app.data.remote.api.UpdatePlanRequest(
                                     dailyTodoLogs = plan.dailyTodoLogs.orEmpty() + (todayStr to emptyList())
                                 )
                             )
                         } else {
-                            // tick all
                             actions.updatePlan(
                                 com.safarparmar.app.data.remote.api.UpdatePlanRequest(
                                     dailyTodoLogs = plan.dailyTodoLogs.orEmpty() + (todayStr to todos.map { it.id })
@@ -1867,11 +1925,21 @@ fun DailyTodoSection(
                             )
                         }
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = scheme.primary)
+                    colors = ButtonDefaults.textButtonColors(contentColor = scheme.primary),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (isAllDone) "Untick All" else "Tick All", fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = if (isAllDone) Icons.Default.CheckCircle else Icons.Default.CheckCircle, 
+                        contentDescription = null, 
+                        tint = if (isAllDone) scheme.primary else scheme.outline.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = if (isAllDone) "Untick All" else "Tick All", 
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -1886,11 +1954,18 @@ fun DailyTodoSection(
                 value = newTaskName,
                 onValueChange = { newTaskName = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Add a daily habit...") },
+                placeholder = { Text("Add a daily habit...", style = MaterialTheme.typography.bodyMedium) },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
+                textStyle = MaterialTheme.typography.bodyMedium,
+                shape = RoundedCornerShape(12.dp),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = scheme.primary,
+                    unfocusedBorderColor = scheme.outline.copy(alpha = 0.4f),
+                    focusedContainerColor = scheme.surface,
+                    unfocusedContainerColor = scheme.surface
+                )
             )
-            Button(
+            androidx.compose.material3.IconButton(
                 onClick = {
                     if (newTaskName.isNotBlank()) {
                         val newTodo = com.safarparmar.app.domain.model.studyplanner.DailyTodo(
@@ -1905,10 +1980,19 @@ fun DailyTodoSection(
                         newTaskName = ""
                     }
                 },
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        color = if (newTaskName.isNotBlank()) scheme.primary else scheme.surfaceVariant,
+                        shape = RoundedCornerShape(12.dp)
+                    ),
                 enabled = newTaskName.isNotBlank()
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
+                Icon(
+                    imageVector = Icons.Default.Add, 
+                    contentDescription = "Add",
+                    tint = if (newTaskName.isNotBlank()) scheme.onPrimary else scheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
             }
         }
         
@@ -1917,18 +2001,32 @@ fun DailyTodoSection(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(
-                    containerColor = scheme.surfaceVariant.copy(alpha = 0.3f)
-                )
+                    containerColor = scheme.surfaceVariant.copy(alpha = 0.2f)
+                ),
+                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.3f))
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Icon(
+                        imageVector = Icons.Default.Today,
+                        contentDescription = null,
+                        tint = scheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(36.dp)
+                    )
                     Text(
-                        text = "No daily tasks yet. Add a few recurring habits you want to track every day.",
+                        text = "No daily tasks yet",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onSurface
+                    )
+                    Text(
+                        text = "Add a few recurring habits you want to track every day.",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        color = scheme.onSurfaceVariant
+                        color = scheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -1937,16 +2035,14 @@ fun DailyTodoSection(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(containerColor = scheme.surface),
-                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f))
+                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f))
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    todos.forEach { todo ->
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    todos.forEachIndexed { index, todo ->
                         val isDone = todo.id in logs
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isDone) scheme.primaryContainer.copy(alpha = 0.3f) else scheme.surfaceVariant.copy(alpha = 0.3f))
                                 .clickable {
                                     val newLogsForToday = if (isDone) logs - todo.id else logs + todo.id
                                     actions.updatePlan(
@@ -1955,7 +2051,7 @@ fun DailyTodoSection(
                                         )
                                     )
                                 }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -1963,15 +2059,21 @@ fun DailyTodoSection(
                                 text = todo.name,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = if (isDone) FontWeight.Medium else FontWeight.Normal,
-                                color = if (isDone) scheme.onSurface.copy(alpha = 0.6f) else scheme.onSurface,
+                                color = if (isDone) scheme.onSurface.copy(alpha = 0.5f) else scheme.onSurface,
                                 textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
                                 modifier = Modifier.weight(1f)
                             )
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = if (isDone) "Done" else "Not Done",
-                                tint = if (isDone) scheme.primary else scheme.outline,
-                                modifier = Modifier.size(24.dp)
+                            AnimatedCheckCircle(
+                                isDone = isDone,
+                                scheme = scheme,
+                                modifier = Modifier.padding(start = 12.dp)
+                            )
+                        }
+                        if (index < todos.lastIndex) {
+                            androidx.compose.material3.HorizontalDivider(
+                                color = scheme.outlineVariant.copy(alpha = 0.3f),
+                                thickness = 0.5.dp,
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
                     }
