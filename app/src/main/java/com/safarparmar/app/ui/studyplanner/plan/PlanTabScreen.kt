@@ -63,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -178,6 +179,7 @@ fun PlanTabScreen(
     var replaceSheetTopic by remember { mutableStateOf<TopicRef?>(null) }
     var showPullTopicSheet by remember { mutableStateOf(false) }
     var showDailyTodoSheet by remember { mutableStateOf(false) }
+    var dailyTodoExpanded by rememberSaveable { mutableStateOf(false) }
     // Boolean = lockExisting; null means sheet is closed
     var pendingDistributeAction by remember { mutableStateOf<Boolean?>(null) }
     var removeFromTodayConfirmTopic by remember { mutableStateOf<TopicRef?>(null) }
@@ -511,6 +513,16 @@ fun PlanTabScreen(
                             )
                         }
                     }
+                )
+            }
+
+            item(key = "daily_todo_collapsible", contentType = "daily_todo_collapsible") {
+                CollapsibleDailyTodoCard(
+                    plan = plan,
+                    actions = actions,
+                    todayStr = today,
+                    expanded = dailyTodoExpanded,
+                    onToggleExpanded = { dailyTodoExpanded = !dailyTodoExpanded },
                 )
             }
 

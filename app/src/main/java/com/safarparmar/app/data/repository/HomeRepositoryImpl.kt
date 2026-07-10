@@ -203,7 +203,15 @@ class HomeRepositoryImpl @Inject constructor(
     )
 
     // _id (Mongo) used as fallback; text used as fallback for title
-    private fun GoalDto.toDomain() = Goal(
+    private fun GoalDto.toDomain(): Goal {
+        // A completion timestamp is historical proof that the goal was ticked in
+        // older releases, including releases that did not send `completed` back
+        // consistently. Preserve it during an app update instead of rendering the
+        // goal (and its week-history mark) as incomplete.
+        val historicalCompletedAt = completedAt ?: completedAtSnake
+        val isHistoricallyCompleted = completed == true || !historicalCompletedAt.isNullOrBlank()
+
+        return Goal(
         id              = id ?: mongoId ?: "",
         userId          = userId ?: "",
         text            = text ?: title ?: "",
@@ -218,14 +226,14 @@ class HomeRepositoryImpl @Inject constructor(
         linkedFocusEnabled = linkedFocusEnabled ?: linkedFocusEnabledSnake ?: false,
         plannedFocusMinutes = plannedFocusMinutes ?: plannedFocusMinutesSnake,
         targetValue     = targetValue ?: targetValueSnake,
-        achievedValue   = achievedValue ?: achievedValueSnake ?: if (completed == true) 1 else 0,
-        status          = status ?: statusSnake ?: if (completed == true) "completed" else "not_started",
+        achievedValue   = achievedValue ?: achievedValueSnake ?: if (isHistoricallyCompleted) 1 else 0,
+        status          = status ?: statusSnake ?: if (isHistoricallyCompleted) "completed" else "not_started",
         carryForwardMode = carryForwardMode ?: carryForwardModeSnake ?: if ((goalKind ?: goalKindSnake) == "repeat") "full" else "none",
         category        = category ?: "other",
         priority        = priority ?: "medium",
-        completed       = completed ?: false,
+        completed       = isHistoricallyCompleted,
         createdAt       = createdAt ?: createdAtSnake,
-        completedAt     = completedAt ?: completedAtSnake,
+        completedAt     = historicalCompletedAt,
         studiedMinutes  = studiedMinutes ?: studiedMinutesSnake,
         scheduledDate   = scheduledDate ?: scheduledDateSnake,
         startedAt       = startedAtCamel ?: startedAt,
@@ -236,7 +244,8 @@ class HomeRepositoryImpl @Inject constructor(
         nextInstanceCreated = nextInstanceCreatedSnake ?: false,
         type            = type,
         subtasks        = subtasks?.mapNotNull { it.toGoalSubtask() } ?: emptyList()
-    )
+        )
+    }
 
     private fun GoalSubtask.toDto() = GoalSubtaskDto(id = id, text = text, done = done)
 

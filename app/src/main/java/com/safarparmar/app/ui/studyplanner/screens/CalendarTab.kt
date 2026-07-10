@@ -397,8 +397,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                 val revisionGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF3E7C8C), Color(0xFF29638A)))
                 Button(
                     onClick = {
-                        actions.setPlanTab(StudyPlannerTab.REVISION)
-                        actions.setSection(PlannerSection.PLAN)
+                        actions.openRevisionTopics()
                     },
                     modifier = Modifier
                         .fillMaxWidth()

@@ -165,12 +165,14 @@ private fun ManualSubjectCard(
     if (showAddChapterDialog) {
         TextInputDialog(
             title = "Add chapter",
-            label = "Chapter name",
+            label = "Chapter name (comma-separated for multiple)",
             confirmLabel = "Add",
             emptyHint = "Please type the chapter name",
             onDismiss = { showAddChapterDialog = false },
-            onConfirm = { name ->
-                onAddChapter(name)
+            onConfirm = { rawInput ->
+                // A comma in the typed name is a bulk add, same as the live Syllabus screen —
+                // "Motion, Gravitation, Work and Energy" adds all three chapters at once.
+                rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }.forEach(onAddChapter)
                 showAddChapterDialog = false
             },
         )
@@ -179,12 +181,13 @@ private fun ManualSubjectCard(
     addTopicForChapterId?.let { chapterId ->
         TextInputDialog(
             title = "Add topic",
-            label = "Topic name",
+            label = "Topic name (comma-separated for multiple)",
             confirmLabel = "Add",
             emptyHint = "Please type the topic name",
             onDismiss = { addTopicForChapterId = null },
-            onConfirm = { name ->
-                onAddTopic(chapterId, name)
+            onConfirm = { rawInput ->
+                rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                    .forEach { name -> onAddTopic(chapterId, name) }
                 addTopicForChapterId = null
             },
         )

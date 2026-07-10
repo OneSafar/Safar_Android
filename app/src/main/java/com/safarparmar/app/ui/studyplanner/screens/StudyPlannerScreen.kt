@@ -634,7 +634,8 @@ fun StudyPlannerScreen(
                     if (canUsePremiumPlannerFeatures) {
                         PlannerBottomBar(
                             selected = chromeState.section.takeIf { chromeState.selectedPlan != null }
-                                ?: PlannerSection.YOUR_EXAMS,
+                                // A first-time user is on Home, not the plan picker.
+                                ?: if (plansState.plans.isEmpty()) PlannerSection.PLAN else PlannerSection.YOUR_EXAMS,
                             onSelect = { section ->
                                 val activePlan = chromeState.selectedPlan
                                 when {
@@ -1703,19 +1704,24 @@ private fun PlannerHome(
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
             if (plan == null) {
-                // The target-exam list is the single planner landing screen.
-                StudyPlansScreen(
-                    state = plansState,
-                    importState = detailState,
-                    actions = actions,
-                    canUsePremiumPlannerFeatures = canUsePremiumInsights,
-                    onUpgrade = { onNavigate(Routes.PREMIUM) },
-                    onNavigate = onNavigate,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    onAdvanceTour = onAdvanceTour,
-                    selectedPlanId = chromeState.selectedPlan?.id,
-                )
+                if (plansState.plans.isEmpty() && !plansState.loading) {
+                    // Keep first-time users in the planner flow: the Plan tab exposes
+                    // the same target-exam setup screen shown in the product design.
+                    PlannerHomeEmptyState(onCreatePlan = { actions.setSection(PlannerSection.YOUR_EXAMS) })
+                } else {
+                    StudyPlansScreen(
+                        state = plansState,
+                        importState = detailState,
+                        actions = actions,
+                        canUsePremiumPlannerFeatures = canUsePremiumInsights,
+                        onUpgrade = { onNavigate(Routes.PREMIUM) },
+                        onNavigate = onNavigate,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        onAdvanceTour = onAdvanceTour,
+                        selectedPlanId = chromeState.selectedPlan?.id,
+                    )
+                }
             } else {
                 when (chromeState.section) {
                     PlannerSection.YOUR_EXAMS -> StudyPlansScreen(
@@ -1773,6 +1779,47 @@ private fun PlannerHome(
                     )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlannerHomeEmptyState(onCreatePlan: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = CircleShape,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(16.dp).size(32.dp),
+                )
+            }
+            Text(
+                text = "Create your exam plan",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "Set up an exam to see your daily study plan here.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Button(onClick = onCreatePlan) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Create your exam plan")
             }
         }
     }

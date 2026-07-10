@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.safarparmar.app.domain.model.studyplanner.StudyTopic
@@ -90,6 +93,12 @@ internal fun ChapterTopicsSheet(
             )
 
             if (showAddRow) {
+                fun submitNewTopic() {
+                    if (newTopicText.isBlank()) return
+                    onAddTopic(newTopicText)
+                    newTopicText = ""
+                    showAddRow = false
+                }
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -99,15 +108,14 @@ internal fun ChapterTopicsSheet(
                         onValueChange = { newTopicText = it },
                         label = { Text("Topic name (comma-separated for multiple)") },
                         modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submitNewTopic() }),
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         SyllabusAddButton(
                             label = "Add",
-                            onClick = {
-                                onAddTopic(newTopicText)
-                                newTopicText = ""
-                                showAddRow = false
-                            },
+                            onClick = { submitNewTopic() },
                             modifier = Modifier.weight(1f),
                         )
                         TextButton(onClick = { showAddRow = false; newTopicText = "" }) {

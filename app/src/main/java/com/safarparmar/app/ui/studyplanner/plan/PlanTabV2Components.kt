@@ -86,6 +86,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -1883,6 +1884,81 @@ fun AnimatedCheckCircle(
     }
 }
 
+/**
+ * Collapsed by default: a single header row (title, today's done/total count, chevron)
+ * that expands in place to the full [DailyTodoSection] — this is what surfaces the Daily
+ * To-Do list directly on the main Plan tab instead of only inside its bottom sheet.
+ */
+@Composable
+fun CollapsibleDailyTodoCard(
+    plan: com.safarparmar.app.domain.model.studyplanner.StudyPlan,
+    actions: com.safarparmar.app.ui.studyplanner.PlannerActions,
+    todayStr: String,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val todos = plan.dailyTodos.orEmpty()
+    val logs = plan.dailyTodoLogs?.get(todayStr).orEmpty()
+    val doneCount = todos.count { it.id in logs }
+    val chevronRotation by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "dailyTodoChevron",
+    )
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = scheme.surface),
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f)),
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggleExpanded)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Today,
+                    contentDescription = null,
+                    tint = scheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = "Daily To-Do",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                if (todos.isNotEmpty()) {
+                    Text(
+                        text = "$doneCount/${todos.size}",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = scheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(22.dp)
+                        .graphicsLayer { rotationZ = chevronRotation },
+                )
+            }
+            androidx.compose.animation.AnimatedVisibility(visible = expanded) {
+                DailyTodoSection(plan = plan, actions = actions, todayStr = todayStr)
+            }
+        }
+    }
+}
+
 @Composable
 fun DailyTodoSection(
     plan: com.safarparmar.app.domain.model.studyplanner.StudyPlan,
@@ -1961,7 +2037,7 @@ fun DailyTodoSection(
                 value = newTaskName,
                 onValueChange = { newTaskName = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Add a daily habit...", style = MaterialTheme.typography.bodyMedium) },
+                placeholder = { Text("e.g. Calculation Practice, Vocab, Table Learning", style = MaterialTheme.typography.bodyMedium) },
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium,
                 shape = RoundedCornerShape(12.dp),

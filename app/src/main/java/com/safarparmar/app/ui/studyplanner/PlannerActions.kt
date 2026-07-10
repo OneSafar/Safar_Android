@@ -16,6 +16,8 @@ enum class StudyPlannerTab {
 interface PlannerActions {
     fun setSection(section: PlannerSection)
     fun setPlanTab(tab: StudyPlannerTab)
+    /** Opens the revision list and records the current planner location for Back. */
+    fun openRevisionTopics()
     /** Navigates to Calendar and opens the Missed Topics sheet, e.g. from an
      *  Insights card about overdue/unplanned topics. */
     fun openMissedTopics()
@@ -56,6 +58,9 @@ interface PlannerActions {
     fun renameSubject(subjectId: String, name: String)
     fun deleteSubject(subjectId: String)
     fun addChapter(subjectId: String, name: String)
+    /** Adds several chapters at once (e.g. from a comma-separated "Add Chapter" entry),
+     *  landing them at the front of the subject in the order given. */
+    fun addChapters(subjectId: String, names: List<String>)
     fun renameChapter(subjectId: String, chapterId: String, name: String)
     fun deleteChapter(subjectId: String, chapterId: String)
     /** Adds a single topic, then moves it to the front of the chapter's topic list

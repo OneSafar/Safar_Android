@@ -231,7 +231,12 @@ object PlannerInsightsCalculator {
         val map = mutableMapOf<String, Int>()
         for (ref in refs) {
             if (ref.topic.status != TopicStatus.DONE) continue
-            val cd = ref.topic.completedDate?.take(10) ?: continue
+            // completedDate was added after template plans already existed.
+            // Preserve their historical Progress ticks by falling back to the
+            // original planned day for an already-completed topic.
+            val cd = (ref.topic.completedDate ?: ref.topic.plannedDate)
+                ?.take(10)
+                ?: continue
             map[cd] = (map[cd] ?: 0) + 1
         }
         return map
@@ -267,7 +272,7 @@ object PlannerInsightsCalculator {
         val dayLabels = listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
         val bestLabel = dayLabels[bestDow.coerceIn(0, 6)]
 
-        val streak = computeStreak(completedByDate, todayIso, calendar)
+        val streak = computeStreak(completedByDate, todayIso)
 
         val pastDays = calendar.keys
             .filter { it < todayIso }
@@ -295,32 +300,20 @@ object PlannerInsightsCalculator {
     private fun computeStreak(
         completedByDate: Map<String, Int>,
         todayIso: String,
-        calendar: Map<String, List<CalendarTopicItem>>
     ): Int {
         var streak = 0
         var cursor = LocalDate.parse(todayIso)
+
+        // A study streak means at least one completed topic on a day. Keep an
+        // in-progress today from breaking yesterday's live streak.
+        if ((completedByDate[todayIso] ?: 0) <= 0) {
+            cursor = cursor.minusDays(1)
+        }
+
         repeat(730) {
             val key = cursor.toString()
-            val completedCount = completedByDate[key] ?: 0
-            val plannedItems = calendar[key].orEmpty()
-            val plannedCount = plannedItems.size
-            val doneCount = plannedItems.count { it.status == TopicStatus.DONE }
-
-            val hasDoneAtLeastOne = completedCount > 0
-            
-            val isFullyCompleted = if (plannedCount > 0) {
-                hasDoneAtLeastOne && (doneCount == plannedCount)
-            } else {
-                hasDoneAtLeastOne
-            }
-
-            if (isFullyCompleted) {
-                streak++
-            } else {
-                if (key != todayIso) {
-                    return streak
-                }
-            }
+            if ((completedByDate[key] ?: 0) <= 0) return streak
+            streak++
             cursor = cursor.minusDays(1)
         }
         return streak

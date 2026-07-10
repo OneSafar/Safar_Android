@@ -143,16 +143,28 @@ fun SyllabusSubjectsScreen(
         }
     }
 
-    fun requestAddChapter(subjectId: String, name: String) {
-        val subject = rawSubjects.find { it.id == subjectId }
-        val siblings = subject?.chapters.orEmpty().map { it.name }
-        if (findDuplicateSiblingName(name, siblings)) {
-            dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                message = "You already have a chapter called '$name'. Add it again?",
-                onConfirm = { actions.addChapter(subjectId, name) },
-            )
-        } else {
-            actions.addChapter(subjectId, name)
+    // A comma in the typed name is treated as a bulk add, same as topics —
+    // "Motion, Gravitation, Work and Energy" adds all three chapters in one go.
+    // Duplicate-name confirmation only applies to the single-chapter path; a batch
+    // is added as-is (a duplicate confirm dialog per item wouldn't scale to a list).
+    fun requestAddChapter(subjectId: String, rawInput: String) {
+        val names = rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        when (names.size) {
+            0 -> Unit
+            1 -> {
+                val name = names[0]
+                val subject = rawSubjects.find { it.id == subjectId }
+                val siblings = subject?.chapters.orEmpty().map { it.name }
+                if (findDuplicateSiblingName(name, siblings)) {
+                    dialogState = SyllabusDialogState.DuplicateNameConfirm(
+                        message = "You already have a chapter called '$name'. Add it again?",
+                        onConfirm = { actions.addChapter(subjectId, name) },
+                    )
+                } else {
+                    actions.addChapter(subjectId, name)
+                }
+            }
+            else -> actions.addChapters(subjectId, names)
         }
     }
 
@@ -641,8 +653,9 @@ fun SyllabusSubjectsScreen(
         is SyllabusDialogState.AddChapter -> {
             TextInputDialog(
                 "Add Chapter",
-                "Chapter name",
+                "Chapter name (comma-separated for multiple)",
                 onDismiss = { dialogState = SyllabusDialogState.Closed },
+                confirmLabel = "Add",
                 emptyHint = "Please type the chapter name",
             ) {
                 requestAddChapter(ds.subject.id, it)

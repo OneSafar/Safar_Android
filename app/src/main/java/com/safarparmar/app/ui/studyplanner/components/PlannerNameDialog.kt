@@ -1,6 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -13,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Density
 
 /**
@@ -51,6 +54,11 @@ fun TextInputDialog(
                     label = { Text(label) },
                     supportingText = { if (text.isBlank()) Text(emptyHint) },
                     modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (text.trim().length >= 2) onConfirm(text.trim()) },
+                    ),
                 )
             }
         },

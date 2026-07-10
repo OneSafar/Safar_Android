@@ -1526,8 +1526,7 @@ internal fun InsightsRevisionStudyCardWidget(
                     modifier = Modifier
                         .weight(1f)
                         .clickable {
-                            actions.setPlanTab(StudyPlannerTab.REVISION)
-                            actions.setSection(PlannerSection.PLAN)
+                            actions.openRevisionTopics()
                         },
                 )
             }
@@ -2491,4 +2490,3 @@ internal fun InsightsMetricRow(
         }
     }
 }
-

@@ -196,12 +196,13 @@ fun TemplatePickerStep(
                     if (showAddChapterDialog) {
                         TextInputDialog(
                             title = "Add chapter",
-                            label = "Chapter name",
+                            label = "Chapter name (comma-separated for multiple)",
                             confirmLabel = "Add",
                             emptyHint = "Please type the chapter name",
                             onDismiss = { showAddChapterDialog = false },
-                            onConfirm = { name ->
-                                onAddTemplateSubjectChapter(subject.localId, name)
+                            onConfirm = { rawInput ->
+                                rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                                    .forEach { name -> onAddTemplateSubjectChapter(subject.localId, name) }
                                 showAddChapterDialog = false
                             },
                         )
@@ -242,12 +243,13 @@ fun TemplatePickerStep(
                     if (showAddChapterDialog) {
                         TextInputDialog(
                             title = "Add chapter",
-                            label = "Chapter name",
+                            label = "Chapter name (comma-separated for multiple)",
                             confirmLabel = "Add",
                             emptyHint = "Please type the chapter name",
                             onDismiss = { showAddChapterDialog = false },
-                            onConfirm = { name ->
-                                onAddChapter(subjectIndex, name)
+                            onConfirm = { rawInput ->
+                                rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                                    .forEach { name -> onAddChapter(subjectIndex, name) }
                                 showAddChapterDialog = false
                             },
                         )
@@ -283,12 +285,13 @@ fun TemplatePickerStep(
                     if (showAddTopicDialog) {
                         TextInputDialog(
                             title = "Add topic",
-                            label = "Topic name",
+                            label = "Topic name (comma-separated for multiple)",
                             confirmLabel = "Add",
                             emptyHint = "Please type the topic name",
                             onDismiss = { showAddTopicDialog = false },
-                            onConfirm = { name ->
-                                onAddTemplateSubjectTopic(subject.localId, chapterId, name)
+                            onConfirm = { rawInput ->
+                                rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                                    .forEach { name -> onAddTemplateSubjectTopic(subject.localId, chapterId, name) }
                                 showAddTopicDialog = false
                             },
                         )
@@ -332,12 +335,13 @@ fun TemplatePickerStep(
                             if (showAddTopicDialog) {
                                 TextInputDialog(
                                     title = "Add topic",
-                                    label = "Topic name",
+                                    label = "Topic name (comma-separated for multiple)",
                                     confirmLabel = "Add",
                                     emptyHint = "Please type the topic name",
                                     onDismiss = { showAddTopicDialog = false },
-                                    onConfirm = { name ->
-                                        onAddTopic(subjectIndex, chapterRef.index, name)
+                                    onConfirm = { rawInput ->
+                                        rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                                            .forEach { name -> onAddTopic(subjectIndex, chapterRef.index, name) }
                                         showAddTopicDialog = false
                                     },
                                 )
@@ -364,12 +368,13 @@ fun TemplatePickerStep(
                             if (showAddTopicDialog) {
                                 TextInputDialog(
                                     title = "Add topic",
-                                    label = "Topic name",
+                                    label = "Topic name (comma-separated for multiple)",
                                     confirmLabel = "Add",
                                     emptyHint = "Please type the topic name",
                                     onDismiss = { showAddTopicDialog = false },
-                                    onConfirm = { name ->
-                                        onAddTopicToNewChapter(subjectIndex, chapterRef.localId, name)
+                                    onConfirm = { rawInput ->
+                                        rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                                            .forEach { name -> onAddTopicToNewChapter(subjectIndex, chapterRef.localId, name) }
                                         showAddTopicDialog = false
                                     },
                                 )

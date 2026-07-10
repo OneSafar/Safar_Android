@@ -139,6 +139,13 @@ data class StudyPlannerUiState(
     val onboardingCompletedSteps: Set<String> = emptySet(),
     val plannerAchievements: List<Achievement> = emptyList(),
     val activePlanTab: StudyPlannerTab = StudyPlannerTab.TODAY,
+    /** The in-planner destination to restore when a contextual drill-in is closed. */
+    val backDestination: PlannerBackDestination? = null,
+)
+
+data class PlannerBackDestination(
+    val section: PlannerSection,
+    val planTab: StudyPlannerTab,
 )
 
 @HiltViewModel
@@ -149,9 +156,19 @@ class StudyPlannerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel(), PlannerActions {
+    private companion object {
+        const val SELECTED_PLAN_ID_KEY = "study_planner_selected_plan_id"
+        val bulkSubjectPalette = listOf("#0ea5e9", "#9333ea", "#16a34a", "#ef4444", "#f59e0b", "#0f766e")
+        val STUDY_PLANNER_ACHIEVEMENT_IDS = listOf("SP001", "SP002", "T011", "T012")
+        const val EXTRA_TOPICS_SUBJECT = "Extra Topics"
+        const val EXTRA_TOPICS_CHAPTER = "Custom"
+    }
+
     private val _uiState = MutableStateFlow(StudyPlannerUiState())
     val uiState = _uiState.asStateFlow()
     private val firedDailyMilestones = mutableSetOf<String>()
+    /** Prevents a deliberate return to the plan picker from being auto-opened again. */
+    private var initialLandingResolved = false
 
 
     private val _selectedSubjectId = MutableStateFlow<String?>(null)
@@ -201,7 +218,9 @@ class StudyPlannerViewModel @Inject constructor(
         refreshPlans()
         loadTemplates()
         val planId = savedStateHandle.get<String>("planId")
+            ?: savedStateHandle.get<String>(SELECTED_PLAN_ID_KEY)
         if (!planId.isNullOrBlank()) {
+            initialLandingResolved = true
             openPlan(planId)
         } else {
             viewModelScope.launch {
@@ -245,6 +264,19 @@ class StudyPlannerViewModel @Inject constructor(
         _uiState.update { it.copy(activePlanTab = tab) }
     }
 
+    override fun openRevisionTopics() {
+        _uiState.update { state ->
+            state.copy(
+                section = PlannerSection.PLAN,
+                activePlanTab = StudyPlannerTab.REVISION,
+                backDestination = PlannerBackDestination(
+                    section = state.section,
+                    planTab = state.activePlanTab,
+                ),
+            )
+        }
+    }
+
     /**
      * Handles a back-press inside the Study Planner feature.
      *
@@ -254,14 +286,28 @@ class StudyPlannerViewModel @Inject constructor(
      *   → [No plan open / exam list] → return false so NavController goes to Home.
      */
     override fun navigateBack(): Boolean {
-        val hasPlan = _uiState.value.selectedPlan != null
+        val state = _uiState.value
+        val hasPlan = state.selectedPlan != null
         if (!hasPlan) {
             // Nothing internal to consume — let the NavController handle it.
             return false
         }
 
+        // Contextual drill-ins (for example Calendar → Revision) return to their
+        // origin before the regular tab-level Back behaviour is considered.
+        state.backDestination?.let { destination ->
+            _uiState.update {
+                it.copy(
+                    section = destination.section,
+                    activePlanTab = destination.planTab,
+                    backDestination = null,
+                )
+            }
+            return true
+        }
+
         // If the user is not on the PLAN tab, navigating back takes them to PLAN.
-        if (_uiState.value.section != PlannerSection.PLAN) {
+        if (state.section != PlannerSection.PLAN) {
             _uiState.update { it.copy(section = PlannerSection.PLAN) }
             return true
         }
@@ -354,7 +400,18 @@ class StudyPlannerViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null) }
             when (val r = repo.listPlans()) {
-                is Resource.Success -> _uiState.update { it.copy(plans = r.data, loading = false) }
+                is Resource.Success -> {
+                    _uiState.update { it.copy(plans = r.data, loading = false) }
+                    // Existing users should land on their daily plan, rather than the
+                    // plan-creation/picker screen. Resolve this only once per feature
+                    // visit so closePlan() remains a reliable way to reach the picker.
+                    if (!initialLandingResolved) {
+                        initialLandingResolved = true
+                        if (_uiState.value.selectedPlan == null) {
+                            r.data.firstOrNull()?.let { openPlan(it.id) }
+                        }
+                    }
+                }
                 is Resource.Error -> _uiState.update { it.copy(error = r.message, loading = false) }
                 is Resource.Loading -> Unit
             }
@@ -371,6 +428,8 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun openPlan(planId: String) {
+        initialLandingResolved = true
+        savedStateHandle[SELECTED_PLAN_ID_KEY] = planId
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null, section = PlannerSection.PLAN) }
             when (val r = repo.getPlan(planId)) {
@@ -420,6 +479,7 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun closePlan() {
+        savedStateHandle[SELECTED_PLAN_ID_KEY] = null
         _uiState.update {
             it.copy(
                 selectedPlan = null,
@@ -427,6 +487,7 @@ class StudyPlannerViewModel @Inject constructor(
                 analytics = null,
                 section = PlannerSection.PLAN,
                 onboardingCompletedSteps = emptySet(),
+                backDestination = null,
             )
         }
         refreshPlans()
@@ -513,7 +574,47 @@ class StudyPlannerViewModel @Inject constructor(
         successMessage = "Subject deleted",
         undoLabel = "Subject deletion",
     ) { planId -> repo.deleteSubject(planId, subjectId) }
-    override fun addChapter(subjectId: String, name: String) = mutateSelected { planId -> repo.addChapter(planId, subjectId, ChapterRequest(name)) }
+    override fun addChapter(subjectId: String, name: String) = addChapters(subjectId, listOf(name))
+
+    override fun addChapters(subjectId: String, names: List<String>) {
+        val cleanNames = names.map { it.trim() }.filter { it.isNotBlank() }
+        if (cleanNames.isEmpty()) return
+        val planId = _uiState.value.selectedPlan?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, error = null) }
+            var latestPlan: StudyPlan? = null
+            for (name in cleanNames) {
+                when (val r = repo.addChapter(planId, subjectId, ChapterRequest(name))) {
+                    is Resource.Success -> latestPlan = r.data
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(mutating = false, error = r.message) }
+                        return@launch
+                    }
+                    is Resource.Loading -> Unit
+                }
+            }
+            val plan = latestPlan ?: return@launch
+            _uiState.update {
+                it.copy(
+                    selectedPlan = plan,
+                    mutating = false,
+                    message = if (cleanNames.size > 1) "${cleanNames.size} chapters added" else "Saved",
+                )
+            }
+
+            // New chapters land at the end server-side — move them to the front of the
+            // subject's chapter list so the user sees what they just added without
+            // scrolling, then persist that as the subject's real order.
+            val subject = plan.subjects.find { it.id == subjectId }
+            if (subject != null && subject.chapters.size > cleanNames.size) {
+                val ids = subject.chapters.map { it.id }
+                val newest = ids.takeLast(cleanNames.size)
+                val rest = ids.dropLast(cleanNames.size)
+                reorderSyllabus(chapterIdsBySubjectId = mapOf(subjectId to (newest + rest)))
+            }
+        }
+    }
+
     override fun renameChapter(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(name)) }
     override fun deleteChapter(subjectId: String, chapterId: String) = mutateSelected(
         successMessage = "Chapter deleted",
@@ -805,13 +906,6 @@ class StudyPlannerViewModel @Inject constructor(
             refs.forEach { repo.updateTopic(_uiState.value.selectedPlan?.id.orEmpty(), it.topic.id, TopicPatchRequest(status = TopicStatus.TODO, plannedDate = "", notes = it.topic.notes)) }
             reloadSelected("Plan reset")
         }
-    }
-
-    private companion object {
-        val bulkSubjectPalette = listOf("#0ea5e9", "#9333ea", "#16a34a", "#ef4444", "#f59e0b", "#0f766e")
-        val STUDY_PLANNER_ACHIEVEMENT_IDS = listOf("SP001", "SP002", "T011", "T012")
-        const val EXTRA_TOPICS_SUBJECT = "Extra Topics"
-        const val EXTRA_TOPICS_CHAPTER = "Custom"
     }
 
     override fun importFullSyllabusFromTxt(text: String, mode: String) {
