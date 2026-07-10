@@ -18,8 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -202,7 +200,6 @@ fun EkagraScreen(
     }
     var focusMinutes        by remember { mutableIntStateOf(25) }
     var breakMinutes        by remember { mutableIntStateOf(5) }
-    var countdownValue      by remember { mutableIntStateOf(0) }
     var longBreakMinutes    by remember { mutableIntStateOf(15) }
     val autoStartBreak      by viewModel.dataStore.autoStartBreak.collectAsStateWithLifecycle(initialValue = true)
 
@@ -321,11 +318,24 @@ fun EkagraScreen(
         }
         val session = activeSession
         if (session != null && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO)) {
+            val progress = service?.focusProgressSnapshot()
+            val loggedTotalSeconds: Int
+            val loggedSecondsLeft: Int
+            if (timerMode == TimerMode.STOPWATCH) {
+                val elapsed = progress?.actualSeconds ?: secondsLeft.coerceAtLeast(0)
+                loggedTotalSeconds = elapsed
+                loggedSecondsLeft = elapsed
+            } else {
+                loggedTotalSeconds = progress?.plannedSeconds ?: totalSeconds
+                val actual = progress?.actualSeconds
+                    ?: (totalSeconds - secondsLeft).coerceAtLeast(0)
+                loggedSecondsLeft = (loggedTotalSeconds - actual).coerceAtLeast(0)
+            }
             timerService?.pause()
             pendingEndedSession = PendingEndedEkagraSession(
                 sessionId    = session.id,
-                totalSeconds = totalSeconds,
-                secondsLeft  = secondsLeft,
+                totalSeconds = loggedTotalSeconds,
+                secondsLeft  = loggedSecondsLeft,
                 mode         = timerMode.toApiMode(),
                 startedAt    = session.sessionStartedAt,
                 topicId      = associatedTopicId,
@@ -343,32 +353,6 @@ fun EkagraScreen(
     }
 
     // ── Side-effects ────────────────────────────────────────────────────────────
-
-    val toneGenerator = remember { 
-        runCatching { android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100) }.getOrNull() 
-    }
-    DisposableEffect(Unit) {
-        onDispose { toneGenerator?.release() }
-    }
-
-    LaunchedEffect(countdownValue) {
-        if (countdownValue > 0) {
-            if (countdownValue <= 3) {
-                runCatching { toneGenerator?.startTone(android.media.ToneGenerator.TONE_CDMA_PIP, 150) }
-            }
-            kotlinx.coroutines.delay(1000)
-            countdownValue -= 1
-            if (countdownValue == 0) {
-                runCatching { toneGenerator?.startTone(android.media.ToneGenerator.TONE_CDMA_ABBR_ALERT, 300) }
-                val wasInactive = timerService?.isActive() == false
-                if (wasInactive) requestNotificationPermission()
-                timerService?.togglePlayPause()
-                if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
-                    viewModel.onSessionStarted(taskText, totalSeconds, associatedGoalId, associatedGoalTitle, timerMode.toApiMode())
-                }
-            }
-        }
-    }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -454,7 +438,8 @@ fun EkagraScreen(
             try { buildPipParams()?.let { pipActivity?.setPictureInPictureParams(it) } } catch (_: Exception) {}
         }
         if (!timerRunning && secondsLeft == 0 && totalSeconds > 0) {
-            if (timerMode != TimerMode.FOCUS) return@LaunchedEffect
+            val completedMode = timerMode
+            if (completedMode != TimerMode.FOCUS && completedMode != TimerMode.POMODORO) return@LaunchedEffect
             // ── Pomodoro auto-break guard ────────────────────────────────────────
             // TimerService sets _isRunning=false momentarily, then immediately
             // switches to BREAK mode and calls start() — this all happens on the
@@ -462,6 +447,11 @@ fun EkagraScreen(
             // StateFlows to settle so we can tell whether an auto-break started.
             delay(500L)
             if (timerMode != TimerMode.FOCUS || timerRunning) {
+                if (completedMode == TimerMode.POMODORO && timerMode == TimerMode.BREAK) {
+                    // An intermediate loop ended. Keep the logical session draft and
+                    // its associations alive for the next focus loop.
+                    return@LaunchedEffect
+                }
                 // Auto 5-minute break is now running. The service already saved the
                 // completed focus session via enqueueCompletedFocusSessionSave().
                 // Just discard the stale ViewModel draft and refresh analytics —
@@ -658,11 +648,24 @@ fun EkagraScreen(
             // ── Kavach overlay screens ───────────────────────────────────────────
             when {
                 showKavachSessionSummary -> {
+                    // Full-screen state overlay (not a nav destination) — intercept
+                    // system Back so it dismisses the summary instead of falling
+                    // through to the tab BackHandler / NavController underneath.
+                    BackHandler { showKavachSessionSummary = false }
                     com.safarparmar.app.ui.ekagra.focusshield.KavachSessionSummaryScreen(
                         focusedMinutes  = kavachSummaryMinutes,
                         blockedAttempts = kavachSummaryAttempts,
                         onBack  = { showKavachSessionSummary = false },
                         onDone  = { showKavachSessionSummary = false; focusShieldViewModel.clearSessionStats() },
+                    )
+                }
+                showKavachActiveSession -> {
+                    BackHandler { showKavachActiveSession = false }
+                    com.safarparmar.app.ui.ekagra.focusshield.KavachActiveSessionScreen(
+                        secondsLeft  = secondsLeft,
+                        blockedCount = blockedHitCount,
+                        onBack       = { showKavachActiveSession = false },
+                        onEndSession = { showKavachActiveSession = false; endCurrentSession() },
                     )
                 }
                 // ── PiP overlay ─────────────────────────────────────────────────
@@ -1213,7 +1216,6 @@ fun EkagraScreen(
                                         progress           = progress,
                                         hasProgress        = if (timerMode == TimerMode.STOPWATCH) secondsLeft > 0 else secondsLeft < totalSeconds,
                                         mottoText          = mottoText,
-                                        countdownValue     = countdownValue,
                                         kavachActive       = focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS,
                                         kavachBlockedCount = blockedHitCount,
                                         controlsVisible    = true,
@@ -1247,10 +1249,20 @@ fun EkagraScreen(
                                             
                                             if (wasInactive) {
                                                 requestNotificationPermission()
-                                                if (timerMode == TimerMode.BREAK) {
-                                                    timerService?.togglePlayPause()
-                                                } else {
-                                                    countdownValue = 3
+                                                if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO) {
+                                                    timerService?.prepareAutoSaveSession(
+                                                        taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
+                                                        goalId = associatedGoalId,
+                                                        goalTitle = associatedGoalTitle,
+                                                        topicId = associatedTopicId,
+                                                        planId = associatedPlanId,
+                                                        topicTitle = associatedTopicTitle,
+                                                        forceNew = true,
+                                                    )
+                                                }
+                                                timerService?.togglePlayPause()
+                                                if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
+                                                    viewModel.onSessionStarted(taskText, totalSeconds, associatedGoalId, associatedGoalTitle, timerMode.toApiMode())
                                                 }
                                             } else if (wasRunning) {
                                                 timerService?.togglePlayPause()
@@ -1297,7 +1309,23 @@ fun EkagraScreen(
                                         onAutoStartBreakChange = { viewModel.setAutoStartBreak(it) },
                                         onStartPomodoro = { loops ->
                                             timerService?.startPomodoroSession(loops, focusMinutes, breakMinutes)
-                                            countdownValue = 3
+                                            timerService?.prepareAutoSaveSession(
+                                                taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
+                                                goalId = associatedGoalId,
+                                                goalTitle = associatedGoalTitle,
+                                                topicId = associatedTopicId,
+                                                planId = associatedPlanId,
+                                                topicTitle = associatedTopicTitle,
+                                                forceNew = true,
+                                            )
+                                            timerService?.start()
+                                            viewModel.onSessionStarted(
+                                                taskText = taskText,
+                                                totalSeconds = focusMinutes * 60,
+                                                goalId = associatedGoalId,
+                                                goalTitle = associatedGoalTitle,
+                                                mode = TimerMode.POMODORO.toApiMode(),
+                                            )
                                             tabBackStack.select(EkagraNavTab.TIMER)
                                         },
                                         onSave = {
@@ -1311,15 +1339,7 @@ fun EkagraScreen(
                                                                       bottom = innerPadding.calculateBottomPadding()),
                                         analytics = ekagraAnalytics,
                                         onSessionClick = { session ->
-                                            val isStopwatch = session.timerMode.equals("stopwatch", ignoreCase = true)
-                                            pendingEndedSession = PendingEndedEkagraSession(
-                                                sessionId = session.id,
-                                                totalSeconds = if (isStopwatch) session.actualMinutes * 60 else session.durationMinutes * 60,
-                                                secondsLeft = if (isStopwatch) session.actualMinutes * 60 else (session.durationMinutes - session.actualMinutes) * 60,
-                                                mode = if (isStopwatch) "stopwatch" else "Timer",
-                                                startedAt = session.startedAt,
-                                                endedAt = session.endedAt
-                                            )
+                                            pendingEndedSession = session.toPendingEndedSession()
                                             titleInput = session.taskText ?: ""
                                             showOrganizeSheet = true
                                         }
@@ -1329,37 +1349,6 @@ fun EkagraScreen(
                                 }
                                 }
                             }
-                        }
-                    }
-
-                    // Full-screen countdown blocker — sits above the whole scaffold
-                    // (topbar, buttons, everything), so no tap can reach anything
-                    // underneath while the 3-2-1 countdown is running. Fades out
-                    // smoothly once the countdown hits 0 and the timer starts.
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = countdownValue > 0,
-                        enter = fadeIn(animationSpec = tween(200)),
-                        exit = fadeOut(animationSpec = tween(600, easing = FastOutSlowInEasing)),
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        Box(
-                            Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.55f))
-                                .pointerInput(Unit) { detectTapGestures { } },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            // Drawn as this scrim's own content (not inside the ring
-                            // card below), so it composes above the dim overlay
-                            // instead of being covered by it.
-                            Text(
-                                text = countdownValue.toString(),
-                                fontFamily = com.safarparmar.app.ui.theme.PoppinsFontFamily,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 160.sp,
-                                color = Color.White,
-                                textAlign = TextAlign.Center,
-                            )
                         }
                     }
                 }

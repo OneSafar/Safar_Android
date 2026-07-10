@@ -50,6 +50,7 @@ import java.util.Locale
 
 @Composable
 internal fun GoalsTab(
+    filterMode: String = "today",
     goals: List<Goal>,
     rolloverPrompts: List<Goal>,
     ekagraAnalytics: com.safarparmar.app.domain.model.EkagraAnalyticsStats,
@@ -124,20 +125,35 @@ internal fun GoalsTab(
         modifier = Modifier.fillMaxSize(),
     ) {
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (pending.isNotEmpty()) {
-            item { SectionHeader("Pending", "Only goals that are active today appear here.", "${pending.size} Tasks") }
-            items(pending, key = { it.id }) { GoalItem(it, onComplete = { onComplete(it) }, onEdit = { onEdit(it) }, onDelete = { onDelete(it) }, onRepeat = { onRepeat(it) }) }
-        } else {
-            item { EmptyGoalsCard("All caught up! Time to plan more?", "Anything scheduled for later stays in the upcoming section below.") }
+        if (filterMode == "today") {
+            if (pending.isNotEmpty()) {
+                item { 
+                    Text("PENDING - ${pending.size} TASKS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp, modifier = Modifier.padding(vertical = 4.dp))
+                }
+                items(pending, key = { it.id }) { GoalItem(it, onComplete = { onComplete(it) }, onEdit = { onEdit(it) }, onDelete = { onDelete(it) }, onRepeat = { onRepeat(it) }) }
+            } else {
+                item { EmptyGoalsCard("All caught up! Time to plan more?", "Anything scheduled for later stays in the upcoming section.") }
+            }
+            val completedToday = completed.filter { it.completedDateKey() == todayKey }
+            if (completedToday.isNotEmpty()) {
+                item { 
+                    Spacer(Modifier.height(8.dp))
+                    Text("COMPLETED - ${completedToday.size} TASKS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp, modifier = Modifier.padding(vertical = 4.dp))
+                }
+                items(completedToday, key = { it.id }) { GoalItem(it, onComplete = { onComplete(it) }, onEdit = { onEdit(it) }, onDelete = { onDelete(it) }, onRepeat = { onRepeat(it) }) }
+            }
+        } else if (filterMode == "upcoming") {
+            if (scheduled.isNotEmpty()) {
+                item { 
+                    Text("SCHEDULED - ${scheduled.size} TASKS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp, modifier = Modifier.padding(vertical = 4.dp))
+                }
+                items(scheduled, key = { "scheduled-${it.id}" }) { GoalItem(it, onComplete = { onComplete(it) }, onEdit = { onEdit(it) }, onDelete = { onDelete(it) }, onRepeat = { onRepeat(it) }) }
+            } else {
+                item { EmptyGoalsCard("No upcoming tasks", "You have no tasks scheduled for later dates.") }
+            }
         }
-        if (scheduled.isNotEmpty()) {
-            item { Spacer(Modifier.height(4.dp)); SectionHeader("Scheduled Tasks", "These stay quiet until their scheduled date arrives.", "${scheduled.size} upcoming") }
-            items(scheduled, key = { "scheduled-${it.id}" }) { GoalItem(it, onComplete = { onComplete(it) }, onEdit = { onEdit(it) }, onDelete = { onDelete(it) }, onRepeat = { onRepeat(it) }) }
-        }
-        if (completed.isNotEmpty()) {
-            item { Spacer(Modifier.height(4.dp)); Text("Completed", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            items(completed.take(5), key = { it.id }) { GoalItem(it, onComplete = { onComplete(it) }, onEdit = { onEdit(it) }, onDelete = { onDelete(it) }, onRepeat = { onRepeat(it) }) }
-        }
+
+        item { Spacer(Modifier.height(16.dp)) }
         item {
             LivePulseCard(
                 completedToday = doneToday,
@@ -285,27 +301,34 @@ internal fun GoalItem(goal: Goal, onComplete: () -> Unit, onEdit: () -> Unit, on
                 contentAlignment = Alignment.Center,
             ) { if (goal.completed) Text("✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
             Column(Modifier.weight(1f)) {
-                Text(goal.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
+                androidx.compose.material3.Text(
+                    text = goal.title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = if (goal.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    textDecoration = if (goal.completed) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                )
                 if (!goal.description.isNullOrBlank()) {
                     Text(goal.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
-                    SmallBadge(goal.goalKindLabel(), badgeColor.copy(0.10f), badgeColor)
-                    SmallBadge(goal.unitTypeLabel(), MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (goal.status !in listOf("not_started", "completed") || goal.completed) {
-                        SmallBadge(goal.statusLabel(), statusBadgeBg(goal.status), statusBadgeFg(goal.status))
+                    if (goal.completed) {
+                        val studiedText = if ((goal.studiedMinutes ?: 0) > 0) " · ${formatStudyTime(goal.studiedMinutes ?: 0)} studied" else ""
+                        SmallBadge("✓ Done$studiedText", completedColor.copy(0.12f), completedColor)
+                    } else {
+                        SmallBadge(goal.goalKindLabel(), badgeColor.copy(0.10f), badgeColor)
+                        if (goal.unitType != "binary") {
+                            SmallBadge(goal.unitTypeLabel(), MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
-                if (goal.source == "ekagra") {
+                if (goal.source == "ekagra" && !goal.completed) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 5.dp)) {
                         val ekagraModeColor = if (isDark) Color(0xFFFF9E80) else Color(0xFF9A3412)
                         SmallBadge("Ekagra mode task", ekagraModeColor.copy(0.12f), ekagraModeColor)
                     }
                 }
                 goal.scheduledDate?.let { Text(IstDateUtils.labelFor(it), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp)) }
-                if (goal.completed && (goal.studiedMinutes ?: 0) > 0) {
-                    Text("${formatStudyTime(goal.studiedMinutes ?: 0)} studied", fontSize = 11.sp, color = completedColor, modifier = Modifier.padding(top = 4.dp))
-                }
                 if (showProgress) {
                     LinearProgressIndicator(
                         progress = { progress / 100f },

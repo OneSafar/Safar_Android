@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
+import kotlin.math.roundToInt
 
 class TimerService : Service() {
 
@@ -71,6 +72,10 @@ class TimerService : Service() {
         private const val KEY_SUSPENDED_TOTAL_SECONDS = "suspended_total_seconds"
         private const val KEY_SUSPENDED_REMAINING_SECONDS = "suspended_remaining_seconds"
         private const val KEY_STANDARD_BREAK_SECONDS = "standard_break_seconds"
+        private const val KEY_TARGET_POMODORO_LOOPS = "target_pomodoro_loops"
+        private const val KEY_COMPLETED_POMODORO_LOOPS = "completed_pomodoro_loops"
+        private const val KEY_POMODORO_FOCUS_SECONDS = "pomodoro_focus_seconds"
+        private const val KEY_POMODORO_BREAK_SECONDS = "pomodoro_break_seconds"
         private const val KEY_AUTO_SAVE_CLIENT_SESSION_ID = "auto_save_client_session_id"
         private const val KEY_AUTO_SAVE_STARTED_AT = "auto_save_started_at"
         private const val KEY_AUTO_SAVE_TASK_TITLE = "auto_save_task_title"
@@ -615,12 +620,13 @@ class TimerService : Service() {
     }
 
     fun startPomodoroSession(loops: Int, focusMinutes: Int, breakMinutes: Int) {
-        _targetPomodoroLoops.value = loops
+        val focusSeconds = focusMinutes.coerceAtLeast(1) * 60
+        val restSeconds = breakMinutes.coerceAtLeast(1) * 60
+        setDuration(TimerMode.POMODORO, focusSeconds)
+        _targetPomodoroLoops.value = loops.coerceAtLeast(1)
         _pomodorosCompleted.value = 0
-        pomodoroFocusSeconds = focusMinutes * 60
-        pomodoroBreakSeconds = breakMinutes * 60
-        setDuration(TimerMode.POMODORO, pomodoroFocusSeconds)
-        start()
+        pomodoroFocusSeconds = focusSeconds
+        pomodoroBreakSeconds = restSeconds
     }
 
     fun setMusic(url: String) {
@@ -755,6 +761,9 @@ class TimerService : Service() {
         _totalSeconds.value = initialSeconds
         standardBreakSeconds = breakSeconds
         _isRunning.value    = false
+        _targetPomodoroLoops.value = 0
+        _pomodorosCompleted.value = 0
+        sessionSaveQueuedThisRun = false
         suspendedFocusState = null
         tickJob?.cancel()
         releaseMusic()
@@ -820,6 +829,15 @@ class TimerService : Service() {
         updateNotification()
         return true
     }
+
+    internal fun focusProgressSnapshot(): FocusProgressSnapshot = calculateFocusProgress(
+        mode = _timerMode.value,
+        currentPeriodTotalSeconds = _totalSeconds.value,
+        currentPeriodRemainingSeconds = _secondsLeft.value,
+        pomodoroFocusSeconds = pomodoroFocusSeconds,
+        targetPomodoroLoops = _targetPomodoroLoops.value,
+        completedPomodoroLoops = _pomodorosCompleted.value,
+    )
 
     fun startBreak(mode: TimerMode, seconds: Int): Boolean {
         if (mode == TimerMode.FOCUS || mode == TimerMode.POMODORO || seconds <= 0) return false
@@ -909,33 +927,37 @@ class TimerService : Service() {
                 }
                 
                 _isRunning.value = false
-                if (_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.POMODORO) {
-                    enqueueCompletedFocusSessionSave(
-                        totalSeconds = _totalSeconds.value,
-                        actualSeconds = _totalSeconds.value,
-                        mode = _timerMode.value,
-                    )
-                    
-                    clearPersistedTimerState()
+                val completedMode = _timerMode.value
+                if (completedMode == TimerMode.FOCUS || completedMode == TimerMode.POMODORO) {
+                    val completedProgress = focusProgressSnapshot()
                     releaseMusic()
                     clearTheme()
                     disableFocusShieldForSession()
                     stopFocusShieldMonitor()
                     showCompletionNotification()
-                    
+
                     // Handle next session based on Pomodoro mode
-                    if (_timerMode.value == TimerMode.POMODORO) {
+                    if (completedMode == TimerMode.POMODORO) {
                         _pomodorosCompleted.value += 1
                         if (_pomodorosCompleted.value >= _targetPomodoroLoops.value) {
-                            // Target loops reached, end completely
+                            // Save once for the whole logical Pomodoro series. Saving each
+                            // focus loop independently creates duplicate history rows and
+                            // makes an interrupted later loop lose earlier completed time.
+                            enqueueCompletedFocusSessionSave(
+                                totalSeconds = completedProgress.plannedSeconds,
+                                actualSeconds = completedProgress.actualSeconds,
+                                mode = TimerMode.POMODORO,
+                            )
+                            clearPersistedTimerState()
                             _targetPomodoroLoops.value = 0
+                            _pomodorosCompleted.value = 0
                             _timerMode.value = TimerMode.FOCUS // Reset to standard focus
                             _totalSeconds.value = pomodoroFocusSeconds
                             _secondsLeft.value = pomodoroFocusSeconds
                             persistTimerState()
                             return@launch
                         }
-                        
+
                         _timerMode.value = TimerMode.BREAK
                         val breakLength = if (_pomodorosCompleted.value % 4 == 0) 15 * 60 else pomodoroBreakSeconds
                         _totalSeconds.value = breakLength
@@ -944,6 +966,12 @@ class TimerService : Service() {
                         start() // Pomodoro always auto-starts break
                         return@launch
                     } else {
+                        enqueueCompletedFocusSessionSave(
+                            totalSeconds = completedProgress.plannedSeconds,
+                            actualSeconds = completedProgress.actualSeconds,
+                            mode = completedMode,
+                        )
+                        clearPersistedTimerState()
                         // Standard: respect user's auto-start break preference
                         _timerMode.value = TimerMode.BREAK
                         _totalSeconds.value = standardBreakSeconds
@@ -1001,6 +1029,9 @@ class TimerService : Service() {
     fun reset() {
         _isRunning.value   = false
         _secondsLeft.value = if (_timerMode.value == TimerMode.STOPWATCH) 0 else _totalSeconds.value
+        _targetPomodoroLoops.value = 0
+        _pomodorosCompleted.value = 0
+        sessionSaveQueuedThisRun = false
         suspendedFocusState = null
         tickJob?.cancel()
         clearPersistedTimerState()
@@ -1017,11 +1048,13 @@ class TimerService : Service() {
     fun isActive(): Boolean = _isRunning.value || (if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value > 0 else _secondsLeft.value < _totalSeconds.value)
 
     private fun stopBecauseTaskWasRemoved() {
-        if ((_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.STOPWATCH) && !sessionSaveQueuedThisRun) {
-            enqueueFocusSessionSaveIfElapsed(
-                totalSeconds = _totalSeconds.value,
-                remainingSeconds = _secondsLeft.value,
-                mode = _timerMode.value,
+        val isPomodoroSeries = _targetPomodoroLoops.value > 0
+        if ((_timerMode.value == TimerMode.FOCUS || _timerMode.value == TimerMode.STOPWATCH || isPomodoroSeries) && !sessionSaveQueuedThisRun) {
+            val progress = focusProgressSnapshot()
+            enqueueCompletedFocusSessionSave(
+                totalSeconds = progress.plannedSeconds,
+                actualSeconds = progress.actualSeconds,
+                mode = if (isPomodoroSeries) TimerMode.POMODORO else _timerMode.value,
             )
         }
         _isRunning.value = false
@@ -1080,8 +1113,9 @@ class TimerService : Service() {
         actualSeconds: Int,
         mode: TimerMode,
     ) {
-        val total = totalSeconds.coerceAtLeast(60)
-        val actual = actualSeconds.coerceIn(60, total)
+        val total = totalSeconds.coerceAtLeast(1)
+        val actual = actualSeconds.coerceIn(0, total)
+        if (actual == 0) return
         val endedAt = Instant.now().toString()
         val metadata = autoSaveMetadata ?: AutoSaveMetadata(
             clientSessionId = "ekagra-${UUID.randomUUID()}",
@@ -1105,7 +1139,7 @@ class TimerService : Service() {
                 startedAt = metadata.startedAt,
                 endedAt = endedAt,
                 plannedDurationMinutes = if (mode == TimerMode.STOPWATCH) 0 else (total + 59) / 60,
-                actualDurationMinutes = (actual + 59) / 60,
+                actualDurationMinutes = (actual / 60.0).roundToInt(),
                 actualDurationSeconds = actual,
                 goalId = metadata.goalId,
                 goalTitle = metadata.goalTitle,
@@ -1118,23 +1152,6 @@ class TimerService : Service() {
         )
         EkagraSessionSaveWorker.enqueue(this)
         sessionSaveQueuedThisRun = true
-    }
-
-    private fun enqueueFocusSessionSaveIfElapsed(
-        totalSeconds: Int,
-        remainingSeconds: Int,
-        mode: TimerMode,
-    ) {
-        val total = totalSeconds.coerceAtLeast(60)
-        val elapsed = if (mode == TimerMode.STOPWATCH) remainingSeconds else (total - remainingSeconds.coerceIn(0, total)).coerceAtLeast(0)
-        // Below 60s of real focus, don't credit a phantom 1-minute session — enqueueCompletedFocusSessionSave
-        // floors actualSeconds to 60, which would otherwise inflate a few-second attempt into a full minute.
-        if (elapsed < 60) return
-        enqueueCompletedFocusSessionSave(
-            totalSeconds = if (mode == TimerMode.STOPWATCH) remainingSeconds else total,
-            actualSeconds = elapsed,
-            mode = mode,
-        )
     }
 
     private fun persistTimerState() {
@@ -1157,6 +1174,10 @@ class TimerService : Service() {
             .putInt(KEY_SUSPENDED_TOTAL_SECONDS, suspended?.totalSeconds ?: 0)
             .putInt(KEY_SUSPENDED_REMAINING_SECONDS, suspended?.remainingSeconds ?: 0)
             .putInt(KEY_STANDARD_BREAK_SECONDS, standardBreakSeconds)
+            .putInt(KEY_TARGET_POMODORO_LOOPS, _targetPomodoroLoops.value)
+            .putInt(KEY_COMPLETED_POMODORO_LOOPS, _pomodorosCompleted.value)
+            .putInt(KEY_POMODORO_FOCUS_SECONDS, pomodoroFocusSeconds)
+            .putInt(KEY_POMODORO_BREAK_SECONDS, pomodoroBreakSeconds)
             .apply()
     }
 
@@ -1181,6 +1202,11 @@ class TimerService : Service() {
         val suspendedTotal = prefs.getInt(KEY_SUSPENDED_TOTAL_SECONDS, 0)
         val suspendedRemaining = prefs.getInt(KEY_SUSPENDED_REMAINING_SECONDS, 0)
         standardBreakSeconds = prefs.getInt(KEY_STANDARD_BREAK_SECONDS, 5 * 60)
+        _targetPomodoroLoops.value = prefs.getInt(KEY_TARGET_POMODORO_LOOPS, 0).coerceAtLeast(0)
+        _pomodorosCompleted.value = prefs.getInt(KEY_COMPLETED_POMODORO_LOOPS, 0)
+            .coerceIn(0, _targetPomodoroLoops.value)
+        pomodoroFocusSeconds = prefs.getInt(KEY_POMODORO_FOCUS_SECONDS, 25 * 60).coerceAtLeast(1)
+        pomodoroBreakSeconds = prefs.getInt(KEY_POMODORO_BREAK_SECONDS, 5 * 60).coerceAtLeast(1)
 
         _timerMode.value = mode
         _totalSeconds.value = total
@@ -1196,12 +1222,23 @@ class TimerService : Service() {
         }
 
         if (remaining <= 0) {
-            if (wasRunning && (mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH)) {
-                enqueueCompletedFocusSessionSave(
-                    totalSeconds = total,
-                    actualSeconds = total,
-                    mode = mode,
-                )
+            if (wasRunning) {
+                if (_targetPomodoroLoops.value > 0) {
+                    // A process restart ends the in-memory loop chain. Preserve every
+                    // completed loop plus the just-finished current loop as one entry.
+                    val progress = focusProgressSnapshot()
+                    enqueueCompletedFocusSessionSave(
+                        totalSeconds = progress.plannedSeconds,
+                        actualSeconds = progress.actualSeconds,
+                        mode = TimerMode.POMODORO,
+                    )
+                } else if (mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) {
+                    enqueueCompletedFocusSessionSave(
+                        totalSeconds = total,
+                        actualSeconds = total,
+                        mode = mode,
+                    )
+                }
             }
             clearPersistedTimerState()
         } else if (wasRunning) {

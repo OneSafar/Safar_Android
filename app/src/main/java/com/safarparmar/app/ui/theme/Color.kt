@@ -15,7 +15,7 @@ val PrimaryLight       = Color(0xFF0A56D9)
 val BgDark             = Color(0xFF0F1115)
 val BgLight            = Color(0xFFF8F6F2)
 
-val SafarSurfaceLight        = Color(0xFFFFFFFF)
+val SafarSurfaceLight        = Color(0xFFF5F3EF)
 val SafarSurfaceVariantLight = Color(0xFFF2EFE9)
 val SafarOnPrimaryLight      = Color(0xFFFFFFFF)
 val SafarOnBackgroundLight   = Color(0xFF1B212D)

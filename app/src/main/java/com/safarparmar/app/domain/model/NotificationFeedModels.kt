@@ -4,6 +4,12 @@ import androidx.compose.runtime.Immutable
 
 enum class NotificationFeedSource { CUSTOM }
 
+enum class AnnouncementType {
+    APP_UPDATE,
+    MAINTENANCE,
+    GENERAL,
+}
+
 @Immutable
 data class NotificationFeedItem(
     val id: String,
@@ -13,4 +19,5 @@ data class NotificationFeedItem(
     val createdAt: String,
     val deepLink: String? = null,
     val isUnread: Boolean = false,
+    val type: AnnouncementType = AnnouncementType.GENERAL,
 )

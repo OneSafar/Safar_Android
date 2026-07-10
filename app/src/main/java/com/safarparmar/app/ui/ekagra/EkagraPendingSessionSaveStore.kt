@@ -55,7 +55,7 @@ object EkagraPendingSessionSaveStore {
                             startedAt = item.optString("startedAt"),
                             endedAt = item.optString("endedAt"),
                             plannedDurationMinutes = item.optInt("plannedDurationMinutes", 1).coerceAtLeast(1),
-                            actualDurationMinutes = item.optInt("actualDurationMinutes", 1).coerceAtLeast(1),
+                            actualDurationMinutes = item.optInt("actualDurationMinutes", 0).coerceAtLeast(0),
                             actualDurationSeconds = if (item.has("actualDurationSeconds")) item.optInt("actualDurationSeconds").coerceAtLeast(0) else null,
                             goalId = item.optString("goalId").takeIf { it.isNotBlank() },
                             goalTitle = item.optString("goalTitle").takeIf { it.isNotBlank() },

@@ -1168,7 +1168,7 @@ private fun PlannerTargetExamRow(
     // Active indicator color: green in dark mode (high contrast on dark card),
     // deep purple in light mode (high contrast on white card, matches brand).
     val activeAccent = if (isDark) activeGreen else activePurple
-    val cardBg = if (isDark) Color(0xFF181C1E) else Color.White
+    val cardBg = if (isDark) Color(0xFF181C1E) else MaterialTheme.colorScheme.surface
     val cardBorder = when {
         isActive && isDark  -> activeAccent.copy(alpha = 0.55f)
         isActive            -> activeAccent               // full-opacity purple on white = clearly visible
@@ -1704,11 +1704,13 @@ private fun PlannerHome(
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
             if (plan == null) {
-                if (plansState.plans.isEmpty() && !plansState.loading) {
-                    // Keep first-time users in the planner flow: the Plan tab exposes
-                    // the same target-exam setup screen shown in the product design.
-                    PlannerHomeEmptyState(onCreatePlan = { actions.setSection(PlannerSection.YOUR_EXAMS) })
-                } else {
+                if (
+                    chromeState.section == PlannerSection.YOUR_EXAMS ||
+                    plansState.loading ||
+                    plansState.plans.isNotEmpty()
+                ) {
+                    // The Plan tab always owns the full "My Target Exams" screen,
+                    // including its empty state and Create Your New Plan action.
                     StudyPlansScreen(
                         state = plansState,
                         importState = detailState,
@@ -1721,6 +1723,10 @@ private fun PlannerHome(
                         onAdvanceTour = onAdvanceTour,
                         selectedPlanId = chromeState.selectedPlan?.id,
                     )
+                } else {
+                    // Keep first-time users in the planner flow: the Plan tab exposes
+                    // the same target-exam setup screen shown in the product design.
+                    PlannerHomeEmptyState(onCreatePlan = { actions.setSection(PlannerSection.YOUR_EXAMS) })
                 }
             } else {
                 when (chromeState.section) {
@@ -2322,8 +2328,8 @@ internal fun SyllabusFullImportCard(
                         cursorColor = scheme.primary,
                         focusedBorderColor = scheme.primary,
                         unfocusedBorderColor = scheme.outline,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
+                        focusedContainerColor = scheme.surface,
+                        unfocusedContainerColor = scheme.surface,
                     )
                 )
                 val isAiBtnEnabled = text.isNotBlank() && !state.isStructuringSyllabus && !state.isImportingStructuredSyllabus
@@ -2440,8 +2446,8 @@ internal fun SyllabusFullImportCard(
                         cursorColor = scheme.primary,
                         focusedBorderColor = scheme.primary,
                         unfocusedBorderColor = scheme.primary.copy(alpha = 0.32f),
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
+                        focusedContainerColor = scheme.surface,
+                        unfocusedContainerColor = scheme.surface,
                     ),
                 )
                 when {
@@ -2501,7 +2507,7 @@ private fun SyllabusImportModeTabs(
         Surface(
             onClick = onAiClick,
             shape = RoundedCornerShape(16.dp),
-            color = if (mode == "ai") scheme.primaryContainer.copy(alpha = 0.5f) else Color.White,
+            color = if (mode == "ai") scheme.primaryContainer.copy(alpha = 0.5f) else scheme.surface,
             border = BorderStroke(
                 width = 1.dp,
                 color = if (mode == "ai") scheme.primary else scheme.outlineVariant.copy(alpha = 0.45f)
@@ -2550,7 +2556,7 @@ private fun SyllabusImportModeTabs(
         Surface(
             onClick = onManualClick,
             shape = RoundedCornerShape(16.dp),
-            color = if (mode == "manual") scheme.primaryContainer.copy(alpha = 0.5f) else Color.White,
+            color = if (mode == "manual") scheme.primaryContainer.copy(alpha = 0.5f) else scheme.surface,
             border = BorderStroke(
                 width = 1.dp,
                 color = if (mode == "manual") scheme.primary else scheme.outlineVariant.copy(alpha = 0.45f)

@@ -4,10 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.data.remote.api.NotificationApi
+import com.safarparmar.app.domain.model.AnnouncementType
 import com.safarparmar.app.domain.model.NotificationFeedItem
 import com.safarparmar.app.domain.model.NotificationFeedSource
-
-import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +29,8 @@ class NotificationBellViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(NotificationBellUiState())
     val uiState = _uiState.asStateFlow()
+    private val dismissedIds = mutableSetOf<String>()
+    private val readIds = mutableSetOf<String>()
 
     init {
         load()
@@ -51,6 +52,10 @@ class NotificationBellViewModel @Inject constructor(
                             body = dto.body ?: "",
                             createdAt = dto.createdAt ?: "",
                             deepLink = dto.deepLink,
+                            type = announcementTypeFor(
+                                title = dto.title.orEmpty(),
+                                body = dto.body.orEmpty(),
+                            ),
                         )
                     }
                 } else emptyList()
@@ -58,18 +63,22 @@ class NotificationBellViewModel @Inject constructor(
                 emptyList()
             }
 
-            val merged = customItems.sortedByDescending { parseTimestamp(it.createdAt) }
+            val merged = customItems
+                .filterNot { it.id in dismissedIds }
+                .sortedByDescending { parseTimestamp(it.createdAt) }
             val lastSeenAt = dataStore.notificationBellLastSeenAt.first()
             val lastSeenInstant = lastSeenAt?.let { parseTimestamp(it) } ?: Instant.EPOCH
-            val unreadCount = merged.count { parseTimestamp(it.createdAt).isAfter(lastSeenInstant) }
             val mappedItems = merged.map {
-                it.copy(isUnread = parseTimestamp(it.createdAt).isAfter(lastSeenInstant))
+                it.copy(
+                    isUnread = it.id !in readIds &&
+                        parseTimestamp(it.createdAt).isAfter(lastSeenInstant)
+                )
             }
 
             _uiState.value = NotificationBellUiState(
                 isLoading = false,
                 items = mappedItems,
-                unreadCount = unreadCount,
+                unreadCount = mappedItems.count(NotificationFeedItem::isUnread),
             )
         }
     }
@@ -78,7 +87,45 @@ class NotificationBellViewModel @Inject constructor(
         val latest = _uiState.value.items.maxByOrNull { parseTimestamp(it.createdAt) } ?: return
         viewModelScope.launch {
             dataStore.setNotificationBellLastSeenAt(latest.createdAt)
-            _uiState.value = _uiState.value.copy(unreadCount = 0)
+            _uiState.value = _uiState.value.copy(
+                items = _uiState.value.items.map { it.copy(isUnread = false) },
+                unreadCount = 0,
+            )
+        }
+    }
+
+    fun markAsRead(id: String) {
+        readIds += id
+        _uiState.value = _uiState.value.let { state ->
+            val updatedItems = state.items.map { item ->
+                if (item.id == id) item.copy(isUnread = false) else item
+            }
+            state.copy(
+                items = updatedItems,
+                unreadCount = updatedItems.count(NotificationFeedItem::isUnread),
+            )
+        }
+    }
+
+    fun dismiss(id: String) {
+        dismissedIds += id
+        _uiState.value = _uiState.value.let { state ->
+            val updatedItems = state.items.filterNot { it.id == id }
+            state.copy(
+                items = updatedItems,
+                unreadCount = updatedItems.count(NotificationFeedItem::isUnread),
+            )
+        }
+    }
+
+    private fun announcementTypeFor(title: String, body: String): AnnouncementType {
+        val text = "$title $body".lowercase()
+        return when {
+            listOf("new version", "app update", "update available", "what's new")
+                .any(text::contains) -> AnnouncementType.APP_UPDATE
+            listOf("maintenance", "downtime", "service interruption")
+                .any(text::contains) -> AnnouncementType.MAINTENANCE
+            else -> AnnouncementType.GENERAL
         }
     }
 

@@ -2134,150 +2134,100 @@ fun InsightsOverallProgressRedesign(
     doneTopics: Int,
     totalTopics: Int
 ) {
+    val scheme = MaterialTheme.colorScheme
+    val progress = overallProgressPercent.coerceIn(0, 100)
+    val plannerProgress = plannerProgressPercent.coerceIn(0, 100)
+    val todoProgress = dailyTodoProgressPercent.coerceIn(0, 100)
+
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.16f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            scheme.primaryContainer.copy(alpha = 0.38f),
+                            scheme.surface.copy(alpha = 0.96f),
+                        )
+                    ),
+                    MaterialTheme.shapes.large,
+                )
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(
-                    text = "OVERALL STUDY PROGRESS",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Arc Progress Bar
-            Box(
-                modifier = Modifier.size(160.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                val trackColor = MaterialTheme.colorScheme.surfaceVariant
-                val progressColor = MaterialTheme.colorScheme.primary
-                
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawArc(
-                        color = trackColor,
-                        startAngle = 180f,
-                        sweepAngle = 180f,
-                        useCenter = false,
-                        style = Stroke(width = 16.dp.toPx(), cap = StrokeCap.Round)
-                    )
-                    drawArc(
-                        color = progressColor,
-                        startAngle = 180f,
-                        sweepAngle = 180f * (overallProgressPercent / 100f),
-                        useCenter = false,
-                        style = Stroke(width = 16.dp.toPx(), cap = StrokeCap.Round)
-                    )
-                }
-                
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.offset(y = (-16).dp)
+                Box(
+                    modifier = Modifier.size(116.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
+                    Canvas(Modifier.fillMaxSize()) {
+                        drawArc(
+                            color = scheme.onSurface.copy(alpha = 0.08f),
+                            startAngle = -90f,
+                            sweepAngle = 360f,
+                            useCenter = false,
+                            style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round),
+                        )
+                        drawArc(
+                            color = scheme.primary,
+                            startAngle = -90f,
+                            sweepAngle = 360f * (progress / 100f),
+                            useCenter = false,
+                            style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round),
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("$progress%", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
+                        Text("overall", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    Text("Overall study progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
                     Text(
-                        text = "$overallProgressPercent%",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface
+                        "$doneTopics of $totalTopics syllabus topics complete",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
                     )
-                    Text(
-                        text = "PROGRESS",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.AutoMirrored.Rounded.TrendingUp, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(16.dp))
+                        Text("Keep building momentum", style = MaterialTheme.typography.labelMedium, color = scheme.primary, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Breakdown: Planner
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Syllabus ($doneTopics/$totalTopics)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "$plannerProgressPercent%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+
+            InsightsProgressRow("Syllabus", "$doneTopics/$totalTopics topics", plannerProgress, scheme.primary)
+            InsightsProgressRow("Daily to-do", "$todoProgress% complete", todoProgress, scheme.tertiary)
+        }
+    }
+}
+
+@Composable
+private fun InsightsProgressRow(label: String, detail: String, percent: Int, color: Color) {
+    val scheme = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+                Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(detail, style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(plannerProgressPercent / 100f)
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Breakdown: Daily To-Do
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Daily To-Do List",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "$dailyTodoProgressPercent%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(dailyTodoProgressPercent / 100f)
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-            }
+            Text("$percent%", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold, color = color)
+        }
+        Box(
+            Modifier.fillMaxWidth().height(7.dp).clip(CircleShape).background(scheme.onSurface.copy(alpha = 0.08f))
+        ) {
+            Box(Modifier.fillMaxHeight().fillMaxWidth(percent / 100f).clip(CircleShape).background(color))
         }
     }
 }

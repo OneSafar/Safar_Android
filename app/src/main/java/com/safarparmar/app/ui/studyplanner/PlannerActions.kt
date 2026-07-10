@@ -55,6 +55,9 @@ interface PlannerActions {
     fun deletePlan(planId: String)
     fun updatePlan(request: UpdatePlanRequest)
     fun addSubject(name: String)
+    /** Adds several subjects at once (e.g. from a comma-separated "Add Subject" entry),
+     *  each assigned a distinct palette colour, in the order given. */
+    fun addSubjects(names: List<String>)
     fun renameSubject(subjectId: String, name: String)
     fun deleteSubject(subjectId: String)
     fun addChapter(subjectId: String, name: String)

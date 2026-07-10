@@ -179,7 +179,6 @@ internal fun TimerFocusTab(
     progress: Float,
     hasProgress: Boolean,
     mottoText: String,
-    countdownValue: Int,
     kavachActive: Boolean = false,
     kavachBlockedCount: Int = 0,
     controlsVisible: Boolean = true,

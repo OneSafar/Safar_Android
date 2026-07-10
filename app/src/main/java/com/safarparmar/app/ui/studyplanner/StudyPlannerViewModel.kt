@@ -568,7 +568,38 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun updatePlan(request: UpdatePlanRequest) = mutateSelected { planId -> repo.updatePlan(planId, request) }
-    override fun addSubject(name: String) = mutateSelected { planId -> repo.addSubject(planId, SubjectRequest(name = name, color = "#0ea5e9")) }
+    override fun addSubject(name: String) = addSubjects(listOf(name))
+
+    override fun addSubjects(names: List<String>) {
+        val cleanNames = names.map { it.trim() }.filter { it.isNotBlank() }
+        if (cleanNames.isEmpty()) return
+        val planId = _uiState.value.selectedPlan?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, error = null) }
+            val startIndex = _uiState.value.selectedPlan?.subjects?.size ?: 0
+            var latestPlan: StudyPlan? = null
+            for ((i, name) in cleanNames.withIndex()) {
+                val color = bulkSubjectPalette[(startIndex + i) % bulkSubjectPalette.size]
+                when (val r = repo.addSubject(planId, SubjectRequest(name = name, color = color))) {
+                    is Resource.Success -> latestPlan = r.data
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(mutating = false, error = r.message) }
+                        return@launch
+                    }
+                    is Resource.Loading -> Unit
+                }
+            }
+            val plan = latestPlan ?: return@launch
+            _uiState.update {
+                it.copy(
+                    selectedPlan = plan,
+                    mutating = false,
+                    message = if (cleanNames.size > 1) "${cleanNames.size} subjects added" else "Saved",
+                )
+            }
+        }
+    }
+
     override fun renameSubject(subjectId: String, name: String) = mutateSelected { planId -> repo.renameSubject(planId, subjectId, SubjectRequest(name = name)) }
     override fun deleteSubject(subjectId: String) = mutateSelected(
         successMessage = "Subject deleted",

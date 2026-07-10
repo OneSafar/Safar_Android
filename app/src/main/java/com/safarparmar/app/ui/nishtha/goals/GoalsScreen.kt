@@ -71,7 +71,7 @@ fun GoalsScreen(
     
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Goals", "History")
+    val tabs = listOf("Today", "Upcoming", "Completed")
     var showAddSheet by remember { mutableStateOf(false) }
     var showStatusSheet by remember { mutableStateOf(false) }
     var newTitle by remember { mutableStateOf("") }
@@ -429,38 +429,32 @@ fun GoalsScreen(
     }
 
     val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
-    val statusButtonColor = if (isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A)
-    val insightsButtonColor = if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
-    val addButtonBg = if (isDark) Color.White else Color(0xFF0F172A)
-    val addButtonFg = if (isDark) Color(0xFF0F172A) else Color.White
-    val tabSelectedColor = if (selectedTab == 0) {
-        if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
-    } else {
-        if (isDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
-    }
+    // Match the indigo/slate surface used by Today's progress.
+    val addButtonBg = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
+    val addButtonFg = if (isDark) Color(0xFF1E293B) else Color.White
+    val tabSelectedColor = MaterialTheme.colorScheme.primary
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(Modifier.fillMaxWidth()) {
-                Text(
-                    stringResource(R.string.goals_command_center),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    "Manage your goals and track progress efficiently.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "My Goals",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                }
             }
+            
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -470,38 +464,63 @@ fun GoalsScreen(
             ) {
                 OutlinedButton(
                     onClick = { showStatusSheet = true },
-                    shape = ButtonDefaults.outlinedShape,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = statusButtonColor),
-                    border = BorderStroke(1.dp, statusButtonColor.copy(alpha = 0.4f)),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    modifier = Modifier.heightIn(min = 44.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier.heightIn(min = 40.dp)
                 ) {
                     Icon(Icons.Default.BarChart, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Status", fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Clip)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Status", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Clip, fontWeight = FontWeight.SemiBold)
                 }
                 OutlinedButton(
                     onClick = { onNavigate(Routes.nishthaAnalytics("goals")) },
-                    shape = ButtonDefaults.outlinedShape,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = insightsButtonColor),
-                    border = BorderStroke(1.dp, insightsButtonColor.copy(alpha = 0.4f)),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    modifier = Modifier.heightIn(min = 44.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier.heightIn(min = 40.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.TrendingUp, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Goal Insights", fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Clip)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Insights", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Clip, fontWeight = FontWeight.SemiBold)
                 }
                 Button(
                     onClick = { showAddSheet = true },
-                    shape = ButtonDefaults.shape,
+                    shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = addButtonBg, contentColor = addButtonFg),
-                    modifier = Modifier.heightIn(min = 44.dp),
+                    modifier = Modifier.heightIn(min = 40.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                 ) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Add Goal", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Clip)
+                    Text("Add Goal", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Clip, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            val todayKey = IstDateUtils.todayKey()
+            val standardGoals = uiState.goals.filter { it.source != "ekagra" }
+            val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
+            val doneToday = manualCompletedGoals.count { it.completedDateKey() == todayKey }
+            val pendingToday = standardGoals.count {
+                !it.completed &&
+                it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
+                !(it.lifecycleStatus == "missed" && it.nextInstanceCreated) &&
+                !it.isDormant(todayKey)
+            }
+            val totalToday = doneToday + pendingToday
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text("Today's progress", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
+                    Text("$doneToday of $totalToday goals done 🎯", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
@@ -531,7 +550,8 @@ fun GoalsScreen(
             }
         }
         when (selectedTab) {
-            0 -> GoalsTab(
+            0, 1 -> GoalsTab(
+                filterMode = if (selectedTab == 0) "today" else "upcoming",
                 goals = uiState.goals,
                 rolloverPrompts = uiState.rolloverPrompts,
                 ekagraAnalytics = uiState.ekagraAnalytics,
@@ -562,7 +582,7 @@ fun GoalsScreen(
                 onRolloverRetry = { goal -> viewModel.respondToRollover(goal.id, "retry") },
                 onRolloverArchive = { goal -> viewModel.respondToRollover(goal.id, "archive") },
             )
-            1 -> HistoryTab(uiState.goals)
+            2 -> HistoryTab(uiState.goals)
         }
     }
 }

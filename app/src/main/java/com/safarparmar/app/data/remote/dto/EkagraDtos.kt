@@ -48,7 +48,9 @@ data class EkagraSessionsResponse(
 )
 
 data class SaveEkagraSessionRequest(
-    @SerializedName("client_session_id") val clientSessionId: String? = null,
+    // The save endpoint reads clientSessionId/sourceSessionId for retry deduplication.
+    // Sending client_session_id bypasses that guard and creates duplicate history rows.
+    val clientSessionId: String? = null,
     val mode: String,
     val startedAt: String,
     val endedAt: String? = null,

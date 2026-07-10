@@ -9,16 +9,15 @@ object Routes {
     const val SETTINGS  = "settings"
     const val ACHIEVEMENTS = "achievements"
     const val NISHTHA           = "nishtha"
-    const val NISHTHA_CHECKIN   = "nishtha/checkin"
-    const val NISHTHA_JOURNAL   = "nishtha/journal"
-    const val NISHTHA_GOALS     = "nishtha/goals"
-    const val NISHTHA_STREAKS   = "nishtha/streaks"
-    const val NISHTHA_ANALYTICS = "nishtha/analytics"
-    const val NISHTHA_WITH_TAB  = "nishtha?tab={tab}"  // single route — tab as arg
-    const val NISHTHA_ANALYTICS_SECTION = "nishtha/analytics?section={section}"
+    // Single Nishtha destination. `tab` selects the bottom-nav tab (4 = Analytics),
+    // `section` picks the analytics sub-section. Both optional so plain "nishtha",
+    // "nishtha?tab=N", and analytics deep-links all resolve to the SAME destination
+    // (one ViewModel, no duplicate back-stack entries).
+    const val NISHTHA_ROUTE     = "nishtha?tab={tab}&section={section}"
     const val EKAGRA = "ekagra"
-    const val EKAGRA_LINKED = "ekagra?goalId={goalId}&goalTitle={goalTitle}&view={view}"
-    const val EKAGRA_TOPIC_LINKED = "ekagra?topicId={topicId}&topicTitle={topicTitle}&planId={planId}"
+    // Single Ekagra destination — goal-linked, topic-linked, and plain launches all
+    // resolve here (one ViewModel / TimerService binding).
+    const val EKAGRA_ROUTE = "ekagra?goalId={goalId}&goalTitle={goalTitle}&view={view}&topicId={topicId}&topicTitle={topicTitle}&planId={planId}"
     const val STUDY_PLANNER = "study_planner"
     const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}"
     const val CREATE_PLAN = "study_planner/create"
@@ -48,8 +47,9 @@ object Routes {
     fun ekagraForTopic(topicId: String, topicTitle: String, planId: String): String =
         "ekagra?topicId=${android.net.Uri.encode(topicId)}&topicTitle=${android.net.Uri.encode(topicTitle)}&planId=${android.net.Uri.encode(planId)}"
 
+    // Analytics is Nishtha tab index 4; resolves to the single NISHTHA_ROUTE.
     fun nishthaAnalytics(section: String = "overview"): String =
-        "nishtha/analytics?section=${android.net.Uri.encode(section)}"
+        "nishtha?tab=4&section=${android.net.Uri.encode(section)}"
 
     fun ekagraAnalytics(): String = nishthaAnalytics("ekagra")
 

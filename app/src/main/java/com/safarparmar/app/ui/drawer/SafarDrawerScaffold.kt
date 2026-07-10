@@ -35,6 +35,7 @@ fun SafarDrawerScaffold(
     topBarActions: @Composable RowScope.() -> Unit = {},
     topBarContentColor: Color? = null,
     emphasizeTopBar: Boolean = false,
+    containerColor: Color? = null,
     showTopBar: Boolean = true,
     showTopBarTitle: Boolean = true,
     content: @Composable (PaddingValues) -> Unit,
@@ -79,7 +80,7 @@ fun SafarDrawerScaffold(
         },
     ) {
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = containerColor ?: MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 androidx.compose.animation.AnimatedVisibility(

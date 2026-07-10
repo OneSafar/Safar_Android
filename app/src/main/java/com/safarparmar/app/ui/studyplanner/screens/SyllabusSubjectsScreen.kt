@@ -120,14 +120,25 @@ fun SyllabusSubjectsScreen(
 
 
 
-    fun requestAddSubject(name: String) {
-        if (findDuplicateSiblingName(name, rawSubjects.map { it.name })) {
-            dialogState = SyllabusDialogState.DuplicateNameConfirm(
-                message = "You already have a subject called '$name'. Add it again?",
-                onConfirm = { actions.addSubject(name) },
-            )
-        } else {
-            actions.addSubject(name)
+    // A comma in the typed name is treated as a bulk add, same as chapters and topics —
+    // "Physics, Chemistry, Maths" adds all three subjects in one go. Duplicate-name
+    // confirmation only applies to the single-subject path; a batch is added as-is.
+    fun requestAddSubject(rawInput: String) {
+        val names = rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        when (names.size) {
+            0 -> Unit
+            1 -> {
+                val name = names[0]
+                if (findDuplicateSiblingName(name, rawSubjects.map { it.name })) {
+                    dialogState = SyllabusDialogState.DuplicateNameConfirm(
+                        message = "You already have a subject called '$name'. Add it again?",
+                        onConfirm = { actions.addSubject(name) },
+                    )
+                } else {
+                    actions.addSubject(name)
+                }
+            }
+            else -> actions.addSubjects(names)
         }
     }
 
@@ -616,8 +627,9 @@ fun SyllabusSubjectsScreen(
         is SyllabusDialogState.AddSubject -> {
             TextInputDialog(
                 "Add Subject",
-                "Subject name",
+                "Subject name (comma-separated for multiple)",
                 onDismiss = { dialogState = SyllabusDialogState.Closed },
+                confirmLabel = "Add",
                 emptyHint = "Please type the subject name",
             ) {
                 requestAddSubject(it)

@@ -113,12 +113,12 @@ fun ManualTopicTreeStep(
     if (showAddSubjectDialog) {
         TextInputDialog(
             title = "Add subject",
-            label = "Subject name",
+            label = "Subject name (comma-separated for multiple)",
             confirmLabel = "Add",
             emptyHint = "Please type the subject name",
             onDismiss = { showAddSubjectDialog = false },
-            onConfirm = { name ->
-                onAddSubject(name)
+            onConfirm = { rawInput ->
+                rawInput.split(",").map { it.trim() }.filter { it.isNotBlank() }.forEach(onAddSubject)
                 showAddSubjectDialog = false
             },
         )
