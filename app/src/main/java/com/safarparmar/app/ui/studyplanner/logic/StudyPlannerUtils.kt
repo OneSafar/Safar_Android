@@ -34,7 +34,8 @@ fun StudyPlan.rollup(): PlanProgress {
     val revision = topics.count { it.status == TopicStatus.REVISION_NEEDED }
     val percent = if (total == 0) 0 else ((done.toFloat() / total) * 100).roundToInt()
     val dailyTodosList = dailyTodos.orEmpty()
-    val dailyPercent = if (dailyTodosList.isEmpty()) {
+    val hasDailyTodos = dailyTodosList.isNotEmpty()
+    val dailyPercent = if (!hasDailyTodos) {
         0
     } else {
         val todayStr = todayKey()
@@ -42,7 +43,14 @@ fun StudyPlan.rollup(): PlanProgress {
         val completedCount = dailyTodosList.count { it.id in logsForToday }
         ((completedCount.toFloat() / dailyTodosList.size) * 100).roundToInt()
     }
-    val overallPercent = (percent + dailyPercent) / 2
+    
+    // Weighted Average: Syllabus is 90% of overall progress, Daily To-Dos are 10%
+    val overallPercent = if (hasDailyTodos) {
+        ((percent * 0.90) + (dailyPercent * 0.10)).roundToInt()
+    } else {
+        percent
+    }
+    
     return progress ?: PlanProgress(
         totalTopics = total,
         doneTopics = done,
