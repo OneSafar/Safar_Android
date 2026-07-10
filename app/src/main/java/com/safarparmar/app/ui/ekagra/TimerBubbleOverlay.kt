@@ -61,6 +61,9 @@ private fun ExpandedPill(
 
     Box(
         modifier = Modifier
+            // Size to the content, not the screen — otherwise the fillMaxWidth progress
+            // bar below stretches the whole pill to full width.
+            .width(IntrinsicSize.Max)
             .clip(shape)
             .background(PillBg)
             .border(1.dp, accent.copy(alpha = 0.35f), shape),

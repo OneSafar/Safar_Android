@@ -379,6 +379,7 @@ private fun PlanStatCard(
 fun PlanTabQuickLinks(
     activeTab: StudyPlannerTab,
     onTabSelected: (StudyPlannerTab) -> Unit,
+    onOpenDailyTodo: () -> Unit,
     overdueCount: Int,
     upcomingCount: Int,
     completedCount: Int,
@@ -398,7 +399,9 @@ fun PlanTabQuickLinks(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         tabs.forEach { (tab, label) ->
-            val selected = activeTab == tab
+            // "Daily To-Do" is an action chip that opens a bottom sheet — never a persistent tab.
+            val isDailyTodo = tab == StudyPlannerTab.DAILY_TODO
+            val selected = !isDailyTodo && activeTab == tab
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -413,7 +416,7 @@ fun PlanTabQuickLinks(
                             if (isDark) Color(0xFF1E293B) else Color(0xFF0F1C35)
                         } else Color.Transparent
                     )
-                    .clickable { onTabSelected(tab) }
+                    .clickable { if (isDailyTodo) onOpenDailyTodo() else onTabSelected(tab) }
                     .padding(vertical = 12.dp, horizontal = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -1907,7 +1910,11 @@ fun DailyTodoSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PlanSectionHeader(title = "Daily To-Do List", trailing = "${todos.size} tasks")
+            PlanSectionHeader(
+                title = "Daily To-Do List", 
+                trailing = "${todos.size} tasks",
+                modifier = Modifier.weight(1f)
+            )
             if (todos.isNotEmpty()) {
                 TextButton(
                     onClick = {

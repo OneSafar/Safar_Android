@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -175,6 +177,7 @@ fun PlanTabScreen(
     // Editable Today's Study Plan state
     var replaceSheetTopic by remember { mutableStateOf<TopicRef?>(null) }
     var showPullTopicSheet by remember { mutableStateOf(false) }
+    var showDailyTodoSheet by remember { mutableStateOf(false) }
     // Boolean = lockExisting; null means sheet is closed
     var pendingDistributeAction by remember { mutableStateOf<Boolean?>(null) }
     var removeFromTodayConfirmTopic by remember { mutableStateOf<TopicRef?>(null) }
@@ -389,11 +392,29 @@ fun PlanTabScreen(
             onPull = { topicId ->
                 actions.updateTopic(topicId = topicId, plannedDate = today, pinned = true)
             },
-            onDismiss = { 
+            onDismiss = {
                 replaceSheetTopic = null
                 showPullTopicSheet = false
             },
         )
+    }
+
+    // ── Daily To-Do list (bottom sheet, opened from the "Daily To-Do" chip) ─────
+    if (showDailyTodoSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showDailyTodoSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
+            ) {
+                DailyTodoSection(plan = plan, actions = actions, todayStr = today)
+            }
+        }
     }
 
     // ── Remove from Today confirmation ─────────────────────────────
@@ -483,6 +504,7 @@ fun PlanTabScreen(
                             PlanTabQuickLinks(
                                 activeTab = activeTab,
                                 onTabSelected = { actions.setPlanTab(it) },
+                                onOpenDailyTodo = { showDailyTodoSheet = true },
                                 overdueCount = overdueTopics.size,
                                 upcomingCount = upcomingTopics.size,
                                 completedCount = completedTopics.size,
@@ -666,8 +688,10 @@ fun PlanTabScreen(
                 }
 
                 StudyPlannerTab.DAILY_TODO -> {
-                    item(key = "daily_todo_content") {
-                        DailyTodoSection(plan = plan, actions = actions, todayStr = today)
+                    // Daily To-Do now lives in a bottom sheet (opened from the chip). If an old
+                    // persisted selection lands here, recover to Today instead of a blank view.
+                    item(key = "daily_todo_recover") {
+                        androidx.compose.runtime.LaunchedEffect(Unit) { actions.setPlanTab(StudyPlannerTab.TODAY) }
                     }
                 }
 
