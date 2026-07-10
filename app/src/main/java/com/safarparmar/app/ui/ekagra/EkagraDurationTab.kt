@@ -76,6 +76,8 @@ internal fun DurationTab(
     onMuteChange: (Boolean) -> Unit,
     autoStartBreak: Boolean,
     onAutoStartBreakChange: (Boolean) -> Unit,
+    timerAlertStyle: com.safarparmar.app.data.local.TimerAlertStyle,
+    onTimerAlertStyleChange: (com.safarparmar.app.data.local.TimerAlertStyle) -> Unit,
     onStartPomodoro: (Int) -> Unit,
     onSave: () -> Unit,
 ) {
@@ -109,6 +111,7 @@ internal fun DurationTab(
             title         = "Break duration",
             value         = breakMinutes,
             range         = 1f..60f,
+            presets       = listOf(1, 5, 15, 30),
             onValueChange = onBreakChange,
         )
 
@@ -126,6 +129,11 @@ internal fun DurationTab(
             subtitle        = if (autoStartBreak) "Break starts automatically when timer ends" else "Break stays paused — you start it when ready",
             checked         = autoStartBreak,
             onCheckedChange = onAutoStartBreakChange
+        )
+
+        TimerAlertStyleButton(
+            selectedStyle = timerAlertStyle,
+            onStyleSelected = onTimerAlertStyleChange,
         )
 
         Spacer(Modifier.height(6.dp))
@@ -197,6 +205,7 @@ internal fun DurationCard(
     title: String,
     value: Int,
     range: ClosedFloatingPointRange<Float>,
+    presets: List<Int> = emptyList(),
     onValueChange: (Int) -> Unit,
     enabled: Boolean = true
 ) {
@@ -275,33 +284,104 @@ internal fun DurationCard(
                 inactiveColor = scheme.secondaryContainer,
             )
 
-            // Preset chips — M3 InputChip style
-            val presets = if (range.endInclusive <= 60f) listOf(1, 5, 15, 30) else listOf(1, 25, 45, 60, 90)
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                presets.forEach { preset ->
-                    val isSel = value == preset
-                    Box(
-                        Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            // M3: primary when selected, surfaceContainerHigh when not
-                            .background(if (isSel) scheme.primary else scheme.surfaceContainerHigh)
-                            .clickable { if (enabled) onValueChange(preset) }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            "${preset}m",
-                            fontSize   = 14.sp,
-                            // M3: onPrimary when selected, onSurfaceVariant when not
-                            color      = if (isSel) scheme.onPrimary else scheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Medium,
-                        )
+            if (presets.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    presets.forEach { preset ->
+                        val isSelected = value == preset
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) scheme.primary else scheme.surfaceContainerHigh)
+                                .clickable { if (enabled) onValueChange(preset) }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                "${preset}m",
+                                fontSize = 14.sp,
+                                color = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TimerAlertStyleButton(
+    selectedStyle: com.safarparmar.app.data.local.TimerAlertStyle,
+    onStyleSelected: (com.safarparmar.app.data.local.TimerAlertStyle) -> Unit,
+) {
+    var showSelector by remember { mutableStateOf(false) }
+    val selectedLabel = when (selectedStyle) {
+        com.safarparmar.app.data.local.TimerAlertStyle.SOUND -> "Sound"
+        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE -> "Vibrate"
+        com.safarparmar.app.data.local.TimerAlertStyle.OFF -> "Off"
+    }
+    val selectedIcon = when (selectedStyle) {
+        com.safarparmar.app.data.local.TimerAlertStyle.SOUND -> Icons.Default.NotificationsActive
+        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE -> Icons.Default.Vibration
+        com.safarparmar.app.data.local.TimerAlertStyle.OFF -> Icons.Default.NotificationsOff
+    }
+
+    OutlinedButton(
+        onClick = { showSelector = true },
+        modifier = Modifier.fillMaxWidth().height(64.dp),
+        shape = RoundedCornerShape(16.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+    ) {
+        Icon(selectedIcon, contentDescription = null, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
+            Text("Timer Alert Style", fontWeight = FontWeight.SemiBold)
+            Text(selectedLabel, style = MaterialTheme.typography.bodySmall)
+        }
+        Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose timer alert style")
+    }
+
+    if (showSelector) {
+        AlertDialog(
+            onDismissRequest = { showSelector = false },
+            title = { Text("Timer Alert Style") },
+            text = {
+                Column {
+                    listOf(
+                        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE to "Vibrate",
+                        com.safarparmar.app.data.local.TimerAlertStyle.SOUND to "Sound",
+                        com.safarparmar.app.data.local.TimerAlertStyle.OFF to "Off",
+                    ).forEach { (style, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onStyleSelected(style)
+                                    showSelector = false
+                                }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = selectedStyle == style,
+                                onClick = {
+                                    onStyleSelected(style)
+                                    showSelector = false
+                                },
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(label, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSelector = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 

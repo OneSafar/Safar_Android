@@ -206,6 +206,7 @@ import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
+import com.safarparmar.app.ui.studyplanner.plan.DailyTodoSetupSheet
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
@@ -302,6 +303,7 @@ fun StudyPlannerScreen(
     currentRoute: String = Routes.STUDY_PLANNER,
     isDarkTheme: Boolean = false,
     planId: String? = null,
+    showDailyTodoSetup: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
@@ -311,13 +313,17 @@ fun StudyPlannerScreen(
     val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val canUsePremiumPlannerFeatures = premiumStatus.hasAnyPaidAccess || premiumStatus.canUseStudyPlannerInsights
     val actionsForPlanId: PlannerActions = viewModel
-    androidx.compose.runtime.LaunchedEffect(planId) {
-        // Confirming a new plan (created via the CreatePlan wizard) navigates back here
-        // with ?planId=<confirmed id> so the user lands straight on it — on Calendar,
-        // not the exam list or My Plan, per the wizard's "save & land on Calendar" step.
+    var dailyTodoSetupVisible by remember(planId, showDailyTodoSetup) {
+        mutableStateOf(showDailyTodoSetup)
+    }
+    androidx.compose.runtime.LaunchedEffect(planId, showDailyTodoSetup) {
+        // A newly-confirmed plan explicitly requests Home + Daily To-Do setup. Other
+        // plan-id deep links retain their existing Calendar landing behavior.
         planId?.let {
             actionsForPlanId.openPlan(it)
-            actionsForPlanId.setSection(PlannerSection.CALENDAR)
+            actionsForPlanId.setSection(
+                if (showDailyTodoSetup) PlannerSection.PLAN else PlannerSection.CALENDAR,
+            )
         }
     }
     val initialChromeState = remember(viewModel) {
@@ -423,6 +429,21 @@ fun StudyPlannerScreen(
     val snackbar = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var tourState by remember { mutableStateOf<ButterflyTourState?>(null) }
+
+    val dailyTodoSetupPlan = chromeState.selectedPlan
+    if (
+        dailyTodoSetupVisible &&
+        chromeState.section == PlannerSection.PLAN &&
+        dailyTodoSetupPlan?.id == planId
+    ) {
+        dailyTodoSetupPlan?.let { setupPlan ->
+            DailyTodoSetupSheet(
+                plan = setupPlan,
+                actions = actions,
+                onDismiss = { dailyTodoSetupVisible = false },
+            )
+        }
+    }
 
     LaunchedEffect(chromeState.error, chromeState.message, detailState.hydrateWarning, detailState.importError, detailState.importResultSummary, detailState.importStatus, detailState.structureError, detailState.structuredImportError, detailState.structuredImportSuccessMessage) {
         chromeState.error?.let { snackbar.showSnackbar(it); actions.clearTransient() }

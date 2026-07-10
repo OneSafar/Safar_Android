@@ -36,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
@@ -380,7 +381,6 @@ private fun PlanStatCard(
 fun PlanTabQuickLinks(
     activeTab: StudyPlannerTab,
     onTabSelected: (StudyPlannerTab) -> Unit,
-    onOpenDailyTodo: () -> Unit,
     overdueCount: Int,
     upcomingCount: Int,
     completedCount: Int,
@@ -390,7 +390,6 @@ fun PlanTabQuickLinks(
     val isDark = !scheme.background.isLightBackground()
     val tabs = buildList {
         add(StudyPlannerTab.TODAY to "Today")
-        add(StudyPlannerTab.DAILY_TODO to "Daily To-Do")
         if (overdueCount > 0) add(StudyPlannerTab.OVERDUE to "Overdue")
         add(StudyPlannerTab.UPCOMING to "Upcoming")
         add(StudyPlannerTab.COMPLETED to "Done")
@@ -400,9 +399,7 @@ fun PlanTabQuickLinks(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         tabs.forEach { (tab, label) ->
-            // "Daily To-Do" is an action chip that opens a bottom sheet — never a persistent tab.
-            val isDailyTodo = tab == StudyPlannerTab.DAILY_TODO
-            val selected = !isDailyTodo && activeTab == tab
+            val selected = activeTab == tab
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -417,7 +414,7 @@ fun PlanTabQuickLinks(
                             if (isDark) Color(0xFF1E293B) else Color(0xFF0F1C35)
                         } else Color.Transparent
                     )
-                    .clickable { if (isDailyTodo) onOpenDailyTodo() else onTabSelected(tab) }
+                    .clickable { onTabSelected(tab) }
                     .padding(vertical = 12.dp, horizontal = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -1954,6 +1951,151 @@ fun CollapsibleDailyTodoCard(
             }
             androidx.compose.animation.AnimatedVisibility(visible = expanded) {
                 DailyTodoSection(plan = plan, actions = actions, todayStr = todayStr)
+            }
+        }
+    }
+}
+
+/**
+ * One-time setup shown after a newly-created plan lands on Home. Entries are kept local
+ * until the user saves, then persisted through the same plan field used by the Home card
+ * and overall-progress calculation.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DailyTodoSetupSheet(
+    plan: com.safarparmar.app.domain.model.studyplanner.StudyPlan,
+    actions: com.safarparmar.app.ui.studyplanner.PlannerActions,
+    onDismiss: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    var taskName by remember { mutableStateOf("") }
+    var pendingTodos by remember(plan.id) { mutableStateOf(plan.dailyTodos.orEmpty()) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    fun addTask() {
+        val name = taskName.trim()
+        if (name.isEmpty() || pendingTodos.any { it.name.equals(name, ignoreCase = true) }) return
+        pendingTodos = pendingTodos + com.safarparmar.app.domain.model.studyplanner.DailyTodo(
+            id = java.util.UUID.randomUUID().toString(),
+            name = name,
+        )
+        taskName = ""
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Do you want to add daily to-do topics?",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    color = scheme.onSurface,
+                )
+                Text(
+                    text = "Add recurring practice or revision topics. They will appear in the Daily To-Do card on Home and count toward your overall progress.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = taskName,
+                    onValueChange = { taskName = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("e.g. Vocabulary practice") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                )
+                IconButton(
+                    onClick = ::addTask,
+                    enabled = taskName.isNotBlank(),
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            color = if (taskName.isNotBlank()) scheme.primary else scheme.surfaceVariant,
+                            shape = RoundedCornerShape(12.dp),
+                        ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add daily to-do topic",
+                        tint = if (taskName.isNotBlank()) scheme.onPrimary else scheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            if (pendingTodos.isEmpty()) {
+                Text(
+                    text = "No daily topics added yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    pendingTodos.forEach { todo ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = scheme.surfaceVariant.copy(alpha = 0.45f),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    text = todo.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.weight(1f),
+                                    color = scheme.onSurface,
+                                )
+                                IconButton(onClick = { pendingTodos = pendingTodos - todo }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Remove,
+                                        contentDescription = "Remove ${todo.name}",
+                                        tint = scheme.error,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                    Text("Not now")
+                }
+                Button(
+                    onClick = {
+                        actions.updatePlan(
+                            com.safarparmar.app.data.remote.api.UpdatePlanRequest(dailyTodos = pendingTodos),
+                        )
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(if (pendingTodos.isEmpty()) "Continue" else "Save topics")
+                }
             }
         }
     }

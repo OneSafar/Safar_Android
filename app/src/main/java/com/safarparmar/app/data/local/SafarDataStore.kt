@@ -138,6 +138,7 @@ class SafarDataStore @Inject constructor(
         val LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED = booleanPreferencesKey("launch_usage_questionnaire_completed")
         val APP_USAGE_MODE = stringPreferencesKey("app_usage_mode")
         val AUTO_START_BREAK = booleanPreferencesKey("ekagra_auto_start_break")
+        val TIMER_ALERT_STYLE = stringPreferencesKey("ekagra_timer_alert_style")
 
         val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
         val OVERLAY_PERMISSION_ASKED = booleanPreferencesKey("overlay_permission_asked")
@@ -314,6 +315,10 @@ class SafarDataStore @Inject constructor(
     val autoStartBreak: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.AUTO_START_BREAK] ?: true }
+
+    val timerAlertStyle: Flow<TimerAlertStyle> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { TimerAlertStyle.fromStoredValue(it[Keys.TIMER_ALERT_STYLE]) }
 
     val isPremium: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -498,6 +503,10 @@ class SafarDataStore @Inject constructor(
     suspend fun setOverlayPermissionAsked(asked: Boolean) = context.dataStore.edit { it[Keys.OVERLAY_PERMISSION_ASKED] = asked }
 
     suspend fun setAutoStartBreak(enabled: Boolean) = context.dataStore.edit { it[Keys.AUTO_START_BREAK] = enabled }
+
+    suspend fun setTimerAlertStyle(style: TimerAlertStyle) = context.dataStore.edit {
+        it[Keys.TIMER_ALERT_STYLE] = style.storedValue
+    }
 
     suspend fun setUserId(id: String?) {
         id?.let { context.dataStore.edit { prefs -> prefs[Keys.USER_ID] = it } }

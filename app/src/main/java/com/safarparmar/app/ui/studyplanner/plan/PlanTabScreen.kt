@@ -178,7 +178,6 @@ fun PlanTabScreen(
     // Editable Today's Study Plan state
     var replaceSheetTopic by remember { mutableStateOf<TopicRef?>(null) }
     var showPullTopicSheet by remember { mutableStateOf(false) }
-    var showDailyTodoSheet by remember { mutableStateOf(false) }
     var dailyTodoExpanded by rememberSaveable { mutableStateOf(false) }
     // Boolean = lockExisting; null means sheet is closed
     var pendingDistributeAction by remember { mutableStateOf<Boolean?>(null) }
@@ -401,24 +400,6 @@ fun PlanTabScreen(
         )
     }
 
-    // ── Daily To-Do list (bottom sheet, opened from the "Daily To-Do" chip) ─────
-    if (showDailyTodoSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showDailyTodoSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .navigationBarsPadding()
-                    .padding(bottom = 16.dp),
-            ) {
-                DailyTodoSection(plan = plan, actions = actions, todayStr = today)
-            }
-        }
-    }
-
     // ── Remove from Today confirmation ─────────────────────────────
     removeFromTodayConfirmTopic?.let { ref ->
         PlanConfirmDialog(
@@ -506,7 +487,6 @@ fun PlanTabScreen(
                             PlanTabQuickLinks(
                                 activeTab = activeTab,
                                 onTabSelected = { actions.setPlanTab(it) },
-                                onOpenDailyTodo = { showDailyTodoSheet = true },
                                 overdueCount = overdueTopics.size,
                                 upcomingCount = upcomingTopics.size,
                                 completedCount = completedTopics.size,

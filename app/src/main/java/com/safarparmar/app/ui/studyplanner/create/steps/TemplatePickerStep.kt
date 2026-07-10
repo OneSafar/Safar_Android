@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -97,13 +99,50 @@ fun TemplatePickerStep(
             if (loadingTemplates) {
                 CircularProgressIndicator()
             } else {
+                val groupedTemplates = remember(templates) { templates.groupBy { it.category } }
+                var expandedCategories by remember { mutableStateOf(setOf<String>()) }
+                
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(templates, key = { it.id }) { template ->
-                        TemplateSummaryCard(
-                            template = template,
-                            loading = loadingTemplateDetail && selectedTemplateId == template.id,
-                            onClick = { onSelectTemplate(template.id) },
-                        )
+                    groupedTemplates.forEach { (category, categoryTemplates) ->
+                        val isExpanded = expandedCategories.contains(category)
+                        
+                        item(key = "header_$category") {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        expandedCategories = if (isExpanded) {
+                                            expandedCategories - category
+                                        } else {
+                                            expandedCategories + category
+                                        }
+                                    },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(category, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                                    Icon(
+                                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                        contentDescription = if (isExpanded) "Collapse" else "Expand"
+                                    )
+                                }
+                            }
+                        }
+                        
+                        if (isExpanded) {
+                            items(categoryTemplates, key = { it.id }) { template ->
+                                TemplateSummaryCard(
+                                    template = template,
+                                    loading = loadingTemplateDetail && selectedTemplateId == template.id,
+                                    onClick = { onSelectTemplate(template.id) },
+                                )
+                            }
+                        }
                     }
                 }
             }

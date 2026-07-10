@@ -369,13 +369,15 @@ fun SafarNavGraph(
         composable(
             route = Routes.STUDY_PLANNER_ROUTE,
             arguments = listOf(
-                navArgument("planId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                navArgument("planId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("showDailyTodoSetup") { type = NavType.BoolType; defaultValue = false },
             )
         ) { entry ->
             StudyPlannerScreen(
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 planId = entry.arguments?.getString("planId"),
+                showDailyTodoSetup = entry.arguments?.getBoolean("showDailyTodoSetup") ?: false,
                 onNavigate = ::navigate,
                 onBack = ::safeBack,
                 onToggleDarkTheme = onToggleDarkTheme,
@@ -391,7 +393,7 @@ fun SafarNavGraph(
                 onUpgrade = { navigate(Routes.PREMIUM) },
                 onBack = ::safeBack,
                 onPlanConfirmed = { confirmedPlanId ->
-                    navController.navigate("${Routes.STUDY_PLANNER}?planId=$confirmedPlanId") {
+                    navController.navigate("${Routes.STUDY_PLANNER}?planId=$confirmedPlanId&showDailyTodoSetup=true") {
                         popUpTo(Routes.CREATE_PLAN) { inclusive = true }
                     }
                 },

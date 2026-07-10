@@ -19,7 +19,7 @@ object Routes {
     // resolve here (one ViewModel / TimerService binding).
     const val EKAGRA_ROUTE = "ekagra?goalId={goalId}&goalTitle={goalTitle}&view={view}&topicId={topicId}&topicTitle={topicTitle}&planId={planId}"
     const val STUDY_PLANNER = "study_planner"
-    const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}"
+    const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}&showDailyTodoSetup={showDailyTodoSetup}"
     const val CREATE_PLAN = "study_planner/create"
     const val MEHFIL = "mehfil"
     const val DM_CHAT = "mehfil/dm_chat"

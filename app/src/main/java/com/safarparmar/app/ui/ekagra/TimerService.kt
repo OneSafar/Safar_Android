@@ -13,16 +13,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.media.MediaPlayer
+import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.data.local.TimerAlertStyle
 import com.safarparmar.app.notifications.NotificationDeepLinkHandler
 import com.safarparmar.app.notifications.SafarNotificationChannels
 import com.safarparmar.app.notifications.SafarNotificationManager
@@ -172,6 +177,7 @@ class TimerService : Service() {
     
     private var standardBreakSeconds = 5 * 60
     private var autoStartBreak = true // default: auto-start breaks
+    private var timerAlertStyle = TimerAlertStyle.SOUND
 
     // ── Focus Shield state ─────────────────────────────────────────────────
     private val _focusShieldActive  = MutableStateFlow(false)
@@ -609,6 +615,7 @@ class TimerService : Service() {
 
     // ── Audio player (lives in the service — survives navigation) ─────────────
     private var musicPlayer: MediaPlayer? = null
+    private var completionSoundPlayer: MediaPlayer? = null
     private var currentMusicUrl: String   = ""
 
     fun setMute(mute: Boolean) {
@@ -658,6 +665,67 @@ class TimerService : Service() {
                 runCatching { it.stop() }
                 runCatching { it.release() }
             }
+        }
+    }
+
+    private fun releaseCompletionSound() {
+        val player = completionSoundPlayer
+        completionSoundPlayer = null
+        player?.let {
+            runCatching { it.stop() }
+            runCatching { it.release() }
+        }
+    }
+
+    private fun playCompletionSound() {
+        releaseCompletionSound()
+        val player = MediaPlayer()
+        completionSoundPlayer = player
+
+        try {
+            player.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build(),
+            )
+            resources.openRawResourceFd(R.raw.timer_completion_twinkle).use { sound ->
+                player.setDataSource(sound.fileDescriptor, sound.startOffset, sound.length)
+            }
+            player.setOnCompletionListener { completedPlayer ->
+                if (completionSoundPlayer === completedPlayer) completionSoundPlayer = null
+                runCatching { completedPlayer.release() }
+            }
+            player.setOnErrorListener { failedPlayer, _, _ ->
+                if (completionSoundPlayer === failedPlayer) completionSoundPlayer = null
+                runCatching { failedPlayer.release() }
+                true
+            }
+            player.prepare()
+            player.start()
+        } catch (error: Exception) {
+            if (completionSoundPlayer === player) completionSoundPlayer = null
+            runCatching { player.release() }
+            error.printStackTrace()
+        }
+    }
+
+    private fun timerVibrator(): Vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        getSystemService(VibratorManager::class.java).defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    }
+
+    private fun vibrateForTimerCompletion() {
+        val vibrator = timerVibrator()
+        if (!vibrator.hasVibrator()) return
+        val pattern = longArrayOf(0L, 250L, 120L, 350L)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(pattern, -1)
         }
     }
 
@@ -715,6 +783,11 @@ class TimerService : Service() {
                 autoStartBreak = value
             }
         }
+        scope.launch {
+            safarDataStore.timerAlertStyle.collect { style ->
+                timerAlertStyle = style
+            }
+        }
         restorePersistedTimerState()
     }
 
@@ -741,6 +814,8 @@ class TimerService : Service() {
         disableFocusShieldForSession()
         stopFocusShieldMonitor()
         releaseMusic()
+        releaseCompletionSound()
+        runCatching { timerVibrator().cancel() }
         clearTheme()
         scope.cancel()
         super.onDestroy()
@@ -1315,16 +1390,14 @@ class TimerService : Service() {
 
     private fun showCompletionNotification() {
         val completedMode = _timerMode.value
-        
-        try {
-            val toneG = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100)
-            toneG.startTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 1000)
-            scope.launch {
-                kotlinx.coroutines.delay(1500)
-                runCatching { toneG.release() }
+
+        when (timerAlertStyle) {
+            TimerAlertStyle.SOUND -> playCompletionSound()
+            TimerAlertStyle.VIBRATE -> {
+                releaseCompletionSound()
+                vibrateForTimerCompletion()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+            TimerAlertStyle.OFF -> releaseCompletionSound()
         }
 
         scope.launch {

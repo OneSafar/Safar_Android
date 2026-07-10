@@ -100,6 +100,12 @@ class EkagraViewModel @Inject constructor(
         }
     }
 
+    fun setTimerAlertStyle(style: com.safarparmar.app.data.local.TimerAlertStyle) {
+        viewModelScope.launch {
+            dataStore.setTimerAlertStyle(style)
+        }
+    }
+
     init {
         // Initial fetch; periodic refresh is now driven from the screen via
         // repeatOnLifecycle so polling pauses when Ekagra is not on top.

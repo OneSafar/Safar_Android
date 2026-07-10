@@ -202,6 +202,9 @@ fun EkagraScreen(
     var breakMinutes        by remember { mutableIntStateOf(5) }
     var longBreakMinutes    by remember { mutableIntStateOf(15) }
     val autoStartBreak      by viewModel.dataStore.autoStartBreak.collectAsStateWithLifecycle(initialValue = true)
+    val timerAlertStyle     by viewModel.dataStore.timerAlertStyle.collectAsStateWithLifecycle(
+        initialValue = com.safarparmar.app.data.local.TimerAlertStyle.SOUND,
+    )
 
     // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -1307,6 +1310,8 @@ fun EkagraScreen(
                                         onMuteChange = { timerService?.setMute(it) },
                                         autoStartBreak = autoStartBreak,
                                         onAutoStartBreakChange = { viewModel.setAutoStartBreak(it) },
+                                        timerAlertStyle = timerAlertStyle,
+                                        onTimerAlertStyleChange = viewModel::setTimerAlertStyle,
                                         onStartPomodoro = { loops ->
                                             timerService?.startPomodoroSession(loops, focusMinutes, breakMinutes)
                                             timerService?.prepareAutoSaveSession(

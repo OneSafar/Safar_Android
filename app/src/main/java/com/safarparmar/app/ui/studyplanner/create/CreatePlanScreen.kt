@@ -87,7 +87,7 @@ fun CreatePlanScreen(
 
     // The Preview step is the one place a plan is actually persisted (as a draft) before
     // the user has confirmed anything — so a successful confirm gets a brief celebration
-    // beat instead of an instant jump, then hands off to the caller (which lands on Calendar).
+    // beat instead of an instant jump, then hands off to the caller (which lands on Home).
     LaunchedEffect(state.confirmedPlanId) {
         if (state.confirmedPlanId != null) showCelebration = true
     }
@@ -279,7 +279,7 @@ fun CreatePlanScreen(
     }
 }
 
-/** Brief celebration beat between "Looks good" and landing on Calendar — a scale-in
+/** Brief celebration beat between "Looks good" and landing on Home — a scale-in
  *  checkmark plus a warm, specific message, not a bare instant navigation. */
 @Composable
 private fun CelebrationOverlay(
