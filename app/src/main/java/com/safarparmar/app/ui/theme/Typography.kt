@@ -15,6 +15,7 @@ val provider = GoogleFont.Provider(
     certificates = R.array.com_google_android_gms_fonts_certs
 )
 
+// Brand font style: Hanken Grotesk (Primary / Body / Labels / Navigation)
 val MulishFontFamily = FontFamily(
     androidx.compose.ui.text.googlefonts.Font(
         googleFont = GoogleFont("Hanken Grotesk"),
@@ -22,8 +23,10 @@ val MulishFontFamily = FontFamily(
     )
 )
 
+// Alias PoppinsFontFamily to Hanken Grotesk to maintain code compatibility
 val PoppinsFontFamily = MulishFontFamily
 
+// Display / Title font style: EB Garamond (Headings / Serif Accents)
 val LoraFontFamily = FontFamily(
     androidx.compose.ui.text.googlefonts.Font(
         googleFont = GoogleFont("EB Garamond"),

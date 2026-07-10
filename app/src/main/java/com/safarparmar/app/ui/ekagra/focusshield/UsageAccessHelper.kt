@@ -42,34 +42,30 @@ object FocusShieldPermissionHelper {
         )
     }
 
-    fun isAccessibilityFeatureEnabled(): Boolean = BuildConfig.KAVACH_ACCESSIBILITY_ENABLED
+    /**
+     * KAVACH no longer uses Android Accessibility Service. Blocking is driven entirely by
+     * Usage access (foreground-app detection) plus "Display over other apps" (the block screen).
+     * These stubs remain only so legacy callers keep compiling; they always report "not required".
+     */
+    fun isAccessibilityFeatureEnabled(): Boolean = false
 
-    fun hasAccessibilityService(context: Context): Boolean {
-        if (!isAccessibilityFeatureEnabled()) return false
-        val expected = ComponentName(context, FocusShieldAccessibilityService::class.java)
-            .flattenToString()
-        val enabledServices = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-        ).orEmpty()
-        val granted = enabledServices.split(':').any { it.equals(expected, ignoreCase = true) }
-        debugLog("Ekagra Shield accessibility granted=$granted")
-        return granted
-    }
+    fun hasAccessibilityService(context: Context): Boolean = false
 
-    fun openAccessibilitySettings(context: Context) {
-        if (!isAccessibilityFeatureEnabled()) return
-        val componentName = ComponentName(context, FocusShieldAccessibilityService::class.java)
-        val detailsIntent = Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS")
-            .putExtra(Intent.EXTRA_COMPONENT_NAME, componentName)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val fallbackIntent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    /** Display over other apps ("draw overlay") — required to show the KAVACH block screen. */
+    fun hasOverlayPermission(context: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
 
+    fun openOverlaySettings(context: Context) {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            android.net.Uri.parse("package:${context.packageName}"),
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching {
-            context.startActivity(detailsIntent)
+            context.startActivity(intent)
         }.getOrElse {
-            context.startActivity(fallbackIntent)
+            context.startActivity(
+                Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
         }
     }
 

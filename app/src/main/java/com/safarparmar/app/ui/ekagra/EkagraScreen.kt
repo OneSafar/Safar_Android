@@ -69,8 +69,10 @@ import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import com.safarparmar.app.util.IstDateUtils
+import com.safarparmar.app.ui.launch.AppUsageMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -132,6 +134,7 @@ fun EkagraScreen(
 
     // UI state
     val tabBackStack             = rememberFeatureTabBackStack(EkagraNavTab.TIMER)
+    val ekagraScope              = rememberCoroutineScope()
     val selectedTab              = tabBackStack.currentTab
     var showKavachActiveSession  by remember { mutableStateOf(false) }
     var showKavachSessionSummary by remember { mutableStateOf(false) }
@@ -151,6 +154,11 @@ fun EkagraScreen(
     var durationPromptActedOn       by remember { mutableStateOf(false) }
     var tourState                by remember { mutableStateOf<com.safarparmar.app.ui.butterfly.ButterflyTourState?>(null) }
     val timerImmersiveActive = false
+    val appUsageMode by viewModel.dataStore.appUsageMode.collectAsStateWithLifecycle(initialValue = null)
+    val isBeastMode = appUsageMode == AppUsageMode.BEAST
+    // Overlay bubble permission
+    val overlayGranted = remember { mutableStateOf(TimerBubbleOverlay.canDrawOverlays(context)) }
+    var showOverlayPermPrompt by remember { mutableStateOf(false) }
 
     BackHandler(enabled = tabBackStack.hasHistory) {
         tabBackStack.goBack()
@@ -209,9 +217,8 @@ fun EkagraScreen(
         if (isStartingFromMusicSelection) {
             isStartingFromMusicSelection = false
         }
-        val accessibilityRequired = com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
         if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && shieldState.isEnabled && shieldState.blockedPackages.isNotEmpty()
-            && (!shieldState.hasUsageStats || (accessibilityRequired && !shieldState.hasAccessibilityService) || !shieldState.hasNotificationSuppressionAccess)) {
+            && (!shieldState.hasUsageStats || !shieldState.hasOverlayPermission)) {
             onNavigate(Routes.FOCUS_SHIELD); return
         }
         requestNotificationPermission()
@@ -412,7 +419,10 @@ fun EkagraScreen(
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
         val builder = PictureInPictureParams.Builder().setAspectRatio(Rational(1, 1))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            builder.setSeamlessResizeEnabled(true); builder.setAutoEnterEnabled(timerRunning)
+            // Android system PiP is disabled — the floating TimerBubbleOverlay pill is the
+            // single floating timer. Never auto-enter PiP.
+            builder.setSeamlessResizeEnabled(true)
+            builder.setAutoEnterEnabled(false)
         }
         val playPauseIcon = android.graphics.drawable.Icon.createWithResource(
             pipContext, if (timerRunning) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
@@ -426,6 +436,17 @@ fun EkagraScreen(
             builder.setTitle("SAFAR Ekagra Timer"); builder.setSubtitle("Ekagra timer running")
         }
         return builder.build()
+    }
+
+    // One-time overlay permission prompt: shown when timer starts if permission not yet granted
+    LaunchedEffect(timerRunning) {
+        if (timerRunning && !overlayGranted.value) {
+            val alreadyAsked = viewModel.dataStore.overlayPermissionAsked.first()
+            if (!alreadyAsked) showOverlayPermPrompt = true
+        }
+        if (timerRunning) {
+            overlayGranted.value = TimerBubbleOverlay.canDrawOverlays(context)
+        }
     }
 
     LaunchedEffect(timerRunning, secondsLeft) {
@@ -518,9 +539,23 @@ fun EkagraScreen(
         }
     }
 
-    // ── M3 dynamic color scheme (theme-aware) ────────────────────────────────────
     val themeColorScheme = remember(selectedTheme, isDarkTheme) {
-        val seed = if (!isDarkTheme && selectedTheme.name == "Focus") Color(0xFF9A3412) else selectedTheme.accent
+        val seed = if (isDarkTheme) {
+            val darkGradient = selectedTheme.gradientColors
+            if (darkGradient != null && darkGradient.isNotEmpty()) {
+                darkGradient.first()
+            } else {
+                when (selectedTheme.name) {
+                    "Serene" -> Color(0xFF64B5F6)     // Lighter Cerulean/Blue
+                    "Nostalgia" -> Color(0xFF81C784)  // Lighter Kelly Green
+                    "Amber" -> Color(0xFFA5D6A7)      // Lighter Forest Green
+                    "Solitude" -> Color(0xFFB39DDB)   // Lighter Violet/Purple
+                    else -> selectedTheme.accent
+                }
+            }
+        } else {
+            if (selectedTheme.name == "Focus") Color(0xFF9A3412) else selectedTheme.accent
+        }
         if (isDarkTheme) {
             val bgTint = blendColors(seed, Color(0xFF0F1115), 0.08f)
             val surfaceTint = blendColors(seed, Color(0xFF111416), 0.10f)
@@ -647,6 +682,68 @@ fun EkagraScreen(
                             selectedTheme = it
                             showThemeDialog = false 
                         }, onDismiss = { showThemeDialog = false })
+                    // ── Overlay bubble permission prompt (shown once) ─────────────
+                    if (showOverlayPermPrompt) {
+                        androidx.compose.material3.ModalBottomSheet(
+                            onDismissRequest = {
+                                showOverlayPermPrompt = false
+                                ekagraScope.launch {
+                                    viewModel.dataStore.setOverlayPermissionAsked(true)
+                                }
+                            },
+                        ) {
+                            androidx.compose.foundation.layout.Column(
+                                modifier = androidx.compose.ui.Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    tint = themeColorScheme.primary,
+                                    modifier = androidx.compose.ui.Modifier.size(40.dp),
+                                )
+                                androidx.compose.material3.Text(
+                                    "Show floating timer?",
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                )
+                                androidx.compose.material3.Text(
+                                    "Allow SAFAR to show a small timer bubble on the side of your screen while you use other apps.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                androidx.compose.material3.Button(
+                                    onClick = {
+                                        showOverlayPermPrompt = false
+                                        ekagraScope.launch {
+                                            viewModel.dataStore.setOverlayPermissionAsked(true)
+                                        }
+                                        TimerBubbleOverlay.openOverlayPermissionSettings(pipContext)
+                                    },
+                                    modifier = androidx.compose.ui.Modifier.fillMaxWidth().height(50.dp),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                ) {
+                                    androidx.compose.material3.Text("Grant Permission", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                }
+                                androidx.compose.material3.TextButton(
+                                    onClick = {
+                                        showOverlayPermPrompt = false
+                                        ekagraScope.launch {
+                                            viewModel.dataStore.setOverlayPermissionAsked(true)
+                                        }
+                                    },
+                                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                                ) {
+                                    androidx.compose.material3.Text("Not now")
+                                }
+                                androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.height(16.dp))
+                            }
+                        }
+                    }
                     if (showMusicPromptDialog) {
                         MusicPromptDialog(
                             onYes = { dontShowAgain ->
@@ -965,9 +1062,7 @@ fun EkagraScreen(
                                             }
                                         )
                                         val hasAllPermissions = shieldState.hasUsageStats &&
-                                                                shieldState.hasAccessibilityService &&
-                                                                shieldState.hasNotificationSuppressionAccess &&
-                                                                shieldState.hasNotifications
+                                                                shieldState.hasOverlayPermission
                                         if (!hasAllPermissions) {
                                             androidx.compose.material3.DropdownMenuItem(
                                                 text = { Text("Kavach Setup") },
@@ -981,9 +1076,14 @@ fun EkagraScreen(
                                             )
                                         }
                                         androidx.compose.material3.DropdownMenuItem(
-                                            text = { Text(if (shieldState.isStrictMode) "Disable Beast Mode" else "Enable Beast Mode") },
+                                            text = { Text(if (isBeastMode) "Disable Beast Mode" else "Enable Beast Mode") },
                                             onClick = { 
-                                                focusShieldViewModel.setStrictMode(!shieldState.isStrictMode)
+                                                ekagraScope.launch {
+                                                    viewModel.dataStore.setAppUsageMode(
+                                                        if (isBeastMode) AppUsageMode.FOCUSED else AppUsageMode.BEAST
+                                                    )
+                                                }
+                                                focusShieldViewModel.setStrictMode(!isBeastMode)
                                                 showOverflowMenu = false
                                             },
                                             leadingIcon = {
@@ -1181,6 +1281,7 @@ fun EkagraScreen(
                                         onToggleStrictMode = focusShieldViewModel::setStrictMode,
                                         onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },
                                         onNavigate = onNavigate,
+                                        isBeastMode = isBeastMode,
                                     )
 
                                     EkagraNavTab.DURATION -> DurationTab(

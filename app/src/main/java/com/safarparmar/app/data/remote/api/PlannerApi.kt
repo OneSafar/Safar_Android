@@ -242,6 +242,8 @@ data class UpdatePlanRequest(
     val offDays: List<Int>? = null,
     val offDates: List<String>? = null,
     val autoRollover: Boolean? = null,
+    val dailyTodos: List<com.safarparmar.app.domain.model.studyplanner.DailyTodo>? = null,
+    val dailyTodoLogs: Map<String, List<String>>? = null,
 )
 
 data class RolloverUndoRequest(

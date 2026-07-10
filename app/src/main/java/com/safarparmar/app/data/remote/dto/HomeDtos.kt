@@ -148,8 +148,8 @@ data class AchievementDto(
     val holderCount: Int? = 0,
     val earned: Boolean? = false,
     val progress: Int? = 0,
-    val currentValue: Int? = 0,
-    val targetValue: Int? = 0
+    val currentValue: Double? = 0.0,
+    val targetValue: Double? = 0.0
 )
 
 data class ActiveTitleDto(val title: String? = null, val selectedId: String? = null)

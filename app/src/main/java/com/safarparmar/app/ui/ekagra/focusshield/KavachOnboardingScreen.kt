@@ -119,11 +119,10 @@ fun KavachOnboardingScreen(
     }
     val shieldState by viewModel.shieldState.collectAsStateWithLifecycle()
     var hasUsageStats by remember { mutableStateOf(shieldState.hasUsageStats) }
-    var hasAccessibility by remember { mutableStateOf(shieldState.hasAccessibilityService) }
+    var hasOverlay by remember { mutableStateOf(shieldState.hasOverlayPermission) }
     var hasNotifications by remember { mutableStateOf(shieldState.hasNotifications) }
     var hasNotificationSuppressionAccess by remember { mutableStateOf(shieldState.hasNotificationSuppressionAccess) }
     var selectedPermission by remember { mutableStateOf<PermissionTarget?>(null) }
-    val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
     val scope = rememberCoroutineScope()
 
     BackHandler(enabled = true) { onBack() }
@@ -136,7 +135,7 @@ fun KavachOnboardingScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 hasUsageStats = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
-                hasAccessibility = FocusShieldPermissionHelper.hasAccessibilityService(context)
+                hasOverlay = FocusShieldPermissionHelper.hasOverlayPermission(context)
                 hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
                 hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
                 viewModel.refreshPermissions()
@@ -146,30 +145,32 @@ fun KavachOnboardingScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(hasUsageStats, hasAccessibility, hasNotificationSuppressionAccess) {
-        if (hasUsageStats && (!accessibilityRequired || hasAccessibility) && hasNotificationSuppressionAccess) {
+    // KAVACH is ready once the two required permissions are granted: Usage access + overlay.
+    // Notification Shield (listener) and Background (notifications) are optional extras.
+    LaunchedEffect(hasUsageStats, hasOverlay) {
+        if (hasUsageStats && hasOverlay) {
             viewModel.setEnabled(true)
             onFinished()
         }
     }
 
-    val totalSteps = if (accessibilityRequired) 3 else 2
+    // Progress reflects only the two required permissions.
+    val totalSteps = 2
     var grantedCount = 0
     if (hasUsageStats) grantedCount++
-    if (hasAccessibility && accessibilityRequired) grantedCount++
-    if (hasNotificationSuppressionAccess) grantedCount++
+    if (hasOverlay) grantedCount++
     val progress = (grantedCount.toFloat() / totalSteps).coerceAtMost(1f)
     val animatedProgress by animateFloatAsState(targetValue = progress, label = "kavachPermissionProgress")
 
+    // Order: Usage → Background → Display over other apps → Notification Shield (optional).
+    // Background is a one-tap system dialog; once prompted we advance even if the user denied it.
+    var backgroundPrompted by remember { mutableStateOf(false) }
     val isUsageNext = !hasUsageStats
-    val isAccessibilityNext = hasUsageStats && accessibilityRequired && !hasAccessibility
-    val isNotificationAccessNext = hasUsageStats &&
-        (!accessibilityRequired || hasAccessibility) &&
-        !hasNotificationSuppressionAccess
-    val isNotificationsNext = hasUsageStats &&
-        (!accessibilityRequired || hasAccessibility) &&
-        hasNotificationSuppressionAccess &&
-        !hasNotifications
+    val isBackgroundNext = hasUsageStats && !hasNotifications && !backgroundPrompted
+    val backgroundDone = hasNotifications || backgroundPrompted
+    val isOverlayNext = hasUsageStats && backgroundDone && !hasOverlay
+    val requiredGranted = hasUsageStats && hasOverlay
+    val isNotificationAccessNext = requiredGranted && !hasNotificationSuppressionAccess
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -255,39 +256,41 @@ fun KavachOnboardingScreen(
 
                 HorizontalDivider(color = colors.divider)
 
-                if (accessibilityRequired) {
-                    KavachRegainPermissionRow(
-                        title = "Accessibility Service",
-                        subtitle = "Required to monitor app launches and display the blocking shield screen over distracting apps.",
-                        granted = hasAccessibility,
-                        isNext = isAccessibilityNext,
-                        colors = colors,
-                        onClick = { if (isAccessibilityNext) selectedPermission = PermissionTarget.ACCESSIBILITY },
-                    )
-                    HorizontalDivider(color = colors.divider)
-                }
-
                 KavachRegainPermissionRow(
-                    title = "Notification Shield",
-                    subtitle = "Required to dismiss notifications from the apps you selected for blocking.",
-                    granted = hasNotificationSuppressionAccess,
-                    isNext = isNotificationAccessNext,
+                    title = "Background permission",
+                    subtitle = "Keeps KAVACH status and timer alerts working.",
+                    granted = hasNotifications,
+                    isNext = isBackgroundNext,
                     colors = colors,
                     onClick = {
-                        if (isNotificationAccessNext) selectedPermission = PermissionTarget.NOTIFICATION_ACCESS
+                        if (isBackgroundNext) {
+                            backgroundPrompted = true
+                            requestNotificationPermission()
+                        }
                     },
                 )
 
                 HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
-                    title = "Background permission",
-                    subtitle = "Keeps KAVACH status and timer alerts working.",
-                    granted = hasNotifications,
-                    isNext = isNotificationsNext,
+                    title = "Display over other apps",
+                    subtitle = "Lets KAVACH show the block screen over a distracting app.",
+                    granted = hasOverlay,
+                    isNext = isOverlayNext,
+                    colors = colors,
+                    onClick = { if (isOverlayNext) selectedPermission = PermissionTarget.OVERLAY },
+                )
+
+                HorizontalDivider(color = colors.divider)
+
+                KavachRegainPermissionRow(
+                    title = "Notification Shield (optional)",
+                    subtitle = "Optional — dismiss notifications from blocked apps during a session.",
+                    granted = hasNotificationSuppressionAccess,
+                    isNext = isNotificationAccessNext,
                     colors = colors,
                     onClick = {
-                        if (isNotificationsNext) requestNotificationPermission()
+                        if (isNotificationAccessNext) selectedPermission = PermissionTarget.NOTIFICATION_ACCESS
                     },
                 )
             }
@@ -343,10 +346,8 @@ fun KavachOnboardingScreen(
                                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                 })
                             }
-                            PermissionTarget.ACCESSIBILITY -> {
-                                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                })
+                            PermissionTarget.OVERLAY -> {
+                                FocusShieldPermissionHelper.openOverlaySettings(context)
                             }
                             PermissionTarget.NOTIFICATIONS -> requestNotificationPermission()
                             PermissionTarget.NOTIFICATION_ACCESS ->
@@ -438,7 +439,7 @@ private fun KavachRegainExplanationSheet(
 
     val title = when (permission) {
         PermissionTarget.USAGE_STATS -> "Allow usage permission to check app use"
-        PermissionTarget.ACCESSIBILITY -> "Enable KAVACH - Focus Shield"
+        PermissionTarget.OVERLAY -> "Allow display over other apps"
         PermissionTarget.NOTIFICATIONS -> "Allow notifications for status"
         PermissionTarget.NOTIFICATION_ACCESS -> "Enable Notification shield"
     }
@@ -452,15 +453,11 @@ private fun KavachRegainExplanationSheet(
             "SAFAR does not upload the names of apps you open or block.",
             "This helps KAVACH block only the apps you choose during an active Ekagra focus timer session.",
         )
-        PermissionTarget.ACCESSIBILITY -> listOf(
-            "KAVACH is optional. It helps you stay focused by blocking only the distracting apps you choose during an active Ekagra focus timer session.",
-            "To do this, SAFAR uses Android Accessibility Service only for KAVACH Focus Shield. When you open an app you selected for blocking, SAFAR detects that app's package name, checks it against your blocked app list, and shows SAFAR's own KAVACH block screen so you can return to your focus session.",
-            "SAFAR does not use Accessibility Service to read your screen, messages, passwords, typed text, notifications, contacts, photos, or files.",
-            "SAFAR does not use Accessibility Service to click buttons, perform gestures, change settings, prevent uninstall, or control your phone.",
-            "SAFAR does not request the Display over other apps permission. KAVACH shows SAFAR's own block screen only when a user-selected blocked app opens during an active focus session.",
-            "SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties. All processing happens locally on your device.",
-            "SAFAR does not upload the names of apps you open or block.",
-            "You can keep using SAFAR without KAVACH, and you can turn this permission off anytime in Android Settings.",
+        PermissionTarget.OVERLAY -> listOf(
+            "This lets SAFAR draw its own KAVACH block screen on top of a distracting app you selected.",
+            "It is used only for the block screen during an active Ekagra focus session.",
+            "SAFAR does not read, capture, or overlay anything on other apps beyond showing the block screen.",
+            "You can turn this off anytime in Android Settings → Display over other apps.",
         )
         PermissionTarget.NOTIFICATIONS -> listOf(
             "Receive alerts when the Ekagra timer finishes.",
@@ -563,9 +560,7 @@ private fun KavachRegainExplanationSheet(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = if (permission == PermissionTarget.ACCESSIBILITY) {
-                            "Agree & enable KAVACH"
-                        } else if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
+                        text = if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
                             "Agree & enable Notification Shield"
                         } else {
                             "Allow"
@@ -577,7 +572,7 @@ private fun KavachRegainExplanationSheet(
                 }
             }
 
-            if (permission == PermissionTarget.ACCESSIBILITY) {
+            if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
                 Spacer(Modifier.height(12.dp))
                 Surface(
                     onClick = onDismiss,

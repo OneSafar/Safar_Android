@@ -105,6 +105,8 @@ data class CreatePlanUiState(
     /** Topics the user appended to an existing template chapter via the drill-down
      *  "+", keyed by (subjectIndex, chapterIndex) in [templateDetail]. */
     val templateExtraTopics: Map<Pair<Int, Int>, List<DraftTopic>> = emptyMap(),
+    /** Subjects the user appended to the template via the drill-down "+" on the subject list. */
+    val templateExtraSubjects: List<DraftSubject> = emptyList(),
     /** Drill-down position within the template tree: null = subject list,
      *  [drillSubjectIndex] set = chapter list, both set = topic list. */
     val drillSubjectIndex: Int? = null,
@@ -333,6 +335,73 @@ class CreatePlanViewModel @Inject constructor(
         }
     }
 
+    // ── Template path (custom subjects added by user) ───────────────────
+
+    fun addTemplateSubject(name: String) {
+        if (name.isBlank()) return
+        _uiState.update { it.copy(templateExtraSubjects = it.templateExtraSubjects + DraftSubject(name = name.trim())) }
+    }
+
+    fun removeTemplateSubject(subjectLocalId: String) {
+        _uiState.update { it.copy(templateExtraSubjects = it.templateExtraSubjects.filterNot { s -> s.localId == subjectLocalId }) }
+    }
+
+    fun addTemplateSubjectChapter(subjectLocalId: String, name: String) {
+        if (name.isBlank()) return
+        _uiState.update { state ->
+            state.copy(
+                templateExtraSubjects = state.templateExtraSubjects.map { subject ->
+                    if (subject.localId != subjectLocalId) subject
+                    else subject.copy(chapters = subject.chapters + DraftChapter(name = name.trim()))
+                },
+            )
+        }
+    }
+
+    fun removeTemplateSubjectChapter(subjectLocalId: String, chapterLocalId: String) {
+        _uiState.update { state ->
+            state.copy(
+                templateExtraSubjects = state.templateExtraSubjects.map { subject ->
+                    if (subject.localId != subjectLocalId) subject
+                    else subject.copy(chapters = subject.chapters.filterNot { it.localId == chapterLocalId })
+                },
+            )
+        }
+    }
+
+    fun addTemplateSubjectTopic(subjectLocalId: String, chapterLocalId: String, name: String) {
+        if (name.isBlank()) return
+        _uiState.update { state ->
+            state.copy(
+                templateExtraSubjects = state.templateExtraSubjects.map { subject ->
+                    if (subject.localId != subjectLocalId) subject
+                    else subject.copy(
+                        chapters = subject.chapters.map { chapter ->
+                            if (chapter.localId != chapterLocalId) chapter
+                            else chapter.copy(topics = chapter.topics + DraftTopic(name = name.trim()))
+                        },
+                    )
+                },
+            )
+        }
+    }
+
+    fun removeTemplateSubjectTopic(subjectLocalId: String, chapterLocalId: String, topicLocalId: String) {
+        _uiState.update { state ->
+            state.copy(
+                templateExtraSubjects = state.templateExtraSubjects.map { subject ->
+                    if (subject.localId != subjectLocalId) subject
+                    else subject.copy(
+                        chapters = subject.chapters.map { chapter ->
+                            if (chapter.localId != chapterLocalId) chapter
+                            else chapter.copy(topics = chapter.topics.filterNot { it.localId == topicLocalId })
+                        },
+                    )
+                },
+            )
+        }
+    }
+
     // ── Manual path (pure client-side tree editing) ─────────────────
 
     fun addManualSubject(name: String) {
@@ -463,7 +532,7 @@ class CreatePlanViewModel @Inject constructor(
             PlanSource.Template -> {
                 val excluded = state.excludedTopicKeys
                 val template = state.templateDetail ?: return emptyList()
-                template.subjects.mapIndexedNotNull { si, subject ->
+                val originalAndExtraChapterSubjects = template.subjects.mapIndexedNotNull { si, subject ->
                     val originalChapters = subject.chapters.mapIndexedNotNull { ci, chapter ->
                         val topicNames = chapter.topics.withIndex()
                             .filter { (ti, _) -> Triple(si, ci, ti) !in excluded }
@@ -476,6 +545,14 @@ class CreatePlanViewModel @Inject constructor(
                     val chapters = originalChapters + extraChapters
                     if (chapters.isEmpty()) null else DeepFocusOutlineSubject(subject.name, chapters)
                 }
+                
+                val extraSubjects = state.templateExtraSubjects.mapNotNull { subject ->
+                    val chapters = subject.chapters.filter { it.topics.isNotEmpty() }
+                        .map { DeepFocusOutlineChapter(it.name, it.topics.map { t -> t.name }) }
+                    if (chapters.isEmpty()) null else DeepFocusOutlineSubject(subject.name, chapters)
+                }
+                
+                originalAndExtraChapterSubjects + extraSubjects
             }
             PlanSource.Manual -> state.manualSubjects.mapNotNull { subject ->
                 val chapters = subject.chapters.filter { it.topics.isNotEmpty() }

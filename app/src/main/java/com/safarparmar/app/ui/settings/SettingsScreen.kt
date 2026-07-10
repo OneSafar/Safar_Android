@@ -93,7 +93,7 @@ private enum class SettingsInfoSheet {
     EULA,
     PRIVACY,
     KAVACH,
-    ACCESSIBILITY,
+    OVERLAY,
     USAGE_ACCESS,
     NOTIFICATIONS,
 }
@@ -150,7 +150,7 @@ fun SettingsScreen(
     var activeInfoSheet by remember { mutableStateOf<SettingsInfoSheet?>(null) }
 
     var hasUsageAccess by remember { mutableStateOf(FocusShieldPermissionHelper.hasUsageStatsPermission(context)) }
-    var hasFocusShieldAccessibility by remember { mutableStateOf(FocusShieldPermissionHelper.hasAccessibilityService(context)) }
+    var hasFocusShieldOverlay by remember { mutableStateOf(FocusShieldPermissionHelper.hasOverlayPermission(context)) }
     var hasNotificationPermission by remember { mutableStateOf(FocusShieldPermissionHelper.hasNotificationPermission(context)) }
     val isPremiumSyncing = premiumUiState is PremiumUiState.Loading
     val premiumExpiryText = remember(premiumStatus.expiresAt) { formatSettingsPremiumExpiry(premiumStatus.expiresAt) }
@@ -174,7 +174,7 @@ fun SettingsScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 hasUsageAccess = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
-                hasFocusShieldAccessibility = FocusShieldPermissionHelper.hasAccessibilityService(context)
+                hasFocusShieldOverlay = FocusShieldPermissionHelper.hasOverlayPermission(context)
                 hasNotificationPermission = FocusShieldPermissionHelper.hasNotificationPermission(context)
             }
         }
@@ -207,9 +207,9 @@ fun SettingsScreen(
         SettingsLegalInfoSheet(
             sheet = sheet,
             onDismiss = { activeInfoSheet = null },
-            onOpenAccessibilitySettings = {
+            onOpenOverlaySettings = {
                 activeInfoSheet = null
-                FocusShieldPermissionHelper.openAccessibilitySettings(context)
+                FocusShieldPermissionHelper.openOverlaySettings(context)
             },
         )
     }
@@ -471,17 +471,15 @@ fun SettingsScreen(
                     onClickWhenNotGranted = { FocusShieldPermissionHelper.openUsageAccessSettings(context) },
                     onInfoClick = { activeInfoSheet = SettingsInfoSheet.USAGE_ACCESS },
                 )
-                if (FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()) {
-                    SettingsPermissionRow(
-                        icon = Icons.Default.Info,
-                        title = "KAVACH Alert",
-                        subtitle = "Uses Accessibility Service for KAVACH Focus Shield app blocking.",
-                        granted = hasFocusShieldAccessibility,
-                        accent = MaterialTheme.colorScheme.primary,
-                        onClickWhenNotGranted = { activeInfoSheet = SettingsInfoSheet.ACCESSIBILITY },
-                        onInfoClick = { activeInfoSheet = SettingsInfoSheet.ACCESSIBILITY },
-                    )
-                }
+                SettingsPermissionRow(
+                    icon = Icons.Default.Info,
+                    title = "Display over other apps",
+                    subtitle = "Lets KAVACH show its block screen over a distracting app.",
+                    granted = hasFocusShieldOverlay,
+                    accent = MaterialTheme.colorScheme.primary,
+                    onClickWhenNotGranted = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
+                    onInfoClick = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
+                )
                 SettingsPermissionRow(
                     icon = Icons.Default.CheckCircle,
                     title = "Notifications (system)",
@@ -633,7 +631,7 @@ private fun SettingsInfoRow(
 private fun SettingsLegalInfoSheet(
     sheet: SettingsInfoSheet,
     onDismiss: () -> Unit,
-    onOpenAccessibilitySettings: (() -> Unit)? = null,
+    onOpenOverlaySettings: (() -> Unit)? = null,
 ) {
     val content = when (sheet) {
         SettingsInfoSheet.EULA -> SettingsInfoContent(
@@ -674,18 +672,15 @@ private fun SettingsLegalInfoSheet(
                 "You can use SAFAR without KAVACH permissions.",
             ),
         )
-        SettingsInfoSheet.ACCESSIBILITY -> SettingsInfoContent(
-            title = "Accessibility Service",
+        SettingsInfoSheet.OVERLAY -> SettingsInfoContent(
+            title = "Display over other apps",
             subtitle = "KAVACH is optional. It helps block only the apps you choose during an active Ekagra focus timer session.",
             points = listOf(
-                "SAFAR uses Android Accessibility Service only for KAVACH Focus Shield.",
-                "When you open an app you selected for blocking, SAFAR detects that app's package name, checks it against your blocked app list, and shows SAFAR's own KAVACH block screen so you can return to your focus session.",
-                "SAFAR does not use Accessibility Service to read your screen, messages, passwords, typed text, notifications, contacts, photos, or files.",
-                "SAFAR does not use Accessibility Service to click buttons, perform gestures, change settings, prevent uninstall, or control your phone.",
-                "SAFAR does not request the Display over other apps permission. KAVACH shows SAFAR's own block screen only when a user-selected blocked app opens during an active focus session.",
-                "SAFAR does not collect, sell, store, or share Accessibility data for ads, analytics, or third parties.",
-                "All processing happens locally on your device.",
-                "You can keep using SAFAR without KAVACH, and you can turn this permission off anytime in Android Settings.",
+                "SAFAR uses this permission only to draw its own KAVACH block screen on top of a distracting app you selected.",
+                "The block screen appears only when a user-selected blocked app opens during an active focus session.",
+                "SAFAR does not read, capture, or overlay anything else on other apps.",
+                "SAFAR does not collect, sell, store, or share data for ads, analytics, or third parties. All processing happens locally on your device.",
+                "You can keep using SAFAR without KAVACH, and you can turn this permission off anytime in Android Settings → Display over other apps.",
             ),
         )
         SettingsInfoSheet.USAGE_ACCESS -> SettingsInfoContent(
@@ -734,13 +729,13 @@ private fun SettingsLegalInfoSheet(
                     Text(point, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            if (sheet == SettingsInfoSheet.ACCESSIBILITY && onOpenAccessibilitySettings != null) {
+            if (sheet == SettingsInfoSheet.OVERLAY && onOpenOverlaySettings != null) {
                 Button(
-                    onClick = onOpenAccessibilitySettings,
+                    onClick = onOpenOverlaySettings,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                 ) {
-                    Text("I Agree - Open Accessibility Settings", fontWeight = FontWeight.Bold)
+                    Text("Open Display Over Apps Settings", fontWeight = FontWeight.Bold)
                 }
                 TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                     Text("Not Now", fontWeight = FontWeight.Bold)

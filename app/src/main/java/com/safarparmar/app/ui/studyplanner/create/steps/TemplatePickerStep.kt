@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
 import com.safarparmar.app.ui.studyplanner.create.DraftChapter
+import com.safarparmar.app.ui.studyplanner.create.DraftSubject
 import com.safarparmar.app.ui.studyplanner.create.DraftTopic
 import com.safarparmar.app.ui.studyplanner.create.TemplateChapterRef
 import com.safarparmar.app.ui.studyplanner.components.TextInputDialog
@@ -52,6 +54,7 @@ fun TemplatePickerStep(
     excludedTopicKeys: Set<Triple<Int, Int, Int>>,
     templateExtraChapters: Map<Int, List<DraftChapter>>,
     templateExtraTopics: Map<Pair<Int, Int>, List<DraftTopic>>,
+    templateExtraSubjects: List<DraftSubject>,
     drillSubjectIndex: Int?,
     drillChapter: TemplateChapterRef?,
     canUsePremiumPlannerFeatures: Boolean,
@@ -61,6 +64,12 @@ fun TemplatePickerStep(
     onDrillIntoChapter: (TemplateChapterRef) -> Unit,
     onDrillBack: () -> Unit,
     onToggleTopic: (Int, Int, Int) -> Unit,
+    onAddTemplateSubject: (String) -> Unit,
+    onRemoveTemplateSubject: (String) -> Unit,
+    onAddTemplateSubjectChapter: (String, String) -> Unit,
+    onRemoveTemplateSubjectChapter: (String, String) -> Unit,
+    onAddTemplateSubjectTopic: (String, String, String) -> Unit,
+    onRemoveTemplateSubjectTopic: (String, String, String) -> Unit,
     onAddChapter: (Int, String) -> Unit,
     onRemoveChapter: (Int, String) -> Unit,
     onAddTopicToNewChapter: (Int, String, String) -> Unit,
@@ -106,6 +115,7 @@ fun TemplatePickerStep(
 
         when {
             subjectIndex == null -> {
+                var showAddSubjectDialog by remember { mutableStateOf(false) }
                 Text(templateDetail.name, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
                 Text(
                     "Tap a subject to review its chapters and topics.",
@@ -113,6 +123,12 @@ fun TemplatePickerStep(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    item {
+                        TextButton(onClick = { showAddSubjectDialog = true }) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                            Text("Add subject", fontWeight = FontWeight.Bold)
+                        }
+                    }
                     items(templateDetail.subjects.size) { si ->
                         val subject = templateDetail.subjects[si]
                         val extraChapterCount = templateExtraChapters[si].orEmpty().size
@@ -126,137 +142,238 @@ fun TemplatePickerStep(
                             onClick = { onDrillIntoSubject(si) },
                         )
                     }
-                }
-            }
-
-            chapterRef == null -> {
-                val subject = templateDetail.subjects[subjectIndex]
-                val extras = templateExtraChapters[subjectIndex].orEmpty()
-                var showAddChapterDialog by remember(subjectIndex) { mutableStateOf(false) }
-
-                DrillDownHeader(title = subject.name, onBack = onDrillBack)
-                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(subject.chapters.size) { ci ->
-                        val chapter = subject.chapters[ci]
-                        val topicCount = chapter.topics.withIndex().count { (ti, _) -> Triple(subjectIndex, ci, ti) !in excludedTopicKeys } +
-                            templateExtraTopics[subjectIndex to ci].orEmpty().size
+                    itemsIndexed(templateExtraSubjects, key = { _, s -> s.localId }) { extraIndex, subject ->
+                        val topicCount = subject.chapters.sumOf { it.topics.size }
                         DrillDownRow(
-                            title = chapter.name,
-                            subtitle = "$topicCount topics",
-                            onClick = { onDrillIntoChapter(TemplateChapterRef.Original(ci)) },
+                            title = subject.name,
+                            subtitle = "${subject.chapters.size} chapters · $topicCount topics · added by you",
+                            onClick = { onDrillIntoSubject(templateDetail.subjects.size + extraIndex) },
+                            onRemove = { onRemoveTemplateSubject(subject.localId) },
                         )
                     }
-                    items(extras, key = { it.localId }) { chapter ->
-                        DrillDownRow(
-                            title = chapter.name,
-                            subtitle = "${chapter.topics.size} topics · added by you",
-                            onClick = { onDrillIntoChapter(TemplateChapterRef.Custom(chapter.localId)) },
-                            onRemove = { onRemoveChapter(subjectIndex, chapter.localId) },
-                        )
-                    }
-                    item {
-                        TextButton(onClick = { showAddChapterDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                            Text("Add chapter", fontWeight = FontWeight.Bold)
-                        }
-                    }
                 }
-
-                if (showAddChapterDialog) {
+                
+                if (showAddSubjectDialog) {
                     TextInputDialog(
-                        title = "Add chapter",
-                        label = "Chapter name",
+                        title = "Add subject",
+                        label = "Subject name",
                         confirmLabel = "Add",
-                        emptyHint = "Please type the chapter name",
-                        onDismiss = { showAddChapterDialog = false },
+                        emptyHint = "Please type the subject name",
+                        onDismiss = { showAddSubjectDialog = false },
                         onConfirm = { name ->
-                            onAddChapter(subjectIndex, name)
-                            showAddChapterDialog = false
+                            onAddTemplateSubject(name)
+                            showAddSubjectDialog = false
                         },
                     )
                 }
             }
 
-            else -> {
-                val subject = templateDetail.subjects[subjectIndex]
-                var showAddTopicDialog by remember(subjectIndex, chapterRef) { mutableStateOf(false) }
+            chapterRef == null -> {
+                val isCustomSubject = subjectIndex >= templateDetail.subjects.size
+                if (isCustomSubject) {
+                    val customSubjectIndex = subjectIndex - templateDetail.subjects.size
+                    val subject = templateExtraSubjects[customSubjectIndex]
+                    var showAddChapterDialog by remember(subjectIndex) { mutableStateOf(false) }
 
-                when (chapterRef) {
-                    is TemplateChapterRef.Original -> {
-                        val chapter = subject.chapters[chapterRef.index]
-                        val extraTopics = templateExtraTopics[subjectIndex to chapterRef.index].orEmpty()
-                        DrillDownHeader(title = chapter.name, onBack = onDrillBack)
-                        Text(
-                            "Uncheck any topics you already know.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            items(chapter.topics.size) { ti ->
-                                val key = Triple(subjectIndex, chapterRef.index, ti)
-                                TopicCheckboxRow(
-                                    name = chapter.topics[ti],
-                                    checked = key !in excludedTopicKeys,
-                                    onToggle = { onToggleTopic(subjectIndex, chapterRef.index, ti) },
-                                )
-                            }
-                            items(extraTopics, key = { it.localId }) { topic ->
-                                TopicAddedRow(
-                                    name = topic.name,
-                                    onRemove = { onRemoveTopic(subjectIndex, chapterRef.index, topic.localId) },
-                                )
-                            }
-                            item {
-                                TextButton(onClick = { showAddTopicDialog = true }) {
-                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                                    Text("Add topic", fontWeight = FontWeight.Bold)
-                                }
+                    DrillDownHeader(title = subject.name, onBack = onDrillBack)
+                    LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        item {
+                            TextButton(onClick = { showAddChapterDialog = true }) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                                Text("Add chapter", fontWeight = FontWeight.Bold)
                             }
                         }
-                        if (showAddTopicDialog) {
-                            TextInputDialog(
-                                title = "Add topic",
-                                label = "Topic name",
-                                confirmLabel = "Add",
-                                emptyHint = "Please type the topic name",
-                                onDismiss = { showAddTopicDialog = false },
-                                onConfirm = { name ->
-                                    onAddTopic(subjectIndex, chapterRef.index, name)
-                                    showAddTopicDialog = false
-                                },
+                        items(subject.chapters, key = { it.localId }) { chapter ->
+                            DrillDownRow(
+                                title = chapter.name,
+                                subtitle = "${chapter.topics.size} topics",
+                                onClick = { onDrillIntoChapter(TemplateChapterRef.Custom(chapter.localId)) },
+                                onRemove = { onRemoveTemplateSubjectChapter(subject.localId, chapter.localId) }
                             )
                         }
                     }
 
-                    is TemplateChapterRef.Custom -> {
-                        val chapter = templateExtraChapters[subjectIndex].orEmpty().first { it.localId == chapterRef.localId }
-                        DrillDownHeader(title = chapter.name, onBack = onDrillBack)
-                        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            items(chapter.topics, key = { it.localId }) { topic ->
-                                TopicAddedRow(
-                                    name = topic.name,
-                                    onRemove = { onRemoveTopicFromNewChapter(subjectIndex, chapterRef.localId, topic.localId) },
-                                )
-                            }
-                            item {
-                                TextButton(onClick = { showAddTopicDialog = true }) {
-                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                                    Text("Add topic", fontWeight = FontWeight.Bold)
-                                }
+                    if (showAddChapterDialog) {
+                        TextInputDialog(
+                            title = "Add chapter",
+                            label = "Chapter name",
+                            confirmLabel = "Add",
+                            emptyHint = "Please type the chapter name",
+                            onDismiss = { showAddChapterDialog = false },
+                            onConfirm = { name ->
+                                onAddTemplateSubjectChapter(subject.localId, name)
+                                showAddChapterDialog = false
+                            },
+                        )
+                    }
+                } else {
+                    val subject = templateDetail.subjects[subjectIndex]
+                    val extras = templateExtraChapters[subjectIndex].orEmpty()
+                    var showAddChapterDialog by remember(subjectIndex) { mutableStateOf(false) }
+
+                    DrillDownHeader(title = subject.name, onBack = onDrillBack)
+                    LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        item {
+                            TextButton(onClick = { showAddChapterDialog = true }) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                                Text("Add chapter", fontWeight = FontWeight.Bold)
                             }
                         }
-                        if (showAddTopicDialog) {
-                            TextInputDialog(
-                                title = "Add topic",
-                                label = "Topic name",
-                                confirmLabel = "Add",
-                                emptyHint = "Please type the topic name",
-                                onDismiss = { showAddTopicDialog = false },
-                                onConfirm = { name ->
-                                    onAddTopicToNewChapter(subjectIndex, chapterRef.localId, name)
-                                    showAddTopicDialog = false
-                                },
+                        items(subject.chapters.size) { ci ->
+                            val chapter = subject.chapters[ci]
+                            val topicCount = chapter.topics.withIndex().count { (ti, _) -> Triple(subjectIndex, ci, ti) !in excludedTopicKeys } +
+                                templateExtraTopics[subjectIndex to ci].orEmpty().size
+                            DrillDownRow(
+                                title = chapter.name,
+                                subtitle = "$topicCount topics",
+                                onClick = { onDrillIntoChapter(TemplateChapterRef.Original(ci)) },
                             )
+                        }
+                        items(extras, key = { it.localId }) { chapter ->
+                            DrillDownRow(
+                                title = chapter.name,
+                                subtitle = "${chapter.topics.size} topics · added by you",
+                                onClick = { onDrillIntoChapter(TemplateChapterRef.Custom(chapter.localId)) },
+                                onRemove = { onRemoveChapter(subjectIndex, chapter.localId) },
+                            )
+                        }
+                    }
+
+                    if (showAddChapterDialog) {
+                        TextInputDialog(
+                            title = "Add chapter",
+                            label = "Chapter name",
+                            confirmLabel = "Add",
+                            emptyHint = "Please type the chapter name",
+                            onDismiss = { showAddChapterDialog = false },
+                            onConfirm = { name ->
+                                onAddChapter(subjectIndex, name)
+                                showAddChapterDialog = false
+                            },
+                        )
+                    }
+                }
+            }
+
+            else -> {
+                val isCustomSubject = subjectIndex >= templateDetail.subjects.size
+                if (isCustomSubject) {
+                    val customSubjectIndex = subjectIndex - templateDetail.subjects.size
+                    val subject = templateExtraSubjects[customSubjectIndex]
+                    var showAddTopicDialog by remember(subjectIndex, chapterRef) { mutableStateOf(false) }
+                    
+                    val chapterId = (chapterRef as TemplateChapterRef.Custom).localId
+                    val chapter = subject.chapters.first { it.localId == chapterId }
+                    
+                    DrillDownHeader(title = chapter.name, onBack = onDrillBack)
+                    LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        item {
+                            TextButton(onClick = { showAddTopicDialog = true }) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                                Text("Add topic", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        items(chapter.topics, key = { it.localId }) { topic ->
+                            TopicAddedRow(
+                                name = topic.name,
+                                onRemove = { onRemoveTemplateSubjectTopic(subject.localId, chapterId, topic.localId) },
+                            )
+                        }
+                    }
+                    if (showAddTopicDialog) {
+                        TextInputDialog(
+                            title = "Add topic",
+                            label = "Topic name",
+                            confirmLabel = "Add",
+                            emptyHint = "Please type the topic name",
+                            onDismiss = { showAddTopicDialog = false },
+                            onConfirm = { name ->
+                                onAddTemplateSubjectTopic(subject.localId, chapterId, name)
+                                showAddTopicDialog = false
+                            },
+                        )
+                    }
+                } else {
+                    val subject = templateDetail.subjects[subjectIndex]
+                    var showAddTopicDialog by remember(subjectIndex, chapterRef) { mutableStateOf(false) }
+
+                    when (chapterRef) {
+                        is TemplateChapterRef.Original -> {
+                            val chapter = subject.chapters[chapterRef.index]
+                            val extraTopics = templateExtraTopics[subjectIndex to chapterRef.index].orEmpty()
+                            DrillDownHeader(title = chapter.name, onBack = onDrillBack)
+                            Text(
+                                "Uncheck any topics you already know.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                item {
+                                    TextButton(onClick = { showAddTopicDialog = true }) {
+                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                                        Text("Add topic", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                items(chapter.topics.size) { ti ->
+                                    val key = Triple(subjectIndex, chapterRef.index, ti)
+                                    TopicCheckboxRow(
+                                        name = chapter.topics[ti],
+                                        checked = key !in excludedTopicKeys,
+                                        onToggle = { onToggleTopic(subjectIndex, chapterRef.index, ti) },
+                                    )
+                                }
+                                items(extraTopics, key = { it.localId }) { topic ->
+                                    TopicAddedRow(
+                                        name = topic.name,
+                                        onRemove = { onRemoveTopic(subjectIndex, chapterRef.index, topic.localId) },
+                                    )
+                                }
+                            }
+                            if (showAddTopicDialog) {
+                                TextInputDialog(
+                                    title = "Add topic",
+                                    label = "Topic name",
+                                    confirmLabel = "Add",
+                                    emptyHint = "Please type the topic name",
+                                    onDismiss = { showAddTopicDialog = false },
+                                    onConfirm = { name ->
+                                        onAddTopic(subjectIndex, chapterRef.index, name)
+                                        showAddTopicDialog = false
+                                    },
+                                )
+                            }
+                        }
+
+                        is TemplateChapterRef.Custom -> {
+                            val chapter = templateExtraChapters[subjectIndex].orEmpty().first { it.localId == chapterRef.localId }
+                            DrillDownHeader(title = chapter.name, onBack = onDrillBack)
+                            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                item {
+                                    TextButton(onClick = { showAddTopicDialog = true }) {
+                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                                        Text("Add topic", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                items(chapter.topics, key = { it.localId }) { topic ->
+                                    TopicAddedRow(
+                                        name = topic.name,
+                                        onRemove = { onRemoveTopicFromNewChapter(subjectIndex, chapterRef.localId, topic.localId) },
+                                    )
+                                }
+                            }
+                            if (showAddTopicDialog) {
+                                TextInputDialog(
+                                    title = "Add topic",
+                                    label = "Topic name",
+                                    confirmLabel = "Add",
+                                    emptyHint = "Please type the topic name",
+                                    onDismiss = { showAddTopicDialog = false },
+                                    onConfirm = { name ->
+                                        onAddTopicToNewChapter(subjectIndex, chapterRef.localId, name)
+                                        showAddTopicDialog = false
+                                    },
+                                )
+                            }
                         }
                     }
                 }

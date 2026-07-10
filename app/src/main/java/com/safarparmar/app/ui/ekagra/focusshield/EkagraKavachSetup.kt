@@ -65,12 +65,8 @@ enum class KavachStartBlock {
 
 fun kavachStartBlock(state: FocusShieldUiState): KavachStartBlock {
     if (!state.isEnabled) return KavachStartBlock.None
-    val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
-    if (
-        !state.hasUsageStats ||
-        (accessibilityRequired && !state.hasAccessibilityService) ||
-        !state.hasNotificationSuppressionAccess
-    ) {
+    // Required: Usage access + Display-over-other-apps. Notification-listener is optional.
+    if (!state.hasUsageStats || !state.hasOverlayPermission) {
         return KavachStartBlock.NeedsPermissions
     }
     if (state.blockedPackages.isEmpty()) return KavachStartBlock.NeedsApps
@@ -102,18 +98,15 @@ fun EkagraKavachInlineCard(
     val secondaryText = if (resolvedDark) Color(0xFFABABA8) else scheme.onSurfaceVariant
 
     var hasUsageStats by remember { mutableStateOf(shieldState.hasUsageStats) }
-    var hasAccessibility by remember { mutableStateOf(shieldState.hasAccessibilityService) }
+    var hasOverlay by remember { mutableStateOf(shieldState.hasOverlayPermission) }
     var hasNotifications by remember { mutableStateOf(shieldState.hasNotifications) }
     var hasNotificationSuppressionAccess by remember { mutableStateOf(shieldState.hasNotificationSuppressionAccess) }
 
-    val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
-    val requiredPermissionsGranted =
-        hasUsageStats && (!accessibilityRequired || hasAccessibility) && hasNotificationSuppressionAccess
+    val requiredPermissionsGranted = hasUsageStats && hasOverlay
     val startBlock = kavachStartBlock(
         shieldState.copy(
             hasUsageStats = hasUsageStats,
-            hasAccessibilityService = hasAccessibility,
-            hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
+            hasOverlayPermission = hasOverlay,
         ),
     )
     val showDetails = shieldState.isEnabled && (forceExpanded || startBlock != KavachStartBlock.None)
@@ -126,7 +119,7 @@ fun EkagraKavachInlineCard(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 hasUsageStats = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
-                hasAccessibility = FocusShieldPermissionHelper.hasAccessibilityService(context)
+                hasOverlay = FocusShieldPermissionHelper.hasOverlayPermission(context)
                 hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
                 hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
             }

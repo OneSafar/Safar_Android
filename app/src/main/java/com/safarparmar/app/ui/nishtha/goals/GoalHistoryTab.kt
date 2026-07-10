@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -110,7 +111,8 @@ internal fun HistoryTab(goals: List<Goal>) {
         }
     }
 
-    val historyThemeColor = Color(0xFF5B21B6)
+    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
+    val historyThemeColor = if (isDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

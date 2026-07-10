@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -89,17 +90,28 @@ fun AchievementsScreen(
                 }
             }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                items(filtered) { achievement ->
-                    AchievementCard(
-                        achievement = achievement,
-                        isSelected = achievement.id == selectedAchievementId,
-                        onSelectAchievement = onSelectAchievement,
+            if (filtered.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "No achievements currently",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
                     )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(filtered) { achievement ->
+                        AchievementCard(
+                            achievement = achievement,
+                            isSelected = achievement.id == selectedAchievementId,
+                            onSelectAchievement = onSelectAchievement,
+                        )
+                    }
                 }
             }
         }
@@ -174,11 +186,12 @@ private fun AchievementCard(
         elevation = CardDefaults.cardElevation(0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
     ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
             val imagePath = achievementImages[achievement.id]
             if (imagePath != null) {
                 AsyncImage(
@@ -193,20 +206,19 @@ private fun AchievementCard(
                     modifier = Modifier
                         .size(52.dp)
                         .clip(CircleShape)
-                        .background(if (isEarned) primary.copy(0.15f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
+                        .background(primary.copy(0.15f))
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .size(52.dp)
                         .clip(CircleShape)
-                        .background(if (isEarned) primary.copy(0.15f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f)),
+                        .background(primary.copy(0.15f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         if (achievement.type == "title") "👑" else "🏅",
                         fontSize = 24.sp,
-                        color = if (!isEarned) Color.Unspecified.copy(alpha = 0.4f) else Color.Unspecified,
                     )
                 }
             }
@@ -217,7 +229,7 @@ private fun AchievementCard(
                         achievement.name,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
-                        color = if (isEarned) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurface,
                         softWrap = true,
                     )
                     if (achievement.rarity != null) {
@@ -239,12 +251,14 @@ private fun AchievementCard(
                 if (!isEarned && achievement.targetValue > 0) {
                     Spacer(Modifier.height(2.dp))
                     LinearProgressIndicator(
-                        progress = { (achievement.currentValue.toFloat() / achievement.targetValue).coerceIn(0f, 1f) },
+                        progress = { (achievement.currentValue / achievement.targetValue).toFloat().coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
                         color = primary,
                         trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.15f),
                     )
-                    Text("${achievement.currentValue} / ${achievement.targetValue}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f))
+                    val formattedCurrent = if (achievement.currentValue % 1 == 0.0) achievement.currentValue.toInt().toString() else achievement.currentValue.toString()
+                    val formattedTarget = if (achievement.targetValue % 1 == 0.0) achievement.targetValue.toInt().toString() else achievement.targetValue.toString()
+                    Text("$formattedCurrent / $formattedTarget", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f))
                 }
                 if (isEarned) {
                     Row(
@@ -261,12 +275,24 @@ private fun AchievementCard(
                 }
             }
 
-            if (achievement.holderCount > 0) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("${achievement.holderCount}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                    Text("holders", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+
+        }
+
+        if (!isEarned) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Lock,
+                    contentDescription = "Locked",
+                    tint = Color.White.copy(alpha = 0.8f),
+                    modifier = Modifier.size(32.dp)
+                )
             }
+        }
         }
     }
 }

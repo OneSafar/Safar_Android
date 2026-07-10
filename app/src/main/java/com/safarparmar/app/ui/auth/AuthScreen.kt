@@ -61,6 +61,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.launch
 import com.safarparmar.app.ui.theme.isLightBackground
+import com.safarparmar.app.ui.theme.PoppinsFontFamily
+import com.safarparmar.app.ui.theme.LoraFontFamily
 
 private val BrandNavy = Color(0xFF0C2B61)
 private val BrandAccent = Color(0xFFF7931E)
@@ -287,7 +289,7 @@ fun HtmlTextField(
                 textStyle = TextStyle(
                     color = palette.inputText,
                     fontSize = 15.sp,
-                    fontFamily = FontFamily.SansSerif
+                    fontFamily = PoppinsFontFamily
                 ),
                 cursorBrush = SolidColor(palette.inputText),
                 visualTransformation = visualTransformation,
@@ -515,7 +517,7 @@ fun LoginContent(
         // Welcome Text
         Text(
             text = "Welcome back",
-            fontFamily = FontFamily.Serif,
+            fontFamily = LoraFontFamily,
             fontSize = 36.sp,
             fontWeight = FontWeight.Bold,
             color = palette.heading,
@@ -698,7 +700,7 @@ fun SignupContent(
         // Welcome Text
         Text(
             text = "Create account",
-            fontFamily = FontFamily.Serif,
+            fontFamily = LoraFontFamily,
             fontSize = 36.sp,
             fontWeight = FontWeight.Bold,
             color = palette.heading,
@@ -926,7 +928,7 @@ fun ForgotPasswordContent(
         // Title
         Text(
             text = "Reset password",
-            fontFamily = FontFamily.Serif,
+            fontFamily = LoraFontFamily,
             fontSize = 36.sp,
             fontWeight = FontWeight.Bold,
             color = palette.heading,

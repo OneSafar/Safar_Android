@@ -51,14 +51,14 @@ fun FocusShieldSettingsContent(
     onToggleEnabled: (Boolean) -> Unit,
     onOpenAppPicker: () -> Unit,
     onGoToEkagra: () -> Unit,
-    onOpenAccessibilitySettings: () -> Unit,
+    onOpenOverlaySettings: () -> Unit,
     onRefreshPermissions: () -> Unit = {},
     onMaybeLater: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var hasAccessibilityService by remember { mutableStateOf(state.hasAccessibilityService) }
+    var hasOverlay by remember { mutableStateOf(state.hasOverlayPermission) }
     var hasNotifications by remember { mutableStateOf(state.hasNotifications) }
     var hasNotificationSuppressionAccess by remember { mutableStateOf(state.hasNotificationSuppressionAccess) }
     var hasUsageStats by remember { mutableStateOf(state.hasUsageStats) }
@@ -69,8 +69,7 @@ fun FocusShieldSettingsContent(
     val textPrimary = scheme.onBackground
     val textSecondary = scheme.onSurfaceVariant
     var pendingEnableAfterUsage by remember { mutableStateOf(false) }
-    var pendingEnableAfterAccessibility by remember { mutableStateOf(false) }
-    var pendingEnableAfterNotificationAccess by remember { mutableStateOf(false) }
+    var pendingEnableAfterOverlay by remember { mutableStateOf(false) }
     var showLearnMore by remember { mutableStateOf(false) }
     var guideTarget by remember { mutableStateOf<PermissionTarget?>(null) }
     var grantedBannerText by remember { mutableStateOf<String?>(null) }
@@ -78,14 +77,12 @@ fun FocusShieldSettingsContent(
         hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
     }
 
-    val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
-    val requiredPermissionsGranted =
-        hasUsageStats && (!accessibilityRequired || hasAccessibilityService) && hasNotificationSuppressionAccess
+    // Required: Usage access + Display-over-other-apps. Notification Shield is optional.
+    val requiredPermissionsGranted = hasUsageStats && hasOverlay
     val primaryCtaLabel = when {
         !state.isEnabled -> "Turn On KAVACH"
         !hasUsageStats -> "Allow App Check"
-        accessibilityRequired && !hasAccessibilityService -> "Allow Accessibility Service"
-        !hasNotificationSuppressionAccess -> "Allow Notification Shield"
+        !hasOverlay -> "Allow Display Over Apps"
         state.blockedPackages.isEmpty() -> "Choose Apps"
         else -> "Edit App List"
     }
@@ -99,29 +96,29 @@ fun FocusShieldSettingsContent(
 
     DisposableEffect(
         lifecycleOwner,
-        state.hasAccessibilityService,
+        state.hasOverlayPermission,
         state.hasNotifications,
         state.hasNotificationSuppressionAccess,
         state.hasUsageStats,
     ) {
-        hasAccessibilityService = state.hasAccessibilityService
+        hasOverlay = state.hasOverlayPermission
         hasNotifications = state.hasNotifications
         hasNotificationSuppressionAccess = state.hasNotificationSuppressionAccess
         hasUsageStats = state.hasUsageStats
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val newUsage = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
-                val newA11y = FocusShieldPermissionHelper.hasAccessibilityService(context)
+                val newOverlay = FocusShieldPermissionHelper.hasOverlayPermission(context)
                 val newNotif = FocusShieldPermissionHelper.hasNotificationPermission(context)
                 val newNotificationAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
                 if (newUsage && !hasUsageStats) grantedBannerText = "App check is ready"
-                if (newA11y && !hasAccessibilityService) grantedBannerText = "Block screen is ready"
+                if (newOverlay && !hasOverlay) grantedBannerText = "Block screen is ready"
                 if (newNotif && !hasNotifications) grantedBannerText = "Notifications are on"
                 if (newNotificationAccess && !hasNotificationSuppressionAccess) {
                     grantedBannerText = "Notification Shield is ready"
                 }
                 hasUsageStats = newUsage
-                hasAccessibilityService = newA11y
+                hasOverlay = newOverlay
                 hasNotifications = newNotif
                 hasNotificationSuppressionAccess = newNotificationAccess
                 onRefreshPermissions()
@@ -133,35 +130,21 @@ fun FocusShieldSettingsContent(
 
     LaunchedEffect(
         hasUsageStats,
-        hasAccessibilityService,
-        hasNotificationSuppressionAccess,
+        hasOverlay,
         pendingEnableAfterUsage,
-        pendingEnableAfterAccessibility,
-        pendingEnableAfterNotificationAccess,
+        pendingEnableAfterOverlay,
     ) {
         if (pendingEnableAfterUsage && hasUsageStats) {
             pendingEnableAfterUsage = false
-            if (accessibilityRequired && !hasAccessibilityService) {
-                guideTarget = PermissionTarget.ACCESSIBILITY
-            } else if (!hasNotificationSuppressionAccess) {
-                guideTarget = PermissionTarget.NOTIFICATION_ACCESS
+            if (!hasOverlay) {
+                guideTarget = PermissionTarget.OVERLAY
             } else {
                 onToggleEnabled(true)
             }
         }
-        if (accessibilityRequired && pendingEnableAfterAccessibility && hasAccessibilityService) {
-            pendingEnableAfterAccessibility = false
+        if (pendingEnableAfterOverlay && hasOverlay) {
+            pendingEnableAfterOverlay = false
             if (hasUsageStats) {
-                if (!hasNotificationSuppressionAccess) {
-                    guideTarget = PermissionTarget.NOTIFICATION_ACCESS
-                } else {
-                    onToggleEnabled(true)
-                }
-            }
-        }
-        if (pendingEnableAfterNotificationAccess && hasNotificationSuppressionAccess) {
-            pendingEnableAfterNotificationAccess = false
-            if (hasUsageStats && (!accessibilityRequired || hasAccessibilityService)) {
                 onToggleEnabled(true)
             }
         }
@@ -174,13 +157,9 @@ fun FocusShieldSettingsContent(
                     pendingEnableAfterUsage = true
                     guideTarget = PermissionTarget.USAGE_STATS
                 }
-                accessibilityRequired && !hasAccessibilityService -> {
-                    pendingEnableAfterAccessibility = true
-                    guideTarget = PermissionTarget.ACCESSIBILITY
-                }
-                !hasNotificationSuppressionAccess -> {
-                    pendingEnableAfterNotificationAccess = true
-                    guideTarget = PermissionTarget.NOTIFICATION_ACCESS
+                !hasOverlay -> {
+                    pendingEnableAfterOverlay = true
+                    guideTarget = PermissionTarget.OVERLAY
                 }
                 else -> onToggleEnabled(true)
             }
@@ -239,6 +218,8 @@ fun FocusShieldSettingsContent(
                         accent = accent,
                         onOpenAppPicker = onOpenAppPicker,
                         onGoToEkagra = onGoToEkagra,
+                        hasNotificationShield = hasNotificationSuppressionAccess,
+                        onEnableNotificationShield = { guideTarget = PermissionTarget.NOTIFICATION_ACCESS },
                     )
                 }
             }
@@ -252,11 +233,11 @@ fun FocusShieldSettingsContent(
             ) {
                 KavachPermissionDisclosureCard(
                     hasUsageStats = hasUsageStats,
-                    hasAccessibilityService = hasAccessibilityService,
+                    hasOverlay = hasOverlay,
                     hasNotifications = hasNotifications,
                     hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
                     onOpenUsageAccess = { guideTarget = PermissionTarget.USAGE_STATS },
-                    onOpenAccessibility = { guideTarget = PermissionTarget.ACCESSIBILITY },
+                    onOpenOverlay = { guideTarget = PermissionTarget.OVERLAY },
                     onOpenNotifications = { guideTarget = PermissionTarget.NOTIFICATIONS },
                     onOpenNotificationAccess = { guideTarget = PermissionTarget.NOTIFICATION_ACCESS },
                 )
@@ -272,10 +253,7 @@ fun FocusShieldSettingsContent(
                 when {
                     !state.isEnabled -> onKavachToggle(true)
                     !hasUsageStats -> guideTarget = PermissionTarget.USAGE_STATS
-                    accessibilityRequired && !hasAccessibilityService ->
-                        guideTarget = PermissionTarget.ACCESSIBILITY
-                    !hasNotificationSuppressionAccess ->
-                        guideTarget = PermissionTarget.NOTIFICATION_ACCESS
+                    !hasOverlay -> guideTarget = PermissionTarget.OVERLAY
                     else -> onOpenAppPicker()
                 }
             },
@@ -288,11 +266,11 @@ fun FocusShieldSettingsContent(
     if (showLearnMore) {
         KavachLearnMoreSheet(
             hasUsageStats = hasUsageStats,
-            hasAccessibilityService = hasAccessibilityService,
+            hasOverlay = hasOverlay,
             hasNotifications = hasNotifications,
             hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
             onOpenUsageAccess = { guideTarget = PermissionTarget.USAGE_STATS },
-            onOpenAccessibility = { guideTarget = PermissionTarget.ACCESSIBILITY },
+            onOpenOverlay = { guideTarget = PermissionTarget.OVERLAY },
             onOpenNotifications = { guideTarget = PermissionTarget.NOTIFICATIONS },
             onOpenNotificationAccess = { guideTarget = PermissionTarget.NOTIFICATION_ACCESS },
             onDismiss = { showLearnMore = false },
@@ -306,9 +284,9 @@ fun FocusShieldSettingsContent(
                 guideTarget = null
                 when (target) {
                     PermissionTarget.USAGE_STATS -> pendingEnableAfterUsage = false
-                    PermissionTarget.ACCESSIBILITY -> pendingEnableAfterAccessibility = false
+                    PermissionTarget.OVERLAY -> pendingEnableAfterOverlay = false
                     PermissionTarget.NOTIFICATIONS -> Unit
-                    PermissionTarget.NOTIFICATION_ACCESS -> pendingEnableAfterNotificationAccess = false
+                    PermissionTarget.NOTIFICATION_ACCESS -> Unit
                 }
             },
             onOpenSettings = {
@@ -316,8 +294,8 @@ fun FocusShieldSettingsContent(
                 when (target) {
                     PermissionTarget.USAGE_STATS ->
                         FocusShieldPermissionHelper.openUsageAccessSettings(context)
-                    PermissionTarget.ACCESSIBILITY ->
-                        onOpenAccessibilitySettings()
+                    PermissionTarget.OVERLAY ->
+                        onOpenOverlaySettings()
                     PermissionTarget.NOTIFICATIONS ->
                         requestNotificationPermission()
                     PermissionTarget.NOTIFICATION_ACCESS ->

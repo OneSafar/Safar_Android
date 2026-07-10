@@ -4,6 +4,7 @@ import com.safarparmar.app.domain.model.studyplanner.CalendarMap
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.ui.studyplanner.logic.daysUntil
+import com.safarparmar.app.ui.studyplanner.logic.rollup
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -31,6 +32,11 @@ data class DashboardStudyPlanState(
     val visibleTopics: List<DashboardStudyPlanTopic> = emptyList(),
     val moreCount: Int = 0,
     val errorMessage: String? = null,
+    val overallCompletionPercent: Int = 0,
+    val plannerProgressPercent: Int = 0,
+    val dailyTodoProgressPercent: Int = 0,
+    val overallDoneTopics: Int = 0,
+    val overallTotalTopics: Int = 0,
 )
 
 fun buildDashboardStudyPlanState(
@@ -54,6 +60,7 @@ fun buildDashboardStudyPlanState(
         )
     }
     val visible = allTopics.take(3)
+    val rollup = plan.rollup()
 
     return DashboardStudyPlanState(
         status = if (topicsToday.isEmpty()) DashboardStudyPlanStatus.NO_TOPICS_TODAY else DashboardStudyPlanStatus.HAS_TOPICS,
@@ -66,6 +73,11 @@ fun buildDashboardStudyPlanState(
         visibleTopics = visible,
         moreCount = (total - visible.size).coerceAtLeast(0),
         errorMessage = errorMessage,
+        overallCompletionPercent = rollup.overallProgressPercent,
+        plannerProgressPercent = rollup.plannerProgressPercent,
+        dailyTodoProgressPercent = rollup.dailyTodoProgressPercent,
+        overallDoneTopics = rollup.doneTopics,
+        overallTotalTopics = rollup.totalTopics,
     )
 }
 

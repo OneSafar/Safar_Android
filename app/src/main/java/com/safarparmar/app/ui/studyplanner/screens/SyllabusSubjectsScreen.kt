@@ -402,44 +402,7 @@ fun SyllabusSubjectsScreen(
                     )
                 }
             } else {
-        if (topicForDatePicker != null) {
-            val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
-            val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = System.currentTimeMillis(),
-                selectableDates = object : SelectableDates {
-                    override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                        val picked = java.time.Instant.ofEpochMilli(utcTimeMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
-                        return !picked.isBefore(today)
-                    }
-                }
-            )
 
-            DatePickerDialog(
-                onDismissRequest = { topicForDatePicker = null },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            datePickerState.selectedDateMillis?.let { millis ->
-                                val ld = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
-                                topicForDatePicker?.let { topic ->
-                                    actions.updateTopic(topicId = topic.id, plannedDate = ld.toString(), pinned = true)
-                                }
-                            }
-                            topicForDatePicker = null
-                        }
-                    ) {
-                        Text("OK", fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { topicForDatePicker = null }) {
-                        Text("Cancel")
-                    }
-                }
-            ) {
-                DatePicker(state = datePickerState)
-            }
-        }
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -598,6 +561,45 @@ fun SyllabusSubjectsScreen(
     // to mean the bottom sheet's window attached afterward and painted on top of
     // the "Add Topic" dialog, hiding it. Composing them last here fixes that for
     // every dialog, not just AddTopicTo.
+    if (topicForDatePicker != null) {
+        val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = System.currentTimeMillis(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val picked = java.time.Instant.ofEpochMilli(utcTimeMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                    return !picked.isBefore(today)
+                }
+            }
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { topicForDatePicker = null },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val ld = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                            topicForDatePicker?.let { topic ->
+                                actions.updateTopic(topicId = topic.id, plannedDate = ld.toString(), pinned = true)
+                            }
+                        }
+                        topicForDatePicker = null
+                    }
+                ) {
+                    Text("OK", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { topicForDatePicker = null }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
     when (val ds = dialogState) {
         is SyllabusDialogState.AddSubject -> {
             TextInputDialog(
@@ -689,18 +691,18 @@ fun SyllabusSubjectsScreen(
             }
         }
         is SyllabusDialogState.ReviseTopic -> {
-            ReviseTopicBottomSheet(
-                topic = ds.topic,
-                onDismiss = { dialogState = SyllabusDialogState.Closed },
-                onSpacedRepetition = { topic ->
-                    val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
-                    val dates = listOf(1L, 3L, 7L, 14L, 30L).map { today.plusDays(it).toString() }
-                    actions.markForRevision(topic.id, dates, "spaced_repetition")
+            com.safarparmar.app.ui.studyplanner.plan.RevisionScheduleSheet(
+                topicName = ds.topic.name,
+                examDate = state.selectedPlan?.examDate,
+                onRevisionScheduled = { dates, scheduleType ->
+                    actions.markForRevision(ds.topic.id, dates, scheduleType)
                     dialogState = SyllabusDialogState.Closed
                 },
-                onCustomDate = { topic ->
+                onDismiss = { dialogState = SyllabusDialogState.Closed },
+                isAlreadyRevisionNeeded = ds.topic.status == TopicStatus.REVISION_NEEDED,
+                onCancelRevision = {
+                    actions.updateTopic(ds.topic.id, status = TopicStatus.DONE)
                     dialogState = SyllabusDialogState.Closed
-                    topicForDatePicker = topic
                 }
             )
         }
@@ -1035,53 +1037,5 @@ internal fun SubjectInitialBadge(name: String) {
             fontWeight = FontWeight.ExtraBold,
             color = scheme.onPrimaryContainer,
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ReviseTopicBottomSheet(
-    topic: StudyTopic,
-    onDismiss: () -> Unit,
-    onSpacedRepetition: (StudyTopic) -> Unit,
-    onCustomDate: (StudyTopic) -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(isSystemInDarkTheme()),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "Revise: ${topic.name}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "How would you like to schedule revision?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Button(
-                onClick = { onSpacedRepetition(topic) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Spaced Repetition")
-            }
-            OutlinedButton(
-                onClick = { onCustomDate(topic) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Set Custom Date")
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-        }
     }
 }

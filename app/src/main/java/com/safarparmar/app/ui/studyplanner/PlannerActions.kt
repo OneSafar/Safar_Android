@@ -9,7 +9,8 @@ enum class StudyPlannerTab {
     OVERDUE,
     UPCOMING,
     REVISION,
-    COMPLETED
+    COMPLETED,
+    DAILY_TODO
 }
 
 interface PlannerActions {

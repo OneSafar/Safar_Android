@@ -51,13 +51,13 @@ fun KavachAboutScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasUsage by remember { mutableStateOf(FocusShieldPermissionHelper.hasUsageStatsPermission(context)) }
-    var hasA11y by remember { mutableStateOf(FocusShieldPermissionHelper.hasAccessibilityService(context)) }
+    var hasOverlay by remember { mutableStateOf(FocusShieldPermissionHelper.hasOverlayPermission(context)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 hasUsage = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
-                hasA11y = FocusShieldPermissionHelper.hasAccessibilityService(context)
+                hasOverlay = FocusShieldPermissionHelper.hasOverlayPermission(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -162,8 +162,8 @@ fun KavachAboutScreen(
                 )
                 HorizontalDivider(color = KavachDesign.Surface, thickness = 1.dp)
                 KavachAboutPermissionRow(
-                    title = stringResource(R.string.kavach_permission_accessibility_title),
-                    granted = hasA11y,
+                    title = "Display over other apps",
+                    granted = hasOverlay,
                 )
             }
 

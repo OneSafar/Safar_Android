@@ -57,6 +57,12 @@ data class StudySubject(
 )
 
 @Immutable
+data class DailyTodo(
+    val id: String = "",
+    val name: String = "",
+)
+
+@Immutable
 data class PlanProgress(
     val totalTopics: Int = 0,
     val doneTopics: Int = 0,
@@ -64,6 +70,9 @@ data class PlanProgress(
     val revisionTopics: Int = 0,
     val completionPercent: Int = 0,
     val remainingPercent: Int = 100,
+    val plannerProgressPercent: Int = 0,
+    val dailyTodoProgressPercent: Int = 0,
+    val overallProgressPercent: Int = 0,
     val bySubject: List<SubjectProgress> = emptyList(),
 )
 
@@ -98,6 +107,8 @@ data class StudyPlan(
     val offDays: List<Int> = emptyList(),
     val offDates: List<String> = emptyList(),
     val autoRollover: Boolean? = null,
+    val dailyTodos: List<DailyTodo>? = emptyList(),
+    val dailyTodoLogs: Map<String, List<String>>? = emptyMap(),
     val subjects: List<StudySubject> = emptyList(),
     val features: StudyPlannerFeatureFlags = StudyPlannerFeatureFlags(),
     val templateId: String? = null,

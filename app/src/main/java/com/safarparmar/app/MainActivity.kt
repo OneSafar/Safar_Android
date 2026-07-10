@@ -321,14 +321,9 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     }
 
     private fun enterTimerPipIfRunning(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
-        val service = timerService ?: return false
-        if (!service.isRunning.value || isFinishing || isDestroyed) return false
-        return try {
-            buildTimerPipParams()?.let(::enterPictureInPictureMode) ?: false
-        } catch (_: Exception) {
-            false
-        }
+        // Android system PiP is disabled — the floating TimerBubbleOverlay pill is now the
+        // single floating timer everywhere. Kept as a no-op so callers stay simple.
+        return false
     }
 
     override fun onDestroy() {

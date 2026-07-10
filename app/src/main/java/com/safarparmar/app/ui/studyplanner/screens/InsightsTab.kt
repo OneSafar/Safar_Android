@@ -233,7 +233,7 @@ internal fun InsightsTab(
     val insights = remember(plan, state.calendar, state.analytics) {
         PlannerInsightsCalculator.compute(plan, state.calendar, state.analytics)
     }
-    val rollup = remember(plan.id, plan.subjects) { plan.rollup() }
+    val rollup = remember(plan.id, plan.subjects, plan.dailyTodos, plan.dailyTodoLogs) { plan.rollup() }
     val dailyGoal = (plan.dailyGoal ?: 1).coerceAtLeast(1)
     val requiredPace = insights.summary.requiredTopicsPerStudyDay
         ?.let { ceil(it.toDouble()).toInt().coerceAtLeast(0) }
@@ -264,7 +264,9 @@ internal fun InsightsTab(
             }
             item {
                 InsightsOverallProgressRedesign(
-                    completionPercent = insights.summary.completionPercent,
+                    overallProgressPercent = rollup.overallProgressPercent,
+                    plannerProgressPercent = rollup.plannerProgressPercent,
+                    dailyTodoProgressPercent = rollup.dailyTodoProgressPercent,
                     doneTopics = rollup.doneTopics,
                     totalTopics = rollup.totalTopics
                 )
@@ -2126,8 +2128,10 @@ internal fun InsightsHeaderRedesign() {
 }
 
 @Composable
-internal fun InsightsOverallProgressRedesign(
-    completionPercent: Int,
+fun InsightsOverallProgressRedesign(
+    overallProgressPercent: Int,
+    plannerProgressPercent: Int,
+    dailyTodoProgressPercent: Int,
     doneTopics: Int,
     totalTopics: Int
 ) {
@@ -2181,7 +2185,7 @@ internal fun InsightsOverallProgressRedesign(
                     drawArc(
                         color = progressColor,
                         startAngle = 180f,
-                        sweepAngle = 180f * (completionPercent / 100f),
+                        sweepAngle = 180f * (overallProgressPercent / 100f),
                         useCenter = false,
                         style = Stroke(width = 16.dp.toPx(), cap = StrokeCap.Round)
                     )
@@ -2192,7 +2196,7 @@ internal fun InsightsOverallProgressRedesign(
                     modifier = Modifier.offset(y = (-16).dp)
                 ) {
                     Text(
-                        text = "$completionPercent%",
+                        text = "$overallProgressPercent%",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.onSurface
@@ -2206,18 +2210,29 @@ internal fun InsightsOverallProgressRedesign(
                 }
             }
             
-            Text(
-                text = "$doneTopics of $totalTopics topics complete",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Spacer(modifier = Modifier.height(16.dp))
             
-            Spacer(modifier = Modifier.height(8.dp))
-            
+            // Breakdown: Planner
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Syllabus ($doneTopics/$totalTopics)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "$plannerProgressPercent%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
+                    .fillMaxWidth()
                     .height(4.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -2225,7 +2240,42 @@ internal fun InsightsOverallProgressRedesign(
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth(completionPercent / 100f)
+                        .fillMaxWidth(plannerProgressPercent / 100f)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Breakdown: Daily To-Do
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Daily To-Do List",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "$dailyTodoProgressPercent%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(dailyTodoProgressPercent / 100f)
                         .background(MaterialTheme.colorScheme.primary)
                 )
             }

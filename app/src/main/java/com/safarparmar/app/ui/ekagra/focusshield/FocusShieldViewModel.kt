@@ -17,7 +17,7 @@ data class FocusShieldUiState(
     val isEnabled: Boolean = false,
     val isStrictMode: Boolean = false,
     val blockedPackages: Set<String> = emptySet(),
-    val hasAccessibilityService: Boolean = false,
+    val hasOverlayPermission: Boolean = false,
     val hasNotifications: Boolean = false,
     val hasNotificationSuppressionAccess: Boolean = false,
     val hasUsageStats: Boolean = false,
@@ -66,7 +66,7 @@ class FocusShieldViewModel @Inject constructor(
             isEnabled = settings.enabled,
             isStrictMode = settings.strict,
             blockedPackages = settings.packages,
-            hasAccessibilityService = FocusShieldPermissionHelper.hasAccessibilityService(app),
+            hasOverlayPermission = FocusShieldPermissionHelper.hasOverlayPermission(app),
             hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(app),
             hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(app),
             hasUsageStats = FocusShieldPermissionHelper.hasUsageStatsPermission(app),
@@ -163,7 +163,7 @@ class FocusShieldViewModel @Inject constructor(
         // No-op — the permissions are re-checked on every emission
     }
 
-    fun openAccessibilitySettings() = FocusShieldPermissionHelper.openAccessibilitySettings(app)
+    fun openOverlaySettings() = FocusShieldPermissionHelper.openOverlaySettings(app)
 
     val blockedHitCount: StateFlow<Int> = repo.blockedHitCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)

@@ -1205,34 +1205,21 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun batchMarkTopicsDone(topicIds: List<String>) {
-        viewModelScope.launch {
-            val planId = _uiState.value.selectedPlan?.id ?: return@launch
-            if (topicIds.isEmpty()) return@launch
-            _uiState.update { it.copy(mutating = true, error = null) }
-            val request = BatchTopicUpdateRequest(
-                updates = topicIds.map {
-                    BatchTopicUpdateItem(
-                        topicId = it,
-                        patch = TopicPatchRequest(status = TopicStatus.DONE, clientDateKey = todayKey())
-                    )
-                },
-            )
-            when (val r = repo.batchUpdateTopics(planId, request)) {
-                is Resource.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            selectedPlan = r.data,
-                            mutating = false,
-                            message = "${topicIds.size} topics marked as done",
-                            deleteUndoToken = r.data.undoToken?.takeIf { token -> token.isNotBlank() },
-                            lastUndoableActionLabel = "Mark done"
-                        )
-                    }
-                }
-                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
-                is Resource.Loading -> Unit
-            }
-        }
+        if (topicIds.isEmpty()) return
+        val request = BatchTopicUpdateRequest(
+            updates = topicIds.map {
+                BatchTopicUpdateItem(
+                    topicId = it,
+                    patch = TopicPatchRequest(status = TopicStatus.DONE, clientDateKey = todayKey())
+                )
+            },
+        )
+        mutateSelected(
+            refreshCalendar = true,
+            refreshAnalytics = true,
+            successMessage = "${topicIds.size} topics marked as done",
+            undoLabel = "Mark done"
+        ) { planId -> repo.batchUpdateTopics(planId, request) }
     }
 
     private suspend fun createPlanFromLocalTemplate(

@@ -388,6 +388,7 @@ fun PlanTabQuickLinks(
     val isDark = !scheme.background.isLightBackground()
     val tabs = buildList {
         add(StudyPlannerTab.TODAY to "Today")
+        add(StudyPlannerTab.DAILY_TODO to "Daily To-Do")
         if (overdueCount > 0) add(StudyPlannerTab.OVERDUE to "Overdue")
         add(StudyPlannerTab.UPCOMING to "Upcoming")
         add(StudyPlannerTab.COMPLETED to "Done")
@@ -1819,6 +1820,162 @@ fun ManualSubjectOrderSheet(
             }
             TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
                 Text("Skip for now")
+            }
+        }
+    }
+}
+
+@Composable
+fun DailyTodoSection(
+    plan: com.safarparmar.app.domain.model.studyplanner.StudyPlan,
+    actions: com.safarparmar.app.ui.studyplanner.PlannerActions,
+    todayStr: String,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    val isDark = !scheme.background.isLightBackground()
+    var newTaskName by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    
+    val todos = plan.dailyTodos.orEmpty()
+    val logs = plan.dailyTodoLogs?.get(todayStr).orEmpty()
+    val isAllDone = todos.isNotEmpty() && todos.all { it.id in logs }
+    
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PlanSectionHeader(title = "Daily To-Do List", trailing = "${todos.size} tasks")
+            if (todos.isNotEmpty()) {
+                TextButton(
+                    onClick = {
+                        if (isAllDone) {
+                            // untick all
+                            actions.updatePlan(
+                                com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                                    dailyTodoLogs = plan.dailyTodoLogs.orEmpty() + (todayStr to emptyList())
+                                )
+                            )
+                        } else {
+                            // tick all
+                            actions.updatePlan(
+                                com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                                    dailyTodoLogs = plan.dailyTodoLogs.orEmpty() + (todayStr to todos.map { it.id })
+                                )
+                            )
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = scheme.primary)
+                ) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (isAllDone) "Untick All" else "Tick All", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        
+        // Add new task input
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            androidx.compose.material3.OutlinedTextField(
+                value = newTaskName,
+                onValueChange = { newTaskName = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Add a daily habit...") },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
+            Button(
+                onClick = {
+                    if (newTaskName.isNotBlank()) {
+                        val newTodo = com.safarparmar.app.domain.model.studyplanner.DailyTodo(
+                            id = java.util.UUID.randomUUID().toString(),
+                            name = newTaskName.trim()
+                        )
+                        actions.updatePlan(
+                            com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                                dailyTodos = todos + newTodo
+                            )
+                        )
+                        newTaskName = ""
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+                enabled = newTaskName.isNotBlank()
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
+            }
+        }
+        
+        if (todos.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = scheme.surfaceVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No daily tasks yet. Add a few recurring habits you want to track every day.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = scheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = scheme.surface),
+                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    todos.forEach { todo ->
+                        val isDone = todo.id in logs
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isDone) scheme.primaryContainer.copy(alpha = 0.3f) else scheme.surfaceVariant.copy(alpha = 0.3f))
+                                .clickable {
+                                    val newLogsForToday = if (isDone) logs - todo.id else logs + todo.id
+                                    actions.updatePlan(
+                                        com.safarparmar.app.data.remote.api.UpdatePlanRequest(
+                                            dailyTodoLogs = plan.dailyTodoLogs.orEmpty() + (todayStr to newLogsForToday)
+                                        )
+                                    )
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = todo.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (isDone) FontWeight.Medium else FontWeight.Normal,
+                                color = if (isDone) scheme.onSurface.copy(alpha = 0.6f) else scheme.onSurface,
+                                textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = if (isDone) "Done" else "Not Done",
+                                tint = if (isDone) scheme.primary else scheme.outline,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

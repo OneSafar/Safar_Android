@@ -44,6 +44,7 @@ import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.components.StatCardSkeleton
 import com.safarparmar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
+import com.safarparmar.app.ui.studyplanner.screens.InsightsOverallProgressRedesign
 import com.safarparmar.app.ui.theme.*
 
 @Composable
@@ -112,9 +113,15 @@ fun DashboardScreen(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
                 ) {
                     item { WelcomeBanner(uiState.userName, isDarkTheme) }
-                    item { TodayStudyPlanCard(uiState.studyPlan, isDarkTheme, onNavigate) }
-                    if (uiState.activeTitle.isNotEmpty()) {
-                        item { ActiveTitleCard(uiState.activeTitle, uiState.activeTitleId, isDarkTheme) }
+                    item { StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate) }
+                    item {
+                        ActiveTitleCard(
+                            title = uiState.activeTitle,
+                            titleId = uiState.activeTitleId,
+                            isDark = isDarkTheme,
+                            hasEarnedAchievements = uiState.earnedAchievements.isNotEmpty(),
+                            onNavigateToAchievements = { onNavigate(Routes.ACHIEVEMENTS) }
+                        )
                     }
                     item { MoodCard(uiState.todayMood, isDarkTheme, onNavigate) }
                     item { StreaksCard(uiState.streaks, isDarkTheme, onNavigate) }
@@ -232,20 +239,11 @@ private fun WelcomeBanner(userName: String, isDark: Boolean) {
 }
 
 @Composable
-private fun TodayStudyPlanCard(
+private fun StudyPlanProgressCard(
     state: DashboardStudyPlanState,
     isDark: Boolean,
     onNavigate: (String) -> Unit,
 ) {
-    var showAllTopics by remember(state.planId, state.totalCount) { mutableStateOf(false) }
-
-    LaunchedEffect(state.status, state.planId) {
-        StudyPlannerAnalytics.track(
-            StudyPlannerAnalytics.DASHBOARD_TODAY_CARD_VIEWED,
-            mapOf("state" to state.status.name.lowercase()),
-        )
-    }
-
     fun openPlanner() {
         StudyPlannerAnalytics.track(
             StudyPlannerAnalytics.DASHBOARD_TODAY_CARD_CLICKED,
@@ -259,135 +257,48 @@ private fun TodayStudyPlanCard(
         onNavigate(route)
     }
 
-    DashCard(isDark) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    if (state.status == DashboardStudyPlanStatus.NO_ACTIVE_PLAN) {
+        DashCard(isDark) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.weight(1f),
             ) {
                 Icon(Icons.Default.Today, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                CardTitle("Today's Study Plan", isDark)
+                CardTitle("Study Plan Progress", isDark)
             }
-            if (state.status == DashboardStudyPlanStatus.HAS_TOPICS) {
-                Text(
-                    "${state.doneCount}/${state.totalCount} done",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "Create a study plan to track your syllabus completion.",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                fontSize = 13.sp,
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = ::openPlanner, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Text("Create Plan", fontWeight = FontWeight.SemiBold)
             }
         }
-        Spacer(Modifier.height(10.dp))
-
-        when (state.status) {
-            DashboardStudyPlanStatus.NO_ACTIVE_PLAN -> {
-                Text(
-                    "Create a study plan to know what to study today.",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                    fontSize = 13.sp,
-                )
-                Spacer(Modifier.height(12.dp))
-                Button(onClick = ::openPlanner, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                    Text("Create Plan", fontWeight = FontWeight.SemiBold)
-                }
-            }
-            DashboardStudyPlanStatus.NO_TOPICS_TODAY -> {
-                Text(
-                    state.planTitle,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    state.errorMessage ?: "No topics planned for today.",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                    fontSize = 13.sp,
-                )
-                Spacer(Modifier.height(12.dp))
-                OutlinedButton(onClick = ::openPlanner, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                    Text("Open Planner", fontWeight = FontWeight.SemiBold)
-                }
-            }
-            DashboardStudyPlanStatus.HAS_TOPICS -> {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            state.planTitle,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            state.daysLeftText,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                            fontSize = 12.sp,
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                val topicsToShow = if (showAllTopics) state.allTopics else state.visibleTopics
-                topicsToShow.forEach { topic ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Box(
-                            Modifier
-                                .size(18.dp)
-                                .clip(CircleShape)
-                                .border(1.5.dp, if (topic.done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape)
-                                .background(if (topic.done) MaterialTheme.colorScheme.primary else Color.Transparent),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (topic.done) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(12.dp),
-                                )
-                            }
-                        }
-                        Column(Modifier.weight(1f)) {
-                            Text(topic.title, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            if (topic.subtitle.isNotBlank()) {
-                                Text(topic.subtitle, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-                    }
-                }
-                if (state.moreCount > 0) {
-                    Text(
-                        if (showAllTopics) "Show less" else "+${state.moreCount} more",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { showAllTopics = !showAllTopics }
-                            .padding(top = 6.dp, end = 8.dp, bottom = 4.dp),
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
-                OutlinedButton(onClick = ::openPlanner, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                    Text("Open Planner", fontWeight = FontWeight.SemiBold)
-                }
-            }
+    } else {
+        Box(modifier = Modifier.clickable { openPlanner() }) {
+            InsightsOverallProgressRedesign(
+                overallProgressPercent = state.overallCompletionPercent,
+                plannerProgressPercent = state.plannerProgressPercent,
+                dailyTodoProgressPercent = state.dailyTodoProgressPercent,
+                doneTopics = state.overallDoneTopics,
+                totalTopics = state.overallTotalTopics
+            )
         }
     }
 }
 
 @Composable
-private fun ActiveTitleCard(title: String, titleId: String, isDark: Boolean) {
-    val imagePath = achievementImages[titleId]
+private fun ActiveTitleCard(
+    title: String,
+    titleId: String,
+    isDark: Boolean,
+    hasEarnedAchievements: Boolean,
+    onNavigateToAchievements: () -> Unit,
+) {
+    val imagePath = titleId.takeIf { it.isNotEmpty() }?.let { achievementImages[it] }
     val imageUrl = imagePath?.let { path ->
         val origin = BuildConfig.BASE_URL.trimEnd('/').let {
             val uri = android.net.Uri.parse(it)
@@ -398,19 +309,32 @@ private fun ActiveTitleCard(title: String, titleId: String, isDark: Boolean) {
     Box(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable { onNavigateToAchievements() }
             .padding(20.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text("CURRENT TITLE", fontSize = 10.sp, letterSpacing = 2.sp,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(12.dp))
-            if (imageUrl != null) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = title,
-                    modifier = Modifier.width(180.dp).height(90.dp),
-                    contentScale = ContentScale.Fit
-                )
+            if (title.isNotEmpty()) {
+                if (imageUrl != null) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = title,
+                        modifier = Modifier.width(180.dp).height(90.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Box(
+                        Modifier.size(72.dp).clip(CircleShape)
+                            .background(Brush.radialGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_zap), contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(title, color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             } else {
                 Box(
                     Modifier.size(72.dp).clip(CircleShape)
@@ -419,9 +343,14 @@ private fun ActiveTitleCard(title: String, titleId: String, isDark: Boolean) {
                 ) {
                     Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_zap), contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
                 }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = if (hasEarnedAchievements) "Tap to set achievement title" else "Unlock achievements to earn titles",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
-            Spacer(Modifier.height(12.dp))
-            Text(title, color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -700,15 +629,7 @@ private fun AchievementDetailDialog(achievement: Achievement, onDismiss: () -> U
                     )
                 }
 
-                // Holder count
-                if (achievement.holderCount > 0) {
-                    Text(
-                        "Held by ${achievement.holderCount} people.",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+
 
                 // Tier description
                 if (tierLabel.isNotEmpty()) {

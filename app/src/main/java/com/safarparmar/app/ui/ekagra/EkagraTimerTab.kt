@@ -197,6 +197,7 @@ internal fun TimerFocusTab(
     onToggleStrictMode: (Boolean) -> Unit,
     onOpenAppPicker: () -> Unit,
     onNavigate: (String) -> Unit,
+    isBeastMode: Boolean = false,
 ) {
     val scheme  = MaterialTheme.colorScheme
     val configuration   = LocalConfiguration.current
@@ -228,11 +229,9 @@ internal fun TimerFocusTab(
                     Spacer(Modifier.height(if (isCompactHeight) 16.dp else 56.dp))
                     
                     val hasAllPermissions = shieldState.hasUsageStats &&
-                                            shieldState.hasAccessibilityService &&
-                                            shieldState.hasNotificationSuppressionAccess &&
-                                            shieldState.hasNotifications
+                                            shieldState.hasOverlayPermission
 
-                    if (hasAllPermissions) {
+                    if (hasAllPermissions && !isBeastMode) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),

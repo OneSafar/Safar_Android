@@ -147,7 +147,7 @@ fun PlanTabScreen(
     }
     val hasTopics = refs.isNotEmpty()
     
-    val progress = remember(plan.id, plan.subjects) { plan.rollup() }
+    val progress = remember(plan.id, plan.subjects, plan.dailyTodos, plan.dailyTodoLogs) { plan.rollup() }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -662,6 +662,12 @@ fun PlanTabScreen(
                                 }
                             }
                         }
+                    }
+                }
+
+                StudyPlannerTab.DAILY_TODO -> {
+                    item(key = "daily_todo_content") {
+                        DailyTodoSection(plan = plan, actions = actions, todayStr = today)
                     }
                 }
 

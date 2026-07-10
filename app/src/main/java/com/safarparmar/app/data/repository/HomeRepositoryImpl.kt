@@ -368,8 +368,8 @@ class HomeRepositoryImpl @Inject constructor(
         holderCount  = holderCount ?: 0,
         earned       = earned ?: false,
         progress     = progress ?: 0,
-        currentValue = currentValue ?: 0,
-        targetValue  = targetValue ?: 0
+        currentValue = currentValue ?: 0.0,
+        targetValue  = targetValue ?: 0.0
     )
 }
 

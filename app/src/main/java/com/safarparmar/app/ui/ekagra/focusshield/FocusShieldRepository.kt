@@ -35,8 +35,8 @@ class FocusShieldRepository @Inject constructor(
     companion object {
         private const val TAG = "FocusShield"
 
-        /** Shared intent-extra key for the blocked package name, used between
-         * [FocusShieldAccessibilityService] and [com.safarparmar.app.ui.ekagra.TimerService]. */
+        /** Shared intent-extra key for the blocked package name, used by
+         * [com.safarparmar.app.ui.ekagra.TimerService]. */
         const val EXTRA_BLOCKED_PACKAGE = "blocked_package"
     }
 
@@ -195,13 +195,12 @@ class FocusShieldRepository @Inject constructor(
             packages = blockedPackages.value,
         )
 
+    // KAVACH needs Usage access (to see the foreground app) and Display-over-other-apps
+    // (to show the block screen). Notification-listener access is optional (notification
+    // suppression only) and must NOT gate activation.
     private fun hasRequiredPermissions(): Boolean =
         FocusShieldPermissionHelper.hasUsageStatsPermission(appContext) &&
-            (
-                !FocusShieldPermissionHelper.isAccessibilityFeatureEnabled() ||
-                    FocusShieldPermissionHelper.hasAccessibilityService(appContext)
-                ) &&
-            FocusShieldPermissionHelper.hasNotificationListenerAccess(appContext)
+            FocusShieldPermissionHelper.hasOverlayPermission(appContext)
 
     private fun debugLog(message: String) {
         if (BuildConfig.DEBUG) android.util.Log.d(TAG, message)

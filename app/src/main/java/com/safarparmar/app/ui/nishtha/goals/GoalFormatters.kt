@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -137,17 +138,23 @@ internal fun Goal.progressLabel(): String = when (unitType) {
 }
 
 @Composable
-internal fun statusBadgeBg(status: String): Color = when (status) {
-    "missed", "expired", "cancelled" -> MaterialTheme.colorScheme.error.copy(0.12f)
-    "in_progress", "partial" -> Color(0xFFFFB300).copy(alpha = 0.14f)
-    "completed" -> Color(0xFF065F46).copy(alpha = 0.12f)
-    else -> MaterialTheme.colorScheme.surfaceVariant
+internal fun statusBadgeBg(status: String): Color {
+    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
+    return when (status) {
+        "missed", "expired", "cancelled" -> MaterialTheme.colorScheme.error.copy(0.12f)
+        "in_progress", "partial" -> if (isDark) Color(0xFFFBBF24).copy(alpha = 0.16f) else Color(0xFFFFB300).copy(alpha = 0.14f)
+        "completed" -> if (isDark) Color(0xFF34D399).copy(alpha = 0.16f) else Color(0xFF065F46).copy(alpha = 0.12f)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
 }
 
 @Composable
-internal fun statusBadgeFg(status: String): Color = when (status) {
-    "missed", "expired", "cancelled" -> MaterialTheme.colorScheme.error
-    "in_progress", "partial" -> Color(0xFFB26A00)
-    "completed" -> Color(0xFF065F46)
-    else -> MaterialTheme.colorScheme.onSurfaceVariant
+internal fun statusBadgeFg(status: String): Color {
+    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
+    return when (status) {
+        "missed", "expired", "cancelled" -> MaterialTheme.colorScheme.error
+        "in_progress", "partial" -> if (isDark) Color(0xFFFBBF24) else Color(0xFFB26A00)
+        "completed" -> if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
 }

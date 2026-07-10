@@ -327,17 +327,16 @@ private fun KavachFeatureCard(
 @Composable
 fun KavachPermissionDisclosureCard(
     hasUsageStats: Boolean,
-    hasAccessibilityService: Boolean,
+    hasOverlay: Boolean,
     hasNotifications: Boolean,
     hasNotificationSuppressionAccess: Boolean,
     onOpenUsageAccess: () -> Unit,
-    onOpenAccessibility: () -> Unit,
+    onOpenOverlay: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenNotificationAccess: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -395,16 +394,14 @@ fun KavachPermissionDisclosureCard(
                     required = true,
                     onClick = onOpenUsageAccess,
                 )
-                if (accessibilityRequired) {
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
-                    KavachPermissionStatusRow(
-                        title = "KAVACH Alert",
-                        body = "Uses Accessibility Service for KAVACH app blocking.",
-                        granted = hasAccessibilityService,
-                        required = true,
-                        onClick = onOpenAccessibility,
-                    )
-                }
+                HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
+                KavachPermissionStatusRow(
+                    title = "Display over other apps",
+                    body = "Shows the KAVACH block screen over a distracting app.",
+                    granted = hasOverlay,
+                    required = true,
+                    onClick = onOpenOverlay,
+                )
                 HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
                 KavachPermissionStatusRow(
                     title = "Notifications",
@@ -416,9 +413,9 @@ fun KavachPermissionDisclosureCard(
                 HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
                 KavachPermissionStatusRow(
                     title = "Notification Shield",
-                    body = "Dismisses notifications from blocked apps during Ekagra.",
+                    body = "Optional — dismisses notifications from blocked apps during Ekagra.",
                     granted = hasNotificationSuppressionAccess,
-                    required = true,
+                    required = false,
                     onClick = onOpenNotificationAccess,
                 )
             }
@@ -614,11 +611,11 @@ fun KavachBottomActions(
 @Composable
 fun KavachLearnMoreSheet(
     hasUsageStats: Boolean,
-    hasAccessibilityService: Boolean,
+    hasOverlay: Boolean,
     hasNotifications: Boolean,
     hasNotificationSuppressionAccess: Boolean,
     onOpenUsageAccess: () -> Unit,
-    onOpenAccessibility: () -> Unit,
+    onOpenOverlay: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenNotificationAccess: () -> Unit,
     onDismiss: () -> Unit,
@@ -644,16 +641,16 @@ fun KavachLearnMoreSheet(
             KavachBenefitCards()
             KavachPermissionDisclosureCard(
                 hasUsageStats = hasUsageStats,
-                hasAccessibilityService = hasAccessibilityService,
+                hasOverlay = hasOverlay,
                 hasNotifications = hasNotifications,
                 hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
                 onOpenUsageAccess = {
                     onDismiss()
                     onOpenUsageAccess()
                 },
-                onOpenAccessibility = {
+                onOpenOverlay = {
                     onDismiss()
-                    onOpenAccessibility()
+                    onOpenOverlay()
                 },
                 onOpenNotifications = {
                     onDismiss()
@@ -894,6 +891,8 @@ fun KavachControlCenterContainer(
     accent: Color,
     onOpenAppPicker: () -> Unit,
     onGoToEkagra: () -> Unit,
+    hasNotificationShield: Boolean = false,
+    onEnableNotificationShield: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -970,6 +969,45 @@ fun KavachControlCenterContainer(
                     }
                 }
 
+                HorizontalDivider(color = KavachDesign.HubBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
+
+                KavachControlRow(
+                    iconRes = R.drawable.ic_shield_check,
+                    title = "Notification Shield",
+                    subtitle = "Optional — dismiss notifications from blocked apps during a session.",
+                    onClick = { if (!hasNotificationShield) onEnableNotificationShield() },
+                    isDark = isDark,
+                ) {
+                    if (hasNotificationShield) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_shield_check),
+                                contentDescription = null,
+                                tint = accent,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "On",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = accent,
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = onEnableNotificationShield,
+                            colors = ButtonDefaults.buttonColors(containerColor = accent),
+                            shape = RoundedCornerShape(16.dp),
+                        ) {
+                            Text(
+                                text = "Enable",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

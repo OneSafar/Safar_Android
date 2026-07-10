@@ -200,19 +200,7 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
                 }
             }
         },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(100.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = scheme.primary,
-                    contentColor = scheme.onPrimary
-                ),
-                modifier = Modifier.padding(horizontal = 8.dp)
-            ) {
-                Text("Confirm", fontWeight = FontWeight.Bold)
-            }
-        },
+        confirmButton = {},
     )
 }
 

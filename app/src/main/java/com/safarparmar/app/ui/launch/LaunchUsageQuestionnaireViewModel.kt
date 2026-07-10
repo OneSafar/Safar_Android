@@ -42,6 +42,7 @@ class LaunchUsageQuestionnaireViewModel @Inject constructor(
     fun markQuestionnaireFinished(mode: String, onDone: () -> Unit) {
         viewModelScope.launch {
             dataStore.setAppUsageMode(mode)
+            focusShieldRepository.setStrictMode(mode == AppUsageMode.BEAST)
             dataStore.setLaunchUsageQuestionnaireCompleted(true)
             withContext(Dispatchers.Main) { onDone() }
         }

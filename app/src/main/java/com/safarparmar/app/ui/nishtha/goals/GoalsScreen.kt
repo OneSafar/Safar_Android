@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -52,6 +53,8 @@ import java.time.LocalTime
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+private val BrandNavy = Color(0xFF0C2B61)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -425,6 +428,17 @@ fun GoalsScreen(
         )
     }
 
+    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
+    val statusButtonColor = if (isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A)
+    val insightsButtonColor = if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
+    val addButtonBg = if (isDark) Color.White else Color(0xFF0F172A)
+    val addButtonFg = if (isDark) Color(0xFF0F172A) else Color.White
+    val tabSelectedColor = if (selectedTab == 0) {
+        if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
+    } else {
+        if (isDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -457,8 +471,8 @@ fun GoalsScreen(
                 OutlinedButton(
                     onClick = { showStatusSheet = true },
                     shape = ButtonDefaults.outlinedShape,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E3A8A)),
-                    border = BorderStroke(1.dp, Color(0xFF1E3A8A).copy(alpha = 0.4f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = statusButtonColor),
+                    border = BorderStroke(1.dp, statusButtonColor.copy(alpha = 0.4f)),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     modifier = Modifier.heightIn(min = 44.dp)
                 ) {
@@ -469,8 +483,8 @@ fun GoalsScreen(
                 OutlinedButton(
                     onClick = { onNavigate(Routes.nishthaAnalytics("goals")) },
                     shape = ButtonDefaults.outlinedShape,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF065F46)),
-                    border = BorderStroke(1.dp, Color(0xFF065F46).copy(alpha = 0.4f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = insightsButtonColor),
+                    border = BorderStroke(1.dp, insightsButtonColor.copy(alpha = 0.4f)),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     modifier = Modifier.heightIn(min = 44.dp)
                 ) {
@@ -481,7 +495,7 @@ fun GoalsScreen(
                 Button(
                     onClick = { showAddSheet = true },
                     shape = ButtonDefaults.shape,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A), contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = addButtonBg, contentColor = addButtonFg),
                     modifier = Modifier.heightIn(min = 44.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                 ) {
@@ -491,7 +505,6 @@ fun GoalsScreen(
                 }
             }
         }
-        val tabSelectedColor = if (selectedTab == 0) Color(0xFF065F46) else Color(0xFF5B21B6)
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = MaterialTheme.colorScheme.surface,

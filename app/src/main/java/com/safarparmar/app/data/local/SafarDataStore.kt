@@ -140,6 +140,7 @@ class SafarDataStore @Inject constructor(
         val AUTO_START_BREAK = booleanPreferencesKey("ekagra_auto_start_break")
 
         val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
+        val OVERLAY_PERMISSION_ASKED = booleanPreferencesKey("overlay_permission_asked")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -342,6 +343,10 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.PREMIUM_FEATURE_FOCUS_ANALYTICS] ?: false }
 
+    val overlayPermissionAsked: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.OVERLAY_PERMISSION_ASKED] ?: false }
+
     // ── Setters ───────────────────────────────────────────────────────────────
 
     suspend fun setLoggedIn(value: Boolean) = context.dataStore.edit { it[Keys.IS_LOGGED_IN] = value }
@@ -489,6 +494,8 @@ class SafarDataStore @Inject constructor(
     suspend fun setAppUsageMode(mode: String?) = context.dataStore.edit { prefs ->
         if (mode != null) prefs[Keys.APP_USAGE_MODE] = mode else prefs.remove(Keys.APP_USAGE_MODE)
     }
+
+    suspend fun setOverlayPermissionAsked(asked: Boolean) = context.dataStore.edit { it[Keys.OVERLAY_PERMISSION_ASKED] = asked }
 
     suspend fun setAutoStartBreak(enabled: Boolean) = context.dataStore.edit { it[Keys.AUTO_START_BREAK] = enabled }
 

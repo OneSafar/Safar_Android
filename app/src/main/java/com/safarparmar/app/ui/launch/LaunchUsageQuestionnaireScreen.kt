@@ -107,28 +107,28 @@ fun LaunchUsageQuestionnaireScreen(
     var page by remember { mutableIntStateOf(0) }
     var selectedMode by remember { mutableStateOf<String?>(null) }
 
-    fun finishStandard() {
-        viewModel.markQuestionnaireFinished(AppUsageMode.STANDARD, onNavigateHome)
-    }
-
     fun finishFocused() {
         viewModel.markQuestionnaireFinished(AppUsageMode.FOCUSED, onNavigateKavach)
     }
 
+    fun finishBeast() {
+        viewModel.markQuestionnaireFinished(AppUsageMode.BEAST, onNavigateKavach)
+    }
+
     fun onFinishQuestionnaire() {
-        val mode = selectedMode ?: (if (needsFocusSetup) AppUsageMode.FOCUSED else AppUsageMode.STANDARD)
-        if (mode == AppUsageMode.STANDARD) {
-            finishStandard()
-            return
+        val mode = selectedMode ?: AppUsageMode.BEAST
+        when (mode) {
+            AppUsageMode.BEAST -> finishBeast()
+            AppUsageMode.FOCUSED -> finishFocused()
+            else -> finishFocused()
         }
-        finishFocused()
     }
 
     val scheme = MaterialTheme.colorScheme
 
     LaunchedEffect(page) {
         if (page == 1 && selectedMode == null) {
-            selectedMode = AppUsageMode.FOCUSED
+            selectedMode = AppUsageMode.BEAST
         }
     }
 
@@ -397,22 +397,22 @@ private fun ModeSelectionCompactList(
     ) {
         item {
             ModeSelectionCompactCard(
-                title = "Ekagra-only mode",
-                description = "KAVACH brings you back to Ekagra when you open a blocked app.",
+                title = "Beast Mode",
+                description = "Full lockdown. KAVACH always on — no toggle, no quick unlock, no escape.",
                 icon = Icons.Default.Shield,
-                selected = selectedMode == AppUsageMode.FOCUSED,
+                selected = selectedMode == AppUsageMode.BEAST,
                 primaryStyle = true,
-                onClick = { onSelectMode(AppUsageMode.FOCUSED) }
+                onClick = { onSelectMode(AppUsageMode.BEAST) }
             )
         }
         item {
             ModeSelectionCompactCard(
                 title = "Normal",
-                description = "Notifications only. You can enable KAVACH later from the menu.",
+                description = "KAVACH brings you back to Ekagra when you open a blocked app.",
                 icon = Icons.Default.Notifications,
-                selected = selectedMode == AppUsageMode.STANDARD,
+                selected = selectedMode == AppUsageMode.FOCUSED,
                 primaryStyle = false,
-                onClick = { onSelectMode(AppUsageMode.STANDARD) }
+                onClick = { onSelectMode(AppUsageMode.FOCUSED) }
             )
         }
         item {
@@ -514,23 +514,23 @@ private fun ModeSelectionSplitScreenLarge(
     val scheme = MaterialTheme.colorScheme
     Column(modifier = modifier) {
         ModeSelectionHalf(
-            title = "Ekagra-only mode",
-            description = "KAVACH brings you back to Ekagra when you open a blocked app.",
+            title = "Beast Mode",
+            description = "Full lockdown. KAVACH always on — no toggle, no quick unlock, no escape.",
             icon = Icons.Default.Shield,
-            selected = selectedMode == AppUsageMode.FOCUSED,
+            selected = selectedMode == AppUsageMode.BEAST,
             primaryStyle = true,
             showBottomDivider = true,
-            onClick = { onSelectMode(AppUsageMode.FOCUSED) },
+            onClick = { onSelectMode(AppUsageMode.BEAST) },
             modifier = Modifier.weight(1f),
         )
         ModeSelectionHalf(
             title = "Normal",
-            description = "Notifications only. You can enable KAVACH later from the menu.",
+            description = "KAVACH brings you back to Ekagra when you open a blocked app.",
             icon = Icons.Default.Notifications,
-            selected = selectedMode == AppUsageMode.STANDARD,
+            selected = selectedMode == AppUsageMode.FOCUSED,
             primaryStyle = false,
             showBottomDivider = false,
-            onClick = { onSelectMode(AppUsageMode.STANDARD) },
+            onClick = { onSelectMode(AppUsageMode.FOCUSED) },
             modifier = Modifier.weight(1f),
         )
     }

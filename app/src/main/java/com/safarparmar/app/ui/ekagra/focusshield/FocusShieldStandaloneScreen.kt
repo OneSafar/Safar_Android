@@ -31,9 +31,8 @@ fun FocusShieldStandaloneScreen(
     val state by viewModel.shieldState.collectAsStateWithLifecycle()
     val accent = MaterialTheme.colorScheme.primary
     val scheme = MaterialTheme.colorScheme
-    val accessibilityRequired = FocusShieldPermissionHelper.isAccessibilityFeatureEnabled()
     val needsRequiredPermissions =
-        !state.hasUsageStats || (accessibilityRequired && !state.hasAccessibilityService)
+        !state.hasUsageStats || !state.hasOverlayPermission
 
     if (needsRequiredPermissions) {
         KavachOnboardingScreen(
@@ -72,7 +71,7 @@ fun FocusShieldStandaloneScreen(
             onToggleEnabled = viewModel::setEnabled,
             onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },
             onGoToEkagra = { onNavigate(Routes.EKAGRA) },
-            onOpenAccessibilitySettings = viewModel::openAccessibilitySettings,
+            onOpenOverlaySettings = viewModel::openOverlaySettings,
             onRefreshPermissions = viewModel::refreshPermissions,
             onMaybeLater = onBack,
             modifier = Modifier.padding(top = padding.calculateTopPadding()),

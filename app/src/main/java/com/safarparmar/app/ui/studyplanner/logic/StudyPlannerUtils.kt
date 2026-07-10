@@ -33,12 +33,17 @@ fun StudyPlan.rollup(): PlanProgress {
     val done = topics.count { it.status == TopicStatus.DONE }
     val revision = topics.count { it.status == TopicStatus.REVISION_NEEDED }
     val percent = if (total == 0) 0 else ((done.toFloat() / total) * 100).roundToInt()
+    val dailyPercent = if (dailyTodos.orEmpty().isEmpty()) 100 else 0 // Simplified optimistic default
+    val overallPercent = (percent + dailyPercent) / 2
     return progress ?: PlanProgress(
         totalTopics = total,
         doneTopics = done,
         revisionTopics = revision,
         completionPercent = percent,
         remainingPercent = 100 - percent,
+        plannerProgressPercent = percent,
+        dailyTodoProgressPercent = dailyPercent,
+        overallProgressPercent = overallPercent
     )
 }
 

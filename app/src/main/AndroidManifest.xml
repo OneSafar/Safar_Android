@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Allow PackageManager to resolve launchable apps for the app picker. -->
     <queries>
         <intent>
@@ -96,19 +97,6 @@
             <meta-data
                 android:name="autoStoreLocales"
                 android:value="true" />
-        </service>
-
-        <service
-            android:name=".ui.ekagra.focusshield.FocusShieldAccessibilityService"
-            android:exported="true"
-            android:label="@string/focus_shield_accessibility_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/focus_shield_accessibility_service" />
         </service>
 
         <service

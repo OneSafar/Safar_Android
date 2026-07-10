@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -215,34 +216,42 @@ internal fun LivePulseCard(
     totalManual: Int,
     totalEkagra: Int
 ) {
+    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
+    val primaryPulseColor = if (isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A)
+    val completedColor = if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
+    val ekagraColor = if (isDark) Color(0xFFFF9E80) else Color(0xFF9A3412)
+
     Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Today Pulse", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E3A8A))
-            Text("$completedToday Completed", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF065F46))
+            Text("Today Pulse", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = primaryPulseColor)
+            Text("$completedToday Completed", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = completedColor)
             Text("$openManualGoals open manual goals", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("$completionRate% overall completion rate", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
             Text("Study Time Today", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(formatStudyTime(studyToday), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E3A8A))
+            Text(formatStudyTime(studyToday), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = primaryPulseColor)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatInfoCard("Manual", formatStudyTime(manualToday), "", Modifier.weight(1f), accent = Color(0xFF065F46))
-                StatInfoCard("Ekagra", formatStudyTime(ekagraToday), "", Modifier.weight(1f), accent = Color(0xFF9A3412))
+                StatInfoCard("Manual", formatStudyTime(manualToday), "", Modifier.weight(1f), accent = completedColor)
+                StatInfoCard("Ekagra", formatStudyTime(ekagraToday), "", Modifier.weight(1f), accent = ekagraColor)
             }
             Text("Daily Progress", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            LinearProgressIndicator(progress = { (dailyProgress / 100f).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = Color(0xFF065F46), trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
+            LinearProgressIndicator(progress = { (dailyProgress / 100f).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = completedColor, trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
             Text("Total Time Studied", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            GoalTimeRow(Icons.Default.Timer, "Ekagra Mode", "", formatStudyTime(totalEkagra), Color(0xFF9A3412))
-            GoalTimeRow(Icons.Default.Book, "Manual Goal", "", formatStudyTime(totalManual), Color(0xFF065F46))
+            GoalTimeRow(Icons.Default.Timer, "Ekagra Mode", "", formatStudyTime(totalEkagra), ekagraColor)
+            GoalTimeRow(Icons.Default.Book, "Manual Goal", "", formatStudyTime(totalManual), completedColor)
         }
     }
 }
 
 @Composable
 internal fun ProTipCard() {
-    Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, Color(0xFF5B21B6).copy(alpha = 0.25f))) {
+    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
+    val proTipColor = if (isDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
+
+    Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, proTipColor.copy(alpha = 0.25f))) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF5B21B6))
-            Text("Pro Tip", fontWeight = FontWeight.Bold, color = Color(0xFF5B21B6))
+            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = proTipColor)
+            Text("Pro Tip", fontWeight = FontWeight.Bold, color = proTipColor)
             Text("Consistent daily completion is better than occasional bursts. Break large goals into smaller ekagra tasks.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -253,11 +262,12 @@ internal fun GoalItem(goal: Goal, onComplete: () -> Unit, onEdit: () -> Unit, on
     var showMenu by remember { mutableStateOf(false) }
     val progress = goal.progressPercent()
     val showProgress = goal.unitType != "binary" && (goal.unitType == "checklist" || goal.targetValue != null || goal.plannedFocusMinutes != null)
-    val completedColor = Color(0xFF065F46)
+    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
+    val completedColor = if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
     val badgeColor = when (goal.goalKind) {
-        "today" -> Color(0xFF065F46)
-        "scheduled" -> Color(0xFF5B21B6)
-        else -> Color(0xFF1E3A8A)
+        "today" -> completedColor
+        "scheduled" -> if (isDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
+        else -> if (isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A)
     }
 
     Card(
@@ -288,7 +298,8 @@ internal fun GoalItem(goal: Goal, onComplete: () -> Unit, onEdit: () -> Unit, on
                 }
                 if (goal.source == "ekagra") {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 5.dp)) {
-                        SmallBadge("Ekagra mode task", Color(0xFF9A3412).copy(0.12f), Color(0xFF9A3412))
+                        val ekagraModeColor = if (isDark) Color(0xFFFF9E80) else Color(0xFF9A3412)
+                        SmallBadge("Ekagra mode task", ekagraModeColor.copy(0.12f), ekagraModeColor)
                     }
                 }
                 goal.scheduledDate?.let { Text(IstDateUtils.labelFor(it), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp)) }
