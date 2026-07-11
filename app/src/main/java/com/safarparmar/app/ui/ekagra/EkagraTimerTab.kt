@@ -70,6 +70,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 @Composable
 internal fun EkagraPipOverlay(
     secondsLeft: Int,
+    timerMode: TimerMode,
     progress: Float,
     timerRunning: Boolean,
     focusShieldActive: Boolean,
@@ -92,8 +93,18 @@ internal fun EkagraPipOverlay(
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.Default.Shield, contentDescription = null, tint = pipAccent, modifier = Modifier.size(21.dp)) }
             }
-            Text("%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
-                fontSize = if (shieldActive) 36.sp else 42.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            Text(
+                if (timerMode == TimerMode.STOPWATCH) formatElapsedDuration(secondsLeft.toLong())
+                else "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
+                fontSize = when {
+                    timerMode == TimerMode.STOPWATCH && secondsLeft >= 3600 -> 28.sp
+                    shieldActive -> 36.sp
+                    else -> 42.sp
+                },
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White,
+                maxLines = 1,
+            )
             Box(Modifier.fillMaxWidth(0.82f).height(4.dp).clip(RoundedCornerShape(999.dp)).background(Color.White.copy(0.16f))) {
                 Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight()
                     .clip(RoundedCornerShape(999.dp)).background(pipAccent))
@@ -288,13 +299,13 @@ internal fun TimerFocusTab(
                 scheme.secondaryContainer
             }
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(232.dp)) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(302.dp)) {
                 // Track ring
                 CircularProgressIndicator(
                     progress      = { 1f },
                     modifier      = Modifier.fillMaxSize(),
                     color         = trackColor,
-                    strokeWidth   = 14.dp,
+                    strokeWidth   = 18.dp,
                     strokeCap     = StrokeCap.Round,
                 )
                 // Progress glow bloom ring
@@ -302,7 +313,7 @@ internal fun TimerFocusTab(
                     progress      = { clampedProgress },
                     modifier      = Modifier.fillMaxSize(),
                     color         = ringColor.copy(alpha = 0.25f + pulse * 0.15f),
-                    strokeWidth   = (14f + pulse * 2f).dp,
+                    strokeWidth   = (18f + pulse * 2.6f).dp,
                     strokeCap     = StrokeCap.Round,
                 )
                 // Progress ring
@@ -310,22 +321,22 @@ internal fun TimerFocusTab(
                     progress      = { clampedProgress },
                     modifier      = Modifier.fillMaxSize(),
                     color         = ringColor,
-                    strokeWidth   = 14.dp,
+                    strokeWidth   = 18.dp,
                     strokeCap     = StrokeCap.Round,
                 )
 
                 // Glowing pointer dot at the sweeping tip of the progress bar
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val strokeWidthPx = 14.dp.toPx()
+                    val strokeWidthPx = 18.dp.toPx()
                     val radiusPx = (size.width - strokeWidthPx) / 2f
                     val centerX = size.width / 2f
                     val centerY = size.height / 2f
                     val angleRad = (clampedProgress * 360f - 90f) * (Math.PI / 180f)
                     val endX = centerX + radiusPx * kotlin.math.cos(angleRad).toFloat()
                     val endY = centerY + radiusPx * kotlin.math.sin(angleRad).toFloat()
-                    
+
                     if (clampedProgress > 0f) {
-                        val glowRadius = (8.dp.toPx()) + (pulse * 4.dp.toPx())
+                        val glowRadius = (10.dp.toPx()) + (pulse * 5.dp.toPx())
                         drawCircle(
                             color = ringColor.copy(alpha = 0.4f + pulse * 0.2f),
                             radius = glowRadius,
@@ -333,7 +344,7 @@ internal fun TimerFocusTab(
                         )
                         drawCircle(
                             color = Color.White,
-                            radius = 4.dp.toPx(),
+                            radius = 5.dp.toPx(),
                             center = androidx.compose.ui.geometry.Offset(endX, endY)
                         )
                     }
@@ -342,7 +353,7 @@ internal fun TimerFocusTab(
                 // Frosted glass inner center circle
                 Box(
                     Modifier
-                        .size(190.dp)
+                        .size(247.dp)
                         .clip(CircleShape)
                         .background(Color.White.copy(alpha = 0.04f))
                         .border(0.5.dp, Color.White.copy(alpha = 0.12f), CircleShape)
@@ -357,17 +368,39 @@ internal fun TimerFocusTab(
                     CompositionLocalProvider(
                         LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))
                     ) {
+                        // Build time text — all modes support h:mm:ss when >= 1 hour
+                        val h = secondsLeft / 3600
+                        val m = (secondsLeft % 3600) / 60
+                        val s = secondsLeft % 60
+                        val timerText = when (timerMode) {
+                            TimerMode.STOPWATCH -> formatElapsedDuration(secondsLeft.toLong())
+                            else -> if (h > 0) "%d:%02d:%02d".format(h, m, s)
+                                    else "%02d:%02d".format(m, s)
+                        }
+
+                        // 3-tier adaptive font size: shrinks as content grows
+                        // Tier 1 — under 1 min   → e.g. "59s"         → 62sp (largest)
+                        // Tier 2 — 1 min – 59 min → e.g. "59m 59s"    → 50sp
+                        // Tier 3 — 1 h+          → e.g. "1h 59m 59s"  → 34sp (fits comfortably)
+                        val timerFontSize = when {
+                            secondsLeft >= 3600 -> 34.sp
+                            secondsLeft >= 60   -> 50.sp
+                            else                -> 62.sp
+                        }
+                        val timerLetterSpacing = if (secondsLeft >= 3600) 0.sp else 1.sp
+
                         // The 3-2-1 countdown itself is rendered by the full-screen
                         // scrim in EkagraScreen (above the dim overlay, not inside
                         // this ring) — this inner circle only ever shows the running
-                        // mm:ss once the countdown finishes.
+                        // time once the countdown finishes.
                         Text(
-                            "%02d:%02d".format(secondsLeft / 60, secondsLeft % 60),
-                            fontSize     = 54.sp,
-                            fontWeight   = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color        = Color.White,
-                            textAlign    = TextAlign.Center,
+                            timerText,
+                            fontSize      = timerFontSize,
+                            fontWeight    = FontWeight.Bold,
+                            letterSpacing = timerLetterSpacing,
+                            color         = Color.White,
+                            textAlign     = TextAlign.Center,
+                            maxLines      = 1,
                         )
                     }
                     AnimatedVisibility(
@@ -392,6 +425,7 @@ internal fun TimerFocusTab(
                     }
                 }
             }
+
 
             Spacer(Modifier.height(32.dp))
 

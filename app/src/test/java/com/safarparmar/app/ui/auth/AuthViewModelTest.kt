@@ -129,6 +129,8 @@ class AuthViewModelTest {
 
         override suspend fun login(email: String, password: String): Resource<User> = loginResult
 
+        override suspend fun googleLogin(idToken: String): Resource<User> = loginResult
+
         override suspend fun register(
             name: String,
             email: String,

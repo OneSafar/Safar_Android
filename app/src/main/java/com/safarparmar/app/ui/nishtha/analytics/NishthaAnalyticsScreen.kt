@@ -5,8 +5,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.draw.alpha
 import coil.compose.AsyncImage
@@ -22,12 +20,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
@@ -50,12 +45,10 @@ import java.util.Locale
 @Composable
 fun NishthaAnalyticsScreen(
     viewModel: NishthaViewModel = hiltViewModel(),
-    premiumViewModel: com.safarparmar.app.ui.premium.PremiumViewModel = hiltViewModel(),
     onNavigate: (String) -> Unit = {},
     initialSection: String = "overview",
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val report = uiState.monthlyReport
     val achievements = uiState.achievements
 
@@ -86,10 +79,8 @@ fun NishthaAnalyticsScreen(
     var showMonthPicker by remember { mutableStateOf(false) }
     val androidContext = androidx.compose.ui.platform.LocalContext.current
 
-    LaunchedEffect(selectedMonth, premiumStatus.canUseNishthaAnalytics) {
-        if (premiumStatus.canUseNishthaAnalytics) {
-            viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth))
-        }
+    LaunchedEffect(selectedMonth) {
+        viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth))
     }
 
     // Native month-year picker via DatePickerDialog (capped to current month, no future)
@@ -167,26 +158,22 @@ fun NishthaAnalyticsScreen(
         }
 
         Box(Modifier.fillMaxSize()) {
-            if (premiumStatus.canUseNishthaAnalytics) {
-                when (selectedSection) {
-                    "goals" -> GoalInsightsSection(uiState.goals)
-                    "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
-                    "monthly" -> MonthlyReviewSection(
-                        selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.second ?: "",
-                        onMonthClick = { showMonthPicker = true },
-                        isLoading = uiState.isLoadingReport,
-                        report = report,
-                        achievements = achievements,
-                        onNavigate = onNavigate,
-                        onGenerate = { viewModel.onEvent(NishthaEvent.LoadMonthlyReport) },
-                    )
-                    else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
-                }
-            } else {
-                AnalyticsPremiumLockOverlay(
-                    modifier = Modifier.fillMaxSize(),
-                    onUpgradeClick = { onNavigate(com.safarparmar.app.ui.navigation.Routes.PREMIUM) }
+            when (selectedSection) {
+                "goals" -> GoalInsightsSection(uiState.goals)
+                "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
+                "monthly" -> MonthlyReviewSection(
+                    selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.second ?: "",
+                    onMonthClick = { showMonthPicker = true },
+                    isLoading = uiState.isLoadingReport,
+                    report = report,
+                    achievements = achievements,
+                    onNavigate = onNavigate,
+                    // Retry for the month actually on screen — LoadMonthlyReport hits the
+                    // no-month-param endpoint (rolling last-30-days), which would silently
+                    // regenerate a different window than the one the user is viewing.
+                    onGenerate = { viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth)) },
                 )
+                else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
             }
         }
     }
@@ -292,6 +279,15 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safarpar
     ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, Color(0xFF5B21B6))
     ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, Color(0xFF065F46))
     ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.totalFocusMinutes}m/day", report.focusMessage, Color(0xFF9A3412))
+
+    // Goals set / completed this period — backend already computes these
+    // (executiveSummary.goalsCreated / goalsCompleted) but they weren't surfaced.
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        GoalsCountCard("Goals Set", report.goalsCreated.toString(), Color(0xFF065F46), Modifier.weight(1f))
+        GoalsCountCard("Goals Completed", report.goalsCompleted.toString(), Color(0xFF065F46), Modifier.weight(1f))
+    }
+
+    StreakReviewCard(report)
 
     // Skill Radar — rendered as horizontal progress bars
     if (report.radar.isNotEmpty()) {
@@ -589,6 +585,65 @@ private fun ScoreCard(iconRes: Int, label: String, value: String, message: Strin
 }
 
 @Composable
+private fun GoalsCountCard(label: String, value: String, accentColor: Color, modifier: Modifier = Modifier) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                label.uppercase(Locale.US),
+                fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(value, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = accentColor))
+        }
+    }
+}
+
+@Composable
+private fun StreakReviewCard(report: MonthlyReport) {
+    val streakColor = Color(0xFF9A3412)
+    val breakDayFormatter = remember { DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()) }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Streak Review", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, modifier = Modifier.weight(1f), color = streakColor)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GoalsCountCard("Longest Streak", "${report.longestStreakDays}d", streakColor, Modifier.weight(1f))
+                GoalsCountCard("Streak Breaks", report.streakBreaksCount.toString(), streakColor, Modifier.weight(1f))
+            }
+            if (report.streakMessage.isNotEmpty()) {
+                Text(report.streakMessage, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (report.streakBreakDates.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                Text("Broken on", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    report.streakBreakDates.joinToString("  •  ") { dateKey ->
+                        runCatching { LocalDate.parse(dateKey).format(breakDayFormatter) }.getOrDefault(dateKey)
+                    },
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 18.sp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun InsightRow(iconRes: Int, title: String, message: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Icon(painter = androidx.compose.ui.res.painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(18.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.primary)
@@ -660,103 +715,3 @@ private fun LineChart(values: List<Float>, modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun AnalyticsPremiumLockOverlay(
-    modifier: Modifier = Modifier,
-    onUpgradeClick: () -> Unit = {}
-) {
-    val scheme = MaterialTheme.colorScheme
-    val bg = scheme.background
-    // Gradient: transparent at top -> background color at ~30% -> fully opaque background for lock card
-    val gradient = Brush.verticalGradient(
-        colorStops = arrayOf(
-            0.00f to Color.Transparent,
-            0.25f to bg.copy(alpha = 0.85f),
-            0.45f to bg,
-        )
-    )
-    Box(
-        modifier = modifier
-            .background(gradient)
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, _ -> }
-            }
-            .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                indication = null,
-                onClick = onUpgradeClick
-            )
-    ) {
-        // Lock card centered in lower portion
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.Center)
-                .padding(horizontal = 32.dp)
-                .padding(top = 60.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            // Lock icon in a glowing circle
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .background(
-                        Brush.radialGradient(
-                            listOf(
-                                scheme.primary.copy(alpha = 0.25f),
-                                scheme.primary.copy(alpha = 0.08f),
-                                Color.Transparent,
-                            )
-                        ),
-                        androidx.compose.foundation.shape.CircleShape,
-                    )
-                    .border(
-                        width = 1.5.dp,
-                        brush = Brush.linearGradient(
-                            listOf(scheme.primary.copy(alpha = 0.6f), scheme.secondary.copy(alpha = 0.3f))
-                        ),
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Safar Premium feature",
-                    tint = scheme.primary,
-                    modifier = Modifier.size(32.dp),
-                )
-            }
-            Text(
-                text = "Safar Premium Feature",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = scheme.onBackground,
-            )
-            Text(
-                text = "Upgrade to see your goal progress, Ekagra history, and monthly review.",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                color = scheme.onSurfaceVariant,
-                lineHeight = 20.sp,
-            )
-            Button(
-                onClick = onUpgradeClick,
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = scheme.primary,
-                    contentColor = scheme.onPrimary,
-                ),
-                modifier = Modifier.fillMaxWidth(0.75f),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("Upgrade to Safar Premium", fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}

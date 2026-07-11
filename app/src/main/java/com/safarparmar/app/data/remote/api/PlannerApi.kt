@@ -106,6 +106,18 @@ interface PlannerApi {
         @Body request: AutoDistributeRequest,
     ): Response<AutoDistributeResult>
 
+    @POST("plans/{planId}/finish-day")
+    suspend fun finishDay(
+        @Path("planId") planId: String,
+        @Body request: FinishDayRequest,
+    ): Response<FinishDayResult>
+
+    @POST("plans/{planId}/finish-day/undo")
+    suspend fun undoFinishDay(
+        @Path("planId") planId: String,
+        @Body request: UndoFinishDayRequest,
+    ): Response<FinishDayResult>
+
     @POST("plans/{planId}/subjects")
     suspend fun addSubject(
         @Path("planId") planId: String,
@@ -266,6 +278,7 @@ data class PlanRestoreResult(
 data class AutoDistributeRequest(
     val fromDate: String? = null,
     val lockExistingDates: Boolean = true,
+    val preserveFromDate: Boolean = false,
     val includeRevisionNeeded: Boolean = false,
     val overloadMode: String? = null,
     val strategy: String? = null,
@@ -419,6 +432,14 @@ data class BatchTopicUpdateItem(
 
 data class BatchTopicUpdateRequest(
     val updates: List<BatchTopicUpdateItem>,
+)
+
+data class FinishDayRequest(val dateKey: String)
+data class UndoFinishDayRequest(val undoToken: String)
+data class FinishDayResult(
+    val plan: StudyPlan,
+    val undoToken: String? = null,
+    val movedCount: Int = 0,
 )
 
 

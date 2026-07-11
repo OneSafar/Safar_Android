@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * Mixed Bag's "split focus" prompt — shown immediately when the user picks Mixed
+ * Mixed Bag's subject picker — shown immediately when the user picks Mixed
  * Bag, the same way Deep Focus immediately opens its own reorder screen. Choosing
  * 2-3 subjects here means those subjects get topics every study day, while every
  * other subject rotates in one at a time on alternate days; the split is entirely
@@ -56,13 +56,12 @@ fun MixedBagSubjectPickerStep(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            "Choose your 2 or 3 most difficult subjects.",
+            "Select 2 or 3 subjects to study every day.",
             fontWeight = FontWeight.Black,
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            "These get a topic every single day. Everything else still gets covered — " +
-                "just one subject at a time, rotating in on alternate days.",
+            "Select the subjects you find hardest; they will appear every day.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

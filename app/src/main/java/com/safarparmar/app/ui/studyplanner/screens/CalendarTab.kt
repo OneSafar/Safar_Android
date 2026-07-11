@@ -219,7 +219,7 @@ import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.plan.PlanTabScreen
-import com.safarparmar.app.ui.studyplanner.plan.UnscheduledTopicsScreen
+import com.safarparmar.app.ui.studyplanner.plan.MissedTopicsScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -448,15 +448,12 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
 
         if (showUnscheduledTopicsScreen) {
             val refs = remember(plan.subjects) { plan.flattenTopics() }
-            val unscheduledTopics = remember(refs, todayK) {
-                refs.filter { ref ->
-                    val date = ref.topic.plannedDate
-                    ref.topic.status != TopicStatus.DONE && (date.isNullOrBlank() || date.take(10) < todayK)
-                }
+            val missedTopics = remember(refs, todayK) {
+                refs.filter { ref -> ref.topic.isMissed(todayK) }
             }
-            UnscheduledTopicsScreen(
+            MissedTopicsScreen(
                 plan = plan,
-                unscheduledTopics = unscheduledTopics,
+                missedTopics = missedTopics,
                 actions = actions,
                 onDismiss = { showUnscheduledTopicsScreen = false }
             )

@@ -1,5 +1,12 @@
 package com.safarparmar.app.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,6 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +33,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -57,6 +67,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
@@ -77,8 +88,8 @@ import com.safarparmar.app.ui.debug.NotificationDebugSettingsEntry
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
 import com.safarparmar.app.ui.premium.PremiumUiState
 import com.safarparmar.app.ui.premium.PremiumViewModel
+import com.safarparmar.app.ui.profile.GlassCard
 import com.safarparmar.app.ui.profile.NotificationToggleRow
-import com.safarparmar.app.ui.profile.ProfileSectionCard
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -96,6 +107,19 @@ private enum class SettingsInfoSheet {
     OVERLAY,
     USAGE_ACCESS,
     NOTIFICATIONS,
+}
+
+// Top-level Settings screen sections. Only one is expanded at a time — this is
+// the fix for the screen reading as "extremely complicated": instead of every
+// card being permanently expanded and stacked on screen, the user sees a short
+// list of section headers and opens exactly the one they came for.
+private enum class SettingsSection {
+    APPEARANCE,
+    ACCOUNT,
+    NOTIFICATIONS,
+    PERMISSIONS,
+    LEGAL,
+    ADMIN,
 }
 
 private fun isValidReminderTimeInput(value: String): Boolean {
@@ -148,6 +172,8 @@ fun SettingsScreen(
     var pendingDailyEnable by remember { mutableStateOf(false) }
     var reminderDraft by remember(uiState.dailyReminderTime) { mutableStateOf(uiState.dailyReminderTime) }
     var activeInfoSheet by remember { mutableStateOf<SettingsInfoSheet?>(null) }
+    // Only one top-level section open at a time — see SettingsSection doc comment.
+    var expandedSection by remember { mutableStateOf<SettingsSection?>(null) }
 
     var hasUsageAccess by remember { mutableStateOf(FocusShieldPermissionHelper.hasUsageStatsPermission(context)) }
     var hasFocusShieldOverlay by remember { mutableStateOf(FocusShieldPermissionHelper.hasOverlayPermission(context)) }
@@ -272,7 +298,14 @@ fun SettingsScreen(
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                ProfileSectionCard(title = "Appearance & about", icon = Icons.Default.Tune) {
+                SettingsAccordionSection(
+                    section = SettingsSection.APPEARANCE,
+                    expandedSection = expandedSection,
+                    onToggle = { expandedSection = if (expandedSection == SettingsSection.APPEARANCE) null else SettingsSection.APPEARANCE },
+                    icon = Icons.Default.Tune,
+                    title = "Appearance & About",
+                    subtitle = if (isDarkTheme) "Dark theme" else "Light theme",
+                ) {
                     Text(
                         "Sun/moon toggles light and dark theme.",
                         style = MaterialTheme.typography.bodySmall,
@@ -284,9 +317,6 @@ fun SettingsScreen(
                         checked = isDarkTheme,
                         onCheckedChange = { onToggleDarkTheme() },
                     )
-
-
-
                     Text(
                         "Version ${BuildConfig.VERSION_NAME.substringBefore('-')}",
                         style = MaterialTheme.typography.bodySmall,
@@ -294,7 +324,14 @@ fun SettingsScreen(
                     )
                 }
 
-                ProfileSectionCard(title = "Account & Premium", icon = Icons.Default.Security) {
+                SettingsAccordionSection(
+                    section = SettingsSection.ACCOUNT,
+                    expandedSection = expandedSection,
+                    onToggle = { expandedSection = if (expandedSection == SettingsSection.ACCOUNT) null else SettingsSection.ACCOUNT },
+                    icon = Icons.Default.Security,
+                    title = "Account & Premium",
+                    subtitle = if (premiumStatus.hasAnyPaidAccess) "Premium active" else "Free plan",
+                ) {
                     SettingsPremiumStatusCard(
                         isPremiumActive = premiumStatus.hasAnyPaidAccess,
                         planLabel = premiumPlanText,
@@ -313,7 +350,14 @@ fun SettingsScreen(
                     )
                 }
 
-                ProfileSectionCard(title = "Notifications", icon = Icons.Default.Notifications) {
+                SettingsAccordionSection(
+                    section = SettingsSection.NOTIFICATIONS,
+                    expandedSection = expandedSection,
+                    onToggle = { expandedSection = if (expandedSection == SettingsSection.NOTIFICATIONS) null else SettingsSection.NOTIFICATIONS },
+                    icon = Icons.Default.Notifications,
+                    title = "Notifications",
+                    subtitle = if (uiState.notificationsEnabled) "On" else "Off",
+                ) {
                     Text(
                         "Helpful alerts for ekagra sessions, streaks, and important class updates.",
                         style = MaterialTheme.typography.bodySmall,
@@ -332,167 +376,272 @@ fun SettingsScreen(
                             }
                         },
                     )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
-                    NotificationToggleRow(
-                        title = "Ekagra timer updates",
-                        subtitle = "Timer running, session complete, and break status.",
-                        checked = uiState.focusTimerNotificationsEnabled,
-                        enabled = uiState.notificationsEnabled,
-                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
-                    )
-                    NotificationToggleRow(
-                        title = "Daily study reminders",
-                        subtitle = "A planned reminder for your Ekagra study block.",
-                        checked = uiState.dailyStudyReminderEnabled,
-                        enabled = uiState.notificationsEnabled,
-                        onCheckedChange = {
-                            if (!it) {
-                                viewModel.onEvent(SettingsEvent.ToggleDailyStudyReminder(false))
-                            } else {
-                                pendingDailyEnable = true
-                                requestNotificationPermission()
-                            }
-                        },
-                    )
-                    SafarCustomTextField(
-                        label = "DAILY REMINDER TIME",
-                        value = reminderDraft,
-                        onValueChange = { value ->
-                            if (value.length <= 5 && value.all { it.isDigit() || it == ':' }) {
-                                reminderDraft = value
-                            }
-                            if (isValidReminderTimeInput(value)) {
-                                viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(value))
-                            }
-                        },
-                        enabled = uiState.notificationsEnabled && uiState.dailyStudyReminderEnabled,
-                        placeholder = "19:00",
-                        errorText = if (reminderDraft.isNotBlank() && !isValidReminderTimeInput(reminderDraft)) {
-                            "Use 24-hour time in HH:mm format (e.g., 07:30, 19:00)."
-                        } else null,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    NotificationToggleRow(
-                        title = "Streak reminders",
-                        subtitle = "Evening warning before your streak expires.",
-                        checked = uiState.streakReminderEnabled,
-                        enabled = uiState.notificationsEnabled,
-                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleStreakReminder(it)) },
-                    )
-                    NotificationToggleRow(
-                        title = "Course/class updates",
-                        subtitle = "New lessons, tests, PDFs, and live class alerts.",
-                        checked = uiState.courseUpdatesEnabled,
-                        enabled = uiState.notificationsEnabled,
-                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
-                    )
-                    NotificationToggleRow(
-                        title = "Achievements",
-                        subtitle = "Badges, milestones, and goal completion.",
-                        checked = uiState.achievementsEnabled,
-                        enabled = uiState.notificationsEnabled,
-                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAchievements(it)) },
-                    )
-                    NotificationToggleRow(
-                        title = "Community replies",
-                        subtitle = "Mehfil replies, mentions, and teacher responses.",
-                        checked = uiState.communityRepliesEnabled,
-                        enabled = uiState.notificationsEnabled,
-                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
-                    )
-                    NotificationToggleRow(
-                        title = "SAFAR announcements",
-                        subtitle = "Admin announcements and major challenges.",
-                        checked = uiState.announcementsEnabled,
-                        enabled = uiState.notificationsEnabled,
-                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAnnouncements(it)) },
-                    )
-                    NotificationToggleRow(
-                        title = "Weekly summary",
-                        subtitle = "Progress recap when summaries are enabled.",
-                        checked = uiState.weeklySummaryEnabled,
-                        enabled = uiState.notificationsEnabled,
-                        onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleWeeklySummary(it)) },
-                    )
-                    Text(
-                        "Quiet hours: ${uiState.quietHoursStart} to ${uiState.quietHoursEnd}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-            NotificationDebugSettingsEntry()
-
-            if (canAccessAdminComposer) {
-                ProfileSectionCard(title = "Admin", icon = Icons.Default.Notifications) {
-                    Text(
-                        "Internal admin tools.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = onOpenAdminNotificationComposer,
+                    // Notification sources only appear once the master switch is on —
+                    // there's nothing to configure per-category while notifications
+                    // are globally off, and collapsing them keeps the screen short.
+                    AnimatedVisibility(
+                        visible = uiState.notificationsEnabled,
+                        enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(220)),
+                        exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(140)),
                     ) {
-                        Text("Open Admin Notification Composer")
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
+                            SettingsPermissionRow(
+                                icon = Icons.Default.CheckCircle,
+                                title = "Notifications (system)",
+                                subtitle = "Android permission that lets SAFAR actually show these alerts.",
+                                granted = hasNotificationPermission,
+                                accent = MaterialTheme.colorScheme.primary,
+                                onClickWhenNotGranted = requestNotificationPermission,
+                                onInfoClick = { activeInfoSheet = SettingsInfoSheet.NOTIFICATIONS },
+                            )
+                            NotificationToggleRow(
+                                title = "Ekagra timer updates",
+                                subtitle = "Timer running, session complete, and break status.",
+                                checked = uiState.focusTimerNotificationsEnabled,
+                                enabled = uiState.notificationsEnabled,
+                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
+                            )
+                            NotificationToggleRow(
+                                title = "Daily study reminders",
+                                subtitle = "A planned reminder for your Ekagra study block.",
+                                checked = uiState.dailyStudyReminderEnabled,
+                                enabled = uiState.notificationsEnabled,
+                                onCheckedChange = {
+                                    if (!it) {
+                                        viewModel.onEvent(SettingsEvent.ToggleDailyStudyReminder(false))
+                                    } else {
+                                        pendingDailyEnable = true
+                                        requestNotificationPermission()
+                                    }
+                                },
+                            )
+                            SafarCustomTextField(
+                                label = "DAILY REMINDER TIME",
+                                value = reminderDraft,
+                                onValueChange = { value ->
+                                    if (value.length <= 5 && value.all { it.isDigit() || it == ':' }) {
+                                        reminderDraft = value
+                                    }
+                                    if (isValidReminderTimeInput(value)) {
+                                        viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(value))
+                                    }
+                                },
+                                enabled = uiState.notificationsEnabled && uiState.dailyStudyReminderEnabled,
+                                placeholder = "19:00",
+                                errorText = if (reminderDraft.isNotBlank() && !isValidReminderTimeInput(reminderDraft)) {
+                                    "Use 24-hour time in HH:mm format (e.g., 07:30, 19:00)."
+                                } else null,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            NotificationToggleRow(
+                                title = "Streak reminders",
+                                subtitle = "Evening warning before your streak expires.",
+                                checked = uiState.streakReminderEnabled,
+                                enabled = uiState.notificationsEnabled,
+                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleStreakReminder(it)) },
+                            )
+                            NotificationToggleRow(
+                                title = "Course/class updates",
+                                subtitle = "New lessons, tests, PDFs, and live class alerts.",
+                                checked = uiState.courseUpdatesEnabled,
+                                enabled = uiState.notificationsEnabled,
+                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
+                            )
+                            NotificationToggleRow(
+                                title = "Achievements",
+                                subtitle = "Badges, milestones, and goal completion.",
+                                checked = uiState.achievementsEnabled,
+                                enabled = uiState.notificationsEnabled,
+                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAchievements(it)) },
+                            )
+                            NotificationToggleRow(
+                                title = "Community replies",
+                                subtitle = "Mehfil replies, mentions, and teacher responses.",
+                                checked = uiState.communityRepliesEnabled,
+                                enabled = uiState.notificationsEnabled,
+                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
+                            )
+                            NotificationToggleRow(
+                                title = "SAFAR announcements",
+                                subtitle = "Admin announcements and major challenges.",
+                                checked = uiState.announcementsEnabled,
+                                enabled = uiState.notificationsEnabled,
+                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAnnouncements(it)) },
+                            )
+                            NotificationToggleRow(
+                                title = "Weekly summary",
+                                subtitle = "Progress recap when summaries are enabled.",
+                                checked = uiState.weeklySummaryEnabled,
+                                enabled = uiState.notificationsEnabled,
+                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleWeeklySummary(it)) },
+                            )
+                            Text(
+                                "Quiet hours: ${uiState.quietHoursStart} to ${uiState.quietHoursEnd}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
-            }
 
-            ProfileSectionCard(title = "Legal & permissions", icon = Icons.Default.Info) {
-                Text(
-                    "Simple notes about SAFAR, your choices, and the permissions KAVACH uses.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                SettingsInfoRow(
-                    title = "EULA",
-                    subtitle = "Your basic agreement for using SAFAR.",
-                    onClick = { activeInfoSheet = SettingsInfoSheet.EULA },
-                )
-                SettingsInfoRow(
-                    title = "Privacy & data",
-                    subtitle = "What SAFAR uses, and what it does not read.",
-                    onClick = { activeInfoSheet = SettingsInfoSheet.PRIVACY },
-                )
-                SettingsInfoRow(
-                    title = "Why KAVACH needs permissions",
-                    subtitle = "A friendly guide to ekagra blocking.",
-                    onClick = { activeInfoSheet = SettingsInfoSheet.KAVACH },
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
-                SettingsPermissionRow(
-                    icon = Icons.Default.Info,
-                    title = "App Usage Permission",
-                    subtitle = "Helps KAVACH notice when a selected app opens during a ekagra session.",
-                    granted = hasUsageAccess,
-                    accent = MaterialTheme.colorScheme.primary,
-                    onClickWhenNotGranted = { FocusShieldPermissionHelper.openUsageAccessSettings(context) },
-                    onInfoClick = { activeInfoSheet = SettingsInfoSheet.USAGE_ACCESS },
-                )
-                SettingsPermissionRow(
-                    icon = Icons.Default.Info,
-                    title = "Display over other apps",
-                    subtitle = "Lets KAVACH show its block screen over a distracting app.",
-                    granted = hasFocusShieldOverlay,
-                    accent = MaterialTheme.colorScheme.primary,
-                    onClickWhenNotGranted = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
-                    onInfoClick = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
-                )
-                SettingsPermissionRow(
-                    icon = Icons.Default.CheckCircle,
-                    title = "Notifications (system)",
-                    subtitle = "Shows timer progress, reminders, and KAVACH status.",
-                    granted = hasNotificationPermission,
-                    accent = MaterialTheme.colorScheme.primary,
-                    onClickWhenNotGranted = requestNotificationPermission,
-                    onInfoClick = { activeInfoSheet = SettingsInfoSheet.NOTIFICATIONS },
-                )
-            }
+                val grantedPermissionCount = listOf(hasUsageAccess, hasFocusShieldOverlay).count { it }
+                SettingsAccordionSection(
+                    section = SettingsSection.PERMISSIONS,
+                    expandedSection = expandedSection,
+                    onToggle = { expandedSection = if (expandedSection == SettingsSection.PERMISSIONS) null else SettingsSection.PERMISSIONS },
+                    icon = Icons.Default.Lock,
+                    title = "Permissions",
+                    subtitle = "$grantedPermissionCount of 2 granted",
+                ) {
+                    Text(
+                        "Android permissions KAVACH uses to block distracting apps during ekagra sessions.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    SettingsPermissionRow(
+                        icon = Icons.Default.Info,
+                        title = "App Usage Permission",
+                        subtitle = "Helps KAVACH notice when a selected app opens during a ekagra session.",
+                        granted = hasUsageAccess,
+                        accent = MaterialTheme.colorScheme.primary,
+                        onClickWhenNotGranted = { FocusShieldPermissionHelper.openUsageAccessSettings(context) },
+                        onInfoClick = { activeInfoSheet = SettingsInfoSheet.USAGE_ACCESS },
+                    )
+                    SettingsPermissionRow(
+                        icon = Icons.Default.Info,
+                        title = "Display over other apps",
+                        subtitle = "Lets KAVACH show its block screen over a distracting app.",
+                        granted = hasFocusShieldOverlay,
+                        accent = MaterialTheme.colorScheme.primary,
+                        onClickWhenNotGranted = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
+                        onInfoClick = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
+                    )
+                }
 
-            Spacer(Modifier.height(24.dp))
+                SettingsAccordionSection(
+                    section = SettingsSection.LEGAL,
+                    expandedSection = expandedSection,
+                    onToggle = { expandedSection = if (expandedSection == SettingsSection.LEGAL) null else SettingsSection.LEGAL },
+                    icon = Icons.Default.Info,
+                    title = "Legal & Info",
+                ) {
+                    Text(
+                        "Simple notes about SAFAR, your choices, and the permissions KAVACH uses.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    SettingsInfoRow(
+                        title = "EULA",
+                        subtitle = "Your basic agreement for using SAFAR.",
+                        onClick = { activeInfoSheet = SettingsInfoSheet.EULA },
+                    )
+                    SettingsInfoRow(
+                        title = "Privacy & data",
+                        subtitle = "What SAFAR uses, and what it does not read.",
+                        onClick = { activeInfoSheet = SettingsInfoSheet.PRIVACY },
+                    )
+                    SettingsInfoRow(
+                        title = "Why KAVACH needs permissions",
+                        subtitle = "A friendly guide to ekagra blocking.",
+                        onClick = { activeInfoSheet = SettingsInfoSheet.KAVACH },
+                    )
+                }
+
+                if (canAccessAdminComposer) {
+                    SettingsAccordionSection(
+                        section = SettingsSection.ADMIN,
+                        expandedSection = expandedSection,
+                        onToggle = { expandedSection = if (expandedSection == SettingsSection.ADMIN) null else SettingsSection.ADMIN },
+                        icon = Icons.Default.Notifications,
+                        title = "Admin",
+                    ) {
+                        Text(
+                            "Internal admin tools.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = onOpenAdminNotificationComposer,
+                        ) {
+                            Text("Open Admin Notification Composer")
+                        }
+                    }
+                }
+
+                NotificationDebugSettingsEntry()
+
+                Spacer(Modifier.height(24.dp))
         }
+        }
+    }
+}
+
+// A single top-level Settings row: icon + title + optional one-line status,
+// tap to expand/collapse its content. Chevron rotates 180° on expand. Content
+// only composes its AnimatedVisibility while expanded, so collapsed sections
+// cost nothing extra on screen — this is what turns "every card open at once"
+// into a short scannable list, matching the accordion pattern requested.
+@Composable
+private fun SettingsAccordionSection(
+    section: SettingsSection,
+    expandedSection: SettingsSection?,
+    onToggle: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val expanded = expandedSection == section
+    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "settingsChevron")
+
+    GlassCard {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp))
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                    if (subtitle != null) {
+                        Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(rotation),
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(220)),
+                exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(140)),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    content()
+                }
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,6 +52,7 @@ import com.safarparmar.app.ui.theme.SafarSemanticColors
 internal fun ChapterTopicsSheet(
     chapterName: String,
     topics: List<StudyTopic>,
+    isDarkTheme: Boolean,
     onDismiss: () -> Unit,
     onAddTopic: (String) -> Unit,
     onTopicClick: (StudyTopic) -> Unit,
@@ -79,7 +79,7 @@ internal fun ChapterTopicsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = SafarSemanticColors.plannerBackground(isSystemInDarkTheme()),
+        containerColor = SafarSemanticColors.plannerBackground(isDarkTheme),
     ) {
         Column(Modifier.fillMaxWidth().heightIn(max = maxSheetHeight).padding(bottom = 24.dp)) {
             Text(

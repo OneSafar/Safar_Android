@@ -89,6 +89,7 @@ import com.safarparmar.app.ui.studyplanner.StudyPlannerOnboardingSteps
 import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
+import com.safarparmar.app.ui.studyplanner.logic.isUnscheduled
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
 import com.safarparmar.app.ui.studyplanner.logic.rollup
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
@@ -116,6 +117,7 @@ fun PlanTabScreen(
     onboardingCompletedSteps: Set<String> = emptySet(),
     preferredStudyStrategy: String = "interleaved",
     pendingManualSubjectOrder: Boolean = false,
+    pendingOpenUnscheduledTopics: Boolean = false,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
@@ -186,6 +188,12 @@ fun PlanTabScreen(
     var editTopicRef by remember { mutableStateOf<TopicRef?>(null) }
     var revisionTopicRef by remember { mutableStateOf<TopicRef?>(null) }
     var showUnscheduledTopicsScreen by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(pendingOpenUnscheduledTopics) {
+        if (pendingOpenUnscheduledTopics) {
+            showUnscheduledTopicsScreen = true
+            actions.clearPendingOpenUnscheduledTopics()
+        }
+    }
     var showManualOrderSheet by remember(plan.id) { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(pendingManualSubjectOrder, plan.subjects) {
         if (pendingManualSubjectOrder && plan.subjects.isNotEmpty()) {
@@ -193,7 +201,7 @@ fun PlanTabScreen(
         }
     }
     val unscheduledTopics = remember(refs) {
-        refs.filter { it.topic.plannedDate.isNullOrBlank() && it.topic.status != TopicStatus.DONE }
+        refs.filter { it.topic.isUnscheduled() }
     }
     val revisionTopics = remember(refs) {
         refs.filter { it.topic.status == TopicStatus.REVISION_NEEDED }
@@ -922,7 +930,7 @@ fun PlanTabScreen(
                   val incompleteTopics = todayTopics.filter { it.topic.status != TopicStatus.DONE }
                   val topicIds = incompleteTopics.map { it.topic.id }
                   if (topicIds.isNotEmpty()) {
-                      actions.clearTopicDates(topicIds)
+                      actions.finishDay(topicIds)
                   }
               },
               modifier = Modifier.align(Alignment.BottomCenter)
@@ -1151,6 +1159,29 @@ internal fun UnscheduledTopicsScreen(
     actions: PlannerActions,
     onDismiss: () -> Unit,
 ) {
+    TopicSchedulingScreen(plan, unscheduledTopics, actions, onDismiss, "Unscheduled Topics", "Search unscheduled topics...")
+}
+
+@Composable
+internal fun MissedTopicsScreen(
+    plan: StudyPlan,
+    missedTopics: List<TopicRef>,
+    actions: PlannerActions,
+    onDismiss: () -> Unit,
+) {
+    TopicSchedulingScreen(plan, missedTopics, actions, onDismiss, "Missed Topics", "Search missed topics...")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TopicSchedulingScreen(
+    plan: StudyPlan,
+    unscheduledTopics: List<TopicRef>,
+    actions: PlannerActions,
+    onDismiss: () -> Unit,
+    screenTitle: String,
+    searchPlaceholder: String,
+) {
     val scheme = MaterialTheme.colorScheme
     var selectedTopicForDatePicker by remember { mutableStateOf<TopicRef?>(null) }
     var searchQuery by remember { mutableStateOf("") }
@@ -1229,7 +1260,7 @@ internal fun UnscheduledTopicsScreen(
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Missed Topics",
+                        text = screenTitle,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = scheme.onSurface
@@ -1246,7 +1277,7 @@ internal fun UnscheduledTopicsScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search missed topics...") },
+                placeholder = { Text(searchPlaceholder) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {

@@ -1996,13 +1996,13 @@ fun DailyTodoSetupSheet(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "Do you want to add daily to-do topics?",
+                    text = "Add daily topics?",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
                     color = scheme.onSurface,
                 )
                 Text(
-                    text = "Add recurring practice or revision topics. They will appear in the Daily To-Do card on Home and count toward your overall progress.",
+                    text = "Add topics you want to do every day. You'll see them on Home.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = scheme.onSurfaceVariant,
                 )
@@ -2017,7 +2017,7 @@ fun DailyTodoSetupSheet(
                     value = taskName,
                     onValueChange = { taskName = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("e.g. Vocabulary practice") },
+                    placeholder = { Text("e.g. Revise vocabulary") },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                 )
@@ -2041,15 +2041,23 @@ fun DailyTodoSetupSheet(
 
             if (pendingTodos.isEmpty()) {
                 Text(
-                    text = "No daily topics added yet.",
+                    text = "No topics yet.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = scheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     textAlign = TextAlign.Center,
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    pendingTodos.forEach { todo ->
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 280.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(
+                        items = pendingTodos,
+                        key = { it.id },
+                    ) { todo ->
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = scheme.surfaceVariant.copy(alpha = 0.45f),

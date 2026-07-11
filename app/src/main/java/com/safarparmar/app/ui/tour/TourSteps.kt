@@ -48,34 +48,67 @@ val nishthaTourSteps = listOf(
     ),
 )
 
-/** Tour steps shown on the Ekagra screen. */
 val ekagraTourSteps = listOf(
+    // Step 0 — What is Ekagra Screen
     ButterflyTourStep(
-        title   = "Welcome to Ekagra",
-        message = "Ekagra means 'one-pointed ekagra'. Use it for deep work sessions, Pomodoro timers, and flow tracking.",
-        anchorX = 0.5f, anchorY = 0.28f,
+        title   = "Ekagra Screen ⏱",
+        message = "study with no distractions.",
+        anchorX = 0.5f, anchorY = 0.47f,
         tooltipSide = TooltipSide.BOTTOM,
         iconRes = com.safarparmar.app.R.drawable.ic_target
     ),
+
+    // Step 1 — Kavach
     ButterflyTourStep(
-        title   = "Ekagra Timer",
-        message = "Set a session length and press Start. The timer keeps you accountable without distraction.",
-        anchorX = 0.5f, anchorY = 0.55f,
+        title   = "Kavach Shield",
+        message = "don't forget to activate Kavach for distraction-free study.",
+        anchorX = 0.5f, anchorY = 0.26f,
+        tooltipSide = TooltipSide.BOTTOM,
+    ),
+
+    // Step 2 — Modes
+    ButterflyTourStep(
+        title   = "Timer Modes",
+        message = "choose your session type - Pomodoro timer , break or Stopwatch.",
+        anchorX = 0.5f, anchorY = 0.32f,
+        tooltipSide = TooltipSide.BOTTOM,
+    ),
+
+    // Step 3 — Settings
+    ButterflyTourStep(
+        title   = "Timer Settings",
+        message = "set duration for both focus and break sessions. Choose how you want to study.",
+        anchorX = 0.5f, anchorY = 0.45f,
+        tooltipSide = TooltipSide.BOTTOM,
+    ),
+
+    // Step 4 — Start Pomodoro Session
+    ButterflyTourStep(
+        title   = "Start Pomodoro",
+        message = "you can start a pomodoro session by setting how many times you need to repeat the session",
+        anchorX = 0.5f, anchorY = 0.80f,
         tooltipSide = TooltipSide.TOP,
     ),
+
+    // Step 5 — Floating pip
     ButterflyTourStep(
-        title   = "Session Settings",
-        message = "Customize your work and break durations to match your natural rhythm.",
-        anchorX = 0.5f, anchorY = 0.75f,
-        tooltipSide = TooltipSide.TOP,
+        title   = "Floating Timer",
+        message = "you can always enable floating timer as well as Kavach beast mode from this three dots menu. ",
+        anchorX = 0.91f, anchorY = 0.13f,
+        tooltipSide = TooltipSide.BOTTOM,
     ),
+
+    // Step 6 — Session History
     ButterflyTourStep(
-        title   = "Navigation Menu",
-        message = "Swipe from the left or tap the menu icon to switch between SAFAR modules at any time.",
-        anchorX = 0.07f, anchorY = 0.06f,
+        title   = "Session History",
+        message = "you can either link a goal or name your own sessions and save them.",
+        anchorX = 0.5f, anchorY = 0.45f,
         tooltipSide = TooltipSide.BOTTOM,
     ),
 )
+
+
+
 
 /** Tour steps shown on the Mehfil screen. */
 val mehfilTourSteps = listOf(
@@ -94,7 +127,7 @@ val mehfilTourSteps = listOf(
     ),
     ButterflyTourStep(
         title   = "Sandesh",
-        message = "The banner at the top is a Sandesh — a community-wide message. Tap it to react and comment.",
+        message = "The banner at the top is a sandesh from Parmar sir. ",
         anchorX = 0.5f, anchorY = 0.18f,
         tooltipSide = TooltipSide.BOTTOM,
         iconRes = com.safarparmar.app.R.drawable.ic_megaphone
@@ -124,7 +157,7 @@ val mehfilTourSteps = listOf(
 val dhyanTourSteps = listOf(
     ButterflyTourStep(
         title   = "Welcome to Dhyan",
-        message = "Dhyan means meditation in Sanskrit. This space is for breathing exercises, calm, and guided courses.",
+        message = "This space is for breathing exercises, calm, and guided courses.",
         anchorX = 0.5f, anchorY = 0.28f,
         tooltipSide = TooltipSide.BOTTOM,
         iconRes = com.safarparmar.app.R.drawable.ic_person_standing
@@ -137,22 +170,15 @@ val dhyanTourSteps = listOf(
     ),
     ButterflyTourStep(
         title   = "Techniques",
-        message = "Tap the air-icon FAB to switch between Diaphragmatic, Box, 4-7-8 and 6-7-8 techniques.",
+        message = "You can select from any of the breathing techniques. ",
         anchorX = 0.88f, anchorY = 0.82f,
         tooltipSide = TooltipSide.LEFT,
         iconRes = com.safarparmar.app.R.drawable.ic_wind
     ),
     ButterflyTourStep(
-        title   = "Courses",
-        message = "Switch to the Courses tab for structured meditation tracks — including the SAFAR 30-Day Journey.",
-        anchorX = 0.75f, anchorY = 0.93f,
-        tooltipSide = TooltipSide.TOP,
-        iconRes = com.safarparmar.app.R.drawable.ic_library
-    ),
-    ButterflyTourStep(
         title   = "Ambient Sound",
-        message = "Tap the music icon in the top bar to add Rain, Forest, Ocean, or Binaural Beats to your session.",
-        anchorX = 0.88f, anchorY = 0.06f,
+        message = "Tap the music icon to open the audio library. ",
+        anchorX = 0.84f, anchorY = 0.16f,
         tooltipSide = TooltipSide.BOTTOM,
         iconRes = com.safarparmar.app.R.drawable.ic_music_notes_simple
     ),
@@ -162,115 +188,78 @@ val dhyanTourSteps = listOf(
 val studyPlannerTourSteps = listOf(
     // Step 0 (YOUR_EXAMS)
     ButterflyTourStep(
-        title   = "Welcome to Exam Planner 📚",
-        message = "This is your exam list. Open any exam to see its plan.",
-        anchorX = 0.5f, anchorY = 0.15f,
+        title   = "Aapke Exam Plans",
+        message = "Yahan aapke sabhi exam plans milenge. Kisi plan ko kholkar uski preparation manage kar sakte hain.",
+        anchorX = 0.5f, anchorY = 0.45f,
         tooltipSide = TooltipSide.BOTTOM,
         iconRes = com.safarparmar.app.R.drawable.ic_library
     ),
-    // Step 1 (YOUR_EXAMS)
+    // Step 1 (YOUR_EXAMS) - Create Plan
     ButterflyTourStep(
-        title   = "Plan Your Exams",
-        message = "Tap here to choose another exam template.",
-        anchorX = 0.88f, anchorY = 0.36f,
-        tooltipSide = TooltipSide.LEFT,
-    ),
-    // Step 2 (YOUR_EXAMS) - Custom Plan
-    ButterflyTourStep(
-        title   = "Build Your Planner",
-        message = "Tap Custom Plan if your exam is not in templates.",
-        anchorX = 0.88f, anchorY = 0.45f,
-        tooltipSide = TooltipSide.LEFT,
-    ),
-    // Step 3 (PLAN)
-    ButterflyTourStep(
-        title   = "Exam Status",
-        message = "See days left and how much syllabus is done.",
-        anchorX = 0.5f, anchorY = 0.12f,
-        tooltipSide = TooltipSide.BOTTOM,
-    ),
-    // Step 4 (PLAN)
-    ButterflyTourStep(
-        title   = "Task Tabs",
-        message = "Use these tabs to see today, overdue, upcoming, and done topics.",
-        anchorX = 0.5f, anchorY = 0.27f,
-        tooltipSide = TooltipSide.BOTTOM,
-    ),
-    // Step 5 (PLAN)
-    ButterflyTourStep(
-        title   = "Start Study Flow",
-        message = "Use Study Flow to finish today’s topics one by one.",
-        anchorX = 0.45f, anchorY = 0.48f,
+        title   = "Naya Exam Plan",
+        message = "Naye Exam Plan ke liye Diye gye Iss CREATE YOUR NEW PLAN  pe Tap Kariye .",
+        anchorX = 0.5f, anchorY = 0.85f,
         tooltipSide = TooltipSide.TOP,
         iconRes = com.safarparmar.app.R.drawable.ic_target
     ),
-    // Step 6 (PLAN)
+    // Step 2 (PLAN) - Dashboard
     ButterflyTourStep(
-        title   = "Today's Agenda",
-        message = "These are today’s topics. Mark them done after studying.",
-        anchorX = 0.5f, anchorY = 0.65f,
+        title   = "Plan Overview",
+        message = "Yahan exam tak bache din, overall progress aur aaj ki padhai ka clear overview milta hai.",
+        anchorX = 0.5f, anchorY = 0.15f,
+        tooltipSide = TooltipSide.BOTTOM,
+    ),
+    // Step 3 (PLAN) - Quick Filters
+    ButterflyTourStep(
+        title   = "Preparation Status",
+        message = "Today , Upcoming , Missed aur Completed topics ko Dekhkar Apni Preparation Track Kar skte hain .",
+        anchorX = 0.5f, anchorY = 0.35f,
+        tooltipSide = TooltipSide.BOTTOM,
+    ),
+    // Step 4 (PLAN) - Daily Todo
+    ButterflyTourStep(
+        title   = "Daily To-Do",
+        message = "Roz Repeat hone waali  Daily Topics ko yahan pe Add Karskte hain taaki Daily Practice Hoti rahe.",
+        anchorX = 0.5f, anchorY = 0.45f,
         tooltipSide = TooltipSide.TOP,
     ),
-    // Step 7 (SYLLABUS)
+    // Step 5 (PLAN) - Today's Mission
     ButterflyTourStep(
-        title   = "Syllabus Setup",
-        message = "Add or import your subjects, chapters, and topics here.",
-        anchorX = 0.28f, anchorY = 0.67f,
+        title   = "Todays Study Plan",
+        message = "Aaj kya aur kitne topics Padhne hain , Woh Yahan Milega . ",
+        anchorX = 0.5f, anchorY = 0.55f,
         tooltipSide = TooltipSide.TOP,
+        iconRes = com.safarparmar.app.R.drawable.ic_target
     ),
-    // Step 8 (SYLLABUS)
+    // Step 6 (SYLLABUS)
     ButterflyTourStep(
-        title   = "Build Planner",
-        message = "After topics are ready, tap this. It creates your daily plan.",
-        anchorX = 0.74f, anchorY = 0.68f,
-        tooltipSide = TooltipSide.TOP,
-        iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
+        title   = "Syllabus",
+        message = "Yahan subjects, chapters aur topics ko organize karein, unki priority set karein aur preparation status dekhein.",
+        anchorX = 0.5f, anchorY = 0.5f,
+        tooltipSide = TooltipSide.BOTTOM,
     ),
-    // Step 9 (CALENDAR)
+    // Step 7 (CALENDAR)
     ButterflyTourStep(
-        title   = "Exam Countdown",
-        message = "This shows how many days are left for your exam.",
-        anchorX = 0.5f, anchorY = 0.19f,
+        title   = "Study Calendar",
+        message = "Har date ka study schedule yahan dikhega. Isse aage ka workload aur pending work samajh sakte hain.",
+        anchorX = 0.5f, anchorY = 0.5f,
         tooltipSide = TooltipSide.BOTTOM,
         iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
     ),
-    // Step 10 (CALENDAR)
+    // Step 8 (CALENDAR) - Revision & Missed Topics Buttons
     ButterflyTourStep(
-        title   = "Change Month",
-        message = "Use arrows to see your plan for other months.",
-        anchorX = 0.5f, anchorY = 0.36f,
-        tooltipSide = TooltipSide.BOTTOM,
-        iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
-    ),
-    // Step 11 (CALENDAR)
-    ButterflyTourStep(
-        title   = "Study Dots",
-        message = "Dots show study days. Tap a date to see topics.",
-        anchorX = 0.76f, anchorY = 0.66f,
+        title   = "Revision & Missed Topics",
+        message = "Jin topic ko Revision Ke liye set kiya hai aur Jo bhi topics missed hogye hain Woh yaha pe Dikh jayenge . ",
+        anchorX = 0.5f, anchorY = 0.85f,
         tooltipSide = TooltipSide.TOP,
         iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
     ),
-    // Step 12 (CALENDAR)
+    // Step 9 (INSIGHTS)
     ButterflyTourStep(
-        title   = "Calendar Legend",
-        message = "These colours show planned, done, overdue, and off days.",
-        anchorX = 0.5f, anchorY = 0.79f,
+        title   = "Progress Insights",
+        message = "Yahan study speed, syllabus progress aur weak areas samajhkar apni preparation ko better bana sakte hain.",
+        anchorX = 0.5f, anchorY = 0.5f,
         tooltipSide = TooltipSide.TOP,
-        iconRes = com.safarparmar.app.R.drawable.ic_calendar_dots
-    ),
-    // Step 13 (INSIGHTS)
-    ButterflyTourStep(
-        title   = "Progress",
-        message = "See where you are lagging and what to do next.",
-        anchorX = 0.5f, anchorY = 0.3f,
-        tooltipSide = TooltipSide.BOTTOM,
         iconRes = com.safarparmar.app.R.drawable.ic_chart_bar
-    ),
-    // Step 14 (PLAN)
-    ButterflyTourStep(
-        title   = "Bottom Menu",
-        message = "Use this menu to move between Exam, Plan, Syllabus, Calendar, and Insights.",
-        anchorX = 0.5f, anchorY = 0.95f,
-        tooltipSide = TooltipSide.TOP,
     ),
 )

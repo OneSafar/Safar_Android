@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.studyplanner.create.steps.BuildingPreviewStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ChoosePathStep
 import com.safarparmar.app.ui.studyplanner.create.steps.DeepFocusOrderStep
+import com.safarparmar.app.ui.studyplanner.create.steps.DailyTopicsStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ManualTopicTreeStep
 import com.safarparmar.app.ui.studyplanner.create.steps.MixedBagSubjectPickerStep
 import com.safarparmar.app.ui.studyplanner.create.steps.PasteSyllabusStep
@@ -62,9 +63,10 @@ private fun stepTitle(step: CreatePlanStep): String = when (step) {
     CreatePlanStep.PasteSyllabus -> "Paste your syllabus"
     CreatePlanStep.PlanSettings -> "Plan settings"
     CreatePlanStep.DeepFocusOrder -> "Order your syllabus"
-    CreatePlanStep.MixedBagSubjectPicker -> "Split focus"
+    CreatePlanStep.MixedBagSubjectPicker -> "Mixed Bag"
     CreatePlanStep.BuildingPreview -> "Building your plan"
     CreatePlanStep.Preview -> "Review your plan"
+    CreatePlanStep.DailyTopics -> "Daily topics"
 }
 
 /**
@@ -120,6 +122,7 @@ fun CreatePlanScreen(
                 viewModel.discardDraft()
                 viewModel.goToStep(CreatePlanStep.PlanSettings)
             }
+            CreatePlanStep.DailyTopics -> viewModel.goToStep(CreatePlanStep.Preview)
         }
     }
 
@@ -174,6 +177,8 @@ fun CreatePlanScreen(
                     templateDetail = state.templateDetail,
                     loadingTemplateDetail = state.loadingTemplateDetail,
                     excludedTopicKeys = state.excludedTopicKeys,
+                    excludedTemplateSubjectIndices = state.excludedTemplateSubjectIndices,
+                    excludedTemplateChapterKeys = state.excludedTemplateChapterKeys,
                     templateExtraChapters = state.templateExtraChapters,
                     templateExtraTopics = state.templateExtraTopics,
                     templateExtraSubjects = state.templateExtraSubjects,
@@ -186,6 +191,8 @@ fun CreatePlanScreen(
                     onDrillIntoChapter = viewModel::drillIntoChapter,
                     onDrillBack = { viewModel.drillBack() },
                     onToggleTopic = viewModel::toggleExcludedTopic,
+                    onRemoveOriginalSubject = viewModel::removeOriginalTemplateSubject,
+                    onRemoveOriginalChapter = viewModel::removeOriginalTemplateChapter,
                     onAddTemplateSubject = viewModel::addTemplateSubject,
                     onRemoveTemplateSubject = viewModel::removeTemplateSubject,
                     onAddTemplateSubjectChapter = viewModel::addTemplateSubjectChapter,
@@ -265,7 +272,7 @@ fun CreatePlanScreen(
                         preview = preview,
                         isConfirming = state.isConfirming,
                         error = state.error,
-                        onConfirm = viewModel::confirmPlan,
+                        onConfirm = { viewModel.goToStep(CreatePlanStep.DailyTopics) },
                         onAdjust = {
                             viewModel.discardDraft()
                             viewModel.goToStep(CreatePlanStep.PlanSettings)
@@ -274,6 +281,12 @@ fun CreatePlanScreen(
                         modifier = Modifier.padding(padding),
                     )
                 }
+                CreatePlanStep.DailyTopics -> DailyTopicsStep(
+                    isSaving = state.isConfirming,
+                    error = state.error,
+                    onContinue = viewModel::finishDailyTopics,
+                    modifier = Modifier.padding(padding),
+                )
             }
         }
     }

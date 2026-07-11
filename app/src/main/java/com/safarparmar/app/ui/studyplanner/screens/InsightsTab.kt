@@ -265,7 +265,6 @@ internal fun InsightsTab(
             item {
                 InsightsOverallProgressRedesign(
                     overallProgressPercent = rollup.overallProgressPercent,
-                    plannerProgressPercent = rollup.plannerProgressPercent,
                     dailyTodoProgressPercent = rollup.dailyTodoProgressPercent,
                     doneTopics = rollup.doneTopics,
                     totalTopics = rollup.totalTopics
@@ -904,12 +903,12 @@ internal fun StudentNextStepCard(
             action = { actions.setSection(PlannerSection.PLAN) }
         }
         unplanned > 0 -> {
-            title = "Assign missed topics"
-            body = "$unplanned topics have no study date. Pick dates for them in Missed Topics."
-            button = "View Missed Topics"
+            title = "Schedule your topics"
+            body = "$unplanned topics have no study date. Pick dates for them in Unscheduled Topics."
+            button = "View Unscheduled"
             icon = Icons.AutoMirrored.Filled.PlaylistAdd
             tint = Color(0xFFF59E0B)
-            action = { actions.openMissedTopics() }
+            action = { actions.openUnscheduledTopics() }
         }
         overdue > 0 -> {
             title = "Clear overdue first"
@@ -2129,14 +2128,12 @@ internal fun InsightsHeaderRedesign() {
 @Composable
 fun InsightsOverallProgressRedesign(
     overallProgressPercent: Int,
-    plannerProgressPercent: Int,
     dailyTodoProgressPercent: Int,
     doneTopics: Int,
     totalTopics: Int
 ) {
     val scheme = MaterialTheme.colorScheme
     val progress = overallProgressPercent.coerceIn(0, 100)
-    val plannerProgress = plannerProgressPercent.coerceIn(0, 100)
     val todoProgress = dailyTodoProgressPercent.coerceIn(0, 100)
 
     Surface(
@@ -2186,14 +2183,14 @@ fun InsightsOverallProgressRedesign(
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("$progress%", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-                        Text("overall", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                        Text("exam", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
                     }
                 }
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(7.dp),
                 ) {
-                    Text("Overall study progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                    Text("Overall exam progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
                     Text(
                         "$doneTopics of $totalTopics syllabus topics complete",
                         style = MaterialTheme.typography.bodySmall,
@@ -2206,8 +2203,8 @@ fun InsightsOverallProgressRedesign(
                 }
             }
 
-            InsightsProgressRow("Syllabus", "$doneTopics/$totalTopics topics", plannerProgress, scheme.primary)
-            InsightsProgressRow("Daily to-do", "$todoProgress% complete", todoProgress, scheme.tertiary)
+            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.55f))
+            InsightsProgressRow("Today's daily to-do", "$todoProgress% complete", todoProgress, scheme.tertiary)
         }
     }
 }

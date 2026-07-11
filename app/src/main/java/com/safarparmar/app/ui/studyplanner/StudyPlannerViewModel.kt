@@ -11,6 +11,7 @@ import com.safarparmar.app.data.remote.api.BulkTopicsRequest
 import com.safarparmar.app.data.remote.api.ChapterRequest
 import com.safarparmar.app.data.remote.api.CreateFromTemplateRequest
 import com.safarparmar.app.data.remote.api.CreatePlanRequest
+import com.safarparmar.app.data.remote.api.FinishDayRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusSubjectRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusChapterRequest
@@ -24,6 +25,7 @@ import com.safarparmar.app.data.remote.api.TopicPatchRequest
 import com.safarparmar.app.data.remote.api.TopicRequest
 import com.safarparmar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
 import com.safarparmar.app.data.remote.api.UpdatePlanRequest
+import com.safarparmar.app.data.remote.api.UndoFinishDayRequest
 import com.safarparmar.app.domain.model.Achievement
 import com.safarparmar.app.domain.model.studyplanner.AutoDistributeResult
 import com.safarparmar.app.domain.model.studyplanner.CalendarMap
@@ -90,6 +92,28 @@ object StudyPlannerOnboardingSteps {
     const val FIRST_TOPIC_DONE = "first_topic_done"
 }
 
+private fun StudyPlan.withPlannedDates(datesByTopicId: Map<String, String?>): StudyPlan = copy(
+    subjects = subjects.map { subject ->
+        subject.copy(
+            chapters = subject.chapters.map { chapter ->
+                chapter.copy(
+                    topics = chapter.topics.map { topic ->
+                        if (topic.id in datesByTopicId) {
+                            topic.copy(plannedDate = datesByTopicId[topic.id])
+                        } else {
+                            topic
+                        }
+                    },
+                )
+            },
+        )
+    },
+)
+
+data class FinishDayUndoState(
+    val undoToken: String,
+)
+
 data class StudyPlannerUiState(
     val plans: List<StudyPlan> = emptyList(),
     val templates: List<ExamTemplateSummary> = emptyList(),
@@ -103,6 +127,7 @@ data class StudyPlannerUiState(
     val message: String? = null,
     val rolloverUndoToken: String? = null,
     val deleteUndoToken: String? = null,
+    val finishDayUndo: FinishDayUndoState? = null,
     /** What the current deleteUndoToken would restore, e.g. "Topic swap" — used to
      *  phrase the confirmation after Undo is tapped ("Topic swap undone") instead of
      *  a generic message that doesn't match what was actually undone. */
@@ -131,6 +156,7 @@ data class StudyPlannerUiState(
      *  topics. CalendarTab opens the Missed Topics sheet automatically while this is
      *  true, then clears it via [PlannerActions.clearPendingOpenMissedTopics]. */
     val pendingOpenMissedTopics: Boolean = false,
+    val pendingOpenUnscheduledTopics: Boolean = false,
     val isImporting: Boolean = false,
     val importStatus: String? = null,
     val importError: String? = null,
@@ -325,6 +351,7 @@ class StudyPlannerViewModel @Inject constructor(
                 hydrateWarning = null,
                 rolloverUndoToken = null,
                 deleteUndoToken = null,
+                finishDayUndo = null,
                 lastUndoableActionLabel = null,
             )
         }
@@ -535,6 +562,14 @@ class StudyPlannerViewModel @Inject constructor(
 
     override fun clearPendingOpenMissedTopics() {
         _uiState.update { it.copy(pendingOpenMissedTopics = false) }
+    }
+
+    override fun openUnscheduledTopics() {
+        _uiState.update { it.copy(section = PlannerSection.PLAN, pendingOpenUnscheduledTopics = true) }
+    }
+
+    override fun clearPendingOpenUnscheduledTopics() {
+        _uiState.update { it.copy(pendingOpenUnscheduledTopics = false) }
     }
 
     override fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
@@ -837,7 +872,12 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    override fun autoDistribute(lockExisting: Boolean, overloadMode: String?, strategy: String?) {
+    override fun autoDistribute(
+        lockExisting: Boolean,
+        overloadMode: String?,
+        strategy: String?,
+        preserveToday: Boolean,
+    ) {
         if (_uiState.value.selectedPlan?.examDate.isNullOrBlank()) {
             _uiState.update { it.copy(error = "Set an exam date before building the planner.") }
             return
@@ -851,6 +891,7 @@ class StudyPlannerViewModel @Inject constructor(
                     fromDate = todayKey(),
                     includeRevisionNeeded = false,
                     lockExistingDates = lockExisting,
+                    preserveFromDate = preserveToday,
                     overloadMode = resolvedMode,
                     strategy = resolvedStrategy,
                 ),
@@ -928,6 +969,98 @@ class StudyPlannerViewModel @Inject constructor(
     override fun clearTopicDates(topicIds: List<String>) {
         if (topicIds.isEmpty()) return
         batchTopicDates(topicIds, null, "Day cleared")
+    }
+
+    override fun finishDay(topicIds: List<String>) {
+        val state = _uiState.value
+        val plan = state.selectedPlan ?: return
+        val topicIdsSet = topicIds.toSet()
+        val originalDates = plan.flattenTopics()
+            .mapNotNull { ref ->
+                ref.topic.plannedDate
+                    ?.takeIf { it.isNotBlank() && ref.topic.id in topicIdsSet }
+                    ?.let { ref.topic.id to it }
+            }
+            .toMap()
+        if (originalDates.isEmpty()) return
+
+        _uiState.update {
+            it.copy(
+                mutating = true,
+                error = null,
+                finishDayUndo = null,
+                deleteUndoToken = null,
+                lastUndoableActionLabel = null,
+            )
+        }
+
+        viewModelScope.launch {
+            val dateKey = originalDates.values.first().take(10)
+            when (val result = repo.finishDay(plan.id, FinishDayRequest(dateKey))) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = result.data.plan,
+                            mutating = false,
+                            message = "Done for the day. Remaining topics moved to Missed.",
+                            finishDayUndo = result.data.undoToken?.let(::FinishDayUndoState),
+                            deleteUndoToken = null,
+                            lastUndoableActionLabel = null,
+                        )
+                    }
+                    refreshCalendar(plan.id)
+                    refreshAnalytics(plan.id)
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(
+                        selectedPlan = plan,
+                        mutating = false,
+                        finishDayUndo = null,
+                        error = result.message,
+                    )
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    override fun undoFinishDay() {
+        val state = _uiState.value
+        val plan = state.selectedPlan ?: return
+        val undo = state.finishDayUndo ?: return
+        _uiState.update {
+            it.copy(
+                mutating = true,
+                finishDayUndo = null,
+                message = null,
+                error = null,
+            )
+        }
+
+        viewModelScope.launch {
+            when (val result = repo.undoFinishDay(plan.id, UndoFinishDayRequest(undo.undoToken))) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = result.data.plan,
+                            mutating = false,
+                            message = "Today's tasks restored",
+                        )
+                    }
+                    refreshCalendar(plan.id)
+                    refreshAnalytics(plan.id)
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(
+                        selectedPlan = plan,
+                        mutating = false,
+                        finishDayUndo = undo,
+                        error = result.message,
+                    )
+                }
+                is Resource.Loading -> Unit
+            }
+        }
     }
 
     override fun resetPlan() {

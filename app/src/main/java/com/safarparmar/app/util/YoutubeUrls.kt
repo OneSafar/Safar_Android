@@ -6,7 +6,7 @@ object YoutubeUrls {
     const val SAFAR_CHANNEL_URL =
         "https://youtube.com/@safarparmar?si=Mvs6U5JaSGojIzSM"
     const val VISUAL_GUIDANCE_PLAYLIST_URL =
-        "https://www.youtube.com/playlist?list=PLriBGSFKTHVY1YKUDRrQiSjXE2-XE31u8"
+        "https://youtube.com/playlist?list=PLriBGSFKTHVZrEpeF-BHCLDWTgxBFvGBB&si=TOvfjmibNIzifGo2"
 
     private val VIDEO_ID_REGEX = Regex(
         """(?:youtube\.com/(?:watch\?v=|shorts/)|youtu\.be/)([a-zA-Z0-9_-]{11})""",

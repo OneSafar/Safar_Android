@@ -178,6 +178,7 @@ fun MehfilScreen(
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
         onTabSelected = { tabBackStack.select(it) },
+        dataStore = viewModel.dataStore,
         onSearchActiveChange = {
             searchActive = it
             if (!it) searchQuery = ""

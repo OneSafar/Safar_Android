@@ -109,7 +109,7 @@ private fun AnnouncementsSheetContent(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = "Announcements & Updates",
+                text = "Updatess",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f),

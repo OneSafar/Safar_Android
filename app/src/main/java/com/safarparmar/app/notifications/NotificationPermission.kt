@@ -81,81 +81,27 @@ fun rememberNotificationPermissionRequester(
     }
 }
 
-// ── Rationale dialog + one-shot trigger ───────────────────────────────────────
+// ── One-shot system permission trigger ────────────────────────────────────────
 
-/**
- * Shows a beautiful rationale dialog the first time the user reaches the Home screen,
- * then requests the OS permission if they accept. Only runs on Android 13+.
- *
- * Usage: call [NotificationPermissionRequest] anywhere inside a Composable that is
- * shown after login (e.g. HomeScreen). It handles its own visibility state.
- */
+/** Requests Android's native notification permission directly from Home. */
 @Composable
 fun NotificationPermissionRequest() {
-    // Only needed on Android 13+ (TIRAMISU)
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
 
     val context = LocalContext.current
-    val activity = context.findActivity()
-
-    // Already granted — nothing to do
     val alreadyGranted = ContextCompat.checkSelfPermission(
         context, Manifest.permission.POST_NOTIFICATIONS,
     ) == PackageManager.PERMISSION_GRANTED
     if (alreadyGranted) return
 
-    // If the user has already dismissed the rationale once, don't nag them again
-    if (context.hasDismissedNotificationRationale()) return
-
-    var showDialog by remember { mutableStateOf(false) }
-    var showSettingsDialog by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted ->
-            if (!granted && activity != null && !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.POST_NOTIFICATIONS)) {
-                showSettingsDialog = true
-            }
-        },
+        onResult = {},
     )
 
-    // Show the rationale dialog after a short delay so the home screen renders first
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(1500L)
-        showDialog = true
-    }
-
-    AnimatedVisibility(
-        visible = showDialog,
-        enter = fadeIn(tween(300)) + scaleIn(tween(300), initialScale = 0.92f),
-        exit  = fadeOut(tween(200)) + scaleOut(tween(200)),
-    ) {
-        NotificationRationaleDialog(
-            onAllow = {
-                showDialog = false
-                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            },
-            onDismiss = {
-                showDialog = false
-                context.setDismissedNotificationRationale()
-            },
-        )
-    }
-
-    AnimatedVisibility(
-        visible = showSettingsDialog,
-        enter = fadeIn(tween(300)) + scaleIn(tween(300), initialScale = 0.92f),
-        exit = fadeOut(tween(200)) + scaleOut(tween(200)),
-    ) {
-        NotificationSettingsDialog(
-            onOpenSettings = {
-                showSettingsDialog = false
-                context.openAppNotificationSettings()
-            },
-            onDismiss = {
-                showSettingsDialog = false
-                context.setDismissedNotificationRationale()
-            },
-        )
+        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 }
 

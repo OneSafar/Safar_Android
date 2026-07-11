@@ -28,7 +28,6 @@ import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 private const val MAX_AVATAR_UPLOAD_BYTES = 5L * 1024L * 1024L
-private const val MAX_AVATAR_UPLOAD_MB = 5
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
@@ -98,8 +97,6 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isAvatarUploading = true, error = null, avatarUploadSuccess = false) }
             val avatarPart = withContext(Dispatchers.IO) {
-                val sourceSize = getFileSize(uri)
-                if (sourceSize != null && sourceSize > MAX_AVATAR_UPLOAD_BYTES) return@withContext null
                 runCatching { buildAvatarPart(uri) }.getOrNull()
             }
 
@@ -107,11 +104,7 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isAvatarUploading = false,
-                        error = if ((getFileSize(uri) ?: 0L) > MAX_AVATAR_UPLOAD_BYTES) {
-                            "Profile photo must be under $MAX_AVATAR_UPLOAD_MB MB."
-                        } else {
-                            "Could not read this image. Please choose another photo."
-                        },
+                        error = "Could not prepare this image. Please choose another photo.",
                     )
                 }
                 return@launch
@@ -141,13 +134,18 @@ class ProfileViewModel @Inject constructor(
         val scaledBitmap = scaleAvatarBitmap(bitmap, maxSide = 1024)
         val output = ByteArrayOutputStream()
 
-        val compressed = scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 88, output)
+        var compressed = false
+        for (quality in listOf(88, 76, 64)) {
+            output.reset()
+            compressed = scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)
+            if (compressed && output.size().toLong() <= MAX_AVATAR_UPLOAD_BYTES) break
+        }
         if (scaledBitmap !== bitmap) scaledBitmap.recycle()
         bitmap.recycle()
 
         if (!compressed) return null
         val bytes = output.toByteArray()
-        if (bytes.isEmpty()) return null
+        if (bytes.isEmpty() || bytes.size.toLong() > MAX_AVATAR_UPLOAD_BYTES) return null
 
         val baseName = getDisplayName(uri)
             ?.substringBeforeLast('.')
@@ -156,19 +154,6 @@ class ProfileViewModel @Inject constructor(
         val fileName = "$baseName.jpg"
         val body = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
         return MultipartBody.Part.createFormData("avatar", fileName, body)
-    }
-
-    private fun getFileSize(uri: Uri): Long? {
-        val resolver = appContext.contentResolver
-        resolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
-            val index = cursor.getColumnIndex(OpenableColumns.SIZE)
-            if (index >= 0 && cursor.moveToFirst() && !cursor.isNull(index)) {
-                return cursor.getLong(index).takeIf { it >= 0 }
-            }
-        }
-        return runCatching {
-            resolver.openFileDescriptor(uri, "r")?.use { it.statSize.takeIf { size -> size >= 0 } }
-        }.getOrNull()
     }
 
     private fun decodeAvatarBitmap(uri: Uri): Bitmap? {

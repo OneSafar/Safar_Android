@@ -62,7 +62,6 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
-import kotlin.math.roundToInt
 import androidx.compose.runtime.staticCompositionLocalOf
 
 sealed interface DateFilter {
@@ -113,10 +112,9 @@ internal fun FocusHistoryTab(
     // Goal-linked sessions live in Goal History now, not here — Ekagra History
     // is only for untitled/free-focus sessions.
     val freeSessions = filteredSessions.filterNot { it.isGoalLinked }
-    // Sum in seconds and round once — summing already-rounded per-session
-    // minutes compounds rounding error (e.g. ten 30s sessions would read as
-    // 10 min total instead of 5).
-    val tabFocusMins = (freeSessions.sumOf { it.actualSeconds } / 60.0).roundToInt()
+    // Preserve seconds through aggregation so short stopwatch sessions contribute
+    // to the total instead of disappearing in minute-level rounding.
+    val tabFocusSeconds = freeSessions.sumOf(::exactElapsedSeconds)
 
     Column(
         modifier = modifier
@@ -291,7 +289,7 @@ internal fun FocusHistoryTab(
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
-                    Text(formatMinutes(tabFocusMins), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = tabAccentColor)
+                    Text(formatElapsedDuration(tabFocusSeconds), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = tabAccentColor)
                 }
                 Text(if (selectedSubTab == 0) "TOTAL FOCUS TIME" else "TOTAL TIME",
                     fontSize      = 11.sp,
@@ -391,25 +389,11 @@ internal fun FocusSessionRow(
                         maxLines   = 1,
                         modifier   = Modifier.weight(1f, fill = false))
                 }
-                // Prefer the backend's exact actualSeconds; fall back to the
-                // timestamp diff (older docs), then to the rounded-minutes field.
-                fun exactElapsedSeconds(): Long {
-                    if (session.actualSeconds > 0) return session.actualSeconds.toLong()
-                    val startInstant = parseInstantOrNull(session.startedAt)
-                    val endInstant = parseInstantOrNull(session.endedAt)
-                    if (startInstant != null && endInstant != null) {
-                        return java.time.Duration.between(startInstant, endInstant).seconds.coerceAtLeast(0)
-                    }
-                    return session.actualMinutes * 60L
-                }
                 if (session.timerMode?.equals("stopwatch", ignoreCase = true) == true) {
-                    val elapsedSeconds = exactElapsedSeconds()
-                    val mins = elapsedSeconds / 60
-                    val secs = elapsedSeconds % 60
-                    Text("Elapsed %02d:%02d".format(mins, secs),
+                    Text("Elapsed ${formatElapsedDuration(exactElapsedSeconds(session))}",
                         fontSize = 12.sp, color = scheme.onSurfaceVariant)
                 } else {
-                    val actualElapsedSeconds = exactElapsedSeconds()
+                    val actualElapsedSeconds = exactElapsedSeconds(session)
                     val actualMins = actualElapsedSeconds / 60
                     val actualSecs = actualElapsedSeconds % 60
                     val actualLabel = if (actualSecs > 0) "${actualMins}m ${actualSecs}s" else "${actualMins}m"

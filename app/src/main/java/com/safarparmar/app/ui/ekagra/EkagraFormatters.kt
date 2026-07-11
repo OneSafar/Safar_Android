@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.alpha
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
+import com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
@@ -69,6 +70,28 @@ internal fun formatMinutes(min: Int): String = when {
     min <= 0 -> "0m"
     min < 60 -> "${min}m"
     else     -> "${min / 60}h ${min % 60}m".let { if (it.endsWith(" 0m")) it.dropLast(3) else it }
+}
+
+internal fun formatElapsedDuration(totalSeconds: Long): String {
+    val safeSeconds = totalSeconds.coerceAtLeast(0)
+    val hours = safeSeconds / 3600
+    val minutes = (safeSeconds % 3600) / 60
+    val seconds = safeSeconds % 60
+    return buildList {
+        if (hours > 0) add("${hours}h")
+        if (minutes > 0) add("${minutes}m")
+        if (seconds > 0 || isEmpty()) add("${seconds}s")
+    }.joinToString(" ")
+}
+
+internal fun exactElapsedSeconds(session: EkagraAnalyticsFocusSession): Long {
+    if (session.actualSeconds > 0) return session.actualSeconds.toLong()
+    val startInstant = parseInstantOrNull(session.startedAt)
+    val endInstant = parseInstantOrNull(session.endedAt)
+    if (startInstant != null && endInstant != null) {
+        return java.time.Duration.between(startInstant, endInstant).seconds.coerceAtLeast(0)
+    }
+    return session.actualMinutes.toLong().coerceAtLeast(0) * 60L
 }
 
 internal fun parseInstantOrNull(iso: String?): Instant? =

@@ -14,6 +14,8 @@ import com.safarparmar.app.data.remote.api.TemplateExtraChapterRequest
 import com.safarparmar.app.data.remote.api.TemplateExtraTopicRequest
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
+import com.safarparmar.app.domain.model.studyplanner.DailyTodo
+import com.safarparmar.app.data.remote.api.UpdatePlanRequest
 import com.safarparmar.app.domain.repository.StudyPlannerRepository
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +36,7 @@ enum class CreatePlanStep {
     MixedBagSubjectPicker,
     BuildingPreview,
     Preview,
+    DailyTopics,
 }
 
 enum class PlanSource { Template, Manual, Paste }
@@ -99,6 +102,11 @@ data class CreatePlanUiState(
     val loadingTemplateDetail: Boolean = false,
     /** [subjectIndex, chapterIndex, topicIndex] tuples the user unchecked. */
     val excludedTopicKeys: Set<Triple<Int, Int, Int>> = emptySet(),
+    /** Original template subjects and chapters removed in the template editor. The
+     *  backend exclusion contract is topic-based, so removal methods also add every
+     *  descendant topic to [excludedTopicKeys]. */
+    val excludedTemplateSubjectIndices: Set<Int> = emptySet(),
+    val excludedTemplateChapterKeys: Set<Pair<Int, Int>> = emptySet(),
     /** Chapters the user appended to a template subject via the drill-down "+",
      *  keyed by the subject's index in [templateDetail]. */
     val templateExtraChapters: Map<Int, List<DraftChapter>> = emptyMap(),
@@ -196,8 +204,11 @@ class CreatePlanViewModel @Inject constructor(
                 selectedTemplateId = templateId,
                 templateDetail = null,
                 excludedTopicKeys = emptySet(),
+                excludedTemplateSubjectIndices = emptySet(),
+                excludedTemplateChapterKeys = emptySet(),
                 templateExtraChapters = emptyMap(),
                 templateExtraTopics = emptyMap(),
+                templateExtraSubjects = emptyList(),
                 drillSubjectIndex = null,
                 drillChapter = null,
             )
@@ -228,8 +239,11 @@ class CreatePlanViewModel @Inject constructor(
                 selectedTemplateId = null,
                 templateDetail = null,
                 excludedTopicKeys = emptySet(),
+                excludedTemplateSubjectIndices = emptySet(),
+                excludedTemplateChapterKeys = emptySet(),
                 templateExtraChapters = emptyMap(),
                 templateExtraTopics = emptyMap(),
+                templateExtraSubjects = emptyList(),
                 drillSubjectIndex = null,
                 drillChapter = null,
             )
@@ -264,6 +278,39 @@ class CreatePlanViewModel @Inject constructor(
             val next = state.excludedTopicKeys.toMutableSet()
             if (!next.add(key)) next.remove(key)
             state.copy(excludedTopicKeys = next)
+        }
+    }
+
+    fun removeOriginalTemplateSubject(subjectIndex: Int) {
+        _uiState.update { state ->
+            val subject = state.templateDetail?.subjects?.getOrNull(subjectIndex) ?: return@update state
+            val topicKeys = subject.chapters.flatMapIndexed { chapterIndex, chapter ->
+                chapter.topics.indices.map { topicIndex -> Triple(subjectIndex, chapterIndex, topicIndex) }
+            }
+            state.copy(
+                excludedTemplateSubjectIndices = state.excludedTemplateSubjectIndices + subjectIndex,
+                excludedTemplateChapterKeys = state.excludedTemplateChapterKeys +
+                    subject.chapters.indices.map { subjectIndex to it },
+                excludedTopicKeys = state.excludedTopicKeys + topicKeys,
+                templateExtraChapters = state.templateExtraChapters - subjectIndex,
+                templateExtraTopics = state.templateExtraTopics.filterKeys { it.first != subjectIndex },
+            )
+        }
+    }
+
+    fun removeOriginalTemplateChapter(subjectIndex: Int, chapterIndex: Int) {
+        _uiState.update { state ->
+            val chapter = state.templateDetail?.subjects?.getOrNull(subjectIndex)
+                ?.chapters?.getOrNull(chapterIndex) ?: return@update state
+            val topicKeys = chapter.topics.indices.map { topicIndex ->
+                Triple(subjectIndex, chapterIndex, topicIndex)
+            }
+            val chapterKey = subjectIndex to chapterIndex
+            state.copy(
+                excludedTemplateChapterKeys = state.excludedTemplateChapterKeys + chapterKey,
+                excludedTopicKeys = state.excludedTopicKeys + topicKeys,
+                templateExtraTopics = state.templateExtraTopics - chapterKey,
+            )
         }
     }
 
@@ -865,6 +912,38 @@ class CreatePlanViewModel @Inject constructor(
                         _uiState.update { it.copy(isConfirming = false, confirmedPlanId = draftId) }
                     } else {
                         _uiState.update { it.copy(isConfirming = false, error = r.message) }
+                    }
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    /** Saves the optional daily routine on the draft, then confirms it. Keeping both
+     * operations here guarantees the ready animation is only shown after the topics
+     * have been persisted. */
+    fun finishDailyTopics(dailyTodos: List<DailyTodo>) {
+        val draftId = _uiState.value.previewResult?.draftId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isConfirming = true, error = null) }
+            if (dailyTodos.isNotEmpty()) {
+                when (val update = repo.updatePlan(draftId, UpdatePlanRequest(dailyTodos = dailyTodos))) {
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(isConfirming = false, error = update.message) }
+                        return@launch
+                    }
+                    else -> Unit
+                }
+            }
+            when (val result = repo.confirmPlan(draftId)) {
+                is Resource.Success -> _uiState.update {
+                    it.copy(isConfirming = false, confirmedPlanId = result.data.id)
+                }
+                is Resource.Error -> {
+                    if (result.code == 409 || result.errorCode == "CONFLICT") {
+                        _uiState.update { it.copy(isConfirming = false, confirmedPlanId = draftId) }
+                    } else {
+                        _uiState.update { it.copy(isConfirming = false, error = result.message) }
                     }
                 }
                 is Resource.Loading -> Unit

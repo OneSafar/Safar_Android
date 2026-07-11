@@ -94,6 +94,7 @@ internal fun MehfilContent(
     onAcceptDm: (String) -> Unit,
     onDeclineDm: (String) -> Unit,
     onOpenDmChat: () -> Unit,
+    dataStore: com.safarparmar.app.data.local.SafarDataStore? = null,
 ) {
     val searchFocusRequester = remember { FocusRequester() }
 
@@ -108,6 +109,10 @@ internal fun MehfilContent(
             IconButton(onClick = { onSearchActiveChange(!searchActive) }) {
                 Icon(if (searchActive) Icons.Default.Close else Icons.Default.Search, contentDescription = "Search")
             }
+            com.safarparmar.app.ui.home.VideoPlaylistEntryPoint(
+                dataStore = dataStore,
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
             IconButton(onClick = onTourClick) {
                 Image(
                     painter = painterResource(R.drawable.ic_butterfly_tour),

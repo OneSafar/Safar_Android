@@ -281,7 +281,6 @@ private fun StudyPlanProgressCard(
         Box(modifier = Modifier.clickable { openPlanner() }) {
             InsightsOverallProgressRedesign(
                 overallProgressPercent = state.overallCompletionPercent,
-                plannerProgressPercent = state.plannerProgressPercent,
                 dailyTodoProgressPercent = state.dailyTodoProgressPercent,
                 doneTopics = state.overallDoneTopics,
                 totalTopics = state.overallTotalTopics

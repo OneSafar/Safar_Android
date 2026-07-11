@@ -22,6 +22,8 @@ interface PlannerActions {
      *  Insights card about overdue/unplanned topics. */
     fun openMissedTopics()
     fun clearPendingOpenMissedTopics()
+    fun openUnscheduledTopics()
+    fun clearPendingOpenUnscheduledTopics()
     /**
      * Handles an internal back-press.
      * Returns true  → the ViewModel consumed it (moved to previous section or closed the plan).
@@ -100,7 +102,12 @@ interface PlannerActions {
     )
     fun cancelRevision(topicId: String)
     fun deleteTopic(topicId: String)
-    fun autoDistribute(lockExisting: Boolean, overloadMode: String? = null, strategy: String? = null)
+    fun autoDistribute(
+        lockExisting: Boolean,
+        overloadMode: String? = null,
+        strategy: String? = null,
+        preserveToday: Boolean = false,
+    )
     fun reorderSyllabus(
         subjectIds: List<String>? = null,
         chapterIdsBySubjectId: Map<String, List<String>>? = null,
@@ -111,6 +118,8 @@ interface PlannerActions {
     fun clearFutureDates()
     fun moveTopicsToDate(topicIds: List<String>, date: String)
     fun clearTopicDates(topicIds: List<String>)
+    fun finishDay(topicIds: List<String>)
+    fun undoFinishDay()
     fun swapTopicDates(firstTopicId: String, secondTopicId: String)
     fun replaceTopicToday(currentTopicId: String, replacementTopicId: String, todayDate: String)
     fun resetPlan()

@@ -65,6 +65,8 @@ import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
+import com.safarparmar.app.ui.tour.TourManager
+import com.safarparmar.app.ui.tour.ekagraTourSteps
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.ui.launch.AppUsageMode
@@ -166,8 +168,12 @@ fun EkagraScreen(
         val state = tourState ?: return@LaunchedEffect
         if (!state.isVisible) return@LaunchedEffect
         when (state.currentStepIndex) {
-            0, 1 -> tabBackStack.select(EkagraNavTab.TIMER)
-            2 -> tabBackStack.select(EkagraNavTab.DURATION)
+            // Step 3 and 4 are Settings Tab (DURATION)
+            3, 4 -> tabBackStack.select(EkagraNavTab.DURATION)
+            // Step 6 is History Tab
+            6 -> tabBackStack.select(EkagraNavTab.HISTORY)
+            // All other steps (0, 1, 2, 5) are on the main Timer Tab
+            else -> tabBackStack.select(EkagraNavTab.TIMER)
         }
     }
 
@@ -370,6 +376,7 @@ fun EkagraScreen(
     val ekagraLifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(ekagraLifecycleOwner) {
         ekagraLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            overlayGranted.value = TimerBubbleOverlay.canDrawOverlays(context)
             viewModel.refreshEkagra(); viewModel.loadTasks()
             while (true) { delay(20_000L); viewModel.loadEkagraAnalytics() }
         }
@@ -675,6 +682,7 @@ fun EkagraScreen(
                 isInPipMode -> {
                     EkagraPipOverlay(
                         secondsLeft       = secondsLeft,
+                        timerMode         = timerMode,
                         progress          = progress,
                         timerRunning      = timerRunning,
                         focusShieldActive = focusShieldActive,
@@ -1045,6 +1053,17 @@ fun EkagraScreen(
                             topBarContentColor = topBarTint,
                             topBarActions = {
                                 val tintColor = topBarTint
+                                com.safarparmar.app.ui.home.VideoPlaylistEntryPoint(
+                                    dataStore = viewModel.dataStore,
+                                    tint = tintColor,
+                                )
+                                IconButton(onClick = { tourState?.start() }) {
+                                    Image(
+                                        painter = painterResource(R.drawable.ic_butterfly_tour),
+                                        contentDescription = "Guide",
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
                                 IconButton(onClick = { showThemeDialog = true }) {
                                     Icon(Icons.Default.Palette, contentDescription = "Theme", tint = tintColor)
                                 }
@@ -1066,6 +1085,34 @@ fun EkagraScreen(
                                             leadingIcon = {
                                                 Icon(if (isMuted) androidx.compose.material.icons.Icons.Default.VolumeUp else androidx.compose.material.icons.Icons.Default.VolumeOff, contentDescription = null)
                                             }
+                                        )
+                                        androidx.compose.material3.DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    if (overlayGranted.value) "Floating timer settings"
+                                                    else "Enable floating timer"
+                                                )
+                                            },
+                                            onClick = {
+                                                showOverflowMenu = false
+                                                if (overlayGranted.value) {
+                                                    TimerBubbleOverlay.openOverlayPermissionSettings(pipContext)
+                                                } else {
+                                                    showOverlayPermPrompt = true
+                                                }
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    androidx.compose.material.icons.Icons.Default.PictureInPictureAlt,
+                                                    contentDescription = null,
+                                                )
+                                            },
+                                            trailingIcon = {
+                                                androidx.compose.material3.Switch(
+                                                    checked = overlayGranted.value,
+                                                    onCheckedChange = null,
+                                                )
+                                            },
                                         )
                                         val hasAllPermissions = shieldState.hasUsageStats &&
                                                                 shieldState.hasOverlayPermission
@@ -1360,6 +1407,14 @@ fun EkagraScreen(
             }
         }
     }
+
+    TourManager(
+        dataStore = viewModel.dataStore,
+        steps = ekagraTourSteps,
+        section = "ekagra",
+        askOnFirstVisit = true,
+        onTourStateReady = { tourState = it },
+    )
 }
 
 @Composable

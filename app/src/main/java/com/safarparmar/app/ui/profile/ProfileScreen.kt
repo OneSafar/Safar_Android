@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Nightlight
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,12 +50,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.theme.*
 import com.safarparmar.app.ui.components.*
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 
 private val examOptions = listOf("UPSC", "SSC", "IBPS", "RRB", "NEET", "JEE", "12th Boards", "State PSC", "CAT", "GATE", "Other")
 private val stageOptions = listOf("Beginner", "Intermediate", "Advanced", "Revision", "Mock Tests")
@@ -112,6 +118,7 @@ fun ProfileScreen(
     val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
+    var showAvatarPreview by rememberSaveable { mutableStateOf(false) }
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.onEvent(ProfileEvent.UploadAvatar(it)) }
     }
@@ -230,7 +237,11 @@ fun ProfileScreen(
                 ) {
                     ProfileHeaderCard(
                         uiState = uiState,
-                        onAvatarClick = { imagePicker.launch("image/*") },
+                        onAvatarClick = {
+                            if (uiState.userAvatar.isNullOrBlank()) imagePicker.launch("image/*")
+                            else showAvatarPreview = true
+                        },
+                        onEditAvatarClick = { imagePicker.launch("image/*") },
                     )
 
                     PersonalInfoSection(uiState = uiState, viewModel = viewModel)
@@ -294,11 +305,27 @@ fun ProfileScreen(
                 shape = MaterialTheme.shapes.extraLarge,
             )
         }
+
+        if (showAvatarPreview && !uiState.userAvatar.isNullOrBlank()) {
+            ProfilePhotoPreview(
+                avatarUrl = uiState.userAvatar!!,
+                userName = uiState.userName,
+                onDismiss = { showAvatarPreview = false },
+                onEdit = {
+                    showAvatarPreview = false
+                    imagePicker.launch("image/*")
+                },
+            )
+        }
     }
 }
 
 @Composable
-private fun ProfileHeaderCard(uiState: ProfileUiState, onAvatarClick: () -> Unit) {
+private fun ProfileHeaderCard(
+    uiState: ProfileUiState,
+    onAvatarClick: () -> Unit,
+    onEditAvatarClick: () -> Unit,
+) {
     val scheme = MaterialTheme.colorScheme
     GlassCard {
         Column(
@@ -315,26 +342,28 @@ private fun ProfileHeaderCard(uiState: ProfileUiState, onAvatarClick: () -> Unit
                         .size(96.dp)
                         .clip(CircleShape)
                         .background(scheme.primaryContainer)
-                        .border(4.dp, avatarRing, CircleShape),
+                        .border(4.dp, avatarRing, CircleShape)
+                        .clickable(enabled = !uiState.isAvatarUploading) { onAvatarClick() },
                     contentAlignment = Alignment.Center,
                 ) {
                     val avatarUrl = uiState.userAvatar?.takeIf { it.isNotBlank() }
                     if (avatarUrl != null) {
-                        AsyncImage(
+                        SubcomposeAsyncImage(
                             model = avatarUrl,
                             contentDescription = "Profile photo",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
-                        )
+                        ) {
+                            when (painter.state) {
+                                is coil.compose.AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                                is coil.compose.AsyncImagePainter.State.Loading -> CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp), strokeWidth = 2.dp
+                                )
+                                else -> ProfileInitial(uiState.userName)
+                            }
+                        }
                     } else {
-                        Text(
-                            text = uiState.userName.firstOrNull()?.uppercase() ?: "U",
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 32.sp
-                            ),
-                            color = scheme.primary,
-                        )
+                        ProfileInitial(uiState.userName)
                     }
                     if (uiState.isAvatarUploading) {
                         Box(
@@ -358,7 +387,7 @@ private fun ProfileHeaderCard(uiState: ProfileUiState, onAvatarClick: () -> Unit
                         .clip(CircleShape)
                         .background(scheme.primary)
                         .border(2.dp, avatarRing, CircleShape)
-                        .clickable(enabled = !uiState.isAvatarUploading) { onAvatarClick() },
+                        .clickable(enabled = !uiState.isAvatarUploading) { onEditAvatarClick() },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -394,6 +423,56 @@ private fun ProfileHeaderCard(uiState: ProfileUiState, onAvatarClick: () -> Unit
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileInitial(userName: String) {
+    Text(
+        text = userName.firstOrNull()?.uppercase() ?: "U",
+        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 32.sp),
+        color = MaterialTheme.colorScheme.primary,
+    )
+}
+
+@Composable
+private fun ProfilePhotoPreview(
+    avatarUrl: String,
+    userName: String,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center,
+        ) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = "$userName profile photo, full screen",
+                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.Fit,
+            )
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.CameraAlt, contentDescription = "Change profile photo", tint = Color.White)
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close profile photo", tint = Color.White)
+                }
             }
         }
     }

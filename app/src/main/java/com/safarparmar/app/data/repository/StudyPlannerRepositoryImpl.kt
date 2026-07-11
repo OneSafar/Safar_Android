@@ -6,6 +6,8 @@ import com.safarparmar.app.data.remote.api.BulkTopicsRequest
 import com.safarparmar.app.data.remote.api.ChapterRequest
 import com.safarparmar.app.data.remote.api.CreateFromTemplateRequest
 import com.safarparmar.app.data.remote.api.CreatePlanRequest
+import com.safarparmar.app.data.remote.api.FinishDayRequest
+import com.safarparmar.app.data.remote.api.FinishDayResult
 import com.safarparmar.app.data.remote.api.ImportSyllabusChapterRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusSubjectRequest
@@ -29,6 +31,7 @@ import com.safarparmar.app.data.remote.api.SyllabusStats
 import com.safarparmar.app.data.remote.api.TopicPatchRequest
 import com.safarparmar.app.data.remote.api.TopicRequest
 import com.safarparmar.app.data.remote.api.UpdatePlanRequest
+import com.safarparmar.app.data.remote.api.UndoFinishDayRequest
 import com.safarparmar.app.data.remote.api.toPreview
 import com.safarparmar.app.data.remote.api.toSyllabusAiPreview
 import com.google.gson.Gson
@@ -83,6 +86,8 @@ class StudyPlannerRepositoryImpl @Inject constructor(
     override suspend fun getCalendar(planId: String): Resource<CalendarMap> = safeApiCall { api.getCalendar(planId) }
     override suspend fun getAnalytics(planId: String): Resource<PlannerAnalytics> = safeApiCall { api.getAnalytics(planId) }
     override suspend fun autoDistribute(planId: String, request: AutoDistributeRequest): Resource<AutoDistributeResult> = safeApiCall { api.autoDistribute(planId, request) }
+    override suspend fun finishDay(planId: String, request: FinishDayRequest): Resource<FinishDayResult> = safeApiCall { api.finishDay(planId, request) }
+    override suspend fun undoFinishDay(planId: String, request: UndoFinishDayRequest): Resource<FinishDayResult> = safeApiCall { api.undoFinishDay(planId, request) }
     override suspend fun reorderSyllabus(planId: String, request: ReorderSyllabusRequest): Resource<StudyPlan> = safeApiCall { api.reorderSyllabus(planId, request) }
     override suspend fun addSubject(planId: String, request: SubjectRequest): Resource<StudyPlan> = safeApiCall { api.addSubject(planId, request) }
     override suspend fun renameSubject(planId: String, subjectId: String, request: SubjectRequest): Resource<StudyPlan> = safeApiCall { api.renameSubject(planId, subjectId, request) }

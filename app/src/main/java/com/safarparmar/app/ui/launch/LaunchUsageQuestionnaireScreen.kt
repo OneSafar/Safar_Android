@@ -39,8 +39,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -99,11 +99,6 @@ fun LaunchUsageQuestionnaireScreen(
         "All of the above"
     )
 
-    // Indices for focus setup: 0, 1, 4 (Study, Goals, All)
-    val needsFocusSetup = remember(uiState.selectedReasons) {
-        uiState.selectedReasons.any { it in setOf(0, 1, 4) }
-    }
-
     var page by remember { mutableIntStateOf(0) }
     var selectedMode by remember { mutableStateOf<String?>(null) }
 
@@ -153,11 +148,6 @@ fun LaunchUsageQuestionnaireScreen(
                             color = scheme.primary,
                         )
                     },
-                    navigationIcon = {
-                        IconButton(onClick = { page-- }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
                     colors = topBarColors,
                 )
                 else -> TopAppBar(
@@ -169,13 +159,6 @@ fun LaunchUsageQuestionnaireScreen(
                             )
                         }
                     },
-                    navigationIcon = {
-                        if (page > 0) {
-                            IconButton(onClick = { page-- }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                            }
-                        }
-                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
                         titleContentColor = scheme.onBackground,
@@ -185,86 +168,17 @@ fun LaunchUsageQuestionnaireScreen(
             }
         },
         bottomBar = {
-            if (page == 1) {
-                val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-                val density = androidx.compose.ui.platform.LocalDensity.current
-                val isCompactLayout = configuration.screenHeightDp < 700 || density.fontScale > 1.15f
-                
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(
-                            start = if (isCompactLayout) 20.dp else 0.dp,
-                            end = 20.dp, 
-                            bottom = if (isCompactLayout) 16.dp else 32.dp
-                        ),
-                    contentAlignment = Alignment.BottomCenter,
-                ) {
-                    Button(
-                        onClick = { onFinishQuestionnaire() },
-                        enabled = selectedMode != null,
-                        modifier = Modifier
-                            .height(if (isCompactLayout) 56.dp else 64.dp)
-                            .then(if (isCompactLayout) Modifier.fillMaxWidth() else Modifier.widthIn(min = 180.dp))
-                            .shadow(
-                                elevation = 12.dp,
-                                shape = RoundedCornerShape(999.dp),
-                                spotColor = scheme.primary.copy(alpha = 0.35f),
-                            ),
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = scheme.primary,
-                            contentColor = scheme.onPrimary,
-                        ),
-                    ) {
-                        Text("Next", fontSize = if (isCompactLayout) 18.sp else 20.sp, fontWeight = FontWeight.SemiBold)
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(start = 8.dp)
-                                .size(if (isCompactLayout) 20.dp else 24.dp),
-                        )
-                    }
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            androidx.compose.ui.graphics.Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, scheme.background),
-                                startY = 0f,
-                                endY = 80f,
-                            ),
-                        )
-                        .padding(horizontal = 20.dp)
-                        .padding(top = 16.dp, bottom = 32.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Button(
-                        onClick = { page = 1 },
-                        enabled = uiState.selectedReasons.isNotEmpty(),
-                        modifier = Modifier
-                            .widthIn(max = 380.dp)
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = scheme.primary,
-                            contentColor = scheme.onPrimary,
-                        ),
-                    ) {
-                        Text("Next", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            null,
-                            Modifier.padding(start = 8.dp).size(20.dp),
-                        )
-                    }
-                }
-            }
+            QuestionnaireNavigationBar(
+                canGoPrevious = page > 0,
+                canGoNext = when (page) {
+                    0 -> uiState.selectedReasons.isNotEmpty()
+                    else -> selectedMode != null
+                },
+                onPrevious = { if (page > 0) page-- },
+                onNext = {
+                    if (page == 0) page = 1 else onFinishQuestionnaire()
+                },
+            )
         },
     ) { padding ->
         when (page) {
@@ -325,6 +239,64 @@ fun LaunchUsageQuestionnaireScreen(
         }
     }
 
+}
+
+@Composable
+private fun QuestionnaireNavigationBar(
+    canGoPrevious: Boolean,
+    canGoNext: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(scheme.surface)
+            .navigationBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        horizontalArrangement = if (canGoPrevious) Arrangement.spacedBy(12.dp) else Arrangement.Center,
+    ) {
+        if (canGoPrevious) {
+            OutlinedButton(
+                onClick = onPrevious,
+                enabled = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 52.dp),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Previous", fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        Button(
+            onClick = onNext,
+            enabled = canGoNext,
+            modifier = Modifier
+                .then(if (canGoPrevious) Modifier.weight(1f) else Modifier.fillMaxWidth())
+                .heightIn(min = 52.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = scheme.primary,
+                contentColor = scheme.onPrimary,
+            ),
+        ) {
+            Text("Next", fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
 }
 
 @Composable
@@ -647,7 +619,7 @@ private fun ModeSelectionHalf(
 @Composable
 private fun QuestionnaireProgressRow(activePage: Int, accent: Color, track: Color) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        repeat(3) { i ->
+        repeat(2) { i ->
             Box(
                 Modifier
                     .weight(1f)

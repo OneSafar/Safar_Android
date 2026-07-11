@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -95,6 +96,7 @@ fun SyllabusSubjectsScreen(
     // after leaving and reopening the sheet.
     var openTopicsChapterId by rememberSaveable { mutableStateOf<String?>(null) }
     var topicForDatePicker by remember { mutableStateOf<StudyTopic?>(null) }
+    var showReorderBuildInfo by rememberSaveable { mutableStateOf(false) }
 
     BackHandler {
         if (activeSubjectId != null) activeSubjectId = null else onBack()
@@ -406,6 +408,7 @@ fun SyllabusSubjectsScreen(
                     ChapterTopicsSheet(
                         chapterName = openChapter.name,
                         topics = openChapter.topics,
+                        isDarkTheme = isDarkTheme,
                         onDismiss = { openTopicsChapterId = null },
                         onAddTopic = { name -> requestAddTopic(subject.id, openChapter.id, name) },
                         // Renaming/deleting/scheduling a topic are all reachable from its
@@ -486,10 +489,39 @@ fun SyllabusSubjectsScreen(
                             }
 
                             item {
-                                SyllabusBuildButton(
-                                    onClick = { actions.autoDistribute(lockExisting = true, strategy = "sequential") },
-                                    enabled = localSubjects.isNotEmpty(),
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    SyllabusBuildButton(
+                                        onClick = {
+                                            actions.autoDistribute(
+                                                lockExisting = false,
+                                                strategy = "sequential",
+                                                preserveToday = true,
+                                            )
+                                        },
+                                        enabled = localSubjects.isNotEmpty() && !state.mutating,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    IconButton(
+                                        onClick = { showReorderBuildInfo = true },
+                                        enabled = !state.mutating,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                RoundedCornerShape(14.dp),
+                                            ),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Visibility,
+                                            contentDescription = "What does Build re-ordered syllabus do?",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                }
                             }
 
 
@@ -748,6 +780,23 @@ fun SyllabusSubjectsScreen(
         }
         SyllabusDialogState.Closed -> {}
     }
+
+    if (showReorderBuildInfo) {
+        AlertDialog(
+            onDismissRequest = { showReorderBuildInfo = false },
+            title = { Text("Build re-ordered syllabus") },
+            text = {
+                Text(
+                    "This rebuilds your study plan in the subject, chapter, and topic order you chose."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showReorderBuildInfo = false }) {
+                    Text("Got it")
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -880,6 +929,7 @@ internal fun SyllabusAddButton(
 private fun SyllabusBuildButton(
     onClick: () -> Unit,
     enabled: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
     val buildGradient = if (enabled) {
@@ -890,7 +940,7 @@ private fun SyllabusBuildButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .background(buildGradient, shape = RoundedCornerShape(14.dp)),

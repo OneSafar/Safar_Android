@@ -45,7 +45,7 @@ class GlitterSystem {
         repeat(count) {
             val angle = Random.nextFloat() * Math.PI.toFloat() * 2f
             val radius = 4f + Random.nextFloat() * 20f
-            val decay = 0.007f + Random.nextFloat() * 0.014f
+            val decay = 0.045f + Random.nextFloat() * 0.020f
 
             val spawnX = x + cos(angle) * radius
             val spawnY = y + sin(angle) * radius
@@ -93,7 +93,7 @@ class GlitterSystem {
                             vy = baseVy,
                             size = 1.4f + Random.nextFloat() * 3.0f,
                             life = 0.9f + Random.nextFloat() * 0.1f,
-                            decay = 0.004f + Random.nextFloat() * 0.007f, // slower fade
+                            decay = 0.045f + Random.nextFloat() * 0.015f,
                             isTail = true,
                             isStar = true,
                             isGold = Random.nextFloat() > 0.5f,

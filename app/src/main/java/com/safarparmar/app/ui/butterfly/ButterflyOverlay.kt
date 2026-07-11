@@ -26,8 +26,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +47,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -70,7 +77,7 @@ fun ButterflyOverlay(
     state: ButterflyTourState,
     wingColor: Color = Color(0xFFF082DC),
     bodyColor: Color = Color(0xFF500F50),
-    butterflySize: Dp = 88.dp,
+    butterflySize: Dp = 52.8.dp,
     dimColor: Color = Color(0x55000000),
 ) {
     if (!state.isVisible) return
@@ -90,8 +97,10 @@ fun ButterflyOverlay(
         var trailMs by remember { mutableLongStateOf(0L) }
         var flightAngleDeg by remember { mutableFloatStateOf(0f) }
 
-        val trailHistory = remember { mutableStateListOf<Offset>() }
-        val maxTrail = 50
+        data class TrailPoint(val position: Offset, val createdAtMs: Long)
+        val trailHistory = remember { mutableStateListOf<TrailPoint>() }
+        var frameMs by remember { mutableLongStateOf(0L) }
+        val trailLifetimeMs = 1_000L
 
         // ── S-curve / arc Bézier state ─────────────────────────────
         data class CurveState(
@@ -103,7 +112,7 @@ fun ButterflyOverlay(
 
         var curve by remember { mutableStateOf<CurveState?>(null) }
         var tProgress by remember { mutableFloatStateOf(0f) }
-        val flightDurationMs = 2800L
+        var flightDurationMs by remember { mutableLongStateOf(500L) }
 
         var settled by remember { mutableStateOf(false) }
         var settledMs by remember { mutableLongStateOf(0L) }
@@ -135,6 +144,10 @@ fun ButterflyOverlay(
             val dx   = endX - startX
             val dy   = endY - startY
             val dist = sqrt(dx * dx + dy * dy).coerceAtLeast(1f)
+
+            // Normalize duration: constant speed of 2.1 pixels/ms (30% slower than 3.0f).
+            // Capped between 350ms and 700ms to maintain a fluid, smooth transition.
+            flightDurationMs = (dist / 2.1f).toLong().coerceIn(350L, 700L)
 
             // Perpendicular unit vector (left of travel direction)
             val perpX = -dy / dist
@@ -179,7 +192,15 @@ fun ButterflyOverlay(
 
             while (state.isVisible) {
                 withFrameMillis { ms ->
+                    frameMs = ms
                     val c = curve ?: return@withFrameMillis
+
+                    while (
+                        trailHistory.isNotEmpty() &&
+                        ms - trailHistory.first().createdAtMs >= trailLifetimeMs
+                    ) {
+                        trailHistory.removeAt(0)
+                    }
 
                     // New step arrived → reset timer so t always starts from 0
                     if (c !== lastCurve) {
@@ -208,12 +229,11 @@ fun ButterflyOverlay(
                             Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
                     }
 
-                    // ── Trail & glitter (UNCHANGED) ──
+                    // ── Short-lived trail & glitter ──
                     glitter.tick()
                     if (ms - trailMs > 22L) {
                         if (speed > 0.3f) {
-                            trailHistory.add(Offset(nx, ny))
-                            if (trailHistory.size > maxTrail) trailHistory.removeAt(0)
+                            trailHistory.add(TrailPoint(Offset(nx, ny), ms))
                             glitter.spawn(nx, ny, 5)
                             glitter.spawnTail(prevX, prevY, dx, dy, 4)
                         } else {
@@ -302,25 +322,34 @@ fun ButterflyOverlay(
                 center = Offset(bfX.floatValue, bfY.floatValue),
             )
 
-            // 1. Tapering ribbon
+            // 1. Smooth rounded ribbon. Sampled flight points are joined through
+            // quadratic control points rather than straight segments, and the entire
+            // ribbon fades away within one second after the butterfly settles.
             if (trailHistory.size > 1) {
-                for (i in 1 until trailHistory.size) {
-                    val pt = trailHistory[i]
-                    val prevPt = trailHistory[i - 1]
-                    val progress = i.toFloat() / trailHistory.size.toFloat()
-                    drawLine(
-                        color = Color(0xFFFFB0F8).copy(alpha = progress * 0.55f),
-                        start = Offset(prevPt.x, prevPt.y),
-                        end = Offset(pt.x, pt.y),
-                        strokeWidth = progress * 10f,
-                    )
-                    drawLine(
-                        color = Color(0xFFF082DC).copy(alpha = progress * 0.22f),
-                        start = Offset(prevPt.x, prevPt.y),
-                        end = Offset(pt.x, pt.y),
-                        strokeWidth = progress * 28f,
-                    )
+                val path = Path()
+                val first = trailHistory.first().position
+                path.moveTo(first.x, first.y)
+                for (i in 1 until trailHistory.lastIndex) {
+                    val control = trailHistory[i].position
+                    val next = trailHistory[i + 1].position
+                    val midpoint = Offset((control.x + next.x) / 2f, (control.y + next.y) / 2f)
+                    path.quadraticTo(control.x, control.y, midpoint.x, midpoint.y)
                 }
+                val last = trailHistory.last().position
+                path.lineTo(last.x, last.y)
+
+                val newestAge = frameMs - trailHistory.last().createdAtMs
+                val fade = (1f - newestAge / trailLifetimeMs.toFloat()).coerceIn(0f, 1f)
+                drawPath(
+                    path = path,
+                    color = Color(0xFFF082DC).copy(alpha = 0.20f * fade),
+                    style = Stroke(width = 24f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+                )
+                drawPath(
+                    path = path,
+                    color = Color(0xFFFFB0F8).copy(alpha = 0.58f * fade),
+                    style = Stroke(width = 8f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+                )
             }
 
             // 2. Sparkles
@@ -400,9 +429,11 @@ fun ButterflyOverlay(
                     step = step,
                     stepIndex = state.currentStepIndex,
                     totalSteps = state.steps.size,
+                    isFirst = state.isFirstStep,
                     isLast = state.isLastStep,
                     offsetX = tx.roundToInt(),
                     offsetY = ty.roundToInt(),
+                    onPrevious = { state.previous() },
                     onNext = { state.next() },
                     onSkip = { state.dismiss() },
                 )
@@ -430,9 +461,11 @@ private fun TooltipCard(
     step: ButterflyTourStep,
     stepIndex: Int,
     totalSteps: Int,
+    isFirst: Boolean,
     isLast: Boolean,
     offsetX: Int,
     offsetY: Int,
+    onPrevious: () -> Unit,
     onNext: () -> Unit,
     onSkip: () -> Unit,
 ) {
@@ -508,9 +541,25 @@ private fun TooltipCard(
                 }
                 Spacer(Modifier.weight(1f))
                 if (!step.isInteractive) {
+                    TextButton(
+                        onClick = onPrevious,
+                        enabled = !isFirst,
+                        modifier = Modifier.heightIn(min = 30.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            horizontal = 12.dp,
+                            vertical = 0.dp,
+                        ),
+                    ) {
+                        Text(
+                            "←",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Spacer(Modifier.width(4.dp))
                     Button(
                         onClick = onNext,
-                        modifier = Modifier.heightIn(min = 30.dp),
+                        modifier = Modifier.width(64.dp).height(40.dp),
                         shape = RoundedCornerShape(20.dp),
                         colors =
                             ButtonDefaults.buttonColors(
@@ -519,14 +568,14 @@ private fun TooltipCard(
                             ),
                         contentPadding =
                             androidx.compose.foundation.layout.PaddingValues(
-                                horizontal = 14.dp,
-                                vertical = 0.dp
+                                horizontal = 0.dp,
+                                vertical = 0.dp,
                             ),
                     ) {
-                        Text(
-                            if (isLast) "Done 🎨" else "Next →",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = if (isLast) "Finish tour" else "Next step",
+                            modifier = Modifier.size(25.dp),
                         )
                     }
                 }

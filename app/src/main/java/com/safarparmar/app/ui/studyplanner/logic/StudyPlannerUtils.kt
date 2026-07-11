@@ -27,6 +27,18 @@ fun StudyPlan.flattenTopics(): List<TopicRef> = subjects.flatMap { subject ->
     }
 }
 
+/** Never scheduled. Explicitly disjoint from Missed. */
+fun StudyTopic.isUnscheduled(): Boolean =
+    status != TopicStatus.DONE && plannedDate.isNullOrBlank() && missedReason.isNullOrBlank()
+
+/** Previously due, including topics deferred with Done for the Day. */
+fun StudyTopic.isMissed(today: String = todayKey()): Boolean {
+    if (status == TopicStatus.DONE) return false
+    if (!missedReason.isNullOrBlank()) return true
+    val dateKey = plannedDate?.take(10).orEmpty()
+    return dateKey.isNotBlank() && dateKey < today
+}
+
 fun StudyPlan.rollup(): PlanProgress {
     val topics = flattenTopics().map { it.topic }
     val total = topics.size
@@ -44,14 +56,10 @@ fun StudyPlan.rollup(): PlanProgress {
         ((completedCount.toFloat() / dailyTodosList.size) * 100).roundToInt()
     }
     
-    // Weighted Average: Syllabus is 90% of overall progress, Daily To-Dos are 10%
-    val overallPercent = if (hasDailyTodos) {
-        ((percent * 0.90) + (dailyPercent * 0.10)).roundToInt()
-    } else {
-        percent
-    }
-    
-    return progress ?: PlanProgress(
+    // Exam progress and recurring daily to-dos are deliberately independent.
+    // Recompute these fields locally even when an older cached server rollup is
+    // present, so an app update cannot keep showing the former blended value.
+    return (progress ?: PlanProgress()).copy(
         totalTopics = total,
         doneTopics = done,
         revisionTopics = revision,
@@ -59,7 +67,7 @@ fun StudyPlan.rollup(): PlanProgress {
         remainingPercent = 100 - percent,
         plannerProgressPercent = percent,
         dailyTodoProgressPercent = dailyPercent,
-        overallProgressPercent = overallPercent
+        overallProgressPercent = percent,
     )
 }
 

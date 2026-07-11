@@ -259,6 +259,8 @@ private data class StudyPlannerChromeState(
     val message: String? = null,
     val rolloverUndoToken: String? = null,
     val deleteUndoToken: String? = null,
+    val finishDayUndoAvailable: Boolean = false,
+    val pendingOpenUnscheduledTopics: Boolean = false,
 )
 
 @Immutable
@@ -337,6 +339,8 @@ fun StudyPlannerScreen(
             message = state.message,
             rolloverUndoToken = state.rolloverUndoToken,
             deleteUndoToken = state.deleteUndoToken,
+            finishDayUndoAvailable = state.finishDayUndo != null,
+            pendingOpenUnscheduledTopics = state.pendingOpenUnscheduledTopics,
         )
     }
     val chromeState by remember(viewModel) {
@@ -351,6 +355,8 @@ fun StudyPlannerScreen(
                     message = state.message,
                     rolloverUndoToken = state.rolloverUndoToken,
                     deleteUndoToken = state.deleteUndoToken,
+                    finishDayUndoAvailable = state.finishDayUndo != null,
+                    pendingOpenUnscheduledTopics = state.pendingOpenUnscheduledTopics,
                 )
             }
             .distinctUntilChanged()
@@ -448,13 +454,15 @@ fun StudyPlannerScreen(
     LaunchedEffect(chromeState.error, chromeState.message, detailState.hydrateWarning, detailState.importError, detailState.importResultSummary, detailState.importStatus, detailState.structureError, detailState.structuredImportError, detailState.structuredImportSuccessMessage) {
         chromeState.error?.let { snackbar.showSnackbar(it); actions.clearTransient() }
         chromeState.message?.let {
-            val hasUndo = chromeState.rolloverUndoToken != null || chromeState.deleteUndoToken != null
+            val hasUndo = chromeState.finishDayUndoAvailable ||
+                chromeState.rolloverUndoToken != null || chromeState.deleteUndoToken != null
             val result = snackbar.showSnackbar(
                 message = it,
                 actionLabel = if (hasUndo) "Undo" else null,
             )
             if (result == SnackbarResult.ActionPerformed) {
                 when {
+                    chromeState.finishDayUndoAvailable -> actions.undoFinishDay()
                     chromeState.deleteUndoToken != null -> actions.undoDelete()
                     chromeState.rolloverUndoToken != null -> actions.undoRollover()
                 }
@@ -505,8 +513,8 @@ fun StudyPlannerScreen(
         val state = tourState ?: return@LaunchedEffect
         if (state.isVisible) {
             when (state.currentStepIndex) {
-                0, 1, 2 -> {
-                    // Steps 0, 1, and 2 are on the MY TARGET EXAMS screen
+                0, 1 -> {
+                    // Steps 0 and 1 are on the MY TARGET EXAMS screen
                     if (chromeState.selectedPlan != null) {
                         actions.closePlan()
                     }
@@ -514,8 +522,8 @@ fun StudyPlannerScreen(
                         actions.setSection(PlannerSection.YOUR_EXAMS)
                     }
                 }
-                3, 4, 5, 6 -> {
-                    // PLAN tab: Auto-open first plan if none is open
+                2, 3, 4, 5 -> {
+                    // PLAN tab (Dashboard, Quick Filters, Daily Todo, Mission)
                     if (chromeState.selectedPlan == null) {
                         val firstPlan = plansState.plans.firstOrNull()
                         if (firstPlan != null) {
@@ -529,8 +537,8 @@ fun StudyPlannerScreen(
                         actions.setSection(PlannerSection.PLAN)
                     }
                 }
-                7, 8 -> {
-                    // SYLLABUS tab: Auto-open first plan if none is open
+                6 -> {
+                    // SYLLABUS tab
                     if (chromeState.selectedPlan == null) {
                         val firstPlan = plansState.plans.firstOrNull()
                         if (firstPlan != null) {
@@ -544,7 +552,7 @@ fun StudyPlannerScreen(
                         actions.setSection(PlannerSection.SYLLABUS)
                     }
                 }
-                9, 10, 11, 12 -> {
+                7, 8 -> {
                     // CALENDAR tab
                     if (chromeState.selectedPlan == null) {
                         val firstPlan = plansState.plans.firstOrNull()
@@ -559,7 +567,7 @@ fun StudyPlannerScreen(
                         actions.setSection(PlannerSection.CALENDAR)
                     }
                 }
-                13 -> {
+                9 -> {
                     // INSIGHTS tab
                     if (chromeState.selectedPlan == null) {
                         val firstPlan = plansState.plans.firstOrNull()
@@ -572,21 +580,6 @@ fun StudyPlannerScreen(
                     }
                     if (chromeState.section != PlannerSection.INSIGHTS) {
                         actions.setSection(PlannerSection.INSIGHTS)
-                    }
-                }
-                14 -> {
-                    // Bottom Nav highlights (PLAN tab)
-                    if (chromeState.selectedPlan == null) {
-                        val firstPlan = plansState.plans.firstOrNull()
-                        if (firstPlan != null) {
-                            actions.openPlan(firstPlan.id)
-                        } else {
-                            state.dismiss()
-                            return@LaunchedEffect
-                        }
-                    }
-                    if (chromeState.section != PlannerSection.PLAN) {
-                        actions.setSection(PlannerSection.PLAN)
                     }
                 }
             }
@@ -641,8 +634,19 @@ fun StudyPlannerScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
-            showTopBarTitle = chromeState.section != PlannerSection.SYLLABUS,
-            topBarActions = {},
+            topBarActions = {
+                com.safarparmar.app.ui.home.VideoPlaylistEntryPoint(
+                    dataStore = viewModel.dataStore,
+                    tint = if (isDarkTheme) Color.White else Color.Black,
+                )
+                IconButton(onClick = { tourState?.start() }) {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_butterfly_tour),
+                        contentDescription = "Guide",
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            },
         ) { padding ->
             Scaffold(
                 modifier = Modifier.padding(top = padding.calculateTopPadding()),
@@ -704,6 +708,7 @@ fun StudyPlannerScreen(
                                 actions = actions,
                                 onNavigate = onNavigate,
                                 canUsePremiumInsights = canUsePremiumPlannerFeatures,
+                                isDarkTheme = isDarkTheme,
                                 sharedTransitionScope = this@SharedTransitionLayout,
                                 animatedVisibilityScope = this@AnimatedContent,
                                 onAdvanceTour = {
@@ -726,6 +731,14 @@ fun StudyPlannerScreen(
                             onUpgrade = { onNavigate(Routes.PREMIUM) },
                         )
                     }
+
+                    TourManager(
+                        dataStore = viewModel.dataStore,
+                        steps = studyPlannerTourSteps,
+                        section = "study_planner",
+                        askOnFirstVisit = true,
+                        onTourStateReady = { tourState = it },
+                    )
                 }
             }
         }
@@ -1687,6 +1700,7 @@ private fun PlannerHome(
     actions: PlannerActions,
     onNavigate: (String) -> Unit,
     canUsePremiumInsights: Boolean,
+    isDarkTheme: Boolean,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onAdvanceTour: () -> Unit = {},
@@ -1778,6 +1792,7 @@ private fun PlannerHome(
                         onboardingCompletedSteps = detailState.onboardingCompletedSteps,
                         preferredStudyStrategy = detailState.preferredStudyStrategy,
                         pendingManualSubjectOrder = detailState.pendingManualSubjectOrder,
+                        pendingOpenUnscheduledTopics = chromeState.pendingOpenUnscheduledTopics,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
@@ -1786,7 +1801,7 @@ private fun PlannerHome(
                         SyllabusSubjectsScreen(
                             viewModel = viewModel,
                             planId = plan.id,
-                            isDarkTheme = isSystemInDarkTheme(),
+                            isDarkTheme = isDarkTheme,
                             onNavigate = onNavigate,
                             onBack = { actions.setSection(PlannerSection.PLAN) },
                             onPlannerSectionSelect = { section ->

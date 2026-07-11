@@ -39,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -125,7 +126,12 @@ fun KavachOnboardingScreen(
     var selectedPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     val scope = rememberCoroutineScope()
 
-    BackHandler(enabled = true) { onBack() }
+    fun skipSetup() {
+        viewModel.setEnabled(false)
+        onBack()
+    }
+
+    BackHandler(enabled = true) { skipSetup() }
 
     val requestNotificationPermission = rememberNotificationPermissionRequester {
         hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
@@ -181,17 +187,31 @@ fun KavachOnboardingScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars),
         ) {
-            LinearProgressIndicator(
-                progress = { animatedProgress },
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-                    .height(6.dp)
-                    .clip(CircleShape),
-                color = colors.progress,
-                trackColor = colors.progressTrack,
-                strokeCap = StrokeCap.Round,
-            )
+                    .padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LinearProgressIndicator(
+                    progress = { animatedProgress },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(CircleShape),
+                    color = colors.progress,
+                    trackColor = colors.progressTrack,
+                    strokeCap = StrokeCap.Round,
+                )
+                Spacer(Modifier.width(12.dp))
+                TextButton(onClick = { skipSetup() }) {
+                    Text(
+                        text = "Skip for now",
+                        color = colors.secondaryText,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
 
             Column(
                 modifier = Modifier

@@ -8,6 +8,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +48,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayCircle
+import com.safarparmar.app.util.YoutubeUrls
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 private data class HomeSlide(
     val titleRes: Int,
@@ -136,8 +145,19 @@ fun HomeScreen(
         if (!isLoggedIn) onNavigateToAuth()
     }
 
-    // Ask for notification permission once — shows a rationale dialog 1.5s after landing on Home
-    NotificationPermissionRequest()
+    val scope = rememberCoroutineScope()
+    val homeWelcomeSeenFlow = remember(dataStore) {
+        dataStore?.homeWelcomeSeen?.map<Boolean, Boolean?> { it } ?: flowOf(true)
+    }
+    val homeWelcomeSeen by homeWelcomeSeenFlow.collectAsStateWithLifecycle(initialValue = null)
+    val userName by remember(dataStore) {
+        dataStore?.userName ?: MutableStateFlow(null)
+    }.collectAsStateWithLifecycle(initialValue = null)
+
+    // Keep first-run prompts sequential: SAFAR welcome first, then Android notifications.
+    if (homeWelcomeSeen == true) {
+        NotificationPermissionRequest()
+    }
 
     var currentPage by remember { mutableIntStateOf((0 until slides.size).random()) }
 
@@ -201,6 +221,11 @@ fun HomeScreen(
         topBarContentColor = if (isDarkTheme) Color.White else Color.Black,
         emphasizeTopBar = true,
         topBarActions = {
+            VideoPlaylistEntryPoint(
+                dataStore = dataStore,
+                tint = if (isDarkTheme) Color.White else Color.Black,
+                showTooltip = true,
+            )
             IconButton(onClick = { showAnnouncementsSheet = true }) {
                 BadgedBox(
                     badge = {
@@ -422,6 +447,171 @@ fun HomeScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         letterSpacing = 2.sp,
+                    )
+                }
+            }
+        }
+    }
+
+    if (homeWelcomeSeen == false) {
+        SafarWelcomeDialog(
+            userName = userName.orEmpty(),
+            isDarkTheme = isDarkTheme,
+            onDismiss = {
+                if (dataStore != null) {
+                    scope.launch { dataStore.setHomeWelcomeSeen(true) }
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SafarWelcomeDialog(
+    userName: String,
+    isDarkTheme: Boolean,
+    onDismiss: () -> Unit,
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
+        Card(
+            modifier = Modifier
+                .size(320.dp)
+                .border(
+                    width = 1.dp,
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(24.dp),
+                ),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isDarkTheme) Color(0xFF0F1115) else Color.White,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Hello${if (userName.isNotBlank()) ", $userName" else ""}.",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = 12.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        text = "Welcome to SAFAR, your space to focus, plan, and grow.",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkTheme) Color.White else Color(0xFF1E293B),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 18.sp,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Where it's just you and me, and our little battle of staying consistent.\n\nWe'll celebrate small wins, and we'll sit through the bad days together.\n\nA virtual pat on your back.\nSmile",
+                        fontSize = 12.sp,
+                        color = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else Color(0xFF475569),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 16.sp,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "Your journey starts here.",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Text("Let's get started", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun VideoPlaylistEntryPoint(
+    dataStore: SafarDataStore?,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier,
+    showTooltip: Boolean = false,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val dismissalFlow = remember(dataStore) {
+        dataStore?.videoGuideTooltipDismissed ?: MutableStateFlow(false)
+    }
+    val tooltipDismissed by dismissalFlow.collectAsStateWithLifecycle(initialValue = false)
+    var tooltipVisible by remember { mutableStateOf(showTooltip) }
+
+    fun openPlaylist() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YoutubeUrls.VISUAL_GUIDANCE_PLAYLIST_URL))
+        runCatching { context.startActivity(intent) }
+    }
+
+    Box(modifier = modifier) {
+        IconButton(onClick = ::openPlaylist) {
+            Icon(
+                imageVector = Icons.Default.PlayCircle,
+                contentDescription = "Watch SAFAR video guide",
+                tint = tint,
+            )
+        }
+
+        DropdownMenu(
+            expanded = tooltipVisible && !tooltipDismissed,
+            onDismissRequest = { tooltipVisible = false },
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .widthIn(max = 260.dp)
+                    .clickable(onClick = ::openPlaylist)
+                    .padding(start = 16.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(22.dp),
+                )
+                Text(
+                    text = "Need help with SAFAR? Watch our YouTube video.",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = {
+                        tooltipVisible = false
+                        if (dataStore != null) {
+                            scope.launch { dataStore.setVideoGuideTooltipDismissed(true) }
+                        }
+                    },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Do not show this tip again",
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }

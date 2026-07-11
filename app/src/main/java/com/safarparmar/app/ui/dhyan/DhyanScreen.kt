@@ -136,6 +136,14 @@ fun DhyanScreen(
         }
     }
 
+    LaunchedEffect(tourState?.isVisible, tourState?.currentStepIndex) {
+        val isVisible = tourState?.isVisible == true
+        val step = tourState?.currentStepIndex
+        if (isVisible) {
+            showTechniquesSheet = (step == 2)
+        }
+    }
+
     val themeVm: ThemeViewModel = hiltViewModel()
     val dhyanVm: DhyanViewModel = hiltViewModel()
 
@@ -148,6 +156,10 @@ fun DhyanScreen(
             onNavigate        = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
             topBarActions = {
+                com.safarparmar.app.ui.home.VideoPlaylistEntryPoint(
+                    dataStore = themeVm.dataStore,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
                 IconButton(onClick = { showAudioLibraryPanel = true }) {
                     Icon(
                         imageVector = Icons.Default.MusicNote,

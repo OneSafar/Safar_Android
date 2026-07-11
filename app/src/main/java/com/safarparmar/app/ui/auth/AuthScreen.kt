@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -791,12 +792,30 @@ fun SignupContent(
             }
 
             // Dropdowns
-            HtmlDropdownField(
-                value = uiState.examType,
-                placeholder = "Select Target Exam",
-                options = examOptions,
-                onSelect = { onEvent(AuthEvent.ExamTypeChanged(it)) }
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                HtmlDropdownField(
+                    value = uiState.examType,
+                    placeholder = "Select Target Exam",
+                    options = examOptions,
+                    onSelect = { onEvent(AuthEvent.ExamTypeChanged(it)) }
+                )
+                // "Other" alone told the backend nothing useful — this is where
+                // the user's actual exam gets typed and stored instead.
+                if (uiState.examType == "Other") {
+                    HtmlTextField(
+                        value = uiState.customExamType,
+                        onValueChange = { onEvent(AuthEvent.CustomExamTypeChanged(it)) },
+                        placeholder = "Enter your exact exam (e.g., RRB NTPC)",
+                        leadingIcon = Icons.Default.School,
+                        isError = !uiState.customExamTypeError.isNullOrBlank(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                    )
+                    if (!uiState.customExamTypeError.isNullOrBlank()) {
+                        Text(text = uiState.customExamTypeError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                    }
+                }
+            }
 
             HtmlDropdownField(
                 value = uiState.preparationStage,

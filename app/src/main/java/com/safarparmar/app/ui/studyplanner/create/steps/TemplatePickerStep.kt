@@ -1,16 +1,20 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -21,10 +25,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +37,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
@@ -54,6 +58,8 @@ fun TemplatePickerStep(
     templateDetail: ExamTemplate?,
     loadingTemplateDetail: Boolean,
     excludedTopicKeys: Set<Triple<Int, Int, Int>>,
+    excludedTemplateSubjectIndices: Set<Int>,
+    excludedTemplateChapterKeys: Set<Pair<Int, Int>>,
     templateExtraChapters: Map<Int, List<DraftChapter>>,
     templateExtraTopics: Map<Pair<Int, Int>, List<DraftTopic>>,
     templateExtraSubjects: List<DraftSubject>,
@@ -66,6 +72,8 @@ fun TemplatePickerStep(
     onDrillIntoChapter: (TemplateChapterRef) -> Unit,
     onDrillBack: () -> Unit,
     onToggleTopic: (Int, Int, Int) -> Unit,
+    onRemoveOriginalSubject: (Int) -> Unit,
+    onRemoveOriginalChapter: (Int, Int) -> Unit,
     onAddTemplateSubject: (String) -> Unit,
     onRemoveTemplateSubject: (String) -> Unit,
     onAddTemplateSubjectChapter: (String, String) -> Unit,
@@ -99,11 +107,17 @@ fun TemplatePickerStep(
             if (loadingTemplates) {
                 CircularProgressIndicator()
             } else {
-                val groupedTemplates = remember(templates) { templates.groupBy { it.category } }
+                val categoryOrder = listOf("SSC", "Railway", "Engineering", "UPSC", "Defence", "Medical", "Banking")
+                val sortedGroups = remember(templates) { 
+                    templates.groupBy { it.category.takeIf { c -> c.isNotBlank() } ?: "Other" }.entries.sortedBy { 
+                        val index = categoryOrder.indexOf(it.key)
+                        if (index != -1) index else Int.MAX_VALUE
+                    }
+                }
                 var expandedCategories by remember { mutableStateOf(setOf<String>()) }
                 
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    groupedTemplates.forEach { (category, categoryTemplates) ->
+                    sortedGroups.forEach { (category, categoryTemplates) ->
                         val isExpanded = expandedCategories.contains(category)
                         
                         item(key = "header_$category") {
@@ -151,6 +165,13 @@ fun TemplatePickerStep(
 
         val subjectIndex = drillSubjectIndex
         val chapterRef = drillChapter
+        val remainingTopicCount = templateDetail.subjects.withIndex().sumOf { (si, subject) ->
+            subject.chapters.withIndex().sumOf { (ci, chapter) ->
+                chapter.topics.indices.count { ti -> Triple(si, ci, ti) !in excludedTopicKeys }
+            }
+        } + templateExtraTopics.values.sumOf { it.size } +
+            templateExtraChapters.values.sumOf { chapters -> chapters.sumOf { it.topics.size } } +
+            templateExtraSubjects.sumOf { subject -> subject.chapters.sumOf { it.topics.size } }
 
         when {
             subjectIndex == null -> {
@@ -168,8 +189,13 @@ fun TemplatePickerStep(
                             Text("Add subject", fontWeight = FontWeight.Bold)
                         }
                     }
-                    items(templateDetail.subjects.size) { si ->
+                    val visibleSubjectIndices = templateDetail.subjects.indices
+                        .filterNot { it in excludedTemplateSubjectIndices }
+                    items(visibleSubjectIndices, key = { "template_subject_$it" }) { si ->
                         val subject = templateDetail.subjects[si]
+                        val originalChapterCount = subject.chapters.indices.count { ci ->
+                            (si to ci) !in excludedTemplateChapterKeys
+                        }
                         val extraChapterCount = templateExtraChapters[si].orEmpty().size
                         val topicCount = subject.chapters.withIndex().sumOf { (ci, chapter) ->
                             chapter.topics.withIndex().count { (ti, _) -> Triple(si, ci, ti) !in excludedTopicKeys }
@@ -177,8 +203,10 @@ fun TemplatePickerStep(
                             templateExtraChapters[si].orEmpty().sumOf { it.topics.size }
                         DrillDownRow(
                             title = subject.name,
-                            subtitle = "${subject.chapters.size + extraChapterCount} chapters · $topicCount topics",
+                            subtitle = "${originalChapterCount + extraChapterCount} chapters · $topicCount topics",
                             onClick = { onDrillIntoSubject(si) },
+                            onRemove = { onRemoveOriginalSubject(si) },
+                            removeContentDescription = "Remove ${subject.name}",
                         )
                     }
                     itemsIndexed(templateExtraSubjects, key = { _, s -> s.localId }) { extraIndex, subject ->
@@ -188,6 +216,7 @@ fun TemplatePickerStep(
                             subtitle = "${subject.chapters.size} chapters · $topicCount topics · added by you",
                             onClick = { onDrillIntoSubject(templateDetail.subjects.size + extraIndex) },
                             onRemove = { onRemoveTemplateSubject(subject.localId) },
+                            removeContentDescription = "Remove ${subject.name}",
                         )
                     }
                 }
@@ -260,7 +289,9 @@ fun TemplatePickerStep(
                                 Text("Add chapter", fontWeight = FontWeight.Bold)
                             }
                         }
-                        items(subject.chapters.size) { ci ->
+                        val visibleChapterIndices = subject.chapters.indices
+                            .filterNot { (subjectIndex to it) in excludedTemplateChapterKeys }
+                        items(visibleChapterIndices, key = { "template_chapter_${subjectIndex}_$it" }) { ci ->
                             val chapter = subject.chapters[ci]
                             val topicCount = chapter.topics.withIndex().count { (ti, _) -> Triple(subjectIndex, ci, ti) !in excludedTopicKeys } +
                                 templateExtraTopics[subjectIndex to ci].orEmpty().size
@@ -268,6 +299,8 @@ fun TemplatePickerStep(
                                 title = chapter.name,
                                 subtitle = "$topicCount topics",
                                 onClick = { onDrillIntoChapter(TemplateChapterRef.Original(ci)) },
+                                onRemove = { onRemoveOriginalChapter(subjectIndex, ci) },
+                                removeContentDescription = "Remove ${chapter.name}",
                             )
                         }
                         items(extras, key = { it.localId }) { chapter ->
@@ -346,7 +379,7 @@ fun TemplatePickerStep(
                             val extraTopics = templateExtraTopics[subjectIndex to chapterRef.index].orEmpty()
                             DrillDownHeader(title = chapter.name, onBack = onDrillBack)
                             Text(
-                                "Uncheck any topics you already know.",
+                                "Remove any topics you don't want in your plan.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -357,12 +390,14 @@ fun TemplatePickerStep(
                                         Text("Add topic", fontWeight = FontWeight.Bold)
                                     }
                                 }
-                                items(chapter.topics.size) { ti ->
+                                val visibleTopicIndices = chapter.topics.indices.filterNot { ti ->
+                                    Triple(subjectIndex, chapterRef.index, ti) in excludedTopicKeys
+                                }
+                                items(visibleTopicIndices, key = { "template_topic_${subjectIndex}_${chapterRef.index}_$it" }) { ti ->
                                     val key = Triple(subjectIndex, chapterRef.index, ti)
-                                    TopicCheckboxRow(
+                                    TopicAddedRow(
                                         name = chapter.topics[ti],
-                                        checked = key !in excludedTopicKeys,
-                                        onToggle = { onToggleTopic(subjectIndex, chapterRef.index, ti) },
+                                        onRemove = { onToggleTopic(key.first, key.second, key.third) },
                                     )
                                 }
                                 items(extraTopics, key = { it.localId }) { topic ->
@@ -428,7 +463,7 @@ fun TemplatePickerStep(
         if (subjectIndex == null) {
             Button(
                 onClick = onContinue,
-                enabled = canUsePremiumPlannerFeatures,
+                enabled = canUsePremiumPlannerFeatures && remainingTopicCount > 0,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Continue", fontWeight = FontWeight.Bold)
@@ -453,56 +488,83 @@ private fun DrillDownRow(
     subtitle: String,
     onClick: () -> Unit,
     onRemove: (() -> Unit)? = null,
+    removeContentDescription: String = "Remove chapter",
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    // Wrap in a Box so the red ✕ badge can be anchored to the top-right corner
+    Box {
+        Card(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, fontWeight = FontWeight.Bold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (onRemove != null) {
-                IconButton(onClick = onRemove) {
-                    Icon(Icons.Default.Close, contentDescription = "Remove chapter")
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(title, fontWeight = FontWeight.Bold)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    contentDescription = null,
+                    modifier = Modifier.padding(start = 4.dp).size(width = 14.dp, height = 14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForwardIos,
-                contentDescription = null,
-                modifier = Modifier.padding(start = 4.dp).size(width = 14.dp, height = 14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        }
+        // Red circular ✕ badge — floats over the top-right corner of the card
+        if (onRemove != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 8.dp, y = (-8).dp)
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE53935))
+                    .clickable(onClick = onRemove),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = removeContentDescription,
+                    tint = Color.White,
+                    modifier = Modifier.size(13.dp),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun TopicCheckboxRow(name: String, checked: Boolean, onToggle: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Checkbox(checked = checked, onCheckedChange = { onToggle() })
-        Text(name, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
 private fun TopicAddedRow(name: String, onRemove: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        IconButton(onClick = onRemove) {
-            Icon(Icons.Default.Close, contentDescription = "Remove topic", modifier = Modifier.padding(2.dp))
+    // Wrap in Box to allow the red ✕ badge at the end aligned like the card rows
+    Box(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp)) {
+        Text(
+            name,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(end = 28.dp) // keep text from going under the badge
+                .padding(vertical = 8.dp),
+        )
+        // Red circular ✕ badge
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFE53935))
+                .clickable(onClick = onRemove),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = "Remove topic",
+                tint = Color.White,
+                modifier = Modifier.size(13.dp),
+            )
         }
     }
 }

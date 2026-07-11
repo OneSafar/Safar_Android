@@ -116,6 +116,7 @@ class SafarDataStore @Inject constructor(
         val LAST_SYNC             = longPreferencesKey("last_sync")
         val TOUR_DONE             = booleanPreferencesKey("tour_done")
         val WELCOME_SEEN          = booleanPreferencesKey("welcome_seen")
+        val HOME_WELCOME_SEEN     = booleanPreferencesKey("home_welcome_seen")
         val NOTIFIED_ACHIEVEMENTS = stringSetPreferencesKey("notified_achievements")
         val PLANNER_ALERT_DEDUPE_KEYS = stringSetPreferencesKey("planner_alert_dedupe_keys")
         val IS_PREMIUM = booleanPreferencesKey("is_premium")
@@ -142,6 +143,7 @@ class SafarDataStore @Inject constructor(
 
         val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
         val OVERLAY_PERMISSION_ASKED = booleanPreferencesKey("overlay_permission_asked")
+        val VIDEO_GUIDE_TOOLTIP_DISMISSED = booleanPreferencesKey("video_guide_tooltip_dismissed")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -263,6 +265,10 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.WELCOME_SEEN] ?: false }
 
+    val homeWelcomeSeen: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.HOME_WELCOME_SEEN] ?: false }
+
     val notifiedAchievements: Flow<Set<String>> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.NOTIFIED_ACHIEVEMENTS] ?: emptySet() }
@@ -351,6 +357,10 @@ class SafarDataStore @Inject constructor(
     val overlayPermissionAsked: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.OVERLAY_PERMISSION_ASKED] ?: false }
+
+    val videoGuideTooltipDismissed: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.VIDEO_GUIDE_TOOLTIP_DISMISSED] ?: false }
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -441,6 +451,9 @@ class SafarDataStore @Inject constructor(
 
     suspend fun setWelcomeSeen(seen: Boolean) = context.dataStore.edit { it[Keys.WELCOME_SEEN] = seen }
 
+    suspend fun setHomeWelcomeSeen(seen: Boolean) =
+        context.dataStore.edit { it[Keys.HOME_WELCOME_SEEN] = seen }
+
     suspend fun setPremiumStatus(
         isPremium: Boolean,
         planType: String?,
@@ -501,6 +514,10 @@ class SafarDataStore @Inject constructor(
     }
 
     suspend fun setOverlayPermissionAsked(asked: Boolean) = context.dataStore.edit { it[Keys.OVERLAY_PERMISSION_ASKED] = asked }
+
+    suspend fun setVideoGuideTooltipDismissed(dismissed: Boolean) = context.dataStore.edit {
+        it[Keys.VIDEO_GUIDE_TOOLTIP_DISMISSED] = dismissed
+    }
 
     suspend fun setAutoStartBreak(enabled: Boolean) = context.dataStore.edit { it[Keys.AUTO_START_BREAK] = enabled }
 

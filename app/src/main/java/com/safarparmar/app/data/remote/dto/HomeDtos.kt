@@ -114,9 +114,13 @@ data class ExecutiveSummaryDto(
     val goalsCreated: Int? = 0,
     val goalsCompleted: Int? = 0,
     val totalFocusMinutes: Int? = 0,
+    val longestStreakDays: Int? = 0,
+    val streakBreaksCount: Int? = 0,
+    val streakBreakDates: List<String>? = null,
     val consistencyMessage: String? = "",
     val completionMessage: String? = "",
-    val focusMessage: String? = ""
+    val focusMessage: String? = "",
+    val streakMessage: String? = ""
 )
 
 data class InsightsDto(

@@ -32,6 +32,9 @@ data class StudyTopic(
     val status: TopicStatus = TopicStatus.TODO,
     val plannedDate: String? = null,
     val completedDate: String? = null,
+    val missedAt: String? = null,
+    val missedReason: String? = null,
+    val originalPlannedDate: String? = null,
     val notes: String? = null,
     val pinned: Boolean? = null,
     val revisionMarkedAt: String? = null,
@@ -121,6 +124,7 @@ data class StudyPlan(
     val rolloverDigest: PlannerRolloverDigest? = null,
     val undoToken: String? = null,
     val restoreSnapshots: List<PlannerPlanSnapshot> = emptyList(),
+    val closedStudyDays: List<String> = emptyList(),
 )
 
 @Immutable
@@ -174,6 +178,7 @@ data class PlannerAnalytics(
 data class ExamTemplateSummary(
     val id: String = "",
     val name: String = "",
+    val category: String = "",
     val description: String? = null,
     val recommendedDailyGoal: Int? = null,
     val subjectCount: Int? = null,

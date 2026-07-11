@@ -53,6 +53,9 @@ internal fun AnalyticsOverviewSection(
     val focusToday = ekagraAnalytics.focusSessions
         .filter { IstDateUtils.getDateKey(it.startedAt) == todayKey || IstDateUtils.getDateKey(it.endedAt) == todayKey }
         .sumOf { it.actualMinutes }
+    val standardGoalsAllTime = goals.filter { it.source != "ekagra" }
+    val totalGoalsSet = standardGoalsAllTime.size
+    val totalGoalsCompleted = standardGoalsAllTime.count { it.isCompletedForStats() }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -63,6 +66,10 @@ internal fun AnalyticsOverviewSection(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HubMetricCard(Icons.Default.Timer, "Ekagra Today", formatStudyTime(focusToday), "Ekagra ekagra completed today", Color(0xFF9A3412), Modifier.weight(1f))
             HubMetricCard(Icons.Default.Flag, "Goals Today", "$completedToday/${todayGoals.size}", "Completed against today's goals", Color(0xFF065F46), Modifier.weight(1f))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            HubMetricCard(Icons.AutoMirrored.Filled.FormatListBulleted, "Goals Set", totalGoalsSet.toString(), "Total goals you've created", Color(0xFF065F46), Modifier.weight(1f))
+            HubMetricCard(Icons.Default.CheckCircle, "Goals Completed", totalGoalsCompleted.toString(), "Total goals you've finished", Color(0xFF065F46), Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HubMetricCard(Icons.Default.Bolt, "Consistency", report?.let { "${it.consistencyScore.toInt()}%" } ?: "-", "Monthly review preview", Color(0xFF5B21B6), Modifier.weight(1f))
@@ -111,6 +118,10 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
     ) {
         Text("Goal Insights", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = goalsThemeColor))
         Text("Completion insights and goal progress from Nishtha goals.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            GoalMetricCard("GOALS SET", standardGoals.size.toString(), "Total goals you've created", goalsThemeColor, Modifier.weight(1f))
+            GoalMetricCard("GOALS COMPLETED", standardGoals.count { it.isCompletedForStats() }.toString(), "Total goals you've finished", goalsThemeColor, Modifier.weight(1f))
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             GoalMetricCard("COMPLETION RATE", "$rate%", "${manualCompletedGoals.size} of $total active manual goals completed", goalsThemeColor, Modifier.weight(1f))
             GoalMetricCard("AVERAGE PROGRESS", "$avgProgress%", "Future scheduled goals stay excluded until their date arrives.", goalsThemeColor, Modifier.weight(1f))

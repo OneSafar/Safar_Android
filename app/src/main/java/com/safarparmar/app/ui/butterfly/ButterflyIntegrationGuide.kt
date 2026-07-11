@@ -116,7 +116,7 @@ package com.safarparmar.app.ui.butterfly
  *  ───────────────────────────
  *  wingColor      Color  — wing fill (default cyan #1CB1F2)
  *  bodyColor      Color  — body/antennae fill
- *  butterflySize  Dp     — overall size (default 88.dp)
+ *  butterflySize  Dp     — overall size (default 52.8.dp)
  *  dimColor       Color  — scrim behind everything (default 0x55000000)
  *
  *  ButterflyTourStep fields

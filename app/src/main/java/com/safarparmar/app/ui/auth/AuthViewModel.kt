@@ -49,7 +49,12 @@ class AuthViewModel @Inject constructor(
             is AuthEvent.ConfirmPasswordChanged -> _uiState.update {
                 it.copy(confirmPassword = event.value, confirmPasswordError = null, error = null)
             }
-            is AuthEvent.ExamTypeChanged -> _uiState.update { it.copy(examType = event.value) }
+            is AuthEvent.ExamTypeChanged -> _uiState.update {
+                it.copy(examType = event.value, customExamTypeError = null, error = null)
+            }
+            is AuthEvent.CustomExamTypeChanged -> _uiState.update {
+                it.copy(customExamType = event.value, customExamTypeError = null, error = null)
+            }
             is AuthEvent.PreparationStageChanged -> _uiState.update { it.copy(preparationStage = event.value) }
             is AuthEvent.GenderChanged -> _uiState.update {
                 it.copy(gender = event.value, genderError = null, error = null)
@@ -136,9 +141,16 @@ class AuthViewModel @Inject constructor(
             else -> null
         }
         val genderError = if (state.gender.isBlank()) "Please select a gender" else null
+        // When "Other" is picked, the exact exam name typed into the follow-up
+        // field is what actually gets stored — the literal word "Other" is never
+        // sent to the backend.
+        val isCustomExam = state.examType == "Other"
+        val customExamTypeError = if (isCustomExam && state.customExamType.isBlank()) {
+            "Please enter your exact exam"
+        } else null
 
         if (nameError != null || emailError != null || passwordError != null ||
-            confirmPasswordError != null || genderError != null
+            confirmPasswordError != null || genderError != null || customExamTypeError != null
         ) {
             _uiState.update {
                 it.copy(
@@ -147,11 +159,13 @@ class AuthViewModel @Inject constructor(
                     passwordError = passwordError,
                     confirmPasswordError = confirmPasswordError,
                     genderError = genderError,
+                    customExamTypeError = customExamTypeError,
                     error = null,
                 )
             }
             return
         }
+        val resolvedExam = (if (isCustomExam) state.customExamType else state.examType).trim()
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
@@ -160,7 +174,7 @@ class AuthViewModel @Inject constructor(
                         name = state.name.trim(),
                         email = state.email.trim(),
                         password = state.password,
-                        exam = state.examType.ifBlank { null },
+                        exam = resolvedExam.ifBlank { null },
                         stage = state.preparationStage.ifBlank { null },
                         gender = state.gender.ifBlank { null },
                         photoUrl = null,

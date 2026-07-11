@@ -43,7 +43,6 @@ sealed class NishthaEvent {
     data class DeleteGoal(val id: String) : NishthaEvent()
     object ClearGoalSuccess : NishthaEvent()
     object LoadStreaks : NishthaEvent()
-    object LoadMonthlyReport : NishthaEvent()
     data class LoadReportForMonth(val month: String) : NishthaEvent()
     object ClearError : NishthaEvent()
 }

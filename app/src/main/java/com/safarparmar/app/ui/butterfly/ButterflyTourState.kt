@@ -26,6 +26,9 @@ class ButterflyTourState(
     val isLastStep: Boolean
         get() = currentStepIndex >= steps.lastIndex
 
+    val isFirstStep: Boolean
+        get() = currentStepIndex <= 0
+
     var onStartRequest: (() -> Unit)? = null
 
     fun start() {
@@ -45,6 +48,10 @@ class ButterflyTourState(
     fun next() {
         if (!isLastStep) currentStepIndex++
         else dismiss()
+    }
+
+    fun previous() {
+        if (!isFirstStep) currentStepIndex--
     }
 
     fun dismiss() {

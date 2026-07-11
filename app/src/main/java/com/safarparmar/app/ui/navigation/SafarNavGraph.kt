@@ -393,7 +393,7 @@ fun SafarNavGraph(
                 onUpgrade = { navigate(Routes.PREMIUM) },
                 onBack = ::safeBack,
                 onPlanConfirmed = { confirmedPlanId ->
-                    navController.navigate("${Routes.STUDY_PLANNER}?planId=$confirmedPlanId&showDailyTodoSetup=true") {
+                    navController.navigate("${Routes.STUDY_PLANNER}?planId=$confirmedPlanId&showDailyTodoSetup=false") {
                         popUpTo(Routes.CREATE_PLAN) { inclusive = true }
                     }
                 },

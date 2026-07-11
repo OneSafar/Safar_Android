@@ -26,7 +26,11 @@ class NishthaViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(NishthaUiState())
     val uiState = _uiState.asStateFlow()
 
-    init { loadMoods(); loadJournals(); loadGoals(); loadGoalRolloverPrompts(); loadEkagraAnalytics(); loadStreaks(); loadMonthlyReport(); loadLoginHistory(); loadAchievements() }
+    // Monthly report is NOT loaded here — it's month-scoped and only the Analytics
+    // screen's Monthly Review tab needs it (via LoadReportForMonth). Loading it
+    // unconditionally for every Nishtha open, even on tabs that never show it, was
+    // a wasted network call on every launch.
+    init { loadMoods(); loadJournals(); loadGoals(); loadGoalRolloverPrompts(); loadEkagraAnalytics(); loadStreaks(); loadLoginHistory(); loadAchievements() }
 
     fun onEvent(event: NishthaEvent) {
         when (event) {
@@ -43,7 +47,6 @@ class NishthaViewModel @Inject constructor(
             is NishthaEvent.DeleteGoal          -> deleteGoal(event.id)
             is NishthaEvent.ClearGoalSuccess    -> _uiState.update { it.copy(goalSaveSuccess = false) }
             is NishthaEvent.LoadStreaks           -> loadStreaks()
-            is NishthaEvent.LoadMonthlyReport    -> loadMonthlyReport()
             is NishthaEvent.LoadReportForMonth   -> loadMonthlyReportForMonth(event.month)
             is NishthaEvent.ClearError          -> _uiState.update { it.copy(error = null, checkInError = null, journalError = null, goalError = null) }
         }
@@ -278,17 +281,6 @@ class NishthaViewModel @Inject constructor(
                     loadGoals()
                 }
                 is Resource.Error -> _uiState.update { it.copy(goalError = r.message) }
-                is Resource.Loading -> Unit
-            }
-        }
-    }
-
-    private fun loadMonthlyReport() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingReport = true) }
-            when (val r = homeRepository.getMonthlyReport()) {
-                is Resource.Success -> _uiState.update { it.copy(isLoadingReport = false, monthlyReport = r.data) }
-                is Resource.Error   -> _uiState.update { it.copy(isLoadingReport = false) }
                 is Resource.Loading -> Unit
             }
         }

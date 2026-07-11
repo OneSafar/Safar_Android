@@ -12,21 +12,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CenterFocusStrong
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -103,13 +105,14 @@ fun PlanSettingsStep(
             PlanRestDaysRow(selected = offDays, onToggle = onToggleOffDay)
         }
 
-        SettingsSection(title = "How do you like to study?") {
+        SettingsSection(title = "Choose your study style") {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 StudyStyleIconOption(
                     icon = Icons.Default.CenterFocusStrong,
                     accent = PlannerAccent.Coral,
                     title = "Deep Focus",
                     body = "Focus on one subject at a time.",
+                    info = "Finish one subject before moving to the next.",
                     selected = selectedStyle == "deep_focus",
                     onClick = {
                         onStudyStyleChange("deep_focus")
@@ -121,6 +124,7 @@ fun PlanSettingsStep(
                     accent = PlannerAccent.Teal,
                     title = "Mixed Bag",
                     body = "Choose topics from two or more different subjects.",
+                    info = "Choose the first three hardest subjects and the system will give more topics from these subjects first.",
                     selected = selectedStyle == "mixed_bag",
                     onClick = {
                         onStudyStyleChange("mixed_bag")
@@ -132,6 +136,7 @@ fun PlanSettingsStep(
                     accent = PlannerAccent.Amber,
                     title = "Balanced",
                     body = "Study a little bit of all your subjects every day.",
+                    info = "Study a steady mix of subjects while staying within your daily topic limit.",
                     selected = selectedStyle == "balanced",
                     onClick = { onStudyStyleChange("balanced") },
                 )
@@ -230,10 +235,12 @@ private fun StudyStyleIconOption(
     accent: Color,
     title: String,
     body: String,
+    info: String,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    var showInfo by remember { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
@@ -255,14 +262,17 @@ private fun StudyStyleIconOption(
                 Text(title, fontWeight = FontWeight.Bold, color = scheme.onSurface)
                 Text(body, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
             }
-            if (selected) {
-                Box(
-                    modifier = Modifier.size(22.dp).clip(CircleShape).background(accent),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                }
+            IconButton(onClick = { showInfo = true }) {
+                Icon(Icons.Default.Info, contentDescription = "About $title", tint = scheme.onSurface)
             }
         }
+    }
+    if (showInfo) {
+        AlertDialog(
+            onDismissRequest = { showInfo = false },
+            title = { Text(title) },
+            text = { Text(info) },
+            confirmButton = { TextButton(onClick = { showInfo = false }) { Text("OK") } },
+        )
     }
 }
