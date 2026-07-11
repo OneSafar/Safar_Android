@@ -131,6 +131,7 @@ internal enum class EkagraNavTab(val icon: ImageVector, val label: String) {
     DURATION (Icons.Default.Tune,    "Settings"),
     HISTORY  (Icons.Default.History, "History"),
     MUSIC    (Icons.Default.MusicNote, "Music"),
+    THEME    (Icons.Default.Palette, "Theme"),
 }
 
 enum class TimerMode(

@@ -393,8 +393,11 @@ fun EkagraScreen(
 
     LaunchedEffect(selectedMusicTrack, selectedTheme) {
         timerService?.setMusic(selectedMusicTrack.url)
-        if (timerService?.isActive() == true)
-            timerService.saveTheme(visualThemes.indexOf(selectedTheme), selectedMusicTrack.name)
+        // Theme/music choice is a durable user preference, not session state — persist it
+        // regardless of whether a timer is currently running. Previously this was gated on
+        // isActive(), so picking a theme while idle (e.g. before configuring KAVACH's blocked
+        // apps) was silently lost the moment the screen was recreated on navigating back.
+        timerService?.saveTheme(visualThemes.indexOf(selectedTheme), selectedMusicTrack.name)
     }
 
     val pipContext   = LocalContext.current
@@ -518,7 +521,7 @@ fun EkagraScreen(
                 }
             }
         } else {
-            if (selectedTheme.name == "Focus") Color(0xFF9A3412) else selectedTheme.accent
+            selectedTheme.accent
         }
         if (isDarkTheme) {
             val bgTint = blendColors(seed, Color(0xFF0F1115), 0.08f)
@@ -1017,9 +1020,6 @@ fun EkagraScreen(
                                         modifier = Modifier.size(24.dp),
                                     )
                                 }
-                                IconButton(onClick = { showThemeDialog = true }) {
-                                    Icon(Icons.Default.Palette, contentDescription = "Theme", tint = tintColor)
-                                }
                                 Box {
                                     var showOverflowMenu by remember { mutableStateOf(false) }
                                     IconButton(onClick = { showOverflowMenu = true }) {
@@ -1186,8 +1186,11 @@ fun EkagraScreen(
                                             selectedTab = selectedTab,
                                             onSelect    = { tab ->
                                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                if (tab == EkagraNavTab.MUSIC) showAudioLibraryPanel = true
-                                                else tabBackStack.select(tab)
+                                                when (tab) {
+                                                    EkagraNavTab.MUSIC -> showAudioLibraryPanel = true
+                                                    EkagraNavTab.THEME -> showThemeDialog = true
+                                                    else -> tabBackStack.select(tab)
+                                                }
                                             },
                                             // On timer tab the nav sits over the video scrim — use contrasting colours
                                             isOnVideo   = selectedTab == EkagraNavTab.TIMER,
@@ -1351,6 +1354,7 @@ fun EkagraScreen(
                                     )
                                     
                                     EkagraNavTab.MUSIC -> {}
+                                    EkagraNavTab.THEME -> {}
                                 }
                                 }
                             }

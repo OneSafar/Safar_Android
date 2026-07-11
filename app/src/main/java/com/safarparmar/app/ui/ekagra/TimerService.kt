@@ -289,7 +289,10 @@ class TimerService : Service() {
 
     private fun startFocusShieldMonitor() {
         shieldMonitorJob?.cancel()
-        shieldMonitorJob = scope.launch {
+        // Runs off Main: currentForegroundPackage() below makes a blocking UsageStatsManager
+        // IPC call every FOREGROUND_POLL_MS. Previously this ran on the service's Main-dispatcher
+        // scope and could starve input dispatch during long KAVACH sessions (ANR risk).
+        shieldMonitorJob = scope.launch(Dispatchers.Default) {
             var sinceSyncMs = 0L
             // Gated on the session being active (started, running OR paused), not on
             // _isRunning — KAVACH must keep blocking through a pause. syncFocusShieldState()
