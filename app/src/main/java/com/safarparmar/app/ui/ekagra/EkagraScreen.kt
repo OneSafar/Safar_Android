@@ -1144,7 +1144,7 @@ fun EkagraScreen(
                                             }
                                         )
                                         androidx.compose.material3.DropdownMenuItem(
-                                            text = { Text("Apps to unlock") },
+                                            text = { Text("Apps to Block") },
                                             onClick = { 
                                                 onNavigate(Routes.APP_PICKER)
                                                 showOverflowMenu = false
