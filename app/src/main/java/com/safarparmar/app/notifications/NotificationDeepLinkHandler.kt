@@ -11,18 +11,15 @@ import java.nio.charset.StandardCharsets
 object NotificationDeepLinkHandler {
     const val EXTRA_ROUTE = "notification_route"
     const val EXTRA_DEEP_LINK = "notification_deep_link"
-    const val EXTRA_ENTER_TIMER_PIP = "enter_timer_pip"
 
     fun activityIntent(
         context: Context,
         deepLink: String?,
-        enterTimerPip: Boolean = false,
     ): Intent =
         Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_DEEP_LINK, deepLink)
             putExtra(EXTRA_ROUTE, routeFor(deepLink))
-            putExtra(EXTRA_ENTER_TIMER_PIP, enterTimerPip)
             data = deepLink?.let { runCatching { Uri.parse(it) }.getOrNull() }
         }
 

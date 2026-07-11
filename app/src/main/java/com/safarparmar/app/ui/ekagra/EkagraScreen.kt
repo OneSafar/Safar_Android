@@ -35,9 +35,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import android.app.Activity
-import android.app.PictureInPictureParams
-import android.app.RemoteAction
 import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
@@ -45,7 +42,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.util.Rational
 import android.view.TextureView
 import android.graphics.SurfaceTexture
 import androidx.annotation.DrawableRes
@@ -58,7 +54,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
@@ -402,35 +397,7 @@ fun EkagraScreen(
             timerService.saveTheme(visualThemes.indexOf(selectedTheme), selectedMusicTrack.name)
     }
 
-    // PiP
     val pipContext   = LocalContext.current
-    val pipActivity  = pipContext as? Activity
-    val mainActivity = pipActivity as? MainActivity
-    val isInPipMode  = mainActivity?.isInPipMode == true
-    val PIP_REQUEST_PLAY = 1
-
-    fun buildPipParams(): PictureInPictureParams? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
-        val builder = PictureInPictureParams.Builder().setAspectRatio(Rational(1, 1))
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android system PiP is disabled — the floating TimerBubbleOverlay pill is the
-            // single floating timer. Never auto-enter PiP.
-            builder.setSeamlessResizeEnabled(true)
-            builder.setAutoEnterEnabled(false)
-        }
-        val playPauseIcon = android.graphics.drawable.Icon.createWithResource(
-            pipContext, if (timerRunning) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
-        builder.setActions(listOf(RemoteAction(playPauseIcon,
-            if (timerRunning) "Pause" else "Play",
-            if (timerRunning) "Pause timer" else "Start timer",
-            android.app.PendingIntent.getService(pipContext, PIP_REQUEST_PLAY,
-                Intent(pipContext, TimerService::class.java).apply { action = TimerService.ACTION_PLAY_PAUSE },
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE))))
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            builder.setTitle("SAFAR Ekagra Timer"); builder.setSubtitle("Ekagra timer running")
-        }
-        return builder.build()
-    }
 
     // One-time overlay permission prompt: shown when timer starts if permission not yet granted
     LaunchedEffect(timerRunning) {
@@ -444,9 +411,6 @@ fun EkagraScreen(
     }
 
     LaunchedEffect(timerRunning, secondsLeft) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try { buildPipParams()?.let { pipActivity?.setPictureInPictureParams(it) } } catch (_: Exception) {}
-        }
         if (!timerRunning && secondsLeft == 0 && totalSeconds > 0) {
             val completedMode = timerMode
             if (completedMode != TimerMode.FOCUS && completedMode != TimerMode.POMODORO) return@LaunchedEffect
@@ -676,17 +640,6 @@ fun EkagraScreen(
                         blockedCount = blockedHitCount,
                         onBack       = { showKavachActiveSession = false },
                         onEndSession = { showKavachActiveSession = false; endCurrentSession() },
-                    )
-                }
-                // ── PiP overlay ─────────────────────────────────────────────────
-                isInPipMode -> {
-                    EkagraPipOverlay(
-                        secondsLeft       = secondsLeft,
-                        timerMode         = timerMode,
-                        progress          = progress,
-                        timerRunning      = timerRunning,
-                        focusShieldActive = focusShieldActive,
-                        primary           = themeColorScheme.primary,
                     )
                 }
                 else -> {

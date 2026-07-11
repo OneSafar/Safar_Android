@@ -109,7 +109,7 @@ private fun AnnouncementsSheetContent(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = "Updatess",
+                text = "Updates",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f),
@@ -218,8 +218,6 @@ private fun AnnouncementRow(
                         text = item.body,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                        maxLines = if (item.type == AnnouncementType.APP_UPDATE) 2 else 3,
-                        overflow = TextOverflow.Ellipsis,
                     )
 
                     if (item.createdAt.isNotBlank()) {

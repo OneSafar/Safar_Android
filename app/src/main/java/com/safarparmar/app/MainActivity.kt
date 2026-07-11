@@ -1,18 +1,13 @@
 package com.safarparmar.app
 
-import android.app.PictureInPictureParams
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.util.Log
-import android.util.Rational
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -59,17 +54,12 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     lateinit var dataStore: SafarDataStore
 
     private var timerService by mutableStateOf<TimerService?>(null)
-    /** Set to true when PiP is restored — NavGraph observes this to navigate to Ekagra. */
     var navigateToEkagra by mutableStateOf(false)
-        private set
-    var isInPipMode by mutableStateOf(false)
         private set
     var notificationRoute by mutableStateOf<String?>(null)
         private set
     var focusShieldBlockPrompt by mutableStateOf<FocusShieldBlockPrompt?>(null)
         private set
-    private var pendingTimerPipFromNotification = false
-    private var pipRequestPosted = false
 
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
@@ -83,7 +73,6 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             timerService = (binder as TimerService.TimerBinder).getService()
-            enterTimerPipFromNotificationIfReady()
         }
         override fun onServiceDisconnected(name: ComponentName?) {
             timerService = null
@@ -108,7 +97,6 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
             navigateToEkagra = true
         }
-        consumeTimerPipIntent(intent)
         consumeNotificationIntent(intent)
         consumeFocusShieldBlockIntent(intent)
 
@@ -190,21 +178,9 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     }
 
-    /** Called on logout — stops PiP and prevents any pending Ekagra navigation. */
+    /** Called on logout — prevents any pending Ekagra navigation. */
     fun onLogout() {
         navigateToEkagra = false
-        // Disable PiP auto-enter so the next minimize doesn't re-trigger it
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            try {
-                setPictureInPictureParams(
-                    PictureInPictureParams.Builder().setAutoEnterEnabled(false).build()
-                )
-            } catch (_: Exception) {}
-        }
-        // If PiP overlay is currently visible, move the task to back so it dismisses
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode) {
-            moveTaskToBack(false)
-        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -213,19 +189,8 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_EKAGRA, false)) {
             navigateToEkagra = true
         }
-        consumeTimerPipIntent(intent)
         consumeNotificationIntent(intent)
         consumeFocusShieldBlockIntent(intent)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        enterTimerPipFromNotificationIfReady()
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) enterTimerPipFromNotificationIfReady()
     }
 
     private fun consumeNotificationIntent(intent: Intent?) {
@@ -281,90 +246,15 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         }
     }
 
-    /**
-     * PiP can only be entered by a foreground activity. The notification first restores
-     * this activity, then this delayed hand-off renders Ekagra and returns it to PiP.
-     */
-    private fun consumeTimerPipIntent(intent: Intent?) {
-        if (intent?.getBooleanExtra(NotificationDeepLinkHandler.EXTRA_ENTER_TIMER_PIP, false) != true) return
-        navigateToEkagra = true
-        pendingTimerPipFromNotification = true
-        enterTimerPipFromNotificationIfReady()
-    }
-
-    private fun enterTimerPipFromNotificationIfReady() {
-        if (!pendingTimerPipFromNotification || pipRequestPosted || !hasWindowFocus()) return
-        pipRequestPosted = true
-        Handler(Looper.getMainLooper()).postDelayed({
-            pipRequestPosted = false
-            if (!pendingTimerPipFromNotification || isFinishing || isDestroyed) return@postDelayed
-            pendingTimerPipFromNotification = false
-            enterTimerPipIfRunning()
-        }, 300L)
-    }
-
-    private fun buildTimerPipParams(): PictureInPictureParams? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
-        return PictureInPictureParams.Builder()
-            .setAspectRatio(Rational(1, 1))
-            .apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    setAutoEnterEnabled(timerService?.isRunning?.value == true)
-                    setSeamlessResizeEnabled(true)
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    setTitle("SAFAR Ekagra Timer")
-                    setSubtitle("Ekagra timer running")
-                }
-            }
-            .build()
-    }
-
-    private fun enterTimerPipIfRunning(): Boolean {
-        // Android system PiP is disabled — the floating TimerBubbleOverlay pill is now the
-        // single floating timer everywhere. Kept as a no-op so callers stay simple.
-        return false
-    }
-
     override fun onDestroy() {
         unbindService(serviceConnection)
         super.onDestroy()
-    }
-
-    // ── PiP: enter when user presses Home while timer is running ──────────────
-    // onUserLeaveHint fires ONLY on app minimize — never on in-app navigation.
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        enterTimerPipIfRunning()
-    }
-
-    override fun onPictureInPictureModeChanged(
-        isInPictureInPictureMode: Boolean,
-        newConfig: Configuration
-    ) {
-        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        isInPipMode = isInPictureInPictureMode
-        if (isInPictureInPictureMode) {
-            // Just entered PiP — navigate to Ekagra so PiP shows it
-            navigateToEkagra = true
-        } else {
-            // Exiting PiP (restore) — also navigate to Ekagra
-            navigateToEkagra = true
-        }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        // Focus Shield is owned by TimerService, not the PiP window. Do not
-        // recreate PiP after the user dismisses it.
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         applyOrientationPolicy()
     }
-
-    // Required so Ekagra PiP overlay renders correctly
 
     override fun onPaymentSuccess(razorpayPaymentId: String?, paymentData: PaymentData?) {
         PaymentEventBus.postSuccess(razorpayPaymentId, paymentData)

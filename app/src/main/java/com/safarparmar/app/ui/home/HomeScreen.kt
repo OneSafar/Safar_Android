@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
@@ -498,7 +499,8 @@ private fun SafarWelcomeDialog(
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Column(
                     modifier = Modifier
