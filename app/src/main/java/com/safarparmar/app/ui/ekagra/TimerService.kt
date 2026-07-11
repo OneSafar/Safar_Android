@@ -291,7 +291,11 @@ class TimerService : Service() {
         shieldMonitorJob?.cancel()
         shieldMonitorJob = scope.launch {
             var sinceSyncMs = 0L
-            while (_isRunning.value) {
+            // Gated on the session being active (started, running OR paused), not on
+            // _isRunning — KAVACH must keep blocking through a pause. syncFocusShieldState()
+            // inside the loop still disables the shield the moment the mode isn't
+            // Focus/Stopwatch (e.g. a break), so pausing a break stays a no-op here.
+            while (timerSessionActive) {
                 // Reconcile config/permissions roughly every 1.5s…
                 if (sinceSyncMs <= 0L) {
                     syncFocusShieldState()
@@ -420,7 +424,7 @@ class TimerService : Service() {
             packageName == "com.android.settings"
 
     private suspend fun syncFocusShieldState() {
-        if ((_timerMode.value != TimerMode.FOCUS && _timerMode.value != TimerMode.STOPWATCH) || !_isRunning.value) {
+        if ((_timerMode.value != TimerMode.FOCUS && _timerMode.value != TimerMode.STOPWATCH) || !timerSessionActive) {
             disableFocusShieldForSession()
             return
         }
@@ -945,8 +949,12 @@ class TimerService : Service() {
     fun start() {
         if (_secondsLeft.value <= 0 && _timerMode.value != TimerMode.STOPWATCH) return
         _isRunning.value = true
+        // Set before startFocusShieldMonitor() below — its polling loop's while
+        // condition reads this on a freshly launched coroutine, so it must already
+        // be true before that coroutine is scheduled, not after.
+        timerSessionActive = true
         persistTimerState()
-        
+
         try {
             startForeground(NOTIFICATION_ID, buildNotification())
         } catch (e: Exception) {
@@ -955,13 +963,12 @@ class TimerService : Service() {
             pause()
             return
         }
-        
+
         activateFocusShieldFromSettingsIfNeeded()
         startFocusShieldMonitor()
         startMusic(currentMusicUrl)
         lastTickElapsedMs = SystemClock.elapsedRealtime()
         // A session is now live. The pill shows only while SAFAR is backgrounded (syncBubble).
-        timerSessionActive = true
         syncBubble()
         tickJob?.cancel()
         tickJob = scope.launch {
@@ -1094,8 +1101,11 @@ class TimerService : Service() {
         tickJob?.cancel()
         persistTimerState()
         releaseMusic()
-        disableFocusShieldForSession()
-        stopFocusShieldMonitor()
+        // KAVACH intentionally stays active through a pause — the session hasn't
+        // ended, the user could just be checking something and forget to resume.
+        // startFocusShieldMonitor()'s loop and syncFocusShieldState() are both
+        // keyed on timerSessionActive (unaffected by pause), so the monitor and
+        // block screen keep working exactly as they did while running.
         updateNotification()
         // Session is still active (paused) — keep the pill if backgrounded, now showing Play.
         syncBubble()

@@ -462,7 +462,7 @@ private fun NotificationAccessDisclosureCard() {
                 color = scheme.onSurface,
             )
             Text(
-                text = "Notification shield is required for notification suppression. It dismisses notifications only from the apps you selected for blocking, and only while an Ekagra focus timer is running.",
+                text = "Notification shield is required for notification suppression. It dismisses notifications only from the apps you selected for blocking, and only during an active Ekagra focus timer session.",
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
                 color = scheme.onSurfaceVariant,

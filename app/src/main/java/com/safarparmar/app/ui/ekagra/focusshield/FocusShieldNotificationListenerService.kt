@@ -6,6 +6,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.NotificationListenerService.RankingMap
 import android.service.notification.StatusBarNotification
 import com.safarparmar.app.BuildConfig
+import com.safarparmar.app.ui.ekagra.TimerService
 
 class FocusShieldNotificationListenerService : NotificationListenerService() {
 
@@ -38,6 +39,10 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
 
     private fun suppressActiveBlockedNotifications(reason: String) {
         if (!FocusShieldRepository.ShieldPrefs.isActive(this)) return
+        // App-blocking stays active through a pause, but notification suppression
+        // is intentionally narrower — it must only happen while the Ekagra timer
+        // is actually running, not merely paused mid-session.
+        if (!TimerService.isFocusTimerRunning(this)) return
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) return
 
         val blockedPackages = FocusShieldRepository.ShieldPrefs.getPackages(this)
@@ -59,6 +64,7 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
         val normalizedPackage = packageName?.takeIf { it.isNotBlank() } ?: return false
         if (normalizedPackage == this.packageName) return false
         if (!FocusShieldRepository.ShieldPrefs.isActive(this)) return false
+        if (!TimerService.isFocusTimerRunning(this)) return false
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) return false
         if (FocusShieldRepository.ShieldPrefs.isOneTimeUnlockedPackage(this, normalizedPackage)) return false
         return normalizedPackage in blockedPackages

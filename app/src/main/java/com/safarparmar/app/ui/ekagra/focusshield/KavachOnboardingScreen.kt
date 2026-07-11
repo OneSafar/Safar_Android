@@ -486,7 +486,7 @@ private fun KavachRegainExplanationSheet(
         )
         PermissionTarget.NOTIFICATION_ACCESS -> listOf(
             "KAVACH can dismiss notifications only from apps you selected to block.",
-            "This works only while an Ekagra focus timer is running.",
+            "This works only during an active Ekagra focus timer session.",
             "SAFAR does not store notification content or use it for ads.",
             "You can turn Notification access off anytime in Android Settings.",
         )
