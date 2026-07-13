@@ -749,7 +749,7 @@ private fun MonthlyCard(report: MonthlyReport, isDark: Boolean, onNavigate: (Str
         HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
         StatRow(stringResource(R.string.dashboard_completion), "${report.completionRate.toInt()}%", isDark)
         HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
-        StatRow(stringResource(R.string.dashboard_focus), "${report.totalFocusMinutes}", isDark)
+        StatRow(stringResource(R.string.dashboard_focus), "${report.focusDepth.toInt()}m/day", isDark)
         Spacer(Modifier.height(10.dp))
         OutlinedButton(
             onClick = { onNavigate(Routes.nishthaTab(4)) },

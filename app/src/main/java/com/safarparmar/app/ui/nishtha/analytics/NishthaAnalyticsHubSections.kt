@@ -73,7 +73,7 @@ internal fun AnalyticsOverviewSection(
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HubMetricCard(Icons.Default.Bolt, "Consistency", report?.let { "${it.consistencyScore.toInt()}%" } ?: "-", "Monthly review preview", Color(0xFF5B21B6), Modifier.weight(1f))
-            HubMetricCard(Icons.Default.TrackChanges, "Ekagra Depth", report?.let { "${it.totalFocusMinutes}m/day" } ?: "-", "From Monthly Review", Color(0xFF9A3412), Modifier.weight(1f))
+            HubMetricCard(Icons.Default.TrackChanges, "Ekagra Depth", report?.let { "${it.focusDepth.toInt()}m/day" } ?: "-", "From Monthly Review", Color(0xFF9A3412), Modifier.weight(1f))
         }
         Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

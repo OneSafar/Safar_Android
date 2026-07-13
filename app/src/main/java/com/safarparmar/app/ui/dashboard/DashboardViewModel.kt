@@ -164,10 +164,18 @@ class DashboardViewModel @Inject constructor(
         return try {
             when (val plansResult = studyPlannerRepository.listPlans()) {
                 is Resource.Success -> {
-                    val activePlan = plansResult.data.firstOrNull()
-                    if (activePlan == null) {
+                    val summaryPlan = plansResult.data.firstOrNull()
+                    if (summaryPlan == null) {
                         DashboardStudyPlanState()
                     } else {
+                        // listPlans() returns summaries without the topic tree, so rollup()
+                        // on them yields "0 of 0". Hydrate the full plan (like the planner's
+                        // openPlan does) before computing progress; fall back to the summary
+                        // if the detail fetch fails so the card still renders.
+                        val activePlan = when (val planResult = studyPlannerRepository.getPlan(summaryPlan.id)) {
+                            is Resource.Success -> planResult.data
+                            else -> summaryPlan
+                        }
                         val calendarResult = studyPlannerRepository.getCalendar(activePlan.id)
                         val calendar = when (calendarResult) {
                             is Resource.Success -> calendarResult.data

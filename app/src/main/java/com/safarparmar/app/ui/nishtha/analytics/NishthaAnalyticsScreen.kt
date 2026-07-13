@@ -278,7 +278,10 @@ private fun MonthlyReviewSection(
 private fun ReportContent(report: MonthlyReport, achievements: List<com.safarparmar.app.domain.model.Achievement> = emptyList(), onNavigate: (String) -> Unit = {}) {
     ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, Color(0xFF5B21B6))
     ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, Color(0xFF065F46))
-    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.totalFocusMinutes}m/day", report.focusMessage, Color(0xFF9A3412))
+    // report.totalFocusMinutes is the running total for the whole period, not a
+    // per-day figure — report.focusDepth is the value already correctly averaged
+    // server-side (totalFocusMinutes / distinct days with Ekagra activity).
+    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.focusDepth.toInt()}m/day", report.focusMessage, Color(0xFF9A3412))
 
     // Goals set / completed this period — backend already computes these
     // (executiveSummary.goalsCreated / goalsCompleted) but they weren't surfaced.

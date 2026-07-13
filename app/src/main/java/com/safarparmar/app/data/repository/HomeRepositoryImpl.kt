@@ -354,6 +354,7 @@ class HomeRepositoryImpl @Inject constructor(
             goalsCreated          = s?.goalsCreated ?: 0,
             goalsCompleted        = s?.goalsCompleted ?: 0,
             totalFocusMinutes     = s?.totalFocusMinutes ?: 0,
+            totalFocusMinutesSum  = s?.totalFocusMinutesSum ?: 0,
             longestStreakDays     = s?.longestStreakDays ?: 0,
             streakBreaksCount     = s?.streakBreaksCount ?: 0,
             streakBreakDates      = s?.streakBreakDates ?: emptyList(),

@@ -104,7 +104,11 @@ data class MonthlyReport(
     val daysInMonth: Int = 31,
     val goalsCreated: Int = 0,
     val goalsCompleted: Int = 0,
+    // Carries the per-day average — see ExecutiveSummaryDto for why. Prefer
+    // focusDepth (same value) for clarity, or totalFocusMinutesSum for the
+    // real period total.
     val totalFocusMinutes: Int = 0,
+    val totalFocusMinutesSum: Int = 0,
     val longestStreakDays: Int = 0,
     val streakBreaksCount: Int = 0,
     val streakBreakDates: List<String> = emptyList(),

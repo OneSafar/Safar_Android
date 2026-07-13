@@ -113,7 +113,12 @@ data class ExecutiveSummaryDto(
     val daysInMonth: Int? = 31,
     val goalsCreated: Int? = 0,
     val goalsCompleted: Int? = 0,
+    // totalFocusMinutes intentionally carries the per-day average (see backend
+    // comment in analytics.ts) to hotfix already-published app versions that
+    // mislabeled it as a daily figure. Use focusDepth (identical value) or
+    // totalFocusMinutesSum (the real period total) instead of this field.
     val totalFocusMinutes: Int? = 0,
+    val totalFocusMinutesSum: Int? = 0,
     val longestStreakDays: Int? = 0,
     val streakBreaksCount: Int? = 0,
     val streakBreakDates: List<String>? = null,
