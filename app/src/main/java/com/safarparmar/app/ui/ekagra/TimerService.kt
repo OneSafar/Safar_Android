@@ -1000,6 +1000,16 @@ class TimerService : Service() {
                 TimerBubbleOverlay.hide()
                 val focusState = suspendedFocusState
                 if (focusState != null && _timerMode.value != TimerMode.FOCUS) {
+                    // A mid-session break ("Take break") ran to completion and we're
+                    // about to restore the suspended focus session. Save the break
+                    // first — this path returns early, so without this the break time
+                    // would be silently dropped.
+                    if (_timerMode.value == TimerMode.BREAK) {
+                        enqueueCompletedBreakSessionSave(
+                            actualSeconds = _totalSeconds.value,
+                            plannedSeconds = _totalSeconds.value,
+                        )
+                    }
                     suspendedFocusState = null
                     _timerMode.value = TimerMode.FOCUS
                     _totalSeconds.value = focusState.totalSeconds
@@ -1074,6 +1084,11 @@ class TimerService : Service() {
                 
                 // If it was a BREAK and we are in the middle of a Pomodoro loop
                 if (_timerMode.value == TimerMode.BREAK && _targetPomodoroLoops.value > 0) {
+                    // The break ran to completion, so its elapsed time is its full length.
+                    enqueueCompletedBreakSessionSave(
+                        actualSeconds = _totalSeconds.value,
+                        plannedSeconds = _totalSeconds.value,
+                    )
                     _timerMode.value = TimerMode.POMODORO
                     _totalSeconds.value = pomodoroFocusSeconds
                     _secondsLeft.value = pomodoroFocusSeconds
@@ -1082,6 +1097,15 @@ class TimerService : Service() {
                     return@launch
                 }
                 
+                // A standalone break just ran to completion — persist it before the
+                // state below is reset, so break time actually lands in history.
+                if (_timerMode.value == TimerMode.BREAK) {
+                    enqueueCompletedBreakSessionSave(
+                        actualSeconds = _totalSeconds.value,
+                        plannedSeconds = _totalSeconds.value,
+                    )
+                }
+
                 // The break just finished with nothing to resume into (not a
                 // Pomodoro loop, no suspended focus session) — reset secondsLeft
                 // back to the full break length so the UI offers a fresh "Start"
@@ -1239,7 +1263,63 @@ class TimerService : Service() {
             ),
         )
         EkagraSessionSaveWorker.enqueue(this)
+        flushPendingSavesNow()
         sessionSaveQueuedThisRun = true
+    }
+
+    /**
+     * Tries to upload the just-queued session right away, while this foreground
+     * service is still alive, instead of waiting for WorkManager to schedule the
+     * job. Aggressive OEM battery managers (Xiaomi/Oppo/Vivo) routinely defer or
+     * kill background work, which is how a completed session could end up sitting
+     * in the local queue and never reaching the server. The durable queue and the
+     * WorkManager job above stay in place as the retry path — this is purely a
+     * best-effort fast path, so failures here are ignored (the queue keeps the
+     * session and the worker will retry).
+     */
+    private fun flushPendingSavesNow() {
+        scope.launch {
+            runCatching { EkagraSessionSaveWorker.drainPendingSaves(applicationContext) }
+        }
+    }
+
+    /**
+     * Breaks were previously never persisted — no code path called a save when a
+     * BREAK finished, so break time never showed up in history or analytics. The
+     * backend already understands break sessions (TimerMode.BREAK.toApiMode() ==
+     * "short", which /ekagra-sessions/save maps to session_type "short_break"), so
+     * this only ever needed a client-side call site.
+     *
+     * Break metadata is deliberately independent of [autoSaveMetadata]: that holds
+     * the *focus* session's identity (goal/topic links), which must not be credited
+     * to a break, and it's cleared before an auto-break starts anyway.
+     */
+    private fun enqueueCompletedBreakSessionSave(actualSeconds: Int, plannedSeconds: Int) {
+        val actual = actualSeconds.coerceAtLeast(0)
+        if (actual <= 0) return
+        val planned = plannedSeconds.coerceAtLeast(actual)
+        EkagraPendingSessionSaveStore.enqueue(
+            this,
+            PendingEkagraSessionSave(
+                clientSessionId = "ekagra-break-${UUID.randomUUID()}",
+                mode = TimerMode.BREAK.toApiMode(),
+                startedAt = Instant.now().minusSeconds(actual.toLong()).toString(),
+                endedAt = Instant.now().toString(),
+                plannedDurationMinutes = (planned + 59) / 60,
+                actualDurationMinutes = (actual / 60.0).roundToInt(),
+                actualDurationSeconds = actual,
+                // A break is never linked to a goal/topic — only focus time is.
+                goalId = null,
+                goalTitle = null,
+                topicId = null,
+                planId = null,
+                topicTitle = null,
+                taskTitle = "Break",
+                shieldEnabled = false,
+            ),
+        )
+        EkagraSessionSaveWorker.enqueue(this)
+        flushPendingSavesNow()
     }
 
     private fun persistTimerState() {

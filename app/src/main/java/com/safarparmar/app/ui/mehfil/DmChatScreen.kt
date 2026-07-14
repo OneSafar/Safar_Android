@@ -87,6 +87,7 @@ fun DmChatScreen(
             DmChatTopBar(
                 peerName = dmState.peerName,
                 peerAvatar = dmState.peerAvatar,
+                connected = uiState.socketConnected,
                 onBack = onBack,
                 onLeave = {
                     viewModel.leaveDmRoom()
@@ -134,7 +135,13 @@ fun DmChatScreen(
 }
 
 @Composable
-private fun DmChatTopBar(peerName: String, peerAvatar: String?, onBack: () -> Unit, onLeave: () -> Unit) {
+private fun DmChatTopBar(
+    peerName: String,
+    peerAvatar: String?,
+    connected: Boolean,
+    onBack: () -> Unit,
+    onLeave: () -> Unit,
+) {
     Surface(
         tonalElevation = 2.dp,
         color = MaterialTheme.colorScheme.surface,
@@ -149,8 +156,20 @@ private fun DmChatTopBar(peerName: String, peerAvatar: String?, onBack: () -> Un
             Column(Modifier.weight(1f)) {
                 Text(peerName, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiary))
-                    Text("Ephemeral - Connected", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box(
+                        Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (connected) MaterialTheme.colorScheme.tertiary
+                                else MaterialTheme.colorScheme.error,
+                            ),
+                    )
+                    Text(
+                        if (connected) "Ephemeral - Connected" else "Ephemeral - Reconnecting…",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             OutlinedButton(

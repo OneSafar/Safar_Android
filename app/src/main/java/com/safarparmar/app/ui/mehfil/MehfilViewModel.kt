@@ -123,6 +123,9 @@ class MehfilViewModel @Inject constructor(
 
     private fun initSocket() {
         viewModelScope.launch {
+            // A lightweight authenticated call lets the interceptor refresh an
+            // expired access token before Socket.IO authenticates the handshake.
+            authRepo.getMe()
             val token = dataStore.authToken.first() ?: run {
                 _uiState.update { it.copy(isInitializing = false) }
                 return@launch
@@ -202,18 +205,24 @@ class MehfilViewModel @Inject constructor(
             launch {
                 socketManager.dmEvent.collect { event ->
                     when (event.type) {
-                        "request_sent"     -> _uiState.update { it.copy(dmRequestId = event.message) }
+                        "request_sent"     -> _uiState.update { it.copy(
+                            dmRequestId = event.message,
+                            dmState = DmState.Waiting,
+                            dmError = null,
+                        ) }
                         "incoming_request" -> _uiState.update { it.copy(
                             dmState = DmState.IncomingRequest(event.fromUserId, event.fromUserName, event.fromUserAvatar),
                             pendingDmRequests = (it.pendingDmRequests + PendingDmRequest(event.fromUserId, event.fromUserName, event.requestId, event.fromUserAvatar)).distinctBy { p -> p.userId },
                         ) }
                         "opened"           -> _uiState.update { it.copy(
                             dmState = if (it.mehfilDm) {
+                                val existing = it.dmState as? DmState.Open
                                 DmState.Open(
                                     peerId = event.fromUserId,
                                     peerName = event.fromUserName.ifBlank { it.dmTargetUserName }.ifBlank { event.fromUserId },
                                     roomId = event.roomId,
                                     peerAvatar = event.fromUserAvatar,
+                                    messages = if (event.restored && existing?.roomId == event.roomId) existing.messages else emptyList(),
                                 )
                             } else {
                                 DmState.Idle
@@ -539,15 +548,20 @@ class MehfilViewModel @Inject constructor(
             _uiState.update { it.copy(dmError = "You cannot connect with yourself") }
             return false
         }
-        if (!_uiState.value.mehfilDm && !_uiState.value.isLoadingPremiumFeatures) {
+        if (_uiState.value.isLoadingPremiumFeatures) {
+            _uiState.update { it.copy(dmError = "Checking your Premium access. Please try again in a moment.") }
+            return false
+        }
+        if (!_uiState.value.mehfilDm) {
             _uiState.update { it.copy(showPremiumGate = true, dmError = null) }
             return false
         }
-        _uiState.update { it.copy(dmState = DmState.Waiting, dmError = null, dmTargetUserId = targetUserId, dmTargetUserName = targetUserName) }
-        val s = socketManager
-        if (s.isConnected()) {
-            s.emitDmRequest(targetUserId, contextPostId, contextPreview)
+        if (!socketManager.isConnected()) {
+            _uiState.update { it.copy(dmError = "Mehfil is reconnecting. Please try again.") }
+            return false
         }
+        _uiState.update { it.copy(dmState = DmState.Idle, dmError = null, dmTargetUserId = targetUserId, dmTargetUserName = targetUserName) }
+        socketManager.emitDmRequest(targetUserId, contextPostId, contextPreview)
         return true
     }
     fun acceptDm(fromUserId: String) {
@@ -557,12 +571,18 @@ class MehfilViewModel @Inject constructor(
         }
         val pending = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }
         val requestId = pending?.requestId ?: ""
-        val peerName  = pending?.userName ?: fromUserId
-        val peerAvatar = pending?.userAvatar
+        if (!socketManager.isConnected()) {
+            _uiState.update { it.copy(dmError = "Mehfil is reconnecting. Please try again.") }
+            return
+        }
+        if (requestId.isBlank()) {
+            _uiState.update { it.copy(dmError = "This connection request has expired.") }
+            return
+        }
         socketManager.emitDmAccept(requestId)
         _uiState.update { it.copy(
-            dmState = DmState.Open(peerId = fromUserId, peerName = peerName, roomId = "", peerAvatar = peerAvatar),
             pendingDmRequests = it.pendingDmRequests.filter { p -> p.userId != fromUserId },
+            dmError = null,
         ) }
     }
     fun declineDm(fromUserId: String) {
@@ -586,9 +606,11 @@ class MehfilViewModel @Inject constructor(
             return
         }
         val current = _uiState.value.dmState
-        if (current is DmState.Open) {
+        if (current is DmState.Open && current.roomId.isNotBlank() && socketManager.isConnected()) {
             socketManager.emitDmMessage(current.roomId, message)
             _uiState.update { it.copy(dmState = current.copy(messages = current.messages + DmMessage(message, true, senderAvatar = it.currentUserAvatar))) }
+        } else {
+            _uiState.update { it.copy(dmError = "Chat is reconnecting. Please try again.") }
         }
     }
 
@@ -601,20 +623,4 @@ class MehfilViewModel @Inject constructor(
         }
     }
 
-    /** Called when the app goes to background (ON_STOP). Disconnects the socket. */
-    fun pauseSocket() {
-        socketManager.disconnect()
-    }
-
-    /** Called when the app returns to foreground (ON_START). Reconnects if not already connected. */
-    fun resumeSocket() {
-        if (!socketManager.isConnected()) {
-            initSocket()
-        }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        socketManager.disconnect()
-    }
 }

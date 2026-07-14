@@ -3,17 +3,13 @@ package com.safarparmar.app.ui.mehfil
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.ui.butterfly.ButterflyTourState
@@ -32,7 +28,6 @@ fun MehfilScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     val tabBackStack = rememberFeatureTabBackStack(MehfilTab.COMMUNITY)
     val selectedTab = tabBackStack.currentTab
@@ -77,18 +72,6 @@ fun MehfilScreen(
             dmChatNavigated.value = true
             onNavigate(Routes.DM_CHAT)
         }
-    }
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_STOP -> viewModel.pauseSocket()
-                Lifecycle.Event.ON_START -> viewModel.resumeSocket()
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(selectedTab) {
@@ -217,7 +200,6 @@ fun MehfilScreen(
         onAcceptDm = { userId ->
             dmChatNavigated.value = false
             viewModel.acceptDm(userId)
-            onNavigate(Routes.DM_CHAT)
         },
         onDeclineDm = viewModel::declineDm,
         onOpenDmChat = { onNavigate(Routes.DM_CHAT) },

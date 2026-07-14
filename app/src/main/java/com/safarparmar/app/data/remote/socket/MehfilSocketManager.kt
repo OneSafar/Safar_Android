@@ -85,6 +85,7 @@ class MehfilSocketManager @Inject constructor(
 ) {
     private var socket: Socket? = null
     private var pendingRoom: String = "ALL"
+    private var activeUserId: String? = null
 
     // ALL flows declared FIRST — before any usage in connect()
     private val _onlineCount    = MutableStateFlow(0)
@@ -110,6 +111,7 @@ class MehfilSocketManager @Inject constructor(
         val message: String = "",
         val pendingList: List<String> = emptyList(),
         val errorCode: String = "",
+        val restored: Boolean = false,
     )
     private val _dmEvent = MutableSharedFlow<DmEvent>(extraBufferCapacity = 16)
     val dmEvent = _dmEvent.asSharedFlow()
@@ -139,13 +141,29 @@ class MehfilSocketManager @Inject constructor(
     private val _connected = MutableStateFlow(false)
     val connected = _connected.asStateFlow()
 
+    @Synchronized
     fun connect(token: String, userId: String, userName: String, userAvatar: String?, initialRoom: String = "ALL") {
-        if (socket?.connected() == true) {
-            joinRoomAndLoad(initialRoom)
+        pendingRoom = initialRoom
+
+        val existingSocket = socket
+        if (existingSocket != null && activeUserId == userId) {
+            android.util.Log.d(
+                "MehfilSocket",
+                "Reusing existing socket for user=$userId connected=${existingSocket.connected()}",
+            )
+            if (existingSocket.connected()) {
+                joinRoomAndLoad(initialRoom)
+            } else {
+                // Socket.IO connect() is idempotent while a connection attempt
+                // is already in progress, and restarts an exhausted attempt.
+                existingSocket.connect()
+            }
             return
         }
 
-        pendingRoom = initialRoom
+        if (existingSocket != null) {
+            disposeSocketLocked()
+        }
 
         val serverRoot = BuildConfig.BASE_URL
             .removeSuffix("/")
@@ -162,7 +180,10 @@ class MehfilSocketManager @Inject constructor(
 
         try {
             android.util.Log.d("MehfilSocket", "Connecting to $serverRoot/mehfil  user=$userId  room=$initialRoom")
-            socket = IO.socket(URI.create("$serverRoot/mehfil"), opts).apply {
+            val newSocket = IO.socket(URI.create("$serverRoot/mehfil"), opts)
+            socket = newSocket
+            activeUserId = userId
+            newSocket.apply {
 
                 on(Socket.EVENT_CONNECT) {
                     _connected.tryEmit(true)
@@ -267,8 +288,9 @@ class MehfilSocketManager @Inject constructor(
                         val otherUserId   = obj.optString("otherUserId")
                         val otherUserName = obj.optString("otherUserName").ifBlank { otherUserId }
                         val otherUserAvatar = obj.optString("otherUserAvatar").takeIf { it.isNotBlank() }
+                        val restored = obj.optBoolean("restored", false)
                         android.util.Log.d("MehfilSocket", "dm:opened ← roomId=$roomId other=$otherUserName")
-                        _dmEvent.tryEmit(DmEvent("opened", fromUserId = otherUserId, fromUserName = otherUserName, fromUserAvatar = otherUserAvatar, roomId = roomId))
+                        _dmEvent.tryEmit(DmEvent("opened", fromUserId = otherUserId, fromUserName = otherUserName, fromUserAvatar = otherUserAvatar, roomId = roomId, restored = restored))
                     } catch (_: Exception) {}
                 }
                 on("dm:sync_pending") { args ->
@@ -376,6 +398,7 @@ class MehfilSocketManager @Inject constructor(
             }
         } catch (e: Exception) {
             android.util.Log.e("MehfilSocket", "Socket init failed: ${e.message}")
+            disposeSocketLocked()
             _connected.tryEmit(false)
         }
     }
@@ -492,10 +515,17 @@ class MehfilSocketManager @Inject constructor(
 
     fun isConnected() = socket?.connected() == true
 
+    @Synchronized
     fun disconnect() {
         android.util.Log.d("MehfilSocket", "disconnect()")
+        disposeSocketLocked()
+        _connected.tryEmit(false)
+    }
+
+    private fun disposeSocketLocked() {
+        socket?.off()
         socket?.disconnect()
         socket = null
-        _connected.tryEmit(false)
+        activeUserId = null
     }
 }
