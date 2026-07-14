@@ -330,6 +330,19 @@ class EkagraViewModel @Inject constructor(
     ) {
         val current = _activeSession.value
         val actualSeconds = if (mode == "stopwatch") secondsLeft else (totalSeconds - secondsLeft)
+
+        // Never persist a zero-length session.
+        //
+        // actualSeconds is derived as (totalSeconds - secondsLeft), so it is 0 whenever
+        // this runs while the timer is still full — most notably the instant an
+        // auto-break starts (break is at full length, hasn't ticked yet). Without this
+        // guard we POST a `completed: true` session of 0 minutes, which the user reads
+        // as "my session didn't save" and which pollutes history and analytics.
+        //
+        // TimerService's own save path already had this guard (`if (actual == 0) return`);
+        // this path did not, which is why the corrupt rows all came from here.
+        if (actualSeconds <= 0) return
+
         // Kept for the backend's older minute-level fields and for planned-vs-actual
         // fallbacks — actualSeconds is the precise value now used for aggregation.
         val actualMinutes = (actualSeconds / 60.0).roundToInt()
