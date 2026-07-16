@@ -93,6 +93,7 @@ class PlannerAlertsWorker(
                                     body = "Your exam for ${plan.title} is in $daysUntil days.",
                                     deepLink = "safar://studyplanner",
                                     dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
+                                    nameOnly = true,
                                 )
                                 dataStore.addPlannerAlertDedupeKey(dedupeKey)
                                 notified = true

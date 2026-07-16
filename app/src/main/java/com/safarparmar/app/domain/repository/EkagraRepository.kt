@@ -27,6 +27,20 @@ interface EkagraRepository {
         shieldEnabled: Boolean = false,
     ): Resource<EkagraSession>
     suspend fun deleteSession(sessionId: String): Resource<Unit>
+    /**
+     * Renames / re-associates an existing session IN PLACE (keeps its id). Only
+     * non-null args are sent, so a title-only rename won't clear a goal/topic link.
+     * This is the correct path for editing history sessions — never save+delete.
+     */
+    suspend fun updateSession(
+        sessionId: String,
+        taskTitle: String? = null,
+        goalId: String? = null,
+        goalTitle: String? = null,
+        topicId: String? = null,
+        planId: String? = null,
+        topicTitle: String? = null,
+    ): Resource<Unit>
     suspend fun getLinkedSessions(): Resource<List<com.safarparmar.app.domain.model.GoalLinkedSession>>
     suspend fun getTopicLinkedSessions(planId: String? = null): Resource<List<com.safarparmar.app.domain.model.TopicLinkedSession>>
 }

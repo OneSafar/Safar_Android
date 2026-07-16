@@ -208,7 +208,14 @@ fun PlanTabScreen(
     }
 
     fun exportPlan() {
-        exportLauncher.launch("${plan.title.replace(" ", "_")}_Syllabus.pdf")
+        // Some devices (customised OEM ROMs, or ones where the system document picker
+        // is disabled/removed) have no activity that handles ACTION_CREATE_DOCUMENT, so
+        // launch() throws ActivityNotFoundException. Surface a message instead of crashing.
+        try {
+            exportLauncher.launch("${plan.title.replace(" ", "_")}_Syllabus.pdf")
+        } catch (e: android.content.ActivityNotFoundException) {
+            actions.setError("Couldn't open the file picker to export. Your device may not support saving files this way.")
+        }
     }
 
     if (showSettings) {

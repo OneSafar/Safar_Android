@@ -15,13 +15,22 @@ object NotificationDeepLinkHandler {
     fun activityIntent(
         context: Context,
         deepLink: String?,
-    ): Intent =
-        Intent(context, MainActivity::class.java).apply {
+    ): Intent {
+        val uri = deepLink?.trim()?.let { runCatching { Uri.parse(it) }.getOrNull() }
+        if (isExternalWebLink(uri)) {
+            return Intent(Intent.ACTION_VIEW, uri)
+        }
+
+        return Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_DEEP_LINK, deepLink)
             putExtra(EXTRA_ROUTE, routeFor(deepLink))
-            data = deepLink?.let { runCatching { Uri.parse(it) }.getOrNull() }
+            data = uri
         }
+    }
+
+    fun isExternalWebLink(uri: Uri?): Boolean =
+        uri?.scheme.equals("https", ignoreCase = true) && !uri?.host.isNullOrBlank()
 
     fun routeFor(deepLink: String?): String {
         val trimmed = deepLink?.trim().orEmpty()

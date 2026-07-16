@@ -312,6 +312,36 @@ class EkagraViewModel @Inject constructor(
         pauseActiveSession(totalSeconds, secondsLeft, "Timer")
     }
 
+    /**
+     * Renames / re-associates an EXISTING history session in place (keeps its id).
+     *
+     * This replaces the old "completeSession → save a new row + delete the old one"
+     * approach for editing a session that is already saved. That copy-and-delete
+     * minted a new id every edit and produced a duplicate whenever the delete half
+     * didn't land — the "renamed session clones itself and rotates in pairs" bug.
+     * A real in-place update can't duplicate because the row keeps its identity.
+     */
+    fun updateExistingSession(
+        sessionId: String,
+        taskTitle: String? = null,
+        goalId: String? = null,
+        goalTitle: String? = null,
+        topicId: String? = null,
+        planId: String? = null,
+        topicTitle: String? = null,
+    ) {
+        viewModelScope.launch {
+            when (repo.updateSession(sessionId, taskTitle, goalId, goalTitle, topicId, planId, topicTitle)) {
+                is Resource.Success -> {
+                    loadStats()
+                    refreshEkagra()
+                    loadTasks()
+                }
+                is Resource.Error, is Resource.Loading -> Unit
+            }
+        }
+    }
+
     fun completeSession(
         sessionId: String,
         totalSeconds: Int,

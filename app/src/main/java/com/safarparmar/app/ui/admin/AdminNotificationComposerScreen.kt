@@ -467,11 +467,11 @@ private fun ComposerContent(
                     label = { Text("Body") },
                     minLines = 4,
                 )
+                val currentDeepLink = deepLinkOptions.firstOrNull { it.path == uiState.deepLink }
                 ExposedDropdownMenuBox(
                     expanded = deepLinkExpanded,
                     onExpandedChange = { deepLinkExpanded = !deepLinkExpanded },
                 ) {
-                    val currentDeepLink = deepLinkOptions.firstOrNull { it.path == uiState.deepLink }
                     OutlinedTextField(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -497,7 +497,25 @@ private fun ComposerContent(
                                 },
                             )
                         }
+                        DropdownMenuItem(
+                            text = { Text("Custom web link") },
+                            onClick = {
+                                deepLinkExpanded = false
+                                onDeepLinkChange("")
+                            },
+                        )
                     }
+                }
+                if (currentDeepLink == null) {
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = uiState.deepLink,
+                        onValueChange = onDeepLinkChange,
+                        label = { Text("Custom web link") },
+                        placeholder = { Text("https://example.com/page") },
+                        supportingText = { Text("Only secure https links can be sent.") },
+                        singleLine = true,
+                    )
                 }
             }
         }

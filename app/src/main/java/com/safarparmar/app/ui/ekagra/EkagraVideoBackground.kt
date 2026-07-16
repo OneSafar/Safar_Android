@@ -81,26 +81,41 @@ internal fun EkagraVideoBackground(videoUrl: String, modifier: Modifier = Modifi
             }
             textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                 override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
-                    try {
-                        val mp = MediaPlayer().apply {
-                            setSurface(android.view.Surface(p0))
-                            setDataSource(ctx, Uri.parse(videoUrl))
-                            isLooping = true; setVolume(0f, 0f)
-                            setOnPreparedListener { player ->
-                                val vW = screenW.toFloat(); val vH = screenH.toFloat()
-                                val vidW = player.videoWidth.takeIf { it > 0 }?.toFloat() ?: vW
-                                val vidH = player.videoHeight.takeIf { it > 0 }?.toFloat() ?: vH
-                                val videoAspect = vidW / vidH; val viewAspect = vW / vH
-                                val (scaleX, scaleY) = if (videoAspect > viewAspect) Pair(videoAspect / viewAspect, 1f) else Pair(1f, viewAspect / videoAspect)
-                                textureView.scaleX = scaleX; textureView.scaleY = scaleY
-                                textureView.pivotX = vW / 2f; textureView.pivotY = vH / 2f
-                                player.start()
+                    // MediaPlayer() + setDataSource() make a synchronous Binder call into
+                    // mediaserver. This callback fires on the main thread during the draw pass,
+                    // so doing it inline blocks the UI thread and causes "input dispatching timed
+                    // out" ANRs when mediaserver is busy. Build the player on a background thread;
+                    // only the aspect-ratio scaling (which touches the live TextureView) hops back
+                    // to the main thread once the player is prepared.
+                    Thread {
+                        try {
+                            val mp = MediaPlayer().apply {
+                                setSurface(android.view.Surface(p0))
+                                setDataSource(ctx, Uri.parse(videoUrl))
+                                isLooping = true; setVolume(0f, 0f)
+                                setOnPreparedListener { player ->
+                                    Handler(Looper.getMainLooper()).post {
+                                        try {
+                                            val vW = screenW.toFloat(); val vH = screenH.toFloat()
+                                            val vidW = player.videoWidth.takeIf { it > 0 }?.toFloat() ?: vW
+                                            val vidH = player.videoHeight.takeIf { it > 0 }?.toFloat() ?: vH
+                                            val videoAspect = vidW / vidH; val viewAspect = vW / vH
+                                            val (scaleX, scaleY) = if (videoAspect > viewAspect) Pair(videoAspect / viewAspect, 1f) else Pair(1f, viewAspect / videoAspect)
+                                            textureView.scaleX = scaleX; textureView.scaleY = scaleY
+                                            textureView.pivotX = vW / 2f; textureView.pivotY = vH / 2f
+                                            player.start()
+                                        } catch (e: Exception) {
+                                            // The player may have been released (surface destroyed)
+                                            // before this runnable ran. Swallow and move on.
+                                        }
+                                    }
+                                }
+                                setOnErrorListener { _, what, extra -> Log.e("VIDEO_DEBUG", "Error: $what $extra"); true }
+                                prepareAsync()
                             }
-                            setOnErrorListener { _, what, extra -> Log.e("VIDEO_DEBUG", "Error: $what $extra"); true }
-                            prepareAsync()
-                        }
-                        textureView.setTag(R.id.ekagra_player_tag, mp)
-                    } catch (e: Exception) { Log.e("VIDEO_DEBUG", "Video init failed", e) }
+                            textureView.setTag(R.id.ekagra_player_tag, mp)
+                        } catch (e: Exception) { Log.e("VIDEO_DEBUG", "Video init failed", e) }
+                    }.start()
                 }
                 override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) = Unit
                 override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {

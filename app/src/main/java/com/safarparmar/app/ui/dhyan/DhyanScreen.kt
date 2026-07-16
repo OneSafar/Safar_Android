@@ -368,7 +368,15 @@ private fun BreathingTab(
                     isLooping = true
                     setVolume(0.7f, 0.7f)
                     prepareAsync()
-                    setOnPreparedListener { start() }
+                    setOnPreparedListener { player ->
+                        // prepareAsync() can finish after releasePlayer() already ran
+                        // (screen left, technique/sound switched). Starting a released or
+                        // superseded player throws IllegalStateException — only start if
+                        // this is still the active player, and guard against the race.
+                        if (mediaPlayer.value === player) {
+                            runCatching { player.start() }
+                        }
+                    }
                 }
                 mediaPlayer.value = mp
             } catch (e: Exception) { /* ignore */ }

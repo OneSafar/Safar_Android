@@ -180,6 +180,10 @@ class SafarNotificationManager(
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
         onlyAlertOnce: Boolean = false,
         actions: List<NotificationCompat.Action> = emptyList(),
+        /** Use "Name, message" instead of "Hi Name, message" for factual alerts. */
+        nameOnly: Boolean = false,
+        /** FCM bodies are already personalized by the server. */
+        personalize: Boolean = true,
         /** Optional dedup type — ensures FCM and local notifications for the same
          *  logical event produce the same [stableNotificationId]. */
         dedupeType: String? = null,
@@ -189,7 +193,7 @@ class SafarNotificationManager(
         if (evaluateNotificationAvailability(normalizedChannel).reason != NotificationAvailabilityReason.allowed) {
             return
         }
-        val personalizedBody = personalizeBody(body)
+        val personalizedBody = if (personalize) personalizeBody(body, nameOnly) else body
         // if (shouldSuppressByQuietHours(normalizedChannel)) return
         notificationManager.notify(
             resolvedId,
@@ -207,9 +211,10 @@ class SafarNotificationManager(
         postGroupSummary(normalizedChannel)
     }
 
-    private suspend fun personalizeBody(body: String): String {
+    private suspend fun personalizeBody(body: String, nameOnly: Boolean): String {
         val name = SafarDataStore(context).userName.first()?.trim().orEmpty()
         if (name.isBlank() || startsWithPersonalGreeting(body)) return body
+        if (nameOnly) return "$name, $body"
         return "Hi $name, $body"
     }
 
@@ -235,6 +240,7 @@ class SafarNotificationManager(
         notificationId: Int? = null,
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
         dedupeType: String = DedupeType.STUDY_REMINDER,
+        nameOnly: Boolean = false,
     ) {
         val startNowIntent = PendingIntent.getActivity(
             context,
@@ -257,6 +263,7 @@ class SafarNotificationManager(
             priority = priority,
             actions = listOf(startNowAction),
             dedupeType = dedupeType,
+            nameOnly = nameOnly,
         )
     }
 

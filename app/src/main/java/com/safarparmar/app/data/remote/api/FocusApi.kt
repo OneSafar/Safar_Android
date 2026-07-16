@@ -8,10 +8,13 @@ import com.safarparmar.app.data.remote.dto.LinkedEkagraSessionsResponse
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionRequest
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionResponse
 import com.safarparmar.app.data.remote.dto.TopicLinkedSessionsResponse
+import com.safarparmar.app.data.remote.dto.UpdateEkagraSessionRequest
+import com.safarparmar.app.data.remote.dto.UpdateEkagraSessionResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -41,4 +44,10 @@ interface FocusApi {
 
     @DELETE("ekagra-sessions/{sessionId}")
     suspend fun deleteSession(@Path("sessionId") sessionId: String): Response<DeleteEkagraSessionResponse>
+
+    @PATCH("ekagra-sessions/{sessionId}")
+    suspend fun updateSession(
+        @Path("sessionId") sessionId: String,
+        @Body request: UpdateEkagraSessionRequest,
+    ): Response<UpdateEkagraSessionResponse>
 }

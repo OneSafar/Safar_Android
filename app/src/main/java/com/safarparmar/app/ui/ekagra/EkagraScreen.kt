@@ -798,9 +798,21 @@ fun EkagraScreen(
                         fun savePendingAsFree() {
                             if (pending != null) {
                                 closeOrganizeSheet {
-                                    viewModel.completeSession(pending.sessionId, pending.totalSeconds,
-                                        pending.secondsLeft, pending.mode, pending.startedAt,
-                                        titleInput.ifBlank { "Untitled" }, null, null, false, pending.endedAt)
+                                    // A "local-" id is a live draft that hasn't been saved yet →
+                                    // create it. Any other id is an already-saved history session
+                                    // being renamed → update it IN PLACE. Using completeSession
+                                    // (save-new + delete-old) for an existing session is what
+                                    // produced the "renamed session clones itself" duplicates.
+                                    if (pending.sessionId.startsWith("local-")) {
+                                        viewModel.completeSession(pending.sessionId, pending.totalSeconds,
+                                            pending.secondsLeft, pending.mode, pending.startedAt,
+                                            titleInput.ifBlank { "Untitled" }, null, null, false, pending.endedAt)
+                                    } else {
+                                        viewModel.updateExistingSession(
+                                            sessionId = pending.sessionId,
+                                            taskTitle = titleInput.ifBlank { "Untitled" },
+                                        )
+                                    }
                                     clearAssociations()
                                 }
                             } else {

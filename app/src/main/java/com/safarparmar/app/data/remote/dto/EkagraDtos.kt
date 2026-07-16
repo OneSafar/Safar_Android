@@ -81,6 +81,23 @@ data class DeleteEkagraSessionResponse(
     val deletedId: String? = null,
 )
 
+// In-place rename / re-association of an existing session. Only non-null fields
+// are sent (Gson omits nulls by default), so a title-only rename leaves the
+// session's goal/topic links untouched.
+data class UpdateEkagraSessionRequest(
+    val taskTitle: String? = null,
+    val goalId: String? = null,
+    val goalTitle: String? = null,
+    val topicId: String? = null,
+    val planId: String? = null,
+    val topicTitle: String? = null,
+)
+
+data class UpdateEkagraSessionResponse(
+    val ok: Boolean = false,
+    val session: EkagraSession? = null,
+)
+
 data class LinkedEkagraSessionDto(
     val id: String = "",
     val goalId: String = "",

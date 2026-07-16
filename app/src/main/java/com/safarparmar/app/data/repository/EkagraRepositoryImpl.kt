@@ -10,6 +10,7 @@ import com.safarparmar.app.data.remote.dto.FocusStatsResponse
 import com.safarparmar.app.data.remote.dto.LinkedEkagraSessionDto
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionRequest
 import com.safarparmar.app.data.remote.dto.TopicLinkedSessionDto
+import com.safarparmar.app.data.remote.dto.UpdateEkagraSessionRequest
 import com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession
 import com.safarparmar.app.domain.model.EkagraAnalyticsRecentSession
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
@@ -118,6 +119,34 @@ class EkagraRepositoryImpl @Inject constructor(
             val res = focusApi.deleteSession(sessionId)
             if (res.isSuccessful) Resource.Success(Unit)
             else Resource.Error("Delete failed: ${res.code()}")
+        } catch (e: Exception) {
+            Resource.Error("Network error: ${e.message}")
+        }
+    }
+
+    override suspend fun updateSession(
+        sessionId: String,
+        taskTitle: String?,
+        goalId: String?,
+        goalTitle: String?,
+        topicId: String?,
+        planId: String?,
+        topicTitle: String?,
+    ): Resource<Unit> {
+        return try {
+            val res = focusApi.updateSession(
+                sessionId,
+                UpdateEkagraSessionRequest(
+                    taskTitle = taskTitle,
+                    goalId = goalId,
+                    goalTitle = goalTitle,
+                    topicId = topicId,
+                    planId = planId,
+                    topicTitle = topicTitle,
+                ),
+            )
+            if (res.isSuccessful) Resource.Success(Unit)
+            else Resource.Error("Update failed: ${res.code()}")
         } catch (e: Exception) {
             Resource.Error("Network error: ${e.message}")
         }

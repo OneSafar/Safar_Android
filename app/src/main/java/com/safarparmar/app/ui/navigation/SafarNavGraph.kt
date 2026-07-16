@@ -116,6 +116,12 @@ fun SafarNavGraph(
             navController.navigate(childRoute) { launchSingleTop = true }
         }
 
+        // A route can arrive from external input (a push-notification deep link, a
+        // PiP restore, a legacy link) that no longer matches any registered
+        // destination. NavController.navigate() throws IllegalArgumentException for an
+        // unknown route; swallow it so a stale/malformed deep link is a no-op instead
+        // of crashing the app.
+        try {
         when {
             // DM Chat must sit on top of Mehfil (its ViewModel is scoped there).
             route == Routes.DM_CHAT ->
@@ -149,6 +155,10 @@ fun SafarNavGraph(
             // All other sub-screens push on top of the current feature's stack.
             else ->
                 navController.navigate(route) { launchSingleTop = true }
+        }
+        } catch (e: IllegalArgumentException) {
+            // Unknown/unregistered route (usually a stale deep link). Ignore rather than crash.
+            android.util.Log.w("SafarNavGraph", "Ignoring navigation to unknown route: $route", e)
         }
     }
 
@@ -281,9 +291,13 @@ fun SafarNavGraph(
         }
 
         composable(Routes.ACHIEVEMENTS) {
+            // getBackStackEntry(DASHBOARD) throws IllegalArgumentException if the parent
+            // isn't on the back stack (stack cleared by an auth redirect, a direct deep
+            // link, or a final recompose during the exit animation). Bail out of rendering
+            // rather than crashing — the screen is on its way out in that state anyway.
             val parentEntry = remember(currentEntry) {
-                navController.getBackStackEntry(Routes.DASHBOARD)
-            }
+                runCatching { navController.getBackStackEntry(Routes.DASHBOARD) }.getOrNull()
+            } ?: return@composable
             val dashVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.dashboard.DashboardViewModel>(parentEntry)
             val uiState by dashVm.uiState.collectAsStateWithLifecycle()
             AchievementsScreen(
@@ -411,8 +425,8 @@ fun SafarNavGraph(
                 LaunchedEffect(Unit) { navigate(Routes.PREMIUM) }
             } else {
                 val parentEntry = remember(entry) {
-                    navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE)
-                }
+                    runCatching { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }.getOrNull()
+                } ?: return@composable
                 val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
                 val planId = entry.arguments?.getString("planId") ?: ""
 
@@ -447,8 +461,8 @@ fun SafarNavGraph(
 
         composable(Routes.DM_CHAT) {
             val parentEntry = remember(it) {
-                navController.getBackStackEntry(Routes.MEHFIL)
-            }
+                runCatching { navController.getBackStackEntry(Routes.MEHFIL) }.getOrNull()
+            } ?: return@composable
             val mehfilVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>(parentEntry)
             DmChatScreen(
                 viewModel = mehfilVm,

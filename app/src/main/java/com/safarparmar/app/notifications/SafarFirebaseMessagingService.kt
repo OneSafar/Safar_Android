@@ -51,6 +51,7 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
                 deepLink = deepLink,
                 priority = priority,
                 onlyAlertOnce = true,
+                personalize = false,
                 notificationId = manager.stableNotificationId(
                     type = data["type"],
                     deepLink = deepLink,

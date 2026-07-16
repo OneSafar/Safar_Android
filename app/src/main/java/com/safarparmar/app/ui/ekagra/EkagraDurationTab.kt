@@ -207,7 +207,11 @@ internal fun DurationCard(
     range: ClosedFloatingPointRange<Float>,
     presets: List<Int> = emptyList(),
     onValueChange: (Int) -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    // The slider is capped at [range], but users can type a longer custom value
+    // (e.g. a 5-hour study block). The typed value is only bound by this cap and
+    // the digit-count limit below — it is NOT clamped to the slider's max.
+    customMaxMinutes: Int = 600,
 ) {
     val scheme = MaterialTheme.colorScheme
     var showCustomInput by remember { mutableStateOf(false) }
@@ -264,8 +268,12 @@ internal fun DurationCard(
                     )
                     Button(
                         onClick = {
+                            // Accept any typed value from the range floor up to
+                            // customMaxMinutes — NOT limited to the slider's max, so
+                            // e.g. 300 / 400 min are honoured even though the slider
+                            // only goes to range.endInclusive.
                             val v = customText.toIntOrNull()
-                            if (v != null && v >= range.start.toInt() && v <= range.endInclusive.toInt()) {
+                            if (v != null && v >= range.start.toInt() && v <= customMaxMinutes) {
                                 onValueChange(v); showCustomInput = false
                             }
                         },

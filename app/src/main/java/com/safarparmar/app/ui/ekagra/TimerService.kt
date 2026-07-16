@@ -495,8 +495,8 @@ class TimerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val blockedText = personalizeNotificationBody("$appName is blocked while KAVACH is active.")
-        val blockedLongText = personalizeNotificationBody("$appName is blocked while KAVACH is active. Tap to return to SAFAR.")
+        val blockedText = personalizeNotificationBody("$appName is blocked while KAVACH is active.", nameOnly = true)
+        val blockedLongText = personalizeNotificationBody("$appName is blocked while KAVACH is active. Tap to return to SAFAR.", nameOnly = true)
 
         val notification = NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_BLOCKED)
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
@@ -1468,9 +1468,10 @@ class TimerService : Service() {
             .build()
     }
 
-    private fun personalizeNotificationBody(body: String): String {
+    private fun personalizeNotificationBody(body: String, nameOnly: Boolean = false): String {
         val name = cachedUserName
         if (name.isBlank() || startsWithPersonalGreeting(body)) return body
+        if (nameOnly) return "$name, $body"
         return "Hi $name, $body"
     }
 

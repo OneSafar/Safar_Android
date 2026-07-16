@@ -90,6 +90,7 @@ import com.safarparmar.app.ui.components.PostCardSkeleton
 import com.safarparmar.app.ui.components.SafarEmptyState
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import java.time.ZonedDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -516,8 +517,14 @@ private fun SandeshMedia(sandesh: Sandesh) {
     } else if (directImageUrl != null) {
         AsyncImage(
             model = directImageUrl,
-            contentDescription = "Attached image",
-            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).heightIn(max = 220.dp),
+            contentDescription = "Parmar Sir's Corner attachment. Tap to open.",
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .heightIn(max = 220.dp)
+                .clickable {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(directImageUrl)))
+                },
             contentScale = ContentScale.Crop,
         )
     }
@@ -914,5 +921,7 @@ private fun spaceColor(space: String): Color = when (space.uppercase()) {
 }
 
 internal fun formatPostDate(ts: String): String = runCatching {
-    ZonedDateTime.parse(ts).format(DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault()))
-}.getOrDefault(ts.take(10))
+    ZonedDateTime.parse(ts)
+        .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
+        .format(DateTimeFormatter.ofPattern("MMM d, yyyy • h:mm a", Locale.getDefault()))
+}.getOrDefault(ts.take(16).replace('T', ' '))
