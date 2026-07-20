@@ -55,6 +55,10 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.premium.PremiumViewModel
+import com.safarparmar.app.ui.glass.SafarGlassBackdrop
+import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
+import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.glass.safarFrostedPanel
 import com.safarparmar.app.ui.theme.*
 import com.safarparmar.app.ui.components.*
 import coil.compose.AsyncImage
@@ -153,77 +157,106 @@ fun ProfileScreen(
             containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
-                TopAppBar(
-                    title = {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(1.dp),
-                        ) {
-                            Text(
-                                text = "Profile",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
-                                ),
-                                color = scheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = "Your identity and study",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 12.sp
-                                ),
-                                color = scheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier.padding(start = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = scheme.primary,
-                            )
-                        }
-                    },
-                    actions = {
-                        Switch(
-                            checked = isDarkTheme,
-                            onCheckedChange = { onToggleDarkTheme() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = scheme.primary,
-                                uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = scheme.outline.copy(alpha = 0.3f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .safarFrostedPanel(
+                                isLight = !isDarkTheme,
+                                shape = RoundedCornerShape(SafarGlassChromeRadius),
                             ),
-                            modifier = Modifier.padding(end = 16.dp)
+                    ) {
+                        TopAppBar(
+                            title = {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                                ) {
+                                    Text(
+                                        text = "Profile",
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 20.sp,
+                                        ),
+                                        color = if (isDarkTheme) {
+                                            SafarGlassPalette.TextPrimary
+                                        } else {
+                                            SafarGlassPalette.LightTextPrimary
+                                        },
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = "Your identity and study",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontSize = 12.sp,
+                                        ),
+                                        color = if (isDarkTheme) {
+                                            SafarGlassPalette.TextSecondary
+                                        } else {
+                                            SafarGlassPalette.LightTextSecondary
+                                        },
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            },
+                            navigationIcon = {
+                                IconButton(
+                                    onClick = onBack,
+                                    modifier = Modifier.padding(start = 4.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = scheme.primary,
+                                    )
+                                }
+                            },
+                            actions = {
+                                Switch(
+                                    checked = isDarkTheme,
+                                    onCheckedChange = { onToggleDarkTheme() },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = scheme.primary,
+                                        uncheckedThumbColor = Color.White,
+                                        uncheckedTrackColor = scheme.outline.copy(alpha = 0.3f),
+                                    ),
+                                    modifier = Modifier.padding(end = 16.dp),
+                                )
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                            windowInsets = WindowInsets(0, 0, 0, 0),
                         )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                )
+                    }
+                }
             },
         ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(scheme.background)
-            ) {
-                val gradientStart = if (isDarkTheme) Color(0xFF1B212D) else Color(0xFFD6E9FF)
+            Box(modifier = Modifier.fillMaxSize()) {
+                SafarGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = !isDarkTheme)
+                // Soft brand bloom behind header — not an opaque card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(250.dp)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(gradientStart, Color.Transparent)
-                            )
-                        )
+                                colors = listOf(
+                                    if (isDarkTheme) {
+                                        Color(0xFF1B212D).copy(alpha = 0.55f)
+                                    } else {
+                                        Color(0xFFD6E9FF).copy(alpha = 0.55f)
+                                    },
+                                    Color.Transparent,
+                                ),
+                            ),
+                        ),
                 )
 
                 Column(
@@ -481,69 +514,77 @@ private fun ProfilePhotoPreview(
 @Composable
 private fun PersonalInfoSection(uiState: ProfileUiState, viewModel: ProfileViewModel) {
     val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Personal Information",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            ),
-            color = scheme.onSurface,
-            modifier = Modifier.padding(bottom = 4.dp)
-        )
-        SafarCustomTextField(
-            label = "FULL NAME",
-            value = uiState.editName,
-            onValueChange = { viewModel.onEvent(ProfileEvent.UpdateName(it)) },
-            errorText = uiState.nameError,
-        )
-        SafarCustomTextField(
-            label = "EMAIL ADDRESS",
-            value = uiState.userEmail,
-            onValueChange = {},
-            enabled = false,
-            helperText = "Contact support to update your primary email address.",
-        )
-        SafarCustomDropdownMenu(
-            label = "GENDER",
-            options = genderOptions,
-            selectedOption = uiState.editGender.ifEmpty { "Select gender" },
-            onSelect = { viewModel.onEvent(ProfileEvent.UpdateGender(it)) },
-        )
+    GlassCard {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "Personal Information",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                ),
+                color = scheme.onSurface,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            SafarCustomTextField(
+                label = "FULL NAME",
+                value = uiState.editName,
+                onValueChange = { viewModel.onEvent(ProfileEvent.UpdateName(it)) },
+                errorText = uiState.nameError,
+            )
+            SafarCustomTextField(
+                label = "EMAIL ADDRESS",
+                value = uiState.userEmail,
+                onValueChange = {},
+                enabled = false,
+                helperText = "Contact support to update your primary email address.",
+            )
+            SafarCustomDropdownMenu(
+                label = "GENDER",
+                options = genderOptions,
+                selectedOption = uiState.editGender.ifEmpty { "Select gender" },
+                onSelect = { viewModel.onEvent(ProfileEvent.UpdateGender(it)) },
+            )
+        }
     }
 }
 
 @Composable
 private fun ExamFocusSection(uiState: ProfileUiState, viewModel: ProfileViewModel) {
     val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Exam Ekagra",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            ),
-            color = scheme.onSurface,
-            modifier = Modifier.padding(bottom = 4.dp)
-        )
-        SafarCustomDropdownMenu(
-            label = "TARGET EXAM",
-            options = examOptions,
-            selectedOption = uiState.editExamType.ifEmpty { "Select exam" },
-            onSelect = { viewModel.onEvent(ProfileEvent.UpdateExamType(it)) },
-        )
-        SafarCustomDropdownMenu(
-            label = "PREPARATION STAGE",
-            options = stageOptions,
-            selectedOption = uiState.editStage.ifEmpty { "Select stage" },
-            onSelect = { viewModel.onEvent(ProfileEvent.UpdateStage(it)) },
-        )
+    GlassCard {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "Exam Ekagra",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                ),
+                color = scheme.onSurface,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            SafarCustomDropdownMenu(
+                label = "TARGET EXAM",
+                options = examOptions,
+                selectedOption = uiState.editExamType.ifEmpty { "Select exam" },
+                onSelect = { viewModel.onEvent(ProfileEvent.UpdateExamType(it)) },
+            )
+            SafarCustomDropdownMenu(
+                label = "PREPARATION STAGE",
+                options = stageOptions,
+                selectedOption = uiState.editStage.ifEmpty { "Select stage" },
+                onSelect = { viewModel.onEvent(ProfileEvent.UpdateStage(it)) },
+            )
+        }
     }
 }
 
@@ -602,7 +643,7 @@ private fun AccountStatusSection(
                     containerColor = scheme.primaryContainer,
                     contentColor = scheme.onPrimaryContainer
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(SafarGlassChromeRadius)
             ) {
                 Text(buttonText, fontWeight = FontWeight.Bold)
             }
@@ -617,60 +658,62 @@ private fun ActionsSection(
     onSaveClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        OutlinedButton(
-            onClick = onLogoutClick,
+    GlassCard {
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .height(56.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.error),
-            border = BorderStroke(1.5.dp, scheme.error),
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "Logout",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Button(
-            onClick = onSaveClick,
-            enabled = !isSaving,
-            modifier = Modifier
-                .weight(1f)
-                .height(56.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = scheme.primary,
-                contentColor = scheme.onPrimary,
-                disabledContainerColor = scheme.surfaceVariant,
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp,
-                )
-            } else {
-                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
+            OutlinedButton(
+                onClick = onLogoutClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
+                shape = RoundedCornerShape(SafarGlassChromeRadius),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.error),
+                border = BorderStroke(1.5.dp, scheme.error),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Save",
+                    text = "Logout",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = scheme.onPrimary,
                 )
+            }
+            Button(
+                onClick = onSaveClick,
+                enabled = !isSaving,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
+                shape = RoundedCornerShape(SafarGlassChromeRadius),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = scheme.primary,
+                    contentColor = scheme.onPrimary,
+                    disabledContainerColor = scheme.surfaceVariant,
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Save",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = scheme.onPrimary,
+                    )
+                }
             }
         }
     }

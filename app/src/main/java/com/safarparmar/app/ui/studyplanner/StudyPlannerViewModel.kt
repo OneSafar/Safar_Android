@@ -168,11 +168,22 @@ data class StudyPlannerUiState(
     val activePlanTab: StudyPlannerTab = StudyPlannerTab.TODAY,
     /** The in-planner destination to restore when a contextual drill-in is closed. */
     val backDestination: PlannerBackDestination? = null,
+    /** Set when the user changed the exam date and chose to reorder the syllabus
+     *  before rebuilding; consumed by the Syllabus "Build" button. */
+    val pendingRebuild: PendingRebuild? = null,
 )
 
 data class PlannerBackDestination(
     val section: PlannerSection,
     val planTab: StudyPlannerTab,
+)
+
+/** A rebuild the user armed (via the re-plan flow) but deferred so they can
+ *  reorder the syllabus first. */
+data class PendingRebuild(
+    val strategy: String,
+    val overloadMode: String? = null,
+    val prioritySubjectNames: List<String> = emptyList(),
 )
 
 @HiltViewModel
@@ -294,8 +305,10 @@ class StudyPlannerViewModel @Inject constructor(
     override fun openRevisionTopics() {
         _uiState.update { state ->
             state.copy(
-                section = PlannerSection.PLAN,
-                activePlanTab = StudyPlannerTab.REVISION,
+                // Revision is now its own top-level section rather than a hidden
+                // sub-tab crammed into Home. Remember where we came from so Back
+                // returns to the origin (Calendar / Progress / etc.).
+                section = PlannerSection.REVISION,
                 backDestination = PlannerBackDestination(
                     section = state.section,
                     planTab = state.activePlanTab,
@@ -1050,6 +1063,61 @@ class StudyPlannerViewModel @Inject constructor(
                     preserveFromDate = preserveToday,
                     overloadMode = resolvedMode,
                     strategy = resolvedStrategy,
+                ),
+            )
+        }
+    }
+
+    override fun armRebuild(
+        strategy: String,
+        overloadMode: String?,
+        prioritySubjectNames: List<String>,
+    ) {
+        _uiState.update {
+            it.copy(
+                pendingRebuild = PendingRebuild(
+                    strategy = strategy,
+                    overloadMode = overloadMode,
+                    prioritySubjectNames = prioritySubjectNames,
+                ),
+            )
+        }
+    }
+
+    override fun rescheduleAfterExamDateChange(
+        strategy: String,
+        overloadMode: String?,
+        prioritySubjectNames: List<String>,
+    ) {
+        if (_uiState.value.selectedPlan?.examDate.isNullOrBlank()) {
+            _uiState.update { it.copy(error = "Set an exam date before rebuilding the planner.") }
+            return
+        }
+        // "priority_split" needs at least one priority subject to mean anything;
+        // otherwise fall back to the balanced interleaved layout (mirrors server).
+        val resolvedStrategy = when (strategy) {
+            "sequential" -> "sequential"
+            "priority_split" -> if (prioritySubjectNames.isNotEmpty()) "priority_split" else "interleaved"
+            else -> "interleaved"
+        }
+        val resolvedMode = overloadMode ?: _uiState.value.planningMode
+        // Keep the plan-tab "how you study" label in sync with the choice.
+        setPreferredStudyStrategy(if (resolvedStrategy == "sequential") "sequential" else "interleaved")
+        _uiState.update { it.copy(pendingRebuild = null) }
+        mutateAuto {
+            repo.autoDistribute(
+                it,
+                AutoDistributeRequest(
+                    fromDate = todayKey(),
+                    includeRevisionNeeded = false,
+                    // Redistribute all unfinished, non-pinned topics into the new
+                    // window; the engine skips completed topics and honours pinned
+                    // (manually moved) ones automatically.
+                    lockExistingDates = false,
+                    preserveFromDate = true,
+                    overloadMode = resolvedMode,
+                    strategy = resolvedStrategy,
+                    prioritySubjectNames = prioritySubjectNames.takeIf { resolvedStrategy == "priority_split" },
                 ),
             )
         }

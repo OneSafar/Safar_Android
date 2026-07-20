@@ -233,6 +233,7 @@ enum class PlannerSection(val label: String) {
     CALENDAR("Calendar"),
     PLAN("Home"),
     INSIGHTS("Progress"),
+    REVISION("Revision"),
 }
 
 data class PlannerFeatureRegistryItem(

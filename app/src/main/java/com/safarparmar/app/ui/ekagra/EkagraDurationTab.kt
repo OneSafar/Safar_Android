@@ -54,6 +54,8 @@ import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
+import com.safarparmar.app.ui.glass.SafarGlassCard
+import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import kotlinx.coroutines.delay
@@ -217,17 +219,14 @@ internal fun DurationCard(
     var showCustomInput by remember { mutableStateOf(false) }
     var customText      by remember { mutableStateOf("") }
     val alpha = if (enabled) 1f else 0.5f
+    val isLight = scheme.background.luminance() > 0.5f
 
-    // M3 ElevatedCard: surfaceContainerLow + outlineVariant border at 0.5dp
-    Card(
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border    = BorderStroke(0.5.dp, scheme.outlineVariant),
-        modifier  = Modifier.fillMaxWidth().alpha(alpha),
+    SafarGlassCard(
+        isLight = isLight,
+        contentPadding = PaddingValues(16.dp),
+        modifier = Modifier.fillMaxWidth().alpha(alpha),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // Header row
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(icon, contentDescription = null,
@@ -262,7 +261,7 @@ internal fun DurationCard(
                         placeholder   = { Text("Minutes") },
                         singleLine    = true,
                         modifier      = Modifier.weight(1f),
-                        shape         = RoundedCornerShape(12.dp),
+                        shape         = RoundedCornerShape(SafarGlassChromeRadius),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                     )
@@ -277,7 +276,7 @@ internal fun DurationCard(
                                 onValueChange(v); showCustomInput = false
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(SafarGlassChromeRadius),
                     ) { Text("Set") }
                 }
             }
@@ -402,19 +401,17 @@ internal fun ToggleCard(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Card(
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border    = BorderStroke(0.5.dp, scheme.outlineVariant),
-        modifier  = Modifier.fillMaxWidth(),
+    val isLight = scheme.background.luminance() > 0.5f
+    SafarGlassCard(
+        isLight = isLight,
+        contentPadding = PaddingValues(0.dp),
+        onClick = { onCheckedChange(!checked) },
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onCheckedChange(!checked) }
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(icon, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))

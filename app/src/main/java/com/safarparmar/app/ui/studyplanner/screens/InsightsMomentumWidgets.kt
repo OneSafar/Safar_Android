@@ -24,8 +24,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,7 +52,9 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -61,15 +65,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
 import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.glass.liquidGlass
+import com.safarparmar.app.ui.glass.safarFrostedPanel
 import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
 import com.safarparmar.app.ui.studyplanner.logic.HeatmapCell
 import com.safarparmar.app.ui.studyplanner.logic.PlannerInsightConsistency
 import com.safarparmar.app.ui.studyplanner.logic.PlannerInsightSubjectRow
 import com.safarparmar.app.util.bounceClick
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.rounded.MonitorHeart
@@ -123,6 +132,10 @@ private val FinishLinePink = Color(0xFFE47AB5)
 private val FinishLineRed = Color(0xFFEF5350)
 private val RevisionDoneTeal = Color(0xFF26A69A)
 private val RevisionPendingOrange = Color(0xFFFFB300)
+private val RevisionSpikeGold = Color(0xFFE8C547)
+// Manual (custom-date) revision uses a distinct violet ring so it reads
+// differently from spaced revision — matching the Revision screen's cards.
+private val RevisionCustomViolet = Color(0xFF8B5CF6)
 
 private fun formatShortMonthDay(iso: String?): String? {
     val date = parsePlannerDate(iso?.take(10)) ?: return null
@@ -180,7 +193,6 @@ internal fun InsightsOverallProgressRedesign(
     val unusedTodo = dailyTodoProgressPercent
 
     val progress = overallProgressPercent.coerceIn(0, 100)
-    val surfaceTint = if (isLight) Color.Black else Color.White
     val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
     val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
     val entrance = rememberStaggeredEntrance(delayMs = 0)
@@ -200,11 +212,9 @@ internal fun InsightsOverallProgressRedesign(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .liquidGlass(
-                shape = RoundedCornerShape(24.dp),
-                surfaceTint = surfaceTint,
-                tintAlpha = if (isLight) 0.04f else 0.05f,
+            .safarFrostedPanel(
                 isLight = isLight,
+                shape = RoundedCornerShape(SafarGlassChromeRadius),
             )
             .padding(vertical = 24.dp, horizontal = 18.dp),
         contentAlignment = Alignment.Center,
@@ -1277,6 +1287,7 @@ internal fun InsightsRevisionPulseCard(
                     ref = ref,
                     total = total,
                     done = completed.size.coerceIn(0, total),
+                    isCustom = ref.topic.revisionScheduleType == "custom",
                 )
             }
             // Most-progressed towers first so the "almost there" ones lead the eye.
@@ -1286,14 +1297,11 @@ internal fun InsightsRevisionPulseCard(
                     .thenBy { it.ref.topic.name.lowercase() },
             )
     }
-    val maxTowers = 6
-    val shownTowers = towers.take(maxTowers)
-    val overflow = (towers.size - shownTowers.size).coerceAtLeast(0)
     val doneSessions = towers.sumOf { it.done }
     val totalSessions = towers.sumOf { it.total }
     val remainingSessions = (totalSessions - doneSessions).coerceAtLeast(0)
 
-    var selectedIndex by remember(shownTowers) { mutableStateOf<Int?>(null) }
+    var selectedIndex by remember(towers) { mutableStateOf<Int?>(null) }
     val haptic = LocalHapticFeedback.current
     val panelTint = if (isLight) Color.Black else Color.White
     val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
@@ -1342,8 +1350,10 @@ internal fun InsightsRevisionPulseCard(
                     Text(
                         text = if (towers.isEmpty()) {
                             "Mark topics to revise. They'll show up here."
+                        } else if (towers.size > 6) {
+                            "Swipe to see all · tap a topic"
                         } else {
-                            "Each ring is a revision you've done · tap a tower"
+                            "Each ring is one revision · tap a topic"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = secondaryText,
@@ -1352,8 +1362,8 @@ internal fun InsightsRevisionPulseCard(
             }
 
             if (towers.isNotEmpty()) {
-                RevisionHanoiTowers(
-                    towers = shownTowers,
+                RevisionSpikeRingsRow(
+                    towers = towers,
                     selectedIndex = selectedIndex,
                     drawProgress = towerProgress.value,
                     isLight = isLight,
@@ -1371,15 +1381,6 @@ internal fun InsightsRevisionPulseCard(
                 ) {
                     RevisionPulseLegendChip("Revised", doneSessions.toString(), RevisionDoneTeal)
                     RevisionPulseLegendChip("Left", remainingSessions.toString(), RevisionPendingOrange)
-                    Spacer(Modifier.weight(1f))
-                    if (overflow > 0) {
-                        Text(
-                            text = "+$overflow more",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = secondaryText,
-                        )
-                    }
                 }
 
                 AnimatedVisibility(
@@ -1387,13 +1388,14 @@ internal fun InsightsRevisionPulseCard(
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically(),
                 ) {
-                    val tower = selectedIndex?.let { shownTowers.getOrNull(it) } ?: return@AnimatedVisibility
+                    val tower = selectedIndex?.let { towers.getOrNull(it) } ?: return@AnimatedVisibility
                     val ref = tower.ref
+                    val detailAccent = if (tower.isCustom) RevisionCustomViolet else RevisionDoneTeal
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(RevisionDoneTeal.copy(alpha = if (isLight) 0.08f else 0.12f))
+                            .background(detailAccent.copy(alpha = if (isLight) 0.08f else 0.12f))
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -1411,23 +1413,27 @@ internal fun InsightsRevisionPulseCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = "${tower.done} of ${tower.total} revision${if (tower.total == 1) "" else "s"} done",
+                            text = buildString {
+                                append("${tower.done} of ${tower.total} revision${if (tower.total == 1) "" else "s"} done")
+                                append(if (tower.isCustom) " · Custom date" else " · Spaced")
+                            },
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = RevisionDoneTeal,
+                            color = detailAccent,
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            for (i in 0 until tower.total) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(12.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (i < tower.done) RevisionDoneTeal
-                                            else RevisionPendingOrange.copy(alpha = 0.25f),
-                                        ),
-                                )
-                            }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            RevisionSpikeRingMini(
+                                total = tower.total,
+                                done = tower.done,
+                                isLight = isLight,
+                                modifier = Modifier
+                                    .width(96.dp)
+                                    .height(112.dp),
+                                doneColor = detailAccent,
+                            )
                         }
                     }
                 }
@@ -1468,21 +1474,17 @@ private fun RevisionPulseLegendChip(label: String, value: String, color: Color) 
     }
 }
 
-/** One revision topic's spaced-revision progress, for the Tower of Hanoi visual. */
+/** One revision topic's spaced-revision progress for the spike-and-ring visual. */
 private data class RevisionTowerUi(
     val ref: TopicRef,
     val total: Int,
     val done: Int,
+    val isCustom: Boolean = false,
 )
 
-/**
- * Tower of Hanoi VISUAL (not the puzzle algorithm) for revision progress: one
- * spike per topic, side by side. Each spike is [RevisionTowerUi.total] slots tall
- * and stacks [RevisionTowerUi.done] rings from the bottom — a ring per completed
- * spaced-revision session. Rings drop in bottom-first as [drawProgress] runs.
- */
+/** Horizontally scrollable spike + pill rings — one column per revision topic. */
 @Composable
-private fun RevisionHanoiTowers(
+private fun RevisionSpikeRingsRow(
     towers: List<RevisionTowerUi>,
     selectedIndex: Int?,
     drawProgress: Float,
@@ -1490,26 +1492,31 @@ private fun RevisionHanoiTowers(
     onTowerTap: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier,
+    val towerWidth = 72.dp
+    LazyRow(
+        modifier = modifier.heightIn(min = 128.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        towers.forEachIndexed { index, tower ->
-            HanoiTowerSpike(
+        itemsIndexed(
+            items = towers,
+            key = { _, tower -> tower.ref.topic.id },
+        ) { index, tower ->
+            RevisionSpikeRingColumn(
                 tower = tower,
                 selected = selectedIndex == index,
                 drawProgress = drawProgress,
                 isLight = isLight,
                 onTap = { onTowerTap(index) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(towerWidth),
             )
         }
     }
 }
 
 @Composable
-private fun HanoiTowerSpike(
+private fun RevisionSpikeRingColumn(
     tower: RevisionTowerUi,
     selected: Boolean,
     drawProgress: Float,
@@ -1517,101 +1524,159 @@ private fun HanoiTowerSpike(
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rodColor = if (isLight) Color.Black.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.22f)
-    val baseColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.16f)
-    val emptyRing = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.16f)
-    val ringColor = RevisionDoneTeal
-    val selGlow = RevisionPendingOrange
+    val spikeColor = when {
+        selected -> RevisionPendingOrange
+        else -> RevisionSpikeGold
+    }
+    // Completed rings: violet for manual (custom-date) revision, teal for spaced.
+    val ringDoneColor = if (tower.isCustom) RevisionCustomViolet else RevisionDoneTeal
+    val baseColor = spikeColor.copy(alpha = if (isLight) 0.85f else 0.95f)
+    val selBg = if (selected) {
+        RevisionPendingOrange.copy(alpha = if (isLight) 0.08f else 0.12f)
+    } else {
+        Color.Transparent
+    }
 
     Column(
-        modifier = modifier.bounceClick(scaleDown = 0.94f) { onTap() },
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(selBg)
+            .bounceClick(scaleDown = 0.94f) { onTap() }
+            .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(116.dp),
         ) {
-            val w = size.width
-            val h = size.height
-            val baseH = 6.dp.toPx()
-            val baseY = h - baseH
-            val rodW = 5.dp.toPx()
-            val rodTop = 8.dp.toPx()
-            val rodX = w / 2f
-
-            drawRoundRect(
-                color = if (selected) selGlow.copy(alpha = 0.55f) else rodColor,
-                topLeft = Offset(rodX - rodW / 2f, rodTop),
-                size = Size(rodW, (baseY - rodTop).coerceAtLeast(0f)),
-                cornerRadius = CornerRadius(rodW / 2f, rodW / 2f),
+            drawSpikePillRings(
+                total = tower.total,
+                done = tower.done,
+                drawProgress = drawProgress,
+                spikeColor = spikeColor,
+                baseColor = baseColor,
+                doneColor = ringDoneColor,
+                pendingColor = RevisionPendingOrange.copy(alpha = if (isLight) 0.45f else 0.55f),
+                animateDrop = true,
             )
-            drawRoundRect(
-                color = if (selected) selGlow.copy(alpha = 0.7f) else baseColor,
-                topLeft = Offset(w * 0.08f, baseY),
-                size = Size(w * 0.84f, baseH),
-                cornerRadius = CornerRadius(baseH / 2f, baseH / 2f),
-            )
-
-            val slots = tower.total.coerceAtLeast(1)
-            val stackTop = rodTop + 4.dp.toPx()
-            val stackBottom = baseY - 3.dp.toPx()
-            val slotH = ((stackBottom - stackTop) / slots).coerceAtLeast(1f)
-            val ringH = (slotH * 0.72f).coerceIn(4.dp.toPx(), 14.dp.toPx())
-            val maxRingW = w * 0.86f
-            val minRingW = (w * 0.40f).coerceAtMost(maxRingW)
-
-            fun ringWidthForSlot(i: Int): Float {
-                if (slots <= 1) return maxRingW
-                // Classic Hanoi look: widest at the bottom, narrowing upward.
-                val factor = 1f - (i.toFloat() / slots) * 0.42f
-                return (minRingW + (maxRingW - minRingW) * factor).coerceIn(minRingW, maxRingW)
-            }
-
-            // Empty (not-yet-done) slots as faint outlines so the full height reads.
-            for (i in tower.done until slots) {
-                val cy = stackBottom - (i + 0.5f) * slotH
-                val ringW = ringWidthForSlot(i)
-                drawRoundRect(
-                    color = emptyRing,
-                    topLeft = Offset(rodX - ringW / 2f, cy - ringH / 2f),
-                    size = Size(ringW, ringH),
-                    cornerRadius = CornerRadius(ringH / 2f, ringH / 2f),
-                    style = Stroke(width = 1.5.dp.toPx()),
-                )
-            }
-
-            // Completed rings drop in bottom-first as progress advances.
-            val dropped = tower.done * drawProgress
-            for (i in 0 until tower.done) {
-                val ringProgress = (dropped - i).coerceIn(0f, 1f)
-                if (ringProgress <= 0f) continue
-                val restY = stackBottom - (i + 0.5f) * slotH
-                val fromY = stackTop - 14.dp.toPx()
-                val cy = fromY + (restY - fromY) * ringProgress
-                val ringW = ringWidthForSlot(i)
-                drawRoundRect(
-                    color = ringColor.copy(alpha = ringProgress),
-                    topLeft = Offset(rodX - ringW / 2f, cy - ringH / 2f),
-                    size = Size(ringW, ringH),
-                    cornerRadius = CornerRadius(ringH / 2f, ringH / 2f),
-                )
-                drawRoundRect(
-                    color = Color.White.copy(alpha = 0.20f * ringProgress),
-                    topLeft = Offset(rodX - ringW / 2f + 2.dp.toPx(), cy - ringH / 2f + 1.5.dp.toPx()),
-                    size = Size((ringW - 4.dp.toPx()).coerceAtLeast(0f), ringH * 0.30f),
-                    cornerRadius = CornerRadius(ringH / 4f, ringH / 4f),
-                )
-            }
         }
 
         Text(
             text = "${tower.done}/${tower.total}",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Black,
-            color = if (selected) RevisionPendingOrange else RevisionDoneTeal,
+            color = if (selected) RevisionPendingOrange else ringDoneColor,
             maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun RevisionSpikeRingMini(
+    total: Int,
+    done: Int,
+    isLight: Boolean,
+    modifier: Modifier = Modifier,
+    doneColor: Color = RevisionDoneTeal,
+) {
+    Canvas(modifier = modifier) {
+        drawSpikePillRings(
+            total = total,
+            done = done,
+            drawProgress = 1f,
+            spikeColor = RevisionSpikeGold,
+            baseColor = RevisionSpikeGold.copy(alpha = 0.9f),
+            doneColor = doneColor,
+            pendingColor = RevisionPendingOrange.copy(alpha = if (isLight) 0.40f else 0.50f),
+            animateDrop = false,
+        )
+    }
+}
+
+/**
+ * Reference layout: gold triangular spike + filled pill rings (bottom widest),
+ * spike visible above and between rings.
+ */
+private fun DrawScope.drawSpikePillRings(
+    total: Int,
+    done: Int,
+    drawProgress: Float,
+    spikeColor: Color,
+    baseColor: Color,
+    doneColor: Color,
+    pendingColor: Color,
+    animateDrop: Boolean,
+) {
+    val w = size.width
+    val h = size.height
+    val cx = w / 2f
+    val baseH = 5.dp.toPx().coerceAtLeast(h * 0.055f)
+    val baseY = h - baseH
+    val tipY = 2.dp.toPx().coerceAtMost(h * 0.05f)
+    val spikeFootHalf = 3.5.dp.toPx()
+
+    // Gold spike — triangle behind the rings
+    val spikePath = Path().apply {
+        moveTo(cx, tipY)
+        lineTo(cx - spikeFootHalf, baseY)
+        lineTo(cx + spikeFootHalf, baseY)
+        close()
+    }
+    drawPath(spikePath, spikeColor)
+
+    // Pedestal
+    drawRoundRect(
+        color = baseColor,
+        topLeft = Offset(cx - w * 0.30f, baseY),
+        size = Size(w * 0.60f, baseH),
+        cornerRadius = CornerRadius(baseH / 2f, baseH / 2f),
+    )
+
+    val slots = total.coerceAtLeast(1)
+    val stackBottom = baseY - 1.5.dp.toPx()
+    val stackTop = tipY + h * 0.16f
+    val slotH = ((stackBottom - stackTop) / slots).coerceAtLeast(7.dp.toPx())
+    val pillH = (slotH * 0.74f).coerceIn(9.dp.toPx(), 17.dp.toPx())
+    val maxPillW = w * 0.90f
+    val minPillW = (w * 0.46f).coerceAtMost(maxPillW)
+
+    fun pillWidth(slotIndex: Int): Float {
+        if (slots <= 1) return maxPillW
+        val rise = slotIndex.toFloat() / (slots - 1).coerceAtLeast(1)
+        return maxPillW - (maxPillW - minPillW) * rise
+    }
+
+    // Pending rings — outline pills above the done stack
+    for (i in done until slots) {
+        val cy = stackBottom - (i + 0.5f) * slotH
+        val pillW = pillWidth(i)
+        drawRoundRect(
+            color = pendingColor,
+            topLeft = Offset(cx - pillW / 2f, cy - pillH / 2f),
+            size = Size(pillW, pillH),
+            cornerRadius = CornerRadius(pillH / 2f, pillH / 2f),
+            style = Stroke(width = 2.dp.toPx()),
+        )
+    }
+
+    // Done rings — solid pills, bottom-first drop
+    val dropped = done * drawProgress
+    for (i in 0 until done) {
+        val ringProgress = if (animateDrop) (dropped - i).coerceIn(0f, 1f) else 1f
+        if (ringProgress <= 0f) continue
+
+        val restY = stackBottom - (i + 0.5f) * slotH
+        val fromY = stackTop - pillH
+        val cy = if (animateDrop) fromY + (restY - fromY) * ringProgress else restY
+        val pillW = pillWidth(i)
+
+        drawRoundRect(
+            color = doneColor.copy(alpha = ringProgress),
+            topLeft = Offset(cx - pillW / 2f, cy - pillH / 2f),
+            size = Size(pillW, pillH),
+            cornerRadius = CornerRadius(pillH / 2f, pillH / 2f),
         )
     }
 }

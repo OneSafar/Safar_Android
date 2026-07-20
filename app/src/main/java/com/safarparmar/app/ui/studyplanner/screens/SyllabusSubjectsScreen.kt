@@ -496,11 +496,23 @@ fun SyllabusSubjectsScreen(
                                 ) {
                                     SyllabusBuildButton(
                                         onClick = {
-                                            actions.autoDistribute(
-                                                lockExisting = false,
-                                                strategy = "sequential",
-                                                preserveToday = true,
-                                            )
+                                            val pending = state.pendingRebuild
+                                            if (pending != null) {
+                                                // User changed the exam date and chose to reorder
+                                                // first — apply the strategy they picked in the
+                                                // re-plan flow, honouring the order they just set.
+                                                actions.rescheduleAfterExamDateChange(
+                                                    strategy = pending.strategy,
+                                                    overloadMode = pending.overloadMode,
+                                                    prioritySubjectNames = pending.prioritySubjectNames,
+                                                )
+                                            } else {
+                                                actions.autoDistribute(
+                                                    lockExisting = false,
+                                                    strategy = "sequential",
+                                                    preserveToday = true,
+                                                )
+                                            }
                                         },
                                         enabled = localSubjects.isNotEmpty() && !state.mutating,
                                         modifier = Modifier.weight(1f),

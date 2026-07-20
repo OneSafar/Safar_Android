@@ -117,6 +117,27 @@ interface PlannerActions {
         strategy: String? = null,
         preserveToday: Boolean = false,
     )
+    /**
+     * Re-plans the schedule after the exam date changed. Reschedules every
+     * unfinished, non-pinned topic into the new [today, examDate] window using
+     * [strategy] ("interleaved" | "sequential" | "priority_split"). Completed
+     * topics and any manually pinned/moved dates are preserved; today's list is
+     * kept intact. [prioritySubjectNames] is only used for "priority_split".
+     */
+    fun rescheduleAfterExamDateChange(
+        strategy: String,
+        overloadMode: String? = null,
+        prioritySubjectNames: List<String> = emptyList(),
+    )
+    /**
+     * Arms a pending rebuild with the chosen strategy so the user can reorder
+     * the syllabus first; the next "Build re-ordered syllabus" tap applies it.
+     */
+    fun armRebuild(
+        strategy: String,
+        overloadMode: String? = null,
+        prioritySubjectNames: List<String> = emptyList(),
+    )
     fun reorderSyllabus(
         subjectIds: List<String>? = null,
         chapterIdsBySubjectId: Map<String, List<String>>? = null,

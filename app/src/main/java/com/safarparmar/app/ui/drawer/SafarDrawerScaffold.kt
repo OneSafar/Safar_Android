@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.drawer
 
 import android.app.Activity
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -23,6 +24,17 @@ import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.ThemeViewModel
 import kotlinx.coroutines.launch
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.safarparmar.app.ui.drawer.SafarDrawer
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SafarDrawerScaffold(
@@ -38,6 +50,8 @@ fun SafarDrawerScaffold(
     containerColor: Color? = null,
     showTopBar: Boolean = true,
     showTopBarTitle: Boolean = true,
+    useGlassTopBar: Boolean = false,
+    useDetachedMenuGlass: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -62,8 +76,60 @@ fun SafarDrawerScaffold(
         hiltViewModel()
     }
     val premiumStatus by premiumVm.premiumStatus.collectAsStateWithLifecycle()
+    val actualContentColor = if (useGlassTopBar) {
+        if (liveDark) Color(0xFFF2F2F5) else Color(0xFF16161A)
+    } else {
+        topBarContentColor ?: if (liveDark) Color.White else MaterialTheme.colorScheme.onSurface
+    }
 
-    val actualContentColor = topBarContentColor ?: if (liveDark) Color.White else MaterialTheme.colorScheme.onSurface
+    val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
+
+    @Composable
+    fun GlassSurfaceModifier(shape: RoundedCornerShape, height: androidx.compose.ui.unit.Dp = 52.dp): Modifier {
+        return Modifier
+            .height(height)
+            .shadow(
+                elevation = if (liveDark) 6.dp else 14.dp,
+                shape = shape,
+                ambientColor = if (liveDark) Color(0x12000000) else Color(0xFF7A8498).copy(alpha = 0.32f),
+                spotColor = if (liveDark) Color(0x0E000000) else Color(0xFF7A8498).copy(alpha = 0.24f),
+            )
+            .clip(shape)
+            .background(if (liveDark) Color(0xFF1E1E22).copy(alpha = 0.78f) else Color(0xFFD6DAE2).copy(alpha = 0.50f))
+            .drawBehind {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            if (liveDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.55f),
+                            Color.Transparent,
+                        ),
+                        startY = 0f,
+                        endY = 18f,
+                    ),
+                )
+            }
+            .border(
+                width = 0.9.dp,
+                brush = if (liveDark) {
+                    Brush.linearGradient(
+                        colors = listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.06f)),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 50f),
+                    )
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.90f),
+                            Color.White.copy(alpha = 0.40f),
+                            Color.White.copy(alpha = 0.55f),
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 50f),
+                    )
+                },
+                shape = shape,
+            )
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -88,78 +154,249 @@ fun SafarDrawerScaffold(
                     enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(500)) +
                             androidx.compose.animation.expandVertically(animationSpec = androidx.compose.animation.core.tween(500)),
                     exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(500)) +
-                           androidx.compose.animation.shrinkVertically(animationSpec = androidx.compose.animation.core.tween(500))
+                            androidx.compose.animation.shrinkVertically(animationSpec = androidx.compose.animation.core.tween(500))
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .height(44.dp)
-                            .padding(horizontal = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (showTopBarTitle) {
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 48.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                    if (useGlassTopBar && useDetachedMenuGlass) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .statusBarsPadding()
+                                .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = GlassSurfaceModifier(RoundedCornerShape(14.dp), height = 52.dp)
+                                    .width(52.dp)
+                                    .clickable(onClick = openDrawer),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                val shouldShowSubtitle = subtitle != null &&
-                                    !subtitle.contains("SAFAR", ignoreCase = true) &&
-                                    !subtitle.contains("Safar", ignoreCase = true) &&
-                                    !subtitle.contains(appName, ignoreCase = true) &&
-                                    subtitle.isNotBlank()
-                                if (shouldShowSubtitle) {
+                                Icon(
+                                    Icons.Default.Menu,
+                                    contentDescription = stringResource(R.string.nav_open_menu),
+                                    modifier = Modifier.size(22.dp),
+                                    tint = actualContentColor,
+                                )
+                            }
+                            Box(
+                                modifier = GlassSurfaceModifier(RoundedCornerShape(14.dp))
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (showTopBarTitle) {
                                     Text(
-                                        subtitle!!.uppercase(),
-                                        fontSize = if (emphasizeTopBar) 12.sp else 11.sp,
-                                        lineHeight = 12.sp,
-                                        color = actualContentColor.copy(alpha = if (emphasizeTopBar) 0.82f else 0.7f),
-                                        fontFamily = if (subtitle.uppercase() == "SAFAR") LoraFontFamily else null,
-                                        fontWeight = if (subtitle.uppercase() == "SAFAR") FontWeight.Bold else null,
+                                        title,
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .padding(horizontal = 88.dp),
+                                        fontSize = 17.sp,
+                                        lineHeight = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = actualContentColor,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     )
                                 }
-                                Text(
-                                    title,
-                                    fontSize = if (emphasizeTopBar) 20.sp else 18.sp,
-                                    lineHeight = if (emphasizeTopBar) 22.sp else 20.sp,
-                                    fontWeight = if (emphasizeTopBar) FontWeight.ExtraBold else FontWeight.Bold,
-                                    fontFamily = if (title.uppercase() == "SAFAR") LoraFontFamily else null,
-                                    color = actualContentColor,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .padding(end = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    topBarActions()
+                                }
                             }
                         }
-
-                        IconButton(
-                            onClick = { scope.launch { drawerState.open() } },
+                    } else if (useGlassTopBar) {
+                        // ── Floating liquid-glass top bar capsule ──
+                        Box(
                             modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .padding(start = 4.dp),
+                                .fillMaxWidth()
+                                .statusBarsPadding()
+                                .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Menu,
-                                contentDescription = stringResource(R.string.nav_open_menu),
-                                modifier = Modifier.size(if (emphasizeTopBar) 26.dp else 24.dp),
-                                tint = actualContentColor
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                                    .clip(RoundedCornerShape(50.dp))
+                                    .background(
+                                        if (liveDark) {
+                                            Color(0xFF1E1E22).copy(alpha = 0.78f)
+                                        } else {
+                                            Color.White.copy(alpha = 0.72f)
+                                        }
+                                    )
+                                    .drawBehind {
+                                        drawRect(
+                                            brush = Brush.verticalGradient(
+                                                colors = listOf(
+                                                    if (liveDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.40f),
+                                                    Color.Transparent
+                                                ),
+                                                startY = 0f,
+                                                endY = 16f
+                                            )
+                                        )
+                                    }
+                                    .border(
+                                        width = 0.8.dp,
+                                        brush = if (liveDark) {
+                                            Brush.linearGradient(
+                                                colors = listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.06f)),
+                                                start = Offset(0f, 0f),
+                                                end = Offset(400f, 50f)
+                                            )
+                                        } else {
+                                            Brush.linearGradient(
+                                                colors = listOf(Color.White.copy(alpha = 0.85f), Color.Black.copy(alpha = 0.08f)),
+                                                start = Offset(0f, 0f),
+                                                end = Offset(400f, 50f)
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(50.dp)
+                                    )
+                                    .padding(horizontal = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (showTopBarTitle) {
+                                    Column(
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 48.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        val shouldShowSubtitle = subtitle != null &&
+                                            !subtitle.contains("SAFAR", ignoreCase = true) &&
+                                            !subtitle.contains("Safar", ignoreCase = true) &&
+                                            !subtitle.contains(appName, ignoreCase = true) &&
+                                            subtitle.isNotBlank()
+                                        if (shouldShowSubtitle) {
+                                            Text(
+                                                subtitle!!.uppercase(),
+                                                fontSize = 10.sp,
+                                                lineHeight = 11.sp,
+                                                color = actualContentColor.copy(alpha = 0.6f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                            )
+                                        }
+                                        Text(
+                                            title,
+                                            fontSize = 17.sp,
+                                            lineHeight = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = if (title.uppercase() == "SAFAR") LoraFontFamily else null,
+                                            color = actualContentColor,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        )
+                                    }
+                                }
+
+                                IconButton(
+                                    onClick = openDrawer,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterStart)
+                                        .padding(start = 4.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Default.Menu,
+                                        contentDescription = stringResource(R.string.nav_open_menu),
+                                        modifier = Modifier.size(24.dp),
+                                        tint = actualContentColor
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .padding(end = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    topBarActions()
+                                }
+                            }
                         }
-
-                        Row(
+                    } else {
+                        Box(
                             modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .padding(end = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End
+                                .fillMaxWidth()
+                                .statusBarsPadding()
+                                .height(44.dp)
+                                .padding(horizontal = 4.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            topBarActions()
+                            if (showTopBarTitle) {
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 48.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    val shouldShowSubtitle = subtitle != null &&
+                                        !subtitle.contains("SAFAR", ignoreCase = true) &&
+                                        !subtitle.contains("Safar", ignoreCase = true) &&
+                                        !subtitle.contains(appName, ignoreCase = true) &&
+                                        subtitle.isNotBlank()
+                                    if (shouldShowSubtitle) {
+                                        Text(
+                                            subtitle!!.uppercase(),
+                                            fontSize = if (emphasizeTopBar) 12.sp else 11.sp,
+                                            lineHeight = 12.sp,
+                                            color = actualContentColor.copy(alpha = if (emphasizeTopBar) 0.82f else 0.7f),
+                                            fontFamily = if (subtitle.uppercase() == "SAFAR") LoraFontFamily else null,
+                                            fontWeight = if (subtitle.uppercase() == "SAFAR") FontWeight.Bold else null,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        )
+                                    }
+                                    Text(
+                                        title,
+                                        fontSize = if (emphasizeTopBar) 20.sp else 18.sp,
+                                        lineHeight = if (emphasizeTopBar) 22.sp else 20.sp,
+                                        fontWeight = if (emphasizeTopBar) FontWeight.ExtraBold else FontWeight.Bold,
+                                        fontFamily = if (title.uppercase() == "SAFAR") LoraFontFamily else null,
+                                        color = actualContentColor,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    )
+                                }
+                            }
+
+                            IconButton(
+                                onClick = openDrawer,
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .padding(start = 4.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.Menu,
+                                    contentDescription = stringResource(R.string.nav_open_menu),
+                                    modifier = Modifier.size(if (emphasizeTopBar) 26.dp else 24.dp),
+                                    tint = actualContentColor
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .padding(end = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                topBarActions()
+                            }
                         }
                     }
                 }

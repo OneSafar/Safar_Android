@@ -46,7 +46,6 @@ fun NishthaScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    onProfileClick: () -> Unit = {},
     initialTab: Int = 0,
     analyticsInitialSection: String = "overview",
     viewModel: NishthaViewModel = hiltViewModel(),
@@ -118,9 +117,6 @@ fun NishthaScreen(
                     contentDescription = "Guide",
                     modifier = Modifier.size(24.dp),
                 )
-            }
-            IconButton(onClick = onProfileClick) {
-                Icon(Icons.Default.Person, contentDescription = stringResource(R.string.nav_profile))
             }
         },
     ) { padding ->

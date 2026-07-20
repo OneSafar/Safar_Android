@@ -106,6 +106,9 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.CalendarMonth
+import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
+import com.safarparmar.app.ui.glass.macOSControlPanel
+import com.safarparmar.app.ui.glass.SafarGlassPalette
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -178,6 +181,7 @@ fun PlanTabScreen(
     )
 
     var showSettings by remember(plan.id) { mutableStateOf(false) }
+    var showReschedule by remember(plan.id) { mutableStateOf(false) }
     var resetConfirm by remember { mutableStateOf(false) }
     var completionPromptTopic by remember { mutableStateOf<TopicRef?>(null) }
 
@@ -207,10 +211,6 @@ fun PlanTabScreen(
     val unscheduledTopics = remember(refs) {
         refs.filter { it.topic.isUnscheduled() }
     }
-    val revisionTopics = remember(refs) {
-        refs.filter { it.topic.status == TopicStatus.REVISION_NEEDED }
-    }
-
     fun exportPlan() {
         // Some devices (customised OEM ROMs, or ones where the system document picker
         // is disabled/removed) have no activity that handles ACTION_CREATE_DOCUMENT, so
@@ -229,6 +229,23 @@ fun PlanTabScreen(
             onExport = ::exportPlan,
             onReset = { resetConfirm = true },
             onDismiss = { showSettings = false },
+            onExamDateChanged = { showReschedule = true },
+        )
+    }
+
+    if (showReschedule) {
+        RescheduleFlowSheet(
+            subjects = plan.subjects,
+            onRebuildNow = { strategy, overloadMode, priority ->
+                actions.rescheduleAfterExamDateChange(strategy, overloadMode, priority)
+                showReschedule = false
+            },
+            onReorderFirst = { strategy, overloadMode, priority ->
+                actions.armRebuild(strategy, overloadMode, priority)
+                actions.setSection(PlannerSection.SYLLABUS)
+                showReschedule = false
+            },
+            onDismiss = { showReschedule = false },
         )
     }
 
@@ -481,11 +498,15 @@ fun PlanTabScreen(
         )
     }
 
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val isLight = !isDark
     val remainingToday = todayTopics.filter { it.topic.status != TopicStatus.DONE }
     val todayCompleted = todayTopics.isNotEmpty() && remainingToday.isEmpty()
 
     Box(modifier = Modifier.fillMaxSize()) {
-      if (!hasTopics) {
+        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
+
+        if (!hasTopics) {
         EmptyPlanTabState(onCreateClick = { showCreatePlanSheet = true })
       } else {
         LazyColumn(
@@ -536,15 +557,13 @@ fun PlanTabScreen(
                 StudyPlannerTab.TODAY -> {
                     if (todayTopics.isEmpty()) {
                         item(key = "today_empty") {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
                             ) {
                                 Column(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(20.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
@@ -579,24 +598,33 @@ fun PlanTabScreen(
                         if (todayCompleted) {
                             item(key = "today_conquered") {
                                 val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = MaterialTheme.shapes.large,
-                                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                val conqueredShape = RoundedCornerShape(20.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            brush = Brush.horizontalGradient(
+                                                colors = if (isDark) {
+                                                    listOf(Color(0xFF102A20), Color(0xFF153327))
+                                                } else {
+                                                    listOf(Color(0xFFDCFCE7), Color(0xFFA7F3D0))
+                                                }
+                                            ),
+                                            shape = conqueredShape
+                                        )
+                                        .border(
+                                            width = 0.5.dp,
+                                            brush = if (isDark) {
+                                                Brush.verticalGradient(colors = listOf(Color.White.copy(alpha = 0.2f), Color.White.copy(alpha = 0.02f)))
+                                            } else {
+                                                Brush.verticalGradient(colors = listOf(Color(0xFFDCFCE7), Color(0xFFA7F3D0)))
+                                            },
+                                            shape = conqueredShape
+                                        )
                                 ) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(
-                                                brush = Brush.horizontalGradient(
-                                                    colors = if (isDark) {
-                                                        listOf(Color(0xFF151C1A), Color(0xFF1E2824))
-                                                    } else {
-                                                        listOf(Color(0xFFDCFCE7), Color(0xFFA7F3D0))
-                                                    }
-                                                ),
-                                                shape = MaterialTheme.shapes.large
-                                            )
                                             .padding(20.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -715,12 +743,10 @@ fun PlanTabScreen(
                 StudyPlannerTab.OVERDUE -> {
                     if (overdueTopics.isEmpty()) {
                         item(key = "overdue_empty") {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
                             ) {
                                 Column(
                                     modifier = Modifier.padding(24.dp).fillMaxWidth(),
@@ -732,13 +758,13 @@ fun PlanTabScreen(
                                         text = "No Overdue Topics!",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
                                     )
                                     Text(
                                         text = "Excellent time management! You're completely up to date with your studies.",
                                         style = MaterialTheme.typography.bodySmall,
                                         textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f)
                                     )
                                 }
                             }
@@ -766,12 +792,10 @@ fun PlanTabScreen(
                 StudyPlannerTab.UPCOMING -> {
                     if (upcomingTopics.isEmpty()) {
                         item(key = "upcoming_empty") {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
                             ) {
                                 Column(
                                     modifier = Modifier.padding(24.dp).fillMaxWidth(),
@@ -783,13 +807,13 @@ fun PlanTabScreen(
                                         text = "No Upcoming Topics Scheduled",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
                                     )
                                     Text(
                                         text = "Use the Schedule button at the top to distribute remaining topics into your calendar.",
                                         style = MaterialTheme.typography.bodySmall,
                                         textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f)
                                     )
                                 }
                             }
@@ -803,13 +827,19 @@ fun PlanTabScreen(
                         }
                         upcomingByDate.forEach { (dateKey, dayTopics) ->
                             item(key = "upcoming_date_$dateKey") {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = MaterialTheme.shapes.medium,
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                    ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                val upcomingShape = RoundedCornerShape(16.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            if (isLight) Color.Black.copy(alpha = 0.03f) else Color.White.copy(alpha = 0.04f),
+                                            upcomingShape
+                                        )
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = if (isLight) Color(0xFFE5E5EA) else Color.White.copy(alpha = 0.05f),
+                                            shape = upcomingShape
+                                        )
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(12.dp),
@@ -835,69 +865,18 @@ fun PlanTabScreen(
                     }
                 }
 
-                StudyPlannerTab.REVISION -> {
-                    if (revisionTopics.isEmpty()) {
-                        item(key = "revision_empty") {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                )
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text("🧠", fontSize = 36.sp)
-                                    Text(
-                                        text = "No Revision Scheduled",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "Topics marked for revision will show up here to help you consolidate your learning.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        item(key = "revision_list_header") {
-                            PlanSectionHeader(title = "Revision Tasks", trailing = "${revisionTopics.size} total")
-                        }
-                        items(
-                            items = revisionTopics,
-                            key = { ref -> "revision_${ref.topic.id}" },
-                            contentType = { "revisionTopic" }
-                        ) { ref ->
-                            RevisionTopicCard(
-                                ref = ref,
-                                onCompleteSession = { date ->
-                                    actions.completeRevisionSession(ref.topic.id, date)
-                                },
-                                onUncompleteSession = { date ->
-                                    actions.uncompleteRevisionSession(ref.topic.id, date)
-                                },
-                                onEdit = { revisionTopicRef = ref },
-                            )
-                        }
-                    }
-                }
+                // Revision moved to its own PlannerSection.REVISION screen; it is no
+                // longer a hidden sub-tab of Home. Kept here only for `when`
+                // exhaustiveness — this branch is never reached now.
+                StudyPlannerTab.REVISION -> Unit
 
                 StudyPlannerTab.COMPLETED -> {
                     if (completedTopics.isEmpty()) {
                         item(key = "completed_empty") {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
                             ) {
                                 Column(
                                     modifier = Modifier.padding(24.dp).fillMaxWidth(),
@@ -909,13 +888,13 @@ fun PlanTabScreen(
                                         text = "No Completed Topics Yet",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
                                     )
                                     Text(
                                         text = "Every great journey starts with a single step. Start ekagra flow and complete your first task!",
                                         style = MaterialTheme.typography.bodySmall,
                                         textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f)
                                     )
                                 }
                             }

@@ -29,6 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Brush
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
@@ -37,10 +39,16 @@ import com.safarparmar.app.ui.nishtha.NishthaEvent
 import com.safarparmar.app.ui.nishtha.NishthaViewModel
 import com.safarparmar.app.ui.theme.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.HorizontalDivider
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+// ── Liquid Glass design system ──────────────────────────────────────────────
+import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
+import com.safarparmar.app.ui.glass.macOSControlPanel
+import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.glass.GlassDivider
+import com.safarparmar.app.ui.glass.SafarGlassButton
 
 @Composable
 fun NishthaAnalyticsScreen(
@@ -120,78 +128,112 @@ fun NishthaAnalyticsScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Default.BarChart,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Column {
-                Text(
-                    "Analytics",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val isLight = !isDark
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.BarChart,
+                    contentDescription = null,
+                    tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+                    modifier = Modifier.size(22.dp)
                 )
-                Text(
-                    "One home for progress patterns and monthly reflection.",
-                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Text(
+                        "Analytics",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                    )
+                    Text(
+                        "One home for progress patterns and monthly reflection.",
+                        fontSize = 13.sp,
+                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                    )
+                }
             }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            AnalyticsSectionChip("Overview", selectedSection == "overview", Color(0xFF1E3A8A)) { selectedSection = "overview" }
-            AnalyticsSectionChip("Goals", selectedSection == "goals", Color(0xFF065F46)) { selectedSection = "goals" }
-            AnalyticsSectionChip("Ekagra", selectedSection == "ekagra", Color(0xFF9A3412)) { selectedSection = "ekagra" }
-            AnalyticsSectionChip("Monthly Review", selectedSection == "monthly", Color(0xFF5B21B6)) { selectedSection = "monthly" }
-        }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AnalyticsSectionChip("Overview", selectedSection == "overview", Color(0xFF1E3A8A), isLight) { selectedSection = "overview" }
+                AnalyticsSectionChip("Goals", selectedSection == "goals", Color(0xFF065F46), isLight) { selectedSection = "goals" }
+                AnalyticsSectionChip("Ekagra", selectedSection == "ekagra", Color(0xFF9A3412), isLight) { selectedSection = "ekagra" }
+                AnalyticsSectionChip("Monthly Review", selectedSection == "monthly", Color(0xFF5B21B6), isLight) { selectedSection = "monthly" }
+            }
 
-        Box(Modifier.fillMaxSize()) {
-            when (selectedSection) {
-                "goals" -> GoalInsightsSection(uiState.goals)
-                "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
-                "monthly" -> MonthlyReviewSection(
-                    selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.second ?: "",
-                    onMonthClick = { showMonthPicker = true },
-                    isLoading = uiState.isLoadingReport,
-                    report = report,
-                    achievements = achievements,
-                    onNavigate = onNavigate,
-                    // Retry for the month actually on screen — LoadMonthlyReport hits the
-                    // no-month-param endpoint (rolling last-30-days), which would silently
-                    // regenerate a different window than the one the user is viewing.
-                    onGenerate = { viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth)) },
-                )
-                else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
+            Box(Modifier.fillMaxSize()) {
+                when (selectedSection) {
+                    "goals" -> GoalInsightsSection(uiState.goals)
+                    "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
+                    "monthly" -> MonthlyReviewSection(
+                        selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.second ?: "",
+                        onMonthClick = { showMonthPicker = true },
+                        isLoading = uiState.isLoadingReport,
+                        report = report,
+                        achievements = achievements,
+                        isLight = isLight,
+                        onNavigate = onNavigate,
+                        onGenerate = { viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth)) },
+                    )
+                    else -> AnalyticsOverviewSection(uiState.goals, uiState.ekagraAnalytics, report)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun AnalyticsSectionChip(label: String, selected: Boolean, selectedColor: Color, onClick: () -> Unit) {
+private fun AnalyticsSectionChip(
+    label: String,
+    selected: Boolean,
+    selectedColor: Color,
+    isLight: Boolean,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    val textColor = if (selected) {
+        Color.White
+    } else {
+        if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    }
+
     Box(
-        Modifier.clip(RoundedCornerShape(12.dp))
-            .background(if (selected) selectedColor else MaterialTheme.colorScheme.surface)
-            .border(1.dp, if (selected) selectedColor.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+        modifier = Modifier
+            .then(
+                if (selected) {
+                    Modifier
+                        .clip(shape)
+                        .background(selectedColor)
+                        .border(
+                            width = 0.5.dp,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))
+                            ),
+                            shape = shape
+                        )
+                } else {
+                    Modifier.macOSControlPanel(isLight = isLight, shape = shape)
+                }
+            )
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
-            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = textColor,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -205,6 +247,7 @@ private fun MonthlyReviewSection(
     isLoading: Boolean,
     report: MonthlyReport?,
     achievements: List<com.safarparmar.app.domain.model.Achievement>,
+    isLight: Boolean,
     onNavigate: (String) -> Unit,
     onGenerate: () -> Unit,
 ) {
@@ -212,27 +255,35 @@ private fun MonthlyReviewSection(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .clickable { onMonthClick() },
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(16.dp))
+                .clickable { onMonthClick() }
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Color(0xFF5B21B6), modifier = Modifier.size(20.dp))
+                Icon(
+                    Icons.Default.CalendarMonth,
+                    contentDescription = null,
+                    tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+                    modifier = Modifier.size(20.dp)
+                )
                 Text(
                     selectedMonthLabel,
-                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    tint = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                )
             }
         }
 
@@ -245,79 +296,109 @@ private fun MonthlyReviewSection(
                 }
             }
             report == null -> {
-                Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                ) {
                     Column(
-                        Modifier.padding(24.dp),
+                        Modifier.padding(24.dp).fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(selectedMonthLabel, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        Text(
+                            selectedMonthLabel,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                        )
                         Text(
                             stringResource(R.string.analytics_no_report_hint),
                             fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                            textAlign = TextAlign.Center
                         )
-                        Button(
+                        val btnAccent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+                        SafarGlassButton(
+                            text = stringResource(R.string.analytics_generate),
+                            icon = Icons.Default.Refresh,
                             onClick = onGenerate,
-                            shape = ButtonDefaults.shape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5B21B6), contentColor = Color.White)
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.analytics_generate))
-                        }
+                            isLight = isLight,
+                            customTint = btnAccent
+                        )
                     }
                 }
             }
-            else -> ReportContent(report, achievements, onNavigate)
+            else -> ReportContent(report, achievements, isLight, onNavigate)
         }
     }
 }
 
 @Composable
-private fun ReportContent(report: MonthlyReport, achievements: List<com.safarparmar.app.domain.model.Achievement> = emptyList(), onNavigate: (String) -> Unit = {}) {
-    ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, Color(0xFF5B21B6))
-    ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, Color(0xFF065F46))
-    // report.totalFocusMinutes is the running total for the whole period, not a
-    // per-day figure — report.focusDepth is the value already correctly averaged
-    // server-side (totalFocusMinutes / distinct days with Ekagra activity).
-    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.focusDepth.toInt()}m/day", report.focusMessage, Color(0xFF9A3412))
+private fun ReportContent(
+    report: MonthlyReport,
+    achievements: List<com.safarparmar.app.domain.model.Achievement> = emptyList(),
+    isLight: Boolean,
+    onNavigate: (String) -> Unit = {}
+) {
+    val scoreAccent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+    val completionAccent = if (isLight) Color(0xFF065F46) else Color(0xFF81C784)
+    val focusAccent = if (isLight) Color(0xFF9A3412) else Color(0xFFFF8A65)
 
-    // Goals set / completed this period — backend already computes these
-    // (executiveSummary.goalsCreated / goalsCompleted) but they weren't surfaced.
+    ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, scoreAccent, isLight)
+    ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, completionAccent, isLight)
+    ScoreCard(R.drawable.ic_target, stringResource(R.string.analytics_focus_depth), "${report.focusDepth.toInt()}m/day", report.focusMessage, focusAccent, isLight)
+
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        GoalsCountCard("Goals Set", report.goalsCreated.toString(), Color(0xFF065F46), Modifier.weight(1f))
-        GoalsCountCard("Goals Completed", report.goalsCompleted.toString(), Color(0xFF065F46), Modifier.weight(1f))
+        GoalsCountCard("Goals Set", report.goalsCreated.toString(), completionAccent, isLight, Modifier.weight(1f))
+        GoalsCountCard("Goals Completed", report.goalsCompleted.toString(), completionAccent, isLight, Modifier.weight(1f))
     }
 
-    StreakReviewCard(report)
+    StreakReviewCard(report, isLight)
 
     // Skill Radar — rendered as horizontal progress bars
     if (report.radar.isNotEmpty()) {
-        Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                .padding(16.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         stringResource(R.string.analytics_skill_radar),
-                        fontWeight = FontWeight.SemiBold, fontSize = 15.sp, modifier = Modifier.weight(1f)
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                        modifier = Modifier.weight(1f)
                     )
                     Text(
                         stringResource(R.string.analytics_multidimensional),
-                        fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
                     )
                 }
                 report.radar.forEach { item ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(item.subject, modifier = Modifier.width(88.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            item.subject,
+                            modifier = Modifier.width(88.dp),
+                            fontSize = 12.sp,
+                            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                        )
                         LinearProgressIndicator(
                             progress = { (item.score / 100.0).toFloat().coerceIn(0f, 1f) },
-                            modifier = Modifier.weight(1f).height(7.dp),
-                            color = Color(0xFF5B21B6),
-                            trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                            modifier = Modifier.weight(1f).height(6.dp).clip(CircleShape),
+                            color = scoreAccent,
+                            trackColor = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.1f)
                         )
                         Text(
                             "${item.score.toInt()}",
-                            fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
                             modifier = Modifier.width(28.dp)
                         )
                     }
@@ -328,28 +409,31 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safarpar
 
     if (report.heatmap.isNotEmpty()) {
         val days = report.heatmap.takeLast(30)
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        val dotColor = scoreAccent
+        val emptyColor = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.1f)
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                .padding(16.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         stringResource(R.string.analytics_activity_heatmap),
-                        fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
                         stringResource(R.string.analytics_30_day),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF5B21B6)
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = dotColor
                     )
                 }
-                val dotColor = Color(0xFF5B21B6)
-                val emptyColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     days.chunked(14).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -371,12 +455,14 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safarpar
                         }
                     }
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                Spacer(modifier = Modifier.height(2.dp))
+                GlassDivider()
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         stringResource(R.string.analytics_less_active),
-                        fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
                     )
                     Spacer(Modifier.weight(1f))
                     listOf(emptyColor, dotColor.copy(alpha = 0.30f), dotColor.copy(alpha = 0.65f), dotColor).forEach { c ->
@@ -385,8 +471,9 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safarpar
                     Spacer(Modifier.weight(1f))
                     Text(
                         stringResource(R.string.analytics_power_mode),
-                        fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF5B21B6)
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = dotColor
                     )
                 }
             }
@@ -399,31 +486,41 @@ private fun ReportContent(report: MonthlyReport, achievements: List<com.safarpar
             report.sundayScariesMessage.isNotEmpty()
 
     if (hasInsights) {
-        Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                .padding(16.dp)
+        ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
                     stringResource(R.string.analytics_self_discovery),
-                    fontWeight = FontWeight.SemiBold, fontSize = 15.sp
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
                 )
                 if (report.powerHourMessage.isNotEmpty()) {
-                    InsightRow(R.drawable.ic_zap, stringResource(R.string.analytics_power_hour_title), report.powerHourMessage)
+                    InsightRow(R.drawable.ic_zap, stringResource(R.string.analytics_power_hour_title), report.powerHourMessage, isLight)
                 }
                 if (report.moodConnectionMessage.isNotEmpty()) {
-                    InsightRow(R.drawable.ic_brain, stringResource(R.string.analytics_mood_connection_title), report.moodConnectionMessage)
+                    InsightRow(R.drawable.ic_brain, stringResource(R.string.analytics_mood_connection_title), report.moodConnectionMessage, isLight)
                 }
                 if (report.sundayScariesMessage.isNotEmpty()) {
-                    InsightRow(R.drawable.ic_calendar_dots, stringResource(R.string.analytics_sunday_scaries_title), report.sundayScariesMessage)
+                    InsightRow(R.drawable.ic_calendar_dots, stringResource(R.string.analytics_sunday_scaries_title), report.sundayScariesMessage, isLight)
                 }
             }
         }
     }
 
-    // ── Achievements ──────────────────────────────────────────────────────────
-    AchievementsSection(achievements, onNavigate)
+    AchievementsSection(achievements, isLight, onNavigate)
 }
 
 @Composable
-private fun AchievementsSection(achievements: List<com.safarparmar.app.domain.model.Achievement>, onNavigate: (String) -> Unit = {}) {
+private fun AchievementsSection(
+    achievements: List<com.safarparmar.app.domain.model.Achievement>,
+    isLight: Boolean,
+    onNavigate: (String) -> Unit = {}
+) {
     if (achievements.isEmpty()) return
     val earned = achievements.filter { it.earned }
 
@@ -476,22 +573,33 @@ private fun AchievementsSection(achievements: List<com.safarparmar.app.domain.mo
         }
     }
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+            .padding(16.dp)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             // Header row
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_trophy), contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)
-                Text("Achievements", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                Icon(
+                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_trophy),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink
+                )
+                Text(
+                    "Achievements",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
                 Text(
                     "See All",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
                     modifier = Modifier.clickable { onNavigate(com.safarparmar.app.ui.navigation.Routes.ACHIEVEMENTS) }
                 )
             }
@@ -503,12 +611,25 @@ private fun AchievementsSection(achievements: List<com.safarparmar.app.domain.mo
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_lock), contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("No achievements earned yet", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Keep up your streaks to earn badges!", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_lock),
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                    )
+                    Text(
+                        "No achievements earned yet",
+                        fontSize = 13.sp,
+                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                    )
+                    Text(
+                        "Keep up your streaks to earn badges!",
+                        fontSize = 11.sp,
+                        color = (if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary).copy(alpha = 0.7f)
+                    )
                 }
             } else {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                GlassDivider()
                 // Only show earned achievements
                 earned.forEach { ach ->
                     val imagePath = achievementImages[ach.id]
@@ -523,7 +644,9 @@ private fun AchievementsSection(achievements: List<com.safarparmar.app.domain.mo
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                                .background(
+                                    (if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet).copy(alpha = 0.15f)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             if (imageUrl != null) {
@@ -533,19 +656,42 @@ private fun AchievementsSection(achievements: List<com.safarparmar.app.domain.mo
                                     modifier = Modifier.size(38.dp).clip(RoundedCornerShape(8.dp))
                                 )
                             } else {
-                                Icon(painter = androidx.compose.ui.res.painterResource(id = if (ach.type == "title") R.drawable.ic_crown else R.drawable.ic_medal), contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.secondary)
+                                Icon(
+                                    painter = androidx.compose.ui.res.painterResource(id = if (ach.type == "title") R.drawable.ic_crown else R.drawable.ic_medal),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp),
+                                    tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+                                )
                             }
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(ach.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)) {
-                                    Text("Earned", fontSize = 9.sp, color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                Text(
+                                    ach.name,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = (if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink).copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        "Earned",
+                                        fontSize = 9.sp,
+                                        color = if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
                                 }
                             }
                             if (!ach.description.isNullOrBlank()) {
-                                Text(ach.description, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 15.sp)
+                                Text(
+                                    ach.description,
+                                    fontSize = 11.sp,
+                                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                                    lineHeight = 15.sp
+                                )
                             }
                         }
                     }
@@ -556,31 +702,62 @@ private fun AchievementsSection(achievements: List<com.safarparmar.app.domain.mo
 }
 
 @Composable
-private fun ScoreCard(iconRes: Int, label: String, value: String, message: String, accentColor: Color) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+private fun ScoreCard(
+    iconRes: Int,
+    label: String,
+    value: String,
+    message: String,
+    accentColor: Color,
+    isLight: Boolean
+) {
+    val shape = RoundedCornerShape(20.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .macOSControlPanel(isLight = isLight, shape = shape)
     ) {
         Row(
             Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Icon(painter = androidx.compose.ui.res.painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(24.dp), tint = accentColor)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(accentColor.copy(alpha = if (isLight) 0.12f else 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = androidx.compose.ui.res.painterResource(id = iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = accentColor
+                )
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    label.uppercase(),
-                    fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    label.uppercase(Locale.US),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
                     letterSpacing = 0.8.sp
                 )
-                Text(value, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = accentColor))
+                Text(
+                    value,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = accentColor
+                )
                 if (message.isNotEmpty()) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Text(message, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        message,
+                        fontSize = 12.sp,
+                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                        lineHeight = 16.sp
+                    )
                 }
             }
         }
@@ -588,57 +765,79 @@ private fun ScoreCard(iconRes: Int, label: String, value: String, message: Strin
 }
 
 @Composable
-private fun GoalsCountCard(label: String, value: String, accentColor: Color, modifier: Modifier = Modifier) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+private fun GoalsCountCard(
+    label: String,
+    value: String,
+    accentColor: Color,
+    isLight: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(16.dp))
+            .padding(14.dp)
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 label.uppercase(Locale.US),
-                fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
             )
-            Text(value, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = accentColor))
+            Text(
+                value,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = accentColor
+            )
         }
     }
 }
 
 @Composable
-private fun StreakReviewCard(report: MonthlyReport) {
-    val streakColor = Color(0xFF9A3412)
+private fun StreakReviewCard(report: MonthlyReport, isLight: Boolean) {
+    val streakThemeColor = if (isLight) Color(0xFFC2410C) else Color(0xFFFF8A65)
     val breakDayFormatter = remember { DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()) }
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+            .padding(16.dp)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Streak Review", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, modifier = Modifier.weight(1f), color = streakColor)
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                "Streak Review",
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = streakThemeColor
+            )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GoalsCountCard("Longest Streak", "${report.longestStreakDays}d", streakColor, Modifier.weight(1f))
-                GoalsCountCard("Streak Breaks", report.streakBreaksCount.toString(), streakColor, Modifier.weight(1f))
+                GoalsCountCard("Longest Streak", "${report.longestStreakDays}d", streakThemeColor, isLight, Modifier.weight(1f))
+                GoalsCountCard("Streak Breaks", report.streakBreaksCount.toString(), streakThemeColor, isLight, Modifier.weight(1f))
             }
             if (report.streakMessage.isNotEmpty()) {
-                Text(report.streakMessage, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    report.streakMessage,
+                    fontSize = 12.sp,
+                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                )
             }
             if (report.streakBreakDates.isNotEmpty()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                Text("Broken on", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(2.dp))
+                GlassDivider()
+                Text(
+                    "Broken on",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                )
                 Text(
                     report.streakBreakDates.joinToString("  •  ") { dateKey ->
                         runCatching { LocalDate.parse(dateKey).format(breakDayFormatter) }.getOrDefault(dateKey)
                     },
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
                     lineHeight = 18.sp,
                 )
             }
@@ -647,17 +846,29 @@ private fun StreakReviewCard(report: MonthlyReport) {
 }
 
 @Composable
-private fun InsightRow(iconRes: Int, title: String, message: String) {
+private fun InsightRow(iconRes: Int, title: String, message: String, isLight: Boolean) {
+    val accent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Icon(painter = androidx.compose.ui.res.painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(18.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.primary)
+        Icon(
+            painter = androidx.compose.ui.res.painterResource(id = iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp).padding(top = 2.dp),
+            tint = accent
+        )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                title.uppercase(),
-                fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                title.uppercase(Locale.US),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = accent,
                 letterSpacing = 0.8.sp
             )
-            Text(message, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 18.sp)
+            Text(
+                message,
+                fontSize = 13.sp,
+                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                lineHeight = 18.sp
+            )
         }
     }
 }
@@ -717,4 +928,3 @@ private fun LineChart(values: List<Float>, modifier: Modifier = Modifier) {
         }
     }
 }
-

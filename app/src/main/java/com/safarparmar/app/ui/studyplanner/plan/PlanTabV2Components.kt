@@ -85,6 +85,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -109,6 +110,8 @@ import com.safarparmar.app.ui.studyplanner.logic.daysUntil
 import com.safarparmar.app.ui.studyplanner.logic.plannerExamCountdownCaption
 import com.safarparmar.app.ui.studyplanner.logic.plannerExamCountdownHeroNumber
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
+import com.safarparmar.app.ui.glass.macOSControlPanel
+import com.safarparmar.app.ui.glass.SafarGlassPalette
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -147,15 +150,18 @@ fun PlanStatusCard(
 
     Column(modifier = cardModifier) {
         // ── Hero Banner ──────────────────────────────────────────────
+        val isLight = !MaterialTheme.colorScheme.background.isLightBackground()
+        val titleTextColor = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
+        val subtitleTextColor = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.55f)
+        val captionTextColor = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f)
+        val actionIconColor = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White.copy(alpha = 0.7f)
+        val percentTextColor = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(Color(0xFF0B1221), Color(0xFF0F1C35))
-                    )
-                )
-                .padding(horizontal = 20.dp, vertical = 28.dp)
+                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(24.dp))
+                .padding(horizontal = 20.dp, vertical = 24.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -172,7 +178,7 @@ fun PlanStatusCard(
                             text = plan.title,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Black,
-                            color = Color.White,
+                            color = titleTextColor,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -181,7 +187,7 @@ fun PlanStatusCard(
                                 text = readableDate(plan.examDate).uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White.copy(alpha = 0.55f),
+                                color = subtitleTextColor,
                                 letterSpacing = 1.5.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -208,15 +214,25 @@ fun PlanStatusCard(
                                 text = plannerExamCountdownCaption(examDays).uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = captionTextColor,
                                 letterSpacing = 0.5.sp,
                                 maxLines = 1,
                             )
                         }
 
-                        // Plan settings is hidden for now — export is the only
-                        // action surfaced here until the settings entry point
-                        // is redesigned.
+                        // Plan settings (incl. changing the exam date, which kicks
+                        // off the guided re-plan flow) plus PDF export.
+                        IconButton(
+                            onClick = onSettingsClick,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Plan settings",
+                                tint = actionIconColor,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
                         if (isPlanScheduled) {
                             IconButton(
                                 onClick = onExportClick,
@@ -225,7 +241,7 @@ fun PlanStatusCard(
                                 Icon(
                                     imageVector = Icons.Default.FileDownload,
                                     contentDescription = "Export PDF",
-                                    tint = Color.White.copy(alpha = 0.7f),
+                                    tint = actionIconColor,
                                     modifier = Modifier.size(32.dp)
                                 )
                             }
@@ -248,13 +264,13 @@ fun PlanStatusCard(
                             .height(8.dp)
                             .clip(RoundedCornerShape(4.dp)),
                         color = Color(0xFF60A5FA),
-                        trackColor = Color.White.copy(alpha = 0.12f),
+                        trackColor = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.12f),
                     )
                     Text(
                         text = "${progress.completionPercent}%",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
+                        color = percentTextColor,
                     )
                 }
             }
@@ -388,6 +404,7 @@ fun PlanTabQuickLinks(
 ) {
     val scheme = MaterialTheme.colorScheme
     val isDark = !scheme.background.isLightBackground()
+    val isLight = !isDark
     val tabs = buildList {
         add(StudyPlannerTab.TODAY to "Today")
         if (overdueCount > 0) add(StudyPlannerTab.OVERDUE to "Overdue")
@@ -400,19 +417,26 @@ fun PlanTabQuickLinks(
     ) {
         tabs.forEach { (tab, label) ->
             val selected = activeTab == tab
+            val shape = RoundedCornerShape(20.dp)
+
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(50))
-                    .border(
-                        width = 1.dp,
-                        color = if (selected) Color.Transparent else scheme.outlineVariant,
-                        shape = RoundedCornerShape(50)
-                    )
-                    .background(
+                    .then(
                         if (selected) {
-                            if (isDark) Color(0xFF1E293B) else Color(0xFF0F1C35)
-                        } else Color.Transparent
+                            Modifier
+                                .clip(shape)
+                                .background(Color(0xFF0A84FF))
+                                .border(
+                                    width = 0.5.dp,
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))
+                                    ),
+                                    shape = shape
+                                )
+                        } else {
+                            Modifier.macOSControlPanel(isLight = isLight, shape = shape)
+                        }
                     )
                     .clickable { onTabSelected(tab) }
                     .padding(vertical = 12.dp, horizontal = 4.dp),
@@ -422,7 +446,7 @@ fun PlanTabQuickLinks(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (selected) Color.White else scheme.onSurfaceVariant,
+                    color = if (selected) Color.White else (if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
@@ -643,23 +667,13 @@ fun PlannerTaskRow(
 ) {
     val scheme = MaterialTheme.colorScheme
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val isLight = !isDark
     val done = ref.topic.status == TopicStatus.DONE
     val needsRevision = ref.topic.status == TopicStatus.REVISION_NEEDED
-    val cardBgColor = when {
-        done -> if (isDark) Color(0xFF102A20) else Color(0xFFECFDF5)
-        needsRevision -> if (isDark) Color(0xFF2B2015) else Color(0xFFFFFBEB)
-        accent == PlanTaskRowAccent.Overdue -> if (isDark) Color(0xFF2D181A) else Color(0xFFFEF2F2)
-        else -> if (isDark) Color(0xFF1E293B) else Color.White
-    }
-    val animatedCardBgColor by animateColorAsState(cardBgColor, label = "planTaskBg")
-    val borderStroke = if (done || needsRevision || accent == PlanTaskRowAccent.Overdue) null else BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
 
     var showMenu by remember { mutableStateOf(false) }
     val hasMenu = onEdit != null || onReplace != null || (onRemoveFromToday != null && !done) || (onFocus != null && !done)
 
-    // A brief scale-pulse whenever this topic's status changes — visual confirmation
-    // that a tap registered, independent of the status-change snackbar shown elsewhere.
-    // Skips the very first composition so rows don't all pulse on initial render/scroll-in.
     val pulseScale = remember { Animatable(1f) }
     var isFirstComposition by remember { mutableStateOf(true) }
     LaunchedEffect(ref.topic.status) {
@@ -679,12 +693,28 @@ fun PlannerTaskRow(
         }
     }
 
-    Card(
-        modifier = rowModifier,
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = animatedCardBgColor),
-        border = borderStroke,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    val shape = RoundedCornerShape(16.dp)
+
+    // Semantic status tint layered on top of the glass panel
+    val statusOverlayColor = when {
+        done -> if (isLight) Color(0xFF10B981).copy(alpha = 0.08f) else Color(0xFF10B981).copy(alpha = 0.15f)
+        needsRevision -> if (isLight) Color(0xFFF97316).copy(alpha = 0.08f) else Color(0xFFF97316).copy(alpha = 0.15f)
+        accent == PlanTaskRowAccent.Overdue -> if (isLight) Color(0xFFEF4444).copy(alpha = 0.08f) else Color(0xFFEF4444).copy(alpha = 0.15f)
+        else -> Color.Transparent
+    }
+
+    val taskTitleColor = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
+    val taskSubtitleColor = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.6f)
+    val noteTextColor = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.82f)
+
+    Box(
+        modifier = rowModifier
+            .macOSControlPanel(isLight = isLight, shape = shape)
+            .then(
+                if (statusOverlayColor != Color.Transparent)
+                    Modifier.background(statusOverlayColor)
+                else Modifier
+            )
     ) {
         Row(
             modifier = Modifier
@@ -718,14 +748,14 @@ fun PlannerTaskRow(
                     text = ref.topic.name,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDark) Color.White else Color(0xFF0F172A),
+                    color = taskTitleColor,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "${ref.subject.name} · ${ref.chapter.name}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF64748B),
+                    color = taskSubtitleColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -734,7 +764,7 @@ fun PlannerTaskRow(
                     Text(
                         text = noteText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isDark) Color.White.copy(alpha = 0.82f) else Color(0xFF475569),
+                        color = noteTextColor,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -754,19 +784,12 @@ fun PlannerTaskRow(
                     }
                 }
             }
-            Spacer(Modifier.width(8.dp))
             Checkbox(
                 checked = done,
                 onCheckedChange = onDoneChange,
-                modifier = Modifier.size(24.dp),
-                colors = CheckboxDefaults.colors(
-                    checkedColor = Color(0xFF10B981),
-                    uncheckedColor = if (isDark) Color.White.copy(alpha = 0.3f) else Color(0xFFCBD5E1),
-                    checkmarkColor = Color.White,
-                ),
             )
             if (hasMenu) {
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(14.dp))
                 Box {
                     IconButton(
                         onClick = { showMenu = true },
@@ -774,11 +797,14 @@ fun PlannerTaskRow(
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options",
-                            tint = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF64748B)
+                            contentDescription = "Options",
+                            tint = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.5f)
                         )
                     }
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
                         if (onFocus != null && !done) {
                             DropdownMenuItem(
                                 text = { Text("Focus with Ekagra") },
@@ -813,7 +839,6 @@ fun PlannerTaskRow(
         }
     }
 }
-
 /**
  * One "how do you like to study" choice card — shared by the Create Plan sheet and the
  * post-creation Build Planner sheet so the same two options look identical everywhere.
@@ -947,6 +972,7 @@ fun PlanSettingsSheet(
     onExport: () -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit,
+    onExamDateChanged: (String) -> Unit = {},
 ) {
     var title by remember(plan.id) { mutableStateOf(plan.title) }
     var examType by remember(plan.id) { mutableStateOf(plan.examType.orEmpty()) }
@@ -1073,16 +1099,24 @@ fun PlanSettingsSheet(
             item {
                 Button(
                     onClick = {
+                        val newExamDate = examDate.ifBlank { null }
+                        val examDateChanged =
+                            newExamDate?.take(10) != plan.examDate?.take(10)
                         actions.updatePlan(
                             UpdatePlanRequest(
                                 title = title.trim().ifBlank { plan.title },
                                 examType = examType.trim().ifBlank { null },
-                                examDate = examDate.ifBlank { null },
+                                examDate = newExamDate,
                                 dailyGoal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3,
                                 offDays = offDays.toList(),
                             ),
                         )
                         onDismiss()
+                        // A changed exam date invalidates the current schedule, so
+                        // launch the guided re-plan (pick order + rebuild) flow.
+                        if (examDateChanged && newExamDate != null) {
+                            onExamDateChanged(newExamDate)
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1904,11 +1938,12 @@ fun CollapsibleDailyTodoCard(
         label = "dailyTodoChevron",
     )
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = scheme.surface),
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f)),
+    val isLight = !scheme.background.isLightBackground()
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
     ) {
         Column {
             Row(
@@ -1922,14 +1957,14 @@ fun CollapsibleDailyTodoCard(
                 Icon(
                     imageVector = Icons.Default.Today,
                     contentDescription = null,
-                    tint = scheme.primary,
+                    tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
                     text = "Daily To-Do",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = scheme.onSurface,
+                    color = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White,
                     modifier = Modifier.weight(1f),
                 )
                 if (todos.isNotEmpty()) {
@@ -1937,13 +1972,13 @@ fun CollapsibleDailyTodoCard(
                         text = "$doneCount/${todos.size}",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = scheme.onSurfaceVariant,
+                        color = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f),
                     )
                 }
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = scheme.onSurfaceVariant,
+                    tint = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f),
                     modifier = Modifier
                         .size(22.dp)
                         .graphicsLayer { rotationZ = chevronRotation },

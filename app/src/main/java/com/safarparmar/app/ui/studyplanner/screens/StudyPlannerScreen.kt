@@ -239,12 +239,12 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.max
 // ── Liquid Glass design system ──────────────────────────────────────────────
-import com.safarparmar.app.ui.glass.ExamPlanGlassCard
-import com.safarparmar.app.ui.glass.ExamPlannerGlassButton
-import com.safarparmar.app.ui.glass.ExamPlannerGlassEmptyState
-import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
+import com.safarparmar.app.ui.glass.MacOSControlActionButton
+import com.safarparmar.app.ui.glass.MacOSControlEmptyState
+import com.safarparmar.app.ui.glass.MacOSControlIconBadge
+import com.safarparmar.app.ui.glass.MacOSExamPlanCard
+import com.safarparmar.app.ui.glass.SafarGlassBackdrop
 import com.safarparmar.app.ui.glass.SafarGlassPalette
-import com.safarparmar.app.ui.glass.liquidGlass
 import com.safarparmar.app.ui.glass.GlassDivider as GlassHDivider
 
 private val plannerTopicStatusFilterChips = listOf(
@@ -881,12 +881,12 @@ private fun StudyPlansScreen(
         )
     }
 
-    // ── Liquid Glass layout ──────────────────────────────────────────────────
+    // ── macOS Control Center layout ──────────────────────────────────────────
     // The aurora backdrop fills the whole screen; all content floats on top.
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // 1. Animated aurora backdrop — themed for light/dark mode
-        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = !isDark)
+        // 1. Canvas backdrop — cool grey (light) / black (dark)
+        SafarGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = !isDark)
 
         // 2. Screen content column
         Column(modifier = Modifier.fillMaxSize()) {
@@ -929,24 +929,16 @@ private fun StudyPlansScreen(
                                             else SafarGlassPalette.LightTextSecondary,
                                 )
                             }
-                            // Trophy icon in a glass bubble
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .liquidGlass(
-                                        shape = RoundedCornerShape(20.dp),
-                                        surfaceTint = if (isDark) SafarGlassPalette.Violet
-                                                      else SafarGlassPalette.LightViolet,
-                                        tintAlpha = if (isDark) 0.30f else 0.22f,
-                                        isLight = !isDark,
-                                    ),
-                                contentAlignment = Alignment.Center,
+                            // Trophy icon — macOS Control Center badge
+                            MacOSControlIconBadge(
+                                accentColor = if (isDark) SafarGlassPalette.Violet else SafarGlassPalette.LightViolet,
+                                isLight = !isDark,
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.EmojiEvents,
                                     contentDescription = null,
                                     tint = Color.White,
-                                    modifier = Modifier.size(32.dp),
+                                    modifier = Modifier.size(22.dp),
                                 )
                             }
                         }
@@ -1020,11 +1012,13 @@ private fun PlannerCreateNewPlanBar(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        ExamPlannerGlassButton(
-            text    = "Create Your New Plan",
-            icon    = Icons.Default.Add,
+        MacOSControlActionButton(
+            text = "Create Your New Plan",
+            icon = Icons.Default.Add,
             onClick = onClick,
             isLight = isLight,
+            accentColor = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+            subtitle = "Add a new target exam",
         )
     }
 }
@@ -1079,13 +1073,14 @@ private fun PlannerEmptyState(
     isLight: Boolean = false,
     onAction: () -> Unit,
 ) {
-    ExamPlannerGlassEmptyState(
-        title      = title,
-        body       = body,
+    MacOSControlEmptyState(
+        title = title,
+        body = body,
         actionText = action,
         actionIcon = Icons.Default.Add,
-        onAction   = onAction,
-        isLight    = isLight,
+        onAction = onAction,
+        isLight = isLight,
+        accentColor = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
     )
 }
 
@@ -1178,8 +1173,8 @@ private fun PlannerTargetExamRow(
     var menuExpanded by remember { mutableStateOf(false) }
     val menuIconTint = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
 
-    // ── Liquid Glass card ────────────────────────────────────────────────────
-    ExamPlanGlassCard(
+    // ── macOS Control Center tile ────────────────────────────────────────────
+    MacOSExamPlanCard(
         title      = title,
         subtitle   = subtitle,
         accentColor = tone.accent,
@@ -1187,25 +1182,12 @@ private fun PlannerTargetExamRow(
         isActive   = isActive,
         isLight    = isLight,
         leadingIcon = {
-            // Simple clip+background only — NO liquidGlass nested inside a
-            // liquidGlass panel, which would create rectangle shadow artefacts.
-            Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(
-                        if (isLight) tone.accent.copy(alpha = 0.16f)
-                        else         tone.accent.copy(alpha = 0.28f),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.School,
-                    contentDescription = null,
-                    tint = if (isLight) tone.accent else Color.White,
-                    modifier = Modifier.size(28.dp),
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.School,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp),
+            )
         },
         trailingContent = {
             Box {
@@ -1755,6 +1737,10 @@ private fun PlannerHome(
                         onUpgrade = { onNavigate(Routes.PREMIUM) },
                     )
                     }
+                    PlannerSection.REVISION -> com.safarparmar.app.ui.studyplanner.plan.RevisionScreen(
+                        plan = plan,
+                        actions = actions,
+                    )
                 }
             }
         }

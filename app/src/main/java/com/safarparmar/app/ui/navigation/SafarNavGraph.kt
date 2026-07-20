@@ -286,7 +286,6 @@ fun SafarNavGraph(
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
                 onToggleDarkTheme = onToggleDarkTheme,
-                onProfileClick = { navigate(Routes.PROFILE) },
             )
         }
 
@@ -325,7 +324,6 @@ fun SafarNavGraph(
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
                 onToggleDarkTheme = onToggleDarkTheme,
-                onProfileClick = { navigate(Routes.PROFILE) },
                 initialTab = entry.arguments?.getInt("tab") ?: 0,
                 analyticsInitialSection = entry.arguments?.getString("section") ?: "overview",
             )

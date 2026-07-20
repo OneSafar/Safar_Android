@@ -1019,8 +1019,7 @@ fun EkagraScreen(
                     // over a plain surface elsewhere — animate the tint so switching
                     // tabs fades the icons instead of snapping between colours.
                     val topBarTint by animateColorAsState(
-                        targetValue = if (selectedTab == EkagraNavTab.TIMER) Color.White
-                                      else themeColorScheme.onSurface,
+                        targetValue = if (isDarkTheme) Color(0xFFF2F2F5) else Color(0xFF16161A),
                         animationSpec = tween(350),
                         label = "topBarTint",
                     )
@@ -1037,7 +1036,9 @@ fun EkagraScreen(
                             onNavigate         = onNavigate,
                             onToggleDarkTheme  = onToggleNightMode,
                             showTopBar         = true,
-                            // Top-bar text is always white when timer tab is showing (video bg)
+                            containerColor     = Color.Transparent,
+                            useGlassTopBar     = true,
+                            useDetachedMenuGlass = true,
                             topBarContentColor = topBarTint,
                             topBarActions = {
                                 val tintColor = topBarTint
@@ -1226,6 +1227,7 @@ fun EkagraScreen(
                                             },
                                             // On timer tab the nav sits over the video scrim — use contrasting colours
                                             isOnVideo   = selectedTab == EkagraNavTab.TIMER,
+                                            isDarkTheme = isDarkTheme,
                                         )
                                     }
                                 },

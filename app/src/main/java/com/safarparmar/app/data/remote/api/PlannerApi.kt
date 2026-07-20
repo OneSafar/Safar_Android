@@ -282,6 +282,9 @@ data class AutoDistributeRequest(
     val includeRevisionNeeded: Boolean = false,
     val overloadMode: String? = null,
     val strategy: String? = null,
+    /** For strategy "priority_split" ("Mixed Bag"): the subject names that should
+     *  get a topic every study day. Ignored for other strategies. */
+    val prioritySubjectNames: List<String>? = null,
 )
 
 data class ReorderSyllabusRequest(

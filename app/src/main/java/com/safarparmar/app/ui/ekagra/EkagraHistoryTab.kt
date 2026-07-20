@@ -54,6 +54,8 @@ import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
+import com.safarparmar.app.ui.glass.SafarGlassCard
+import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import kotlinx.coroutines.delay
@@ -219,23 +221,27 @@ internal fun FocusHistoryTab(
 
         if (currentTabSessions.isEmpty()) {
             // General empty state when there are absolutely no sessions in the database
-            Card(
-                shape     = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(0.dp),
-                colors    = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                border    = BorderStroke(0.5.dp, scheme.outlineVariant),
-                modifier  = Modifier.fillMaxWidth(),
+            val isLight = scheme.background.luminance() > 0.5f
+            SafarGlassCard(
+                isLight = isLight,
+                contentPadding = PaddingValues(24.dp),
             ) {
-                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Default.History, contentDescription = null,
-                        tint     = scheme.onSurfaceVariant.copy(alpha = 0.35f),
-                        modifier = Modifier.size(40.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        Icons.Default.History,
+                        contentDescription = null,
+                        tint = scheme.onSurfaceVariant.copy(alpha = 0.35f),
+                        modifier = Modifier.size(40.dp),
+                    )
                     Text(
                         if (selectedSubTab == 0) "No ekagra sessions found." else "No stopwatch sessions found.",
-                        fontSize   = 14.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color      = scheme.onSurfaceVariant
+                        color = scheme.onSurfaceVariant,
                     )
                 }
             }
@@ -244,23 +250,27 @@ internal fun FocusHistoryTab(
 
         if (filteredSessions.isEmpty()) {
             // Empty state when sessions exist, but none match the selected filter
-            Card(
-                shape     = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(0.dp),
-                colors    = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                border    = BorderStroke(0.5.dp, scheme.outlineVariant),
-                modifier  = Modifier.fillMaxWidth(),
+            val isLight = scheme.background.luminance() > 0.5f
+            SafarGlassCard(
+                isLight = isLight,
+                contentPadding = PaddingValues(24.dp),
             ) {
-                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Default.History, contentDescription = null,
-                        tint     = scheme.onSurfaceVariant.copy(alpha = 0.35f),
-                        modifier = Modifier.size(40.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        Icons.Default.History,
+                        contentDescription = null,
+                        tint = scheme.onSurfaceVariant.copy(alpha = 0.35f),
+                        modifier = Modifier.size(40.dp),
+                    )
                     Text(
                         "No sessions found",
-                        fontSize   = 14.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color      = scheme.onSurfaceVariant
+                        color = scheme.onSurfaceVariant,
                     )
                 }
             }
@@ -278,15 +288,16 @@ internal fun FocusHistoryTab(
         }
 
         // Total minutes card
-        Card(
-            shape     = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(0.dp),
-            colors    = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            border    = BorderStroke(0.5.dp, scheme.outlineVariant),
-            modifier  = Modifier.fillMaxWidth(),
+        val isLight = scheme.background.luminance() > 0.5f
+        SafarGlassCard(
+            isLight = isLight,
+            contentPadding = PaddingValues(18.dp),
         ) {
-            Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
                     Text(formatElapsedDuration(tabFocusSeconds), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = tabAccentColor)
@@ -329,15 +340,12 @@ internal fun HistorySection(
     onSessionClick: (com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit = {}
 ) {
     val scheme = MaterialTheme.colorScheme
-    Card(
-        shape     = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(0.dp),
-        colors    = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-        // Accent border on history sections using outlineVariant — subtle, not primary
-        border    = BorderStroke(0.5.dp, scheme.outlineVariant),
-        modifier  = Modifier.fillMaxWidth(),
+    val isLight = scheme.background.luminance() > 0.5f
+    SafarGlassCard(
+        isLight = isLight,
+        contentPadding = PaddingValues(14.dp),
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, fontWeight = FontWeight.Medium, fontSize = 16.sp, color = scheme.onSurface)
             if (!subtitle.isNullOrBlank()) {
                 Text(subtitle, fontSize = 12.sp, color = scheme.onSurfaceVariant)
@@ -369,16 +377,16 @@ internal fun FocusSessionRow(
     onClick: () -> Unit = {}
 ) {
     val scheme    = MaterialTheme.colorScheme
+    val isLight = scheme.background.luminance() > 0.5f
 
-    Card(
-        shape     = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(0.dp),
-        // M3 surfaceContainer — one elevation step above the parent surfaceContainerLow card
-        colors    = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
-        border    = BorderStroke(0.5.dp, scheme.outlineVariant),
-        modifier  = Modifier.fillMaxWidth().clickable { onClick() },
+    SafarGlassCard(
+        isLight = isLight,
+        shape = RoundedCornerShape(SafarGlassChromeRadius),
+        tintAlpha = if (isLight) 0.36f else 0.08f,
+        contentPadding = PaddingValues(12.dp),
+        onClick = onClick,
     ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+        Row(verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -55,7 +55,11 @@ import java.util.Locale
 private val REVISION_SESSION_LABELS = listOf("Day 1", "Day 3", "Week 1", "Week 2", "Month 1")
 
 private val RevisionTeal = Color(0xFF26A69A)
+// Spaced-revision cards keep their amber accent; manual (custom-date) revision
+// cards use a distinct violet accent so the two schedule types are instantly
+// distinguishable in both the Revision screen and the Progress tower card.
 private val RevisionAmber = Color(0xFFFFB300)
+private val RevisionCustomViolet = Color(0xFF8B5CF6)
 private val RevisionRed = Color(0xFFEF5350)
 
 private data class RevisionSessionUi(
@@ -82,6 +86,10 @@ internal fun RevisionTopicCard(
     val scheme = MaterialTheme.colorScheme
     val today = remember { todayKey() }
     val isSpaced = ref.topic.revisionScheduleType == "spaced"
+    val isCustom = ref.topic.revisionScheduleType == "custom"
+    // Accent used for pending sessions + the card outline; violet for manual
+    // (custom-date) revision, amber for spaced revision.
+    val typeAccent = if (isCustom) RevisionCustomViolet else RevisionAmber
 
     val sessions = remember(ref.topic.revisionReminderDates, ref.topic.revisionCompletedDates) {
         val completed = ref.topic.revisionCompletedDates.map { it.take(10) }.toSet()
@@ -107,7 +115,7 @@ internal fun RevisionTopicCard(
         color = scheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            RevisionAmber.copy(alpha = 0.35f),
+            typeAccent.copy(alpha = 0.35f),
         ),
     ) {
         Column(
@@ -165,12 +173,26 @@ internal fun RevisionTopicCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = scheme.onSurfaceVariant,
                     )
+                } else if (isCustom) {
+                    Surface(
+                        shape = CircleShape,
+                        color = RevisionCustomViolet.copy(alpha = 0.14f),
+                        contentColor = RevisionCustomViolet,
+                    ) {
+                        Text(
+                            text = "Custom date",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                        )
+                    }
                 }
             }
 
             sessions.forEach { session ->
                 RevisionSessionRow(
                     session = session,
+                    pendingAccent = typeAccent,
                     onToggle = {
                         if (session.done) onUncompleteSession(session.date)
                         else onCompleteSession(session.date)
@@ -184,6 +206,7 @@ internal fun RevisionTopicCard(
 @Composable
 private fun RevisionSessionRow(
     session: RevisionSessionUi,
+    pendingAccent: Color,
     onToggle: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -192,7 +215,7 @@ private fun RevisionSessionRow(
     val accent = when {
         session.done -> RevisionTeal
         session.overdue -> RevisionRed
-        else -> RevisionAmber
+        else -> pendingAccent
     }
     val circleColor by animateColorAsState(
         targetValue = if (session.done) RevisionTeal else Color.Transparent,

@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.*
@@ -13,8 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -54,6 +59,9 @@ import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
+import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
+import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.glass.safarFrostedPanel
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import kotlinx.coroutines.delay
@@ -70,59 +78,121 @@ internal fun EkagraBottomNav(
     selectedTab: EkagraNavTab,
     onSelect: (EkagraNavTab) -> Unit,
     isOnVideo: Boolean,
+    isDarkTheme: Boolean,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val accentColor = scheme.primary
+    val isLight = !isDarkTheme
 
-    val isLight = scheme.background.luminance() > 0.5f
-    val containerColor = if (isOnVideo) {
-        scheme.surfaceContainer.copy(alpha = 0.8f)
-    } else {
-        scheme.surfaceContainer
+    // Over video: treat as dark canvas for readable white icons; otherwise follow theme.
+    val glassAsLight = isLight && !isOnVideo
+    val selectedColor = when {
+        isOnVideo -> Color.White
+        isDarkTheme -> Color(0xFFF2F2F5)
+        else -> SafarGlassPalette.LightTextPrimary
     }
+    val unselectedColor = when {
+        isOnVideo -> Color.White.copy(alpha = 0.55f)
+        isDarkTheme -> Color(0xFFCCCCD8).copy(alpha = 0.55f)
+        else -> SafarGlassPalette.LightTextSecondary.copy(alpha = 0.75f)
+    }
+    val activeDiscBg = Brush.verticalGradient(
+        colors = listOf(
+            accentColor.copy(alpha = if (isOnVideo || isDarkTheme) 0.35f else 0.16f),
+            accentColor.copy(alpha = if (isOnVideo || isDarkTheme) 0.18f else 0.08f),
+        ),
+    )
+    val activeDiscBorderColor = accentColor.copy(
+        alpha = if (isOnVideo || isDarkTheme) 0.40f else 0.22f,
+    )
 
-    NavigationBar(
-        // M3 spec: NavigationBar container = surfaceContainer
-        // When we're over the video scrim, use a translucent dark bar
-        containerColor = containerColor,
-        tonalElevation = 0.dp,
+    val navShape = RoundedCornerShape(SafarGlassChromeRadius)
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .border(
-                0.5.dp,
-                if (isOnVideo) {
-                    if (isLight) scheme.outlineVariant.copy(alpha = 0.5f) else scheme.outlineVariant.copy(alpha = 0.25f)
-                } else {
-                    scheme.outlineVariant
-                },
-                RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            ),
+            .navigationBarsPadding()
+            .padding(horizontal = 10.dp, vertical = 10.dp),
     ) {
-        EkagraNavTab.entries.forEach { tab ->
-            val isSelected = tab == selectedTab
-            NavigationBarItem(
-                selected = isSelected,
-                onClick  = { onSelect(tab) },
-                icon = {
-                    Icon(
-                        imageVector     = tab.icon,
-                        contentDescription = tab.label,
-                        modifier        = Modifier.size(22.dp),
-                    )
-                },
-                label = {
-                    Text(tab.label, style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    // M3 NavigationBarItem tokens
-                    selectedIconColor   = scheme.onSecondaryContainer,
-                    selectedTextColor   = scheme.primary,
-                    indicatorColor      = scheme.secondaryContainer,
-                    unselectedIconColor = scheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    unselectedTextColor = scheme.onSurfaceVariant.copy(alpha = 0.75f),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .safarFrostedPanel(
+                    isLight = glassAsLight,
+                    shape = navShape,
+                    tintAlpha = if (isOnVideo) 0.14f else null,
                 )
-            )
+                .padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            EkagraNavTab.entries.forEach { tab ->
+                val isSelected = tab == selectedTab
+
+                val iconTint by animateColorAsState(
+                    targetValue = if (isSelected) selectedColor else unselectedColor,
+                    animationSpec = tween(durationMillis = 220),
+                    label = "navIconTint_${tab.name}",
+                )
+                val textColor by animateColorAsState(
+                    targetValue = if (isSelected) selectedColor else unselectedColor,
+                    animationSpec = tween(durationMillis = 220),
+                    label = "navTextColor_${tab.name}",
+                )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(SafarGlassChromeRadius))
+                        .clickable(
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                            indication = null,
+                        ) { onSelect(tab) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 48.dp, height = 32.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (isSelected) {
+                                    activeDiscBg
+                                } else {
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, Color.Transparent),
+                                    )
+                                },
+                            )
+                            .then(
+                                if (isSelected) {
+                                    Modifier.border(
+                                        width = 0.6.dp,
+                                        color = activeDiscBorderColor,
+                                        shape = RoundedCornerShape(10.dp),
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = tab.icon,
+                            contentDescription = tab.label,
+                            tint = iconTint,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+
+                    Text(
+                        text = tab.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = textColor,
+                    )
+                }
+            }
         }
     }
 }

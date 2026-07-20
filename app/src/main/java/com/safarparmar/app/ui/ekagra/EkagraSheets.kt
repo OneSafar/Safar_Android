@@ -54,6 +54,10 @@ import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
+import com.safarparmar.app.ui.glass.SafarGlassCard
+import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
+import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.glass.safarFrostedPanel
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import kotlinx.coroutines.delay
@@ -68,10 +72,15 @@ import androidx.compose.runtime.staticCompositionLocalOf
 @Composable
 internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> Unit, onDismiss: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
+    val isLight = scheme.background.luminance() > 0.5f
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor   = scheme.surfaceContainer,
-        shape = RoundedCornerShape(28.dp),
+        containerColor = if (isLight) {
+            SafarGlassPalette.LightGlassTint.copy(alpha = 0.92f)
+        } else {
+            Color(0xFF1A1A1E).copy(alpha = 0.94f)
+        },
+        shape = RoundedCornerShape(SafarGlassChromeRadius),
         title  = { 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -125,9 +134,9 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(100.dp)
-                                        .clip(RoundedCornerShape(20.dp))
+                                        .clip(RoundedCornerShape(SafarGlassChromeRadius))
                                         .clickable { onSelect(theme) },
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = RoundedCornerShape(SafarGlassChromeRadius),
                                     border = cardBorder,
                                     colors = CardDefaults.cardColors(containerColor = cardBg)
                                 ) {
@@ -221,6 +230,7 @@ internal fun OrganizeFreeFocusSheet(
     onDiscard: () -> Unit,
 ) {
     val scheme      = MaterialTheme.colorScheme
+    val isLight = scheme.background.luminance() > 0.5f
     val focusedSeconds = pending?.let {
         if (it.mode.equals("stopwatch", ignoreCase = true)) {
             it.secondsLeft
@@ -242,13 +252,17 @@ internal fun OrganizeFreeFocusSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState       = sheetState,
-        containerColor   = scheme.surfaceContainer,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor   = Color.Transparent,
+        shape = RoundedCornerShape(topStart = SafarGlassChromeRadius, topEnd = SafarGlassChromeRadius),
         dragHandle = { BottomSheetDefaults.DragHandle(color = scheme.onSurfaceVariant.copy(alpha = 0.4f)) }
     ) {
         Column(
             Modifier
                 .fillMaxWidth()
+                .safarFrostedPanel(
+                    isLight = isLight,
+                    shape = RoundedCornerShape(topStart = SafarGlassChromeRadius, topEnd = SafarGlassChromeRadius),
+                )
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 40.dp)
                 .verticalScroll(rememberScrollState())
@@ -261,7 +275,7 @@ internal fun OrganizeFreeFocusSheet(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(SafarGlassChromeRadius))
                     .background(scheme.primaryContainer.copy(alpha = 0.25f))
                     .padding(vertical = 20.dp, horizontal = 16.dp)
             ) {
@@ -308,12 +322,11 @@ internal fun OrganizeFreeFocusSheet(
                         color = scheme.primary,
                         letterSpacing = 1.5.sp
                     )
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow)
+                    SafarGlassCard(
+                        isLight = isLight,
+                        contentPadding = PaddingValues(16.dp),
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column {
                             Text(
                                 text = pending.topicTitle ?: "Untitled topic",
                                 style = MaterialTheme.typography.titleMedium,
@@ -324,7 +337,7 @@ internal fun OrganizeFreeFocusSheet(
                             Row(
                                 Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(SafarGlassChromeRadius))
                                     .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
                                     .clickable { markTopicDone = !markTopicDone }
                                     .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -392,33 +405,31 @@ internal fun OrganizeFreeFocusSheet(
                 )
 
                 if (goals.isEmpty()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow)
+                    SafarGlassCard(
+                        isLight = isLight,
+                        contentPadding = PaddingValues(16.dp),
                     ) {
-                        Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                             Text("No open goals available.", style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
                         }
                     }
                 } else {
                     goals.take(5).forEach { goal ->
                         val isSelected = selectedGoal?.id == goal.id
-                        val border = if (isSelected) BorderStroke(2.dp, scheme.primary) else BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f))
-                        val bg = if (isSelected) scheme.primaryContainer.copy(alpha = 0.15f) else scheme.surfaceContainerLow
-
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedGoal = goal
-                                    markAsCompleted = false
-                                },
-                            shape = RoundedCornerShape(16.dp),
-                            border = border,
-                            colors = CardDefaults.cardColors(containerColor = bg)
+                        SafarGlassCard(
+                            isLight = isLight,
+                            tintAlpha = if (isSelected) {
+                                if (isLight) 0.55f else 0.16f
+                            } else {
+                                null
+                            },
+                            contentPadding = PaddingValues(16.dp),
+                            onClick = {
+                                selectedGoal = goal
+                                markAsCompleted = false
+                            },
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
+                            Column {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -433,7 +444,7 @@ internal fun OrganizeFreeFocusSheet(
                                         text = goal.title,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
+                                        color = if (isSelected) scheme.primary else scheme.onSurface,
                                         maxLines = 1,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -444,7 +455,7 @@ internal fun OrganizeFreeFocusSheet(
                                     Row(
                                         Modifier
                                             .fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
+                                            .clip(RoundedCornerShape(SafarGlassChromeRadius))
                                             .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
                                             .clickable { markAsCompleted = !markAsCompleted }
                                             .padding(horizontal = 12.dp, vertical = 6.dp),
