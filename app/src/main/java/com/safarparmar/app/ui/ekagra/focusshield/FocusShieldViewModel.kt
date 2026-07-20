@@ -16,6 +16,7 @@ import javax.inject.Inject
 data class FocusShieldUiState(
     val isEnabled: Boolean = false,
     val isStrictMode: Boolean = false,
+    val isAlwaysOnMode: Boolean = false,
     val blockedPackages: Set<String> = emptySet(),
     val hasOverlayPermission: Boolean = false,
     val hasNotifications: Boolean = false,
@@ -32,6 +33,7 @@ data class AppPickerUiState(
 private data class FocusShieldSettingsState(
     val enabled: Boolean,
     val strict: Boolean,
+    val alwaysOn: Boolean,
     val packages: Set<String>,
 )
 
@@ -49,11 +51,13 @@ class FocusShieldViewModel @Inject constructor(
     private val shieldSettings = combine(
         repo.isEnabled,
         repo.isStrictMode,
+        repo.isAlwaysOnMode,
         repo.blockedPackages,
-    ) { enabled, strict, packages ->
+    ) { enabled, strict, alwaysOn, packages ->
         FocusShieldSettingsState(
             enabled = enabled,
             strict = strict,
+            alwaysOn = alwaysOn,
             packages = packages,
         )
     }
@@ -65,6 +69,7 @@ class FocusShieldViewModel @Inject constructor(
         FocusShieldUiState(
             isEnabled = settings.enabled,
             isStrictMode = settings.strict,
+            isAlwaysOnMode = settings.alwaysOn,
             blockedPackages = settings.packages,
             hasOverlayPermission = FocusShieldPermissionHelper.hasOverlayPermission(app),
             hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(app),
@@ -152,6 +157,7 @@ class FocusShieldViewModel @Inject constructor(
 
     fun setEnabled(enabled: Boolean) = repo.setEnabled(enabled)
     fun setStrictMode(enabled: Boolean) = repo.setStrictMode(enabled)
+    fun setAlwaysOnMode(enabled: Boolean) = repo.setAlwaysOnMode(enabled)
 
     fun refreshPermissions() {
         // Force a re-emission by triggering one of the combine inputs

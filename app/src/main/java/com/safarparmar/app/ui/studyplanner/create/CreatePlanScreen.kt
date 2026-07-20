@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -128,10 +127,8 @@ fun CreatePlanScreen(
 
     BackHandler(enabled = !showCelebration) { handleBack() }
 
-    val isDark = isSystemInDarkTheme()
-
     Scaffold(
-        containerColor = SafarSemanticColors.plannerBackground(isDark),
+        containerColor = SafarSemanticColors.plannerBackground(),
         topBar = {
             if (!showCelebration) {
                 CenterAlignedTopAppBar(
@@ -209,14 +206,17 @@ fun CreatePlanScreen(
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.ManualTopicTree -> ManualTopicTreeStep(
+                    title = state.title,
                     subjects = state.manualSubjects,
+                    validationError = state.manualValidationError,
+                    onTitleChange = viewModel::setTitle,
                     onAddSubject = viewModel::addManualSubject,
                     onRemoveSubject = viewModel::removeManualSubject,
                     onAddChapter = viewModel::addManualChapter,
                     onRemoveChapter = viewModel::removeManualChapter,
                     onAddTopic = viewModel::addManualTopic,
                     onRemoveTopic = viewModel::removeManualTopic,
-                    onContinue = { viewModel.goToStep(CreatePlanStep.PlanSettings) },
+                    onContinue = viewModel::continueFromManual,
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.PasteSyllabus -> PasteSyllabusStep(
@@ -324,7 +324,12 @@ private fun CelebrationOverlay(
             color = MaterialTheme.colorScheme.primary,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(36.dp),
+                )
             }
         }
         Column(

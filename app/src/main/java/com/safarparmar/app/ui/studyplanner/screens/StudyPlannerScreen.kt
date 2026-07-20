@@ -238,6 +238,14 @@ import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.max
+// ── Liquid Glass design system ──────────────────────────────────────────────
+import com.safarparmar.app.ui.glass.ExamPlanGlassCard
+import com.safarparmar.app.ui.glass.ExamPlannerGlassButton
+import com.safarparmar.app.ui.glass.ExamPlannerGlassEmptyState
+import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
+import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.glass.liquidGlass
+import com.safarparmar.app.ui.glass.GlassDivider as GlassHDivider
 
 private val plannerTopicStatusFilterChips = listOf(
     TopicStatus.TODO,
@@ -306,6 +314,7 @@ fun StudyPlannerScreen(
     isDarkTheme: Boolean = false,
     planId: String? = null,
     showDailyTodoSetup: Boolean = false,
+    openTab: String? = null,
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
@@ -318,14 +327,18 @@ fun StudyPlannerScreen(
     var dailyTodoSetupVisible by remember(planId, showDailyTodoSetup) {
         mutableStateOf(showDailyTodoSetup)
     }
-    androidx.compose.runtime.LaunchedEffect(planId, showDailyTodoSetup) {
+    androidx.compose.runtime.LaunchedEffect(planId, showDailyTodoSetup, openTab) {
         // A newly-confirmed plan explicitly requests Home + Daily To-Do setup. Other
-        // plan-id deep links retain their existing Calendar landing behavior.
+        // plan-id deep links retain their existing Calendar landing behavior. A
+        // revision reminder deep link opens straight on the plan's Revision tab.
         planId?.let {
             actionsForPlanId.openPlan(it)
-            actionsForPlanId.setSection(
-                if (showDailyTodoSetup) PlannerSection.PLAN else PlannerSection.CALENDAR,
-            )
+            when {
+                openTab.equals("revision", ignoreCase = true) ->
+                    actionsForPlanId.openRevisionTopics()
+                showDailyTodoSetup -> actionsForPlanId.setSection(PlannerSection.PLAN)
+                else -> actionsForPlanId.setSection(PlannerSection.CALENDAR)
+            }
         }
     }
     val initialChromeState = remember(viewModel) {
@@ -605,8 +618,10 @@ fun StudyPlannerScreen(
     val selectedPlanForDrawer = chromeState.selectedPlan
     val drawerTitle = when {
         selectedPlanForDrawer != null &&
-            chromeState.section == PlannerSection.SYLLABUS ->
-            selectedPlanForDrawer.title.takeIf { it.isNotBlank() } ?: PlannerSection.SYLLABUS.label
+            (chromeState.section == PlannerSection.SYLLABUS ||
+                chromeState.section == PlannerSection.INSIGHTS) ->
+            selectedPlanForDrawer.title.takeIf { it.isNotBlank() }
+                ?: chromeState.section.label
         selectedPlanForDrawer != null &&
             chromeState.section != PlannerSection.YOUR_EXAMS ->
             chromeState.section.label
@@ -650,7 +665,7 @@ fun StudyPlannerScreen(
         ) { padding ->
             Scaffold(
                 modifier = Modifier.padding(top = padding.calculateTopPadding()),
-                containerColor = SafarSemanticColors.plannerBackground(isDarkTheme),
+                containerColor = SafarSemanticColors.plannerBackground(),
                 contentWindowInsets = WindowInsets.safeDrawing.only(
                     androidx.compose.foundation.layout.WindowInsetsSides.Horizontal
                 ),
@@ -866,96 +881,129 @@ private fun StudyPlansScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        SafarPullRefreshBox(
-            isRefreshing = state.loading && state.plans.isNotEmpty(),
-            onRefresh = { actions.refreshPlans() },
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, top = 22.dp, end = 16.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+    // ── Liquid Glass layout ──────────────────────────────────────────────────
+    // The aurora backdrop fills the whole screen; all content floats on top.
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // 1. Animated aurora backdrop — themed for light/dark mode
+        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = !isDark)
+
+        // 2. Screen content column
+        Column(modifier = Modifier.fillMaxSize()) {
+            SafarPullRefreshBox(
+                isRefreshing = state.loading && state.plans.isNotEmpty(),
+                onRefresh = { actions.refreshPlans() },
+                modifier = Modifier.weight(1f).fillMaxWidth(),
             ) {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Text(
-                                text = "My Target Exams",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isDark) Color(0xFFE0E3E5) else Color(0xFF1A1C1E),
-                            )
-                            Text(
-                                text = "Choose an exam to create a focused study plan.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isDark) Color(0xFFC4C7C7) else Color(0xFF5E6266),
-                            )
-                        }
-                        Surface(
-                            color = if (isDark) Color(0xFF2D1F4D) else Color(0xFFF0EAFE),
-                            shape = CircleShape,
-                            modifier = Modifier.size(72.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.EmojiEvents,
-                                contentDescription = null,
-                                tint = if (isDark) Color(0xFFB39DDB) else Color(0xFF7C5AD9),
-                                modifier = Modifier.padding(16.dp).size(40.dp),
-                            )
-                        }
-                    }
-                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, top = 28.dp, end = 16.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
 
-                if (state.loading && state.plans.isEmpty()) {
-                    items(3) {
-                        PlanCardSkeleton(modifier = Modifier.padding(vertical = 4.dp))
-                    }
-                }
-
-                if (state.plans.isEmpty() && !state.loading) {
+                    // ── Header ──────────────────────────────────────────────
                     item {
-                        PlannerEmptyState(
-                            title = "No target exam yet",
-                            body = "Plan an exam and it will appear here.",
-                            action = "Plan Your Exams",
-                            onAction = {
-                                onAdvanceTour()
-                                onNavigate(Routes.CREATE_PLAN)
-                            },
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    text = "My Target Exams",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    // Theme-aware: dark on light backdrop, light on dark backdrop
+                                    color = if (isDark) SafarGlassPalette.TextPrimary
+                                            else SafarGlassPalette.LightTextPrimary,
+                                )
+                                Text(
+                                    text = "Choose an exam to create a focused study plan.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isDark) SafarGlassPalette.TextSecondary
+                                            else SafarGlassPalette.LightTextSecondary,
+                                )
+                            }
+                            // Trophy icon in a glass bubble
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .liquidGlass(
+                                        shape = RoundedCornerShape(20.dp),
+                                        surfaceTint = if (isDark) SafarGlassPalette.Violet
+                                                      else SafarGlassPalette.LightViolet,
+                                        tintAlpha = if (isDark) 0.30f else 0.22f,
+                                        isLight = !isDark,
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.EmojiEvents,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
+                        }
                     }
-                } else if (state.plans.isNotEmpty()) {
-                    items(state.plans, key = { it.id }) { plan ->
-                        PlannerTargetExamRow(
-                            plan = plan,
-                            isActive = plan.id == selectedPlanId,
-                            onOpen = { actions.openPlan(plan.id) },
-                            onDelete = { pendingDelete = plan },
-                        )
+
+                    // ── Loading skeletons ────────────────────────────────────
+                    if (state.loading && state.plans.isEmpty()) {
+                        items(3) {
+                            PlanCardSkeleton(modifier = Modifier.padding(vertical = 4.dp))
+                        }
                     }
+
+                    // ── Empty state ──────────────────────────────────────────
+                    if (state.plans.isEmpty() && !state.loading) {
+                        item {
+                            PlannerEmptyState(
+                                title = "No target exam yet",
+                                body = "Plan an exam and it will appear here.",
+                                action = "Plan Your Exams",
+                                isLight = !isDark,
+                                onAction = {
+                                    onAdvanceTour()
+                                    onNavigate(Routes.CREATE_PLAN)
+                                },
+                            )
+                        }
+                    }
+
+                    // ── Plan cards ───────────────────────────────────────────
+                    if (state.plans.isNotEmpty()) {
+                        items(state.plans, key = { it.id }) { plan ->
+                            PlannerTargetExamRow(
+                                plan = plan,
+                                isActive = plan.id == selectedPlanId,
+                                isLight = !isDark,
+                                onOpen = { actions.openPlan(plan.id) },
+                                onDelete = { pendingDelete = plan },
+                            )
+                        }
+                    }
+
+                    // Bottom breathing room above the create-bar
+                    item { Spacer(Modifier.height(12.dp)) }
                 }
             }
-        }
 
-        // Pinned "Create Your New Plan" bar — only when plans exist, so it never
-        // scrolls out of view on this important create-plan surface. In the empty
-        // state the "No target exam yet" card already carries the create action.
-        if (state.plans.isNotEmpty()) {
-            PlannerCreateNewPlanBar(
-                isDark = isDark,
-                onClick = {
-                    onAdvanceTour()
-                    onNavigate(Routes.CREATE_PLAN)
-                },
-            )
+            // ── Pinned "Create Your New Plan" bar ────────────────────────────
+            if (state.plans.isNotEmpty()) {
+                PlannerCreateNewPlanBar(
+                    isDark = isDark,
+                    isLight = !isDark,
+                    onClick = {
+                        onAdvanceTour()
+                        onNavigate(Routes.CREATE_PLAN)
+                    },
+                )
+            }
         }
     }
 }
@@ -963,50 +1011,21 @@ private fun StudyPlansScreen(
 @Composable
 private fun PlannerCreateNewPlanBar(
     isDark: Boolean,
+    isLight: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val gradient = Brush.horizontalGradient(listOf(Color(0xFF3D257B), Color(0xFF5B3B9B)))
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 12.dp,
-        modifier = Modifier.fillMaxWidth(),
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(gradient)
-                    .clickable(onClick = onClick)
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Surface(
-                    color = Color.White.copy(alpha = 0.18f),
-                    shape = CircleShape,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.padding(4.dp).size(22.dp),
-                    )
-                }
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = "Create Your New Plan",
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                )
-            }
-        }
+        ExamPlannerGlassButton(
+            text    = "Create Your New Plan",
+            icon    = Icons.Default.Add,
+            onClick = onClick,
+            isLight = isLight,
+        )
     }
 }
 
@@ -1053,61 +1072,21 @@ private fun PlannerCard(
 }
 
 @Composable
-private fun PlannerEmptyState(title: String, body: String, action: String, onAction: () -> Unit) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val cardColor = if (isDark) Color(0xFF181C1E) else MaterialTheme.colorScheme.surface
-    val borderColor = if (isDark) Color(0xFF444748).copy(alpha = 0.45f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
-    val iconBackground = if (isDark) Color(0xFF2C353D) else MaterialTheme.colorScheme.primaryContainer
-    val buttonColor = if (isDark) Color(0xFFE0E3E5) else MaterialTheme.colorScheme.primary
-    val buttonContent = if (isDark) Color(0xFF101416) else MaterialTheme.colorScheme.onPrimary
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = cardColor,
-        border = BorderStroke(1.dp, borderColor),
-        shadowElevation = 0.dp,
-    ) {
-        Column(
-            Modifier.fillMaxWidth().padding(22.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Surface(color = iconBackground, shape = CircleShape) {
-                Icon(
-                    Icons.Default.School,
-                    contentDescription = null,
-                    tint = if (isDark) Color(0xFFB9E0FF) else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(12.dp).size(26.dp),
-                )
-            }
-            Text(
-                title,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                body,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-            )
-            Button(
-                onClick = onAction,
-                modifier = Modifier.heightIn(min = 40.dp),
-                shape = ButtonDefaults.shape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = buttonColor,
-                    contentColor = buttonContent,
-                ),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(action)
-            }
-        }
-    }
+private fun PlannerEmptyState(
+    title: String,
+    body: String,
+    action: String,
+    isLight: Boolean = false,
+    onAction: () -> Unit,
+) {
+    ExamPlannerGlassEmptyState(
+        title      = title,
+        body       = body,
+        actionText = action,
+        actionIcon = Icons.Default.Add,
+        onAction   = onAction,
+        isLight    = isLight,
+    )
 }
 
 private data class TargetExamTone(
@@ -1187,6 +1166,7 @@ private fun ActivePlanBadge(isDark: Boolean) {
 private fun PlannerTargetExamRow(
     plan: StudyPlan,
     isActive: Boolean = false,
+    isLight: Boolean = false,
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -1196,99 +1176,53 @@ private fun PlannerTargetExamRow(
     val subtitle = "Strategy • Practice • Success"
     val days = daysUntil(plan.examDate)
     var menuExpanded by remember { mutableStateOf(false) }
+    val menuIconTint = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
 
-    val activeGreen = Color(0xFF10B981)
-    val activePurple = Color(0xFF4A2D8F)
-    // Active indicator color: green in dark mode (high contrast on dark card),
-    // deep purple in light mode (high contrast on white card, matches brand).
-    val activeAccent = if (isDark) activeGreen else activePurple
-    val cardBg = if (isDark) Color(0xFF181C1E) else MaterialTheme.colorScheme.surface
-    val cardBorder = when {
-        isActive && isDark  -> activeAccent.copy(alpha = 0.55f)
-        isActive            -> activeAccent               // full-opacity purple on white = clearly visible
-        isDark              -> Color(0xFF444748).copy(alpha = 0.45f)
-        else                -> Color.Transparent
-    }
-    val accentBarColor = if (isActive) activeAccent else tone.accent
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpen),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = if (isActive || isDark) BorderStroke(if (isActive) 1.5.dp else 1.dp, cardBorder) else null,
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 3.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Surface(
-                color = tone.softBackground,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.size(64.dp),
+    // ── Liquid Glass card ────────────────────────────────────────────────────
+    ExamPlanGlassCard(
+        title      = title,
+        subtitle   = subtitle,
+        accentColor = tone.accent,
+        badgeText  = examBadgeLabel(days),
+        isActive   = isActive,
+        isLight    = isLight,
+        leadingIcon = {
+            // Simple clip+background only — NO liquidGlass nested inside a
+            // liquidGlass panel, which would create rectangle shadow artefacts.
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        if (isLight) tone.accent.copy(alpha = 0.16f)
+                        else         tone.accent.copy(alpha = 0.28f),
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.School,
                     contentDescription = null,
-                    tint = tone.accent,
-                    modifier = Modifier.padding(17.dp).size(30.dp),
+                    tint = if (isLight) tone.accent else Color.White,
+                    modifier = Modifier.size(28.dp),
                 )
             }
-            // Left-edge accent bar — green when active, plan tone otherwise
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(48.dp)
-                    .background(accentBarColor, CircleShape),
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Text(
-                    text = title,
-                    color = if (isDark) Color(0xFFE0E3E5) else Color(0xFF1A1C1E),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = subtitle,
-                    color = if (isDark) Color(0xFFC4C7C7) else Color(0xFF5E6266),
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                // Active indicator badge — only shown for the currently open plan
-                if (isActive) {
-                    ActivePlanBadge(isDark = isDark)
-                }
-            }
-            Surface(color = tone.chipBackground, shape = RoundedCornerShape(12.dp)) {
-                Text(
-                    text = examBadgeLabel(days),
-                    color = tone.accent,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
-                )
-            }
+        },
+        trailingContent = {
             Box {
-                IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(28.dp)) {
+                androidx.compose.material3.IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(28.dp),
+                ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Open $title options",
-                        tint = if (isDark) Color(0xFFC4C7C7) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = menuIconTint,
                     )
                 }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                ) {
                     DropdownMenuItem(
                         text = { Text("Delete plan") },
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
@@ -1296,8 +1230,9 @@ private fun PlannerTargetExamRow(
                     )
                 }
             }
-        }
-    }
+        },
+        onOpen = onOpen,
+    )
 }
 
 @Composable

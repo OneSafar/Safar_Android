@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         const val EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE = "focus_shield_blocked_package"
         const val EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME = "focus_shield_blocked_app_name"
         const val EXTRA_FOCUS_SHIELD_STRICT = "focus_shield_strict"
+        const val EXTRA_FOCUS_SHIELD_ALWAYS_ON = "focus_shield_always_on"
         const val EXTRA_FOCUS_SHIELD_OPEN_EKAGRA = "focus_shield_open_ekagra"
         private const val TABLET_SMALLEST_WIDTH_DP = 600
     }
@@ -218,6 +219,7 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             packageName = blockedPackage,
             appName = appName,
             strict = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_STRICT, false),
+            alwaysOn = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_ALWAYS_ON, false),
         )
 
         if (openEkagra) {

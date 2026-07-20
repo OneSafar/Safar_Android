@@ -336,7 +336,7 @@ fun SyllabusSubjectsScreen(
                 }
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(isDarkTheme),
+                    containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(),
                     contentWindowInsets = WindowInsets.safeDrawing.only(
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
                     ),
@@ -432,7 +432,7 @@ fun SyllabusSubjectsScreen(
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(isDarkTheme),
+            containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(),
             contentWindowInsets = WindowInsets.safeDrawing.only(
                 WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
             ),

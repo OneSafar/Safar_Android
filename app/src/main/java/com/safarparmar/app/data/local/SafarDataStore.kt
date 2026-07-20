@@ -130,6 +130,7 @@ class SafarDataStore @Inject constructor(
         // Focus Shield
         val FOCUS_SHIELD_ENABLED          = booleanPreferencesKey("focus_shield_enabled")
         val FOCUS_SHIELD_STRICT_MODE      = booleanPreferencesKey("focus_shield_strict_mode")
+        val FOCUS_SHIELD_ALWAYS_ON_MODE   = booleanPreferencesKey("focus_shield_always_on_mode")
         val FOCUS_SHIELD_EMERGENCY_UNLOCK = booleanPreferencesKey("focus_shield_allow_emergency_unlock")
         val FOCUS_SHIELD_BLOCKED_PACKAGES = stringPreferencesKey("focus_shield_blocked_packages")
         val FOCUS_SHIELD_LAST_BLOCK_COUNT = intPreferencesKey("focus_shield_last_block_count")
@@ -282,6 +283,10 @@ class SafarDataStore @Inject constructor(
     val focusShieldStrictMode: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.FOCUS_SHIELD_STRICT_MODE] ?: false }
+
+    val focusShieldAlwaysOnMode: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_SHIELD_ALWAYS_ON_MODE] ?: false }
 
     val focusShieldEmergencyUnlock: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -497,6 +502,7 @@ class SafarDataStore @Inject constructor(
 
     suspend fun setFocusShieldEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_ENABLED] = enabled }
     suspend fun setFocusShieldStrictMode(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_STRICT_MODE] = enabled }
+    suspend fun setFocusShieldAlwaysOnMode(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_ALWAYS_ON_MODE] = enabled }
     suspend fun setFocusShieldEmergencyUnlock(allow: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCK] = allow }
     suspend fun setFocusShieldBlockedPackages(packages: Set<String>) = context.dataStore.edit {
         it[Keys.FOCUS_SHIELD_BLOCKED_PACKAGES] = packages.joinToString(",")

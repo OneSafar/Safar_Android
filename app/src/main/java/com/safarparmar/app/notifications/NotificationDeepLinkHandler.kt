@@ -36,7 +36,12 @@ object NotificationDeepLinkHandler {
         val trimmed = deepLink?.trim().orEmpty()
         if (!trimmed.startsWith("safar://")) return Routes.HOME
 
+        // Query params (e.g. planId/tab) are used by some hosts and stripped by the
+        // path-only split below, so parse them up front.
+        val queryUri = runCatching { Uri.parse(trimmed) }.getOrNull()
+
         val parts = trimmed
+            .substringBefore('?')
             .removePrefix("safar://")
             .trimStart('/')
             .split('/')
@@ -73,7 +78,15 @@ object NotificationDeepLinkHandler {
             "dhyan" -> Routes.DHYAN
             "focus_shield" -> Routes.FOCUS_SHIELD
             "course" -> Routes.NISHTHA
-            "studyplanner", "study_planner" -> Routes.STUDY_PLANNER
+            "studyplanner", "study_planner" -> {
+                val planId = queryUri?.getQueryParameter("planId").orEmpty()
+                val tab = queryUri?.getQueryParameter("tab").orEmpty()
+                if (tab.equals("revision", ignoreCase = true) && planId.isNotBlank()) {
+                    Routes.studyPlannerRevision(planId)
+                } else {
+                    Routes.STUDY_PLANNER
+                }
+            }
             "admin" -> when (firstSegment) {
                 "notifications" -> Routes.ADMIN_NOTIFICATIONS
                 else -> Routes.HOME

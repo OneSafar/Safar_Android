@@ -496,7 +496,13 @@ private fun SandeshMedia(sandesh: Sandesh) {
         val videoUrl = "https://www.youtube.com/watch?v=$youtubeVideoId"
         Box(
             modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl)))
+                // No app on the device handles the link (no browser / stripped ROM) →
+                // ActivityNotFoundException. Tell the user instead of crashing.
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl)))
+                } catch (e: android.content.ActivityNotFoundException) {
+                    android.widget.Toast.makeText(context, "No app available to open this video.", android.widget.Toast.LENGTH_SHORT).show()
+                }
             },
             contentAlignment = Alignment.Center,
         ) {
@@ -523,7 +529,11 @@ private fun SandeshMedia(sandesh: Sandesh) {
                 .clip(MaterialTheme.shapes.medium)
                 .heightIn(max = 220.dp)
                 .clickable {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(directImageUrl)))
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(directImageUrl)))
+                    } catch (e: android.content.ActivityNotFoundException) {
+                        android.widget.Toast.makeText(context, "No app available to open this image.", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                 },
             contentScale = ContentScale.Crop,
         )

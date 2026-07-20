@@ -33,6 +33,7 @@ import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
 import com.safarparmar.app.domain.model.studyplanner.PlannerAnalytics
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
+import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.domain.repository.HomeRepository
 import com.safarparmar.app.domain.repository.StudyPlannerRepository
@@ -389,7 +390,14 @@ class StudyPlannerViewModel @Inject constructor(
                     refreshCalendar(planId)
                     refreshAnalytics(planId)
                 }
-                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Error -> _uiState.update {
+                    it.copy(
+                        mutating = false,
+                        error = r.message,
+                        deleteUndoToken = undoToken,
+                        lastUndoableActionLabel = undoneLabel,
+                    )
+                }
                 is Resource.Loading -> Unit
             }
         }
@@ -413,7 +421,9 @@ class StudyPlannerViewModel @Inject constructor(
                     refreshCalendar(planId)
                     refreshAnalytics(planId)
                 }
-                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Error -> _uiState.update {
+                    it.copy(mutating = false, error = r.message, rolloverUndoToken = undoToken)
+                }
                 is Resource.Loading -> Unit
             }
         }
@@ -593,6 +603,9 @@ class StudyPlannerViewModel @Inject constructor(
             _uiState.update { it.copy(mutating = true) }
             when (val r = repo.deletePlan(planId)) {
                 is Resource.Success -> {
+                    if (_uiState.value.selectedPlan?.id == planId) {
+                        savedStateHandle[SELECTED_PLAN_ID_KEY] = null
+                    }
                     _uiState.update { it.copy(mutating = false, selectedPlan = null, message = "Plan deleted") }
                     refreshPlans()
                 }
@@ -618,10 +631,19 @@ class StudyPlannerViewModel @Inject constructor(
                 when (val r = repo.addSubject(planId, SubjectRequest(name = name, color = color))) {
                     is Resource.Success -> latestPlan = r.data
                     is Resource.Error -> {
-                        _uiState.update { it.copy(mutating = false, error = r.message) }
+                        _uiState.update {
+                            it.copy(
+                                selectedPlan = latestPlan ?: it.selectedPlan,
+                                mutating = false,
+                                error = "${i} of ${cleanNames.size} subjects were added before the request failed. ${r.message.orEmpty()}".trim(),
+                            )
+                        }
                         return@launch
                     }
-                    is Resource.Loading -> Unit
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(mutating = false, error = "Adding subjects did not complete.") }
+                        return@launch
+                    }
                 }
             }
             val plan = latestPlan ?: return@launch
@@ -649,14 +671,23 @@ class StudyPlannerViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(mutating = true, error = null) }
             var latestPlan: StudyPlan? = null
-            for (name in cleanNames) {
+            for ((index, name) in cleanNames.withIndex()) {
                 when (val r = repo.addChapter(planId, subjectId, ChapterRequest(name))) {
                     is Resource.Success -> latestPlan = r.data
                     is Resource.Error -> {
-                        _uiState.update { it.copy(mutating = false, error = r.message) }
+                        _uiState.update {
+                            it.copy(
+                                selectedPlan = latestPlan ?: it.selectedPlan,
+                                mutating = false,
+                                error = "$index of ${cleanNames.size} chapters were added before the request failed. ${r.message.orEmpty()}".trim(),
+                            )
+                        }
                         return@launch
                     }
-                    is Resource.Loading -> Unit
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(mutating = false, error = "Adding chapters did not complete.") }
+                        return@launch
+                    }
                 }
             }
             val plan = latestPlan ?: return@launch
@@ -694,18 +725,23 @@ class StudyPlannerViewModel @Inject constructor(
         val planId = _uiState.value.selectedPlan?.id ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(mutating = true, error = null) }
-            var latestPlan: StudyPlan? = null
-            for (name in cleanNames) {
-                when (val r = repo.addTopic(planId, subjectId, chapterId, TopicRequest(name))) {
-                    is Resource.Success -> latestPlan = r.data
-                    is Resource.Error -> {
-                        _uiState.update { it.copy(mutating = false, error = r.message) }
-                        return@launch
-                    }
-                    is Resource.Loading -> Unit
+            val result = repo.bulkTopics(
+                planId,
+                subjectId,
+                chapterId,
+                BulkTopicsRequest(cleanNames.map(::BulkTopicItemRequest)),
+            )
+            val plan = when (result) {
+                is Resource.Success -> result.data
+                is Resource.Error -> {
+                    _uiState.update { it.copy(mutating = false, error = result.message) }
+                    return@launch
+                }
+                is Resource.Loading -> {
+                    _uiState.update { it.copy(mutating = false) }
+                    return@launch
                 }
             }
-            val plan = latestPlan ?: return@launch
             _uiState.update {
                 it.copy(
                     selectedPlan = plan,
@@ -830,6 +866,14 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
+    private fun findSelectedTopic(topicId: String): StudyTopic? =
+        _uiState.value.selectedPlan
+            ?.subjects
+            ?.asSequence()
+            ?.flatMap { it.chapters.asSequence() }
+            ?.flatMap { it.topics.asSequence() }
+            ?.firstOrNull { it.id == topicId }
+
     override fun markForRevision(
         topicId: String,
         revisionDates: List<String>,
@@ -847,11 +891,122 @@ class StudyPlannerViewModel @Inject constructor(
                     pinned = firstDate != null,
                     revisionMarkedAt = today,
                     revisionReminderDates = revisionDates,
+                    // Fresh cycle: nothing completed yet.
+                    revisionCompletedDates = emptyList(),
                     revisionScheduleType = revisionScheduleType,
                     clientDateKey = today,
                 ),
             )
         }
+    }
+
+    /**
+     * Completes ONE spaced-revision session: moves [sessionDate] from the remaining
+     * reminder list into the completed list. When it was the last remaining session
+     * the whole topic graduates to DONE. This is what lets a user progress through
+     * sessions 2, 3, 4, 5 instead of the first tick ending the whole topic.
+     */
+    override fun completeRevisionSession(topicId: String, sessionDate: String) {
+        val topic = findSelectedTopic(topicId) ?: return
+        val target = sessionDate.take(10)
+        // Only accept a completion for a date that was actually a remaining session.
+        if (topic.revisionReminderDates.none { it.take(10) == target }) return
+
+        val remaining = topic.revisionReminderDates
+            .map { it.take(10) }
+            .filter { it != target }
+            .distinct()
+            .sorted()
+        val completed = (topic.revisionCompletedDates.map { it.take(10) } + target)
+            .distinct()
+            .sorted()
+        val today = todayKey()
+
+        mutateSelected(refreshCalendar = true) { planId ->
+            if (remaining.isEmpty()) {
+                repo.updateTopic(
+                    planId,
+                    topicId,
+                    TopicPatchRequest(
+                        status = TopicStatus.DONE,
+                        plannedDate = "",
+                        revisionReminderDates = emptyList(),
+                        revisionCompletedDates = emptyList(),
+                        revisionScheduleType = null,
+                        clientDateKey = today,
+                    ),
+                )
+            } else {
+                repo.updateTopic(
+                    planId,
+                    topicId,
+                    TopicPatchRequest(
+                        status = TopicStatus.REVISION_NEEDED,
+                        // Point views at the next appointment, not the one just completed.
+                        plannedDate = remaining.first(),
+                        pinned = true,
+                        revisionReminderDates = remaining,
+                        revisionCompletedDates = completed,
+                        revisionScheduleType = topic.revisionScheduleType,
+                        clientDateKey = today,
+                    ),
+                )
+            }
+        }
+    }
+
+    /** Undo a mistaken session tick: move [sessionDate] back from completed to remaining. */
+    override fun uncompleteRevisionSession(topicId: String, sessionDate: String) {
+        val topic = findSelectedTopic(topicId) ?: return
+        val target = sessionDate.take(10)
+        if (topic.revisionCompletedDates.none { it.take(10) == target }) return
+
+        val completed = topic.revisionCompletedDates
+            .map { it.take(10) }
+            .filter { it != target }
+            .distinct()
+            .sorted()
+        val remaining = (topic.revisionReminderDates.map { it.take(10) } + target)
+            .distinct()
+            .sorted()
+        val today = todayKey()
+
+        mutateSelected(refreshCalendar = true) { planId ->
+            repo.updateTopic(
+                planId,
+                topicId,
+                TopicPatchRequest(
+                    status = TopicStatus.REVISION_NEEDED,
+                    plannedDate = remaining.first(),
+                    pinned = true,
+                    revisionReminderDates = remaining,
+                    revisionCompletedDates = completed,
+                    revisionScheduleType = topic.revisionScheduleType,
+                    clientDateKey = today,
+                ),
+            )
+        }
+    }
+
+    override fun completeRevisionForDate(topicId: String, date: String) {
+        // Today-tab / single-checkbox path: resolve the session that is actually
+        // due and complete that one. Prefer an exact match, else the latest session
+        // on/before [date] (a due or overdue one), else the earliest remaining. This
+        // replaces the old behaviour that only removed [date] if it happened to be
+        // in the list — which made ticking on any non-reminder day do nothing.
+        val topic = findSelectedTopic(topicId) ?: return
+        val target = date.take(10)
+        val remaining = topic.revisionReminderDates
+            .map { it.take(10) }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+        if (remaining.isEmpty()) return
+        val due = when {
+            remaining.contains(target) -> target
+            else -> remaining.lastOrNull { it <= target } ?: remaining.first()
+        }
+        completeRevisionSession(topicId, due)
     }
 
     override fun cancelRevision(topicId: String) {
@@ -865,6 +1020,7 @@ class StudyPlannerViewModel @Inject constructor(
                     plannedDate = "",
                     revisionMarkedAt = null,
                     revisionReminderDates = emptyList(),
+                    revisionCompletedDates = emptyList(),
                     revisionScheduleType = null,
                     clientDateKey = today,
                 )
@@ -957,7 +1113,7 @@ class StudyPlannerViewModel @Inject constructor(
         // would otherwise always lexicographically sort >= a bare date-key,
         // incorrectly treating every such topic as "future".
         val refs = _uiState.value.selectedPlan?.flattenTopics().orEmpty()
-            .filter { (it.topic.plannedDate?.take(10) ?: "") >= today }
+            .filter { (it.topic.plannedDate?.take(10) ?: "") > today }
         batchTopicDates(refs.map { it.topic.id }, null, "Future dates cleared")
     }
 
@@ -1064,11 +1220,42 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun resetPlan() {
-        val refs = _uiState.value.selectedPlan?.flattenTopics().orEmpty()
+        val plan = _uiState.value.selectedPlan ?: return
+        val refs = plan.flattenTopics()
+        if (refs.isEmpty()) return
         viewModelScope.launch {
-            _uiState.update { it.copy(mutating = true) }
-            refs.forEach { repo.updateTopic(_uiState.value.selectedPlan?.id.orEmpty(), it.topic.id, TopicPatchRequest(status = TopicStatus.TODO, plannedDate = "", notes = it.topic.notes)) }
-            reloadSelected("Plan reset")
+            _uiState.update { it.copy(mutating = true, error = null, message = null) }
+            val request = BatchTopicUpdateRequest(
+                updates = refs.map { ref ->
+                    BatchTopicUpdateItem(
+                        topicId = ref.topic.id,
+                        patch = TopicPatchRequest(
+                            status = TopicStatus.TODO,
+                            plannedDate = "",
+                            notes = ref.topic.notes,
+                        ),
+                    )
+                },
+            )
+            when (val result = repo.batchUpdateTopics(plan.id, request)) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = result.data,
+                            mutating = false,
+                            message = "Plan reset",
+                            deleteUndoToken = result.data.undoToken?.takeIf(String::isNotBlank),
+                            lastUndoableActionLabel = "Plan reset",
+                        )
+                    }
+                    refreshCalendar(plan.id)
+                    refreshAnalytics(plan.id)
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(mutating = false, error = result.message ?: "Plan reset failed")
+                }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
@@ -1256,25 +1443,24 @@ class StudyPlannerViewModel @Inject constructor(
     override fun replaceTopicToday(currentTopicId: String, replacementTopicId: String, todayDate: String) {
         viewModelScope.launch {
             val planId = _uiState.value.selectedPlan?.id ?: return@launch
-            _uiState.update { it.copy(mutating = true) }
-            when (val clearCurrent = repo.updateTopic(planId, currentTopicId, TopicPatchRequest(plannedDate = ""))) {
-                is Resource.Error -> {
-                    _uiState.update { it.copy(mutating = false, error = clearCurrent.message) }
-                    return@launch
+            _uiState.update { it.copy(mutating = true, error = null) }
+            val request = BatchTopicUpdateRequest(
+                listOf(
+                    BatchTopicUpdateItem(currentTopicId, TopicPatchRequest(plannedDate = "")),
+                    BatchTopicUpdateItem(replacementTopicId, TopicPatchRequest(plannedDate = todayDate)),
+                ),
+            )
+            when (val result = repo.batchUpdateTopics(planId, request)) {
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(selectedPlan = result.data, mutating = false, message = "Topic replaced")
+                    }
+                    refreshCalendar(planId)
+                    refreshAnalytics(planId)
                 }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = result.message) }
                 is Resource.Loading -> Unit
-                is Resource.Success -> Unit
             }
-            when (val moveReplacement = repo.updateTopic(planId, replacementTopicId, TopicPatchRequest(plannedDate = todayDate))) {
-                is Resource.Error -> {
-                    repo.updateTopic(planId, currentTopicId, TopicPatchRequest(plannedDate = todayDate))
-                    _uiState.update { it.copy(mutating = false, error = moveReplacement.message) }
-                    return@launch
-                }
-                is Resource.Loading -> Unit
-                is Resource.Success -> Unit
-            }
-            reloadSelected("Topic replaced")
         }
     }
 
@@ -1528,7 +1714,16 @@ class StudyPlannerViewModel @Inject constructor(
         val finalPlan = when (importResult) {
             is Resource.Success -> importResult.data
             is Resource.Error -> {
-                _uiState.update { it.copy(mutating = false, error = importResult.message) }
+                val cleanup = repo.deletePlan(plan.id)
+                val cleanupMessage = if (cleanup is Resource.Error) {
+                    " The empty plan could not be removed automatically; it is now visible in Your Exams so you can delete or retry it."
+                } else {
+                    ""
+                }
+                _uiState.update {
+                    it.copy(mutating = false, error = importResult.message.orEmpty() + cleanupMessage)
+                }
+                refreshPlans()
                 return
             }
             is Resource.Loading -> return

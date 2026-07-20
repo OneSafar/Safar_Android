@@ -53,7 +53,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -152,6 +151,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -168,6 +168,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import kotlin.math.cos
 import kotlin.math.sin
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -219,8 +220,11 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlin.math.ceil
 import kotlin.math.max
+// ── Liquid Glass design system ──────────────────────────────────────────────
+import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
+import com.safarparmar.app.ui.glass.liquidGlass
+import com.safarparmar.app.ui.glass.SafarGlassPalette
 
 @Composable
 internal fun InsightsTab(
@@ -235,12 +239,12 @@ internal fun InsightsTab(
     }
     val rollup = remember(plan.id, plan.subjects, plan.dailyTodos, plan.dailyTodoLogs) { plan.rollup() }
     val dailyGoal = (plan.dailyGoal ?: 1).coerceAtLeast(1)
-    val requiredPace = insights.summary.requiredTopicsPerStudyDay
-        ?.let { ceil(it.toDouble()).toInt().coerceAtLeast(0) }
-        ?: 0
     val examDays = daysUntil(plan.examDate)
         ?.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())
         ?.toInt()
+
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val isLight = !isDark
 
     // Real study time, sourced from Ekagra sessions linked to this plan's topics —
     // the planner otherwise only ever knows "done" vs "not done", never how long
@@ -251,59 +255,71 @@ internal fun InsightsTab(
     // reloaded live — e.g. when an Ekagra session just linked a new topic session.
     LaunchedEffect(plan.id, plan.updatedAt) { ekagraViewModel.loadTopicLinkedSessions(plan.id) }
 
-    Column(
+    Box(
         modifier = Modifier.fillMaxSize(),
     ) {
+        // 1. Solid canvas backdrop (white in light mode, black in dark mode)
+        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
+
+        // 2. Main content column
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item {
-                InsightsHeaderRedesign()
-            }
             item {
                 InsightsOverallProgressRedesign(
                     overallProgressPercent = rollup.overallProgressPercent,
                     dailyTodoProgressPercent = rollup.dailyTodoProgressPercent,
                     doneTopics = rollup.doneTopics,
-                    totalTopics = rollup.totalTopics
+                    totalTopics = rollup.totalTopics,
+                    isLight = isLight
                 )
             }
             item {
-                InsightsMetricSquares(examDays = examDays, dailyGoal = dailyGoal)
+                InsightsMetricSquares(examDays = examDays, dailyGoal = dailyGoal, isLight = isLight)
             }
             item {
-                ConsistencyStreakCard(consistency = insights.consistency)
+                ConsistencyStreakCard(consistency = insights.consistency, isLight = isLight)
             }
             item {
                 InsightsStudySpeedCard(
-                    onTrackStatus = insights.summary.onTrackStatus,
-                    scheduleCoveragePercent = insights.summary.scheduleCoveragePercent
-                )
-            }
-            item {
-                InsightsDetailedMetricsList(
-                    requiredPace = requiredPace,
+                    recentTopicsPerDay = insights.summary.recentTopicsPerStudyDay,
+                    requiredPerDay = insights.summary.requiredTopicsPerStudyDay,
                     dailyGoal = dailyGoal,
-                    forecastDate = insights.summary.forecastCompletionDate,
-                    studyDaysLeft = insights.summary.availableStudyDays
+                    isLight = isLight
                 )
             }
             item {
-                InsightsRevisionStudyCardWidget(
-                    plan = plan,
-                    actions = actions,
+                // Prefer the forecast projected from the student's real recent
+                // pace; only fall back to the daily-goal projection when there
+                // isn't enough recent activity to measure a pace.
+                val velocityForecast = insights.summary.velocityForecastCompletionDate
+                val shownForecast = velocityForecast ?: insights.summary.forecastCompletionDate
+                InsightsFinishLineCard(
+                    examDateIso = plan.examDate,
+                    forecastDateIso = shownForecast,
+                    studyDaysLeft = insights.summary.availableStudyDays,
+                    basedOnRecentPace = velocityForecast != null,
+                    isLight = isLight,
                 )
             }
             item {
                 SubjectProgressChart(
                     subjects = insights.subjectRows,
+                    isLight = isLight
+                )
+            }
+            item {
+                InsightsRevisionPulseCard(
+                    plan = plan,
+                    actions = actions,
+                    isLight = isLight,
                 )
             }
             if (topicLinkedSessions.isNotEmpty()) {
                 item {
-                    LinkedEkagraSessionsCard(sessions = topicLinkedSessions)
+                    LinkedEkagraSessionsCard(sessions = topicLinkedSessions, isLight = isLight)
                 }
             }
             item {
@@ -318,7 +334,7 @@ internal fun InsightsTab(
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontStyle = FontStyle.Italic,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
                         ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -335,23 +351,40 @@ internal fun InsightsTab(
  * that shows actual time spent, as opposed to just done/not-done.
  */
 @Composable
-internal fun LinkedEkagraSessionsCard(sessions: List<com.safarparmar.app.domain.model.TopicLinkedSession>) {
-    val scheme = MaterialTheme.colorScheme
-    val accent = Color(0xFF9A3412)
+internal fun LinkedEkagraSessionsCard(
+    sessions: List<com.safarparmar.app.domain.model.TopicLinkedSession>,
+    isLight: Boolean = false,
+) {
     val totalSeconds = sessions.sumOf { it.durationSeconds }
     val totalMinutes = totalSeconds / 60
 
-    androidx.compose.material3.Card(
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = scheme.surface),
-        elevation = androidx.compose.material3.CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, scheme.outline.copy(alpha = 0.25f)),
+    val tint = if (isLight) Color.Black else Color.White
+    val tintAlpha = if (isLight) 0.04f else 0.05f
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlass(
+                shape = RoundedCornerShape(20.dp),
+                surfaceTint = tint,
+                tintAlpha = tintAlpha,
+                isLight = isLight
+            )
+            .padding(16.dp)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Linked Ekagra Sessions", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = accent)
-                Text("${totalMinutes} min total", fontSize = 12.sp, color = scheme.onSurfaceVariant)
+                Text(
+                    "Focus sessions",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color(0xFFFF8A65) // Warm Orange!
+                )
+                Text(
+                    "${totalMinutes} min total",
+                    fontSize = 12.sp,
+                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                )
             }
             sessions.take(10).forEach { session ->
                 val mins = session.durationSeconds / 60
@@ -361,7 +394,10 @@ internal fun LinkedEkagraSessionsCard(sessions: List<com.safarparmar.app.domain.
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(scheme.surfaceContainerLow)
+                        .background(
+                            if (isLight) Color.Black.copy(alpha = 0.03f)
+                            else         Color.White.copy(alpha = 0.05f)
+                        )
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -371,20 +407,24 @@ internal fun LinkedEkagraSessionsCard(sessions: List<com.safarparmar.app.domain.
                             text = session.topicTitle ?: if (session.topicExists) "Untitled topic" else "Deleted topic",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = scheme.onSurface,
+                            color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Text(durationLabel, fontSize = 12.sp, color = scheme.onSurfaceVariant)
+                        Text(
+                            durationLabel,
+                            fontSize = 12.sp,
+                            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                        )
                     }
                     Text(
                         "Ekagra",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = scheme.onTertiaryContainer,
+                        color = Color.White,
                         modifier = Modifier
                             .clip(RoundedCornerShape(50.dp))
-                            .background(scheme.tertiaryContainer)
+                            .background(Color(0xFFFF8A65)) // Accent Orange
                             .padding(horizontal = 8.dp, vertical = 2.dp),
                     )
                 }
@@ -973,79 +1013,6 @@ internal fun StudentNextStepCard(
     }
 }
 
-@Composable
-internal fun SubjectProgressChart(
-    subjects: List<PlannerInsightSubjectRow>,
-) {
-    val chartSubjects = subjects
-        .sortedWith(
-            compareByDescending<PlannerInsightSubjectRow> { it.overdueTopics }
-                .thenByDescending { it.remainingTopics }
-        )
-        .take(5)
-
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Subject progress", fontWeight = FontWeight.Black, fontSize = 18.sp)
-            if (chartSubjects.isEmpty()) {
-                Text("Add topics to see subject chart.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
-                chartSubjects.forEach { row ->
-                    StudentSubjectBar(row)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StudentSubjectBar(row: PlannerInsightSubjectRow) {
-    val progress = (row.completionPercent / 100f).coerceIn(0f, 1f)
-    // The bar itself is the subject's own color (same dot color used on Today's Plan
-    // and Calendar) so a subject looks the same everywhere; overdue status is conveyed
-    // through the "overdue" text instead of recoloring the bar.
-    val subjectColor = subjectDotColor(row.subjectColor)
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.size(9.dp).clip(CircleShape).background(subjectColor))
-            Text(
-                row.subjectName,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text("${row.completionPercent}%", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
-        }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(9.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
-        ) {
-            if (progress > 0f) {
-                Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(progress)
-                        .clip(CircleShape)
-                        .background(subjectColor),
-                )
-            }
-        }
-        Text(
-            text = "${row.remainingTopics} topics left${if (row.overdueTopics > 0) " • ${row.overdueTopics} overdue" else ""}",
-            style = MaterialTheme.typography.labelSmall,
-            color = if (row.overdueTopics > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
 
 @Composable
 internal fun InsightsMetricGrid(
@@ -1406,220 +1373,9 @@ internal fun InsightsWorkloadCard(workload: PlannerInsightWorkload) {
 internal fun InsightsRevisionStudyCardWidget(
     plan: StudyPlan,
     actions: PlannerActions,
+    isLight: Boolean = false,
 ) {
-    val revisionRefs = remember(plan.subjects) {
-        plan.flattenTopics()
-            .filter { ref ->
-                ref.topic.revisionReminderDates.orEmpty().isNotEmpty() ||
-                    !ref.topic.revisionMarkedAt.isNullOrBlank() ||
-                    ref.topic.status == TopicStatus.REVISION_NEEDED
-            }
-            .sortedWith(
-                compareBy<TopicRef> { it.topic.status != TopicStatus.REVISION_NEEDED }
-                    .thenBy { it.topic.plannedDate?.take(10).orEmpty().ifBlank { "9999-99-99" } }
-                    .thenBy { it.topic.name.lowercase() },
-            )
-    }
-    val total = revisionRefs.size
-    val done = revisionRefs.count { it.topic.status == TopicStatus.DONE }
-    val pending = (total - done).coerceAtLeast(0)
-    val progress = if (total == 0) 0f else done.toFloat() / total.toFloat()
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 650),
-        label = "revisionProgress",
-    )
-    var showAll by remember(total) { mutableStateOf(false) }
-    val visibleRefs = if (showAll) revisionRefs else revisionRefs.take(4)
-    val tint = if (pending == 0 && total > 0) Color(0xFF16A34A) else Color(0xFFF59E0B)
-
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(
-                    modifier = Modifier
-                        .size(58.dp)
-                        .clip(CircleShape)
-                        .background(tint.copy(alpha = 0.15f))
-                        .border(1.dp, tint.copy(alpha = 0.35f), CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = if (total == 0) "0" else "$done/$total",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = tint,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Revision",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                    )
-                    Text(
-                        text = when {
-                            total == 0 -> "No revision topics added yet. Mark a completed topic for revision from Today's Plan."
-                            pending == 0 -> "All revision topics are done."
-                            else -> "$done of $total revision topics done. $pending left."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 18.sp,
-                    )
-                }
-            }
-
-            val progressBrush = Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFF10B981)))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                    .semantics {
-                        contentDescription = "$done of $total revision topics done"
-                    },
-            ) {
-                if (animatedProgress > 0f) {
-                    Box(
-                        Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(animatedProgress.coerceIn(0.04f, 1f))
-                            .clip(CircleShape)
-                            .background(progressBrush),
-                    )
-                }
-            }
-
-            if (total > 0) {
-                visibleRefs.forEach { ref ->
-                    RevisionTopicMiniRow(
-                        ref = ref,
-                        onMarkDone = { actions.updateTopic(ref.topic.id, status = TopicStatus.DONE) },
-                    )
-                }
-                if (total > 4) {
-                    TextButton(
-                        onClick = { showAll = !showAll },
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                    ) {
-                        Text(if (showAll) "Show less" else "Show all $total topics")
-                    }
-                }
-            }
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                InsightsInnerStat(
-                    label = "Revision done",
-                    value = "$done/$total",
-                    valueColor = if (done > 0) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface,
-                    icon = Icons.Default.Check,
-                    iconTint = if (done > 0) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
-                            actions.openRevisionTopics()
-                        },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RevisionTopicMiniRow(
-    ref: TopicRef,
-    onMarkDone: () -> Unit,
-) {
-    val done = ref.topic.status == TopicStatus.DONE
-    val nextDate = ref.topic.plannedDate?.take(10)?.takeIf { it.isNotBlank() }
-    val reminderDates = ref.topic.revisionReminderDates.orEmpty()
-    val scheduleLabel = when {
-        ref.topic.revisionScheduleType.equals("spaced", ignoreCase = true) ->
-            "Spaced revision • ${reminderDates.size} date${if (reminderDates.size == 1) "" else "s"}"
-        ref.topic.revisionScheduleType.equals("custom", ignoreCase = true) -> "One revision date"
-        reminderDates.isNotEmpty() ->
-            "${reminderDates.size} revision date${if (reminderDates.size == 1) "" else "s"}"
-        else -> "Revision topic"
-    }
-    val statusColor = if (done) Color(0xFF10B981) else Color(0xFFF59E0B)
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = statusColor.copy(alpha = 0.06f),
-        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.2f)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .height(36.dp)
-                    .width(3.dp)
-                    .clip(RoundedCornerShape(1.5.dp))
-                    .background(statusColor)
-            )
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = ref.topic.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "${ref.subject.name} • ${ref.chapter.name}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = listOfNotNull(scheduleLabel, nextDate?.let { "Next: ${readableDate(it)}" }).joinToString(" • "),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = statusColor,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (done) {
-                Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "Completed",
-                    tint = Color(0xFF10B981),
-                    modifier = Modifier.size(24.dp)
-                )
-            } else {
-                Surface(
-                    onClick = onMarkDone,
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFF59E0B).copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.3f))
-                ) {
-                    Text(
-                        text = "Mark done",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF59E0B)
-                        ),
-                    )
-                }
-            }
-        }
-    }
+    InsightsRevisionPulseCard(plan = plan, actions = actions, isLight = isLight)
 }
 
 /**
@@ -1629,146 +1385,6 @@ private fun RevisionTopicMiniRow(
  * shown, but as a soft secondary line in neutral tones rather than a red/amber bar list,
  * so falling behind reads as a nudge, not a scolding.
  */
-@Composable
-internal fun ConsistencyStreakCard(consistency: com.safarparmar.app.ui.studyplanner.logic.PlannerInsightConsistency) {
-    val isDark = isSystemInDarkTheme()
-    val gradientColors = if (isDark) {
-        listOf(
-            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
-        )
-    } else {
-        listOf(
-            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f),
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
-    }
-
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Brush.horizontalGradient(gradientColors), MaterialTheme.shapes.extraLarge),
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(54.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f))
-                        .border(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (consistency.studyStreak > 0) Icons.Rounded.Whatshot else Icons.Rounded.EmojiEvents,
-                        contentDescription = "Streak",
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = if (consistency.studyStreak > 0) "${consistency.studyStreak} Day Streak!" else "Start Your Study Streak!",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    if (consistency.bestStudyWeekday.isNotEmpty() && consistency.studyStreak > 0) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.AutoAwesome,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text(
-                                text = "Best day: ${consistency.bestStudyWeekday}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                }
-            }
-
-            WeekStreakChips(heatmap = consistency.heatmap)
-
-            if (consistency.missedDays.isNotEmpty()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.12f))
-                Text(
-                    text = "A few days had some topics left — that's okay, keep going.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.75f),
-                )
-            }
-        }
-    }
-}
-
-/** A Mon–Sun strip of the last 7 study days — a lit dot for a day with at least one
- *  completed topic, a hollow ring otherwise — replacing the old plain "N active days
- *  of last 14" line with something scannable at a glance. */
-@Composable
-private fun WeekStreakChips(heatmap: List<HeatmapCell>) {
-    val days = heatmap.takeLast(7)
-    if (days.isEmpty()) return
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        days.forEach { cell ->
-            val date = runCatching { LocalDate.parse(cell.date) }.getOrNull()
-            val dayLabel = date?.dayOfWeek?.getDisplayName(TextStyle.SHORT, Locale.getDefault())?.take(1) ?: "?"
-            val active = cell.count > 0
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (active) MaterialTheme.colorScheme.tertiary
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
-                        )
-                        .border(
-                            1.dp,
-                            if (active) Color.Transparent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-                            CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (active) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Studied",
-                            tint = MaterialTheme.colorScheme.onTertiary,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
-                }
-                Text(
-                    text = dayLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
-    }
-}
-
 @Composable
 internal fun OverallProgressCard(
     completionPercent: Int,
@@ -1885,16 +1501,23 @@ internal fun InsightsInnerStat(
     valueColor: Color,
     icon: ImageVector,
     iconTint: Color,
+    isLight: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        modifier = modifier,
+    val tint = if (isLight) Color.Black else Color.White
+    val tintAlpha = if (isLight) 0.04f else 0.05f
+
+    Box(
+        modifier = modifier
+            .liquidGlass(
+                shape = RoundedCornerShape(16.dp),
+                surfaceTint = tint,
+                tintAlpha = tintAlpha,
+                isLight = isLight
+            )
+            .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -1917,7 +1540,7 @@ internal fun InsightsInnerStat(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
                 )
                 Text(
                     text = value,
@@ -1935,40 +1558,52 @@ internal fun SubjectProgressCard(
     rows: List<PlannerInsightSubjectRow>,
     subjectCount: Int,
     subjectIndexById: Map<String, Int>,
+    isLight: Boolean = false,
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier.fillMaxWidth(),
+    val tint = if (isLight) Color.Black else Color.White
+    val tintAlpha = if (isLight) 0.04f else 0.05f
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlass(
+                shape = RoundedCornerShape(18.dp),
+                surfaceTint = tint,
+                tintAlpha = tintAlpha,
+                isLight = isLight
+            )
     ) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Subject progress",
+                    text = "Subject progress",
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 16.sp,
+                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    "${rows.size} subject${if (rows.size == 1) "" else "s"}",
+                    text = "${rows.size} subject${if (rows.size == 1) "" else "s"}",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
                 )
             }
             if (rows.isEmpty()) {
                 Text(
-                    "Add topics to see subject progress.",
+                    text = "Add topics to see subject progress.",
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
                 )
             } else {
                 rows.forEachIndexed { idx, row ->
                     val colorIdx = subjectIndexById[row.subjectId] ?: 0
-                    SubjectProgressRow(row, colorIdx, max(1, subjectCount))
+                    SubjectProgressRow(row, colorIdx, max(1, subjectCount), isLight = isLight)
                     if (idx < rows.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(vertical = 4.dp))
+                        HorizontalDivider(
+                            color = if (isLight) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.10f),
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
                     }
                 }
             }
@@ -1981,6 +1616,7 @@ internal fun SubjectProgressRow(
     row: PlannerInsightSubjectRow,
     subjectColorIndex: Int,
     subjectColorCount: Int,
+    isLight: Boolean = false,
 ) {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -1996,25 +1632,26 @@ internal fun SubjectProgressRow(
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f).widthIn(min = 0.dp)) {
                 Text(
-                    row.subjectName,
+                    text = row.subjectName,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
+                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    "${row.remainingTopics} topic${if (row.remainingTopics == 1) "" else "s"} remaining",
+                    text = "${row.remainingTopics} topic${if (row.remainingTopics == 1) "" else "s"} remaining",
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
                     fontWeight = FontWeight.Medium
                 )
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                "${row.completionPercent}%",
+                text = "${row.completionPercent}%",
                 fontWeight = FontWeight.Black,
                 fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
             )
         }
         Box(
@@ -2022,8 +1659,10 @@ internal fun SubjectProgressRow(
                 .fillMaxWidth()
                 .height(6.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                .border(BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)), CircleShape),
+                .background(
+                    if (isLight) Color.Black.copy(alpha = 0.06f)
+                    else         Color.White.copy(alpha = 0.08f)
+                ),
         ) {
             if (row.completionPercent > 0) {
                 Box(
@@ -2105,292 +1744,43 @@ internal fun PlannerExamDateFieldDialog(
 }
 
 // --- NEW INSIGHTS REDESIGN ---
-@Composable
-internal fun InsightsHeaderRedesign() {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            text = "Progress",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = "See how your studying is going",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-fun InsightsOverallProgressRedesign(
-    overallProgressPercent: Int,
-    dailyTodoProgressPercent: Int,
-    doneTopics: Int,
-    totalTopics: Int
-) {
-    val scheme = MaterialTheme.colorScheme
-    val progress = overallProgressPercent.coerceIn(0, 100)
-    val todoProgress = dailyTodoProgressPercent.coerceIn(0, 100)
-
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.16f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            scheme.primaryContainer.copy(alpha = 0.38f),
-                            scheme.surface.copy(alpha = 0.96f),
-                        )
-                    ),
-                    MaterialTheme.shapes.large,
-                )
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Box(
-                    modifier = Modifier.size(116.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Canvas(Modifier.fillMaxSize()) {
-                        drawArc(
-                            color = scheme.onSurface.copy(alpha = 0.08f),
-                            startAngle = -90f,
-                            sweepAngle = 360f,
-                            useCenter = false,
-                            style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round),
-                        )
-                        drawArc(
-                            color = scheme.primary,
-                            startAngle = -90f,
-                            sweepAngle = 360f * (progress / 100f),
-                            useCenter = false,
-                            style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round),
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("$progress%", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-                        Text("exam", style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
-                    }
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(7.dp),
-                ) {
-                    Text("Overall exam progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                    Text(
-                        "$doneTopics of $totalTopics syllabus topics complete",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.AutoMirrored.Rounded.TrendingUp, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(16.dp))
-                        Text("Keep building momentum", style = MaterialTheme.typography.labelMedium, color = scheme.primary, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.55f))
-            InsightsProgressRow("Today's daily to-do", "$todoProgress% complete", todoProgress, scheme.tertiary)
-        }
-    }
-}
-
-@Composable
-private fun InsightsProgressRow(label: String, detail: String, percent: Int, color: Color) {
-    val scheme = MaterialTheme.colorScheme
-    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-                Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                Text(detail, style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
-            }
-            Text("$percent%", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold, color = color)
-        }
-        Box(
-            Modifier.fillMaxWidth().height(7.dp).clip(CircleShape).background(scheme.onSurface.copy(alpha = 0.08f))
-        ) {
-            Box(Modifier.fillMaxHeight().fillMaxWidth(percent / 100f).clip(CircleShape).background(color))
-        }
-    }
-}
-
-@Composable
-internal fun InsightsMetricSquares(examDays: Int?, dailyGoal: Int) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Exam left card
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            modifier = Modifier.weight(1f)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Timer,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${examDays?.coerceAtLeast(0) ?: "-"}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Exam days left",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        
-        // Daily target card
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            modifier = Modifier.weight(1f)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.TrackChanges,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "$dailyGoal",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Daily target",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-internal fun InsightsStudySpeedCard(
-    onTrackStatus: InsightTrackStatus,
-    scheduleCoveragePercent: Int?
-) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "STUDY SPEED",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    val pillColor = if (onTrackStatus == InsightTrackStatus.BEHIND || onTrackStatus == InsightTrackStatus.AT_RISK) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        Color(0xFF16A34A)
-                    }
-                    val pillText = if (onTrackStatus == InsightTrackStatus.BEHIND) "BEHIND" else if (onTrackStatus == InsightTrackStatus.AT_RISK) "AT RISK" else "ON TRACK"
-                    
-                    Surface(
-                        shape = CircleShape,
-                        color = pillColor.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = pillText,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = pillColor,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-                
-                if (scheduleCoveragePercent != null) {
-                    Text(
-                        text = "$scheduleCoveragePercent% Efficiency",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error // Or dynamic color
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 internal fun InsightsDetailedMetricsList(
     requiredPace: Int,
     dailyGoal: Int,
     forecastDate: String?,
-    studyDaysLeft: Int?
+    studyDaysLeft: Int?,
+    isLight: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         InsightsMetricRow(
             icon = Icons.Default.Speed,
+            iconColor = Color(0xFFE47AB5), // Pink/Coral
             label = "Need per day",
-            value = "$requiredPace/day"
+            value = "$requiredPace/day",
+            isLight = isLight
         )
         InsightsMetricRow(
             icon = Icons.Default.TrackChanges,
+            iconColor = Color(0xFF7C5AD9), // Violet
             label = "Your target",
-            value = "$dailyGoal/day"
+            value = "$dailyGoal/day",
+            isLight = isLight
         )
         InsightsMetricRow(
             icon = Icons.Default.CalendarToday,
+            iconColor = Color(0xFFFFB300), // Amber
             label = "May finish on",
-            value = forecastDate ?: "Unknown"
+            value = forecastDate ?: "Unknown",
+            isLight = isLight
         )
         InsightsMetricRow(
             icon = Icons.Default.DateRange,
+            iconColor = Color(0xFF00ACC1), // Cyan
             label = "Study days left",
-            value = "${studyDaysLeft ?: "-"}"
+            value = "${studyDaysLeft ?: "-"}",
+            isLight = isLight
         )
     }
 }
@@ -2398,14 +1788,23 @@ internal fun InsightsDetailedMetricsList(
 @Composable
 internal fun InsightsMetricRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconColor: Color,
     label: String,
-    value: String
+    value: String,
+    isLight: Boolean = false,
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        modifier = Modifier.fillMaxWidth()
+    val tint = if (isLight) Color.Black else Color.White
+    val tintAlpha = if (isLight) 0.04f else 0.05f
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlass(
+                shape = RoundedCornerShape(12.dp),
+                surfaceTint = tint,
+                tintAlpha = tintAlpha,
+                isLight = isLight
+            )
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -2419,20 +1818,20 @@ internal fun InsightsMetricRow(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = iconColor,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
                 )
             }
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
             )
         }
     }

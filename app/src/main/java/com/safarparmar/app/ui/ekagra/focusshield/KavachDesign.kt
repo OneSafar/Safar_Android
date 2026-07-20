@@ -1,6 +1,5 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -10,7 +9,7 @@ import androidx.compose.ui.graphics.luminance
 object KavachDesign {
     val isDark: Boolean
         @Composable
-        get() = MaterialTheme.colorScheme.background.luminance() < 0.5f || isSystemInDarkTheme()
+        get() = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     val Primary: Color @Composable get() = MaterialTheme.colorScheme.primary
     val PrimaryDark: Color @Composable get() = MaterialTheme.colorScheme.primary

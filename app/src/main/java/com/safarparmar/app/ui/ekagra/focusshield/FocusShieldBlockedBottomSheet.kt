@@ -134,7 +134,9 @@ fun FocusShieldBlockedBottomSheet(
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = if (prompt.strict) {
+                text = if (prompt.alwaysOn) {
+                    "Always On is active. Turn it off manually from the KAVACH screen when you are ready."
+                } else if (prompt.strict) {
                     "Nice Try! You are in Beast Mode."
                 } else {
                     "KAVACH brought you back to Ekagra. Use Quick unlock only when you intentionally need a short window."
@@ -146,7 +148,7 @@ fun FocusShieldBlockedBottomSheet(
 
             Spacer(Modifier.height(22.dp))
 
-            if (!prompt.strict) {
+            if (!prompt.strict && !prompt.alwaysOn) {
                 Button(
                     onClick = { showQuickUnlockDialog = true },
                     modifier = Modifier

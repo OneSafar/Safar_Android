@@ -823,19 +823,30 @@ fun EkagraScreen(
                         fun saveTopicLinkedSession(markDone: Boolean) {
                             if (pending != null && pending.topicId != null && pending.planId != null) {
                                 closeOrganizeSheet {
-                                    viewModel.completeSession(
-                                        sessionId = pending.sessionId,
-                                        totalSeconds = pending.totalSeconds,
-                                        secondsLeft = pending.secondsLeft,
-                                        mode = pending.mode,
-                                        startedAt = pending.startedAt,
-                                        taskTitle = pending.topicTitle,
-                                        endedAt = pending.endedAt,
-                                        topicId = pending.topicId,
-                                        planId = pending.planId,
-                                        topicTitle = pending.topicTitle,
-                                        markTopicDone = markDone,
-                                    )
+                                    if (pending.sessionId.startsWith("local-")) {
+                                        viewModel.completeSession(
+                                            sessionId = pending.sessionId,
+                                            totalSeconds = pending.totalSeconds,
+                                            secondsLeft = pending.secondsLeft,
+                                            mode = pending.mode,
+                                            startedAt = pending.startedAt,
+                                            taskTitle = pending.topicTitle,
+                                            endedAt = pending.endedAt,
+                                            topicId = pending.topicId,
+                                            planId = pending.planId,
+                                            topicTitle = pending.topicTitle,
+                                            markTopicDone = markDone,
+                                        )
+                                    } else {
+                                        viewModel.updateExistingSession(
+                                            sessionId = pending.sessionId,
+                                            taskTitle = pending.topicTitle,
+                                            topicId = pending.topicId,
+                                            planId = pending.planId,
+                                            topicTitle = pending.topicTitle,
+                                            markTopicDone = markDone,
+                                        )
+                                    }
                                     clearAssociations()
                                 }
                             }
@@ -852,9 +863,18 @@ fun EkagraScreen(
                             onLinkGoal = { goal, shouldMarkComplete ->
                                 if (pending != null) {
                                     closeOrganizeSheet {
-                                        viewModel.linkGoalAndCompleteSession(pending.sessionId, goal,
-                                            pending.totalSeconds, pending.secondsLeft, pending.mode, pending.startedAt,
-                                            shouldMarkComplete, pending.endedAt)
+                                        if (pending.sessionId.startsWith("local-")) {
+                                            viewModel.linkGoalAndCompleteSession(pending.sessionId, goal,
+                                                pending.totalSeconds, pending.secondsLeft, pending.mode, pending.startedAt,
+                                                shouldMarkComplete, pending.endedAt)
+                                        } else {
+                                            viewModel.updateExistingSession(
+                                                sessionId = pending.sessionId,
+                                                goalId = goal.id,
+                                                goalTitle = goal.title,
+                                                markGoalComplete = shouldMarkComplete,
+                                            )
+                                        }
                                         clearAssociations()
                                     }
                                 }

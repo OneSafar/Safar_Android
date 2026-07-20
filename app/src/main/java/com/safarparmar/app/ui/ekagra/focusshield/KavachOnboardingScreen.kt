@@ -151,24 +151,24 @@ fun KavachOnboardingScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // KAVACH is ready once the two required permissions are granted: Usage access + overlay.
-    // Notification Shield (listener) and Background (notifications) are optional extras.
-    LaunchedEffect(hasUsageStats, hasOverlay) {
-        if (hasUsageStats && hasOverlay) {
+    // Ask for Notification Shield during the initial Kavach setup as well, so students can
+    // choose a mode with the full protection set already configured.
+    LaunchedEffect(hasUsageStats, hasOverlay, hasNotificationSuppressionAccess) {
+        if (hasUsageStats && hasOverlay && hasNotificationSuppressionAccess) {
             viewModel.setEnabled(true)
             onFinished()
         }
     }
 
-    // Progress reflects only the two required permissions.
-    val totalSteps = 2
+    val totalSteps = 3
     var grantedCount = 0
     if (hasUsageStats) grantedCount++
     if (hasOverlay) grantedCount++
+    if (hasNotificationSuppressionAccess) grantedCount++
     val progress = (grantedCount.toFloat() / totalSteps).coerceAtMost(1f)
     val animatedProgress by animateFloatAsState(targetValue = progress, label = "kavachPermissionProgress")
 
-    // Order: Usage → Background → Display over other apps → Notification Shield (optional).
+    // Order: Usage → Background → Display over other apps → Notification Shield.
     // Background is a one-tap system dialog; once prompted we advance even if the user denied it.
     var backgroundPrompted by remember { mutableStateOf(false) }
     val isUsageNext = !hasUsageStats
@@ -304,8 +304,8 @@ fun KavachOnboardingScreen(
                 HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
-                    title = "Notification Shield (optional)",
-                    subtitle = "Optional — dismiss notifications from blocked apps during a session.",
+                    title = "Notification Shield",
+                    subtitle = "Keeps notifications from selected blocked apps out of the way.",
                     granted = hasNotificationSuppressionAccess,
                     isNext = isNotificationAccessNext,
                     colors = colors,

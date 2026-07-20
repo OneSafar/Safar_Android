@@ -124,8 +124,8 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
                     Button(
                         onClick = {
                             val html = buildString {
-                                if (titleInput.isNotBlank()) append("<h2>${titleInput.trim()}</h2>")
-                                append("<p>${bodyInput.trim()}</p>")
+                                if (titleInput.isNotBlank()) append("<h2>${android.text.TextUtils.htmlEncode(titleInput.trim())}</h2>")
+                                append("<p>${android.text.TextUtils.htmlEncode(bodyInput.trim())}</p>")
                             }
                             viewModel.onEvent(NishthaEvent.SaveJournal(html, titleInput.ifBlank { null }, null))
                         },
@@ -257,13 +257,9 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
         ) {
             val entry = selectedJournal!!
             val dateStr = remember(entry.timestamp) { formatJournalDate(entry.timestamp) }
-            val title = remember(entry.content) { Regex("<h[23]>(.*?)</h[23]>").find(entry.content)?.groupValues?.get(1)?.trim() }
+            val title = remember(entry.content) { journalTitle(entry.content) }
             val body = remember(entry.content) {
-                entry.content
-                    .replace(Regex("<h[23]>.*?</h[23]>"), "")
-                    .replace(Regex("<[^>]*>"), "")
-                    .replace("&nbsp;", " ")
-                    .trim()
+                journalPlainText(entry.content.replace(Regex("<h[23]>.*?</h[23]>"), ""))
             }
 
             Column(
@@ -301,14 +297,11 @@ fun JournalScreen(viewModel: NishthaViewModel = hiltViewModel(), openSheetOnLoad
 @Composable
 private fun JournalCard(entry: JournalEntry, onClick: () -> Unit) {
     val dateStr = remember(entry.timestamp) { formatJournalDate(entry.timestamp) }
-    val title = remember(entry.content) { Regex("<h[23]>(.*?)</h[23]>").find(entry.content)?.groupValues?.get(1)?.trim() }
+    val title = remember(entry.content) { journalTitle(entry.content) }
     // Strip h2/h3 tags first, then strip all remaining tags → clean body text only
     val preview = remember(entry.content) {
-        entry.content
-            .replace(Regex("<h[23]>.*?</h[23]>"), "")
-            .replace(Regex("<[^>]*>"), " ")
+        journalPlainText(entry.content.replace(Regex("<h[23]>.*?</h[23]>"), ""))
             .replace(Regex("\\s+"), " ")
-            .trim()
             .take(120)
     }
 
@@ -326,6 +319,20 @@ private fun JournalCard(entry: JournalEntry, onClick: () -> Unit) {
         }
     }
 }
+
+private fun journalTitle(content: String): String? =
+    Regex("<h[23]>(.*?)</h[23]>", RegexOption.DOT_MATCHES_ALL)
+        .find(content)
+        ?.groupValues
+        ?.get(1)
+        ?.let(::journalPlainText)
+        ?.takeIf(String::isNotBlank)
+
+private fun journalPlainText(html: String): String =
+    androidx.core.text.HtmlCompat.fromHtml(
+        html,
+        androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY,
+    ).toString().trim()
 
 private fun formatJournalDate(ts: String): String = runCatching {
     val zdt = ZonedDateTime.parse(ts).withZoneSameInstant(IstDateUtils.zone)

@@ -413,7 +413,7 @@ fun KavachPermissionDisclosureCard(
                 HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
                 KavachPermissionStatusRow(
                     title = "Notification Shield",
-                    body = "Optional — dismisses notifications from blocked apps during Ekagra.",
+                    body = "Dismisses notifications from selected blocked apps.",
                     granted = hasNotificationSuppressionAccess,
                     required = false,
                     onClick = onOpenNotificationAccess,
@@ -893,6 +893,8 @@ fun KavachControlCenterContainer(
     onGoToEkagra: () -> Unit,
     hasNotificationShield: Boolean = false,
     onEnableNotificationShield: () -> Unit = {},
+    alwaysOn: Boolean = false,
+    onAlwaysOnChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -967,6 +969,22 @@ fun KavachControlCenterContainer(
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
+                }
+
+                HorizontalDivider(color = KavachDesign.HubBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
+
+                KavachControlRow(
+                    iconRes = R.drawable.ic_shield_check,
+                    title = "Always On",
+                    subtitle = "Blocks selected apps outside Ekagra until you turn it off here.",
+                    onClick = { onAlwaysOnChange(!alwaysOn) },
+                    isDark = isDark,
+                ) {
+                    KavachSwitch(
+                        checked = alwaysOn,
+                        accent = accent,
+                        onCheckedChange = onAlwaysOnChange,
+                    )
                 }
 
                 HorizontalDivider(color = KavachDesign.HubBorder.copy(alpha = 0.5f), thickness = 0.5.dp)

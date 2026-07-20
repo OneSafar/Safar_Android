@@ -9,6 +9,9 @@ import com.safarparmar.app.domain.model.Goal
 import com.safarparmar.app.domain.model.GoalLinkedSession
 import com.safarparmar.app.domain.repository.EkagraRepository
 import com.safarparmar.app.domain.repository.HomeRepository
+import com.safarparmar.app.domain.repository.StudyPlannerRepository
+import com.safarparmar.app.data.remote.api.TopicPatchRequest
+import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +35,7 @@ sealed class StatsUiState {
 class EkagraViewModel @Inject constructor(
     private val repo: EkagraRepository,
     private val homeRepo: HomeRepository,
+    private val plannerRepo: StudyPlannerRepository,
     val dataStore: com.safarparmar.app.data.local.SafarDataStore,
     val focusShieldRepo: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository,
 ) : ViewModel() {
@@ -329,10 +333,23 @@ class EkagraViewModel @Inject constructor(
         topicId: String? = null,
         planId: String? = null,
         topicTitle: String? = null,
+        markGoalComplete: Boolean = false,
+        markTopicDone: Boolean = false,
     ) {
         viewModelScope.launch {
             when (repo.updateSession(sessionId, taskTitle, goalId, goalTitle, topicId, planId, topicTitle)) {
                 is Resource.Success -> {
+                    if (markGoalComplete && !goalId.isNullOrBlank()) {
+                        homeRepo.completeGoal(goalId, studiedMinutes = 0)
+                    }
+                    if (markTopicDone && !topicId.isNullOrBlank() && !planId.isNullOrBlank()) {
+                        plannerRepo.updateTopic(
+                            planId,
+                            topicId,
+                            TopicPatchRequest(status = TopicStatus.DONE, clientDateKey = IstDateUtils.todayKey()),
+                        )
+                        com.safarparmar.app.ui.studyplanner.PlannerTopicEventBus.postTopicCompleted(planId)
+                    }
                     loadStats()
                     refreshEkagra()
                     loadTasks()
@@ -358,6 +375,24 @@ class EkagraViewModel @Inject constructor(
         topicTitle: String? = null,
         markTopicDone: Boolean = false,
     ) {
+        // A non-local id identifies a history row that has already been persisted.
+        // Organizing it must never mint a replacement row: save-then-delete is not
+        // atomic and a failed delete leaves duplicate history entries.
+        if (!sessionId.startsWith("local-")) {
+            updateExistingSession(
+                sessionId = sessionId,
+                taskTitle = taskTitle,
+                goalId = goalId,
+                goalTitle = goalTitle,
+                topicId = topicId,
+                planId = planId,
+                topicTitle = topicTitle,
+                markGoalComplete = markGoalComplete,
+                markTopicDone = markTopicDone,
+            )
+            return
+        }
+
         val current = _activeSession.value
         val actualSeconds = if (mode == "stopwatch") secondsLeft else (totalSeconds - secondsLeft)
 
@@ -415,9 +450,6 @@ class EkagraViewModel @Inject constructor(
             focusShieldRepo.deactivateSession()
             when (saveResult) {
                 is Resource.Success -> {
-                    if (!sessionId.startsWith("local-")) {
-                        repo.deleteSession(sessionId)
-                    }
                     if (activeSessionId == sessionId || current?.id == sessionId) clearLocalDraft()
                     // Tell the Study Planner (if open in another ViewModel) to reload
                     // this plan so the just-completed topic flips to done live, rather

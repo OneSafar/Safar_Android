@@ -3,6 +3,7 @@ package com.safarparmar.app.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 /**
  * Semantic colors for profile and feature screens — prefers MaterialTheme, with light-mode fallbacks.
@@ -15,8 +16,12 @@ object SafarSemanticColors {
 
     /** Warm off-white canvas for the Study Planner feature only — not the app-wide theme. */
     @Composable
-    fun plannerBackground(isDarkTheme: Boolean): Color =
-        if (isDarkTheme) MaterialTheme.colorScheme.background else PlannerWarmBackground
+    fun plannerBackground(): Color =
+        if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+            MaterialTheme.colorScheme.background
+        } else {
+            PlannerWarmBackground
+        }
 
     @Composable
     fun profilePrimaryContainer(isDarkTheme: Boolean): Color =

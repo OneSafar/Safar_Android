@@ -17,7 +17,7 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onListenerDisconnected() {
-        if (FocusShieldRepository.ShieldPrefs.isActive(this)) {
+        if (FocusShieldRepository.ShieldPrefs.isActive(this) || KavachAlwaysOnPrefs.isActive(this)) {
             FocusShieldPermissionHelper.requestNotificationListenerRebind(this)
         }
     }
@@ -38,14 +38,16 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
     }
 
     private fun suppressActiveBlockedNotifications(reason: String) {
-        if (!FocusShieldRepository.ShieldPrefs.isActive(this)) return
+        val alwaysOn = KavachAlwaysOnPrefs.isActive(this)
+        if (!FocusShieldRepository.ShieldPrefs.isActive(this) && !alwaysOn) return
         // App-blocking stays active through a pause, but notification suppression
         // is intentionally narrower — it must only happen while the Ekagra timer
         // is actually running, not merely paused mid-session.
-        if (!TimerService.isFocusTimerRunning(this)) return
+        if (!TimerService.isFocusTimerRunning(this) && !alwaysOn) return
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) return
 
-        val blockedPackages = FocusShieldRepository.ShieldPrefs.getPackages(this)
+        val blockedPackages = if (alwaysOn) KavachAlwaysOnPrefs.packages(this)
+        else FocusShieldRepository.ShieldPrefs.getPackages(this)
         if (blockedPackages.isEmpty()) return
 
         runCatching {
@@ -59,12 +61,17 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
 
     private fun shouldSuppressPackage(
         packageName: String?,
-        blockedPackages: Set<String> = FocusShieldRepository.ShieldPrefs.getPackages(this),
+        blockedPackages: Set<String> = if (KavachAlwaysOnPrefs.isActive(this)) {
+            KavachAlwaysOnPrefs.packages(this)
+        } else {
+            FocusShieldRepository.ShieldPrefs.getPackages(this)
+        },
     ): Boolean {
         val normalizedPackage = packageName?.takeIf { it.isNotBlank() } ?: return false
         if (normalizedPackage == this.packageName) return false
-        if (!FocusShieldRepository.ShieldPrefs.isActive(this)) return false
-        if (!TimerService.isFocusTimerRunning(this)) return false
+        val alwaysOn = KavachAlwaysOnPrefs.isActive(this)
+        if (!FocusShieldRepository.ShieldPrefs.isActive(this) && !alwaysOn) return false
+        if (!TimerService.isFocusTimerRunning(this) && !alwaysOn) return false
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) return false
         if (FocusShieldRepository.ShieldPrefs.isOneTimeUnlockedPackage(this, normalizedPackage)) return false
         return normalizedPackage in blockedPackages

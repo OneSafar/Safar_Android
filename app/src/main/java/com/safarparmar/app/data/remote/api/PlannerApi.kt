@@ -422,6 +422,7 @@ data class TopicPatchRequest(
     val clientDateKey: String? = null,
     val revisionMarkedAt: String? = null,
     val revisionReminderDates: List<String>? = null,
+    val revisionCompletedDates: List<String>? = null,
     val revisionScheduleType: String? = null,
 )
 

@@ -91,10 +91,13 @@ fun PasteSyllabusStep(
             )
             LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 structuredPreview.subjects.forEach { subject ->
-                    item(key = subject.name) {
+                    // No keys: a pasted syllabus repeats subject/chapter names freely, and
+                    // duplicate keys crash the list while it measures. This is a static
+                    // preview (no reorder/animateItem), so the default index keys are fine.
+                    item {
                         Text(subject.name, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
                     }
-                    items(subject.chapters, key = { subject.name + it.name }) { chapter ->
+                    items(subject.chapters) { chapter ->
                         Column(Modifier.padding(start = 12.dp)) {
                             Text(chapter.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             chapter.topics.forEach { topic ->

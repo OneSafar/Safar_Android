@@ -100,6 +100,15 @@ interface PlannerActions {
         revisionDates: List<String>,
         revisionScheduleType: String? = null,
     )
+    /** Marks one scheduled revision appointment complete, while keeping later
+     * appointments in the same revision schedule available to the student. */
+    fun completeRevisionForDate(topicId: String, date: String)
+    /** Completes a specific spaced-revision session (by its scheduled date),
+     * recording it in revisionCompletedDates and advancing to the next session. */
+    fun completeRevisionSession(topicId: String, sessionDate: String)
+    /** Undoes a specific completed spaced-revision session, returning it to the
+     * remaining/upcoming list. */
+    fun uncompleteRevisionSession(topicId: String, sessionDate: String)
     fun cancelRevision(topicId: String)
     fun deleteTopic(topicId: String)
     fun autoDistribute(

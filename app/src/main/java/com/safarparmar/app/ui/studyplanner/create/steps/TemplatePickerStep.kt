@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
@@ -522,14 +521,14 @@ private fun DrillDownRow(
                     .offset(x = 8.dp, y = (-8).dp)
                     .size(22.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFE53935))
+                    .background(MaterialTheme.colorScheme.error)
                     .clickable(onClick = onRemove),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Default.Close,
                     contentDescription = removeContentDescription,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onError,
                     modifier = Modifier.size(13.dp),
                 )
             }
@@ -555,14 +554,14 @@ private fun TopicAddedRow(name: String, onRemove: () -> Unit) {
                 .align(Alignment.CenterEnd)
                 .size(22.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFE53935))
+                .background(MaterialTheme.colorScheme.error)
                 .clickable(onClick = onRemove),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Default.Close,
                 contentDescription = "Remove topic",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onError,
                 modifier = Modifier.size(13.dp),
             )
         }

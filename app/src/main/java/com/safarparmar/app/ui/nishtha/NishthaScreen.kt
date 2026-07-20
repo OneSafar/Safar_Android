@@ -106,7 +106,7 @@ fun NishthaScreen(
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        containerColor = SafarSemanticColors.plannerBackground(isDarkTheme),
+        containerColor = SafarSemanticColors.plannerBackground(),
         topBarActions = {
             VideoPlaylistEntryPoint(
                 dataStore = viewModel.dataStore,
@@ -128,7 +128,7 @@ fun NishthaScreen(
             Scaffold(
                 // Keep every Nishtha tab on the same warm canvas as Exam
                 // Planner Home. Cards and sheets remain elevated surfaces.
-                containerColor = SafarSemanticColors.plannerBackground(isDarkTheme),
+                containerColor = SafarSemanticColors.plannerBackground(),
                 contentWindowInsets = WindowInsets.safeDrawing,
                 bottomBar = {
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {

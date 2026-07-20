@@ -56,6 +56,21 @@ import com.safarparmar.app.ui.studyplanner.create.DeepFocusOutlineSubject
  * `SyllabusTopicAccordionRow` in `SyllabusTreeComponents.kt` so this screen feels
  * identical to that one, not just similar.
  */
+/**
+ * Lazy-list keys must be unique, but a syllabus routinely repeats names ("Revision",
+ * "Test", the same chapter title under two subjects) and duplicate keys crash the list
+ * with IllegalArgumentException while it measures. Keep the name as the identity — the
+ * drag-reorder animations depend on it following the item — and only suffix the repeats.
+ */
+private fun uniqueNameKeys(names: List<String>): List<String> {
+    val seen = mutableMapOf<String, Int>()
+    return names.map { name ->
+        val occurrence = seen.getOrElse(name) { 0 }
+        seen[name] = occurrence + 1
+        if (occurrence == 0) name else "$name\u0000$occurrence"
+    }
+}
+
 @Composable
 fun DeepFocusOrderStep(
     outline: List<DeepFocusOutlineSubject>,
@@ -80,8 +95,9 @@ fun DeepFocusOrderStep(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            val subjectKeys = remember(outline) { uniqueNameKeys(outline.map { it.name }) }
             LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                itemsIndexed(outline, key = { _, s -> s.name }) { subjectIndex, s ->
+                itemsIndexed(outline, key = { index, _ -> subjectKeys[index] }) { subjectIndex, s ->
                     val topicCount = s.chapters.sumOf { it.topicNames.size }
                     DeepFocusRow(
                         order = subjectIndex + 1,
@@ -117,8 +133,9 @@ fun DeepFocusOrderStep(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            val chapterKeys = remember(subject.chapters) { uniqueNameKeys(subject.chapters.map { it.name }) }
             LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                itemsIndexed(subject.chapters, key = { _, c -> c.name }) { chapterIndex, chapter ->
+                itemsIndexed(subject.chapters, key = { index, _ -> chapterKeys[index] }) { chapterIndex, chapter ->
                     DeepFocusRow(
                         order = chapterIndex + 1,
                         title = chapter.name,
@@ -181,8 +198,9 @@ private fun DeepFocusTopicsSheet(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                 )
             } else {
+                val topicKeys = remember(topicNames) { uniqueNameKeys(topicNames) }
                 LazyColumn(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-                    itemsIndexed(topicNames, key = { _, name -> name }) { index, name ->
+                    itemsIndexed(topicNames, key = { index, _ -> topicKeys[index] }) { index, name ->
                         DeepFocusRow(
                             order = index + 1,
                             title = name,

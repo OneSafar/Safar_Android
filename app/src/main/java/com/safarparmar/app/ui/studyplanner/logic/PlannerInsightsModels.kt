@@ -16,6 +16,19 @@ data class PlannerInsightSummary(
     val forecastCompletionDate: String?,
     val daysBuffer: Int?,
     val scheduleCoveragePercent: Int?,
+    /**
+     * Topics actually completed per study day over a recent trailing window,
+     * derived only from real [StudyTopic.completedDate] ticks. Null when the
+     * window has no study days; 0f when the student has studied nothing lately.
+     * This is the honest "how fast am I really going" signal, as opposed to
+     * [requiredTopicsPerStudyDay] (what the plan needs) or the daily goal (aspiration).
+     */
+    val recentTopicsPerStudyDay: Float? = null,
+    /**
+     * Forecast finish date projected from [recentTopicsPerStudyDay] (real pace),
+     * not the daily goal. Null when there is no recent pace to project from.
+     */
+    val velocityForecastCompletionDate: String? = null,
 )
 
 @Immutable

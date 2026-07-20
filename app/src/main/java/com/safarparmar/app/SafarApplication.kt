@@ -16,6 +16,7 @@ import com.safarparmar.app.notifications.NotificationTokenRegistrar
 import com.safarparmar.app.notifications.StudyReminderWorker
 import com.safarparmar.app.ui.ekagra.EkagraPendingSessionSaveStore
 import com.safarparmar.app.ui.ekagra.EkagraSessionSaveWorker
+import com.safarparmar.app.ui.ekagra.focusshield.KavachAlwaysOnService
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -49,6 +50,9 @@ class SafarApplication : Application() {
             EkagraSessionSaveWorker.enqueue(this)
         }
         appScope.launch {
+            if (dataStore.focusShieldAlwaysOnMode.first()) {
+                KavachAlwaysOnService.start(this@SafarApplication)
+            }
             notificationTokenRegistrar.registerStoredTokenIfNeeded()
             if (dataStore.notificationsEnabled.first() && dataStore.dailyStudyReminderEnabled.first()) {
                 val keep = ExistingPeriodicWorkPolicy.KEEP

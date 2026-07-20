@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.SystemClock
 import com.safarparmar.app.BuildConfig
@@ -50,6 +51,9 @@ class FocusShieldRepository @Inject constructor(
         .stateIn(scope, SharingStarted.Eagerly, false)
 
     val isStrictMode: StateFlow<Boolean> = dataStore.focusShieldStrictMode
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
+    val isAlwaysOnMode: StateFlow<Boolean> = dataStore.focusShieldAlwaysOnMode
         .stateIn(scope, SharingStarted.Eagerly, false)
 
     val blockedPackages: StateFlow<Set<String>> = dataStore.focusShieldBlockedPackages
@@ -141,6 +145,11 @@ class FocusShieldRepository @Inject constructor(
     fun setEnabled(enabled: Boolean) {
         scope.launch {
             dataStore.setFocusShieldEnabled(enabled)
+            if (!enabled) {
+                dataStore.setFocusShieldAlwaysOnMode(false)
+                KavachAlwaysOnPrefs.clear(appContext)
+                appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
+            }
             val settings = currentSettings().copy(enabled = enabled)
             if (!enabled) {
                 deactivateSession()
@@ -157,9 +166,32 @@ class FocusShieldRepository @Inject constructor(
         }
     }
 
+    fun setAlwaysOnMode(enabled: Boolean) {
+        scope.launch {
+            dataStore.setFocusShieldAlwaysOnMode(enabled)
+            if (enabled) {
+                dataStore.setFocusShieldEnabled(true)
+                startAlwaysOnService()
+            } else {
+                KavachAlwaysOnPrefs.clear(appContext)
+                appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
+            }
+        }
+    }
+
+    private fun startAlwaysOnService(packages: Set<String> = blockedPackages.value) {
+        if (!hasRequiredPermissions() || packages.isEmpty()) return
+        runCatching {
+            KavachAlwaysOnService.start(appContext)
+        }.onFailure { debugLog("Unable to start Always On service: ${it.javaClass.simpleName}") }
+    }
+
     fun setBlockedPackages(packages: Set<String>) {
         scope.launch {
             dataStore.setFocusShieldBlockedPackages(packages)
+            if (isAlwaysOnMode.value && packages.isNotEmpty()) {
+                startAlwaysOnService(packages)
+            }
             if (isEnabled.value && packages.isNotEmpty()) {
                 homeRepository.trackKavachEvent("configured", packages.size)
             }

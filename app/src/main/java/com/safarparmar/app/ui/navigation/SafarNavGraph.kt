@@ -385,6 +385,7 @@ fun SafarNavGraph(
             arguments = listOf(
                 navArgument("planId") { type = NavType.StringType; nullable = true; defaultValue = null },
                 navArgument("showDailyTodoSetup") { type = NavType.BoolType; defaultValue = false },
+                navArgument("openTab") { type = NavType.StringType; nullable = true; defaultValue = null },
             )
         ) { entry ->
             StudyPlannerScreen(
@@ -392,6 +393,7 @@ fun SafarNavGraph(
                 isDarkTheme = isDarkTheme,
                 planId = entry.arguments?.getString("planId"),
                 showDailyTodoSetup = entry.arguments?.getBoolean("showDailyTodoSetup") ?: false,
+                openTab = entry.arguments?.getString("openTab"),
                 onNavigate = ::navigate,
                 onBack = ::safeBack,
                 onToggleDarkTheme = onToggleDarkTheme,
@@ -433,6 +435,7 @@ fun SafarNavGraph(
                 SyllabusSubjectsScreen(
                     viewModel = viewModel,
                     planId = planId,
+                    isDarkTheme = isDarkTheme,
                     onNavigate = ::navigate,
                     onBack = {
                         viewModel.setSection(com.safarparmar.app.domain.model.studyplanner.PlannerSection.PLAN)

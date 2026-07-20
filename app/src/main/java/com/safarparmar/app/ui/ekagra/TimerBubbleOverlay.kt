@@ -369,7 +369,10 @@ object TimerBubbleOverlay {
             setViewTreeSavedStateRegistryOwner(lo)
         }
 
-        val maxY = (screenH - 60 * density).toInt()
+        // Clamped like maxX below: applicationContext's displayMetrics can report a zero
+        // or tiny height (service context, multi-window/large-screen configs), which makes
+        // this negative and blows up the coerceIn(0, maxY) calls with IllegalArgumentException.
+        val maxY = (screenH - 60 * density).toInt().coerceAtLeast(0)
 
         view.onDrag = fun(dx: Float, dy: Float) {
             val p = params ?: return

@@ -125,7 +125,11 @@ fun PlanTabScreen(
     val refs = remember(plan.subjects) { plan.flattenTopics() }
     
     val todayTopics = remember(refs, today) {
-        refs.filter { it.topic.plannedDate?.take(10) == today }
+        refs.filter { ref ->
+            ref.topic.plannedDate?.take(10) == today ||
+                (ref.topic.status == TopicStatus.REVISION_NEEDED &&
+                    today in ref.topic.revisionReminderDates.map { it.take(10) })
+        }
     }
     val todayDoneCount = remember(todayTopics) {
         todayTopics.count { it.topic.status == TopicStatus.DONE }
@@ -296,7 +300,13 @@ fun PlanTabScreen(
 
     fun handleTopicDoneCheck(ref: TopicRef, checked: Boolean) {
         if (checked && ref.topic.status != TopicStatus.DONE) {
-            completionPromptTopic = ref
+            if (ref.topic.status == TopicStatus.REVISION_NEEDED) {
+                // Completing one revision must advance its cadence rather than mark
+                // the whole topic done and silently remove revisions 2 and 3.
+                actions.completeRevisionForDate(ref.topic.id, today)
+            } else {
+                completionPromptTopic = ref
+            }
         } else if (!checked && ref.topic.status == TopicStatus.DONE) {
             actions.updateTopic(ref.topic.id, status = TopicStatus.TODO)
         }
@@ -865,13 +875,15 @@ fun PlanTabScreen(
                             key = { ref -> "revision_${ref.topic.id}" },
                             contentType = { "revisionTopic" }
                         ) { ref ->
-                            PlannerTaskRow(
+                            RevisionTopicCard(
                                 ref = ref,
-                                accent = PlanTaskRowAccent.Planned,
-                                onDoneChange = { done ->
-                                    handleTopicDoneCheck(ref, done)
+                                onCompleteSession = { date ->
+                                    actions.completeRevisionSession(ref.topic.id, date)
                                 },
-                                onEdit = { revisionTopicRef = ref }
+                                onUncompleteSession = { date ->
+                                    actions.uncompleteRevisionSession(ref.topic.id, date)
+                                },
+                                onEdit = { revisionTopicRef = ref },
                             )
                         }
                     }

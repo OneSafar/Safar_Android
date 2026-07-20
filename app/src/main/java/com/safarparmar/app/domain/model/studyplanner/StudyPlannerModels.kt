@@ -39,6 +39,12 @@ data class StudyTopic(
     val pinned: Boolean? = null,
     val revisionMarkedAt: String? = null,
     val revisionReminderDates: List<String> = emptyList(),
+    /**
+     * Dates of spaced-revision sessions the user has actually completed. Combined
+     * with [revisionReminderDates] (the remaining sessions) this is the full
+     * original schedule, so the UI can show "3 of 5 done" and which sessions are left.
+     */
+    val revisionCompletedDates: List<String> = emptyList(),
     val revisionScheduleType: String? = null,
 )
 

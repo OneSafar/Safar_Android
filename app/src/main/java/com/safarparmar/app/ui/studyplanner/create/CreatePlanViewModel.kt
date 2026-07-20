@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 enum class CreatePlanStep {
     ChoosePath,
@@ -122,6 +123,7 @@ data class CreatePlanUiState(
 
     // Manual path — pure client-side, no backend calls until preview
     val manualSubjects: List<DraftSubject> = emptyList(),
+    val manualValidationError: String? = null,
 
     // Paste path
     val pasteText: String = "",
@@ -162,6 +164,8 @@ class CreatePlanViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CreatePlanUiState())
     val uiState = _uiState.asStateFlow()
+    private var templateDetailJob: Job? = null
+    private val previewRenameVersions = mutableMapOf<String, Int>()
 
     fun clearError() = _uiState.update { it.copy(error = null, premiumRequired = false) }
 
@@ -199,6 +203,7 @@ class CreatePlanViewModel @Inject constructor(
     }
 
     fun selectTemplate(templateId: String) {
+        templateDetailJob?.cancel()
         _uiState.update {
             it.copy(
                 selectedTemplateId = templateId,
@@ -213,20 +218,21 @@ class CreatePlanViewModel @Inject constructor(
                 drillChapter = null,
             )
         }
-        viewModelScope.launch {
+        templateDetailJob = viewModelScope.launch {
             _uiState.update { it.copy(loadingTemplateDetail = true) }
             when (val r = repo.getTemplateDetail(templateId)) {
-                is Resource.Success -> _uiState.update {
-                    it.copy(
+                is Resource.Success -> _uiState.update { state ->
+                    if (state.selectedTemplateId != templateId) state else state.copy(
                         loadingTemplateDetail = false,
                         templateDetail = r.data,
-                        title = it.title.ifBlank { r.data.name },
-                        examType = it.examType.ifBlank { r.data.name },
-                        dailyGoal = r.data.recommendedDailyGoal?.toString() ?: it.dailyGoal,
+                        title = state.title.ifBlank { r.data.name },
+                        examType = state.examType.ifBlank { r.data.name },
+                        dailyGoal = r.data.recommendedDailyGoal?.toString() ?: state.dailyGoal,
                     )
                 }
-                is Resource.Error -> _uiState.update {
-                    it.copy(loadingTemplateDetail = false, error = r.message)
+                is Resource.Error -> _uiState.update { state ->
+                    if (state.selectedTemplateId != templateId) state
+                    else state.copy(loadingTemplateDetail = false, error = r.message)
                 }
                 is Resource.Loading -> Unit
             }
@@ -234,10 +240,12 @@ class CreatePlanViewModel @Inject constructor(
     }
 
     fun clearSelectedTemplate() {
+        templateDetailJob?.cancel()
         _uiState.update {
             it.copy(
                 selectedTemplateId = null,
                 templateDetail = null,
+                loadingTemplateDetail = false,
                 excludedTopicKeys = emptySet(),
                 excludedTemplateSubjectIndices = emptySet(),
                 excludedTemplateChapterKeys = emptySet(),
@@ -453,11 +461,21 @@ class CreatePlanViewModel @Inject constructor(
 
     fun addManualSubject(name: String) {
         if (name.isBlank()) return
-        _uiState.update { it.copy(manualSubjects = it.manualSubjects + DraftSubject(name = name.trim())) }
+        _uiState.update {
+            it.copy(
+                manualSubjects = it.manualSubjects + DraftSubject(name = name.trim()),
+                manualValidationError = null,
+            )
+        }
     }
 
     fun removeManualSubject(subjectId: String) {
-        _uiState.update { it.copy(manualSubjects = it.manualSubjects.filterNot { s -> s.localId == subjectId }) }
+        _uiState.update {
+            it.copy(
+                manualSubjects = it.manualSubjects.filterNot { s -> s.localId == subjectId },
+                manualValidationError = null,
+            )
+        }
     }
 
     fun addManualChapter(subjectId: String, name: String) {
@@ -468,6 +486,7 @@ class CreatePlanViewModel @Inject constructor(
                     if (subject.localId != subjectId) subject
                     else subject.copy(chapters = subject.chapters + DraftChapter(name = name.trim()))
                 },
+                manualValidationError = null,
             )
         }
     }
@@ -479,6 +498,7 @@ class CreatePlanViewModel @Inject constructor(
                     if (subject.localId != subjectId) subject
                     else subject.copy(chapters = subject.chapters.filterNot { it.localId == chapterId })
                 },
+                manualValidationError = null,
             )
         }
     }
@@ -496,6 +516,7 @@ class CreatePlanViewModel @Inject constructor(
                         },
                     )
                 },
+                manualValidationError = null,
             )
         }
     }
@@ -512,8 +533,18 @@ class CreatePlanViewModel @Inject constructor(
                         },
                     )
                 },
+                manualValidationError = null,
             )
         }
+    }
+
+    fun continueFromManual() {
+        val validationError = validateManualSubjects(_uiState.value.manualSubjects)
+        if (validationError != null) {
+            _uiState.update { it.copy(manualValidationError = validationError) }
+            return
+        }
+        _uiState.update { it.copy(manualValidationError = null, step = CreatePlanStep.PlanSettings) }
     }
 
     // ── Paste path ───────────────────────────────────────────────────
@@ -776,6 +807,19 @@ class CreatePlanViewModel @Inject constructor(
     fun buildPreview() {
         val state = _uiState.value
         val source = state.source ?: return
+        if (source == PlanSource.Manual) {
+            val validationError = validateManualSubjects(state.manualSubjects)
+            if (validationError != null) {
+                _uiState.update {
+                    it.copy(
+                        manualValidationError = validationError,
+                        previewError = null,
+                        step = CreatePlanStep.ManualTopicTree,
+                    )
+                }
+                return
+            }
+        }
         val subjectOrder = state.deepFocusSubjectOrder
         val chapterOrder = state.deepFocusChapterOrder.ifEmpty { null }
         // Nest (subjectName, chapterName) -> topics into subjectName -> chapterName ->
@@ -894,6 +938,7 @@ class CreatePlanViewModel @Inject constructor(
      *  accumulate silently. */
     fun discardDraft() {
         val draftId = _uiState.value.previewResult?.draftId ?: return
+        _uiState.update { it.copy(previewResult = null, isConfirming = false) }
         viewModelScope.launch { repo.deletePlan(draftId) }
     }
 
@@ -905,14 +950,8 @@ class CreatePlanViewModel @Inject constructor(
                 is Resource.Success -> _uiState.update {
                     it.copy(isConfirming = false, confirmedPlanId = r.data.id)
                 }
-                is Resource.Error -> {
-                    if (r.code == 409 || r.errorCode == "CONFLICT") {
-                        // Likely already confirmed by an earlier tap that raced this one —
-                        // treat as success rather than surfacing a scary error.
-                        _uiState.update { it.copy(isConfirming = false, confirmedPlanId = draftId) }
-                    } else {
-                        _uiState.update { it.copy(isConfirming = false, error = r.message) }
-                    }
+                is Resource.Error -> _uiState.update {
+                    it.copy(isConfirming = false, error = r.message ?: "Plan confirmation failed")
                 }
                 is Resource.Loading -> Unit
             }
@@ -939,12 +978,8 @@ class CreatePlanViewModel @Inject constructor(
                 is Resource.Success -> _uiState.update {
                     it.copy(isConfirming = false, confirmedPlanId = result.data.id)
                 }
-                is Resource.Error -> {
-                    if (result.code == 409 || result.errorCode == "CONFLICT") {
-                        _uiState.update { it.copy(isConfirming = false, confirmedPlanId = draftId) }
-                    } else {
-                        _uiState.update { it.copy(isConfirming = false, error = result.message) }
-                    }
+                is Resource.Error -> _uiState.update {
+                    it.copy(isConfirming = false, error = result.message ?: "Plan confirmation failed")
                 }
                 is Resource.Loading -> Unit
             }
@@ -954,6 +989,10 @@ class CreatePlanViewModel @Inject constructor(
     fun renamePreviewTopic(topicId: String, newName: String) {
         val currentPreview = _uiState.value.previewResult ?: return
         val draftId = currentPreview.draftId
+        val oldName = currentPreview.calendarPreview.values.asSequence().flatten()
+            .firstOrNull { it.topicId == topicId }?.topicName ?: return
+        val version = (previewRenameVersions[topicId] ?: 0) + 1
+        previewRenameVersions[topicId] = version
 
         // Optimistically update the UI state
         val updatedCalendar = currentPreview.calendarPreview.mapValues { (_, topics) ->
@@ -965,11 +1004,22 @@ class CreatePlanViewModel @Inject constructor(
         // Call the backend to update the topic in the draft plan
         viewModelScope.launch {
             val patch = com.safarparmar.app.data.remote.api.TopicPatchRequest(name = newName)
-            when (repo.updateTopic(draftId, topicId, patch)) {
+            when (val result = repo.updateTopic(draftId, topicId, patch)) {
                 is Resource.Success -> Unit // Already updated optimistically
                 is Resource.Error -> {
-                    // Revert on failure
-                    _uiState.update { it.copy(previewResult = currentPreview) }
+                    if (previewRenameVersions[topicId] == version) {
+                        _uiState.update { state ->
+                            val preview = state.previewResult ?: return@update state
+                            state.copy(
+                                previewResult = preview.copy(
+                                    calendarPreview = preview.calendarPreview.mapValues { (_, topics) ->
+                                        topics.map { if (it.topicId == topicId) it.copy(topicName = oldName) else it }
+                                    },
+                                ),
+                                error = result.message,
+                            )
+                        }
+                    }
                 }
                 is Resource.Loading -> Unit
             }
@@ -977,14 +1027,47 @@ class CreatePlanViewModel @Inject constructor(
     }
 }
 
-private fun List<DraftSubject>.toImportRequest(): List<ImportSyllabusSubjectRequest> = map { subject ->
+internal fun validateManualSubjects(subjects: List<DraftSubject>): String? {
+    if (subjects.isEmpty()) return "Add at least one subject, chapter, and topic."
+
+    fun duplicateName(names: List<String>): String? = names
+        .groupBy { it.trim().lowercase() }
+        .entries
+        .firstOrNull { (normalized, matches) -> normalized.isNotEmpty() && matches.size > 1 }
+        ?.value
+        ?.first()
+        ?.trim()
+
+    duplicateName(subjects.map { it.name })?.let { return "Subject names must be unique: \"$it\" is repeated." }
+
+    subjects.forEach { subject ->
+        if (subject.chapters.isEmpty()) return "Add a chapter to ${subject.name}."
+        duplicateName(subject.chapters.map { it.name })?.let {
+            return "Chapter names in ${subject.name} must be unique: \"$it\" is repeated."
+        }
+        subject.chapters.forEach { chapter ->
+            if (chapter.topics.isEmpty()) return "Add a topic to ${subject.name} › ${chapter.name}."
+            duplicateName(chapter.topics.map { it.name })?.let {
+                return "Topic names in ${chapter.name} must be unique: \"$it\" is repeated."
+            }
+        }
+    }
+    return null
+}
+
+internal fun List<DraftSubject>.toImportRequest(): List<ImportSyllabusSubjectRequest> = mapNotNull { subject ->
+    val chapters = subject.chapters.mapNotNull { chapter ->
+        val topics = chapter.topics.mapNotNull { topic ->
+            topic.name.trim().takeIf { it.isNotEmpty() }?.let(::ImportSyllabusTopicRequest)
+        }
+        if (chapter.name.isBlank() || topics.isEmpty()) null else ImportSyllabusChapterRequest(
+            name = chapter.name.trim(),
+            topics = topics,
+        )
+    }
+    if (subject.name.isBlank() || chapters.isEmpty()) null else
     ImportSyllabusSubjectRequest(
-        name = subject.name,
-        chapters = subject.chapters.map { chapter ->
-            ImportSyllabusChapterRequest(
-                name = chapter.name,
-                topics = chapter.topics.map { ImportSyllabusTopicRequest(it.name) },
-            )
-        },
+        name = subject.name.trim(),
+        chapters = chapters,
     )
 }

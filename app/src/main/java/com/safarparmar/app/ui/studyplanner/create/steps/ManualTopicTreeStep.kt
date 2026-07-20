@@ -21,6 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,7 +39,10 @@ import com.safarparmar.app.ui.studyplanner.create.DraftSubject
 
 @Composable
 fun ManualTopicTreeStep(
+    title: String,
     subjects: List<DraftSubject>,
+    validationError: String?,
+    onTitleChange: (String) -> Unit,
     onAddSubject: (String) -> Unit,
     onRemoveSubject: (String) -> Unit,
     onAddChapter: (String, String) -> Unit,
@@ -60,6 +64,14 @@ fun ManualTopicTreeStep(
             "Add the subjects, chapters, and topics you want to study.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        OutlinedTextField(
+            value = title,
+            onValueChange = onTitleChange,
+            label = { Text("Plan title") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
         )
 
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -94,6 +106,10 @@ fun ManualTopicTreeStep(
                     }
                 }
             }
+        }
+
+        validationError?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
         Button(

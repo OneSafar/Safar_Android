@@ -30,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -67,7 +66,10 @@ fun MixedBagSubjectPickerStep(
         )
 
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(subjectNames, key = { it }) { name ->
+            // No key: a syllabus can repeat a subject name, and duplicate keys crash the
+            // list while it measures. There is no reorder/animateItem here, so the default
+            // index key costs nothing.
+            items(subjectNames) { name ->
                 val isSelected = name in selected
                 val disabled = !isSelected && selected.size >= maxSelectable
                 Surface(
@@ -116,7 +118,7 @@ fun MixedBagSubjectPickerStep(
                                 Icon(
                                     Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(14.dp),
                                 )
                             }

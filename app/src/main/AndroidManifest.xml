@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -85,6 +86,15 @@
             android:name=".ui.ekagra.TimerService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="false" />
+
+        <service
+            android:name=".ui.ekagra.focusshield.KavachAlwaysOnService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="KAVACH always-on app blocking selected by the student" />
+        </service>
 
         <!-- Supporting locale sync and persist for pre-Android 13 devices using AppCompat -->
         <service

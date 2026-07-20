@@ -32,6 +32,19 @@ object PlannerInsightsCalculator {
         val dailyGoal = max(1, plan.dailyGoal ?: 1)
         val availableStudyDays = examDate?.let { countStudyDaysBetween(today, it, plan.offDays) }
 
+        // Real completion ticks, keyed on the day a topic was actually finished.
+        // Drives both consistency (streak/heatmap) and the honest recent-pace signal.
+        val completedByDate = completedTopicsByDate(refs)
+        val recentTopicsPerStudyDay =
+            computeRecentTopicsPerStudyDay(completedByDate, plan.offDays, today)
+        val velocityForecastIso = when {
+            examDate == null -> null
+            remainingTopics == 0 -> todayIso
+            recentTopicsPerStudyDay != null && recentTopicsPerStudyDay > 0f ->
+                simulateForecastAtRate(remainingTopics, recentTopicsPerStudyDay, plan.offDays, today)
+            else -> null
+        }
+
         val requiredTopicsPerStudyDay =
             when {
                 availableStudyDays == null -> null
@@ -91,11 +104,12 @@ object PlannerInsightsCalculator {
             forecastCompletionDate = forecastDateIso,
             daysBuffer = daysBuffer,
             scheduleCoveragePercent = scheduleCoveragePercent,
+            recentTopicsPerStudyDay = recentTopicsPerStudyDay,
+            velocityForecastCompletionDate = velocityForecastIso,
         )
 
         val workload = buildWorkload(calendar, todayIso)
 
-        val completedByDate = completedTopicsByDate(refs)
         val consistency = buildConsistency(completedByDate, analytics?.heatmap, todayIso, calendar)
 
         val subjectRows = plan.subjects.map { sub ->
@@ -231,15 +245,65 @@ object PlannerInsightsCalculator {
         val map = mutableMapOf<String, Int>()
         for (ref in refs) {
             if (ref.topic.status != TopicStatus.DONE) continue
-            // completedDate was added after template plans already existed.
-            // Preserve their historical Progress ticks by falling back to the
-            // original planned day for an already-completed topic.
-            val cd = (ref.topic.completedDate ?: ref.topic.plannedDate)
-                ?.take(10)
-                ?: continue
+            // Only count a real completion tick. A streak / heatmap must reflect
+            // days the student actually finished something — falling back to
+            // plannedDate would credit activity to days nothing was studied and
+            // inflate the streak, so topics without a completedDate are skipped.
+            val cd = ref.topic.completedDate?.take(10) ?: continue
             map[cd] = (map[cd] ?: 0) + 1
         }
         return map
+    }
+
+    /**
+     * Actual pace: topics finished per study day across a recent trailing window.
+     * Uses only real completion ticks, and divides by the study days in the
+     * window (off-days excluded) so it is directly comparable to
+     * [PlannerInsightSummary.requiredTopicsPerStudyDay]. Returns null when the
+     * window contains no study days, 0f when nothing was completed lately.
+     */
+    private fun computeRecentTopicsPerStudyDay(
+        completedByDate: Map<String, Int>,
+        offDays: List<Int>,
+        today: LocalDate,
+        windowDays: Int = 14,
+    ): Float? {
+        val off = offDays.toSet()
+        var studyDays = 0
+        var completed = 0
+        for (i in 0 until windowDays) {
+            val d = today.minusDays(i.toLong())
+            completed += completedByDate[d.toString()] ?: 0
+            if (jsDayOfWeek(d) !in off) studyDays++
+        }
+        if (studyDays == 0) return null
+        return completed.toFloat() / studyDays
+    }
+
+    /**
+     * Forecast finish date if the student keeps completing [ratePerStudyDay]
+     * topics on every future study day (off-days skipped). Fractional rates
+     * accumulate across days so a pace of e.g. 1.5/day is honoured.
+     */
+    private fun simulateForecastAtRate(
+        remainingTopics: Int,
+        ratePerStudyDay: Float,
+        offDays: List<Int>,
+        startDate: LocalDate,
+    ): String? {
+        if (remainingTopics <= 0) return startDate.toString()
+        if (ratePerStudyDay <= 0f) return null
+        val off = offDays.toSet()
+        var cursor = startDate
+        var accomplished = 0f
+        repeat(3660) {
+            if (jsDayOfWeek(cursor) !in off) {
+                accomplished += ratePerStudyDay
+                if (accomplished >= remainingTopics) return cursor.toString()
+            }
+            cursor = cursor.plusDays(1)
+        }
+        return null
     }
 
     private fun buildConsistency(

@@ -43,6 +43,7 @@ class LaunchUsageQuestionnaireViewModel @Inject constructor(
         viewModelScope.launch {
             dataStore.setAppUsageMode(mode)
             focusShieldRepository.setStrictMode(mode == AppUsageMode.BEAST)
+            focusShieldRepository.setAlwaysOnMode(mode == AppUsageMode.ALWAYS_ON)
             dataStore.setLaunchUsageQuestionnaireCompleted(true)
             withContext(Dispatchers.Main) { onDone() }
         }

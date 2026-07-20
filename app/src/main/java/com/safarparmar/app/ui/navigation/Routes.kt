@@ -19,7 +19,7 @@ object Routes {
     // resolve here (one ViewModel / TimerService binding).
     const val EKAGRA_ROUTE = "ekagra?goalId={goalId}&goalTitle={goalTitle}&view={view}&topicId={topicId}&topicTitle={topicTitle}&planId={planId}"
     const val STUDY_PLANNER = "study_planner"
-    const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}&showDailyTodoSetup={showDailyTodoSetup}"
+    const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}&showDailyTodoSetup={showDailyTodoSetup}&openTab={openTab}"
     const val CREATE_PLAN = "study_planner/create"
     const val MEHFIL = "mehfil"
     const val DM_CHAT = "mehfil/dm_chat"
@@ -40,6 +40,10 @@ object Routes {
     const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"
 
     fun nishthaTab(tab: Int): String = "nishtha?tab=$tab"
+
+    /** Deep-link target that opens a specific plan straight on its Revision tab. */
+    fun studyPlannerRevision(planId: String): String =
+        "study_planner?planId=${android.net.Uri.encode(planId)}&showDailyTodoSetup=false&openTab=revision"
 
     fun ekagraForGoal(goalId: String, goalTitle: String): String =
         "ekagra?goalId=${android.net.Uri.encode(goalId)}&goalTitle=${android.net.Uri.encode(goalTitle)}"

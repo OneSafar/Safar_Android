@@ -203,6 +203,11 @@ import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+// ── Liquid Glass design system ──────────────────────────────────────────────
+import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
+import com.safarparmar.app.ui.glass.liquidGlass
+import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.glass.ExamPlannerGlassButton
 import com.safarparmar.app.ui.studyplanner.components.PlannerCalendarStatus
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
@@ -248,6 +253,9 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
     var sheetDay by remember { mutableStateOf<String?>(null) }
     var showUnscheduledTopicsScreen by remember { mutableStateOf(false) }
 
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val isLight = !isDark
+
     LaunchedEffect(state.pendingOpenMissedTopics) {
         if (state.pendingOpenMissedTopics) {
             showUnscheduledTopicsScreen = true
@@ -266,22 +274,30 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // 1. Solid canvas backdrop (white in light mode, black in dark mode)
+        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
+
+        // 2. Main content column
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                CalendarPlainHeader(plan = plan)
+                CalendarPlainHeader(plan = plan, isLight = isLight)
             }
 
             item {
-                // Elevated/Border Card containing the entire calendar view
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                    color = MaterialTheme.colorScheme.surface,
+                // Frosted glass card containing the entire calendar view
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .liquidGlass(
+                            shape = RoundedCornerShape(18.dp),
+                            surfaceTint = if (isLight) Color.Black else Color.White,
+                            tintAlpha = if (isLight) 0.04f else 0.05f,
+                            isLight = isLight
+                        )
                 ) {
                     Column(
                         modifier = Modifier
@@ -301,7 +317,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                                 Icon(
                                     imageVector = androidx.compose.material.icons.Icons.Default.ChevronLeft,
                                     contentDescription = "Previous month",
-                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    tint = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
@@ -310,7 +326,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                                 text = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
                                 ),
                             )
                             
@@ -318,7 +334,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                                 Icon(
                                     imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
                                     contentDescription = "Next month",
-                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    tint = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
@@ -338,7 +354,8 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                                     text = label,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    color = if (isLight) SafarGlassPalette.LightTextSecondary.copy(alpha = 0.8f)
+                                            else         SafarGlassPalette.TextSecondary.copy(alpha = 0.8f),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.width(36.dp)
                                 )
@@ -378,6 +395,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                                                     isExamDay = dateIso == plan.examDate?.take(10),
                                                     isWeekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY,
                                                     dense = true,
+                                                    isLight = isLight,
                                                     onClick = { sheetDay = dateIso },
                                                     modifier = Modifier.fillMaxSize(),
                                                 )
@@ -387,62 +405,32 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                                 }
                             }
                         }
-
-
                     }
                 }
             }
             
             item {
-                val revisionGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF3E7C8C), Color(0xFF29638A)))
-                Button(
-                    onClick = {
-                        actions.openRevisionTopics()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp)
-                        .background(revisionGradient, shape = RoundedCornerShape(12.dp)),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Rounded.CheckCircle, 
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("View Revision Topics", fontWeight = FontWeight.Bold)
-                }
+                ExamPlannerGlassButton(
+                    text = "View Revision Topics",
+                    icon = androidx.compose.material.icons.Icons.Rounded.CheckCircle,
+                    onClick = { actions.openRevisionTopics() },
+                    isLight = isLight,
+                    customTint = Color(0xFF29638A),
+                    customTextColor = if (isLight) Color(0xFF1B4965) else Color.White,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
             }
 
             item {
-                val unscheduledGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF991B1B), Color(0xFF7F1D1D)))
-                Button(
+                ExamPlannerGlassButton(
+                    text = "View Missed Topics",
+                    icon = Icons.AutoMirrored.Rounded.List,
                     onClick = { showUnscheduledTopicsScreen = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                        .background(unscheduledGradient, shape = RoundedCornerShape(12.dp)),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.List, 
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("View Missed Topics", fontWeight = FontWeight.Bold)
-                }
+                    isLight = isLight,
+                    customTint = Color(0xFF991B1B),
+                    customTextColor = if (isLight) Color(0xFF7F1D1D) else Color.White,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
 
@@ -462,17 +450,20 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
 }
 
 @Composable
-private fun CalendarPlainHeader(plan: StudyPlan) {
+private fun CalendarPlainHeader(plan: StudyPlan, isLight: Boolean = false) {
     val examDays = daysUntil(plan.examDate)
     val examDate = readableDate(plan.examDate).takeUnless { it == "Not set" }.orEmpty()
 
-    Surface(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        color = MaterialTheme.colorScheme.surface,
+            .padding(bottom = 8.dp)
+            .liquidGlass(
+                shape = RoundedCornerShape(16.dp),
+                surfaceTint = if (isLight) Color.Black else Color.White,
+                tintAlpha = if (isLight) 0.04f else 0.05f,
+                isLight = isLight
+            )
     ) {
         Row(
             modifier = Modifier
@@ -489,7 +480,7 @@ private fun CalendarPlainHeader(plan: StudyPlan) {
                     text = "TARGET EXAM",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
                         letterSpacing = 0.8.sp
                     )
                 )
@@ -501,7 +492,7 @@ private fun CalendarPlainHeader(plan: StudyPlan) {
                         text = plan.title.ifBlank { "Your Study Journey" },
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -512,7 +503,7 @@ private fun CalendarPlainHeader(plan: StudyPlan) {
                     Text(
                         text = examDate,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
                     )
                 }
             }
@@ -557,22 +548,20 @@ internal fun CalendarDayChip(
     isExamDay: Boolean = false,
     isWeekend: Boolean = false,
     dense: Boolean = false,
+    isLight: Boolean = false,
     onClick: () -> Unit,
     modifier: Modifier = Modifier.width(54.dp),
 ) {
     val todayK = todayKey()
     val dayNum = LocalDate.parse(dateIso).dayOfMonth.toString()
     
-    val highlightColor = when {
-        isToday -> MaterialTheme.colorScheme.primary
-        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-        else -> Color.Transparent
-    }
+    val accentColor = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
     
     val dayTextColor = when {
         isToday -> Color.White
-        isWeekend -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        else -> MaterialTheme.colorScheme.onBackground
+        isWeekend -> if (isLight) SafarGlassPalette.LightTextSecondary.copy(alpha = 0.7f)
+                     else         SafarGlassPalette.TextSecondary.copy(alpha = 0.7f)
+        else -> if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
     }
 
     Box(
@@ -592,9 +581,9 @@ internal fun CalendarDayChip(
                     .clip(CircleShape)
                     .then(
                         if (isToday) {
-                            Modifier.background(MaterialTheme.colorScheme.primary)
+                            Modifier.background(accentColor)
                         } else if (selected) {
-                            Modifier.border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
+                            Modifier.border(2.dp, accentColor.copy(alpha = 0.6f), CircleShape)
                         } else {
                             Modifier
                         }

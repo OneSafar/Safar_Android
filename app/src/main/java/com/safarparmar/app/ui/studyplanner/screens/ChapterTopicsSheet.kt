@@ -79,7 +79,7 @@ internal fun ChapterTopicsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = SafarSemanticColors.plannerBackground(isDarkTheme),
+        containerColor = SafarSemanticColors.plannerBackground(),
     ) {
         Column(Modifier.fillMaxWidth().heightIn(max = maxSheetHeight).padding(bottom = 24.dp)) {
             Text(

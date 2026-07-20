@@ -93,7 +93,6 @@ class PlannerAlertsWorker(
                                     body = "Your exam for ${plan.title} is in $daysUntil days.",
                                     deepLink = "safar://studyplanner",
                                     dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
-                                    nameOnly = true,
                                 )
                                 dataStore.addPlannerAlertDedupeKey(dedupeKey)
                                 notified = true
@@ -143,7 +142,10 @@ class PlannerAlertsWorker(
                             } else {
                                 "You have ${revisionTopicsDue.size} topics ready for revision today."
                             },
-                            deepLink = "safar://studyplanner",
+                            // Route straight to this plan's Revision tab so the due
+                            // session can actually be ticked (previously landed on a
+                            // generic planner home with no path to the revision list).
+                            deepLink = "safar://studyplanner?planId=${plan.id}&tab=revision",
                             dedupeType = SafarNotificationManager.DedupeType.PLANNER_REVISION_REMINDER,
                         )
                         dataStore.addPlannerAlertDedupeKey(dedupeKey)

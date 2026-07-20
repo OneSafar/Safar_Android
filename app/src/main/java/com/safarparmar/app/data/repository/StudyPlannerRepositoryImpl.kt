@@ -137,12 +137,16 @@ class StudyPlannerRepositoryImpl @Inject constructor(
                     }
                 }
                 else -> {
-                    val err = parseErrorBody(response.errorBody()?.string(), StructureSyllabusResponse::class.java)
-                        ?: parseErrorBody(response.errorBody()?.string(), SyllabusImportResponse::class.java)
+                    val rawError = response.errorBody()?.string()
+                    val structureError = parseStructureErrorBody(rawError)
+                    val importError = if (structureError == null) parseErrorBody(rawError) else null
                     Resource.Error(
-                        messageForSyllabusError(err?.errorCode, err?.message ?: "We could not organize this syllabus."),
+                        messageForSyllabusError(
+                            structureError?.errorCode ?: importError?.errorCode,
+                            structureError?.message ?: importError?.message ?: "We could not organize this syllabus.",
+                        ),
                         response.code(),
-                        err?.errorCode,
+                        structureError?.errorCode ?: importError?.errorCode,
                     )
                 }
             }
@@ -204,10 +208,11 @@ class StudyPlannerRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun <T> parseErrorBody(raw: String?, klass: Class<T>): StructureSyllabusResponse? {
+    private fun parseStructureErrorBody(raw: String?): StructureSyllabusResponse? {
         if (raw.isNullOrBlank()) return null
         return try {
-            gson.fromJson(raw, klass) as? StructureSyllabusResponse
+            gson.fromJson(raw, StructureSyllabusResponse::class.java)
+                ?.takeIf { it.errorCode != null || it.message != null }
         } catch (_: JsonSyntaxException) {
             null
         }

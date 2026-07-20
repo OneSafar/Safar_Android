@@ -68,7 +68,20 @@ fun BreathingVisualizer(
 
 // ─── Shared easing ───────────────────────────────────────────────────────────
 
-val EaseInOut = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
+// When system animations are disabled (Developer options → Animator duration scale
+// = Off, or auto-disabled by battery saver on some OEMs), a tween's effective
+// duration collapses to 0 and the fraction fed into the underlying CubicBezierEasing
+// becomes NaN, which its Newton-Raphson solver can't handle → IllegalArgumentException
+// ("throwNoSolution"). Clamp/guard the input so a disabled-animations device degrades
+// to no easing instead of crashing.
+private val RawEaseInOut = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
+val EaseInOut = Easing { fraction ->
+    if (fraction.isNaN() || fraction.isInfinite()) {
+        0f
+    } else {
+        runCatching { RawEaseInOut.transform(fraction.coerceIn(0f, 1f)) }.getOrDefault(fraction)
+    }
+}
 
 private fun phaseDurationMs(phase: BreathPhase, cycle: BreathCycle) = when (phase) {
     BreathPhase.INHALE -> cycle.inhale * 1000
