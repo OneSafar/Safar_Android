@@ -19,6 +19,57 @@ enum class TopicStatus(val wireValue: String, val label: String) {
     REVISION_NEEDED("revision_needed", "To Revise"),
 }
 
+/** Effort size of a topic. Missing on the wire = MEDIUM. Points: 1 / 2 / 4. */
+enum class TopicSize(val wireValue: String, val points: Int, val shortLabel: String, val label: String) {
+    @SerializedName("small")
+    SMALL("small", 1, "S", "Small"),
+
+    @SerializedName("medium")
+    MEDIUM("medium", 2, "M", "Medium"),
+
+    @SerializedName("big")
+    BIG("big", 4, "L", "Big"),
+}
+
+/** Chapter-level effort rating; topics without their own size inherit it. */
+enum class ChapterDifficulty(val wireValue: String, val label: String) {
+    @SerializedName("easy")
+    EASY("easy", "Easy"),
+
+    @SerializedName("normal")
+    NORMAL("normal", "Normal"),
+
+    @SerializedName("tough")
+    TOUGH("tough", "Tough"),
+}
+
+/**
+ * Mirrors the server's effectiveTopicSize (plan.model.ts): the topic's own
+ * size, else the chapter's rating mapped (tough→big, easy→small,
+ * normal→medium), else medium. Keep the two implementations identical —
+ * the server owns scheduling; this is display-only math.
+ */
+fun StudyTopic.effectiveSize(chapter: StudyChapter? = null): TopicSize =
+    size ?: when (chapter?.difficulty) {
+        ChapterDifficulty.TOUGH -> TopicSize.BIG
+        ChapterDifficulty.EASY -> TopicSize.SMALL
+        else -> TopicSize.MEDIUM
+    }
+
+/** Effort points for a topic: small=1, medium=2, big=4. */
+fun StudyTopic.effortPoints(chapter: StudyChapter? = null): Int = effectiveSize(chapter).points
+
+/** Partial completion with the server's backward-compatible default: done = 100, else 0. */
+fun StudyTopic.progressPercentValue(): Int =
+    progressPercent?.coerceIn(0, 100) ?: if (status == TopicStatus.DONE) 100 else 0
+
+/** Remaining effort: a half-done big topic counts as 2 points, not 4. */
+fun StudyTopic.remainingPoints(chapter: StudyChapter? = null): Float =
+    effortPoints(chapter) * (100 - progressPercentValue()) / 100f
+
+/** Converts internal points to the user-facing "topics" number (1 topic = 2 points). */
+fun pointsToTopicEquivalents(points: Float): Float = points / 2f
+
 @Immutable
 data class StudyPlannerFeatureFlags(
     val isPremium: Boolean = false,
@@ -46,12 +97,17 @@ data class StudyTopic(
      */
     val revisionCompletedDates: List<String> = emptyList(),
     val revisionScheduleType: String? = null,
+    /** Effort size; null = inherit from chapter difficulty (default medium). */
+    val size: TopicSize? = null,
+    /** Partial completion 0–100; null = (done ? 100 : 0). */
+    val progressPercent: Int? = null,
 )
 
 @Immutable
 data class StudyChapter(
     val id: String = "",
     val name: String = "",
+    val difficulty: ChapterDifficulty? = null,
     val topics: List<StudyTopic> = emptyList(),
 )
 

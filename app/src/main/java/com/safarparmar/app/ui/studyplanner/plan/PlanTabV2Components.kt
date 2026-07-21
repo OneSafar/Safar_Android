@@ -75,12 +75,22 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.safarparmar.app.domain.model.studyplanner.progressPercentValue
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -98,6 +108,7 @@ import com.safarparmar.app.data.remote.api.UpdatePlanRequest
 import com.safarparmar.app.domain.model.studyplanner.PlanProgress
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.model.studyplanner.remainingPoints
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.theme.isLightBackground
@@ -110,9 +121,8 @@ import com.safarparmar.app.ui.studyplanner.logic.daysUntil
 import com.safarparmar.app.ui.studyplanner.logic.plannerExamCountdownCaption
 import com.safarparmar.app.ui.studyplanner.logic.plannerExamCountdownHeroNumber
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
-import com.safarparmar.app.ui.glass.macOSControlPanel
-import com.safarparmar.app.ui.glass.SafarGlassPalette
-
+import com.safarparmar.app.ui.studyplanner.components.flatCard
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PlanStatusCard(
@@ -151,16 +161,16 @@ fun PlanStatusCard(
     Column(modifier = cardModifier) {
         // ── Hero Banner ──────────────────────────────────────────────
         val isLight = !MaterialTheme.colorScheme.background.isLightBackground()
-        val titleTextColor = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
-        val subtitleTextColor = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.55f)
-        val captionTextColor = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f)
-        val actionIconColor = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White.copy(alpha = 0.7f)
-        val percentTextColor = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
+        val titleTextColor = PlannerFlatColors.TextDark
+        val subtitleTextColor = PlannerFlatColors.TextMuted
+        val captionTextColor = PlannerFlatColors.TextMuted
+        val actionIconColor = PlannerFlatColors.TextDark
+        val percentTextColor = PlannerFlatColors.TextDark
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(24.dp))
+                .flatCard(shape = RoundedCornerShape(24.dp))
                 .padding(horizontal = 20.dp, vertical = 24.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -426,16 +436,14 @@ fun PlanTabQuickLinks(
                         if (selected) {
                             Modifier
                                 .clip(shape)
-                                .background(Color(0xFF0A84FF))
+                                .background(PlannerFlatColors.AccentTint)
                                 .border(
-                                    width = 0.5.dp,
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))
-                                    ),
+                                    width = 1.5.dp,
+                                    color = PlannerFlatColors.PrimaryAccent,
                                     shape = shape
                                 )
                         } else {
-                            Modifier.macOSControlPanel(isLight = isLight, shape = shape)
+                            Modifier.flatCard(shape = shape)
                         }
                     )
                     .clickable { onTabSelected(tab) }
@@ -446,7 +454,7 @@ fun PlanTabQuickLinks(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (selected) Color.White else (if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary),
+                    color = if (selected) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.TextMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
@@ -477,16 +485,7 @@ fun TodayMissionCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = if (isDark) {
-                                listOf(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.surfaceContainerHigh)
-                            } else {
-                                listOf(Color(0xFFFFF7ED), Color(0xFFFED7AA))
-                            }
-                        ),
-                        shape = MaterialTheme.shapes.large
-                    )
+                    .flatCard(shape = MaterialTheme.shapes.large)
                     .padding(horizontal = 20.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -495,7 +494,7 @@ fun TodayMissionCard(
                     modifier = Modifier
                         .size(54.dp)
                         .background(
-                            color = if (isDark) Color(0xFF452D1D) else Color(0xFFFDBA74),
+                            color = PlannerFlatColors.AccentTint,
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
@@ -510,13 +509,13 @@ fun TodayMissionCard(
                         text = "Ready to conquer today? Add your first mission to get started!",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isDark) Color(0xFFFDBA74) else Color(0xFF7C2D12),
+                        color = PlannerFlatColors.TextDark,
                     )
                     Button(
                         onClick = onViewAllToday,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isDark) Color(0xFFF97316) else Color.White,
-                            contentColor = if (isDark) Color.White else Color(0xFF7C2D12)
+                            containerColor = PlannerFlatColors.PrimaryAccent,
+                            contentColor = Color.White
                         ),
                         shape = ButtonDefaults.shape,
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -663,6 +662,9 @@ fun PlannerTaskRow(
     onRemoveFromToday: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onFocus: (() -> Unit)? = null,
+    /** Saves a partial fill (5–95, snapped to 5% steps). Reaching 100% goes
+     *  through [onDoneChange] instead so the Done/To-Revise prompt still runs. */
+    onSetProgress: ((Int) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -670,6 +672,15 @@ fun PlannerTaskRow(
     val isLight = !isDark
     val done = ref.topic.status == TopicStatus.DONE
     val needsRevision = ref.topic.status == TopicStatus.REVISION_NEEDED
+    val savedProgress = ref.topic.progressPercentValue()
+
+    // Drag-to-fill: long-press arms the slider (so it never fights vertical
+    // list scroll), then a horizontal drag fills the card; release saves.
+    var rowWidthPx by remember { mutableIntStateOf(0) }
+    var fillArmed by remember { mutableStateOf(false) }
+    var dragFillPercent by remember(ref.topic.id, savedProgress) { mutableFloatStateOf(savedProgress.toFloat()) }
+    val haptic = LocalHapticFeedback.current
+    val displayedFillPercent = if (fillArmed) dragFillPercent else savedProgress.toFloat()
 
     var showMenu by remember { mutableStateOf(false) }
     val hasMenu = onEdit != null || onReplace != null || (onRemoveFromToday != null && !done) || (onFocus != null && !done)
@@ -703,19 +714,70 @@ fun PlannerTaskRow(
         else -> Color.Transparent
     }
 
-    val taskTitleColor = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
-    val taskSubtitleColor = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.6f)
-    val noteTextColor = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.82f)
+    val taskTitleColor = PlannerFlatColors.TextDark
+    val taskSubtitleColor = PlannerFlatColors.TextMuted
+    val noteTextColor = PlannerFlatColors.TextMuted
 
     Box(
         modifier = rowModifier
-            .macOSControlPanel(isLight = isLight, shape = shape)
+            .flatCard(shape = shape)
             .then(
                 if (statusOverlayColor != Color.Transparent)
                     Modifier.background(statusOverlayColor)
                 else Modifier
             )
+            .onGloballyPositioned { rowWidthPx = it.size.width }
+            .then(
+                if (onSetProgress != null && !done) {
+                    Modifier.pointerInput(ref.topic.id) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                fillArmed = true
+                                dragFillPercent = savedProgress.toFloat()
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            },
+                            onDragEnd = {
+                                fillArmed = false
+                                // Snap to 5% steps; 100% routes through the normal
+                                // completion flow so revision scheduling isn't bypassed.
+                                val snapped = ((dragFillPercent / 5f).roundToInt() * 5).coerceIn(0, 100)
+                                if (snapped >= 100) {
+                                    onDoneChange(true)
+                                } else if (snapped != savedProgress) {
+                                    onSetProgress(snapped)
+                                }
+                            },
+                            onDragCancel = { fillArmed = false },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                if (rowWidthPx > 0) {
+                                    dragFillPercent = (dragFillPercent + dragAmount.x / rowWidthPx * 100f)
+                                        .coerceIn(0f, 100f)
+                                }
+                            },
+                        )
+                    }
+                } else Modifier
+            )
     ) {
+        // Liquid fill layer under the content — visible while dragging and for
+        // any saved partial progress.
+        if (displayedFillPercent > 0f && !done) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(shape),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth((displayedFillPercent / 100f).coerceIn(0f, 1f))
+                        .background(
+                            PlannerFlatColors.PrimaryAccent.copy(alpha = if (fillArmed) 0.22f else 0.12f),
+                        ),
+                )
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -769,6 +831,15 @@ fun PlannerTaskRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                if (!done && (fillArmed || savedProgress in 1..99)) {
+                    Text(
+                        text = "${displayedFillPercent.roundToInt()}% done" +
+                            if (fillArmed) " — release to save" else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PlannerFlatColors.PrimaryAccent,
+                    )
+                }
                 if (needsRevision) {
                     Surface(
                         shape = CircleShape,
@@ -798,7 +869,7 @@ fun PlannerTaskRow(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "Options",
-                            tint = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.5f)
+                            tint = PlannerFlatColors.TextMuted
                         )
                     }
                     DropdownMenu(
@@ -991,13 +1062,12 @@ fun PlanSettingsSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val scheme = MaterialTheme.colorScheme
-    val premiumGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF3E7C8C), Color(0xFF29638A)))
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = scheme.surface,
+        containerColor = PlannerFlatColors.BgCream,
     ) {
         LazyColumn(
             modifier = Modifier
@@ -1012,7 +1082,7 @@ fun PlanSettingsSheet(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(premiumGradient),
+                            .background(PlannerFlatColors.PrimaryAccent),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -1024,11 +1094,11 @@ fun PlanSettingsSheet(
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text("Plan Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                        Text("Plan Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = PlannerFlatColors.TextDark)
                         Text(
                             "Fine-tune your exam and study routine",
                             style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant,
+                            color = PlannerFlatColors.TextMuted,
                         )
                     }
                 }
@@ -1121,7 +1191,7 @@ fun PlanSettingsSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 52.dp)
-                        .background(premiumGradient, shape = RoundedCornerShape(16.dp)),
+                        .background(PlannerFlatColors.PrimaryAccent, shape = RoundedCornerShape(16.dp)),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent,
@@ -1637,6 +1707,27 @@ fun AddTopicToTodaySheet(
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant,
                 )
+                // Capacity in effort points against the day budget (goal × 2):
+                // big topics count as more, so the hint can read "full" even
+                // below the topic-count goal.
+                if (dailyGoal > 0) {
+                    val todayPoints = allRefs
+                        .filter {
+                            it.topic.status != TopicStatus.DONE &&
+                                (it.topic.plannedDate?.take(10) ?: "") == today
+                        }
+                        .sumOf { it.topic.remainingPoints(it.chapter).toDouble() }
+                    val budget = dailyGoal * 2.0
+                    Text(
+                        text = if (todayPoints < budget) {
+                            "There's room in today's plan — big topics count as more."
+                        } else {
+                            "Today already looks full — adding more may overload the day."
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant,
+                    )
+                }
             }
 
             Spacer(Modifier.height(12.dp))
@@ -1943,7 +2034,7 @@ fun CollapsibleDailyTodoCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+            .flatCard(shape = RoundedCornerShape(20.dp))
     ) {
         Column {
             Row(
@@ -1957,14 +2048,14 @@ fun CollapsibleDailyTodoCard(
                 Icon(
                     imageVector = Icons.Default.Today,
                     contentDescription = null,
-                    tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+                    tint = PlannerFlatColors.PrimaryAccent,
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
                     text = "Daily To-Do",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White,
+                    color = PlannerFlatColors.TextDark,
                     modifier = Modifier.weight(1f),
                 )
                 if (todos.isNotEmpty()) {
@@ -1972,13 +2063,13 @@ fun CollapsibleDailyTodoCard(
                         text = "$doneCount/${todos.size}",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f),
+                        color = PlannerFlatColors.TextMuted,
                     )
                 }
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f),
+                    tint = PlannerFlatColors.TextMuted,
                     modifier = Modifier
                         .size(22.dp)
                         .graphicsLayer { rotationZ = chevronRotation },

@@ -194,11 +194,6 @@ import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
 import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
-import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
-import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
-import com.safarparmar.app.ui.studyplanner.components.subjectHeaderBrush
-import com.safarparmar.app.ui.studyplanner.components.subjectMeterBrush
-import com.safarparmar.app.ui.studyplanner.components.topicHierarchyBrush
 import com.safarparmar.app.ui.studyplanner.logic.*
 import com.safarparmar.app.ui.components.PlanCardSkeleton
 import com.safarparmar.app.ui.components.SafarInlineRefreshIndicator
@@ -222,9 +217,9 @@ import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.max
 // ── Liquid Glass design system ──────────────────────────────────────────────
-import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
-import com.safarparmar.app.ui.glass.liquidGlass
-import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.subjectMeterBrush
+import com.safarparmar.app.ui.studyplanner.components.flatCard
 
 @Composable
 internal fun InsightsTab(
@@ -259,7 +254,7 @@ internal fun InsightsTab(
         modifier = Modifier.fillMaxSize(),
     ) {
         // 1. Solid canvas backdrop (white in light mode, black in dark mode)
-        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
+        Box(modifier = Modifier.fillMaxSize())
 
         // 2. Main content column
         LazyColumn(
@@ -334,7 +329,7 @@ internal fun InsightsTab(
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontStyle = FontStyle.Italic,
                             fontWeight = FontWeight.Medium,
-                            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                            color = PlannerFlatColors.TextMuted
                         ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -364,12 +359,7 @@ internal fun LinkedEkagraSessionsCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .liquidGlass(
-                shape = RoundedCornerShape(20.dp),
-                surfaceTint = tint,
-                tintAlpha = tintAlpha,
-                isLight = isLight
-            )
+            .flatCard(shape = RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -383,7 +373,7 @@ internal fun LinkedEkagraSessionsCard(
                 Text(
                     "${totalMinutes} min total",
                     fontSize = 12.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                    color = PlannerFlatColors.TextMuted
                 )
             }
             sessions.take(10).forEach { session ->
@@ -407,14 +397,14 @@ internal fun LinkedEkagraSessionsCard(
                             text = session.topicTitle ?: if (session.topicExists) "Untitled topic" else "Deleted topic",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                            color = PlannerFlatColors.TextDark,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             durationLabel,
                             fontSize = 12.sp,
-                            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                            color = PlannerFlatColors.TextMuted
                         )
                     }
                     Text(
@@ -467,15 +457,7 @@ internal fun InsightsTopHeader(
 }
 
 
-/** Dynamic theme gradient for Insights overall progress. */
-@Composable
-internal fun insightsOverallProgressFillBrush(): Brush = Brush.horizontalGradient(
-    colors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-        MaterialTheme.colorScheme.secondary
-    ),
-)
+
 
 @Composable
 
@@ -532,35 +514,11 @@ internal fun InsightsLiquidOverallProgressBar(
                     .fillMaxHeight()
                     .width(maxWidth * animatedFraction)
                     .clip(shape)
-                    .graphicsLayer {
-                        scaleY = 0.94f + sin(shimmerWave.toDouble()).toFloat() * 0.06f
-                    },
             ) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(insightsOverallProgressFillBrush()),
-                )
-                Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.55f)
-                        .graphicsLayer { alpha = 0.85f }
-                        .offset {
-                            val wPx = maxWidth.roundToPx().toFloat().coerceAtLeast(1f)
-                            val x = (shimmerPhase - 0.35f) * wPx * 1.6f
-                            IntOffset(x.roundToInt(), 0)
-                        }
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = 0.24f),
-                                    Color.White.copy(alpha = 0.10f),
-                                    Color.Transparent,
-                                ),
-                            ),
-                        ),
+                        .background(PlannerFlatColors.PrimaryAccent),
                 )
             }
         }
@@ -1504,17 +1462,9 @@ internal fun InsightsInnerStat(
     isLight: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val tint = if (isLight) Color.Black else Color.White
-    val tintAlpha = if (isLight) 0.04f else 0.05f
-
     Box(
         modifier = modifier
-            .liquidGlass(
-                shape = RoundedCornerShape(16.dp),
-                surfaceTint = tint,
-                tintAlpha = tintAlpha,
-                isLight = isLight
-            )
+            .flatCard(shape = RoundedCornerShape(16.dp))
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Row(
@@ -1540,7 +1490,7 @@ internal fun InsightsInnerStat(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                    color = PlannerFlatColors.TextMuted
                 )
                 Text(
                     text = value,
@@ -1560,18 +1510,10 @@ internal fun SubjectProgressCard(
     subjectIndexById: Map<String, Int>,
     isLight: Boolean = false,
 ) {
-    val tint = if (isLight) Color.Black else Color.White
-    val tintAlpha = if (isLight) 0.04f else 0.05f
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .liquidGlass(
-                shape = RoundedCornerShape(18.dp),
-                surfaceTint = tint,
-                tintAlpha = tintAlpha,
-                isLight = isLight
-            )
+            .flatCard(shape = RoundedCornerShape(18.dp))
     ) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -1579,21 +1521,21 @@ internal fun SubjectProgressCard(
                     text = "Subject progress",
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 16.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                    color = PlannerFlatColors.TextDark,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = "${rows.size} subject${if (rows.size == 1) "" else "s"}",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                    color = PlannerFlatColors.TextMuted,
                 )
             }
             if (rows.isEmpty()) {
                 Text(
                     text = "Add topics to see subject progress.",
                     fontSize = 14.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                    color = PlannerFlatColors.TextMuted,
                 )
             } else {
                 rows.forEachIndexed { idx, row ->
@@ -1635,14 +1577,14 @@ internal fun SubjectProgressRow(
                     text = row.subjectName,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                    color = PlannerFlatColors.TextDark,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "${row.remainingTopics} topic${if (row.remainingTopics == 1) "" else "s"} remaining",
                     fontSize = 11.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                    color = PlannerFlatColors.TextMuted,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -1651,7 +1593,7 @@ internal fun SubjectProgressRow(
                 text = "${row.completionPercent}%",
                 fontWeight = FontWeight.Black,
                 fontSize = 13.sp,
-                color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                color = PlannerFlatColors.TextDark,
             )
         }
         Box(
@@ -1793,18 +1735,10 @@ internal fun InsightsMetricRow(
     value: String,
     isLight: Boolean = false,
 ) {
-    val tint = if (isLight) Color.Black else Color.White
-    val tintAlpha = if (isLight) 0.04f else 0.05f
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .liquidGlass(
-                shape = RoundedCornerShape(12.dp),
-                surfaceTint = tint,
-                tintAlpha = tintAlpha,
-                isLight = isLight
-            )
+            .flatCard(shape = RoundedCornerShape(12.dp))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -1824,14 +1758,14 @@ internal fun InsightsMetricRow(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                    color = PlannerFlatColors.TextDark
                 )
             }
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                color = PlannerFlatColors.TextDark
             )
         }
     }

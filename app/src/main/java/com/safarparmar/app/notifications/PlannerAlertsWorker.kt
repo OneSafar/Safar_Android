@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.model.studyplanner.remainingPoints
 import com.safarparmar.app.domain.repository.StudyPlannerRepository
 import com.safarparmar.app.util.Resource
 import dagger.hilt.EntryPoint
@@ -101,15 +102,21 @@ class PlannerAlertsWorker(
                     }
                 }
 
-                // 3. Pace Warning
+                // 3. Pace Warning — mirrors the server's points-based formula
+                // (getPlannerPaceRisk): remaining effort points ÷ days vs the
+                // daily budget of dailyGoal × 2 points.
                 if (!notified && plan.examDate != null && plan.dailyGoal != null && plan.dailyGoal > 0) {
                     val remainingTopics = allTopics.count { it.status != TopicStatus.DONE }
+                    val remainingPoints = plan.subjects
+                        .flatMap { subject -> subject.chapters.flatMap { ch -> ch.topics.map { it to ch } } }
+                        .filter { (topic, _) -> topic.status != TopicStatus.DONE }
+                        .sumOf { (topic, ch) -> topic.remainingPoints(ch).toDouble() }
                     val examDate = runCatching { LocalDate.parse(plan.examDate.substring(0, 10)) }.getOrNull()
                     if (examDate != null && examDate.isAfter(today) && remainingTopics > 0) {
                         val daysUntil = ChronoUnit.DAYS.between(today, examDate)
                         if (daysUntil <= 0L) continue
-                        val requiredPace = remainingTopics.toDouble() / daysUntil
-                        if (requiredPace > plan.dailyGoal) {
+                        val requiredPacePoints = remainingPoints / daysUntil
+                        if (requiredPacePoints > plan.dailyGoal * 2.0) {
                             val dedupeKey = PlannerAlertDedupe.paceWarningKey(plan.id, today)
                             if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
                                 notificationManager.showStudyReminder(

@@ -45,6 +45,7 @@ import com.safarparmar.app.ui.components.SafarResultSlot
 import com.safarparmar.app.ui.components.SyllabusRowSkeleton
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.TextInputDialog
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
@@ -392,6 +393,7 @@ fun SyllabusSubjectsScreen(
                                     onMoveChapterUp = { moveChapter(subject.id, chapter.id, -1) },
                                     onMoveChapterDown = { moveChapter(subject.id, chapter.id, 1) },
                                     onDragEnd = { saveChapterOrder(subject.id) },
+                                    onRate = { difficulty -> actions.rateChapter(subject.id, chapter.id, difficulty) },
                                     modifier = Modifier.animateItem(),
                                 )
                             }
@@ -408,6 +410,7 @@ fun SyllabusSubjectsScreen(
                     ChapterTopicsSheet(
                         chapterName = openChapter.name,
                         topics = openChapter.topics,
+                        chapter = openChapter,
                         isDarkTheme = isDarkTheme,
                         onDismiss = { openTopicsChapterId = null },
                         onAddTopic = { name -> requestAddTopic(subject.id, openChapter.id, name) },
@@ -944,21 +947,20 @@ private fun SyllabusBuildButton(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val buildGradient = if (enabled) {
-        Brush.horizontalGradient(colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
+    val buildColor = if (enabled) {
+        PlannerFlatColors.PrimaryAccent
     } else {
-        Brush.horizontalGradient(colors = listOf(scheme.onSurface.copy(alpha = 0.12f), scheme.onSurface.copy(alpha = 0.12f)))
+        scheme.onSurface.copy(alpha = 0.12f)
     }
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .background(buildGradient, shape = RoundedCornerShape(14.dp)),
+            .heightIn(min = 48.dp),
         shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent,
+            containerColor = buildColor,
             contentColor = if (enabled) Color.White else scheme.onSurface.copy(alpha = 0.38f),
         ),
     ) {
@@ -1087,15 +1089,14 @@ private fun SyllabusEmptySubjectsCard(onAddSubject: () -> Unit) {
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(20.dp))
-            val addSubGradient = Brush.horizontalGradient(colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
+            val addSubColor = PlannerFlatColors.PrimaryAccent
             Button(
                 onClick = onAddSubject,
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
-                    .background(addSubGradient, shape = RoundedCornerShape(50))
                     .heightIn(min = 44.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
+                    containerColor = addSubColor,
                     contentColor = Color.White,
                 ),
                 contentPadding = PaddingValues(horizontal = 28.dp, vertical = 12.dp),

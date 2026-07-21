@@ -67,6 +67,8 @@ interface PlannerActions {
      *  landing them at the front of the subject in the order given. */
     fun addChapters(subjectId: String, names: List<String>)
     fun renameChapter(subjectId: String, chapterId: String, name: String)
+    /** Rates a chapter's effort ("easy" | "normal" | "tough"); null clears it. */
+    fun rateChapter(subjectId: String, chapterId: String, difficulty: String?)
     fun deleteChapter(subjectId: String, chapterId: String)
     /** Adds a single topic, then moves it to the front of the chapter's topic list
      *  so the user sees it immediately without scrolling. */
@@ -87,7 +89,14 @@ interface PlannerActions {
         plannedDate: String? = null,
         notes: String? = null,
         pinned: Boolean? = null,
+        size: String? = null,
     )
+    /**
+     * Saves a partial completion (0–99) from the drag-to-fill card. 100 must
+     * instead route through the normal completion flow (Done vs To Revise
+     * prompt) so revision scheduling is never bypassed.
+     */
+    fun setTopicProgress(topicId: String, percent: Int)
     fun batchMarkTopicsDone(topicIds: List<String>)
     /**
      * Sets a topic to REVISION_NEEDED and schedules [revisionDates] on it.

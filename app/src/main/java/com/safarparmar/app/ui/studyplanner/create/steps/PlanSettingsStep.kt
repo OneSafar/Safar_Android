@@ -183,6 +183,7 @@ fun PlanSettingsStep(
                     value = dailyGoal,
                     onValueChange = onDailyGoalChange,
                     label = { Text("Topics per day") },
+                    supportingText = { Text("Big topics count as more.") },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

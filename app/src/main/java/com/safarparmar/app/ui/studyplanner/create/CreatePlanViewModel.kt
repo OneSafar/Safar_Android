@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.data.remote.api.ImportSyllabusChapterRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusSubjectRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusTopicRequest
+import com.safarparmar.app.data.remote.api.ChapterRatingRequest
 import com.safarparmar.app.data.remote.api.PlanPreviewRequest
 import com.safarparmar.app.data.remote.api.PlanPreviewResult
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
@@ -33,6 +34,7 @@ enum class CreatePlanStep {
     ManualTopicTree,
     PasteSyllabus,
     PlanSettings,
+    ChapterRating,
     DeepFocusOrder,
     MixedBagSubjectPicker,
     BuildingPreview,
@@ -156,6 +158,10 @@ data class CreatePlanUiState(
     // it; a non-empty list is the 2-3 subject names that should get topics every
     // day, with the rest rotating in on alternate days.
     val mixedBagPrioritySubjects: List<String>? = null,
+
+    // Optional "Rate your chapters" step (manual/paste sources only — templates
+    // arrive pre-weighted). (subjectName, chapterName) -> "easy"|"normal"|"tough".
+    val chapterRatings: Map<Pair<String, String>, String> = emptyMap(),
 )
 
 @HiltViewModel
@@ -802,6 +808,45 @@ class CreatePlanViewModel @Inject constructor(
         }
     }
 
+    // ── "Rate your chapters" step (manual/paste only) ────────────────
+
+    /** Whether the optional chapter-rating step applies to the active source. */
+    fun canRateChapters(): Boolean =
+        _uiState.value.source == PlanSource.Manual || _uiState.value.source == PlanSource.Paste
+
+    fun openChapterRating() = _uiState.update { it.copy(step = CreatePlanStep.ChapterRating) }
+
+    /** Subject/chapter outline shown by the rating step. */
+    fun ratingOutline(): List<DeepFocusOutlineSubject> = currentOutline()
+
+    /**
+     * Routes the Plan Settings "continue" through the optional chapter-rating
+     * step for manual/paste sources; template plans arrive pre-weighted and go
+     * straight to preview.
+     */
+    fun continueFromSettings() {
+        if (canRateChapters() && currentOutline().isNotEmpty()) openChapterRating() else buildPreview()
+    }
+
+    fun setChapterRating(subjectName: String, chapterName: String, difficulty: String?) {
+        _uiState.update { state ->
+            val key = subjectName to chapterName
+            state.copy(
+                chapterRatings = if (difficulty == null) {
+                    state.chapterRatings - key
+                } else {
+                    state.chapterRatings + (key to difficulty)
+                },
+            )
+        }
+    }
+
+    /** Skipping keeps every unrated chapter at the normal (medium) default. */
+    fun skipChapterRating() {
+        _uiState.update { it.copy(chapterRatings = emptyMap()) }
+        buildPreview()
+    }
+
     // ── Preview / confirm ────────────────────────────────────────────
 
     fun buildPreview() {
@@ -836,6 +881,9 @@ class CreatePlanViewModel @Inject constructor(
             "priority_split"
         } else {
             state.strategy
+        }
+        val chapterRatings = state.chapterRatings.takeIf { it.isNotEmpty() }?.map { (key, difficulty) ->
+            ChapterRatingRequest(subject = key.first, chapter = key.second, difficulty = difficulty)
         }
         val request = when (source) {
             PlanSource.Template -> {
@@ -874,6 +922,7 @@ class CreatePlanViewModel @Inject constructor(
                 source = "manual",
                 title = state.title.ifBlank { null },
                 subjects = state.manualSubjects.toImportRequest(),
+                chapterRatings = chapterRatings,
                 subjectOrder = subjectOrder,
                 chapterOrder = chapterOrder,
                 topicOrder = topicOrder,
@@ -900,6 +949,7 @@ class CreatePlanViewModel @Inject constructor(
                             },
                         )
                     },
+                    chapterRatings = chapterRatings,
                     subjectOrder = subjectOrder,
                     chapterOrder = chapterOrder,
                     topicOrder = topicOrder,

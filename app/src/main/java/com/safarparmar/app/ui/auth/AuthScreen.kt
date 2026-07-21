@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -28,8 +29,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -65,13 +70,17 @@ import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.theme.PoppinsFontFamily
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
-private val BrandNavy = Color(0xFF0C2B61)
-private val BrandAccent = Color(0xFFF7931E)
-private val InputBg = Color(0xFFF8F8FC)
-private val InputBorder = Color(0xFFE6E6F0)
-private val IconBoxBg = Color(0xFFEEEDF5)
-private val TextMuted = Color(0xFF9CA3AF)
-private val TextDarkMuted = Color(0xFF4B5563)
+private val LocalIsDarkTheme = staticCompositionLocalOf { false }
+
+private val BgCream: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF131316) else Color(0xFFFFF9F0)
+private val CardWhite: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
+private val TextDark: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
+private val TextMuted: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF94A3B8) else Color(0xFF64748B)
+private val BorderSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF33333D) else Color(0xFFE2DDF0)
+private val ShadowSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
+private val PrimaryAccent: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFA78BFA) else Color(0xFF7845E5) // Purple for Auth
+private val AccentShadow: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFA78BFA).copy(alpha = 0.3f) else Color(0xFF7845E5).copy(alpha = 0.3f)
+private val AccentTint: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFA78BFA).copy(alpha = 0.15f) else Color(0xFF7845E5).copy(alpha = 0.1f)
 
 private data class AuthPalette(
     val heading: Color,
@@ -85,28 +94,15 @@ private data class AuthPalette(
 
 @Composable
 private fun authPalette(): AuthPalette {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    return if (isDark) {
-        AuthPalette(
-            heading = Color(0xFF4D8DFF),
-            supportingText = Color(0xFFB4C7F2),
-            inputText = Color(0xFF153C84),
-            inputIcon = Color(0xFF2563D8),
-            link = Color(0xFF4D8DFF),
-            primaryButton = Color(0xFF255BDA),
-            accent = Color(0xFFFFD84D),
-        )
-    } else {
-        AuthPalette(
-            heading = BrandNavy,
-            supportingText = TextDarkMuted,
-            inputText = BrandNavy,
-            inputIcon = BrandNavy.copy(alpha = 0.6f),
-            link = BrandNavy,
-            primaryButton = BrandNavy,
-            accent = BrandAccent,
-        )
-    }
+    return AuthPalette(
+        heading = TextDark,
+        supportingText = TextMuted,
+        inputText = TextDark,
+        inputIcon = TextMuted,
+        link = PrimaryAccent,
+        primaryButton = PrimaryAccent,
+        accent = PrimaryAccent,
+    )
 }
 
 @Composable
@@ -170,7 +166,8 @@ fun AuthScreen(
         }
     }
 
-    Scaffold(
+    CompositionLocalProvider(LocalIsDarkTheme provides isDark) {
+        Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
@@ -187,15 +184,9 @@ fun AuthScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(BgCream)
                 .padding(padding)
         ) {
-            // Background Image
-            Image(
-                painter = painterResource(id = backgroundRes),
-                contentDescription = "Background",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
 
             // Content Container
             Column(
@@ -243,6 +234,7 @@ fun AuthScreen(
                 }
             }
         }
+        }
     }
 }
 
@@ -260,55 +252,48 @@ fun HtmlTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
     val palette = authPalette()
+    val cardShape = RoundedCornerShape(16.dp)
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(InputBg, RoundedCornerShape(12.dp))
-            .border(1.dp, if (isError) MaterialTheme.colorScheme.error else InputBorder, RoundedCornerShape(12.dp))
-            .padding(4.dp),
+            .shadow(
+                elevation = 4.dp, 
+                shape = cardShape, 
+                spotColor = ShadowSoft, 
+                ambientColor = ShadowSoft
+            )
+            .clip(cardShape)
+            .background(CardWhite)
+            .border(width = 1.5.dp, color = BorderSoft, shape = cardShape)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .background(IconBoxBg, RoundedCornerShape(8.dp))
-                .padding(12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = leadingIcon,
-                contentDescription = null,
-                tint = palette.inputIcon,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(Modifier.width(8.dp))
+        Icon(imageVector = leadingIcon, contentDescription = null, tint = palette.inputIcon, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(16.dp))
         Box(modifier = Modifier.weight(1f)) {
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
                 textStyle = TextStyle(
-                    color = palette.inputText,
-                    fontSize = 15.sp,
+                    color = palette.inputText, 
+                    fontSize = 15.sp, 
+                    fontWeight = FontWeight.Medium,
                     fontFamily = PoppinsFontFamily
                 ),
-                cursorBrush = SolidColor(palette.inputText),
+                cursorBrush = SolidColor(palette.accent),
                 visualTransformation = visualTransformation,
                 keyboardOptions = keyboardOptions,
                 keyboardActions = keyboardActions,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                modifier = Modifier.fillMaxWidth()
             )
             if (value.isEmpty()) {
-                Text(
-                    text = placeholder,
-                    color = TextMuted,
-                    fontSize = 15.sp,
-                    modifier = Modifier.padding(vertical = 12.dp)
-                )
+                Text(text = placeholder, color = palette.supportingText, fontSize = 15.sp)
             }
         }
         if (trailingIcon != null) {
-            Box(modifier = Modifier.padding(end = 8.dp)) {
+            Box(modifier = Modifier.padding(start = 8.dp)) {
                 trailingIcon()
             }
         }
@@ -361,6 +346,7 @@ fun HtmlDropdownField(
 ) {
     val palette = authPalette()
     var expanded by remember { mutableStateOf(false) }
+    val cardShape = RoundedCornerShape(16.dp)
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -371,16 +357,24 @@ fun HtmlDropdownField(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
-                .background(InputBg, RoundedCornerShape(12.dp))
-                .border(1.dp, InputBorder, RoundedCornerShape(12.dp))
-                .padding(16.dp),
+                .shadow(
+                    elevation = 4.dp, 
+                    shape = cardShape, 
+                    spotColor = ShadowSoft, 
+                    ambientColor = ShadowSoft
+                )
+                .clip(cardShape)
+                .background(CardWhite)
+                .border(width = 1.5.dp, color = BorderSoft, shape = cardShape)
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = value.ifEmpty { placeholder },
-                color = if (value.isEmpty()) TextMuted else palette.inputText,
+                color = if (value.isEmpty()) palette.supportingText else palette.inputText,
                 fontSize = 15.sp,
+                fontWeight = FontWeight.Medium
             )
             ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
         }
@@ -388,14 +382,14 @@ fun HtmlDropdownField(
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(Color.White)
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
         ) {
             options.forEach { opt ->
                 DropdownMenuItem(
                     text = {
                         Text(
                             text = opt,
-                            color = palette.inputText,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp
                         )
                     },
@@ -416,34 +410,23 @@ fun HtmlPrimaryButton(
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val palette = authPalette()
-    Button(
-        onClick = onClick,
-        enabled = enabled,
+    val buttonShape = RoundedCornerShape(16.dp)
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = palette.primaryButton,
-            contentColor = Color.White,
-            disabledContainerColor = palette.primaryButton.copy(alpha = 0.5f),
-            disabledContentColor = Color.White.copy(alpha = 0.5f),
-        ),
-        contentPadding = PaddingValues(0.dp)
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = palette.accent,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 24.dp)
-                    .size(20.dp)
+            .height(60.dp)
+            .shadow(
+                elevation = 6.dp, 
+                shape = buttonShape, 
+                spotColor = PrimaryAccent.copy(alpha = 0.4f)
             )
-        }
+            .clip(buttonShape)
+            .background(if (enabled) PrimaryAccent else PrimaryAccent.copy(alpha = 0.5f))
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = text, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -452,36 +435,37 @@ fun GoogleSignInButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    Button(
-        onClick = onClick,
+    val cardShape = RoundedCornerShape(16.dp)
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-            contentColor = if (isDark) Color.White else Color(0xFF0F172A)
-        ),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
-        contentPadding = PaddingValues(0.dp)
+            .height(60.dp)
+            .shadow(
+                elevation = 4.dp, 
+                shape = cardShape, 
+                spotColor = ShadowSoft, 
+                ambientColor = ShadowSoft
+            )
+            .clip(cardShape)
+            .background(CardWhite)
+            .border(width = 1.5.dp, color = BorderSoft, shape = cardShape)
+            .clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_google_logo),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Continue with Google",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.ic_google_logo),
+            contentDescription = null,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = "Continue with Google", 
+            color = TextDark, 
+            fontSize = 16.sp, 
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 

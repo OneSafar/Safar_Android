@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.studyplanner.create.steps.BuildingPreviewStep
+import com.safarparmar.app.ui.studyplanner.create.steps.ChapterRatingStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ChoosePathStep
 import com.safarparmar.app.ui.studyplanner.create.steps.DeepFocusOrderStep
 import com.safarparmar.app.ui.studyplanner.create.steps.DailyTopicsStep
@@ -61,6 +62,7 @@ private fun stepTitle(step: CreatePlanStep): String = when (step) {
     CreatePlanStep.ManualTopicTree -> "Build it myself"
     CreatePlanStep.PasteSyllabus -> "Paste your syllabus"
     CreatePlanStep.PlanSettings -> "Plan settings"
+    CreatePlanStep.ChapterRating -> "Rate your chapters"
     CreatePlanStep.DeepFocusOrder -> "Order your syllabus"
     CreatePlanStep.MixedBagSubjectPicker -> "Mixed Bag"
     CreatePlanStep.BuildingPreview -> "Building your plan"
@@ -112,6 +114,7 @@ fun CreatePlanScreen(
                     null -> CreatePlanStep.ChoosePath
                 },
             )
+            CreatePlanStep.ChapterRating -> viewModel.goToStep(CreatePlanStep.PlanSettings)
             CreatePlanStep.DeepFocusOrder -> if (!viewModel.drillBackDeepFocus()) {
                 viewModel.goToStep(CreatePlanStep.PlanSettings)
             }
@@ -246,9 +249,17 @@ fun CreatePlanScreen(
                     topicCount = viewModel.currentTopicCount(),
                     error = state.previewError,
                     premiumRequired = state.premiumRequired,
-                    onBuildPlan = viewModel::buildPreview,
+                    onBuildPlan = viewModel::continueFromSettings,
                     onOpenDeepFocusOrder = viewModel::openDeepFocusOrder,
                     onOpenMixedBagPicker = viewModel::openMixedBagPicker,
+                    modifier = Modifier.padding(padding),
+                )
+                CreatePlanStep.ChapterRating -> ChapterRatingStep(
+                    outline = viewModel.ratingOutline(),
+                    ratings = state.chapterRatings,
+                    onRate = viewModel::setChapterRating,
+                    onSkip = viewModel::skipChapterRating,
+                    onContinue = viewModel::buildPreview,
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.DeepFocusOrder -> DeepFocusOrderStep(

@@ -4,7 +4,39 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.ui.unit.dp
+
+val LocalPlannerIsDarkTheme = staticCompositionLocalOf { false }
+
+object PlannerFlatColors {
+    val BgCream @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF131316) else Color(0xFFFFF9F0)
+    val CardWhite @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
+    val TextDark @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
+    val TextMuted @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val BorderSoft @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF33333D) else Color(0xFFE2DDF0)
+    val ShadowSoft @Composable get() = if (LocalPlannerIsDarkTheme.current) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
+    val PrimaryAccent @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFE0654B) else Color(0xFFE0654B) // Coral for Planner
+    val AccentShadow @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFE0654B).copy(alpha = 0.3f) else Color(0xFFE0654B).copy(alpha = 0.3f)
+    val AccentTint @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFE0654B).copy(alpha = 0.15f) else Color(0xFFE0654B).copy(alpha = 0.1f)
+}
+
+@Composable
+fun Modifier.flatCard(shape: Shape = RoundedCornerShape(16.dp)): Modifier {
+    val cardWhite = PlannerFlatColors.CardWhite
+    val borderSoft = PlannerFlatColors.BorderSoft
+    val shadowSoft = PlannerFlatColors.ShadowSoft
+    return this
+        .shadow(elevation = 4.dp, shape = shape, spotColor = shadowSoft, ambientColor = shadowSoft)
+        .clip(shape)
+        .background(cardWhite)
+        .border(width = 1.5.dp, color = borderSoft, shape = shape)
+}
 
 /**
  * The planner's warm, muted accent palette — fixed constants, not derived from

@@ -726,6 +726,12 @@ class StudyPlannerViewModel @Inject constructor(
     }
 
     override fun renameChapter(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(name)) }
+    override fun rateChapter(subjectId: String, chapterId: String, difficulty: String?) = mutateSelected(
+        successMessage = "Chapter rated",
+    ) { planId ->
+        // "" clears the rating server-side; Gson would drop a null field entirely.
+        repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(difficulty = difficulty ?: ""))
+    }
     override fun deleteChapter(subjectId: String, chapterId: String) = mutateSelected(
         successMessage = "Chapter deleted",
         undoLabel = "Chapter deletion",
@@ -829,7 +835,7 @@ class StudyPlannerViewModel @Inject constructor(
             }
         }
     }
-    override fun updateTopic(topicId: String, status: TopicStatus?, name: String?, plannedDate: String?, notes: String?, pinned: Boolean?) {
+    override fun updateTopic(topicId: String, status: TopicStatus?, name: String?, plannedDate: String?, notes: String?, pinned: Boolean?, size: String?) {
         val state = _uiState.value
         val planId = state.selectedPlan?.id ?: return
         val today = todayKey()
@@ -851,8 +857,15 @@ class StudyPlannerViewModel @Inject constructor(
                 markOnboardingStepDone(StudyPlannerOnboardingSteps.FIRST_TOPIC_DONE)
             }
             refreshPlannerAchievements()
-        }) { planId -> repo.updateTopic(planId, topicId, TopicPatchRequest(name = name, status = status, plannedDate = plannedDate, notes = notes, pinned = pinned, clientDateKey = today)) }
+        }) { planId -> repo.updateTopic(planId, topicId, TopicPatchRequest(name = name, status = status, plannedDate = plannedDate, notes = notes, pinned = pinned, size = size, clientDateKey = today)) }
     }
+    override fun setTopicProgress(topicId: String, percent: Int) {
+        val clamped = percent.coerceIn(0, 99)
+        mutateSelected(refreshCalendar = true, refreshAnalytics = true, successMessage = "Progress saved") { planId ->
+            repo.updateTopic(planId, topicId, TopicPatchRequest(progressPercent = clamped, clientDateKey = todayKey()))
+        }
+    }
+
     override fun deleteTopic(topicId: String) {
         viewModelScope.launch {
             val planId = _uiState.value.selectedPlan?.id ?: return@launch

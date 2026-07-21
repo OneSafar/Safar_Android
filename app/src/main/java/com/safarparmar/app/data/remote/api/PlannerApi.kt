@@ -332,6 +332,16 @@ data class PlanPreviewRequest(
     val offDays: List<Int> = emptyList(),
     val strategy: String? = null,
     val overloadMode: String? = null,
+    /** Create-time chapter difficulty ratings (manual/paste sources), applied
+     *  server-side before scheduling so the first schedule is already weighted. */
+    val chapterRatings: List<ChapterRatingRequest>? = null,
+)
+
+data class ChapterRatingRequest(
+    val subject: String,
+    val chapter: String,
+    /** "easy" | "normal" | "tough" */
+    val difficulty: String,
 )
 
 data class TemplateExtraChapterRequest(
@@ -377,12 +387,18 @@ data class SubjectRequest(
     val monthlyTarget: Int? = null,
 )
 
-data class ChapterRequest(val name: String)
+data class ChapterRequest(
+    val name: String? = null,
+    /** "easy" | "normal" | "tough"; "" clears the rating server-side. */
+    val difficulty: String? = null,
+)
 
 data class TopicRequest(
     val name: String,
     val plannedDate: String? = null,
     val notes: String? = null,
+    /** "small" | "medium" | "big" */
+    val size: String? = null,
 )
 
 data class BulkTopicsRequest(
@@ -427,6 +443,10 @@ data class TopicPatchRequest(
     val revisionReminderDates: List<String>? = null,
     val revisionCompletedDates: List<String>? = null,
     val revisionScheduleType: String? = null,
+    /** "small" | "medium" | "big" */
+    val size: String? = null,
+    /** Partial completion 0–100 (Stage 3 drag-to-fill). */
+    val progressPercent: Int? = null,
 )
 
 data class BatchTopicUpdateItem(

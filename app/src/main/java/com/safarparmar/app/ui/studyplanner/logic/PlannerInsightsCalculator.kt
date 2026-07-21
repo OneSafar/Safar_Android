@@ -5,6 +5,9 @@ import com.safarparmar.app.domain.model.studyplanner.HeatmapPoint
 import com.safarparmar.app.domain.model.studyplanner.PlannerAnalytics
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.model.studyplanner.effortPoints
+import com.safarparmar.app.domain.model.studyplanner.pointsToTopicEquivalents
+import com.safarparmar.app.domain.model.studyplanner.remainingPoints
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.max
@@ -21,9 +24,17 @@ object PlannerInsightsCalculator {
         val refs = plan.flattenTopics()
         val topics = refs.map { it.topic }
         val remainingTopics = topics.count { it.status != TopicStatus.DONE }
+        // Remaining work in effort points (server formula: small=1, medium=2,
+        // big=4, scaled by partial progress), shown to the user as
+        // topic-equivalents (points ÷ 2) so labels keep saying "topics/day".
+        val remainingEquivalents = pointsToTopicEquivalents(
+            refs.filter { it.topic.status != TopicStatus.DONE }
+                .map { it.topic.remainingPoints(it.chapter) }
+                .sum(),
+        )
         val totalTopics = topics.size
         val doneTopics = topics.count { it.status == TopicStatus.DONE }
-        val completionPercent = if (totalTopics == 0) 0 else ((doneTopics.toFloat() / totalTopics) * 100).roundToInt()
+        val completionPercent = weightedCompletionPercent(refs.map { it.topic to it.chapter })
 
         val examDate = parsePlannerDate(plan.examDate)
         val today = LocalDate.parse(todayIso)
@@ -41,19 +52,19 @@ object PlannerInsightsCalculator {
             examDate == null -> null
             remainingTopics == 0 -> todayIso
             recentTopicsPerStudyDay != null && recentTopicsPerStudyDay > 0f ->
-                simulateForecastAtRate(remainingTopics, recentTopicsPerStudyDay, plan.offDays, today)
+                simulateForecastAtRate(remainingEquivalents, recentTopicsPerStudyDay, plan.offDays, today)
             else -> null
         }
 
         val requiredTopicsPerStudyDay =
             when {
                 availableStudyDays == null -> null
-                availableStudyDays == 0 -> if (remainingTopics > 0) remainingTopics.toFloat() else 0f
-                else -> (remainingTopics.toFloat() / availableStudyDays)
+                availableStudyDays == 0 -> if (remainingTopics > 0) remainingEquivalents else 0f
+                else -> (remainingEquivalents / availableStudyDays)
             }
 
         val forecastDateIso = if (examDate != null && remainingTopics > 0) {
-            simulateForecastCompletionDate(remainingTopics, dailyGoal, plan.offDays, today)
+            simulateForecastCompletionDate(remainingEquivalents, dailyGoal, plan.offDays, today)
         } else if (examDate != null && remainingTopics == 0) {
             todayIso
         } else null
@@ -108,7 +119,11 @@ object PlannerInsightsCalculator {
             velocityForecastCompletionDate = velocityForecastIso,
         )
 
-        val workload = buildWorkload(calendar, todayIso)
+        // Day loads are weighted by effort: a day is "overloaded" when its
+        // planned points exceed the internal daily budget (dailyGoal × 2),
+        // not when it merely holds many (possibly small) topics.
+        val pointsByTopicId = refs.associate { it.topic.id to it.topic.effortPoints(it.chapter).toFloat() }
+        val workload = buildWorkload(calendar, todayIso, pointsByTopicId, dailyGoal * 2f)
 
         val consistency = buildConsistency(completedByDate, analytics?.heatmap, todayIso, calendar)
 
@@ -193,20 +208,20 @@ object PlannerInsightsCalculator {
     }
 
     private fun simulateForecastCompletionDate(
-        remainingTopics: Int,
+        remainingEquivalents: Float,
         dailyGoal: Int,
         offDays: List<Int>,
         startDate: LocalDate,
     ): String? {
-        if (remainingTopics <= 0) return startDate.toString()
+        if (remainingEquivalents <= 0f) return startDate.toString()
         val goal = max(1, dailyGoal)
         val off = offDays.toSet()
         var cursor = startDate
-        var topicsLeft = remainingTopics
+        var topicsLeft = remainingEquivalents
         repeat(3660) {
             if (jsDayOfWeek(cursor) !in off) {
                 topicsLeft -= goal
-                if (topicsLeft <= 0) return cursor.toString()
+                if (topicsLeft <= 0f) return cursor.toString()
             }
             cursor = cursor.plusDays(1)
         }
@@ -216,6 +231,8 @@ object PlannerInsightsCalculator {
     private fun buildWorkload(
         calendar: Map<String, List<CalendarTopicItem>>,
         todayIso: String,
+        pointsByTopicId: Map<String, Float> = emptyMap(),
+        dailyPointBudget: Float = 6f,
     ): PlannerInsightWorkload {
         val today = LocalDate.parse(todayIso)
         val next14 = (0 until 14).map { offset ->
@@ -228,7 +245,16 @@ object PlannerInsightsCalculator {
                 doneCount = items.count { it.status == TopicStatus.DONE },
             )
         }
-        val overloadDays = next14.count { it.plannedCount >= 5 }
+        // Overload is judged in effort points against the daily budget, so a
+        // day of many small topics is not flagged while one stacked with big
+        // topics is.
+        val overloadDays = (0 until 14).count { offset ->
+            val key = today.plusDays(offset.toLong()).toString()
+            val points = calendar[key].orEmpty().sumOf { item ->
+                (pointsByTopicId[item.topicId] ?: 2f).toDouble()
+            }
+            points > dailyPointBudget
+        }
         val emptyStudyDays = next14.count { it.plannedCount == 0 }
         val busiest = next14.maxByOrNull { it.plannedCount }?.takeIf { it.plannedCount > 0 }
 
@@ -286,12 +312,12 @@ object PlannerInsightsCalculator {
      * accumulate across days so a pace of e.g. 1.5/day is honoured.
      */
     private fun simulateForecastAtRate(
-        remainingTopics: Int,
+        remainingTopics: Float,
         ratePerStudyDay: Float,
         offDays: List<Int>,
         startDate: LocalDate,
     ): String? {
-        if (remainingTopics <= 0) return startDate.toString()
+        if (remainingTopics <= 0f) return startDate.toString()
         if (ratePerStudyDay <= 0f) return null
         val off = offDays.toSet()
         var cursor = startDate

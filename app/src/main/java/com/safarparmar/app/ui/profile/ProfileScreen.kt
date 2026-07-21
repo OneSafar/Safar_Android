@@ -55,15 +55,155 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.premium.PremiumViewModel
-import com.safarparmar.app.ui.glass.SafarGlassBackdrop
-import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
-import com.safarparmar.app.ui.glass.SafarGlassPalette
-import com.safarparmar.app.ui.glass.safarFrostedPanel
 import com.safarparmar.app.ui.theme.*
-import com.safarparmar.app.ui.components.*
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+
+val LocalIsDarkTheme = staticCompositionLocalOf { false }
+
+val BgCream: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF131316) else Color(0xFFFFF9F0)
+val CardWhite: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
+val TextDark: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
+val TextMuted: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF94A3B8) else Color(0xFF64748B)
+val BorderSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF33333D) else Color(0xFFE2DDF0)
+val ShadowSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
+val PrimaryAccent: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF60A5FA) else Color(0xFF3B82F6)
+val AccentShadow: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF60A5FA).copy(alpha = 0.3f) else Color(0xFF3B82F6).copy(alpha = 0.3f)
+val AccentTint: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF60A5FA).copy(alpha = 0.15f) else Color(0xFF3B82F6).copy(alpha = 0.1f)
+
+@Composable
+private fun FlatCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val cardShape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 4.dp, 
+                shape = cardShape, 
+                spotColor = ShadowSoft, 
+                ambientColor = ShadowSoft
+            )
+            .clip(cardShape)
+            .background(CardWhite)
+            .border(width = 1.5.dp, color = BorderSoft, shape = cardShape)
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun FlatTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    enabled: Boolean = true,
+    errorText: String? = null,
+    helperText: String? = null,
+) {
+    val cardShape = RoundedCornerShape(16.dp)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = label, color = TextDark, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 4.dp, 
+                    shape = cardShape, 
+                    spotColor = ShadowSoft, 
+                    ambientColor = ShadowSoft
+                )
+                .clip(cardShape)
+                .background(if (enabled) CardWhite else Color(0xFFF8FAFC))
+                .border(width = 1.5.dp, color = BorderSoft, shape = cardShape)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                enabled = enabled,
+                textStyle = androidx.compose.ui.text.TextStyle(color = TextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        if (errorText != null) {
+            Text(text = errorText, color = Color.Red, fontSize = 12.sp)
+        } else if (helperText != null) {
+            Text(text = helperText, color = TextMuted, fontSize = 12.sp)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FlatDropdownMenu(
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val cardShape = RoundedCornerShape(16.dp)
+    
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = label, color = TextDark, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
+                    .shadow(
+                        elevation = 4.dp, 
+                        shape = cardShape, 
+                        spotColor = ShadowSoft, 
+                        ambientColor = ShadowSoft
+                    )
+                    .clip(cardShape)
+                    .background(CardWhite)
+                    .border(width = 1.5.dp, color = BorderSoft, shape = cardShape)
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = selectedOption,
+                    color = TextDark,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            }
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(CardWhite)
+            ) {
+                options.forEach { opt ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = opt,
+                                color = TextDark,
+                                fontSize = 16.sp
+                            )
+                        },
+                        onClick = {
+                            onSelect(opt)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
 
 private val examOptions = listOf("UPSC", "SSC", "IBPS", "RRB", "NEET", "JEE", "12th Boards", "State PSC", "CAT", "GATE", "Other")
 private val stageOptions = listOf("Beginner", "Intermediate", "Advanced", "Revision", "Mock Tests")
@@ -151,10 +291,11 @@ fun ProfileScreen(
         LocalDensity provides Density(
             density = currentDensity.density,
             fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
+        ),
+        LocalIsDarkTheme provides isDarkTheme
     ) {
         Scaffold(
-            containerColor = Color.Transparent,
+            containerColor = BgCream,
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 Box(
@@ -163,101 +304,65 @@ fun ProfileScreen(
                         .statusBarsPadding()
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .safarFrostedPanel(
-                                isLight = !isDarkTheme,
-                                shape = RoundedCornerShape(SafarGlassChromeRadius),
-                            ),
-                    ) {
-                        TopAppBar(
-                            title = {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(1.dp),
-                                ) {
-                                    Text(
-                                        text = "Profile",
-                                        style = MaterialTheme.typography.titleLarge.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 20.sp,
-                                        ),
-                                        color = if (isDarkTheme) {
-                                            SafarGlassPalette.TextPrimary
-                                        } else {
-                                            SafarGlassPalette.LightTextPrimary
-                                        },
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = "Your identity and study",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontSize = 12.sp,
-                                        ),
-                                        color = if (isDarkTheme) {
-                                            SafarGlassPalette.TextSecondary
-                                        } else {
-                                            SafarGlassPalette.LightTextSecondary
-                                        },
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                            },
-                            navigationIcon = {
-                                IconButton(
-                                    onClick = onBack,
-                                    modifier = Modifier.padding(start = 4.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Back",
-                                        tint = scheme.primary,
-                                    )
-                                }
-                            },
-                            actions = {
-                                Switch(
-                                    checked = isDarkTheme,
-                                    onCheckedChange = { onToggleDarkTheme() },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = scheme.primary,
-                                        uncheckedThumbColor = Color.White,
-                                        uncheckedTrackColor = scheme.outline.copy(alpha = 0.3f),
+                    TopAppBar(
+                        title = {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(1.dp),
+                            ) {
+                                Text(
+                                    text = "Profile",
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 20.sp,
                                     ),
-                                    modifier = Modifier.padding(end = 16.dp),
+                                    color = TextDark,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                            windowInsets = WindowInsets(0, 0, 0, 0),
-                        )
-                    }
+                                Text(
+                                    text = "Your identity and study",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 12.sp,
+                                    ),
+                                    color = TextMuted,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier.padding(start = 4.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = PrimaryAccent,
+                                )
+                            }
+                        },
+                        actions = {
+                            Switch(
+                                checked = isDarkTheme,
+                                onCheckedChange = { onToggleDarkTheme() },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = PrimaryAccent,
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedTrackColor = BorderSoft,
+                                ),
+                                modifier = Modifier.padding(end = 16.dp),
+                            )
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                    )
                 }
             },
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize()) {
-                SafarGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = !isDarkTheme)
-                // Soft brand bloom behind header — not an opaque card
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    if (isDarkTheme) {
-                                        Color(0xFF1B212D).copy(alpha = 0.55f)
-                                    } else {
-                                        Color(0xFFD6E9FF).copy(alpha = 0.55f)
-                                    },
-                                    Color.Transparent,
-                                ),
-                            ),
-                        ),
-                )
 
                 Column(
                     modifier = Modifier
@@ -360,7 +465,7 @@ private fun ProfileHeaderCard(
     onEditAvatarClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    GlassCard {
+    FlatCard {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -369,12 +474,12 @@ private fun ProfileHeaderCard(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Box(contentAlignment = Alignment.BottomEnd) {
-                val avatarRing = scheme.surface
+                val avatarRing = BorderSoft
                 Box(
                     modifier = Modifier
                         .size(96.dp)
                         .clip(CircleShape)
-                        .background(scheme.primaryContainer)
+                        .background(AccentTint)
                         .border(4.dp, avatarRing, CircleShape)
                         .clickable(enabled = !uiState.isAvatarUploading) { onAvatarClick() },
                     contentAlignment = Alignment.Center,
@@ -418,7 +523,7 @@ private fun ProfileHeaderCard(
                         .offset(x = 4.dp, y = 4.dp)
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(scheme.primary)
+                        .background(PrimaryAccent)
                         .border(2.dp, avatarRing, CircleShape)
                         .clickable(enabled = !uiState.isAvatarUploading) { onEditAvatarClick() },
                     contentAlignment = Alignment.Center,
@@ -426,7 +531,7 @@ private fun ProfileHeaderCard(
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
                         contentDescription = "Change photo",
-                        tint = scheme.onPrimary,
+                        tint = Color.White,
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -438,10 +543,10 @@ private fun ProfileHeaderCard(
                 Text(
                     text = uiState.userName.ifEmpty { "User" },
                     style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         fontSize = 22.sp
                     ),
-                    color = scheme.onSurface,
+                    color = TextDark,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -449,9 +554,10 @@ private fun ProfileHeaderCard(
                 Text(
                     text = uiState.userEmail,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 15.sp
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
                     ),
-                    color = scheme.onSurfaceVariant,
+                    color = TextMuted,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -530,20 +636,20 @@ private fun PersonalInfoSection(uiState: ProfileUiState, viewModel: ProfileViewM
                 color = scheme.onSurface,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
-            SafarCustomTextField(
+            FlatTextField(
                 label = "FULL NAME",
                 value = uiState.editName,
                 onValueChange = { viewModel.onEvent(ProfileEvent.UpdateName(it)) },
                 errorText = uiState.nameError,
             )
-            SafarCustomTextField(
+            FlatTextField(
                 label = "EMAIL ADDRESS",
                 value = uiState.userEmail,
                 onValueChange = {},
                 enabled = false,
                 helperText = "Contact support to update your primary email address.",
             )
-            SafarCustomDropdownMenu(
+            FlatDropdownMenu(
                 label = "GENDER",
                 options = genderOptions,
                 selectedOption = uiState.editGender.ifEmpty { "Select gender" },
@@ -572,13 +678,13 @@ private fun ExamFocusSection(uiState: ProfileUiState, viewModel: ProfileViewMode
                 color = scheme.onSurface,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
-            SafarCustomDropdownMenu(
+            FlatDropdownMenu(
                 label = "TARGET EXAM",
                 options = examOptions,
                 selectedOption = uiState.editExamType.ifEmpty { "Select exam" },
                 onSelect = { viewModel.onEvent(ProfileEvent.UpdateExamType(it)) },
             )
-            SafarCustomDropdownMenu(
+            FlatDropdownMenu(
                 label = "PREPARATION STAGE",
                 options = stageOptions,
                 selectedOption = uiState.editStage.ifEmpty { "Select stage" },
@@ -593,11 +699,10 @@ private fun AccountStatusSection(
     isPremiumActive: Boolean,
     onPremiumClick: () -> Unit = {},
 ) {
-    val scheme = MaterialTheme.colorScheme
     val statusTitle = if (isPremiumActive) "Safar Premium" else "Safar Plus"
     val statusText = if (isPremiumActive) "Premium access active" else "Normal Safar access"
     val buttonText = if (isPremiumActive) "Manage Plan" else "View Plans"
-    GlassCard {
+    FlatCard {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -609,7 +714,7 @@ private fun AccountStatusSection(
                 Text(
                     text = statusTitle,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = scheme.onSurface
+                    color = TextDark
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
@@ -637,15 +742,18 @@ private fun AccountStatusSection(
                     )
                 }
             }
-            Button(
-                onClick = onPremiumClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = scheme.primaryContainer,
-                    contentColor = scheme.onPrimaryContainer
-                ),
-                shape = RoundedCornerShape(SafarGlassChromeRadius)
+            
+            val btnShape = RoundedCornerShape(12.dp)
+            Box(
+                modifier = Modifier
+                    .shadow(elevation = 2.dp, shape = btnShape, spotColor = ShadowSoft)
+                    .clip(btnShape)
+                    .background(AccentTint)
+                    .border(1.dp, PrimaryAccent, btnShape)
+                    .clickable(onClick = onPremiumClick)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
-                Text(buttonText, fontWeight = FontWeight.Bold)
+                Text(buttonText, color = PrimaryAccent, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -657,62 +765,52 @@ private fun ActionsSection(
     onLogoutClick: () -> Unit,
     onSaveClick: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
-    GlassCard {
+    FlatCard {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedButton(
-                onClick = onLogoutClick,
+            // Logout Button
+            val outlineShape = RoundedCornerShape(16.dp)
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(56.dp),
-                shape = RoundedCornerShape(SafarGlassChromeRadius),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.error),
-                border = BorderStroke(1.5.dp, scheme.error),
+                    .height(56.dp)
+                    .clip(outlineShape)
+                    .background(CardWhite)
+                    .border(1.5.dp, Color.Red.copy(alpha = 0.5f), outlineShape)
+                    .clickable(onClick = onLogoutClick),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Logout",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = Color.Red, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Logout", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
             }
-            Button(
-                onClick = onSaveClick,
-                enabled = !isSaving,
+            
+            // Save Button
+            val buttonShape = RoundedCornerShape(16.dp)
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(56.dp),
-                shape = RoundedCornerShape(SafarGlassChromeRadius),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = scheme.primary,
-                    contentColor = scheme.onPrimary,
-                    disabledContainerColor = scheme.surfaceVariant,
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    .height(56.dp)
+                    .shadow(elevation = 6.dp, shape = buttonShape, spotColor = AccentShadow)
+                    .clip(buttonShape)
+                    .background(if (!isSaving) PrimaryAccent else PrimaryAccent.copy(alpha = 0.5f))
+                    .clickable(enabled = !isSaving, onClick = onSaveClick),
+                contentAlignment = Alignment.Center
             ) {
                 if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp,
-                    )
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "Save",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = scheme.onPrimary,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Save", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
                 }
             }
         }
@@ -721,7 +819,6 @@ private fun ActionsSection(
 
 @Composable
 private fun FooterSection() {
-    val scheme = MaterialTheme.colorScheme
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -731,7 +828,7 @@ private fun FooterSection() {
         Text(
             text = "For any technical or app related queries mail at\nonesafar@gmail.com • safarparmar0@gmail.com",
             style = MaterialTheme.typography.bodyMedium,
-            color = scheme.onSurfaceVariant,
+            color = TextMuted,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -739,7 +836,7 @@ private fun FooterSection() {
         Text(
             text = "© 2026 SAFAR • Version 1.0.4",
             style = MaterialTheme.typography.bodyMedium,
-            color = scheme.onSurfaceVariant.copy(alpha = 0.6f),
+            color = TextMuted.copy(alpha = 0.6f),
         )
     }
 }
@@ -751,7 +848,6 @@ private fun ProfileBottomNavigation(
     onLibrary: () -> Unit,
     onProgress: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
     val items = listOf(
         Triple("Home", Icons.Default.Home, onHome),
         Triple("Library", Icons.AutoMirrored.Filled.MenuBook, onLibrary),
@@ -759,11 +855,12 @@ private fun ProfileBottomNavigation(
         Triple("Profile", Icons.Default.Person, { }),
     )
     NavigationBar(
-        containerColor = scheme.surface,
-        tonalElevation = 8.dp,
+        containerColor = CardWhite,
+        tonalElevation = 4.dp,
         modifier = Modifier
             .navigationBarsPadding()
-            .clip(MaterialTheme.shapes.large),
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+            .border(1.5.dp, BorderSoft, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
         windowInsets = NavigationBarDefaults.windowInsets,
     ) {
         items.forEach { (label, icon, onClick) ->
@@ -775,7 +872,7 @@ private fun ProfileBottomNavigation(
                     Icon(
                         imageVector = icon,
                         contentDescription = label,
-                        tint = if (selected) scheme.primary else scheme.onSurfaceVariant,
+                        tint = if (selected) PrimaryAccent else TextMuted,
                     )
                 },
                 label = {
@@ -788,11 +885,11 @@ private fun ProfileBottomNavigation(
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = scheme.primaryContainer,
-                    selectedIconColor = scheme.primary,
-                    selectedTextColor = scheme.primary,
-                    unselectedIconColor = scheme.onSurfaceVariant,
-                    unselectedTextColor = scheme.onSurfaceVariant,
+                    indicatorColor = AccentTint,
+                    selectedIconColor = PrimaryAccent,
+                    selectedTextColor = PrimaryAccent,
+                    unselectedIconColor = TextMuted,
+                    unselectedTextColor = TextMuted,
                 ),
             )
         }

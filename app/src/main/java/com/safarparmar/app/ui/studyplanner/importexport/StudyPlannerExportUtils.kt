@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.model.studyplanner.progressPercentValue
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
 import java.io.OutputStream
 import java.time.LocalDateTime
@@ -81,9 +82,12 @@ object StudyPlannerExportUtils {
                             else -> Color.parseColor("#9CA3AF")
                         }
                         
-                        // Topic
+                        // Topic — in-progress topics show their partial fill.
+                        val progress = topic.progressPercentValue()
+                        val progressSuffix =
+                            if (topic.status == TopicStatus.IN_PROGRESS && progress in 1..99) " ($progress%)" else ""
                         writer.drawHierarchyItem(
-                            text = topic.name,
+                            text = topic.name + progressSuffix,
                             depth = 2,
                             size = 10f,
                             color = Color.parseColor("#4B5563"),

@@ -66,8 +66,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
-import com.safarparmar.app.ui.glass.SafarGlassPalette
-import com.safarparmar.app.ui.glass.liquidGlass
+import com.safarparmar.app.ui.studyplanner.components.flatCard
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.glass.safarFrostedPanel
 import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
 import com.safarparmar.app.ui.studyplanner.logic.HeatmapCell
@@ -193,8 +193,8 @@ internal fun InsightsOverallProgressRedesign(
     val unusedTodo = dailyTodoProgressPercent
 
     val progress = overallProgressPercent.coerceIn(0, 100)
-    val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val primaryText = PlannerFlatColors.TextDark
+    val secondaryText = PlannerFlatColors.TextMuted
     val entrance = rememberStaggeredEntrance(delayMs = 0)
     val ringProgress = remember { Animatable(0f) }
     val counted = rememberCountUp(progress, durationMs = 1000, delayMs = 80)
@@ -277,8 +277,8 @@ internal fun InsightsOverallProgressRedesign(
 internal fun InsightsMetricSquares(examDays: Int?, dailyGoal: Int, isLight: Boolean = false) {
     val tint = if (isLight) Color.Black else Color.White
     val tintAlpha = if (isLight) 0.04f else 0.05f
-    val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val primaryText = PlannerFlatColors.TextDark
+    val secondaryText = PlannerFlatColors.TextMuted
     val entrance = rememberStaggeredEntrance(delayMs = 120)
     val daysTarget = examDays?.coerceAtLeast(0) ?: 0
     val daysCounted = rememberCountUp(daysTarget, durationMs = 900, delayMs = 160)
@@ -329,12 +329,7 @@ private fun MetricSquareCard(
 ) {
     Box(
         modifier = modifier
-            .liquidGlass(
-                shape = RoundedCornerShape(18.dp),
-                surfaceTint = tint,
-                tintAlpha = tintAlpha,
-                isLight = isLight,
-            )
+            .flatCard(shape = RoundedCornerShape(20.dp))
             .padding(horizontal = 12.dp, vertical = 16.dp),
     ) {
         Column(
@@ -374,8 +369,8 @@ internal fun ConsistencyStreakCard(
     isLight: Boolean = false,
 ) {
     val tint = if (isLight) Color.Black else Color.White
-    val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val primaryText = PlannerFlatColors.TextDark
+    val secondaryText = PlannerFlatColors.TextMuted
     val entrance = rememberStaggeredEntrance(delayMs = 240)
     val haptic = LocalHapticFeedback.current
     var selectedDate by remember { mutableStateOf<String?>(null) }
@@ -395,12 +390,7 @@ internal fun ConsistencyStreakCard(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .liquidGlass(
-                shape = RoundedCornerShape(24.dp),
-                surfaceTint = tint,
-                tintAlpha = if (isLight) 0.04f else 0.05f,
-                isLight = isLight,
-            )
+            .flatCard(shape = RoundedCornerShape(24.dp))
             .animateContentSize()
             .padding(18.dp),
     ) {
@@ -530,7 +520,7 @@ private fun TappableWeekStreak(
                 Text(
                     text = dayLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                    color = PlannerFlatColors.TextMuted,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                 )
@@ -560,8 +550,8 @@ internal fun InsightsStudySpeedCard(
     isLight: Boolean = false,
 ) {
     val panelTint = if (isLight) Color.Black else Color.White
-    val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val primaryText = PlannerFlatColors.TextDark
+    val secondaryText = PlannerFlatColors.TextMuted
     val entrance = rememberStaggeredEntrance(delayMs = 360)
 
     val hasRecentPace = recentTopicsPerDay != null && recentTopicsPerDay > 0f
@@ -618,12 +608,7 @@ internal fun InsightsStudySpeedCard(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .liquidGlass(
-                shape = RoundedCornerShape(24.dp),
-                surfaceTint = panelTint,
-                tintAlpha = if (isLight) 0.04f else 0.05f,
-                isLight = isLight,
-            )
+            .flatCard(shape = RoundedCornerShape(24.dp))
             .padding(horizontal = 18.dp, vertical = 20.dp),
     ) {
         Column(
@@ -722,8 +707,8 @@ internal fun SubjectProgressChart(
     var selectedSubjectId by remember(chartSubjects) { mutableStateOf<String?>(null) }
     val haptic = LocalHapticFeedback.current
     val panelTint = if (isLight) Color.Black else Color.White
-    val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val primaryText = PlannerFlatColors.TextDark
+    val secondaryText = PlannerFlatColors.TextMuted
     val entrance = rememberStaggeredEntrance(delayMs = 480)
     val tierLabel = remember(chartSubjects) { sharedExamTierLabel(chartSubjects) }
     val selectedSubject = chartSubjects.firstOrNull { it.subjectId == selectedSubjectId }
@@ -732,12 +717,7 @@ internal fun SubjectProgressChart(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .liquidGlass(
-                shape = RoundedCornerShape(24.dp),
-                surfaceTint = panelTint,
-                tintAlpha = if (isLight) 0.04f else 0.05f,
-                isLight = isLight,
-            )
+            .flatCard(shape = RoundedCornerShape(24.dp))
             .animateContentSize()
             .padding(18.dp),
     ) {
@@ -1017,8 +997,8 @@ internal fun InsightsFinishLineCard(
     isLight: Boolean = false,
 ) {
     val panelTint = if (isLight) Color.Black else Color.White
-    val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val primaryText = PlannerFlatColors.TextDark
+    val secondaryText = PlannerFlatColors.TextMuted
     val entrance = rememberStaggeredEntrance(delayMs = 420)
 
     val today = remember { LocalDate.now() }
@@ -1061,12 +1041,7 @@ internal fun InsightsFinishLineCard(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .liquidGlass(
-                shape = RoundedCornerShape(24.dp),
-                surfaceTint = panelTint,
-                tintAlpha = if (isLight) 0.04f else 0.05f,
-                isLight = isLight,
-            )
+            .flatCard(shape = RoundedCornerShape(24.dp))
             .padding(18.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -1184,7 +1159,7 @@ private fun FinishLineTimelineCanvas(
     modifier: Modifier = Modifier,
 ) {
     val trackColor = if (isLight) Color.Black.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.12f)
-    val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val secondaryText = PlannerFlatColors.TextMuted
 
     Box(modifier = modifier) {
         Canvas(
@@ -1304,8 +1279,8 @@ internal fun InsightsRevisionPulseCard(
     var selectedIndex by remember(towers) { mutableStateOf<Int?>(null) }
     val haptic = LocalHapticFeedback.current
     val panelTint = if (isLight) Color.Black else Color.White
-    val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val primaryText = PlannerFlatColors.TextDark
+    val secondaryText = PlannerFlatColors.TextMuted
     val entrance = rememberStaggeredEntrance(delayMs = 560)
     val towerProgress = remember { Animatable(0f) }
     LaunchedEffect(towers.size, doneSessions) {
@@ -1320,12 +1295,7 @@ internal fun InsightsRevisionPulseCard(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .liquidGlass(
-                shape = RoundedCornerShape(24.dp),
-                surfaceTint = panelTint,
-                tintAlpha = if (isLight) 0.04f else 0.05f,
-                isLight = isLight,
-            )
+            .flatCard(shape = RoundedCornerShape(24.dp))
             .animateContentSize()
             .padding(18.dp),
     ) {
@@ -1444,7 +1414,7 @@ internal fun InsightsRevisionPulseCard(
                 ) {
                     Text(
                         text = "See all to revise",
-                        color = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+                        color = PlannerFlatColors.PrimaryAccent,
                         fontWeight = FontWeight.Bold,
                     )
                 }

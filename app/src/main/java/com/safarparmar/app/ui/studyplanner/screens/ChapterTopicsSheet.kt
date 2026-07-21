@@ -52,6 +52,7 @@ import com.safarparmar.app.ui.theme.SafarSemanticColors
 internal fun ChapterTopicsSheet(
     chapterName: String,
     topics: List<StudyTopic>,
+    chapter: com.safarparmar.app.domain.model.studyplanner.StudyChapter? = null,
     isDarkTheme: Boolean,
     onDismiss: () -> Unit,
     onAddTopic: (String) -> Unit,
@@ -145,6 +146,7 @@ internal fun ChapterTopicsSheet(
                         key(topic.id) {
                             SyllabusTopicAccordionRow(
                                 topic = topic,
+                                chapter = chapter,
                                 onClick = { onTopicClick(topic) },
                                 onRename = { onRenameTopic(topic) },
                                 onDelete = { onDeleteTopic(topic) },

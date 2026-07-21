@@ -6,6 +6,8 @@ import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.StudySubject
 import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.model.studyplanner.effortPoints
+import com.safarparmar.app.domain.model.studyplanner.progressPercentValue
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -39,12 +41,33 @@ fun StudyTopic.isMissed(today: String = todayKey()): Boolean {
     return dateKey.isNotBlank() && dateKey < today
 }
 
+/**
+ * The one shared effort-weighted completion formula, mirroring the server's
+ * rollupProgress: Σ(points × progress) ÷ Σ points, where points come from the
+ * topic size (small=1, medium=2, big=4, chapter rating as fallback) and
+ * progress is the partial completion (done = 100). Every progress surface
+ * (status card, dashboard, syllabus bars, insights, calendar, export) should
+ * derive its percentage through this so they never disagree.
+ */
+fun weightedCompletionPercent(topics: List<Pair<StudyTopic, StudyChapter?>>): Int {
+    var totalPoints = 0f
+    var earnedPoints = 0f
+    for ((topic, chapter) in topics) {
+        val points = topic.effortPoints(chapter).toFloat()
+        totalPoints += points
+        earnedPoints += points * topic.progressPercentValue() / 100f
+    }
+    if (totalPoints <= 0f) return 0
+    return ((earnedPoints / totalPoints) * 100).roundToInt()
+}
+
 fun StudyPlan.rollup(): PlanProgress {
-    val topics = flattenTopics().map { it.topic }
+    val refs = flattenTopics()
+    val topics = refs.map { it.topic }
     val total = topics.size
     val done = topics.count { it.status == TopicStatus.DONE }
     val revision = topics.count { it.status == TopicStatus.REVISION_NEEDED }
-    val percent = if (total == 0) 0 else ((done.toFloat() / total) * 100).roundToInt()
+    val percent = weightedCompletionPercent(refs.map { it.topic to it.chapter })
     val dailyTodosList = dailyTodos.orEmpty()
     val hasDailyTodos = dailyTodosList.isNotEmpty()
     val dailyPercent = if (!hasDailyTodos) {
@@ -71,16 +94,11 @@ fun StudyPlan.rollup(): PlanProgress {
     )
 }
 
-fun StudySubject.percentDone(): Int {
-    val topics = chapters.flatMap { it.topics }
-    if (topics.isEmpty()) return 0
-    return ((topics.count { it.status == TopicStatus.DONE }.toFloat() / topics.size) * 100).roundToInt()
-}
+fun StudySubject.percentDone(): Int =
+    weightedCompletionPercent(chapters.flatMap { ch -> ch.topics.map { it to ch } })
 
-fun StudyChapter.percentDone(): Int {
-    if (topics.isEmpty()) return 0
-    return ((topics.count { it.status == TopicStatus.DONE }.toFloat() / topics.size) * 100).roundToInt()
-}
+fun StudyChapter.percentDone(): Int =
+    weightedCompletionPercent(topics.map { it to this })
 
 /** Returns a user-facing error, or null if [rawName] is acceptable to submit. */
 fun validateSyllabusNodeName(rawName: String): String? =

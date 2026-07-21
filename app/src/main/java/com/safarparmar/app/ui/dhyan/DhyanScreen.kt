@@ -1243,10 +1243,17 @@ private fun BreathingOptionsSheet(
     onDismiss: () -> Unit,
 ) {
     val isDarkTheme = !MaterialTheme.colorScheme.background.isLightBackground()
+    // Opaque sheet — translucent liquidGlass let the session timer/controls bleed through.
+    val sheetBg = if (isDarkTheme) Color(0xFF16161E) else Color(0xFFF7F5FB)
+    val cardBg = if (isDarkTheme) Color(0xFF22222C) else Color.White
+    val cardSelectedBg = if (isDarkTheme) Color(0xFF2A3140) else Color(0xFFEEF5FC)
+    val cardBorder = if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color(0xFFE5E0F0)
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.Transparent,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = sheetBg,
+        scrimColor = Color.Black.copy(alpha = 0.45f),
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = {
             Box(
@@ -1262,12 +1269,6 @@ private fun BreathingOptionsSheet(
         Column(
             Modifier
                 .fillMaxWidth()
-                .liquidGlass(
-                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                    surfaceTint = if (isDarkTheme) Color.White else Color.Black,
-                    tintAlpha = if (isDarkTheme) 0.08f else 0.05f,
-                    isLight = !isDarkTheme,
-                )
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 40.dp),
@@ -1302,15 +1303,11 @@ private fun BreathingOptionsSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(DhyanPanelShape)
-                        .liquidGlass(
+                        .background(if (isSelected) cardSelectedBg else cardBg)
+                        .border(
+                            width = if (isSelected) 1.5.dp else 1.dp,
+                            color = if (isSelected) DhyanColors.accentBlue(isDarkTheme) else cardBorder,
                             shape = DhyanPanelShape,
-                            surfaceTint = if (isDarkTheme) Color.White else Color.Black,
-                            tintAlpha = if (isDarkTheme) 0.08f else 0.05f,
-                            isLight = !isDarkTheme,
-                        )
-                        .then(
-                            if (isSelected) Modifier.border(1.5.dp, DhyanColors.accentBlue(isDarkTheme), DhyanPanelShape)
-                            else Modifier.border(1.dp, Color.White.copy(alpha = 0.2f), DhyanPanelShape),
                         )
                         .bounceClick(onClick = { onSelectTechnique(t) })
                         .padding(16.dp),
@@ -1319,12 +1316,20 @@ private fun BreathingOptionsSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Icon(
-                            painter = painterResource(id = t.iconRes),
-                            contentDescription = null,
-                            modifier = Modifier.size(26.dp),
-                            tint = if (isSelected) DhyanColors.accentBlue(isDarkTheme) else DhyanColors.textPrimary(isDarkTheme),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(DhyanColors.accentBlue(isDarkTheme).copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                painter = painterResource(id = t.iconRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp),
+                                tint = DhyanColors.accentBlue(isDarkTheme),
+                            )
+                        }
                         Column(Modifier.weight(1f)) {
                             Text(t.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = DhyanColors.textPrimary(isDarkTheme))
                             Text(t.description, fontSize = 12.sp, color = DhyanColors.textSecondary(isDarkTheme), lineHeight = 17.sp)
@@ -1355,10 +1360,16 @@ private fun BreathingSoundSheet(
     onDismiss: () -> Unit,
 ) {
     val isDarkTheme = !MaterialTheme.colorScheme.background.isLightBackground()
+    val sheetBg = if (isDarkTheme) Color(0xFF16161E) else Color(0xFFF7F5FB)
+    val cardBg = if (isDarkTheme) Color(0xFF22222C) else Color.White
+    val cardSelectedBg = if (isDarkTheme) Color(0xFF2A3140) else Color(0xFFEEF5FC)
+    val cardBorder = if (isDarkTheme) Color.White.copy(alpha = 0.12f) else Color(0xFFE5E0F0)
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.Transparent,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = sheetBg,
+        scrimColor = Color.Black.copy(alpha = 0.45f),
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = {
             Box(
@@ -1374,12 +1385,6 @@ private fun BreathingSoundSheet(
         Column(
             Modifier
                 .fillMaxWidth()
-                .liquidGlass(
-                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                    surfaceTint = if (isDarkTheme) Color.White else Color.Black,
-                    tintAlpha = if (isDarkTheme) 0.08f else 0.05f,
-                    isLight = !isDarkTheme,
-                )
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -1408,15 +1413,11 @@ private fun BreathingSoundSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(DhyanPanelShape)
-                        .liquidGlass(
+                        .background(if (isSelected) cardSelectedBg else cardBg)
+                        .border(
+                            width = if (isSelected) 1.5.dp else 1.dp,
+                            color = if (isSelected) DhyanColors.accentBlue(isDarkTheme) else cardBorder,
                             shape = DhyanPanelShape,
-                            surfaceTint = if (isDarkTheme) Color.White else Color.Black,
-                            tintAlpha = if (isDarkTheme) 0.08f else 0.05f,
-                            isLight = !isDarkTheme,
-                        )
-                        .then(
-                            if (isSelected) Modifier.border(1.5.dp, DhyanColors.accentBlue(isDarkTheme), DhyanPanelShape)
-                            else Modifier.border(1.dp, Color.White.copy(alpha = 0.2f), DhyanPanelShape),
                         )
                         .bounceClick(onClick = { onSelectSound(sound) })
                         .padding(16.dp),
@@ -1425,7 +1426,20 @@ private fun BreathingSoundSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Icon(Icons.Default.GraphicEq, contentDescription = null, modifier = Modifier.size(24.dp), tint = DhyanColors.textPrimary(isDarkTheme))
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(DhyanColors.accentBlue(isDarkTheme).copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Default.GraphicEq,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp),
+                                tint = DhyanColors.accentBlue(isDarkTheme),
+                            )
+                        }
                         Column(Modifier.weight(1f)) {
                             Text(sound.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = DhyanColors.textPrimary(isDarkTheme))
                             Text(sound.description, fontSize = 12.sp, color = DhyanColors.textSecondary(isDarkTheme), lineHeight = 17.sp)

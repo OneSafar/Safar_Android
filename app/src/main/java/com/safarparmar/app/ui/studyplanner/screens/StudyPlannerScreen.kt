@@ -209,10 +209,8 @@ import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.studyplanner.plan.DailyTodoSetupSheet
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
-import com.safarparmar.app.ui.studyplanner.components.chapterHierarchyBrush
-import com.safarparmar.app.ui.studyplanner.components.subjectHeaderBrush
-import com.safarparmar.app.ui.studyplanner.components.subjectMeterBrush
-import com.safarparmar.app.ui.studyplanner.components.topicHierarchyBrush
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.flatCard
 import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
 import com.safarparmar.app.ui.studyplanner.logic.*
 import com.safarparmar.app.ui.components.PlanCardSkeleton
@@ -243,8 +241,7 @@ import com.safarparmar.app.ui.glass.MacOSControlActionButton
 import com.safarparmar.app.ui.glass.MacOSControlEmptyState
 import com.safarparmar.app.ui.glass.MacOSControlIconBadge
 import com.safarparmar.app.ui.glass.MacOSExamPlanCard
-import com.safarparmar.app.ui.glass.SafarGlassBackdrop
-import com.safarparmar.app.ui.glass.SafarGlassPalette
+
 import com.safarparmar.app.ui.glass.GlassDivider as GlassHDivider
 
 private val plannerTopicStatusFilterChips = listOf(
@@ -641,7 +638,10 @@ fun StudyPlannerScreen(
         )
     }
 
-    CompositionLocalProvider(LocalDensity provides clampedDensity) {
+    CompositionLocalProvider(
+        LocalDensity provides clampedDensity,
+        com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme provides isDarkTheme
+    ) {
         SafarDrawerScaffold(
             title = drawerTitle,
             subtitle = drawerSubtitle,
@@ -765,19 +765,12 @@ private fun StudyPlannerPremiumLockOverlay(
     modifier: Modifier = Modifier,
     onUpgrade: () -> Unit,
 ) {
+    val bgCream = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.BgCream
     val scheme = MaterialTheme.colorScheme
-    val bg = scheme.background
-    val gradient = Brush.verticalGradient(
-        colorStops = arrayOf(
-            0.00f to Color.Transparent,
-            0.25f to bg.copy(alpha = 0.88f),
-            0.45f to bg,
-        )
-    )
 
     Box(
         modifier = modifier
-            .background(gradient)
+            .background(bgCream.copy(alpha = 0.9f))
             .clickable(
                 interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                 indication = null,
@@ -881,12 +874,10 @@ private fun StudyPlansScreen(
         )
     }
 
-    // ── macOS Control Center layout ──────────────────────────────────────────
-    // The aurora backdrop fills the whole screen; all content floats on top.
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        // 1. Canvas backdrop — cool grey (light) / black (dark)
-        SafarGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = !isDark)
+    // ── Flat 2.0 layout ──────────────────────────────────────────
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
 
         // 2. Screen content column
         Column(modifier = Modifier.fillMaxSize()) {
@@ -918,20 +909,17 @@ private fun StudyPlansScreen(
                                     text = "My Target Exams",
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.ExtraBold,
-                                    // Theme-aware: dark on light backdrop, light on dark backdrop
-                                    color = if (isDark) SafarGlassPalette.TextPrimary
-                                            else SafarGlassPalette.LightTextPrimary,
+                                    color = PlannerFlatColors.TextDark,
                                 )
                                 Text(
                                     text = "Choose an exam to create a focused study plan.",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (isDark) SafarGlassPalette.TextSecondary
-                                            else SafarGlassPalette.LightTextSecondary,
+                                    color = PlannerFlatColors.TextMuted,
                                 )
                             }
-                            // Trophy icon — macOS Control Center badge
+                            
                             MacOSControlIconBadge(
-                                accentColor = if (isDark) SafarGlassPalette.Violet else SafarGlassPalette.LightViolet,
+                                accentColor = PlannerFlatColors.PrimaryAccent,
                                 isLight = !isDark,
                             ) {
                                 Icon(
@@ -1017,7 +1005,7 @@ private fun PlannerCreateNewPlanBar(
             icon = Icons.Default.Add,
             onClick = onClick,
             isLight = isLight,
-            accentColor = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+            accentColor = PlannerFlatColors.PrimaryAccent,
             subtitle = "Add a new target exam",
         )
     }
@@ -1080,7 +1068,7 @@ private fun PlannerEmptyState(
         actionIcon = Icons.Default.Add,
         onAction = onAction,
         isLight = isLight,
-        accentColor = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+        accentColor = PlannerFlatColors.PrimaryAccent,
     )
 }
 
@@ -1171,9 +1159,8 @@ private fun PlannerTargetExamRow(
     val subtitle = "Strategy • Practice • Success"
     val days = daysUntil(plan.examDate)
     var menuExpanded by remember { mutableStateOf(false) }
-    val menuIconTint = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
-
-    // ── macOS Control Center tile ────────────────────────────────────────────
+    val menuIconTint = PlannerFlatColors.TextMuted
+    // ── Flat 2.0 tile ────────────────────────────────────────────
     MacOSExamPlanCard(
         title      = title,
         subtitle   = subtitle,
@@ -2338,21 +2325,19 @@ internal fun SyllabusFullImportCard(
                         onPreviewChange = actions::updateStructuredPreview,
                     )
                     val isAddToPlanEnabled = preview.subjects.isNotEmpty() && !state.isImportingStructuredSyllabus
-                    val addToPlanGradient = if (isAddToPlanEnabled) {
-                        Brush.horizontalGradient(colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
+                    val addToPlanColor = if (isAddToPlanEnabled) {
+                        PlannerFlatColors.PrimaryAccent
                     } else {
-                        Brush.horizontalGradient(colors = listOf(scheme.onSurface.copy(alpha = 0.12f), scheme.onSurface.copy(alpha = 0.12f)))
+                        scheme.onSurface.copy(alpha = 0.12f)
                     }
                     Button(
                         onClick = { if (hasExistingSyllabus) showAiImportChoice = true else actions.importStructuredSyllabus("merge") },
                         enabled = isAddToPlanEnabled,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 52.dp)
-                            .background(addToPlanGradient, shape = RoundedCornerShape(14.dp)),
+                            .heightIn(min = 52.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
+                            containerColor = addToPlanColor,
                             contentColor = if (isAddToPlanEnabled) Color.White else scheme.onSurface.copy(alpha = 0.38f)
                         ),
                     ) {
@@ -2418,10 +2403,10 @@ internal fun SyllabusFullImportCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 val isManualBtnEnabled = chapterCount > 0 && parsed.isSuccess && !state.isImporting && !state.mutating
-                val manualBtnGradient = if (isManualBtnEnabled) {
-                    Brush.horizontalGradient(colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
+                val manualBtnColor = if (isManualBtnEnabled) {
+                    PlannerFlatColors.PrimaryAccent
                 } else {
-                    Brush.horizontalGradient(colors = listOf(scheme.onSurface.copy(alpha = 0.12f), scheme.onSurface.copy(alpha = 0.12f)))
+                    scheme.onSurface.copy(alpha = 0.12f)
                 }
                 Button(
                     onClick = {
@@ -2429,12 +2414,10 @@ internal fun SyllabusFullImportCard(
                     },
                     enabled = isManualBtnEnabled,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .background(manualBtnGradient, shape = RoundedCornerShape(14.dp)),
+                        .height(52.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
+                        containerColor = manualBtnColor,
                         contentColor = if (isManualBtnEnabled) Color.White else scheme.onSurface.copy(alpha = 0.38f)
                     ),
                 ) {
@@ -2557,33 +2540,13 @@ private fun AiSyllabusPremiumCard(onUpgrade: () -> Unit) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val blue = Color(0xFF2563EB)
     val deepBlue = Color(0xFF1D4ED8)
-    val gradientColors = if (isDark) {
-        listOf(
-            Color(0xFF142036),
-            Color(0xFF101827),
-            Color(0xFF0F2748),
-        )
-    } else {
-        listOf(
-            Color(0xFFEFF6FF),
-            Color(0xFFFFFFFF),
-            Color(0xFFDDEBFF),
-        )
-    }
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF355581) else Color(0xFFBFDBFE)),
-        shadowElevation = 2.dp,
+    
+    Box(
+        modifier = Modifier.fillMaxWidth()
+            .flatCard(shape = RoundedCornerShape(22.dp))
+            .background(if (isDark) Color(0xFF142036) else Color(0xFFEFF6FF))
+            .padding(20.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .background(
-                    Brush.linearGradient(gradientColors),
-                )
-                .padding(20.dp),
-        ) {
             Icon(
                 imageVector = Icons.Default.Lock,
                 contentDescription = null,
@@ -2649,7 +2612,6 @@ private fun AiSyllabusPremiumCard(onUpgrade: () -> Unit) {
             }
         }
     }
-}
 
 @Composable
 private fun ManualSyllabusHelpRow(onGuideClick: () -> Unit) {

@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -76,10 +78,44 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.data.local.SafarDataStore
-import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
-import com.safarparmar.app.ui.glass.SafarGlassPalette
-import com.safarparmar.app.ui.glass.liquidGlass
 import com.safarparmar.app.ui.theme.isLightBackground
+
+// ── Premium onboarding palette ───────────────────────────────────────────────
+
+private object OnboardPalette {
+    val BackgroundLight = Color(0xFFF7F5FB)
+    val BackgroundDark = Color(0xFF0F0F14)
+
+    val CardWhite = Color.White
+    val CardDark = Color(0xFF1C1C24)
+    val SelectedLight = Color(0xFFF1E8FF)
+    val SelectedDark = Color(0xFF2A2140)
+
+    val BorderLight = Color(0xFFE5E0F3)
+    val BorderDark = Color(0xFF3A3550)
+    val SelectedBorder = Color(0xFF9B6BE8)
+
+    val Primary = Color(0xFF9B6BE8)
+    val TextPrimaryLight = Color(0xFF161827)
+    val TextPrimaryDark = Color(0xFFF5F3FA)
+    val TextSecondaryLight = Color(0xFF6B6478)
+    val TextSecondaryDark = Color(0xFFA8A0B8)
+
+    val FooterLight = Color.White.copy(alpha = 0.92f)
+    val FooterDark = Color(0xFF16161E).copy(alpha = 0.94f)
+    val FooterBorderLight = Color(0xFFE7E2F0)
+    val FooterBorderDark = Color(0xFF2E2A3A)
+
+    val SecondaryButtonBorder = Color(0xFFC8C1D8)
+    val SecondaryButtonText = Color(0xFF475569)
+
+    val ProgressTrackLight = Color(0xFFE4DFEE)
+    val ProgressTrackDark = Color(0xFF2E2A3A)
+
+    val BeastAccent = Color(0xFFFF5722)
+    val AlwaysOnAccent = Color(0xFF9B6BE8)
+    val NormalAccent = Color(0xFF26A69A)
+}
 
 private data class UsageReasonOption(
     val title: String,
@@ -94,64 +130,66 @@ private data class KavachModeOption(
     val description: String,
     val icon: ImageVector,
     val accent: Color,
-    val recommended: Boolean = false,
+    val badge: String? = null,
 )
 
 private val usageReasons = listOf(
     UsageReasonOption(
-        title = "Study without distractions",
+        title = "Focus without distractions",
         subtitle = "Block apps and stay on track",
         icon = Icons.Default.AutoStories,
-        accent = SafarGlassPalette.Violet,
+        accent = OnboardPalette.Primary,
     ),
     UsageReasonOption(
-        title = "Track goals",
-        subtitle = "Build habits and stay consistent",
+        title = "Build daily discipline",
+        subtitle = "Track goals and stay consistent",
         icon = Icons.Default.TrackChanges,
-        accent = SafarGlassPalette.Pink,
+        accent = Color(0xFFE86BA8),
     ),
     UsageReasonOption(
-        title = "Journal my thoughts",
-        subtitle = "Write and reflect each day",
+        title = "Reflect with journaling",
+        subtitle = "Write thoughts and review your day",
         icon = Icons.Default.EditNote,
-        accent = SafarGlassPalette.Coral,
+        accent = Color(0xFFE8846B),
     ),
     UsageReasonOption(
-        title = "Manage stress",
-        subtitle = "Take care of my mental health",
+        title = "Calm my mind",
+        subtitle = "Use Dhyan and breathing tools",
         icon = Icons.Default.SelfImprovement,
-        accent = SafarGlassPalette.Lavender,
+        accent = Color(0xFF9B8BE8),
     ),
     UsageReasonOption(
-        title = "All of the above",
-        subtitle = "I want the full SAFAR experience",
+        title = "Full SAFAR experience",
+        subtitle = "Enable all recommended tools",
         icon = Icons.Default.CheckCircle,
-        accent = SafarGlassPalette.Violet,
+        accent = OnboardPalette.Primary,
     ),
 )
 
 private val kavachModes = listOf(
     KavachModeOption(
-        mode = AppUsageMode.BEAST,
-        title = "Beast Mode",
-        description = "Full lockdown. KAVACH stays on — no quick unlock.",
-        icon = Icons.Rounded.Lock,
-        accent = Color(0xFFFF5722),
-        recommended = true,
+        mode = AppUsageMode.FOCUSED,
+        title = "Normal",
+        description = "Redirects you back when you open a blocked app.",
+        icon = Icons.Rounded.TouchApp,
+        accent = OnboardPalette.NormalAccent,
+        badge = "Recommended",
     ),
     KavachModeOption(
         mode = AppUsageMode.ALWAYS_ON,
         title = "Always On",
-        description = "KAVACH blocks apps everywhere until you turn it off.",
+        description = "Blocks selected apps until you turn KAVACH off.",
         icon = Icons.Rounded.ShieldMoon,
-        accent = SafarGlassPalette.Violet,
+        accent = OnboardPalette.AlwaysOnAccent,
+        badge = "Strong",
     ),
     KavachModeOption(
-        mode = AppUsageMode.FOCUSED,
-        title = "Normal",
-        description = "KAVACH sends you back to Ekagra when you open a blocked app.",
-        icon = Icons.Rounded.TouchApp,
-        accent = Color(0xFF26A69A),
+        mode = AppUsageMode.BEAST,
+        title = "Beast Mode",
+        description = "Full lockdown. No quick unlock during focus.",
+        icon = Icons.Rounded.Lock,
+        accent = OnboardPalette.BeastAccent,
+        badge = "Strict",
     ),
 )
 
@@ -182,22 +220,25 @@ fun LaunchUsageQuestionnaireScreen(
 
     LaunchedEffect(page) {
         if (page == 1 && selectedMode == null) {
-            selectedMode = AppUsageMode.BEAST
+            selectedMode = AppUsageMode.FOCUSED
         }
     }
 
     fun onFinishQuestionnaire() {
-        val mode = selectedMode ?: AppUsageMode.BEAST
+        val mode = selectedMode ?: AppUsageMode.FOCUSED
         viewModel.markQuestionnaireFinished(mode, onNavigateKavach)
     }
 
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-    val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val secondaryText = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val primaryText = if (isLight) OnboardPalette.TextPrimaryLight else OnboardPalette.TextPrimaryDark
+    val secondaryText = if (isLight) OnboardPalette.TextSecondaryLight else OnboardPalette.TextSecondaryDark
+    val canvas = if (isLight) OnboardPalette.BackgroundLight else OnboardPalette.BackgroundDark
 
-    Box(Modifier.fillMaxSize()) {
-        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
-
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(canvas),
+    ) {
         Scaffold(
             containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets.safeDrawing,
@@ -206,6 +247,7 @@ fun LaunchUsageQuestionnaireScreen(
                     page = page,
                     isLight = isLight,
                     primaryText = primaryText,
+                    secondaryText = secondaryText,
                     onBack = { if (page > 0) page-- },
                 )
             },
@@ -266,58 +308,70 @@ private fun QuestionnaireTopBar(
     page: Int,
     isLight: Boolean,
     primaryText: Color,
+    secondaryText: Color,
     onBack: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 20.dp)
+            .padding(top = 8.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (page > 0) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = primaryText,
-                )
-            }
-        } else {
-            Spacer(Modifier.size(48.dp))
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            if (page > 0) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = primaryText,
+                    )
+                }
+            } else {
+                Spacer(Modifier.size(40.dp))
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
-                    modifier = Modifier.size(18.dp),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = OnboardPalette.Primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "KAVACH Setup",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = primaryText,
+                        letterSpacing = 0.3.sp,
+                    )
+                }
                 Text(
-                    text = if (page == 0) "Welcome" else "KAVACH",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryText,
-                    letterSpacing = 0.5.sp,
+                    text = "Step ${page + 1} of 2",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = secondaryText,
                 )
             }
-            Text(
-                text = "Step ${page + 1} of 2",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
-            )
+
+            Spacer(Modifier.size(40.dp))
         }
 
-        Spacer(Modifier.size(48.dp))
+        QuestionnaireStepProgress(activePage = page, isLight = isLight)
     }
 }
 
@@ -327,8 +381,7 @@ private fun QuestionnaireStepProgress(
     isLight: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val accent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
-    val track = if (isLight) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.12f)
+    val track = if (isLight) OnboardPalette.ProgressTrackLight else OnboardPalette.ProgressTrackDark
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -338,9 +391,9 @@ private fun QuestionnaireStepProgress(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(4.dp)
+                    .height(5.dp)
                     .clip(RoundedCornerShape(99.dp))
-                    .background(if (index <= activePage) accent else track),
+                    .background(if (index <= activePage) OnboardPalette.Primary else track),
             )
         }
     }
@@ -359,31 +412,29 @@ private fun WhyHerePage(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Spacer(Modifier.height(4.dp))
-
-        QuestionnaireStepProgress(activePage = 0, isLight = isLight)
+        Spacer(Modifier.height(8.dp))
 
         QuestionnaireHeroBadge(
             icon = Icons.Default.Shield,
-            accent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+            accent = OnboardPalette.Primary,
             isLight = isLight,
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "Why are you here?",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black,
+                text = "What do you want SAFAR to help with?",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
                 color = primaryText,
-                lineHeight = 34.sp,
+                lineHeight = 30.sp,
             )
             Text(
-                text = "Pick all that fit you. We'll set things up for you.",
-                style = MaterialTheme.typography.bodyLarge,
+                text = "Choose one or more. We'll personalize your setup.",
+                style = MaterialTheme.typography.bodyMedium,
                 color = secondaryText,
-                lineHeight = 24.sp,
+                lineHeight = 22.sp,
             )
         }
 
@@ -400,7 +451,7 @@ private fun WhyHerePage(
             }
         }
 
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -417,35 +468,33 @@ private fun KavachModePage(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Spacer(Modifier.height(4.dp))
-
-        QuestionnaireStepProgress(activePage = 1, isLight = isLight)
+        Spacer(Modifier.height(8.dp))
 
         QuestionnaireHeroBadge(
             icon = Icons.Default.Shield,
-            accent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+            accent = OnboardPalette.Primary,
             isLight = isLight,
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "Pick your KAVACH mode",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black,
+                text = "Choose your KAVACH strength",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
                 color = primaryText,
-                lineHeight = 34.sp,
+                lineHeight = 30.sp,
             )
             Text(
-                text = "Choose how strong you want app blocking to be. You can change this anytime.",
-                style = MaterialTheme.typography.bodyLarge,
+                text = "You can change this anytime from settings.",
+                style = MaterialTheme.typography.bodyMedium,
                 color = secondaryText,
-                lineHeight = 24.sp,
+                lineHeight = 22.sp,
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             kavachModes.forEach { option ->
                 KavachModeCard(
                     option = option,
@@ -463,20 +512,26 @@ private fun KavachModePage(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(
-                    if (isLight) SafarGlassPalette.LightViolet.copy(alpha = 0.08f)
-                    else SafarGlassPalette.Violet.copy(alpha = 0.14f),
+                    if (isLight) OnboardPalette.Primary.copy(alpha = 0.08f)
+                    else OnboardPalette.Primary.copy(alpha = 0.16f),
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (isLight) OnboardPalette.Primary.copy(alpha = 0.18f)
+                    else OnboardPalette.Primary.copy(alpha = 0.28f),
+                    shape = RoundedCornerShape(16.dp),
                 )
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             Text(
-                text = "Not sure? Start with Normal — you can turn on Always On or Beast Mode later in KAVACH settings.",
+                text = "New users should start with Normal. You can switch to stricter modes later.",
                 style = MaterialTheme.typography.bodySmall,
                 color = secondaryText,
                 lineHeight = 18.sp,
             )
         }
 
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -488,19 +543,19 @@ private fun QuestionnaireHeroBadge(
 ) {
     Box(
         modifier = Modifier
-            .size(72.dp)
+            .size(64.dp)
             .clip(CircleShape)
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        accent.copy(alpha = if (isLight) 0.18f else 0.28f),
+                        accent.copy(alpha = if (isLight) 0.16f else 0.26f),
                         accent.copy(alpha = if (isLight) 0.06f else 0.10f),
                     ),
                 ),
             )
             .border(
                 width = 1.dp,
-                color = accent.copy(alpha = if (isLight) 0.35f else 0.45f),
+                color = accent.copy(alpha = if (isLight) 0.28f else 0.40f),
                 shape = CircleShape,
             ),
         contentAlignment = Alignment.Center,
@@ -509,9 +564,29 @@ private fun QuestionnaireHeroBadge(
             imageVector = icon,
             contentDescription = null,
             tint = accent,
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(30.dp),
         )
     }
+}
+
+@Composable
+private fun onboardCardSurface(
+    selected: Boolean,
+    isLight: Boolean,
+    accent: Color,
+): Pair<Color, Color> {
+    val bg = when {
+        selected && isLight -> OnboardPalette.SelectedLight
+        selected && !isLight -> OnboardPalette.SelectedDark
+        isLight -> OnboardPalette.CardWhite
+        else -> OnboardPalette.CardDark
+    }
+    val border = when {
+        selected -> accent
+        isLight -> OnboardPalette.BorderLight
+        else -> OnboardPalette.BorderDark
+    }
+    return bg to border
 }
 
 @Composable
@@ -524,54 +599,60 @@ private fun ReasonOptionCard(
     onClick: () -> Unit,
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1f else 0.985f,
+        targetValue = if (selected) 1f else 0.995f,
         animationSpec = tween(180, easing = FastOutSlowInEasing),
         label = "reasonCardScale",
     )
-    val accent = option.accent
-    val tintAlpha = if (selected) 0.12f else if (isLight) 0.04f else 0.05f
+    val (bg, borderColor) = onboardCardSurface(
+        selected = selected,
+        isLight = isLight,
+        accent = OnboardPalette.SelectedBorder,
+    )
+    val shape = RoundedCornerShape(18.dp)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .liquidGlass(
-                shape = RoundedCornerShape(20.dp),
-                surfaceTint = if (selected) accent else if (isLight) Color.Black else Color.White,
-                tintAlpha = tintAlpha,
-                isLight = isLight,
-            )
             .then(
-                if (selected) {
-                    Modifier.border(
-                        width = 1.5.dp,
-                        color = accent.copy(alpha = if (isLight) 0.55f else 0.70f),
-                        shape = RoundedCornerShape(20.dp),
+                if (isLight && !selected) {
+                    Modifier.shadow(
+                        elevation = 2.dp,
+                        shape = shape,
+                        spotColor = Color.Black.copy(alpha = 0.06f),
+                        ambientColor = Color.Black.copy(alpha = 0.04f),
                     )
                 } else {
                     Modifier
                 },
+            )
+            .clip(shape)
+            .background(bg)
+            .border(
+                width = if (selected) 1.5.dp else 1.dp,
+                color = borderColor,
+                shape = shape,
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
             )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(accent.copy(alpha = if (isLight) 0.12f else 0.18f)),
+                .clip(RoundedCornerShape(12.dp))
+                .background(option.accent.copy(alpha = if (isLight) 0.12f else 0.20f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = option.icon,
                 contentDescription = null,
-                tint = accent,
+                tint = option.accent,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -594,7 +675,7 @@ private fun ReasonOptionCard(
             )
         }
 
-        SelectionIndicator(selected = selected, accent = accent, isLight = isLight)
+        SelectionIndicator(selected = selected, accent = OnboardPalette.Primary, isLight = isLight)
     }
 }
 
@@ -608,99 +689,101 @@ private fun KavachModeCard(
     onClick: () -> Unit,
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1f else 0.985f,
+        targetValue = if (selected) 1f else 0.995f,
         animationSpec = tween(180, easing = FastOutSlowInEasing),
         label = "modeCardScale",
     )
-    val accent = option.accent
-    val tintAlpha = if (selected) 0.14f else if (isLight) 0.04f else 0.05f
+    val (bg, borderColor) = onboardCardSurface(
+        selected = selected,
+        isLight = isLight,
+        accent = option.accent,
+    )
+    val shape = RoundedCornerShape(18.dp)
+    val titleColor = if (selected) option.accent else primaryText
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .liquidGlass(
-                shape = RoundedCornerShape(22.dp),
-                surfaceTint = if (selected) accent else if (isLight) Color.Black else Color.White,
-                tintAlpha = tintAlpha,
-                isLight = isLight,
-            )
             .then(
-                if (selected) {
-                    Modifier.border(
-                        width = 2.dp,
-                        color = accent.copy(alpha = if (isLight) 0.60f else 0.75f),
-                        shape = RoundedCornerShape(22.dp),
+                if (isLight && !selected) {
+                    Modifier.shadow(
+                        elevation = 2.dp,
+                        shape = shape,
+                        spotColor = Color.Black.copy(alpha = 0.06f),
+                        ambientColor = Color.Black.copy(alpha = 0.04f),
                     )
                 } else {
                     Modifier
                 },
+            )
+            .clip(shape)
+            .background(bg)
+            .border(
+                width = if (selected) 1.5.dp else 1.dp,
+                color = borderColor,
+                shape = shape,
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
             )
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 14.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(option.accent.copy(alpha = if (isLight) 0.12f else 0.20f)),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(accent.copy(alpha = if (isLight) 0.14f else 0.20f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = option.icon,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(26.dp),
-                )
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = option.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = if (selected) accent else primaryText,
-                    )
-                    if (option.recommended) {
-                        Text(
-                            text = "Recommended",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = accent,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(99.dp))
-                                .background(accent.copy(alpha = if (isLight) 0.12f else 0.18f))
-                                .padding(horizontal = 8.dp, vertical = 3.dp),
-                        )
-                    }
-                }
-                Text(
-                    text = option.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = secondaryText,
-                    lineHeight = 20.sp,
-                )
-            }
-
-            SelectionIndicator(selected = selected, accent = accent, isLight = isLight)
+            Icon(
+                imageVector = option.icon,
+                contentDescription = null,
+                tint = option.accent,
+                modifier = Modifier.size(24.dp),
+            )
         }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = option.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = titleColor,
+                )
+                option.badge?.let { badge ->
+                    Text(
+                        text = badge,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = option.accent,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(99.dp))
+                            .background(option.accent.copy(alpha = if (isLight) 0.12f else 0.20f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
+            }
+            Text(
+                text = option.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = secondaryText,
+                lineHeight = 20.sp,
+            )
+        }
+
+        SelectionIndicator(selected = selected, accent = option.accent, isLight = isLight)
     }
 }
 
@@ -714,16 +797,12 @@ private fun SelectionIndicator(
         modifier = Modifier
             .size(26.dp)
             .clip(CircleShape)
-            .background(
-                if (selected) accent
-                else if (isLight) Color.Black.copy(alpha = 0.06f)
-                else Color.White.copy(alpha = 0.08f),
-            )
+            .background(if (selected) accent else Color.Transparent)
             .then(
                 if (!selected) {
                     Modifier.border(
                         width = 1.5.dp,
-                        color = if (isLight) Color.Black.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.18f),
+                        color = if (isLight) OnboardPalette.BorderLight else OnboardPalette.BorderDark,
                         shape = CircleShape,
                     )
                 } else {
@@ -755,22 +834,27 @@ private fun QuestionnaireBottomBar(
     onBack: () -> Unit,
     onContinue: () -> Unit,
 ) {
-    val accent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
-    val primaryText = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .liquidGlass(
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                surfaceTint = if (isLight) Color.Black else Color.White,
-                tintAlpha = if (isLight) 0.05f else 0.07f,
-                isLight = isLight,
-            )
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .background(if (isLight) OnboardPalette.FooterLight else OnboardPalette.FooterDark)
+            .navigationBarsPadding(),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(
+                    if (isLight) OnboardPalette.FooterBorderLight else OnboardPalette.FooterBorderDark,
+                ),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = if (page > 0) Arrangement.spacedBy(12.dp) else Arrangement.Center,
@@ -781,7 +865,16 @@ private fun QuestionnaireBottomBar(
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 52.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(99.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (isLight) OnboardPalette.SecondaryButtonText
+                        else OnboardPalette.TextSecondaryDark,
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (isLight) OnboardPalette.SecondaryButtonBorder
+                        else OnboardPalette.BorderDark,
+                    ),
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
@@ -797,14 +890,19 @@ private fun QuestionnaireBottomBar(
                 onClick = onContinue,
                 enabled = canContinue,
                 modifier = Modifier
-                    .then(if (page > 0) Modifier.weight(1f) else Modifier.fillMaxWidth())
+                    .then(if (page > 0) Modifier.weight(1.4f) else Modifier.fillMaxWidth())
                     .heightIn(min = 52.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(99.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = accent,
+                    containerColor = OnboardPalette.Primary,
                     contentColor = Color.White,
-                    disabledContainerColor = accent.copy(alpha = 0.35f),
+                    disabledContainerColor = OnboardPalette.Primary.copy(alpha = 0.35f),
                     disabledContentColor = Color.White.copy(alpha = 0.70f),
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 0.dp,
+                    pressedElevation = 0.dp,
+                    disabledElevation = 0.dp,
                 ),
             ) {
                 Text(
@@ -820,14 +918,19 @@ private fun QuestionnaireBottomBar(
             }
         }
 
-        if (page == 0) {
-            Text(
-                text = "Select at least one option to continue",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            AnimatedVisibility(
+                visible = page == 0 && !canContinue,
+                enter = fadeIn(tween(180)),
+                exit = fadeOut(tween(120)),
+            ) {
+                Text(
+                    text = "Select at least one option to continue",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isLight) OnboardPalette.TextSecondaryLight else OnboardPalette.TextSecondaryDark,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

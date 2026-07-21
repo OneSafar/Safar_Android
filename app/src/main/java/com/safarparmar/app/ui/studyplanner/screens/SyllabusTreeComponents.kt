@@ -60,10 +60,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.safarparmar.app.domain.model.studyplanner.ChapterDifficulty
 import com.safarparmar.app.domain.model.studyplanner.StudyChapter
 import com.safarparmar.app.domain.model.studyplanner.StudySubject
 import com.safarparmar.app.domain.model.studyplanner.StudyTopic
+import com.safarparmar.app.domain.model.studyplanner.TopicSize
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.model.studyplanner.effectiveSize
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.logic.percentDone
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
@@ -246,6 +249,7 @@ internal fun SyllabusChapterAccordionRow(
     onMoveChapterUp: () -> Unit,
     onMoveChapterDown: () -> Unit,
     onDragEnd: () -> Unit = {},
+    onRate: (String?) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -364,6 +368,11 @@ internal fun SyllabusChapterAccordionRow(
             }
             SubjectOverflowMenuMinimal(onRename = onRename, onDelete = onDelete, onMarkDone = onMarkDone)
         }
+        ChapterDifficultyChips(
+            selected = chapter.difficulty,
+            onSelect = onRate,
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp),
+        )
         LinearProgressIndicator(
             progress = { completion / 100f },
             modifier = Modifier
@@ -381,6 +390,7 @@ internal fun SyllabusChapterAccordionRow(
 @Composable
 internal fun SyllabusTopicAccordionRow(
     topic: StudyTopic,
+    chapter: StudyChapter? = null,
     onClick: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
@@ -503,15 +513,19 @@ internal fun SyllabusTopicAccordionRow(
             }
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = topic.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
-                    color = if (isDone) scheme.onSurfaceVariant else scheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = topic.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (isDone) scheme.onSurfaceVariant else scheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    TopicSizeBadge(topic = topic, chapter = chapter)
+                }
                 if (hasDate) {
                     Text(
                         text = readableDate(topic.plannedDate),
@@ -552,6 +566,71 @@ internal fun SyllabusTopicAccordionRow(
                 onToRevise = onToRevise
             )
         }
+    }
+}
+
+/**
+ * Easy / Normal / Tough rating chips for a chapter. Tapping the selected chip
+ * clears the rating. The rating weights every topic in the chapter for
+ * scheduling (easy=small, tough=big); per-topic sizes override it.
+ */
+@Composable
+internal fun ChapterDifficultyChips(
+    selected: ChapterDifficulty?,
+    onSelect: (String?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ChapterDifficulty.entries.forEach { option ->
+            val isSelected = option == selected
+            val accent = when (option) {
+                ChapterDifficulty.EASY -> PlannerAccent.Teal
+                ChapterDifficulty.NORMAL -> scheme.primary
+                ChapterDifficulty.TOUGH -> PlannerAccent.Coral
+            }
+            Surface(
+                modifier = Modifier.clickable {
+                    onSelect(if (isSelected) null else option.wireValue)
+                },
+                shape = RoundedCornerShape(50),
+                color = if (isSelected) accent.copy(alpha = 0.18f) else scheme.surfaceContainerHighest,
+                border = if (isSelected) BorderStroke(1.dp, accent) else null,
+            ) {
+                Text(
+                    text = option.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) accent else scheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Small S / M / L badge showing a topic's effective effort size. Hidden for
+ * plain medium topics with no chapter rating, so the default stays quiet.
+ */
+@Composable
+internal fun TopicSizeBadge(topic: StudyTopic, chapter: StudyChapter?, modifier: Modifier = Modifier) {
+    val effective = topic.effectiveSize(chapter)
+    if (topic.size == null && chapter?.difficulty == null) return
+    val scheme = MaterialTheme.colorScheme
+    val accent = when (effective) {
+        TopicSize.SMALL -> PlannerAccent.Teal
+        TopicSize.MEDIUM -> scheme.primary
+        TopicSize.BIG -> PlannerAccent.Coral
+    }
+    Surface(shape = RoundedCornerShape(6.dp), color = accent.copy(alpha = 0.16f), modifier = modifier) {
+        Text(
+            text = effective.shortLabel,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = accent,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+        )
     }
 }
 

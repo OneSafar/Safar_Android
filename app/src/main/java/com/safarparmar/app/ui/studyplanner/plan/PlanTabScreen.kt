@@ -78,9 +78,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.FilterChip
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
+import com.safarparmar.app.domain.model.studyplanner.TopicSize
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.model.studyplanner.effectiveSize
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.PlannerActions
@@ -106,9 +109,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.CalendarMonth
-import com.safarparmar.app.ui.glass.LiquidGlassBackdrop
-import com.safarparmar.app.ui.glass.macOSControlPanel
-import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.studyplanner.components.flatCard
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -471,9 +472,10 @@ fun PlanTabScreen(
         EditTopicDialog(
             ref = ref,
             onDismiss = { editTopicRef = null },
-            onSave = { topicName, chapterName, subjectName ->
-                if (topicName != ref.topic.name && topicName.isNotBlank()) {
-                    actions.updateTopic(ref.topic.id, name = topicName)
+            onSave = { topicName, chapterName, subjectName, size ->
+                val nameToSend = topicName.takeIf { it != ref.topic.name && it.isNotBlank() }
+                if (nameToSend != null || size != null) {
+                    actions.updateTopic(ref.topic.id, name = nameToSend, size = size)
                 }
                 if (chapterName != ref.chapter.name && chapterName.isNotBlank()) {
                     actions.renameChapter(ref.subject.id, ref.chapter.id, chapterName)
@@ -504,8 +506,6 @@ fun PlanTabScreen(
     val todayCompleted = todayTopics.isNotEmpty() && remainingToday.isEmpty()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
-
         if (!hasTopics) {
         EmptyPlanTabState(onCreateClick = { showCreatePlanSheet = true })
       } else {
@@ -560,7 +560,7 @@ fun PlanTabScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                                    .flatCard(shape = RoundedCornerShape(20.dp))
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth().padding(20.dp),
@@ -679,6 +679,7 @@ fun PlanTabScreen(
                                 onRemoveFromToday = { removeFromTodayConfirmTopic = ref },
                                 onEdit = { editTopicRef = ref },
                                 onFocus = { onNavigate(Routes.ekagraForTopic(ref.topic.id, ref.topic.name, plan.id)) },
+                                onSetProgress = { percent -> actions.setTopicProgress(ref.topic.id, percent) },
                             )
                         }
 
@@ -724,7 +725,8 @@ fun PlanTabScreen(
                                         accent = PlanTaskRowAccent.Planned,
                                         onDoneChange = { done ->
                                             handleTopicDoneCheck(ref, done)
-                                        }
+                                        },
+                                        onSetProgress = { percent -> actions.setTopicProgress(ref.topic.id, percent) },
                                     )
                                 }
                             }
@@ -746,7 +748,7 @@ fun PlanTabScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                                    .flatCard(shape = RoundedCornerShape(20.dp))
                             ) {
                                 Column(
                                     modifier = Modifier.padding(24.dp).fillMaxWidth(),
@@ -758,13 +760,13 @@ fun PlanTabScreen(
                                         text = "No Overdue Topics!",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
+                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextDark
                                     )
                                     Text(
                                         text = "Excellent time management! You're completely up to date with your studies.",
                                         style = MaterialTheme.typography.bodySmall,
                                         textAlign = TextAlign.Center,
-                                        color = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f)
+                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextMuted
                                     )
                                 }
                             }
@@ -783,7 +785,8 @@ fun PlanTabScreen(
                                 accent = PlanTaskRowAccent.Overdue,
                                 onDoneChange = { done ->
                                     handleTopicDoneCheck(ref, done)
-                                }
+                                },
+                                onSetProgress = { percent -> actions.setTopicProgress(ref.topic.id, percent) },
                             )
                         }
                     }
@@ -795,7 +798,7 @@ fun PlanTabScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                                    .flatCard(shape = RoundedCornerShape(20.dp))
                             ) {
                                 Column(
                                     modifier = Modifier.padding(24.dp).fillMaxWidth(),
@@ -807,13 +810,13 @@ fun PlanTabScreen(
                                         text = "No Upcoming Topics Scheduled",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
+                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextDark
                                     )
                                     Text(
                                         text = "Use the Schedule button at the top to distribute remaining topics into your calendar.",
                                         style = MaterialTheme.typography.bodySmall,
                                         textAlign = TextAlign.Center,
-                                        color = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f)
+                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextMuted
                                     )
                                 }
                             }
@@ -856,6 +859,7 @@ fun PlanTabScreen(
                                                 onDoneChange = { done ->
                                                     handleTopicDoneCheck(ref, done)
                                                 },
+                                                onSetProgress = { percent -> actions.setTopicProgress(ref.topic.id, percent) },
                                             )
                                         }
                                     }
@@ -876,7 +880,7 @@ fun PlanTabScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                                    .flatCard(shape = RoundedCornerShape(20.dp))
                             ) {
                                 Column(
                                     modifier = Modifier.padding(24.dp).fillMaxWidth(),
@@ -888,13 +892,13 @@ fun PlanTabScreen(
                                         text = "No Completed Topics Yet",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
+                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextDark
                                     )
                                     Text(
                                         text = "Every great journey starts with a single step. Start ekagra flow and complete your first task!",
                                         style = MaterialTheme.typography.bodySmall,
                                         textAlign = TextAlign.Center,
-                                        color = if (isLight) SafarGlassPalette.LightTextSecondary else Color.White.copy(alpha = 0.7f)
+                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextMuted
                                     )
                                 }
                             }
@@ -1054,11 +1058,14 @@ private fun AddCustomTopicDialog(
 private fun EditTopicDialog(
     ref: TopicRef,
     onDismiss: () -> Unit,
-    onSave: (topicName: String, chapterName: String, subjectName: String) -> Unit,
+    onSave: (topicName: String, chapterName: String, subjectName: String, size: String?) -> Unit,
 ) {
     var topicName by remember(ref.topic.id) { mutableStateOf(ref.topic.name) }
     var chapterName by remember(ref.topic.id) { mutableStateOf(ref.chapter.name) }
     var subjectName by remember(ref.topic.id) { mutableStateOf(ref.subject.name) }
+    var selectedSize by remember(ref.topic.id) {
+        mutableStateOf(ref.topic.effectiveSize(ref.chapter))
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit") },
@@ -1071,6 +1078,20 @@ private fun EditTopicDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Text(
+                    text = "Topic size — big topics count as more",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TopicSize.entries.forEach { option ->
+                        FilterChip(
+                            selected = option == selectedSize,
+                            onClick = { selectedSize = option },
+                            label = { Text("${option.shortLabel} · ${option.label}") },
+                        )
+                    }
+                }
                 OutlinedTextField(
                     value = chapterName,
                     onValueChange = { chapterName = it },
@@ -1089,7 +1110,13 @@ private fun EditTopicDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onSave(topicName.trim(), chapterName.trim(), subjectName.trim()) },
+                onClick = {
+                    // Only send a size when it actually changed from the current
+                    // effective size, so an untouched dialog stays a no-op patch.
+                    val sizeToSend = selectedSize.wireValue
+                        .takeIf { selectedSize != ref.topic.effectiveSize(ref.chapter) }
+                    onSave(topicName.trim(), chapterName.trim(), subjectName.trim(), sizeToSend)
+                },
                 enabled = topicName.trim().length >= 2,
             ) { Text("Save") }
         },
