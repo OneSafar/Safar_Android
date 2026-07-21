@@ -1015,14 +1015,115 @@ fun EkagraScreen(
                     }
 
                     // ── Main scaffold ────────────────────────────────────────────
-                    // Top-bar content sits over the video scrim on the Timer tab and
-                    // over a plain surface elsewhere — animate the tint so switching
-                    // tabs fades the icons instead of snapping between colours.
-                    val topBarTint by animateColorAsState(
-                        targetValue = if (isDarkTheme) Color(0xFFF2F2F5) else Color(0xFF16161A),
-                        animationSpec = tween(350),
-                        label = "topBarTint",
-                    )
+                    // The old floating liquid-glass bar is gone — its menu, guide
+                    // and overflow actions now live in EkagraTopBar, a bare row
+                    // drawn straight on the canvas. Tint still follows the Timer
+                    // tab's video/gradient canvas vs. the plain surface elsewhere.
+                    val headerInk = rememberEkagraInk(onCanvas = selectedTab == EkagraNavTab.TIMER)
+                    val topBarTint = headerInk.primaryText
+                    var openDrawer by remember { mutableStateOf<() -> Unit>({}) }
+
+                    // Guide + overflow actions — unchanged in behaviour, just moved
+                    // out of the old glass bar and into EkagraTopBar's trailing slot.
+                    val ekagraTopBarActions: @Composable RowScope.() -> Unit = {
+                        val tintColor = topBarTint
+                        IconButton(onClick = { tourState?.start() }) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_butterfly_tour),
+                                contentDescription = "Guide",
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                        Box {
+                            var showOverflowMenu by remember { mutableStateOf(false) }
+                            IconButton(onClick = { showOverflowMenu = true }) {
+                                Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = "More options", tint = tintColor)
+                            }
+                            androidx.compose.material3.DropdownMenu(
+                                expanded = showOverflowMenu,
+                                onDismissRequest = { showOverflowMenu = false }
+                            ) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(if (isMuted) "Volume On" else "Volume Off") },
+                                    onClick = {
+                                        timerService?.setMute(!isMuted)
+                                        showOverflowMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(if (isMuted) androidx.compose.material.icons.Icons.Default.VolumeUp else androidx.compose.material.icons.Icons.Default.VolumeOff, contentDescription = null)
+                                    }
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (overlayGranted.value) "Floating timer settings"
+                                            else "Enable floating timer"
+                                        )
+                                    },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        if (overlayGranted.value) {
+                                            TimerBubbleOverlay.openOverlayPermissionSettings(pipContext)
+                                        } else {
+                                            showOverlayPermPrompt = true
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            androidx.compose.material.icons.Icons.Default.PictureInPictureAlt,
+                                            contentDescription = null,
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        androidx.compose.material3.Switch(
+                                            checked = overlayGranted.value,
+                                            onCheckedChange = null,
+                                        )
+                                    },
+                                )
+                                val hasAllPermissions = shieldState.hasUsageStats &&
+                                                        shieldState.hasOverlayPermission
+                                if (!hasAllPermissions) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Kavach Setup") },
+                                        onClick = {
+                                            onNavigate(com.safarparmar.app.ui.navigation.Routes.FOCUS_SHIELD)
+                                            showOverflowMenu = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(androidx.compose.material.icons.Icons.Default.Shield, contentDescription = null)
+                                        }
+                                    )
+                                }
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(if (isBeastMode) "Disable Beast Mode" else "Enable Beast Mode") },
+                                    onClick = {
+                                        ekagraScope.launch {
+                                            viewModel.dataStore.setAppUsageMode(
+                                                if (isBeastMode) AppUsageMode.FOCUSED else AppUsageMode.BEAST
+                                            )
+                                        }
+                                        focusShieldViewModel.setStrictMode(!isBeastMode)
+                                        showOverflowMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(androidx.compose.material.icons.Icons.Default.FlashOn, contentDescription = null)
+                                    }
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text("Apps to Block") },
+                                    onClick = {
+                                        onNavigate(Routes.APP_PICKER)
+                                        showOverflowMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(androidx.compose.material.icons.Icons.Default.Apps, contentDescription = null)
+                                    }
+                                )
+                            }
+                        }
+                    }
+
                     Box(
                         Modifier
                             .fillMaxSize()
@@ -1035,113 +1136,9 @@ fun EkagraScreen(
                             isDarkTheme        = isDarkTheme,
                             onNavigate         = onNavigate,
                             onToggleDarkTheme  = onToggleNightMode,
-                            showTopBar         = true,
+                            showTopBar         = false,
                             containerColor     = Color.Transparent,
-                            useGlassTopBar     = true,
-                            useDetachedMenuGlass = true,
-                            topBarContentColor = topBarTint,
-                            topBarActions = {
-                                val tintColor = topBarTint
-                                com.safarparmar.app.ui.home.VideoPlaylistEntryPoint(
-                                    dataStore = viewModel.dataStore,
-                                    tint = tintColor,
-                                )
-                                IconButton(onClick = { tourState?.start() }) {
-                                    Image(
-                                        painter = painterResource(R.drawable.ic_butterfly_tour),
-                                        contentDescription = "Guide",
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
-                                Box {
-                                    var showOverflowMenu by remember { mutableStateOf(false) }
-                                    IconButton(onClick = { showOverflowMenu = true }) {
-                                        Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = "More options", tint = tintColor)
-                                    }
-                                    androidx.compose.material3.DropdownMenu(
-                                        expanded = showOverflowMenu,
-                                        onDismissRequest = { showOverflowMenu = false }
-                                    ) {
-                                        androidx.compose.material3.DropdownMenuItem(
-                                            text = { Text(if (isMuted) "Volume On" else "Volume Off") },
-                                            onClick = { 
-                                                timerService?.setMute(!isMuted)
-                                                showOverflowMenu = false
-                                            },
-                                            leadingIcon = {
-                                                Icon(if (isMuted) androidx.compose.material.icons.Icons.Default.VolumeUp else androidx.compose.material.icons.Icons.Default.VolumeOff, contentDescription = null)
-                                            }
-                                        )
-                                        androidx.compose.material3.DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    if (overlayGranted.value) "Floating timer settings"
-                                                    else "Enable floating timer"
-                                                )
-                                            },
-                                            onClick = {
-                                                showOverflowMenu = false
-                                                if (overlayGranted.value) {
-                                                    TimerBubbleOverlay.openOverlayPermissionSettings(pipContext)
-                                                } else {
-                                                    showOverlayPermPrompt = true
-                                                }
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    androidx.compose.material.icons.Icons.Default.PictureInPictureAlt,
-                                                    contentDescription = null,
-                                                )
-                                            },
-                                            trailingIcon = {
-                                                androidx.compose.material3.Switch(
-                                                    checked = overlayGranted.value,
-                                                    onCheckedChange = null,
-                                                )
-                                            },
-                                        )
-                                        val hasAllPermissions = shieldState.hasUsageStats &&
-                                                                shieldState.hasOverlayPermission
-                                        if (!hasAllPermissions) {
-                                            androidx.compose.material3.DropdownMenuItem(
-                                                text = { Text("Kavach Setup") },
-                                                onClick = { 
-                                                    onNavigate(com.safarparmar.app.ui.navigation.Routes.FOCUS_SHIELD)
-                                                    showOverflowMenu = false
-                                                },
-                                                leadingIcon = {
-                                                    Icon(androidx.compose.material.icons.Icons.Default.Shield, contentDescription = null)
-                                                }
-                                            )
-                                        }
-                                        androidx.compose.material3.DropdownMenuItem(
-                                            text = { Text(if (isBeastMode) "Disable Beast Mode" else "Enable Beast Mode") },
-                                            onClick = { 
-                                                ekagraScope.launch {
-                                                    viewModel.dataStore.setAppUsageMode(
-                                                        if (isBeastMode) AppUsageMode.FOCUSED else AppUsageMode.BEAST
-                                                    )
-                                                }
-                                                focusShieldViewModel.setStrictMode(!isBeastMode)
-                                                showOverflowMenu = false
-                                            },
-                                            leadingIcon = {
-                                                Icon(androidx.compose.material.icons.Icons.Default.FlashOn, contentDescription = null)
-                                            }
-                                        )
-                                        androidx.compose.material3.DropdownMenuItem(
-                                            text = { Text("Apps to Block") },
-                                            onClick = { 
-                                                onNavigate(Routes.APP_PICKER)
-                                                showOverflowMenu = false
-                                            },
-                                            leadingIcon = {
-                                                Icon(androidx.compose.material.icons.Icons.Default.Apps, contentDescription = null)
-                                            }
-                                        )
-                                    }
-                                }
-                            },
+                            onDrawerControllerReady = { openDrawer = it },
                         ) { padding ->
 
                             // Background + scrim only on timer tab
@@ -1207,6 +1204,13 @@ fun EkagraScreen(
                                 containerColor      = Color.Transparent,
                                 contentWindowInsets = WindowInsets.safeDrawing,
                                 snackbarHost        = { SnackbarHost(snackbarHostState) },
+                                topBar = {
+                                    EkagraTopBar(
+                                        ink = headerInk,
+                                        onOpenDrawer = { openDrawer() },
+                                        trailing = ekagraTopBarActions,
+                                    )
+                                },
                                 bottomBar = {
                                     androidx.compose.animation.AnimatedVisibility(
                                         visible = true,
@@ -1248,7 +1252,7 @@ fun EkagraScreen(
                                     EkagraNavTab.TIMER -> TimerFocusTab(
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .padding(top = padding.calculateTopPadding(),
+                                            .padding(top = innerPadding.calculateTopPadding(),
                                                      bottom = innerPadding.calculateBottomPadding()),
                                         timerMode          = timerMode,
                                         secondsLeft        = secondsLeft,
@@ -1337,7 +1341,7 @@ fun EkagraScreen(
                                     )
 
                                     EkagraNavTab.DURATION -> DurationTab(
-                                        modifier      = Modifier.padding(top = padding.calculateTopPadding(),
+                                        modifier      = Modifier.padding(top = innerPadding.calculateTopPadding(),
                                                                           bottom = innerPadding.calculateBottomPadding()),
                                         focusMinutes  = focusMinutes,
                                         breakMinutes  = breakMinutes,
@@ -1377,7 +1381,7 @@ fun EkagraScreen(
                                     )
 
                                     EkagraNavTab.HISTORY -> FocusHistoryTab(
-                                        modifier  = Modifier.padding(top = padding.calculateTopPadding(),
+                                        modifier  = Modifier.padding(top = innerPadding.calculateTopPadding(),
                                                                       bottom = innerPadding.calculateBottomPadding()),
                                         analytics = ekagraAnalytics,
                                         onSessionClick = { session ->

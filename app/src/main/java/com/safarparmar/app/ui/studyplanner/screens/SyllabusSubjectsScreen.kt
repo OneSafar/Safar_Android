@@ -46,6 +46,7 @@ import com.safarparmar.app.ui.components.SyllabusRowSkeleton
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.GlassButton
 import com.safarparmar.app.ui.studyplanner.components.TextInputDialog
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerUiState
@@ -922,18 +923,16 @@ internal fun SyllabusAddButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Button(
+    GlassButton(
         onClick = onClick,
+        accentColor = PlannerAccent.Teal,
         modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
         shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = PlannerAccent.Teal,
-            contentColor = Color.White,
-        ),
+        contentPadding = PaddingValues(horizontal = 16.dp),
     ) {
-        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
         Spacer(Modifier.width(8.dp))
-        Text(label, fontWeight = FontWeight.Bold)
+        Text(label, fontWeight = FontWeight.Bold, color = Color.White)
     }
 }
 

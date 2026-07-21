@@ -702,21 +702,6 @@ fun DhyanScreen(
             useDetachedMenuGlass = true,
             containerColor    = Color.Transparent,
             topBarActions = {
-                val context = LocalContext.current
-                DhyanTopBarGlassChip(isDarkTheme = isDarkTheme, onClick = {
-                    val intent = android.content.Intent(
-                        android.content.Intent.ACTION_VIEW,
-                        android.net.Uri.parse(com.safarparmar.app.util.YoutubeUrls.VISUAL_GUIDANCE_PLAYLIST_URL),
-                    )
-                    runCatching { context.startActivity(intent) }
-                }) {
-                    Icon(
-                        Icons.Default.PlayCircle,
-                        contentDescription = "Watch SAFAR video guide",
-                        tint = DhyanColors.textPrimary(isDarkTheme),
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
                 DhyanTopBarGlassChip(isDarkTheme = isDarkTheme, onClick = { showAudioLibraryPanel = true }) {
                     Icon(
                         Icons.Default.MusicNote,

@@ -1644,46 +1644,10 @@ internal fun InsightsLaggingSubjectsCard(chapters: List<PlannerInsightLaggingCha
 
 
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun PlannerExamDateFieldDialog(
-    examDateIso: String,
-    onExamDateChange: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val parsed = parsePlannerDate(examDateIso)
-    val initialMillis = parsed?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialMillis,
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                val picked = Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate()
-                val today = LocalDate.now(ZoneOffset.UTC)
-                return !picked.isBefore(today)
-            }
-        },
-    )
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        val ld = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                        onExamDateChange(ld.toString())
-                    }
-                    onDismiss()
-                },
-            ) { Text("OK") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    ) {
-        DatePicker(state = datePickerState)
-    }
-}
+// Exam-date editing was consolidated into the single canonical PlanSettingsSheet
+// (opened from the Home gear). The former duplicate PlannerExamDateFieldDialog
+// here was dead and has been removed — Progress reads plan.examDate for display
+// only and points users to Settings to change it.
 
 // --- NEW INSIGHTS REDESIGN ---
 

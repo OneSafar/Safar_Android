@@ -49,6 +49,7 @@ import android.view.TextureView
 import android.graphics.SurfaceTexture
 import androidx.annotation.DrawableRes
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
@@ -84,88 +85,86 @@ internal fun DurationTab(
     onSave: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val ink = rememberEkagraInk(onCanvas = false)
     var showPomodoroDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
     var pomodoroLoopsInput by remember { androidx.compose.runtime.mutableStateOf("4") }
-    
+
     Column(
         modifier = modifier
             .fillMaxSize()
             // M3 background token
             .background(scheme.background)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .padding(horizontal = 24.dp)
+            .padding(top = 20.dp),
     ) {
-        Text("Timer duration",
-            style      = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color      = scheme.onSurface)
+        EkagraEyebrow("Settings", ink.secondaryText)
+        Spacer(Modifier.height(6.dp))
+        EkagraDisplayTitle("Set your rhythm", ink.primaryText)
+        Spacer(Modifier.height(22.dp))
 
-        DurationCard(
-            icon          = Icons.Default.Timer,
-            title         = "Ekagra duration",
+        DurationSection(
+            label         = "Ekagra",
             value         = focusMinutes,
             range         = 1f..120f,
+            presets       = listOf(15, 25, 45, 60),
+            ink           = ink,
             onValueChange = onFocusChange,
         )
-        DurationCard(
-            icon          = Icons.Default.FreeBreakfast,
-            title         = "Break duration",
+        DurationSection(
+            label         = "Break",
             value         = breakMinutes,
             range         = 1f..60f,
-            presets       = listOf(1, 5, 15, 30),
+            presets       = listOf(5, 10, 15, 30),
+            ink           = ink,
             onValueChange = onBreakChange,
         )
 
-        ToggleCard(
-            icon          = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-            title         = "Audio",
-            subtitle      = if (isMuted) "Background audio is muted" else "Background audio is playing",
-            checked       = !isMuted,
-            onCheckedChange = { onMuteChange(!it) }
+        EkagraHairline(ink.hairline)
+        SettingToggleRow(
+            title    = "Audio",
+            subtitle = if (isMuted) "Background audio is muted" else "Background audio is playing",
+            checked  = !isMuted,
+            ink      = ink,
+            onCheckedChange = { onMuteChange(!it) },
         )
 
-        ToggleCard(
-            icon            = Icons.Default.PlayCircle,
-            title           = "Auto-start breaks",
-            subtitle        = if (autoStartBreak) "Break starts automatically when timer ends" else "Break stays paused — you start it when ready",
-            checked         = autoStartBreak,
-            onCheckedChange = onAutoStartBreakChange
+        EkagraHairline(ink.hairline)
+        SettingToggleRow(
+            title    = "Auto-start breaks",
+            subtitle = if (autoStartBreak) "Break starts when the timer ends" else "Break stays paused until you start it",
+            checked  = autoStartBreak,
+            ink      = ink,
+            onCheckedChange = onAutoStartBreakChange,
         )
 
-        TimerAlertStyleButton(
+        EkagraHairline(ink.hairline)
+        TimerAlertStyleRow(
             selectedStyle = timerAlertStyle,
+            ink = ink,
             onStyleSelected = onTimerAlertStyleChange,
         )
+        EkagraHairline(ink.hairline)
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(28.dp))
 
-        // M3 FilledButton — primary CTA, 56dp tall for prominence
-        Button(
-            onClick        = onSave,
-            modifier       = Modifier.fillMaxWidth().height(56.dp),
-            shape          = RoundedCornerShape(16.dp),
-            colors         = ButtonDefaults.buttonColors(
-                containerColor = scheme.primary,
-                contentColor   = scheme.onPrimary,
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            EkagraPrimaryAction(
+                label   = "Save changes",
+                accent  = scheme.primary,
+                onClick = onSave,
+            )
+            EkagraGhostAction(
+                label   = "Pomodoro",
+                ink     = ink,
+                onClick = { showPomodoroDialog = true },
+            )
         }
-        Spacer(Modifier.height(8.dp))
-        androidx.compose.material3.OutlinedButton(
-            onClick        = { showPomodoroDialog = true },
-            modifier       = Modifier.fillMaxWidth().height(56.dp),
-            shape          = RoundedCornerShape(16.dp),
-            border         = androidx.compose.foundation.BorderStroke(1.dp, scheme.primary),
-            colors         = ButtonDefaults.outlinedButtonColors(
-                contentColor = scheme.primary,
-            ),
-        ) {
-            Text("Start Pomodoro Session", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(28.dp))
     }
 
     if (showPomodoroDialog) {
@@ -201,12 +200,16 @@ internal fun DurationTab(
     }
 }
 
+/**
+ * One duration control: a hairline rule, a label, a serif numeral, a line slider
+ * and its presets. No card, no icon — the rule above it is the container.
+ */
 @Composable
-internal fun DurationCard(
-    icon: ImageVector,
-    title: String,
+internal fun DurationSection(
+    label: String,
     value: Int,
     range: ClosedFloatingPointRange<Float>,
+    ink: EkagraInk,
     presets: List<Int> = emptyList(),
     onValueChange: (Int) -> Unit,
     enabled: Boolean = true,
@@ -219,100 +222,110 @@ internal fun DurationCard(
     var showCustomInput by remember { mutableStateOf(false) }
     var customText      by remember { mutableStateOf("") }
     val alpha = if (enabled) 1f else 0.5f
-    val isLight = scheme.background.luminance() > 0.5f
 
-    SafarGlassCard(
-        isLight = isLight,
-        contentPadding = PaddingValues(16.dp),
-        modifier = Modifier.fillMaxWidth().alpha(alpha),
+    EkagraHairline(ink.hairline)
+    Column(
+        modifier = Modifier.fillMaxWidth().alpha(alpha).padding(vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Header row
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(icon, contentDescription = null,
-                    tint     = scheme.primary,
-                    modifier = Modifier.size(20.dp))
-                Text(title,
-                    fontWeight = FontWeight.Medium,
-                    fontSize   = 16.sp,
-                    color      = scheme.onSurface,
-                    modifier   = Modifier.weight(1f))
-                // M3 displayLarge-ish value badge
-                Text("${value}m",
-                    fontWeight = FontWeight.Bold,
-                    color      = scheme.onSurface,
-                    fontSize   = 26.sp)
-                // Small edit icon button
-                IconButton(
-                    onClick  = { showCustomInput = !showCustomInput; customText = "" },
-                    modifier = Modifier.size(32.dp),
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Custom value",
-                        modifier = Modifier.size(15.dp), tint = scheme.onSurfaceVariant)
-                }
-            }
-
-            // Inline custom input (visible only when edit tapped)
-            if (showCustomInput) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value         = customText,
-                        onValueChange = { customText = it.filter { c -> c.isDigit() }.take(3) },
-                        placeholder   = { Text("Minutes") },
-                        singleLine    = true,
-                        modifier      = Modifier.weight(1f),
-                        shape         = RoundedCornerShape(SafarGlassChromeRadius),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                    )
-                    Button(
-                        onClick = {
-                            // Accept any typed value from the range floor up to
-                            // customMaxMinutes — NOT limited to the slider's max, so
-                            // e.g. 300 / 400 min are honoured even though the slider
-                            // only goes to range.endInclusive.
-                            val v = customText.toIntOrNull()
-                            if (v != null && v >= range.start.toInt() && v <= customMaxMinutes) {
-                                onValueChange(v); showCustomInput = false
-                            }
-                        },
-                        shape = RoundedCornerShape(SafarGlassChromeRadius),
-                    ) { Text("Set") }
-                }
-            }
-
-            // M3 Slider — track = secondaryContainer, thumb + fill = primary
-            SlimSlider(
-                value         = value.toFloat(),
-                onValueChange = { if (enabled) onValueChange(it.roundToInt().coerceIn(range.start.toInt(), range.endInclusive.toInt())) },
-                valueRange    = range,
-                modifier      = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                activeColor   = scheme.primary,
-                inactiveColor = scheme.secondaryContainer,
+        // Label ↔ serif value, sharing a baseline
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                label,
+                fontWeight = FontWeight.SemiBold,
+                fontSize   = 14.sp,
+                color      = ink.primaryText,
+                modifier   = Modifier.weight(1f),
             )
+            Text(
+                "$value",
+                fontFamily = EkagraSerif,
+                fontWeight = FontWeight.Normal,
+                fontSize   = 28.sp,
+                color      = ink.primaryText,
+            )
+            Spacer(Modifier.width(5.dp))
+            Text(
+                "min",
+                fontSize = 13.sp,
+                color    = ink.mutedText,
+                modifier = Modifier.padding(bottom = 3.dp),
+            )
+            // Type an exact value — a quiet pencil, not a filled icon button
+            IconButton(
+                onClick  = { showCustomInput = !showCustomInput; customText = "" },
+                modifier = Modifier.size(30.dp),
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "Custom value",
+                    modifier = Modifier.size(14.dp), tint = ink.mutedText)
+            }
+        }
 
-            if (presets.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    presets.forEach { preset ->
-                        val isSelected = value == preset
-                        Box(
-                            Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) scheme.primary else scheme.surfaceContainerHigh)
-                                .clickable { if (enabled) onValueChange(preset) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                        ) {
-                            Text(
-                                "${preset}m",
-                                fontSize = 14.sp,
-                                color = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Medium,
-                            )
+        // Inline custom input (visible only when edit tapped)
+        if (showCustomInput) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value         = customText,
+                    onValueChange = { customText = it.filter { c -> c.isDigit() }.take(3) },
+                    placeholder   = { Text("Minutes") },
+                    singleLine    = true,
+                    modifier      = Modifier.weight(1f),
+                    shape         = RoundedCornerShape(SafarGlassChromeRadius),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                )
+                EkagraPrimaryAction(
+                    label  = "Set",
+                    accent = scheme.primary,
+                    onClick = {
+                        // Accept any typed value from the range floor up to
+                        // customMaxMinutes — NOT limited to the slider's max, so
+                        // e.g. 300 / 400 min are honoured even though the slider
+                        // only goes to range.endInclusive.
+                        val v = customText.toIntOrNull()
+                        if (v != null && v >= range.start.toInt() && v <= customMaxMinutes) {
+                            onValueChange(v); showCustomInput = false
                         }
-                    }
+                    },
+                )
+            }
+        }
+
+        // Line slider — fill and knob track the active theme accent
+        SlimSlider(
+            value         = value.toFloat(),
+            onValueChange = { if (enabled) onValueChange(it.roundToInt().coerceIn(range.start.toInt(), range.endInclusive.toInt())) },
+            valueRange    = range,
+            modifier      = Modifier.fillMaxWidth(),
+            activeColor   = scheme.primary,
+            inactiveColor = ink.trackFaint,
+        )
+
+        // Range end-caps
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("${range.start.toInt()} min", fontSize = 11.sp, color = ink.mutedText)
+            Text("${range.endInclusive.toInt()} min", fontSize = 11.sp, color = ink.mutedText)
+        }
+
+        if (presets.isNotEmpty()) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                presets.forEach { preset ->
+                    EkagraPill(
+                        label    = "$preset min",
+                        selected = value == preset,
+                        accent   = scheme.primary,
+                        ink      = ink,
+                        onClick  = { if (enabled) onValueChange(preset) },
+                    )
                 }
             }
         }
@@ -320,8 +333,9 @@ internal fun DurationCard(
 }
 
 @Composable
-private fun TimerAlertStyleButton(
+private fun TimerAlertStyleRow(
     selectedStyle: com.safarparmar.app.data.local.TimerAlertStyle,
+    ink: EkagraInk,
     onStyleSelected: (com.safarparmar.app.data.local.TimerAlertStyle) -> Unit,
 ) {
     var showSelector by remember { mutableStateOf(false) }
@@ -330,25 +344,25 @@ private fun TimerAlertStyleButton(
         com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE -> "Vibrate"
         com.safarparmar.app.data.local.TimerAlertStyle.OFF -> "Off"
     }
-    val selectedIcon = when (selectedStyle) {
-        com.safarparmar.app.data.local.TimerAlertStyle.SOUND -> Icons.Default.NotificationsActive
-        com.safarparmar.app.data.local.TimerAlertStyle.VIBRATE -> Icons.Default.Vibration
-        com.safarparmar.app.data.local.TimerAlertStyle.OFF -> Icons.Default.NotificationsOff
-    }
 
-    OutlinedButton(
-        onClick = { showSelector = true },
-        modifier = Modifier.fillMaxWidth().height(64.dp),
-        shape = RoundedCornerShape(16.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showSelector = true }
+            .padding(vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(selectedIcon, contentDescription = null, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
-            Text("Timer Alert Style", fontWeight = FontWeight.SemiBold)
-            Text(selectedLabel, style = MaterialTheme.typography.bodySmall)
+        Column(Modifier.weight(1f)) {
+            Text("Timer alert", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ink.primaryText)
+            Text("How Ekagra tells you a session ended", fontSize = 12.sp, color = ink.mutedText)
         }
-        Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose timer alert style")
+        Text(selectedLabel, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = ink.secondaryText)
+        Icon(
+            Icons.Default.ChevronRight,
+            contentDescription = "Choose timer alert style",
+            tint = ink.mutedText,
+            modifier = Modifier.size(18.dp),
+        )
     }
 
     if (showSelector) {
@@ -392,35 +406,32 @@ private fun TimerAlertStyleButton(
     }
 }
 
+/** Settings toggle as a plain row between hairlines — no card, no leading icon. */
 @Composable
-internal fun ToggleCard(
-    icon: ImageVector,
+internal fun SettingToggleRow(
     title: String,
     subtitle: String,
     checked: Boolean,
+    ink: EkagraInk,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
-    val isLight = scheme.background.luminance() > 0.5f
-    SafarGlassCard(
-        isLight = isLight,
-        contentPadding = PaddingValues(0.dp),
-        onClick = { onCheckedChange(!checked) },
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(icon, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-            }
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ink.primaryText)
+            Text(subtitle, fontSize = 12.sp, color = ink.mutedText)
         }
+        // M3 Switch keeps its default colours so it follows the active theme.
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.scale(0.85f),
+        )
     }
 }
 

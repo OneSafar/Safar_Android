@@ -210,6 +210,7 @@ import com.safarparmar.app.ui.studyplanner.plan.DailyTodoSetupSheet
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.GlassButton
 import com.safarparmar.app.ui.studyplanner.components.flatCard
 import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
 import com.safarparmar.app.ui.studyplanner.logic.*
@@ -650,10 +651,6 @@ fun StudyPlannerScreen(
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
             topBarActions = {
-                com.safarparmar.app.ui.home.VideoPlaylistEntryPoint(
-                    dataStore = viewModel.dataStore,
-                    tint = if (isDarkTheme) Color.White else Color.Black,
-                )
                 IconButton(onClick = { tourState?.start() }) {
                     androidx.compose.foundation.Image(
                         painter = androidx.compose.ui.res.painterResource(R.drawable.ic_butterfly_tour),
@@ -831,18 +828,15 @@ private fun StudyPlannerPremiumLockOverlay(
                 color = scheme.onSurfaceVariant,
                 lineHeight = 20.sp,
             )
-            Button(
+            GlassButton(
                 onClick = onUpgrade,
+                accentColor = scheme.primary,
                 shape = MaterialTheme.shapes.extraLarge,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = scheme.primary,
-                    contentColor = scheme.onPrimary,
-                ),
                 modifier = Modifier.fillMaxWidth(0.75f),
             ) {
-                Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp), tint = scheme.onPrimary)
                 Spacer(Modifier.width(6.dp))
-                Text("Upgrade to Safar Premium", fontWeight = FontWeight.Bold)
+                Text("Upgrade to Safar Premium", fontWeight = FontWeight.Bold, color = scheme.onPrimary)
             }
         }
     }

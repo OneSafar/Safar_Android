@@ -109,10 +109,6 @@ internal fun MehfilContent(
             IconButton(onClick = { onSearchActiveChange(!searchActive) }) {
                 Icon(if (searchActive) Icons.Default.Close else Icons.Default.Search, contentDescription = "Search")
             }
-            com.safarparmar.app.ui.home.VideoPlaylistEntryPoint(
-                dataStore = dataStore,
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
             IconButton(onClick = onTourClick) {
                 Image(
                     painter = painterResource(R.drawable.ic_butterfly_tour),

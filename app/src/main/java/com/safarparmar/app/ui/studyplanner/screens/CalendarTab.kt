@@ -206,6 +206,8 @@ import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 // ── Liquid Glass design system (Dhyan / Dashboard recipe) ────────────────────
 import com.safarparmar.app.ui.studyplanner.components.flatCard
+import com.safarparmar.app.ui.studyplanner.components.GlassButton
+import com.safarparmar.app.ui.studyplanner.components.glassSurface
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.PlannerCalendarStatus
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
@@ -285,7 +287,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .flatCard(shape = RoundedCornerShape(24.dp))
+                        .glassSurface(shape = RoundedCornerShape(24.dp))
                         .padding(vertical = 16.dp, horizontal = 12.dp)
                 ) {
                     Column(
@@ -393,15 +395,16 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
             }
 
             item {
-                // Keep existing blue palette — liquid glass chrome only
-                Button(
+                // Keeps its existing accent color — macOS glass chrome only.
+                GlassButton(
                     onClick = { actions.openRevisionTopics() },
+                    accentColor = PlannerFlatColors.PrimaryAccent,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp)
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PlannerFlatColors.PrimaryAccent)
+                    contentPadding = PaddingValues(horizontal = 16.dp),
                 ) {
                     Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color.White)
                     Spacer(Modifier.width(8.dp))
@@ -410,15 +413,16 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
             }
 
             item {
-                // Keep existing rose/red palette — liquid glass chrome only
-                Button(
+                // Keeps its existing rose/red — macOS glass chrome only.
+                GlassButton(
                     onClick = { showUnscheduledTopicsScreen = true },
+                    accentColor = Color(0xFFDC2626),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 4.dp)
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                    contentPadding = PaddingValues(horizontal = 16.dp),
                 ) {
                     Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null, tint = Color.White)
                     Spacer(Modifier.width(8.dp))
@@ -451,7 +455,7 @@ private fun CalendarPlainHeader(plan: StudyPlan, isLight: Boolean = false, modif
         modifier = modifier
             .padding(bottom = 8.dp)
             .fillMaxWidth()
-            .flatCard(shape = RoundedCornerShape(24.dp))
+            .glassSurface(shape = RoundedCornerShape(24.dp))
             .padding(16.dp)
     ) {
         Row(

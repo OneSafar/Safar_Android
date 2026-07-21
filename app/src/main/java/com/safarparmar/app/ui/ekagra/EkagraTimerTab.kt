@@ -127,81 +127,31 @@ internal fun EkagraPipOverlay(
     }
 }
 
-// ─── Mode pill (icon-only) ─────────────────────────────────────────────────────────────────────────────────────
+// ─── Mode tabs ─────────────────────────────────────────────────────────────────
 
+/**
+ * Mode selector as plain text with an accent underline on the active entry —
+ * the redesign drops the filled segmented pill in favour of type and a hairline.
+ * POMODORO is not user-selectable here, so it reads as FOCUS.
+ */
 @Composable
-internal fun ModePill(selected: TimerMode, accentColor: Color, isDarkTheme: Boolean, onSelect: (TimerMode) -> Unit) {
+internal fun ModeTabs(
+    selected: TimerMode,
+    accentColor: Color,
+    ink: EkagraInk,
+    onSelect: (TimerMode) -> Unit,
+) {
     val modes = remember { TimerMode.entries.filter { it.showInPill } }
-    val selectedIndex = when {
-        selected == TimerMode.POMODORO -> 0
-        else -> modes.indexOf(selected).coerceAtLeast(0)
-    }
+    val effective = if (selected == TimerMode.POMODORO) TimerMode.FOCUS else selected
 
-    val animatedXOffset by animateDpAsState(
-        targetValue = (selectedIndex * 52).dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow,
-        ),
-        label = "modePillIndicator",
+    EkagraTextTabs(
+        items = modes,
+        selected = effective,
+        accent = accentColor,
+        ink = ink,
+        label = { it.label },
+        onSelect = onSelect,
     )
-
-    val pillShape = RoundedCornerShape(SafarGlassChromeRadius)
-    val isLight = !isDarkTheme
-    val unselectedIconColor = if (isDarkTheme) {
-        Color.White.copy(alpha = 0.65f)
-    } else {
-        SafarGlassPalette.LightTextSecondary.copy(alpha = 0.85f)
-    }
-
-    Box(
-        modifier = Modifier
-            .safarFrostedPanel(isLight = isLight, shape = pillShape)
-            .padding(5.dp),
-    ) {
-        // Sliding indicator background
-        Box(
-            modifier = Modifier
-                .offset(x = animatedXOffset)
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(accentColor)
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.30f),
-                                Color.Transparent,
-                            ),
-                            startY = 0f,
-                            endY = size.height * 0.45f,
-                        ),
-                    )
-                },
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            modes.forEachIndexed { index, mode ->
-                val isSelected = index == selectedIndex
-                val iconRes = if (isSelected) mode.lightIconRes else mode.darkIconRes
-
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .clickable { onSelect(mode) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painter = painterResource(iconRes),
-                        contentDescription = mode.label,
-                        tint = if (isSelected) Color.White else unselectedIconColor,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-        }
-    }
 }
 
 // ─── Timer / Focus tab ─────────────────────────────────────────────────────────
@@ -238,6 +188,9 @@ internal fun TimerFocusTab(
     val scheme  = MaterialTheme.colorScheme
     val configuration   = LocalConfiguration.current
     val isCompactHeight = configuration.screenHeightDp < 600
+    // The Timer tab floats over the scrimmed video/gradient canvas, so its ink is
+    // always light-on-dark regardless of the app's light/dark setting.
+    val ink = rememberEkagraInk(onCanvas = true)
 
     val pulse by animateFloatAsState(
         targetValue    = if (isRunning) 1f else 0f,
@@ -262,171 +215,83 @@ internal fun TimerFocusTab(
                        shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.height(if (isCompactHeight) 16.dp else 56.dp))
-                    
+                    Spacer(Modifier.height(if (isCompactHeight) 16.dp else 40.dp))
+
+                    ModeTabs(
+                        selected = timerMode,
+                        accentColor = themeAccent,
+                        ink = ink,
+                        onSelect = onModeChange,
+                    )
+                    Spacer(Modifier.height(if (isCompactHeight) 20.dp else 36.dp))
+
                     val hasAllPermissions = shieldState.hasUsageStats &&
                                             shieldState.hasOverlayPermission
 
                     if (hasAllPermissions && !isBeastMode) {
+                        // Status chip — a hairline outline and a single accent dot
+                        // instead of a frosted panel with a full switch.
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
-                                .safarFrostedPanel(
-                                    isLight = !isDarkTheme,
-                                    shape = RoundedCornerShape(SafarGlassChromeRadius),
-                                )
+                                .clip(CircleShape)
+                                .border(1.dp, ink.hairline, CircleShape)
                                 .clickable { onToggleKavach(!shieldState.isEnabled) }
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                                .padding(horizontal = 14.dp, vertical = 7.dp),
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Shield,
-                                contentDescription = null,
-                                tint = if (shieldState.isEnabled) themeAccent else scheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                modifier = Modifier.size(18.dp),
+                            Box(
+                                Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .then(
+                                        if (shieldState.isEnabled) Modifier.background(themeAccent)
+                                        else Modifier.border(1.dp, ink.mutedText, CircleShape)
+                                    ),
                             )
                             Text(
-                                text = if (shieldState.isEnabled) "Kavach On" else "Kavach Off",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (shieldState.isEnabled) themeAccent else scheme.onSurfaceVariant.copy(alpha = 0.8f),
-                            )
-                            Switch(
-                                checked = shieldState.isEnabled,
-                                onCheckedChange = { onToggleKavach(it) },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = themeAccent,
-                                    uncheckedThumbColor = scheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                    uncheckedTrackColor = scheme.surfaceContainerHigh,
-                                    uncheckedBorderColor = scheme.outlineVariant,
-                                ),
-                                modifier = Modifier.scale(0.8f),
+                                text = if (shieldState.isEnabled) "Kavach on" else "Kavach off",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (shieldState.isEnabled) ink.primaryText else ink.mutedText,
                             )
                         }
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(24.dp))
                     }
-
-                    ModePill(selected = timerMode, accentColor = themeAccent, isDarkTheme = isDarkTheme, onSelect = onModeChange)
-                    Spacer(Modifier.height(32.dp))
                 }
             }
 
             val clampedProgress = progress.coerceIn(0f, 1f)
-            val isLight = scheme.background.luminance() > 0.5f
-            val ringColor = scheme.primary
-            val trackColor = if (isLight) {
-                Color(
-                    red = (scheme.primary.red * 0.45f).coerceIn(0f, 1f),
-                    green = (scheme.primary.green * 0.45f).coerceIn(0f, 1f),
-                    blue = (scheme.primary.blue * 0.45f).coerceIn(0f, 1f),
-                    alpha = 0.9f
-                )
-            } else {
-                scheme.secondaryContainer
-            }
+            // ── One thin ring, one accent ─────────────────────────────────────
+            // The redesign replaces the 18dp band + bloom + frosted glass disc
+            // with a single hairline-weight arc, so the numerals carry the screen.
+            val ringColor  = themeAccent
+            val trackColor = ink.trackFaint
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(302.dp)) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(252.dp)) {
                 // Track ring
                 CircularProgressIndicator(
                     progress      = { 1f },
                     modifier      = Modifier.fillMaxSize(),
                     color         = trackColor,
-                    strokeWidth   = 18.dp,
+                    strokeWidth   = 5.dp,
                     strokeCap     = StrokeCap.Round,
+                    trackColor    = Color.Transparent,
+                    gapSize       = 0.dp,
                 )
-                // Progress glow bloom ring
-                CircularProgressIndicator(
-                    progress      = { clampedProgress },
-                    modifier      = Modifier.fillMaxSize(),
-                    color         = ringColor.copy(alpha = 0.25f + pulse * 0.15f),
-                    strokeWidth   = (18f + pulse * 2.6f).dp,
-                    strokeCap     = StrokeCap.Round,
-                )
-                // Progress ring
+                // Progress ring — a soft breath of width while running is the
+                // only motion left on the ring.
                 CircularProgressIndicator(
                     progress      = { clampedProgress },
                     modifier      = Modifier.fillMaxSize(),
                     color         = ringColor,
-                    strokeWidth   = 18.dp,
+                    strokeWidth   = (5f + pulse * 0.8f).dp,
                     strokeCap     = StrokeCap.Round,
+                    trackColor    = Color.Transparent,
+                    gapSize       = 0.dp,
                 )
 
-                // Glowing pointer dot at the sweeping tip of the progress bar
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val strokeWidthPx = 18.dp.toPx()
-                    val radiusPx = (size.width - strokeWidthPx) / 2f
-                    val centerX = size.width / 2f
-                    val centerY = size.height / 2f
-                    val angleRad = (clampedProgress * 360f - 90f) * (Math.PI / 180f)
-                    val endX = centerX + radiusPx * kotlin.math.cos(angleRad).toFloat()
-                    val endY = centerY + radiusPx * kotlin.math.sin(angleRad).toFloat()
-
-                    if (clampedProgress > 0f) {
-                        val glowRadius = (10.dp.toPx()) + (pulse * 5.dp.toPx())
-                        drawCircle(
-                            color = ringColor.copy(alpha = 0.4f + pulse * 0.2f),
-                            radius = glowRadius,
-                            center = androidx.compose.ui.geometry.Offset(endX, endY)
-                        )
-                        drawCircle(
-                            color = Color.White,
-                            radius = 5.dp.toPx(),
-                            center = androidx.compose.ui.geometry.Offset(endX, endY)
-                        )
-                    }
-                }
-
-                // ── Frosted glass inner disc — multi-layer radial gradient simulates
-                // a spherical glass surface with a single catch-light in the upper-left.
-                Box(
-                    Modifier
-                        .size(247.dp)
-                        .clip(CircleShape)
-                        // Layer 1: sphere shimmer — bright catch-light offset to upper-left,
-                        // fading to near-transparent at the edges.
-                        .drawBehind {
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.28f),   // bright centre catch-light
-                                        Color.White.copy(alpha = 0.10f),   // mid fade
-                                        Color.White.copy(alpha = 0.02f),   // near-transparent edge
-                                    ),
-                                    center = Offset(
-                                        x = size.width  * 0.38f,
-                                        y = size.height * 0.30f,
-                                    ),
-                                    radius = size.minDimension * 0.72f,
-                                )
-                            )
-                        }
-                        // Layer 2: thin bottom-half darkening for depth (opposite the catch-light)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.06f),
-                                )
-                            )
-                        )
-                        // Layer 3: angled rim border — bright on top-left, fades bottom-right
-                        .border(
-                            width = 0.8.dp,
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.45f),
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.White.copy(alpha = 0.20f),
-                                ),
-                                start = Offset(0f, 0f),
-                                end   = Offset(600f, 600f),
-                            ),
-                            shape = CircleShape,
-                        )
-                )
-
-                // Timer text inside inner circle
+                // Timer text inside the ring
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -462,10 +327,11 @@ internal fun TimerFocusTab(
                         // time once the countdown finishes.
                         Text(
                             timerText,
+                            fontFamily    = EkagraSerif,
                             fontSize      = timerFontSize,
-                            fontWeight    = FontWeight.Bold,
+                            fontWeight    = FontWeight.Normal,
                             letterSpacing = timerLetterSpacing,
-                            color         = Color.White,
+                            color         = ink.primaryText,
                             textAlign     = TextAlign.Center,
                             maxLines      = 1,
                         )
@@ -484,99 +350,40 @@ internal fun TimerFocusTab(
                         }
                         Text(
                             subtext,
-                            fontSize   = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color      = Color.White.copy(alpha = 0.7f),
-                            textAlign  = TextAlign.Center,
+                            fontSize      = 12.sp,
+                            fontWeight    = FontWeight.Medium,
+                            letterSpacing = 0.5.sp,
+                            color         = ink.secondaryText,
+                            textAlign     = TextAlign.Center,
                         )
                     }
                 }
             }
 
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(28.dp))
 
-            // ── Control buttons — Dhyan frosted glass chrome ──
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                val btnShape = RoundedCornerShape(SafarGlassChromeRadius)
-                val isLight = !isDarkTheme
-
-                // End / Reset — frosted glass
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(54.dp)
-                        .safarFrostedPanel(isLight = isLight, shape = btnShape)
-                        .clickable(
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            indication = null,
-                        ) { onReset() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.Stop,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White,
-                        )
-                        Text(
-                            if (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO) {
-                                "End"
-                            } else {
-                                "End Break"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White,
-                        )
-                    }
-                }
-
-                // Start / Pause — brand accent fill with gloss
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(54.dp)
-                        .glassLiftShadow(shape = btnShape, isLight = isLight)
-                        .liquidGlass(
-                            shape = btnShape,
-                            surfaceTint = themeAccent,
-                            tintAlpha = if (isLight) 0.55f else 0.28f,
-                            isLight = isLight,
-                        )
-                        .clickable(
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            indication = null,
-                        ) { onPlayPause() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        val playPauseLabel = when {
-                            isRunning -> "Pause"
-                            hasProgress -> "Resume"
-                            else -> "Start"
-                        }
-                        Icon(
-                            if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.White,
-                        )
-                        Text(
-                            playPauseLabel,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                    }
-                }
+            // ── Controls — one quiet text action beside one accent pill ──
+            // The accent is whatever the active visual theme supplies, so this
+            // still recolours with the user's chosen theme.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                EkagraGhostAction(
+                    label = if (timerMode == TimerMode.BREAK) "End break" else "End",
+                    ink   = ink,
+                    onClick = onReset,
+                )
+                EkagraPrimaryAction(
+                    label = when {
+                        isRunning   -> "Pause"
+                        hasProgress -> "Resume"
+                        else        -> "Start"
+                    },
+                    accent  = themeAccent,
+                    onClick = onPlayPause,
+                )
             }
 
             AnimatedVisibility(
@@ -588,23 +395,12 @@ internal fun TimerFocusTab(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (canStartBreak) {
-                        Spacer(Modifier.height(12.dp))
-                        FilledTonalButton(
+                        Spacer(Modifier.height(4.dp))
+                        EkagraGhostAction(
+                            label = "Take a break",
+                            ink   = ink,
                             onClick = onStartBreak,
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            colors   = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color.White.copy(alpha = 0.08f),
-                                contentColor   = Color.White,
-                            ),
-                            border    = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
-                            shape  = RoundedCornerShape(16.dp),
-                            contentPadding = PaddingValues(0.dp),
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.FreeBreakfast, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Text("Take break", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            }
-                        }
+                        )
                     }
 
                     Spacer(Modifier.height(24.dp))
@@ -614,7 +410,7 @@ internal fun TimerFocusTab(
                         fontSize   = 10.sp,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 2.sp,
-                        color      = Color.White.copy(alpha = 0.7f),
+                        color      = ink.mutedText,
                         textAlign  = TextAlign.Center,
                     )
 

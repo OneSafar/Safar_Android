@@ -29,7 +29,7 @@ import com.safarparmar.app.ui.nishtha.journal.JournalScreen
 import com.safarparmar.app.ui.tour.TourManager
 import com.safarparmar.app.ui.tour.nishthaTourSteps
 import com.safarparmar.app.ui.theme.SafarSemanticColors
-import com.safarparmar.app.ui.home.VideoPlaylistEntryPoint
+
 
 enum class NishthaTab(val labelRes: Int, val icon: ImageVector) {
     CHECK_IN (R.string.nishtha_tab_checkin,   Icons.Default.Favorite),
@@ -107,10 +107,6 @@ fun NishthaScreen(
         onToggleDarkTheme = onToggleDarkTheme,
         containerColor = SafarSemanticColors.plannerBackground(),
         topBarActions = {
-            VideoPlaylistEntryPoint(
-                dataStore = viewModel.dataStore,
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
             IconButton(onClick = { tourState?.start() }) {
                 Image(
                     painter = painterResource(R.drawable.ic_butterfly_tour),

@@ -5,8 +5,11 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,6 +32,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 
 import androidx.compose.material3.CircularProgressIndicator
@@ -64,6 +68,7 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -98,8 +103,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
+import com.safarparmar.app.ui.theme.LoraFontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -123,6 +131,7 @@ import com.safarparmar.app.ui.studyplanner.logic.plannerExamCountdownHeroNumber
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
 import com.safarparmar.app.ui.studyplanner.components.flatCard
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.GlassButton
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PlanStatusCard(
@@ -130,6 +139,11 @@ fun PlanStatusCard(
     progress: PlanProgress,
     onExportClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    // Stats counts for the 4-column strip
+    todayCount: Int = 0,
+    overdueCount: Int = 0,
+    upcomingCount: Int = 0,
+    completedCount: Int = 0,
     filters: @Composable () -> Unit = {},
     modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -157,131 +171,203 @@ fun PlanStatusCard(
     }
 
     val examDays = daysUntil(plan.examDate)
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val isLight = !isDark
+    val titleTextColor = PlannerFlatColors.TextDark
+    val subtitleTextColor = PlannerFlatColors.TextMuted
+    val captionTextColor = PlannerFlatColors.TextMuted
+    val accentColor = PlannerFlatColors.PrimaryAccent
+    // Animated fill fraction for the circular ring
+    val animatedPercent by animateFloatAsState(
+        targetValue = progress.completionPercent / 100f,
+        animationSpec = tween(durationMillis = 900),
+        label = "ringProgress",
+    )
 
     Column(modifier = cardModifier) {
         // ── Hero Banner ──────────────────────────────────────────────
-        val isLight = !MaterialTheme.colorScheme.background.isLightBackground()
-        val titleTextColor = PlannerFlatColors.TextDark
-        val subtitleTextColor = PlannerFlatColors.TextMuted
-        val captionTextColor = PlannerFlatColors.TextMuted
-        val actionIconColor = PlannerFlatColors.TextDark
-        val percentTextColor = PlannerFlatColors.TextDark
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .flatCard(shape = RoundedCornerShape(24.dp))
-                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+
+                // ── Top row: settings/export icon on far right ───────
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    // Left — Plan title + subtitle
-                    Column(
+                    Text(
+                        text = plan.title,
+                        fontFamily = LoraFontFamily,
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 24.sp,
+                        color = titleTextColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(
+                        onClick = onSettingsClick,
+                        modifier = Modifier.size(36.dp),
                     ) {
-                        Text(
-                            text = plan.title,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Black,
-                            color = titleTextColor,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Plan settings",
+                            tint = subtitleTextColor,
+                            modifier = Modifier.size(22.dp),
                         )
-                        if (!plan.examDate.isNullOrBlank()) {
-                            Text(
-                                text = readableDate(plan.examDate).uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = subtitleTextColor,
-                                letterSpacing = 1.5.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.width(16.dp))
-
-                    // Right — Days left & Settings
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = plannerExamCountdownHeroNumber(examDays),
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Black,
-                                color = Color(0xFFFF4D6D),
-                                maxLines = 1,
-                            )
-                            Text(
-                                text = plannerExamCountdownCaption(examDays).uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = captionTextColor,
-                                letterSpacing = 0.5.sp,
-                                maxLines = 1,
-                            )
-                        }
-
-                        // Plan settings (incl. changing the exam date, which kicks
-                        // off the guided re-plan flow) plus PDF export.
-                        IconButton(
-                            onClick = onSettingsClick,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Plan settings",
-                                tint = actionIconColor,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        if (isPlanScheduled) {
-                            IconButton(
-                                onClick = onExportClick,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.FileDownload,
-                                    contentDescription = "Export PDF",
-                                    tint = actionIconColor,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                        }
                     }
                 }
 
-                Spacer(Modifier.height(24.dp))
-
-                // Bottom row: Horizontal Progress bar
+                // ── Hero Stats: Circular ring (left) + Days+Topics (right) ──
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    LinearProgressIndicator(
-                        progress = { progress.completionPercent / 100f },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = Color(0xFF60A5FA),
-                        trackColor = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.12f),
-                    )
-                    Text(
-                        text = "${progress.completionPercent}%",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = percentTextColor,
-                    )
+                    // Circular progress ring
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(96.dp),
+                    ) {
+                        val trackColor = if (isDark)
+                            accentColor.copy(alpha = 0.18f)
+                        else
+                            accentColor.copy(alpha = 0.13f)
+                        Canvas(modifier = Modifier.size(96.dp)) {
+                            val strokeWidth = 8.dp.toPx()
+                            val startAngle = -90f
+                            val fullSweep = 360f
+                            // Track arc (full circle)
+                            drawArc(
+                                color = trackColor,
+                                startAngle = startAngle,
+                                sweepAngle = fullSweep,
+                                useCenter = false,
+                                style = Stroke(
+                                    width = strokeWidth,
+                                    cap = StrokeCap.Round,
+                                ),
+                            )
+                            // Progress arc
+                            drawArc(
+                                color = accentColor,
+                                startAngle = startAngle,
+                                sweepAngle = fullSweep * animatedPercent,
+                                useCenter = false,
+                                style = Stroke(
+                                    width = strokeWidth,
+                                    cap = StrokeCap.Round,
+                                ),
+                            )
+                        }
+                        // Percent label inside the ring
+                        Text(
+                            text = "${progress.completionPercent}%",
+                            fontFamily = LoraFontFamily,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = accentColor,
+                        )
+                    }
+
+                    // Days until exam + topics done
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                text = plannerExamCountdownHeroNumber(examDays),
+                                fontFamily = LoraFontFamily,
+                                fontSize = 44.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = titleTextColor,
+                                maxLines = 1,
+                            )
+                            Text(
+                                text = plannerExamCountdownCaption(examDays),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = subtitleTextColor,
+                                modifier = Modifier.padding(bottom = 4.dp),
+                                maxLines = 2,
+                            )
+                        }
+                        Text(
+                            text = "${progress.doneTopics} of ${progress.totalTopics} topics done",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = captionTextColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                // ── 4-Column Stat Strip ──────────────────────────────
+                val statBorderColor = if (isDark)
+                    PlannerFlatColors.BorderSoft.copy(alpha = 0.5f)
+                else
+                    PlannerFlatColors.BorderSoft
+                // Each cell: value + label. Dividers are 0.5dp vertical lines.
+                val statItems = listOf(
+                    Triple(todayCount, "TODAY", accentColor),
+                    Triple(overdueCount, "OVERDUE", if (overdueCount > 0) Color(0xFFEF4444) else titleTextColor),
+                    Triple(upcomingCount, "UPCOMING", titleTextColor),
+                    Triple(completedCount, "DONE", titleTextColor),
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, statBorderColor, RoundedCornerShape(14.dp)),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    statItems.forEachIndexed { index, (value, label, color) ->
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                text = "$value",
+                                fontFamily = LoraFontFamily,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = color,
+                                maxLines = 1,
+                            )
+                            Text(
+                                text = label,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = captionTextColor,
+                                maxLines = 1,
+                                letterSpacing = 1.5.sp,
+                            )
+                        }
+                        if (index < statItems.lastIndex) {
+                            Box(
+                                modifier = Modifier
+                                    .width(0.5.dp)
+                                    .height(40.dp)
+                                    .background(statBorderColor)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -415,10 +501,12 @@ fun PlanTabQuickLinks(
     val scheme = MaterialTheme.colorScheme
     val isDark = !scheme.background.isLightBackground()
     val isLight = !isDark
+    // Home is the daily driver: it keeps only the "today"-centric views (Today +
+    // Done). Overdue lives in Calendar's Missed Topics list and Upcoming is the
+    // Calendar grid itself, so those two are reached from Calendar rather than
+    // duplicated here — see the "in Calendar" pointer on the Home screen.
     val tabs = buildList {
         add(StudyPlannerTab.TODAY to "Today")
-        if (overdueCount > 0) add(StudyPlannerTab.OVERDUE to "Overdue")
-        add(StudyPlannerTab.UPCOMING to "Upcoming")
         add(StudyPlannerTab.COMPLETED to "Done")
     }
     Row(
@@ -511,17 +599,13 @@ fun TodayMissionCard(
                         fontWeight = FontWeight.SemiBold,
                         color = PlannerFlatColors.TextDark,
                     )
-                    Button(
+                    GlassButton(
                         onClick = onViewAllToday,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PlannerFlatColors.PrimaryAccent,
-                            contentColor = Color.White
-                        ),
-                        shape = ButtonDefaults.shape,
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                        accentColor = PlannerFlatColors.PrimaryAccent,
+                        shape = RoundedCornerShape(20.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                     ) {
-                        Text("+ Add Task", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("+ Add Task", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
                     }
                 }
             }
@@ -979,8 +1063,10 @@ fun PlanSectionHeader(
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold,
+            fontFamily = LoraFontFamily,
+            fontStyle = FontStyle.Italic,
+            fontWeight = FontWeight.Normal,
+            fontSize = 22.sp,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
             maxLines = 1,

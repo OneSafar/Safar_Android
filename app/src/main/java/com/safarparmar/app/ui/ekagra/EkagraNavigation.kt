@@ -82,60 +82,38 @@ internal fun EkagraBottomNav(
 ) {
     val scheme = MaterialTheme.colorScheme
     val accentColor = scheme.primary
-    val isLight = !isDarkTheme
+    // Over the Timer tab's video/gradient canvas the bar reads light-on-dark;
+    // elsewhere it follows the surface.
+    val ink = rememberEkagraInk(onCanvas = isOnVideo)
 
-    // Over video: treat as dark canvas for readable white icons; otherwise follow theme.
-    val glassAsLight = isLight && !isOnVideo
-    val selectedColor = when {
-        isOnVideo -> Color.White
-        isDarkTheme -> Color(0xFFF2F2F5)
-        else -> SafarGlassPalette.LightTextPrimary
-    }
-    val unselectedColor = when {
-        isOnVideo -> Color.White.copy(alpha = 0.55f)
-        isDarkTheme -> Color(0xFFCCCCD8).copy(alpha = 0.55f)
-        else -> SafarGlassPalette.LightTextSecondary.copy(alpha = 0.75f)
-    }
-    val activeDiscBg = Brush.verticalGradient(
-        colors = listOf(
-            accentColor.copy(alpha = if (isOnVideo || isDarkTheme) 0.35f else 0.16f),
-            accentColor.copy(alpha = if (isOnVideo || isDarkTheme) 0.18f else 0.08f),
-        ),
-    )
-    val activeDiscBorderColor = accentColor.copy(
-        alpha = if (isOnVideo || isDarkTheme) 0.40f else 0.22f,
-    )
-
-    val navShape = RoundedCornerShape(SafarGlassChromeRadius)
-
-    Box(
+    // ── A hairline, an icon, a dot ───────────────────────────────────────────
+    // The redesign drops the floating frosted panel and the filled icon discs
+    // in favour of a rule and plain per-tab icon + label, with one small accent
+    // dot marking the active tab. The dot and icon both use the live theme
+    // accent, so the bar still recolours per theme.
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 10.dp, vertical = 10.dp),
+            .navigationBarsPadding(),
     ) {
+        EkagraHairline(ink.hairline)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .safarFrostedPanel(
-                    isLight = glassAsLight,
-                    shape = navShape,
-                    tintAlpha = if (isOnVideo) 0.14f else null,
-                )
-                .padding(vertical = 10.dp),
+                .padding(top = 12.dp, bottom = 14.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             EkagraNavTab.entries.forEach { tab ->
                 val isSelected = tab == selectedTab
 
-                val iconTint by animateColorAsState(
-                    targetValue = if (isSelected) selectedColor else unselectedColor,
+                val iconColor by animateColorAsState(
+                    targetValue = if (isSelected) accentColor else ink.mutedText,
                     animationSpec = tween(durationMillis = 220),
-                    label = "navIconTint_${tab.name}",
+                    label = "navIcon_${tab.name}",
                 )
                 val textColor by animateColorAsState(
-                    targetValue = if (isSelected) selectedColor else unselectedColor,
+                    targetValue = if (isSelected) ink.primaryText else ink.mutedText,
                     animationSpec = tween(durationMillis = 220),
                     label = "navTextColor_${tab.name}",
                 )
@@ -143,51 +121,30 @@ internal fun EkagraBottomNav(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(SafarGlassChromeRadius))
                         .clickable(
                             interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                             indication = null,
                         ) { onSelect(tab) },
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
+                    Icon(
+                        imageVector = tab.icon,
+                        contentDescription = tab.label,
+                        tint = iconColor,
+                        modifier = Modifier.size(20.dp),
+                    )
+
                     Box(
                         modifier = Modifier
-                            .size(width = 48.dp, height = 32.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                if (isSelected) {
-                                    activeDiscBg
-                                } else {
-                                    Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, Color.Transparent),
-                                    )
-                                },
-                            )
-                            .then(
-                                if (isSelected) {
-                                    Modifier.border(
-                                        width = 0.6.dp,
-                                        color = activeDiscBorderColor,
-                                        shape = RoundedCornerShape(10.dp),
-                                    )
-                                } else {
-                                    Modifier
-                                },
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = tab.label,
-                            tint = iconTint,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
+                            .size(4.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) accentColor else Color.Transparent),
+                    )
 
                     Text(
                         text = tab.label,
-                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 11.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         color = textColor,
                     )

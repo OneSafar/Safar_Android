@@ -149,12 +149,6 @@ fun PlanTabScreen(
                     .thenBy { it.topic.name.lowercase() },
             )
     }
-    val upcomingByDate = remember(upcomingTopics) {
-        upcomingTopics
-            .groupBy { it.topic.plannedDate?.take(10).orEmpty() }
-            .filterKeys { it.isNotBlank() }
-            .toSortedMap()
-    }
     val completedTopics = remember(refs) {
         refs.filter { it.topic.status == TopicStatus.DONE }
     }
@@ -197,6 +191,7 @@ fun PlanTabScreen(
     var editTopicRef by remember { mutableStateOf<TopicRef?>(null) }
     var revisionTopicRef by remember { mutableStateOf<TopicRef?>(null) }
     var showUnscheduledTopicsScreen by remember { mutableStateOf(false) }
+    var showMissedTopicsScreen by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(pendingOpenUnscheduledTopics) {
         if (pendingOpenUnscheduledTopics) {
             showUnscheduledTopicsScreen = true
@@ -509,46 +504,61 @@ fun PlanTabScreen(
         if (!hasTopics) {
         EmptyPlanTabState(onCreateClick = { showCreatePlanSheet = true })
       } else {
+        // ── One flat surface ──────────────────────────────────────────────
+        // Header, ring, stats, Daily To-Do, tabs and agenda used to be four
+        // separate bordered cards. They are now one continuous page divided
+        // only by hairlines, so no vertical gap between items either.
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 112.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(start = 24.dp, top = 16.dp, end = 24.dp, bottom = 112.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             item(key = "status", contentType = "status") {
-                PlanStatusCard(
-                    plan = plan,
-                    progress = progress,
-                    onExportClick = ::exportPlan,
+                PlanHomeHeader(
+                    planTitle = plan.title,
                     onSettingsClick = { showSettings = true },
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    filters = {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            if (unscheduledTopics.isNotEmpty()) {
-                                UnscheduledWarningBanner(
-                                    count = unscheduledTopics.size,
-                                    onClick = { showUnscheduledTopicsScreen = true }
-                                )
-                            }
-                            PlanTabQuickLinks(
-                                activeTab = activeTab,
-                                onTabSelected = { actions.setPlanTab(it) },
-                                overdueCount = overdueTopics.size,
-                                upcomingCount = upcomingTopics.size,
-                                completedCount = completedTopics.size,
-                            )
-                        }
-                    }
                 )
+                Spacer(Modifier.height(18.dp))
+                PlanHairline()
+                PlanHomeHero(plan = plan, progress = progress)
+                PlanHairline()
+                PlanHomeStatStrip(
+                    todayCount = todayTopics.size,
+                    overdueCount = overdueTopics.size,
+                    upcomingCount = upcomingTopics.size,
+                    completedCount = completedTopics.size,
+                    onTodayClick = { actions.setPlanTab(StudyPlannerTab.TODAY) },
+                    // Overdue opens the missed-topics list in place; Upcoming is
+                    // date-shaped so it hands off to the Calendar month grid.
+                    onOverdueClick = { showMissedTopicsScreen = true },
+                    onUpcomingClick = { actions.setSection(PlannerSection.CALENDAR) },
+                    onDoneClick = { actions.setPlanTab(StudyPlannerTab.COMPLETED) },
+                )
+                PlanHairline()
+                if (unscheduledTopics.isNotEmpty()) {
+                    UnscheduledWarningBanner(
+                        count = unscheduledTopics.size,
+                        onClick = { showUnscheduledTopicsScreen = true }
+                    )
+                }
             }
 
             item(key = "daily_todo_collapsible", contentType = "daily_todo_collapsible") {
-                CollapsibleDailyTodoCard(
-                    plan = plan,
-                    actions = actions,
-                    todayStr = today,
+                val todos = plan.dailyTodos.orEmpty()
+                val logs = plan.dailyTodoLogs?.get(today).orEmpty()
+                PlanHomeDailyTodoRow(
+                    doneCount = todos.count { it.id in logs },
+                    totalCount = todos.size,
                     expanded = dailyTodoExpanded,
                     onToggleExpanded = { dailyTodoExpanded = !dailyTodoExpanded },
+                ) {
+                    DailyTodoSection(plan = plan, actions = actions, todayStr = today)
+                }
+                PlanHairline()
+                PlanHomeTabs(
+                    activeTab = activeTab,
+                    onTabSelected = { actions.setPlanTab(it) },
+                    modifier = Modifier.padding(top = 22.dp),
                 )
             }
 
@@ -557,42 +567,14 @@ fun PlanTabScreen(
                 StudyPlannerTab.TODAY -> {
                     if (todayTopics.isEmpty()) {
                         item(key = "today_empty") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .flatCard(shape = RoundedCornerShape(20.dp))
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(20.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "No topics planned for today. Add topics or review upcoming tasks.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(Modifier.height(8.dp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        TextButton(
-                                            onClick = { showPullTopicSheet = true },
-                                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                                        ) {
-                                            Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
-                                            Spacer(Modifier.width(6.dp))
-                                            Text("Add from Syllabus", fontWeight = FontWeight.Bold)
-                                        }
-                                        TextButton(
-                                            onClick = { showAddCustomTopic = true },
-                                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                                        ) {
-                                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                                            Spacer(Modifier.width(6.dp))
-                                            Text("Add Custom", fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
-                            }
+                            PlanHomeEmptyNote(
+                                "Nothing planned for today. Pull a topic in, or add a one-off.",
+                            )
+                            PlanHomeAddActions(
+                                onAddFromSyllabus = { showPullTopicSheet = true },
+                                onAddCustom = { showAddCustomTopic = true },
+                                modifier = Modifier.padding(top = 0.dp),
+                            )
                         }
                     } else {
                         if (todayCompleted) {
@@ -662,19 +644,21 @@ fun PlanTabScreen(
                         }
 
                         item(key = "today_list_header") {
-                            PlanSectionHeader(title = "Today's Study Plan", trailing = "${todayTopics.size} planned")
+                            PlanHomeSectionHeader(
+                                title = "Today's agenda",
+                                trailing = "${todayTopics.size} planned",
+                                modifier = Modifier.padding(top = 22.dp, bottom = 10.dp),
+                            )
                         }
                         items(
                             items = todayTopics.take(10),
                             key = { ref -> "today_${ref.topic.id}" },
                             contentType = { "todayTopic" }
                         ) { ref ->
-                            PlannerTaskRow(
+                            PlanHairline(alpha = 0.6f)
+                            PlanHomeTaskRow(
                                 ref = ref,
-                                accent = if (ref.topic.status == TopicStatus.DONE) PlanTaskRowAccent.Done else PlanTaskRowAccent.Planned,
-                                onDoneChange = { done ->
-                                    handleTopicDoneCheck(ref, done)
-                                },
+                                onDoneChange = { done -> handleTopicDoneCheck(ref, done) },
                                 onReplace = { replaceSheetTopic = ref },
                                 onRemoveFromToday = { removeFromTodayConfirmTopic = ref },
                                 onEdit = { editTopicRef = ref },
@@ -684,49 +668,36 @@ fun PlanTabScreen(
                         }
 
                         item(key = "pull_extra_topic") {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                TextButton(
-                                    onClick = { showPullTopicSheet = true },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Add from Syllabus", fontWeight = FontWeight.Bold)
-                                }
-                                TextButton(
-                                    onClick = { showAddCustomTopic = true },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Add Custom", fontWeight = FontWeight.Bold)
-                                }
-                            }
+                            PlanHomeAddActions(
+                                onAddFromSyllabus = { showPullTopicSheet = true },
+                                onAddCustom = { showAddCustomTopic = true },
+                            )
                         }
 
                         if (todayCompleted) {
                             val bonusTopics = (overdueTopics + upcomingTopics).take(5)
                             if (bonusTopics.isNotEmpty()) {
                                 item(key = "bonus_header") {
-                                    PlanSectionHeader(title = "Bonus Tasks to Get Ahead", trailing = "${bonusTopics.size} suggested")
+                                    PlanHomeSectionHeader(
+                                        title = "Bonus, to get ahead",
+                                        trailing = "${bonusTopics.size} suggested",
+                                        modifier = Modifier.padding(top = 26.dp, bottom = 10.dp),
+                                    )
                                 }
                                 items(
                                     items = bonusTopics,
                                     key = { ref -> "bonus_${ref.topic.id}" },
                                     contentType = { "bonusTopic" }
                                 ) { ref ->
-                                    PlannerTaskRow(
+                                    PlanHairline(alpha = 0.6f)
+                                    PlanHomeTaskRow(
                                         ref = ref,
-                                        accent = PlanTaskRowAccent.Planned,
-                                        onDoneChange = { done ->
-                                            handleTopicDoneCheck(ref, done)
-                                        },
+                                        onDoneChange = { done -> handleTopicDoneCheck(ref, done) },
                                         onSetProgress = { percent -> actions.setTopicProgress(ref.topic.id, percent) },
+                                        onEdit = { editTopicRef = ref },
+                                        onFocus = { onNavigate(Routes.ekagraForTopic(ref.topic.id, ref.topic.name, plan.id)) },
+                                        // No Replace / Remove-from-today here: a bonus
+                                        // topic isn't on today's list, so neither applies.
                                     )
                                 }
                             }
@@ -742,182 +713,43 @@ fun PlanTabScreen(
                     }
                 }
 
-                StudyPlannerTab.OVERDUE -> {
-                    if (overdueTopics.isEmpty()) {
-                        item(key = "overdue_empty") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .flatCard(shape = RoundedCornerShape(20.dp))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text("🎉", fontSize = 36.sp)
-                                    Text(
-                                        text = "No Overdue Topics!",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextDark
-                                    )
-                                    Text(
-                                        text = "Excellent time management! You're completely up to date with your studies.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        textAlign = TextAlign.Center,
-                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextMuted
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        item(key = "overdue_list_header") {
-                            PlanSectionHeader(title = "Overdue Tasks", trailing = "${overdueTopics.size} total")
-                        }
-                        items(
-                            items = overdueTopics,
-                            key = { ref -> "overdue_${ref.topic.id}" },
-                            contentType = { "overdueTopic" }
-                        ) { ref ->
-                            PlannerTaskRow(
-                                ref = ref,
-                                accent = PlanTaskRowAccent.Overdue,
-                                onDoneChange = { done ->
-                                    handleTopicDoneCheck(ref, done)
-                                },
-                                onSetProgress = { percent -> actions.setTopicProgress(ref.topic.id, percent) },
-                            )
-                        }
-                    }
-                }
-
-                StudyPlannerTab.UPCOMING -> {
-                    if (upcomingTopics.isEmpty()) {
-                        item(key = "upcoming_empty") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .flatCard(shape = RoundedCornerShape(20.dp))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text("📅", fontSize = 36.sp)
-                                    Text(
-                                        text = "No Upcoming Topics Scheduled",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextDark
-                                    )
-                                    Text(
-                                        text = "Use the Schedule button at the top to distribute remaining topics into your calendar.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        textAlign = TextAlign.Center,
-                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextMuted
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        item(key = "upcoming_list_header") {
-                            PlanSectionHeader(
-                                title = "Upcoming schedule",
-                                trailing = "${upcomingTopics.size} topics · ${upcomingByDate.size} days",
-                            )
-                        }
-                        upcomingByDate.forEach { (dateKey, dayTopics) ->
-                            item(key = "upcoming_date_$dateKey") {
-                                val upcomingShape = RoundedCornerShape(16.dp)
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            if (isLight) Color.Black.copy(alpha = 0.03f) else Color.White.copy(alpha = 0.04f),
-                                            upcomingShape
-                                        )
-                                        .border(
-                                            width = 0.5.dp,
-                                            color = if (isLight) Color(0xFFE5E5EA) else Color.White.copy(alpha = 0.05f),
-                                            shape = upcomingShape
-                                        )
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        PlanSectionHeader(
-                                            title = readableDate(dateKey),
-                                            trailing = "${dayTopics.size} planned",
-                                        )
-                                        dayTopics.forEach { ref ->
-                                            PlannerTaskRow(
-                                                ref = ref,
-                                                accent = PlanTaskRowAccent.Planned,
-                                                onDoneChange = { done ->
-                                                    handleTopicDoneCheck(ref, done)
-                                                },
-                                                onSetProgress = { percent -> actions.setTopicProgress(ref.topic.id, percent) },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Revision moved to its own PlannerSection.REVISION screen; it is no
-                // longer a hidden sub-tab of Home. Kept here only for `when`
-                // exhaustiveness — this branch is never reached now.
+                // Overdue now lives in Calendar's Missed Topics list, Upcoming in
+                // the Calendar month grid, and Revision in its own
+                // PlannerSection.REVISION screen — none are Home sub-tabs anymore.
+                // Handled together purely to keep this `when` exhaustive; all three
+                // are unreachable via the (Today/Done) quick-links.
+                StudyPlannerTab.OVERDUE,
+                StudyPlannerTab.UPCOMING,
                 StudyPlannerTab.REVISION -> Unit
 
                 StudyPlannerTab.COMPLETED -> {
                     if (completedTopics.isEmpty()) {
                         item(key = "completed_empty") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .flatCard(shape = RoundedCornerShape(20.dp))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text("💪", fontSize = 36.sp)
-                                    Text(
-                                        text = "No Completed Topics Yet",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextDark
-                                    )
-                                    Text(
-                                        text = "Every great journey starts with a single step. Start ekagra flow and complete your first task!",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        textAlign = TextAlign.Center,
-                                        color = com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors.TextMuted
-                                    )
-                                }
-                            }
+                            PlanHomeEmptyNote(
+                                "Nothing finished yet. Your completed topics collect here.",
+                            )
                         }
                     } else {
                         item(key = "completed_list_header") {
-                            PlanSectionHeader(title = "Completed Tasks", trailing = "${completedTopics.size} total")
+                            PlanHomeSectionHeader(
+                                title = "Completed",
+                                trailing = "${completedTopics.size} total",
+                                modifier = Modifier.padding(top = 22.dp, bottom = 10.dp),
+                            )
                         }
                         items(
                             items = completedTopics.take(15),
                             key = { ref -> "completed_${ref.topic.id}" },
                             contentType = { "completedTopic" }
                         ) { ref ->
-                            PlannerTaskRow(
+                            PlanHairline(alpha = 0.6f)
+                            PlanHomeTaskRow(
                                 ref = ref,
-                                accent = PlanTaskRowAccent.Done,
-                                onDoneChange = { done ->
-                                    handleTopicDoneCheck(ref, done)
-                                }
+                                onDoneChange = { done -> handleTopicDoneCheck(ref, done) },
+                                // Completed topics only get Edit — the row itself
+                                // already hides Focus and Remove-from-today once a
+                                // topic is done, and Replace is meaningless here.
+                                onEdit = { editTopicRef = ref },
                             )
                         }
                     }
@@ -944,6 +776,14 @@ fun PlanTabScreen(
                 unscheduledTopics = unscheduledTopics,
                 actions = actions,
                 onDismiss = { showUnscheduledTopicsScreen = false }
+            )
+        }
+        if (showMissedTopicsScreen) {
+            MissedTopicsScreen(
+                plan = plan,
+                missedTopics = overdueTopics,
+                actions = actions,
+                onDismiss = { showMissedTopicsScreen = false }
             )
         }
     }

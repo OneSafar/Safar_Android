@@ -26,17 +26,15 @@ object PlannerFlatColors {
     val AccentTint @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFE0654B).copy(alpha = 0.15f) else Color(0xFFE0654B).copy(alpha = 0.1f)
 }
 
+/**
+ * Card surface for every planner container. The "flat 2.0" look has been retired
+ * in favour of the macOS Subtle glass system: this now delegates to the neutral
+ * translucent [glassSurface] so all existing call sites become macOS glass with
+ * no per-site changes. The name is kept so callers don't churn.
+ */
 @Composable
-fun Modifier.flatCard(shape: Shape = RoundedCornerShape(16.dp)): Modifier {
-    val cardWhite = PlannerFlatColors.CardWhite
-    val borderSoft = PlannerFlatColors.BorderSoft
-    val shadowSoft = PlannerFlatColors.ShadowSoft
-    return this
-        .shadow(elevation = 4.dp, shape = shape, spotColor = shadowSoft, ambientColor = shadowSoft)
-        .clip(shape)
-        .background(cardWhite)
-        .border(width = 1.5.dp, color = borderSoft, shape = shape)
-}
+fun Modifier.flatCard(shape: Shape = RoundedCornerShape(16.dp)): Modifier =
+    this.glassSurface(shape = shape)
 
 /**
  * The planner's warm, muted accent palette — fixed constants, not derived from

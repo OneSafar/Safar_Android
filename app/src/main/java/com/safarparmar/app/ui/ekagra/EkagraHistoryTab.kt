@@ -118,41 +118,73 @@ internal fun FocusHistoryTab(
     // to the total instead of disappearing in minute-level rounding.
     val tabFocusSeconds = freeSessions.sumOf(::exactElapsedSeconds)
 
+    val ink = rememberEkagraInk(onCanvas = false)
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(scheme.background)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .padding(horizontal = 24.dp)
+            .padding(top = 20.dp),
     ) {
-        // Switchable subtabs
-        TabRow(
-            selectedTabIndex = selectedSubTab,
-            containerColor = Color.Transparent,
-            contentColor = tabAccentColor,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-        ) {
-            Tab(
-                selected = selectedSubTab == 0,
-                onClick = { selectedSubTab = 0 },
-                text = { Text("Ekagra History", fontWeight = FontWeight.Bold, fontSize = 14.sp) },
-                selectedContentColor = scheme.primary,
-                unselectedContentColor = scheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
-            Tab(
-                selected = selectedSubTab == 1,
-                onClick = { selectedSubTab = 1 },
-                text = { Text("Stopwatch History", fontWeight = FontWeight.Bold, fontSize = 14.sp) },
-                selectedContentColor = scheme.secondary,
-                unselectedContentColor = scheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
-        }
+        EkagraEyebrow("History", ink.secondaryText)
+        Spacer(Modifier.height(6.dp))
+        EkagraDisplayTitle(
+            if (selectedSubTab == 0) "Your focus sessions" else "Your stopwatch runs",
+            ink.primaryText,
+        )
+        Spacer(Modifier.height(18.dp))
 
-        // Date filters row
+        // Underlined text tabs instead of an M3 TabRow
+        EkagraTextTabs(
+            items = listOf(0, 1),
+            selected = selectedSubTab,
+            accent = tabAccentColor,
+            ink = ink,
+            label = { if (it == 0) "Ekagra" else "Stopwatch" },
+            onSelect = { selectedSubTab = it },
+        )
+        Spacer(Modifier.height(20.dp))
+
+        // Totals — serif numeral above a small caption, split by a hairline
+        EkagraHairline(ink.hairline)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(32.dp),
+        ) {
+            Column {
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
+                    Text(
+                        formatElapsedDuration(tabFocusSeconds),
+                        fontFamily = EkagraSerif,
+                        fontSize   = 26.sp,
+                        color      = ink.primaryText,
+                    )
+                }
+                Text(
+                    if (selectedSubTab == 0) "Total focus time" else "Total time",
+                    fontSize = 11.sp,
+                    color    = ink.mutedText,
+                )
+            }
+            Column {
+                Text(
+                    "${freeSessions.size}",
+                    fontFamily = EkagraSerif,
+                    fontSize   = 26.sp,
+                    color      = tabAccentColor,
+                )
+                Text("Sessions", fontSize = 11.sp, color = ink.mutedText)
+            }
+        }
+        EkagraHairline(ink.hairline)
+        Spacer(Modifier.height(16.dp))
+
+        // Date filters — outline pills
         val context = LocalContext.current
-        val zone = ZoneId.systemDefault()
-        
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -160,37 +192,35 @@ internal fun FocusHistoryTab(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val chipColors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = tabAccentColor.copy(alpha = 0.12f),
-                selectedLabelColor = tabAccentColor,
-                selectedLeadingIconColor = tabAccentColor,
-            )
-
-            FilterChip(
+            EkagraPill(
+                label    = "All",
                 selected = dateFilter == DateFilter.All,
-                onClick = { dateFilter = DateFilter.All },
-                label = { Text("All") },
-                colors = chipColors
+                accent   = tabAccentColor,
+                ink      = ink,
+                onClick  = { dateFilter = DateFilter.All },
             )
-            FilterChip(
+            EkagraPill(
+                label    = "Today",
                 selected = dateFilter == DateFilter.Today,
-                onClick = { dateFilter = DateFilter.Today },
-                label = { Text("Today") },
-                colors = chipColors
+                accent   = tabAccentColor,
+                ink      = ink,
+                onClick  = { dateFilter = DateFilter.Today },
             )
 
-            
             val customLabel = when (val filter = dateFilter) {
                 is DateFilter.Custom -> {
                     val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
                     filter.date.format(formatter)
                 }
-                else -> "Select Date"
+                else -> "Pick a date"
             }
-            
-            FilterChip(
+
+            EkagraPill(
+                label    = customLabel,
                 selected = dateFilter is DateFilter.Custom,
-                onClick = {
+                accent   = tabAccentColor,
+                ink      = ink,
+                onClick  = {
                     val calendar = Calendar.getInstance()
                     if (dateFilter is DateFilter.Custom) {
                         val d = (dateFilter as DateFilter.Custom).date
@@ -207,164 +237,98 @@ internal fun FocusHistoryTab(
                         calendar.get(Calendar.DAY_OF_MONTH)
                     ).show()
                 },
-                label = { Text(customLabel) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.DateRange,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                },
-                colors = chipColors
             )
         }
 
+        Spacer(Modifier.height(8.dp))
+
         if (currentTabSessions.isEmpty()) {
-            // General empty state when there are absolutely no sessions in the database
-            val isLight = scheme.background.luminance() > 0.5f
-            SafarGlassCard(
-                isLight = isLight,
-                contentPadding = PaddingValues(24.dp),
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        Icons.Default.History,
-                        contentDescription = null,
-                        tint = scheme.onSurfaceVariant.copy(alpha = 0.35f),
-                        modifier = Modifier.size(40.dp),
-                    )
-                    Text(
-                        if (selectedSubTab == 0) "No ekagra sessions found." else "No stopwatch sessions found.",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = scheme.onSurfaceVariant,
-                    )
-                }
-            }
+            // No sessions at all in the database
+            EkagraEmptyNote(
+                text = if (selectedSubTab == 0) "No ekagra sessions yet." else "No stopwatch sessions yet.",
+                ink  = ink,
+            )
             return@Column
         }
 
         if (filteredSessions.isEmpty()) {
-            // Empty state when sessions exist, but none match the selected filter
-            val isLight = scheme.background.luminance() > 0.5f
-            SafarGlassCard(
-                isLight = isLight,
-                contentPadding = PaddingValues(24.dp),
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        Icons.Default.History,
-                        contentDescription = null,
-                        tint = scheme.onSurfaceVariant.copy(alpha = 0.35f),
-                        modifier = Modifier.size(40.dp),
-                    )
-                    Text(
-                        "No sessions found",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = scheme.onSurfaceVariant,
-                    )
-                }
-            }
+            // Sessions exist, but none match the selected filter
+            EkagraEmptyNote(text = "Nothing in this range.", ink = ink)
             return@Column
         }
 
-        Column(Modifier.fillMaxWidth()) {
-            Text(
-                if (selectedSubTab == 0) "Ekagra History" else "Stopwatch History",
-                style      = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color      = scheme.onSurface
-            )
-            Text("All completed sessions", fontSize = 12.sp, color = scheme.onSurfaceVariant)
-        }
-
-        // Total minutes card
-        val isLight = scheme.background.luminance() > 0.5f
-        SafarGlassCard(
-            isLight = isLight,
-            contentPadding = PaddingValues(18.dp),
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                val density = LocalDensity.current
-                CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
-                    Text(formatElapsedDuration(tabFocusSeconds), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = tabAccentColor)
-                }
-                Text(if (selectedSubTab == 0) "TOTAL FOCUS TIME" else "TOTAL TIME",
-                    fontSize      = 11.sp,
-                    fontWeight    = FontWeight.Bold,
-                    letterSpacing = 0.5.sp,
-                    color         = scheme.onSurfaceVariant)
-            }
-        }
-
-        if (selectedSubTab == 0) {
-            HistorySection(
-                title      = "Ekagra Sessions",
-                sessions   = freeSessions,
-                emptyText  = "No sessions found.",
-                accentColor = tabAccentColor,
-                onSessionClick = onSessionClick,
-            )
-        } else {
-            HistorySection(
-                title      = "Just stopwatch sessions",
-                sessions   = filteredSessions.filterNot { it.isGoalLinked },
-                emptyText  = "No stopwatch sessions found.",
-                accentColor = tabAccentColor,
-                onSessionClick = onSessionClick,
-            )
-        }
+        val rows = if (selectedSubTab == 0) freeSessions else filteredSessions.filterNot { it.isGoalLinked }
+        HistorySection(
+            sessions    = rows,
+            emptyText   = if (selectedSubTab == 0) "No sessions found." else "No stopwatch sessions found.",
+            accentColor = tabAccentColor,
+            ink         = ink,
+            onSessionClick = onSessionClick,
+        )
+        Spacer(Modifier.height(24.dp))
     }
 }
 
+/** Empty state as a line of quiet text — no card, no oversized icon. */
+@Composable
+private fun EkagraEmptyNote(text: String, ink: EkagraInk) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 32.dp)) {
+        Text(text, fontSize = 13.sp, color = ink.mutedText)
+    }
+}
+
+/**
+ * Sessions as a quiet list grouped by day. No cards — a hairline under each row
+ * and a single dot carrying the completed / ended-early signal.
+ */
 @Composable
 internal fun HistorySection(
-    title: String,
-    subtitle: String? = null,
     sessions: List<com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession>,
     emptyText: String,
     accentColor: Color,
+    ink: EkagraInk,
     onSessionClick: (com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit = {}
 ) {
-    val scheme = MaterialTheme.colorScheme
-    val isLight = scheme.background.luminance() > 0.5f
-    SafarGlassCard(
-        isLight = isLight,
-        contentPadding = PaddingValues(14.dp),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, fontWeight = FontWeight.Medium, fontSize = 16.sp, color = scheme.onSurface)
-            if (!subtitle.isNullOrBlank()) {
-                Text(subtitle, fontSize = 12.sp, color = scheme.onSurfaceVariant)
+    if (sessions.isEmpty()) {
+        EkagraEmptyNote(text = emptyText, ink = ink)
+        return
+    }
+
+    val zone = ZoneId.systemDefault()
+    val today = java.time.LocalDate.now(zone)
+    // Group by calendar day, newest first; `sessions` already arrives sorted.
+    val groups = remember(sessions) {
+        sessions.groupBy { session ->
+            parseInstantOrNull(session.endedAt ?: session.startedAt)?.atZone(zone)?.toLocalDate()
+        }
+    }
+
+    Column(Modifier.fillMaxWidth()) {
+        groups.forEach { (date, rows) ->
+            val heading = when (date) {
+                null -> "Undated"
+                today -> "Today"
+                today.minusDays(1) -> "Yesterday"
+                else -> date.format(
+                    java.time.format.DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault())
+                )
             }
-            if (sessions.isEmpty()) {
-                Box(
-                    Modifier.fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        // M3: surfaceContainer for inner empty states
-                        .background(scheme.surfaceContainer)
-                        .padding(12.dp)
-                ) {
-                    Text(emptyText, fontSize = 13.sp, color = scheme.onSurfaceVariant)
-                }
-            } else {
-                sessions.forEach { session ->
-                    FocusSessionRow(session, accentColor = accentColor, onClick = { onSessionClick(session) })
-                    Spacer(Modifier.height(8.dp))
-                }
+            Text(
+                heading.uppercase(),
+                fontSize      = 11.sp,
+                fontWeight    = FontWeight.SemiBold,
+                letterSpacing = 1.5.sp,
+                color         = ink.mutedText,
+                modifier      = Modifier.padding(top = 20.dp, bottom = 4.dp),
+            )
+            rows.forEach { session ->
+                FocusSessionRow(
+                    session     = session,
+                    accentColor = accentColor,
+                    ink         = ink,
+                    onClick     = { onSessionClick(session) },
+                )
+                EkagraHairline(ink.hairline.copy(alpha = ink.hairline.alpha * 0.7f))
             }
         }
     }
@@ -374,47 +338,60 @@ internal fun HistorySection(
 internal fun FocusSessionRow(
     session: com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession,
     accentColor: Color,
+    ink: EkagraInk,
     onClick: () -> Unit = {}
 ) {
-    val scheme    = MaterialTheme.colorScheme
-    val isLight = scheme.background.luminance() > 0.5f
+    val isStopwatch = session.timerMode?.equals("stopwatch", ignoreCase = true) == true
+    val elapsedSeconds = exactElapsedSeconds(session)
+    // "Completed" means the session ran at least as long as it planned to. A
+    // stopwatch has no plan, so it always reads as completed.
+    val completed = isStopwatch || elapsedSeconds >= session.durationMinutes * 60L
 
-    SafarGlassCard(
-        isLight = isLight,
-        shape = RoundedCornerShape(SafarGlassChromeRadius),
-        tintAlpha = if (isLight) 0.36f else 0.08f,
-        contentPadding = PaddingValues(12.dp),
-        onClick = onClick,
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(session.taskText ?: "Unlabeled task",
-                        fontSize   = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color      = scheme.onSurface,
-                        maxLines   = 1,
-                        modifier   = Modifier.weight(1f, fill = false))
-                }
-                if (session.timerMode?.equals("stopwatch", ignoreCase = true) == true) {
-                    Text("Elapsed ${formatElapsedDuration(exactElapsedSeconds(session))}",
-                        fontSize = 12.sp, color = scheme.onSurfaceVariant)
-                } else {
-                    val actualElapsedSeconds = exactElapsedSeconds(session)
-                    val actualMins = actualElapsedSeconds / 60
-                    val actualSecs = actualElapsedSeconds % 60
-                    val actualLabel = if (actualSecs > 0) "${actualMins}m ${actualSecs}s" else "${actualMins}m"
-                    Text("Planned ${session.durationMinutes}m · Actual $actualLabel",
-                        fontSize = 12.sp, color = scheme.onSurfaceVariant)
-                }
-            }
-            // Time — theme shade colour, consistent with total card
+        Box(
+            Modifier
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(if (completed) accentColor else ink.mutedText),
+        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                session.taskText ?: "Unlabeled session",
+                fontSize   = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color      = ink.primaryText,
+                maxLines   = 1,
+            )
             Text(
                 formatDateTime(session.endedAt ?: session.startedAt),
-                fontSize   = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color      = accentColor,
+                fontSize = 11.5.sp,
+                color    = ink.mutedText,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                formatElapsedDuration(elapsedSeconds),
+                fontSize   = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color      = ink.secondaryText,
+            )
+            Text(
+                when {
+                    isStopwatch -> "Stopwatch"
+                    completed   -> "Completed"
+                    else        -> "Ended early"
+                },
+                fontSize = 10.5.sp,
+                color    = ink.mutedText,
+                modifier = Modifier.padding(top = 2.dp),
             )
         }
     }
