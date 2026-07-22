@@ -8,6 +8,9 @@ import com.safarparmar.app.data.remote.socket.MehfilSocketManager
 import com.safarparmar.app.feature.live.data.LiveSessionApi
 import com.safarparmar.app.util.AuthInterceptor
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.safarparmar.app.data.remote.TemplateTopicDeserializer
+import com.safarparmar.app.domain.model.studyplanner.TemplateTopic
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -146,7 +149,16 @@ object NetworkModule {
         Retrofit.Builder()
             .baseUrl(BuildConfig.BASE_URL)
             .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
+            // Exam-template topics come over the wire as either a plain string or
+            // a {name, size} object depending on whether that template is
+            // hand-weighted; the adapter accepts both. See TemplateTopicDeserializer.
+            .addConverterFactory(
+                GsonConverterFactory.create(
+                    GsonBuilder()
+                        .registerTypeAdapter(TemplateTopic::class.java, TemplateTopicDeserializer())
+                        .create(),
+                ),
+            )
             .build()
 
     @Provides @Singleton fun provideAuthApi(r: Retrofit): AuthApi = r.create(AuthApi::class.java)

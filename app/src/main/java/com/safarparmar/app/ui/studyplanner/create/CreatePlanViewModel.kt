@@ -93,7 +93,21 @@ data class CreatePlanUiState(
     val examDate: String = "",
     val offDays: Set<Int> = emptySet(),
     val strategy: String = "interleaved",
-    val overloadMode: String = "flex",
+    /**
+     * The study style the user actually picked. Previously this was reverse-
+     * engineered from (strategy, overloadMode) — which meant Balanced and Mixed
+     * Bag were told apart only by a hidden overload policy, and picking a style
+     * silently also chose whether days could exceed the daily goal. Style now
+     * means one thing: the order topics are studied in.
+     */
+    val studyStyle: String = "balanced",
+    /**
+     * Set only by [scheduleAnyway] — the user has seen that their syllabus does
+     * not fit and has explicitly chosen to let days run past the daily goal so
+     * everything gets a date. Reset whenever they go back to settings, so the
+     * honest strict schedule is always what a fresh build produces.
+     */
+    val allowOverload: Boolean = false,
     val dailyGoal: String = "3",
 
     // Template path
@@ -153,11 +167,13 @@ data class CreatePlanUiState(
     val deepFocusTopicOrder: Map<Pair<String, String>, List<String>> = emptyMap(),
     val deepFocusDrillSubjectIndex: Int? = null,
 
-    // Mixed Bag "difficult subjects" split — null means the user hasn't been asked
-    // (or the picker hasn't run) yet; an empty list means they explicitly skipped
-    // it; a non-empty list is the 2-3 subject names that should get topics every
-    // day, with the rest rotating in on alternate days.
+    // Mixed Bag's "hardest subjects" — the 2-3 subjects scheduled exclusively
+    // before every other subject. Ordered: the pick order drives the schedule
+    // when [mixedBagOrderMode] is "sequential". Null means the user hasn't been
+    // asked yet; an empty list means they explicitly skipped the split.
     val mixedBagPrioritySubjects: List<String>? = null,
+    /** "sequential" (finish each chosen subject in pick order) or "balanced". */
+    val mixedBagOrderMode: String = "sequential",
 
     // Optional "Rate your chapters" step (manual/paste sources only — templates
     // arrive pre-weighted). (subjectName, chapterName) -> "easy"|"normal"|"tough".
@@ -589,18 +605,19 @@ class CreatePlanViewModel @Inject constructor(
     fun setStrategy(strategy: String) = _uiState.update { it.copy(strategy = strategy) }
 
     /**
-     * The 3 study-style cards map onto the 2 real backend knobs
-     * (`strategy`: interleaved|sequential, `overloadMode`: flex|strict):
-     * Deep Focus = sequential order, one subject at a time.
-     * Mixed Bag = interleaved, subjects mixed across the week.
-     * Balanced = interleaved + a strict daily cap, so the day-to-day load stays even
-     * rather than letting some days stretch past the goal.
+     * The 3 study-style cards choose an ORDER, nothing else:
+     *   Deep Focus — one subject at a time, in syllabus order (sequential).
+     *   Mixed Bag  — your hardest subjects first, then the rest (priority_split,
+     *                resolved in buildPreview once subjects have been picked).
+     *   Balanced   — an even mix of every subject each day (interleaved).
+     * All three respect the daily goal; nothing here decides whether days may
+     * run over it.
      */
     fun setStudyStyle(style: String) = _uiState.update {
         when (style) {
-            "deep_focus" -> it.copy(strategy = "sequential", overloadMode = "flex")
-            "balanced" -> it.copy(strategy = "interleaved", overloadMode = "strict")
-            else -> it.copy(strategy = "interleaved", overloadMode = "flex") // mixed_bag
+            "deep_focus" -> it.copy(studyStyle = "deep_focus", strategy = "sequential")
+            "mixed_bag" -> it.copy(studyStyle = "mixed_bag", strategy = "interleaved")
+            else -> it.copy(studyStyle = "balanced", strategy = "interleaved")
         }
     }
     fun setDailyGoal(dailyGoal: String) = _uiState.update { it.copy(dailyGoal = dailyGoal.filter(Char::isDigit).take(2)) }
@@ -620,7 +637,7 @@ class CreatePlanViewModel @Inject constructor(
                     val originalChapters = subject.chapters.mapIndexedNotNull { ci, chapter ->
                         val topicNames = chapter.topics.withIndex()
                             .filter { (ti, _) -> Triple(si, ci, ti) !in excluded }
-                            .map { (_, name) -> name } + state.templateExtraTopics[si to ci].orEmpty().map { it.name }
+                            .map { (_, topic) -> topic.name } + state.templateExtraTopics[si to ci].orEmpty().map { it.name }
                         if (topicNames.isEmpty()) null else DeepFocusOutlineChapter(chapter.name, topicNames)
                     }
                     val extraChapters = state.templateExtraChapters[si].orEmpty()
@@ -774,10 +791,17 @@ class CreatePlanViewModel @Inject constructor(
 
     fun openMixedBagPicker() = _uiState.update { it.copy(step = CreatePlanStep.MixedBagSubjectPicker) }
 
-    /** Confirms the chosen "difficult" subjects (topics from these land every day;
-     *  the rest rotate in one-at-a-time on alternate days) and returns to settings. */
-    fun setMixedBagPrioritySubjects(names: List<String>) {
-        _uiState.update { it.copy(mixedBagPrioritySubjects = names, step = CreatePlanStep.PlanSettings) }
+    /** Confirms the chosen "hardest" subjects — these are scheduled exclusively
+     *  first, in [orderMode], and the remaining subjects only start once they run
+     *  out — then returns to settings. */
+    fun setMixedBagPrioritySubjects(names: List<String>, orderMode: String = "sequential") {
+        _uiState.update {
+            it.copy(
+                mixedBagPrioritySubjects = names,
+                mixedBagOrderMode = if (orderMode == "balanced") "balanced" else "sequential",
+                step = CreatePlanStep.PlanSettings,
+            )
+        }
     }
 
     /** The alternate-day split is optional — skipping just falls back to the plain
@@ -811,10 +835,39 @@ class CreatePlanViewModel @Inject constructor(
     // ── "Rate your chapters" step (manual/paste only) ────────────────
 
     /** Whether the optional chapter-rating step applies to the active source. */
-    fun canRateChapters(): Boolean =
-        _uiState.value.source == PlanSource.Manual || _uiState.value.source == PlanSource.Paste
+    /**
+     * Every source gets the rating step, templates included. Only 3 of the 20
+     * bundled templates ship hand-weighted, so gating this to manual/paste left
+     * SSC/UPSC/Railways students with no way to weight their syllabus until
+     * *after* the plan was built — forcing them to rate chapters in the Syllabus
+     * screen and rebuild, throwing away the schedule they just approved.
+     */
+    fun canRateChapters(): Boolean = _uiState.value.source != null
 
-    fun openChapterRating() = _uiState.update { it.copy(step = CreatePlanStep.ChapterRating) }
+    /**
+     * Opens the rating step, pre-filling it from whatever weights the source
+     * already carries. A JEE student sees Physics chapters already marked Tough
+     * and adjusts what they disagree with, instead of starting from blank.
+     * Manual/paste syllabi carry no weights, so they start empty.
+     */
+    fun openChapterRating() = _uiState.update { state ->
+        val seeded = state.templateDetail
+            ?.subjects
+            ?.flatMap { subject ->
+                subject.chapters.mapNotNull { chapter ->
+                    chapter.impliedDifficulty?.let { difficulty ->
+                        (subject.name to chapter.name) to difficulty.wireValue
+                    }
+                }
+            }
+            ?.toMap()
+            .orEmpty()
+        state.copy(
+            step = CreatePlanStep.ChapterRating,
+            // User edits always win over the template's own weighting.
+            chapterRatings = seeded + state.chapterRatings,
+        )
+    }
 
     /** Subject/chapter outline shown by the rating step. */
     fun ratingOutline(): List<DeepFocusOutlineSubject> = currentOutline()
@@ -825,6 +878,7 @@ class CreatePlanViewModel @Inject constructor(
      * straight to preview.
      */
     fun continueFromSettings() {
+        _uiState.update { it.copy(allowOverload = false) }
         if (canRateChapters() && currentOutline().isNotEmpty()) openChapterRating() else buildPreview()
     }
 
@@ -877,11 +931,14 @@ class CreatePlanViewModel @Inject constructor(
         // the dedicated "priority_split" strategy; every other style (deep focus's
         // sequential, balanced's plain interleaved) is unaffected.
         val prioritySubjects = state.mixedBagPrioritySubjects?.takeIf { it.isNotEmpty() }
+        // Only meaningful alongside a priority split.
+        val priorityOrderMode = prioritySubjects?.let { state.mixedBagOrderMode }
         val effectiveStrategy = if (state.strategy == "interleaved" && prioritySubjects != null) {
             "priority_split"
         } else {
             state.strategy
         }
+        val overloadMode = if (state.allowOverload) "flex" else null
         val chapterRatings = state.chapterRatings.takeIf { it.isNotEmpty() }?.map { (key, difficulty) ->
             ChapterRatingRequest(subject = key.first, chapter = key.second, difficulty = difficulty)
         }
@@ -907,15 +964,17 @@ class CreatePlanViewModel @Inject constructor(
                             TemplateExtraTopicRequest(subjectIndex = key.first, chapterIndex = key.second, name = topic.name)
                         }
                     },
+                    chapterRatings = chapterRatings,
                     subjectOrder = subjectOrder,
                     chapterOrder = chapterOrder,
                     topicOrder = topicOrder,
                     prioritySubjects = prioritySubjects,
+                    priorityOrderMode = priorityOrderMode,
                     examDate = state.examDate.ifBlank { null },
                     dailyGoal = state.dailyGoal.toIntOrNull(),
                     offDays = state.offDays.toList(),
                     strategy = effectiveStrategy,
-                    overloadMode = state.overloadMode,
+                    overloadMode = overloadMode,
                 )
             }
             PlanSource.Manual -> PlanPreviewRequest(
@@ -927,11 +986,12 @@ class CreatePlanViewModel @Inject constructor(
                 chapterOrder = chapterOrder,
                 topicOrder = topicOrder,
                 prioritySubjects = prioritySubjects,
+                    priorityOrderMode = priorityOrderMode,
                 examDate = state.examDate.ifBlank { null },
                 dailyGoal = state.dailyGoal.toIntOrNull(),
                 offDays = state.offDays.toList(),
                 strategy = effectiveStrategy,
-                overloadMode = state.overloadMode,
+                overloadMode = overloadMode,
             )
             PlanSource.Paste -> {
                 val preview = state.structuredPreview ?: return
@@ -954,11 +1014,12 @@ class CreatePlanViewModel @Inject constructor(
                     chapterOrder = chapterOrder,
                     topicOrder = topicOrder,
                     prioritySubjects = prioritySubjects,
+                    priorityOrderMode = priorityOrderMode,
                     examDate = state.examDate.ifBlank { null },
                     dailyGoal = state.dailyGoal.toIntOrNull(),
                     offDays = state.offDays.toList(),
                     strategy = effectiveStrategy,
-                    overloadMode = state.overloadMode,
+                    overloadMode = overloadMode,
                 )
             }
         }
@@ -981,6 +1042,22 @@ class CreatePlanViewModel @Inject constructor(
                 is Resource.Loading -> Unit
             }
         }
+    }
+
+    /**
+     * "Schedule it anyway" from the preview's doesn't-fit card: rebuilds the same
+     * plan with the daily budget allowed to stretch, so every topic gets a date
+     * even though days will run fuller than the goal. This is the ONLY route to
+     * flex scheduling — it is an informed choice made once, in front of the real
+     * numbers, rather than a setting chosen blind at plan creation.
+     *
+     * The existing draft is discarded first; [buildPreview] inserts a new one,
+     * and without this the abandoned draft would linger server-side.
+     */
+    fun scheduleAnyway() {
+        discardDraft()
+        _uiState.update { it.copy(allowOverload = true) }
+        buildPreview()
     }
 
     /** Discards the draft plan created by [buildPreview] without confirming it —

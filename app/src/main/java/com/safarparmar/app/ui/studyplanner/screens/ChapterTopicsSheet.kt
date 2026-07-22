@@ -33,7 +33,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.safarparmar.app.domain.model.studyplanner.StudyTopic
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.graphics.SolidColor
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.SafarSemanticColors
 
 /**
@@ -83,15 +92,23 @@ internal fun ChapterTopicsSheet(
         containerColor = SafarSemanticColors.plannerBackground(),
     ) {
         Column(Modifier.fillMaxWidth().heightIn(max = maxSheetHeight).padding(bottom = 24.dp)) {
-            Text(
-                text = chapterName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Black,
-                color = scheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-            )
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
+                Text(
+                    text = chapterName,
+                    fontFamily = LoraFontFamily,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = PlannerFlatColors.TextDark,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "${topics.size} topics",
+                    fontSize = 11.5.sp,
+                    color = PlannerFlatColors.TextMuted,
+                )
+            }
 
             if (showAddRow) {
                 fun submitNewTopic() {
@@ -101,71 +118,94 @@ internal fun ChapterTopicsSheet(
                     showAddRow = false
                 }
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    OutlinedTextField(
+                    PlanHairline()
+                    BasicTextField(
                         value = newTopicText,
                         onValueChange = { newTopicText = it },
-                        label = { Text("Topic name (comma-separated for multiple)") },
-                        modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 13.5.sp,
+                            color = PlannerFlatColors.TextDark,
+                        ),
+                        cursorBrush = SolidColor(PlannerFlatColors.PrimaryAccent),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submitNewTopic() }),
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        decorationBox = { inner ->
+                            if (newTopicText.isEmpty()) {
+                                Text(
+                                    text = "Topic name — commas add several at once",
+                                    fontSize = 13.5.sp,
+                                    color = PlannerFlatColors.TextMuted,
+                                )
+                            }
+                            inner()
+                        },
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        SyllabusAddButton(
-                            label = "Add",
-                            onClick = { submitNewTopic() },
-                            modifier = Modifier.weight(1f),
+                    PlanHairline()
+                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Add",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PlannerFlatColors.PrimaryAccent,
+                            modifier = Modifier.clickable { submitNewTopic() },
                         )
-                        TextButton(onClick = { showAddRow = false; newTopicText = "" }) {
-                            Text("Cancel")
-                        }
+                        Text(
+                            text = "Cancel",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PlannerFlatColors.TextMuted,
+                            modifier = Modifier.clickable { showAddRow = false; newTopicText = "" },
+                        )
                     }
                 }
             } else {
-                SyllabusAddButton(
-                    label = "Add Topic",
-                    onClick = { showAddRow = true },
-                    modifier = Modifier.padding(horizontal = 20.dp),
+                Text(
+                    text = "+ Add topic",
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.PrimaryAccent,
+                    modifier = Modifier
+                        .padding(horizontal = 24.dp)
+                        .clickable { showAddRow = true },
                 )
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
             if (topics.isEmpty()) {
                 Text(
-                    text = "No topics yet. Tap Add Topic to add one — separate names with commas to add several at once.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                    text = "No topics yet. Add one above — commas add several at once.",
+                    fontSize = 13.sp,
+                    color = PlannerFlatColors.TextMuted,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
                 )
             } else {
-                LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
-                    itemsIndexed(topics, key = { _, topic -> topic.id }) { index, topic ->
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                ) {
+                    itemsIndexed(topics, key = { _, topic -> topic.id }) { _, topic ->
                         key(topic.id) {
-                            SyllabusTopicAccordionRow(
+                            PlanHairline(alpha = 0.6f)
+                            SyllabusMagazineTopicRow(
                                 topic = topic,
                                 chapter = chapter,
-                                onClick = { onTopicClick(topic) },
                                 onRename = { onRenameTopic(topic) },
                                 onDelete = { onDeleteTopic(topic) },
                                 onAssignToday = { onAssignToday(topic) },
+                                onChangeDate = { onChangeDate(topic) },
+                                onMarkDone = { onMarkDoneTopic(topic) },
+                                onToRevise = { onToReviseTopic(topic) },
                                 canReorder = canReorder,
                                 onMoveUp = { onMoveTopicUp(topic) },
                                 onMoveDown = { onMoveTopicDown(topic) },
                                 onDragEnd = { onTopicDragEnd(topic) },
-                                onChangeDate = { onChangeDate(topic) },
-                                onMarkDone = { onMarkDoneTopic(topic) },
-                                onToRevise = { onToReviseTopic(topic) },
                                 modifier = Modifier.animateItem(),
                             )
-                            if (index < topics.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 40.dp, end = 20.dp),
-                                    color = scheme.outlineVariant.copy(alpha = 0.4f),
-                                )
-                            }
                         }
                     }
                 }

@@ -241,12 +241,12 @@ fun CreatePlanScreen(
                     onToggleOffDay = { day ->
                         viewModel.setOffDays(if (day in state.offDays) state.offDays - day else state.offDays + day)
                     },
-                    strategy = state.strategy,
-                    overloadMode = state.overloadMode,
+                    studyStyle = state.studyStyle,
                     onStudyStyleChange = viewModel::setStudyStyle,
                     dailyGoal = state.dailyGoal,
                     onDailyGoalChange = viewModel::setDailyGoal,
                     topicCount = viewModel.currentTopicCount(),
+                    subjectCount = viewModel.currentSubjectNames().size,
                     error = state.previewError,
                     premiumRequired = state.premiumRequired,
                     onBuildPlan = viewModel::continueFromSettings,
@@ -273,7 +273,9 @@ fun CreatePlanScreen(
                 )
                 CreatePlanStep.MixedBagSubjectPicker -> MixedBagSubjectPickerStep(
                     subjectNames = viewModel.currentSubjectNames(),
-                    onConfirm = viewModel::setMixedBagPrioritySubjects,
+                    onConfirm = { names, orderMode ->
+                        viewModel.setMixedBagPrioritySubjects(names, orderMode)
+                    },
                     onSkip = viewModel::skipMixedBagSplit,
                     modifier = Modifier.padding(padding),
                 )
@@ -284,6 +286,8 @@ fun CreatePlanScreen(
                         isConfirming = state.isConfirming,
                         error = state.error,
                         onConfirm = { viewModel.goToStep(CreatePlanStep.DailyTopics) },
+                        // Already stretched once — offering it again would do nothing.
+                        onScheduleAnyway = if (state.allowOverload) null else viewModel::scheduleAnyway,
                         onAdjust = {
                             viewModel.discardDraft()
                             viewModel.goToStep(CreatePlanStep.PlanSettings)

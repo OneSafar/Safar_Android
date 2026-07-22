@@ -4,12 +4,12 @@ import android.app.Activity
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -28,10 +28,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CheckCircleOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,6 +65,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -73,6 +76,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -101,21 +105,73 @@ private data class PremiumPlanOption(
 
 private data class PremiumColors(
     val background: Color,
-    val surface: Color,
-    val elevatedSurface: Color,
-    val border: Color,
-    val primary: Color,
-    val primarySoft: Color,
-    val accent: Color,
-    val accentSoft: Color,
-    val danger: Color,
-    val cta: Color,
+    val cardBody: Color,
     val textPrimary: Color,
     val textSecondary: Color,
-    val muted: Color,
-    val success: Color,
+    val borderBrush: Brush,
+    val macBlue: Color,
+    val macGold: Color,
+    val macGreen: Color,
+    val danger: Color,
     val isDark: Boolean,
 )
+
+// --- macOS Control Center Card Component ---
+@Composable
+private fun MacOSControlCard(
+    modifier: Modifier = Modifier,
+    isDarkTheme: Boolean,
+    shape: RoundedCornerShape = RoundedCornerShape(20.dp),
+    isSelected: Boolean = false,
+    selectedAccentColor: Color = Color(0xFF0A84FF),
+    onClick: (() -> Unit)? = null,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val bodyColor = if (isSelected) {
+        if (isDarkTheme) selectedAccentColor.copy(alpha = 0.20f) else selectedAccentColor.copy(alpha = 0.08f)
+    } else {
+        if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
+    }
+
+    val borderBrush = if (isSelected) {
+        Brush.verticalGradient(
+            colors = listOf(selectedAccentColor, selectedAccentColor.copy(alpha = 0.5f))
+        )
+    } else if (isDarkTheme) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+        )
+    }
+
+    val shadowElevation = if (isDarkTheme) 12.dp else 4.dp
+    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.12f)
+    val borderWidth = if (isSelected) 1.5.dp else 0.5.dp
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                spotColor = shadowColor,
+                ambientColor = shadowColor
+            )
+            .clip(shape)
+            .background(bodyColor)
+            .border(
+                width = borderWidth,
+                brush = borderBrush,
+                shape = shape
+            )
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+    ) {
+        content()
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,11 +207,11 @@ fun PremiumPaywallScreen(
                 id = "6month",
                 label = "6 Months",
                 price = 99,
-                subtitle = "Good for one exam cycle",
+                subtitle = "Best value for full exam cycle",
                 durationLabel = "6 months",
                 durationMonths = 6,
                 courseId = "study-planner-pro-6month",
-                badge = "Popular",
+                badge = "POPULAR",
                 discountLabel = "Popular",
             ),
         )
@@ -174,7 +230,7 @@ fun PremiumPaywallScreen(
                     delay(1_500)
                     viewModel.refreshPremiumStatus(
                         showLoading = true,
-                        fallbackError = "Payment returned from PhonePe/Razorpay, but Safar Premium is not active yet. Please tap Restore Safar Premium in a moment."
+                        fallbackError = "Payment returned, but Safar Premium is not active yet. Please tap Restore Safar Premium."
                     )
                 }
             }
@@ -198,7 +254,7 @@ fun PremiumPaywallScreen(
                 val options = JSONObject()
                 options.put("name", "Safar")
                 options.put("description", "Safar Premium")
-                options.put("theme.color", "#F04438")
+                options.put("theme.color", "#0A84FF")
                 options.put("currency", state.order.currency)
                 options.put("amount", state.order.amount)
                 options.put("order_id", state.order.id)
@@ -246,6 +302,7 @@ fun PremiumPaywallScreen(
     if (showTrialConfirmation) {
         StartTrialConfirmationDialog(
             colors = colors,
+            isDarkTheme = isDarkTheme,
             onDismiss = { showTrialConfirmation = false },
             onConfirm = {
                 showTrialConfirmation = false
@@ -268,6 +325,7 @@ fun PremiumPaywallScreen(
                 isPremiumActive = isPremiumActive,
                 isLoading = isLoading,
                 colors = colors,
+                isDarkTheme = isDarkTheme,
                 onPurchase = {
                     viewModel.createOrder(
                         duration = selectedPlan.durationMonths,
@@ -282,8 +340,8 @@ fun PremiumPaywallScreen(
                 .background(colors.background)
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
-                .padding(horizontal = 18.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             if (isPremiumActive) {
                 PremiumActiveContent(
@@ -296,6 +354,7 @@ fun PremiumPaywallScreen(
                     newExpiryText = formattedNewExpiry,
                     isLoading = isLoading,
                     colors = colors,
+                    isDarkTheme = isDarkTheme,
                     onSelectPlan = updateSelectedPlan,
                     onRestore = { viewModel.refreshPremiumStatus() },
                 )
@@ -309,12 +368,13 @@ fun PremiumPaywallScreen(
                     uiState = uiState,
                     isLoading = isLoading,
                     colors = colors,
+                    isDarkTheme = isDarkTheme,
                     onSelectPlan = updateSelectedPlan,
                     onStartTrial = { showTrialConfirmation = true },
                     onRestore = { viewModel.refreshPremiumStatus() },
                 )
             }
-            Spacer(modifier = Modifier.height(88.dp))
+            Spacer(modifier = Modifier.height(96.dp))
         }
     }
 }
@@ -330,6 +390,7 @@ private fun PremiumTopBar(
             Text(
                 text = "Safar Premium",
                 fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
                 color = colors.textPrimary,
             )
         },
@@ -352,6 +413,7 @@ private fun PremiumTopBar(
 @Composable
 private fun StartTrialConfirmationDialog(
     colors: PremiumColors,
+    isDarkTheme: Boolean,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -360,28 +422,29 @@ private fun StartTrialConfirmationDialog(
         icon = {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .background(colors.primarySoft, CircleShape),
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(colors.macBlue),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "7",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-                    color = colors.primary,
+                    color = Color.White,
                 )
             }
         },
         title = {
             Text(
-                text = "Start 7-day free trial?",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+                text = "Start 7-Day Free Trial",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                 color = colors.textPrimary,
                 textAlign = TextAlign.Center,
             )
         },
         text = {
             Text(
-                text = "This will unlock Safar Premium features for 7 days on this account. No payment is needed today.",
+                text = "Unlock all Safar Premium features instantly for 7 days. No charge today.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.textSecondary,
                 textAlign = TextAlign.Center,
@@ -390,20 +453,21 @@ private fun StartTrialConfirmationDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.cta,
+                    containerColor = colors.macBlue,
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Start free trial", fontWeight = FontWeight.Bold)
+                Text("Start Free Trial", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = colors.textSecondary)
+                Text("Cancel", color = colors.textSecondary, fontWeight = FontWeight.Medium)
             }
         },
-        containerColor = colors.surface,
+        containerColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color.White,
         titleContentColor = colors.textPrimary,
         textContentColor = colors.textSecondary,
     )
@@ -435,7 +499,7 @@ private fun PremiumUnlockedDialog(
             Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = null,
-                tint = Color(0xFF10B981),
+                tint = Color(0xFF34C759),
                 modifier = Modifier
                     .size(56.dp)
                     .graphicsLayer {
@@ -446,9 +510,10 @@ private fun PremiumUnlockedDialog(
         },
         title = {
             Text(
-                text = "Plan extended",
+                text = "Plan Extended!",
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
             )
         },
         text = {
@@ -459,9 +524,9 @@ private fun PremiumUnlockedDialog(
             ) {
                 dialogExpiry?.let {
                     Text(
-                        text = "Your plan has been extended to $it",
+                        text = "Your Safar Premium plan is now active until $it",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color(0xFF15803D),
+                        color = Color(0xFF34C759),
                         textAlign = TextAlign.Center,
                     )
                 } ?: Text(
@@ -469,7 +534,7 @@ private fun PremiumUnlockedDialog(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "You can keep using every Premium feature across SAFAR.",
+                    text = "Enjoy unlimited access to all AI study planning and Ekagra analytics features.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -477,8 +542,12 @@ private fun PremiumUnlockedDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Continue")
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A84FF))
+            ) {
+                Text("Continue", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
     )
@@ -494,19 +563,21 @@ private fun PremiumUpgradeContent(
     uiState: PremiumUiState,
     isLoading: Boolean,
     colors: PremiumColors,
+    isDarkTheme: Boolean,
     onSelectPlan: (String) -> Unit,
     onStartTrial: () -> Unit,
     onRestore: () -> Unit,
 ) {
     SevenDayTrialBanner(
         colors = colors,
+        isDarkTheme = isDarkTheme,
         isLoading = isLoading,
         onStartTrial = onStartTrial,
     )
 
-    PremiumBenefitsCard(colors = colors)
+    PremiumHero(colors = colors, isDarkTheme = isDarkTheme)
 
-    PremiumHero(colors = colors)
+    PremiumBenefitsCard(colors = colors, isDarkTheme = isDarkTheme)
 
     PremiumPricingPanel(
         plans = plans,
@@ -515,6 +586,7 @@ private fun PremiumUpgradeContent(
         currentExpiryText = currentExpiryText,
         newExpiryText = newExpiryText,
         colors = colors,
+        isDarkTheme = isDarkTheme,
         onSelectPlan = onSelectPlan,
     )
 
@@ -538,6 +610,7 @@ private fun PremiumActiveContent(
     newExpiryText: String?,
     isLoading: Boolean,
     colors: PremiumColors,
+    isDarkTheme: Boolean,
     onSelectPlan: (String) -> Unit,
     onRestore: () -> Unit,
 ) {
@@ -545,13 +618,14 @@ private fun PremiumActiveContent(
         planLabel = planLabel,
         expiryText = expiryText,
         colors = colors,
+        isDarkTheme = isDarkTheme,
     )
 
-    PremiumBenefitsCard(colors = colors)
+    PremiumBenefitsCard(colors = colors, isDarkTheme = isDarkTheme)
 
     SectionHeader(
-        title = "Add more time to your plan",
-        subtitle = "You won’t lose your current time. This purchase adds more time to your plan.",
+        title = "Extend Your Plan",
+        subtitle = "Purchasing extra time adds directly onto your existing active plan without losing days.",
         colors = colors,
     )
 
@@ -562,6 +636,7 @@ private fun PremiumActiveContent(
         currentExpiryText = currentExpiryText,
         newExpiryText = newExpiryText,
         colors = colors,
+        isDarkTheme = isDarkTheme,
         onSelectPlan = onSelectPlan,
     )
 
@@ -573,55 +648,53 @@ private fun PremiumActiveContent(
 }
 
 @Composable
-private fun PremiumHero(colors: PremiumColors) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
-        color = colors.surface,
-        border = BorderStroke(1.dp, colors.border),
-    ) {
-        Box(
+private fun PremiumHero(colors: PremiumColors, isDarkTheme: Boolean) {
+    MacOSControlCard(isDarkTheme = isDarkTheme) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(colors.elevatedSurface, colors.surface)))
-                .padding(horizontal = 22.dp, vertical = 20.dp),
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.AutoAwesome,
-                contentDescription = null,
-                tint = colors.accent.copy(alpha = 0.75f),
+            Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(22.dp),
-            )
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(colors.macGold),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "Turn exam prep",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium),
+                    text = "Turn exam prep into clarity",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    ),
                     color = colors.textPrimary,
-                    textAlign = TextAlign.Center,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "into clarity",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-                    color = colors.textPrimary,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                )
-                Text(
-                    text = "AI planning, focus reports, premium community,\nand guided learning in one place.",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "AI planning, focus reports, community & guided study in one place.",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp,
+                        letterSpacing = 0.2.sp
+                    ),
                     color = colors.textSecondary,
-                    textAlign = TextAlign.Center,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -629,40 +702,54 @@ private fun PremiumHero(colors: PremiumColors) {
 }
 
 @Composable
-private fun PremiumBenefitsCard(colors: PremiumColors) {
+private fun PremiumBenefitsCard(colors: PremiumColors, isDarkTheme: Boolean) {
     val benefits = remember {
         listOf(
-            "Know if your exam plan is on track",
-            "See completed work, pending topics, and overdue chapters",
-            "Paste syllabus and let AI arrange it",
-            "Missed topics get adjusted in your schedule",
-            "Detailed Ekagra study reports and history",
-            "Private Mehfil Connect with other students",
-            "Dhyan audio and guided learning sessions",
+            "Track exam readiness with real-time indicators",
+            "Automatic AI schedule adjustments for missed topics",
+            "Detailed Ekagra study reports & analytics",
+            "Private Mehfil Connect student community",
+            "Dhyan audio & guided focus sessions",
             "Live Vartalap sessions with Parmar Sir",
         )
     }
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = colors.surface,
-        border = BorderStroke(1.dp, colors.border),
-    ) {
+    MacOSControlCard(isDarkTheme = isDarkTheme) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(colors.macBlue),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
                 Text(
-                    text = "WHAT YOU GET",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                    color = colors.accent,
+                    text = "PREMIUM FEATURES",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.4.sp
+                    ),
+                    color = colors.textPrimary,
                 )
             }
 
-            HorizontalDivider(color = colors.border)
+            HorizontalDivider(
+                color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color(0xFFE5E5EA)
+            )
 
             benefits.forEach { benefit ->
                 Row(
@@ -670,17 +757,28 @@ private fun PremiumBenefitsCard(colors: PremiumColors) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircleOutline,
-                        contentDescription = null,
-                        tint = colors.accent,
-                        modifier = Modifier.size(20.dp),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(colors.macGreen.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = colors.macGreen,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                     Text(
                         text = benefit,
                         modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                        color = colors.textSecondary,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp
+                        ),
+                        color = colors.textPrimary,
                     )
                 }
             }
@@ -696,6 +794,7 @@ private fun PremiumPricingPanel(
     currentExpiryText: String?,
     newExpiryText: String?,
     colors: PremiumColors,
+    isDarkTheme: Boolean,
     onSelectPlan: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -703,6 +802,7 @@ private fun PremiumPricingPanel(
             plans = plans,
             selectedPlanId = selectedPlanId,
             colors = colors,
+            isDarkTheme = isDarkTheme,
             onSelectPlan = onSelectPlan,
         )
         SelectedPlanCard(
@@ -710,6 +810,7 @@ private fun PremiumPricingPanel(
             currentExpiryText = currentExpiryText,
             newExpiryText = newExpiryText,
             colors = colors,
+            isDarkTheme = isDarkTheme,
         )
     }
 }
@@ -719,42 +820,76 @@ private fun RadioPlanSelector(
     plans: List<PremiumPlanOption>,
     selectedPlanId: String,
     colors: PremiumColors,
+    isDarkTheme: Boolean,
     onSelectPlan: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         plans.forEach { plan ->
             val selected = selectedPlanId == plan.id
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(
-                        selected = selected,
-                        onClick = { onSelectPlan(plan.id) },
-                        role = Role.RadioButton,
-                    ),
-                shape = RoundedCornerShape(18.dp),
-                color = if (selected) colors.accentSoft else colors.elevatedSurface,
-                border = BorderStroke(1.dp, if (selected) colors.accent else colors.border),
+
+            MacOSControlCard(
+                isDarkTheme = isDarkTheme,
+                isSelected = selected,
+                selectedAccentColor = colors.macBlue,
+                onClick = { onSelectPlan(plan.id) }
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    RadioButton(
-                        selected = selected,
-                        onClick = null,
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = colors.accent,
-                            unselectedColor = colors.muted,
-                        ),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        RadioButton(
+                            selected = selected,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = colors.macBlue,
+                                unselectedColor = colors.textSecondary.copy(alpha = 0.5f),
+                            ),
+                        )
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = plan.label,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = colors.textPrimary,
+                                )
+                                if (plan.badge != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(colors.macGold)
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = plan.badge,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 9.sp
+                                            ),
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = plan.subtitle,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = colors.textSecondary,
+                            )
+                        }
+                    }
+
                     Text(
-                        text = "${plan.label} – ₹${plan.price}",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = colors.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        text = "\u20B9${plan.price}",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        color = if (selected) colors.macBlue else colors.textPrimary,
                     )
                 }
             }
@@ -768,63 +903,59 @@ private fun SelectedPlanCard(
     currentExpiryText: String?,
     newExpiryText: String?,
     colors: PremiumColors,
+    isDarkTheme: Boolean,
 ) {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
-            shape = RoundedCornerShape(22.dp),
-            color = colors.accentSoft,
-            border = BorderStroke(1.4.dp, colors.accent.copy(alpha = 0.78f)),
+    MacOSControlCard(
+        isDarkTheme = isDarkTheme,
+        isSelected = true,
+        selectedAccentColor = colors.macBlue
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(3.dp),
-                    ) {
-                        Text(
-                            text = plan.label,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-                            color = colors.textPrimary,
-                        )
-                        Text(
-                            text = plan.subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.textSecondary,
-                        )
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "\u20B9${plan.price}",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        color = if (colors.isDark) colors.accent else colors.textPrimary,
+                        text = "Selected Plan: ${plan.label}",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = colors.textPrimary,
+                    )
+                    Text(
+                        text = "Full access for ${plan.durationLabel}",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = colors.textSecondary,
                     )
                 }
                 Text(
-                    text = "Safar Premium for ${plan.durationLabel}. Secure payment by Razorpay.",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "\u20B9${plan.price}",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                    color = colors.macBlue,
+                )
+            }
+
+            HorizontalDivider(
+                color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color(0xFFE5E5EA)
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Current expiry: ${currentExpiryText ?: "No active subscription"}",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                     color = colors.textSecondary,
                 )
-                HorizontalDivider(color = colors.border)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "Your current expiry: ${currentExpiryText ?: "No current active plan"}",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = colors.textSecondary,
-                    )
-                    Text(
-                        text = "New expiry after purchase: ${newExpiryText ?: "Calculating..."}",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = colors.textPrimary,
-                    )
-                }
+                Text(
+                    text = "New expiry after purchase: ${newExpiryText ?: "Calculating..."}",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    ),
+                    color = colors.macBlue,
+                )
             }
         }
     }
@@ -833,29 +964,28 @@ private fun SelectedPlanCard(
 @Composable
 private fun SevenDayTrialBanner(
     colors: PremiumColors,
+    isDarkTheme: Boolean,
     isLoading: Boolean,
     onStartTrial: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(enabled = !isLoading, onClick = onStartTrial),
-        shape = RoundedCornerShape(18.dp),
-        color = colors.cta,
-        shadowElevation = 4.dp,
+    MacOSControlCard(
+        isDarkTheme = isDarkTheme,
+        onClick = if (!isLoading) onStartTrial else null,
+        selectedAccentColor = colors.macBlue,
+        isSelected = true
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .background(Color.White.copy(alpha = 0.18f), CircleShape),
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(colors.macBlue),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -866,24 +996,30 @@ private fun SevenDayTrialBanner(
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = "Try Premium for Free",
+                    text = "Start 7-Day Free Trial",
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White,
+                    color = colors.textPrimary,
                 )
                 Text(
-                    text = "Start your 7 Days Free trial",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.82f),
+                    text = "Instant access to all premium features • No payment today",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    color = colors.textSecondary,
                 )
             }
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp,
-                    color = Color.White,
+                    color = colors.macBlue,
+                )
+            } else {
+                Text(
+                    text = "Try Free",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
+                    color = colors.macBlue
                 )
             }
         }
@@ -896,15 +1032,15 @@ private fun SectionHeader(
     subtitle: String,
     colors: PremiumColors,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = colors.textPrimary,
         )
         Text(
             text = subtitle,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
             color = colors.textSecondary,
         )
     }
@@ -918,7 +1054,7 @@ private fun UiStateMessage(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
     ) {
         Text(
@@ -939,13 +1075,8 @@ private fun PaywallFooter(
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            text = "Cancel anytime",
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.textSecondary,
-        )
         TextButton(
             onClick = onRestore,
             enabled = !isLoading,
@@ -953,14 +1084,15 @@ private fun PaywallFooter(
         ) {
             Text(
                 text = "Restore Safar Premium",
-                color = colors.textPrimary,
-                fontWeight = FontWeight.ExtraBold,
+                color = colors.macBlue,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp
             )
         }
         Text(
-            text = "Secure payment by Razorpay",
+            text = "Cancel anytime • 256-bit Secure Razorpay Checkout",
             style = MaterialTheme.typography.labelSmall,
-            color = colors.muted,
+            color = colors.textSecondary.copy(alpha = 0.7f),
         )
     }
 }
@@ -971,25 +1103,29 @@ private fun PremiumBottomBar(
     isPremiumActive: Boolean,
     isLoading: Boolean,
     colors: PremiumColors,
+    isDarkTheme: Boolean,
     onPurchase: () -> Unit,
 ) {
     Surface(
-        color = colors.background,
-        shadowElevation = if (colors.isDark) 0.dp else 12.dp,
+        color = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFF9F9FB),
+        shadowElevation = if (isDarkTheme) 12.dp else 6.dp,
         tonalElevation = 8.dp,
-        border = BorderStroke(1.dp, colors.border.copy(alpha = 0.72f)),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp,
+            if (isDarkTheme) Color.White.copy(alpha = 0.15f) else Color(0xFFE5E5EA)
+        ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(
                     text = "\u20B9${selectedPlan.price}",
@@ -1006,14 +1142,14 @@ private fun PremiumBottomBar(
             Button(
                 onClick = onPurchase,
                 enabled = !isLoading,
-                shape = RoundedCornerShape(50),
+                shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.cta,
+                    containerColor = colors.macBlue,
                     contentColor = Color.White,
-                    disabledContainerColor = colors.cta.copy(alpha = 0.42f),
-                    disabledContentColor = Color.White.copy(alpha = 0.82f),
+                    disabledContainerColor = colors.macBlue.copy(alpha = 0.45f),
+                    disabledContentColor = Color.White.copy(alpha = 0.8f),
                 ),
-                contentPadding = PaddingValues(horizontal = 28.dp, vertical = 15.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -1030,7 +1166,7 @@ private fun PremiumBottomBar(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Add ${selectedPlan.durationMonths} Months",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     )
                 }
             }
@@ -1043,16 +1179,16 @@ private fun PremiumActiveSummaryCard(
     planLabel: String,
     expiryText: String?,
     colors: PremiumColors,
+    isDarkTheme: Boolean,
 ) {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.elevatedSurface),
-        border = BorderStroke(1.dp, colors.success.copy(alpha = 0.42f)),
-        modifier = Modifier.fillMaxWidth(),
+    MacOSControlCard(
+        isDarkTheme = isDarkTheme,
+        isSelected = true,
+        selectedAccentColor = colors.macGreen
     ) {
         Column(
-            modifier = Modifier.padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1060,33 +1196,34 @@ private fun PremiumActiveSummaryCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(54.dp)
-                        .background(colors.success.copy(alpha = 0.16f), CircleShape),
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(colors.macGreen),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
+                        imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        tint = colors.success,
-                        modifier = Modifier.size(30.dp),
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp),
                     )
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "Premium Active",
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        text = "Safar Premium Active",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = colors.textPrimary,
                     )
                     Text(
-                        text = expiryText?.let { "Valid until $it" } ?: "$planLabel is active on this account.",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = colors.success,
+                        text = expiryText?.let { "Valid until $it" } ?: "$planLabel is active",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.macGreen,
                     )
                 }
             }
             Text(
-                text = "$planLabel is unlocked. Manage your plan here or jump straight into Premium features.",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "$planLabel is unlocked. Manage or extend your subscription plan below.",
+                style = MaterialTheme.typography.bodySmall,
                 color = colors.textSecondary,
             )
         }
@@ -1098,38 +1235,32 @@ private fun rememberPremiumColors(isDark: Boolean): PremiumColors {
     return remember(isDark) {
         if (isDark) {
             PremiumColors(
-                background = Color(0xFF0D0D0F),
-                surface = Color(0xFF141416),
-                elevatedSurface = Color(0xFF19191D),
-                border = Color(0xFF2B2B31),
-                primary = Color(0xFFFFB020),
-                primarySoft = Color(0xFF1E1E22),
-                accent = Color(0xFFFFB020),
-                accentSoft = Color(0xFF251B0D),
-                danger = Color(0xFFFF5148),
-                cta = Color(0xFFF04438),
+                background = Color(0xFF000000),
+                cardBody = Color(0xFF2C2C2E).copy(alpha = 0.65f),
                 textPrimary = Color.White,
-                textSecondary = Color(0xFFB6B7BE),
-                muted = Color(0xFF787B84),
-                success = Color(0xFF34D399),
+                textSecondary = Color.White.copy(alpha = 0.55f),
+                borderBrush = Brush.verticalGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
+                ),
+                macBlue = Color(0xFF0A84FF),
+                macGold = Color(0xFFFF9500),
+                macGreen = Color(0xFF34C759),
+                danger = Color(0xFFFF453A),
                 isDark = true,
             )
         } else {
             PremiumColors(
-                background = Color(0xFFFAFAFA),
-                surface = Color.White,
-                elevatedSurface = Color(0xFFF7F7F8),
-                border = Color(0xFFD8D8DD),
-                primary = Color(0xFF111111),
-                primarySoft = Color(0xFFF3F3F4),
-                accent = Color(0xFFF59E0B),
-                accentSoft = Color(0xFFFFFBF0),
-                danger = Color(0xFFEF4444),
-                cta = Color(0xFF050505),
-                textPrimary = Color(0xFF111111),
-                textSecondary = Color(0xFF5C5F66),
-                muted = Color(0xFF9CA0AA),
-                success = Color(0xFF059669),
+                background = Color(0xFFF2F2F7),
+                cardBody = Color(0xFFF9F9FB),
+                textPrimary = Color.Black,
+                textSecondary = Color.Black.copy(alpha = 0.55f),
+                borderBrush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+                ),
+                macBlue = Color(0xFF0A84FF),
+                macGold = Color(0xFFFF9500),
+                macGreen = Color(0xFF34C759),
+                danger = Color(0xFFFF3B30),
                 isDark = false,
             )
         }

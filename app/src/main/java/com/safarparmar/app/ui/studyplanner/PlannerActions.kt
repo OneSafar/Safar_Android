@@ -33,8 +33,6 @@ interface PlannerActions {
     fun clearTransient()
     fun undoRollover()
     fun undoDelete()
-    /** Persists the plan's Flexible/Strict scheduling mode ("flex" or "strict"). */
-    fun setPlanningMode(mode: String)
     /** Persists the "how do you like to study" default ("interleaved" or "sequential"). */
     fun setPreferredStudyStrategy(strategy: String)
     fun setError(message: String)
@@ -120,6 +118,13 @@ interface PlannerActions {
     fun uncompleteRevisionSession(topicId: String, sessionDate: String)
     fun cancelRevision(topicId: String)
     fun deleteTopic(topicId: String)
+    /**
+     * [overloadMode] is an escape hatch, not a setting: null (the normal case)
+     * means respect the plan's daily goal and report anything that doesn't fit.
+     * Passing "flex" lets the engine pack days fuller to make everything fit —
+     * reserved for an explicit, informed "schedule it anyway" choice. Study
+     * styles deliberately do NOT set it.
+     */
     fun autoDistribute(
         lockExisting: Boolean,
         overloadMode: String? = null,
@@ -137,6 +142,7 @@ interface PlannerActions {
         strategy: String,
         overloadMode: String? = null,
         prioritySubjectNames: List<String> = emptyList(),
+        priorityOrderMode: String? = null,
     )
     /**
      * Arms a pending rebuild with the chosen strategy so the user can reorder
@@ -144,8 +150,8 @@ interface PlannerActions {
      */
     fun armRebuild(
         strategy: String,
-        overloadMode: String? = null,
         prioritySubjectNames: List<String> = emptyList(),
+        priorityOrderMode: String? = null,
     )
     fun reorderSyllabus(
         subjectIds: List<String>? = null,

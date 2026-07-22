@@ -43,28 +43,40 @@ private const val MAX_PRIORITY_SUBJECTS = 3
  * Shown right after the user changes the exam date. Lets them re-pick how the
  * syllabus should be ordered (the same three styles offered at plan creation)
  * and then either rebuild immediately or reorder the syllabus first. The chosen
- * style maps to the server scheduling knobs:
- *   Deep Focus  -> sequential   (flex)
- *   Balanced    -> interleaved  (strict)
- *   Mixed Bag   -> interleaved  (flex), or priority_split when priority subjects picked
+ * style maps to a scheduling ORDER only:
+ *   Deep Focus  -> sequential
+ *   Balanced    -> interleaved
+ *   Mixed Bag   -> priority_split (chosen subjects first), or interleaved when none picked
+ * All of them respect the plan's daily goal.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun RescheduleFlowSheet(
     subjects: List<StudySubject>,
-    onRebuildNow: (strategy: String, overloadMode: String?, prioritySubjectNames: List<String>) -> Unit,
-    onReorderFirst: (strategy: String, overloadMode: String?, prioritySubjectNames: List<String>) -> Unit,
+    onRebuildNow: (strategy: String, prioritySubjectNames: List<String>, priorityOrderMode: String?) -> Unit,
+    onReorderFirst: (strategy: String, prioritySubjectNames: List<String>, priorityOrderMode: String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var style by remember { mutableStateOf(STYLE_BALANCED) }
-    var priority by remember { mutableStateOf(setOf<String>()) }
+    // Ordered, like the create-flow picker: pick order drives the schedule when
+    // the "In my order" mode is chosen.
+    var priority by remember { mutableStateOf(listOf<String>()) }
+    var priorityOrderMode by remember { mutableStateOf("sequential") }
 
-    fun resolve(): Triple<String, String, List<String>> = when (style) {
-        STYLE_DEEP_FOCUS -> Triple("sequential", "flex", emptyList())
+    data class RebuildChoice(
+        val strategy: String,
+        val priority: List<String>,
+        val orderMode: String?,
+    )
+
+    // Style picks an order and nothing else; whether a day may exceed the daily
+    // goal is no longer bundled into that choice.
+    fun resolve(): RebuildChoice = when (style) {
+        STYLE_DEEP_FOCUS -> RebuildChoice("sequential", emptyList(), null)
         STYLE_MIXED_BAG ->
-            if (priority.isNotEmpty()) Triple("priority_split", "flex", priority.toList())
-            else Triple("interleaved", "flex", emptyList())
-        else -> Triple("interleaved", "strict", emptyList())
+            if (priority.isNotEmpty()) RebuildChoice("priority_split", priority, priorityOrderMode)
+            else RebuildChoice("interleaved", emptyList(), null)
+        else -> RebuildChoice("interleaved", emptyList(), null)
     }
 
     val scheme = MaterialTheme.colorScheme
@@ -128,7 +140,8 @@ internal fun RescheduleFlowSheet(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     subjects.forEach { subject ->
                         val name = subject.name
-                        val checked = name in priority
+                        val pickIndex = priority.indexOf(name)
+                        val checked = pickIndex >= 0
                         FilterChip(
                             selected = checked,
                             onClick = {
@@ -138,8 +151,28 @@ internal fun RescheduleFlowSheet(
                                     else -> priority
                                 }
                             },
-                            label = { Text(name, maxLines = 1) },
+                            label = {
+                                Text(
+                                    text = if (checked) "${pickIndex + 1}. $name" else name,
+                                    maxLines = 1,
+                                )
+                            },
                             colors = FilterChipDefaults.filterChipColors(),
+                        )
+                    }
+                }
+
+                if (priority.size >= 2) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = priorityOrderMode == "sequential",
+                            onClick = { priorityOrderMode = "sequential" },
+                            label = { Text("In my order", maxLines = 1) },
+                        )
+                        FilterChip(
+                            selected = priorityOrderMode == "balanced",
+                            onClick = { priorityOrderMode = "balanced" },
+                            label = { Text("Mix them together", maxLines = 1) },
                         )
                     }
                 }
@@ -147,8 +180,8 @@ internal fun RescheduleFlowSheet(
 
             Button(
                 onClick = {
-                    val (strategy, mode, prio) = resolve()
-                    onRebuildNow(strategy, mode, prio)
+                    val choice = resolve()
+                    onRebuildNow(choice.strategy, choice.priority, choice.orderMode)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -160,8 +193,8 @@ internal fun RescheduleFlowSheet(
             }
             OutlinedButton(
                 onClick = {
-                    val (strategy, mode, prio) = resolve()
-                    onReorderFirst(strategy, mode, prio)
+                    val choice = resolve()
+                    onReorderFirst(choice.strategy, choice.priority, choice.orderMode)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

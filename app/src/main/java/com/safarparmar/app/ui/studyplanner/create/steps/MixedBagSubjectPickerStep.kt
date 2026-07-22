@@ -35,19 +35,24 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Mixed Bag's subject picker — shown immediately when the user picks Mixed
- * Bag, the same way Deep Focus immediately opens its own reorder screen. Choosing
- * 2-3 subjects here means those subjects get topics every study day, while every
- * other subject rotates in one at a time on alternate days; the split is entirely
- * optional (Skip keeps the plain interleaved mix with no subject singled out).
+ * Bag, the same way Deep Focus immediately opens its own reorder screen.
+ *
+ * The 2-3 subjects chosen here are scheduled EXCLUSIVELY first; every other
+ * subject only starts once these run out. Selection is ordered (tapping appends,
+ * and each pick shows its 1/2/3 rank) because that order drives the schedule
+ * when "In my order" is chosen. Skip keeps the plain even mix with no subject
+ * singled out.
  */
 @Composable
 fun MixedBagSubjectPickerStep(
     subjectNames: List<String>,
-    onConfirm: (List<String>) -> Unit,
+    onConfirm: (names: List<String>, orderMode: String) -> Unit,
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var selected by remember(subjectNames) { mutableStateOf(setOf<String>()) }
+    // A List, not a Set — pick order is meaningful and must survive to the server.
+    var selected by remember(subjectNames) { mutableStateOf(listOf<String>()) }
+    var orderMode by remember(subjectNames) { mutableStateOf("sequential") }
     val maxSelectable = 3
 
     Column(
@@ -55,12 +60,12 @@ fun MixedBagSubjectPickerStep(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            "Select 2 or 3 subjects to study every day.",
+            "Pick your 2-3 hardest subjects.",
             fontWeight = FontWeight.Black,
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            "Select the subjects you find hardest; they will appear every day.",
+            "These get scheduled first, one after another, until they're covered. Your other subjects start after that. Tap in the order you want to study them.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -70,12 +75,14 @@ fun MixedBagSubjectPickerStep(
             // list while it measures. There is no reorder/animateItem here, so the default
             // index key costs nothing.
             items(subjectNames) { name ->
-                val isSelected = name in selected
+                val pickIndex = selected.indexOf(name)
+                val isSelected = pickIndex >= 0
                 val disabled = !isSelected && selected.size >= maxSelectable
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(enabled = !disabled) {
+                            // Removing a pick renumbers the rest, so ranks stay 1..n.
                             selected = if (isSelected) selected - name else selected + name
                         },
                     shape = RoundedCornerShape(16.dp),
@@ -108,6 +115,8 @@ fun MixedBagSubjectPickerStep(
                             modifier = Modifier.weight(1f),
                         )
                         if (isSelected) {
+                            // Rank, not a tick — the number is the whole point of
+                            // an ordered pick.
                             Box(
                                 modifier = Modifier
                                     .size(22.dp)
@@ -115,11 +124,11 @@ fun MixedBagSubjectPickerStep(
                                     .background(MaterialTheme.colorScheme.primary),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(14.dp),
+                                Text(
+                                    text = "${pickIndex + 1}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                 )
                             }
                         }
@@ -134,8 +143,29 @@ fun MixedBagSubjectPickerStep(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        // How the chosen subjects are ordered *among themselves*. Either way
+        // they still come before every other subject.
+        if (selected.size >= 2) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                MixedBagOrderChip(
+                    label = "In my order",
+                    detail = selected.joinToString(" → "),
+                    selected = orderMode == "sequential",
+                    onClick = { orderMode = "sequential" },
+                    modifier = Modifier.weight(1f),
+                )
+                MixedBagOrderChip(
+                    label = "Mix them together",
+                    detail = "A bit of each, every day",
+                    selected = orderMode == "balanced",
+                    onClick = { orderMode = "balanced" },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
         Button(
-            onClick = { onConfirm(selected.toList()) },
+            onClick = { onConfirm(selected.toList(), orderMode) },
             enabled = selected.size in 2..maxSelectable,
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -146,6 +176,44 @@ fun MixedBagSubjectPickerStep(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Skip — keep an even mix")
+        }
+    }
+}
+
+@Composable
+private fun MixedBagOrderChip(
+    label: String,
+    detail: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = if (selected) scheme.primaryContainer.copy(alpha = 0.5f) else scheme.surfaceContainerLow,
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.45f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (selected) scheme.primary else scheme.onSurface,
+            )
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.onSurfaceVariant,
+                maxLines = 2,
+            )
         }
     }
 }

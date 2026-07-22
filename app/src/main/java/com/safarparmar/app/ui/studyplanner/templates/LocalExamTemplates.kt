@@ -3,6 +3,14 @@ package com.safarparmar.app.ui.studyplanner.templates
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
 import com.safarparmar.app.domain.model.studyplanner.TemplateChapter
 import com.safarparmar.app.domain.model.studyplanner.TemplateSubject
+import com.safarparmar.app.domain.model.studyplanner.TemplateTopic
+
+/**
+ * These bundled fallback templates are written as plain topic names; the shared
+ * [TemplateChapter] model carries [TemplateTopic] so that server templates can
+ * also ship hand-weighted sizes. Local ones are unweighted (size = null).
+ */
+private fun topicsOf(vararg names: String): List<TemplateTopic> = names.map { TemplateTopic(it) }
 
 fun getLocalExamTemplate(id: String): ExamTemplate? = localExamTemplates.firstOrNull { it.id == id }
 
@@ -19,7 +27,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Number System",
-                        topics = listOf(
+                        topics = topicsOf(
                             "LCM & HCF",
                             "Divisibility Rules",
                             "Remainder Theorem",
@@ -31,7 +39,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Simplification & Approximation",
-                        topics = listOf(
+                        topics = topicsOf(
                             "BODMAS Rule",
                             "Surds & Indices",
                             "Square Root & Cube Root",
@@ -40,7 +48,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Percentage",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic Percentage Problems",
                             "Percentage Change",
                             "Successive Percentage",
@@ -49,7 +57,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Ratio & Proportion",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Simple Ratio",
                             "Compound Ratio",
                             "Proportion & Variation",
@@ -58,7 +66,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Average",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic Average",
                             "Weighted Average",
                             "Average Speed",
@@ -67,7 +75,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Profit, Loss & Discount",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic Profit & Loss",
                             "Successive Discounts",
                             "Marked Price & Selling Price",
@@ -77,7 +85,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Simple & Compound Interest",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Simple Interest",
                             "Compound Interest",
                             "Difference Between SI & CI",
@@ -86,7 +94,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Time & Work",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic Time & Work",
                             "Pipes & Cisterns",
                             "Work & Wages",
@@ -96,7 +104,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Speed, Time & Distance",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic Speed Problems",
                             "Relative Speed",
                             "Trains",
@@ -106,7 +114,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Algebra",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Linear Equations",
                             "Quadratic Equations",
                             "Algebraic Identities",
@@ -115,7 +123,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Geometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Lines & Angles",
                             "Triangles - Properties & Theorems",
                             "Circles - Chords, Tangents, Arcs",
@@ -125,7 +133,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Mensuration",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Area - Triangle, Circle, Quadrilateral",
                             "Volume - Cube, Cuboid, Cylinder",
                             "Volume - Cone, Sphere, Hemisphere",
@@ -135,7 +143,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Trigonometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Trigonometric Ratios & Identities",
                             "Complementary Angles",
                             "Height & Distance",
@@ -144,7 +152,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Data Interpretation",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Bar Graph",
                             "Pie Chart",
                             "Line Graph",
@@ -160,7 +168,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Reading Comprehension",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Passage-based Questions",
                             "Inference & Conclusion",
                             "Vocabulary in Context",
@@ -169,7 +177,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Grammar",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Tenses",
                             "Subject-Verb Agreement",
                             "Articles & Determiners",
@@ -183,7 +191,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Vocabulary",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Synonyms & Antonyms",
                             "One Word Substitution",
                             "Idioms & Phrases",
@@ -193,7 +201,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Error Detection & Correction",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Spotting Errors",
                             "Sentence Correction",
                             "Sentence Improvement",
@@ -201,7 +209,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Sentence Arrangement",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Para Jumbles",
                             "Cloze Test",
                             "Fill in the Blanks",
@@ -215,7 +223,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Verbal Reasoning",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Analogy",
                             "Classification (Odd One Out)",
                             "Series - Number & Alphabet",
@@ -230,7 +238,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Non-Verbal Reasoning",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Figure Series",
                             "Mirror & Water Image",
                             "Paper Cutting & Folding",
@@ -241,7 +249,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Logical Reasoning",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Statement & Conclusion",
                             "Statement & Assumption",
                             "Cause & Effect",
@@ -258,7 +266,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Geography",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Solar System",
                             "Longitude and Latitude",
                             "Earth's Interior and Plate Tectonics",
@@ -284,7 +292,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Ancient History",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Stone Age",
                             "Indus Valley Civilization",
                             "Vedic Age",
@@ -300,7 +308,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Medieval History",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Delhi Sultanate",
                             "Vijayanagara and Bahmani Kingdoms",
                             "Mughal Empire",
@@ -310,7 +318,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Modern History",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Advent of Europeans",
                             "Socio-Religious Reforms",
                             "Revolt of 1857",
@@ -324,7 +332,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Polity",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Making of Constitution",
                             "Salient Features of the Constitution",
                             "Preamble",
@@ -345,7 +353,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Economics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basics of Economy",
                             "Demand and Supply",
                             "National Income",
@@ -359,7 +367,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Physics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Motion",
                             "Force and Laws of Motion",
                             "Gravitation and Work Done",
@@ -372,7 +380,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Chemistry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Matter",
                             "Atom and its Structure",
                             "Periodic Table",
@@ -384,7 +392,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Biology",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Cell",
                             "Plant Tissue and Animal Tissue",
                             "Plant and Animal Kingdom",
@@ -400,7 +408,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Environment",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basics of Environmental Sciences",
                             "Ecosystem",
                             "Trophic Dynamics and Energy Transfer",
@@ -410,7 +418,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Static GK",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Classical Dance",
                             "Folk Dances of India",
                             "Census",
@@ -434,7 +442,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Current Affairs",
-                        topics = listOf(
+                        topics = topicsOf(
                             "National & International News",
                             "Economy & Financial Updates",
                             "Science, Space & Tech Developments",
@@ -460,7 +468,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Number System",
-                        topics = listOf(
+                        topics = topicsOf(
                             "LCM & HCF",
                             "Divisibility & Remainder",
                             "Fractions & Decimals",
@@ -469,7 +477,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Simplification",
-                        topics = listOf(
+                        topics = topicsOf(
                             "BODMAS",
                             "Surds & Indices",
                             "Approximation",
@@ -477,28 +485,28 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Percentage",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic Percentage",
                             "Percentage Change & Applications",
                         ),
                     ),
                     TemplateChapter(
                         name = "Ratio, Proportion & Partnership",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ratio & Proportion",
                             "Partnership",
                         ),
                     ),
                     TemplateChapter(
                         name = "Average & Ages",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Average",
                             "Problems on Ages",
                         ),
                     ),
                     TemplateChapter(
                         name = "Profit, Loss & Discount",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Profit & Loss Basics",
                             "Discount & Marked Price",
                             "Successive Discounts",
@@ -506,7 +514,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Simple & Compound Interest",
-                        topics = listOf(
+                        topics = topicsOf(
                             "SI Problems",
                             "CI Problems",
                             "Difference SI vs CI",
@@ -514,14 +522,14 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Time & Work",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Time & Work",
                             "Pipes & Cisterns",
                         ),
                     ),
                     TemplateChapter(
                         name = "Speed, Time & Distance",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Speed & Distance Basics",
                             "Trains",
                             "Boats & Streams",
@@ -529,14 +537,14 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Algebra",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Linear Equations",
                             "Algebraic Identities",
                         ),
                     ),
                     TemplateChapter(
                         name = "Geometry & Mensuration",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Triangles & Circles",
                             "Area of 2D Shapes",
                             "Volume of 3D Shapes",
@@ -545,14 +553,14 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Trigonometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Trigonometric Ratios",
                             "Height & Distance",
                         ),
                     ),
                     TemplateChapter(
                         name = "Data Interpretation",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Bar & Pie Chart",
                             "Tables & Line Graph",
                         ),
@@ -565,7 +573,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Verbal Reasoning",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Analogy",
                             "Classification",
                             "Series Completion",
@@ -579,7 +587,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Non-Verbal Reasoning",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Figure Series & Pattern",
                             "Mirror & Water Image",
                             "Paper Folding & Cutting",
@@ -589,7 +597,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Logical Reasoning",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Venn Diagrams",
                             "Statement & Conclusion",
                             "Mathematical Operations",
@@ -604,7 +612,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "History",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ancient India",
                             "Medieval India",
                             "Modern India & Freedom Struggle",
@@ -613,7 +621,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Geography",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Indian Physical Geography",
                             "Indian Rivers & Climate",
                             "World Geography Basics",
@@ -622,7 +630,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Indian Polity",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Constitution - Preamble & Features",
                             "Fundamental Rights & DPSP",
                             "Parliament & State Legislature",
@@ -631,7 +639,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Indian Economy",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Economic Planning & Five Year Plans",
                             "Banking - RBI & Monetary Policy",
                             "Budget & Fiscal Policy",
@@ -640,7 +648,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "General Science",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Physics Basics",
                             "Chemistry Basics",
                             "Biology - Human Body & Diseases",
@@ -649,7 +657,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Static GK & Current Affairs",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Indian Railways - Facts & History",
                             "National Symbols & Honors",
                             "Books, Authors & Awards",
@@ -673,7 +681,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Number System & Simplification",
-                        topics = listOf(
+                        topics = topicsOf(
                             "LCM, HCF & Divisibility",
                             "BODMAS & Simplification",
                             "Surds & Indices",
@@ -682,7 +690,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Percentage & Ratio",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Percentage",
                             "Ratio & Proportion",
                             "Partnership",
@@ -690,14 +698,14 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Average & Ages",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Average",
                             "Problems on Ages",
                         ),
                     ),
                     TemplateChapter(
                         name = "Profit, Loss & Interest",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Profit & Loss",
                             "Discount",
                             "Simple Interest",
@@ -706,14 +714,14 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Time & Work",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Time & Work Basics",
                             "Pipes & Cisterns",
                         ),
                     ),
                     TemplateChapter(
                         name = "Speed, Time & Distance",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Speed & Distance",
                             "Trains",
                             "Boats & Streams",
@@ -721,21 +729,21 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Algebra",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Linear & Quadratic Equations",
                             "Inequalities",
                         ),
                     ),
                     TemplateChapter(
                         name = "Mensuration & Geometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Area & Perimeter",
                             "Volume & Surface Area",
                         ),
                     ),
                     TemplateChapter(
                         name = "Data Interpretation",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Bar Graph & Pie Chart",
                             "Line Graph & Table DI",
                             "Caselet DI",
@@ -744,14 +752,14 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Number Series",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Missing Number in Series",
                             "Wrong Number in Series",
                         ),
                     ),
                     TemplateChapter(
                         name = "Data Sufficiency",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Quantitative Data Sufficiency",
                         ),
                     ),
@@ -763,7 +771,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Arrangement & Puzzles",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Linear Seating Arrangement",
                             "Circular Seating Arrangement",
                             "Floor-based Puzzles",
@@ -773,7 +781,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Coding-Decoding & Series",
-                        topics = listOf(
+                        topics = topicsOf(
                             "New Pattern Coding-Decoding",
                             "Alphabet & Number Series",
                             "Input-Output Machine",
@@ -781,7 +789,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Logical Reasoning",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Syllogism",
                             "Inequality (Coded & Direct)",
                             "Blood Relations",
@@ -791,7 +799,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Miscellaneous",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Alphanumeric Series",
                             "Data Sufficiency - Reasoning",
                             "Verbal Reasoning",
@@ -806,7 +814,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Reading Comprehension",
-                        topics = listOf(
+                        topics = topicsOf(
                             "RC - Factual Passages",
                             "RC - Inference Based",
                             "Vocabulary from RC",
@@ -814,7 +822,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Grammar & Error Detection",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Spotting Errors",
                             "Sentence Correction",
                             "Phrase Replacement",
@@ -822,7 +830,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Vocabulary",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Synonyms & Antonyms",
                             "Idioms & Phrases",
                             "One Word Substitution",
@@ -830,7 +838,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Sentence Arrangement",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Para Jumbles",
                             "Cloze Test",
                             "Fill in the Blanks - Single & Double",
@@ -838,7 +846,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Miscellaneous",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Word Usage & Column-based",
                             "Sentence Connectors",
                             "Odd Sentence Out",
@@ -860,7 +868,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Units & Measurements",
-                        topics = listOf(
+                        topics = topicsOf(
                             "SI Units & Dimensional Analysis",
                             "Significant Figures & Errors",
                             "Measurement Instruments",
@@ -868,7 +876,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Kinematics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Motion in a Straight Line",
                             "Motion in a Plane",
                             "Projectile Motion",
@@ -877,7 +885,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Laws of Motion",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Newton's Laws of Motion",
                             "Friction - Static & Kinetic",
                             "Circular Motion & Banking",
@@ -886,7 +894,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Work, Energy & Power",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Work-Energy Theorem",
                             "Conservation of Energy",
                             "Power & Collisions",
@@ -895,7 +903,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Rotational Motion",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Moment of Inertia",
                             "Torque & Angular Momentum",
                             "Rolling Motion",
@@ -904,7 +912,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Gravitation",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Newton's Law of Gravitation",
                             "Gravitational Potential & Field",
                             "Orbital & Escape Velocity",
@@ -913,7 +921,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Properties of Solids & Fluids",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Elasticity & Stress-Strain",
                             "Fluid Pressure & Pascal's Law",
                             "Bernoulli's Principle",
@@ -922,7 +930,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Thermodynamics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Laws of Thermodynamics",
                             "Heat Transfer - Conduction, Convection, Radiation",
                             "Kinetic Theory of Gases",
@@ -932,7 +940,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Oscillations & Waves",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Simple Harmonic Motion",
                             "Damped & Forced Oscillations",
                             "Transverse & Longitudinal Waves",
@@ -942,7 +950,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Electrostatics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Coulomb's Law & Electric Field",
                             "Gauss's Law & Applications",
                             "Electric Potential & Capacitance",
@@ -951,7 +959,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Current Electricity",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ohm's Law & Resistivity",
                             "Kirchhoff's Laws & Circuits",
                             "Wheatstone Bridge & Potentiometer",
@@ -960,7 +968,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Magnetic Effects of Current & Magnetism",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Biot-Savart Law & Ampere's Law",
                             "Force on Moving Charge & Current",
                             "Magnetic Properties of Materials",
@@ -969,7 +977,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Electromagnetic Induction & AC",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Faraday's Law & Lenz's Law",
                             "Self & Mutual Inductance",
                             "AC Circuits - LCR, Resonance",
@@ -978,7 +986,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Optics & Modern Physics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ray Optics - Reflection & Refraction",
                             "Wave Optics - Interference & Diffraction",
                             "Photoelectric Effect",
@@ -995,7 +1003,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Atomic Structure",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Bohr Model & Quantum Numbers",
                             "Electronic Configuration & Orbitals",
                             "Photoelectric Effect & Spectra",
@@ -1003,7 +1011,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Chemical Bonding",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ionic & Covalent Bonding",
                             "VSEPR Theory & Hybridization",
                             "Molecular Orbital Theory",
@@ -1012,7 +1020,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "States of Matter",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Gas Laws & Kinetic Theory",
                             "Liquid State & Vapour Pressure",
                             "Solid State - Crystal Structures & Defects",
@@ -1020,7 +1028,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Thermodynamics & Thermochemistry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Enthalpy & Hess's Law",
                             "Entropy & Gibbs Free Energy",
                             "Spontaneity & Equilibrium",
@@ -1028,7 +1036,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Chemical Equilibrium",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Le Chatelier's Principle",
                             "Equilibrium Constants - Kp, Kc",
                             "Ionic Equilibrium - pH & Buffers",
@@ -1037,7 +1045,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Electrochemistry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Nernst Equation & Cell Potential",
                             "Electrolysis & Faraday's Laws",
                             "Conductance & Kohlrausch's Law",
@@ -1046,7 +1054,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Chemical Kinetics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Rate Law & Order of Reaction",
                             "Arrhenius Equation & Activation Energy",
                             "Integrated Rate Equations",
@@ -1055,7 +1063,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Solutions",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Raoult's Law & Colligative Properties",
                             "Osmotic Pressure",
                             "Abnormal Molecular Mass - Van't Hoff Factor",
@@ -1063,7 +1071,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Periodic Table & Classification",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Periodic Trends - Electronegativity, IE, EA",
                             "s-Block Elements",
                             "p-Block Elements - Groups 13-18",
@@ -1073,7 +1081,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Organic Chemistry - Basics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "IUPAC Nomenclature",
                             "Isomerism - Structural & Stereoisomerism",
                             "Electronic Effects - Inductive, Resonance, Hyperconjugation",
@@ -1082,7 +1090,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Hydrocarbons",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Alkanes - Preparation & Reactions",
                             "Alkenes - Addition Reactions",
                             "Alkynes - Preparation & Properties",
@@ -1091,7 +1099,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Organic Functional Groups",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Alcohols, Phenols & Ethers",
                             "Aldehydes & Ketones",
                             "Carboxylic Acids & Derivatives",
@@ -1101,7 +1109,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Biomolecules & Polymers",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Carbohydrates - Mono & Polysaccharides",
                             "Amino Acids & Proteins",
                             "Nucleic Acids - DNA & RNA",
@@ -1111,7 +1119,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Surface Chemistry & General Principles",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Adsorption & Catalysis",
                             "Colloids & Emulsions",
                             "Metallurgy - Extraction Principles",
@@ -1126,7 +1134,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Sets, Relations & Functions",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Types of Sets & Venn Diagrams",
                             "Relations - Equivalence & Partial Order",
                             "Functions - Domain, Range, Types",
@@ -1135,7 +1143,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Complex Numbers & Quadratic Equations",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Algebra of Complex Numbers",
                             "Argand Plane & Polar Form",
                             "Quadratic Equations & Discriminant",
@@ -1144,7 +1152,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Matrices & Determinants",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Types of Matrices & Operations",
                             "Determinants & Properties",
                             "Adjoint & Inverse of a Matrix",
@@ -1153,7 +1161,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Permutations & Combinations",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Fundamental Counting Principle",
                             "Permutations - With & Without Repetition",
                             "Combinations & Binomial Coefficients",
@@ -1162,7 +1170,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Binomial Theorem",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Binomial Expansion & General Term",
                             "Middle Term & Properties of Coefficients",
                             "Multinomial Theorem",
@@ -1170,7 +1178,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Sequences & Series",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Arithmetic Progression",
                             "Geometric Progression",
                             "Harmonic Progression & AGP",
@@ -1180,7 +1188,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Limits, Continuity & Differentiability",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Limits - L'Hopital's Rule & Standard Forms",
                             "Continuity & Types of Discontinuity",
                             "Differentiability & Derivatives",
@@ -1189,7 +1197,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Differential Calculus - Applications",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Tangents & Normals",
                             "Increasing & Decreasing Functions",
                             "Maxima & Minima",
@@ -1198,7 +1206,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Integral Calculus",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Indefinite Integrals - Methods",
                             "Definite Integrals - Properties",
                             "Area Under Curves",
@@ -1208,7 +1216,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Differential Equations",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Order & Degree of DE",
                             "Variable Separable & Homogeneous DE",
                             "Linear Differential Equations",
@@ -1217,7 +1225,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Coordinate Geometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Straight Lines - Slope, Distance, Section Formula",
                             "Circles - Equation, Tangent, Normal",
                             "Parabola - Standard Forms & Properties",
@@ -1227,7 +1235,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Trigonometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Trigonometric Ratios & Identities",
                             "Trigonometric Equations",
                             "Inverse Trigonometric Functions",
@@ -1237,7 +1245,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Vector Algebra",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Types of Vectors & Operations",
                             "Dot Product & Cross Product",
                             "Scalar Triple Product",
@@ -1246,7 +1254,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "3D Geometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Direction Cosines & Ratios",
                             "Equation of a Line in 3D",
                             "Equation of a Plane",
@@ -1256,7 +1264,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Probability & Statistics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Conditional Probability & Bayes' Theorem",
                             "Random Variables & Distributions",
                             "Mean, Variance & Standard Deviation",
@@ -1265,7 +1273,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Mathematical Reasoning & Miscellaneous",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Statements & Logical Connectives",
                             "Mathematical Induction",
                             "Linear Programming",
@@ -1287,7 +1295,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Mechanics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Units & Measurements",
                             "Kinematics - Motion in 1D & 2D",
                             "Newton's Laws of Motion & Friction",
@@ -1298,7 +1306,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Properties of Matter",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Elasticity & Stress-Strain",
                             "Fluid Mechanics - Pressure & Bernoulli",
                             "Viscosity & Surface Tension",
@@ -1307,7 +1315,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Thermodynamics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Laws of Thermodynamics",
                             "Kinetic Theory of Gases",
                             "Heat Transfer - Conduction, Convection, Radiation",
@@ -1316,7 +1324,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Oscillations & Waves",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Simple Harmonic Motion",
                             "Wave Motion - Speed & Superposition",
                             "Standing Waves & Resonance",
@@ -1325,7 +1333,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Electrostatics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Coulomb's Law & Electric Field",
                             "Gauss's Law",
                             "Electric Potential & Capacitance",
@@ -1334,7 +1342,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Current Electricity",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ohm's Law & Circuits",
                             "Kirchhoff's Laws",
                             "Heating Effect of Current",
@@ -1343,7 +1351,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Magnetic Effects & EMI",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Biot-Savart & Ampere's Law",
                             "Force on Current-Carrying Conductor",
                             "Electromagnetic Induction - Faraday's Law",
@@ -1352,7 +1360,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Optics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ray Optics - Reflection & Refraction",
                             "Lenses & Mirrors - Image Formation",
                             "Wave Optics - Interference & Diffraction",
@@ -1361,7 +1369,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Modern Physics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Photoelectric Effect & Dual Nature",
                             "Atomic Models - Bohr's Theory",
                             "Nuclear Physics - Fission & Fusion",
@@ -1377,7 +1385,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Atomic Structure & Chemical Bonding",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Quantum Numbers & Electronic Configuration",
                             "Ionic & Covalent Bonding",
                             "VSEPR Theory & Hybridization",
@@ -1386,7 +1394,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "States of Matter & Solutions",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Gas Laws - Ideal & Real Gases",
                             "Solid State - Crystal Lattice & Defects",
                             "Solutions - Colligative Properties & Raoult's Law",
@@ -1395,7 +1403,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Thermodynamics & Equilibrium",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Enthalpy, Entropy & Gibbs Energy",
                             "Hess's Law & Born-Haber Cycle",
                             "Chemical Equilibrium - Le Chatelier",
@@ -1404,7 +1412,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Redox & Electrochemistry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Redox Reactions & Balancing",
                             "Electrochemical Cells & Nernst Equation",
                             "Electrolysis & Faraday's Laws",
@@ -1413,7 +1421,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Chemical Kinetics & Surface Chemistry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Rate of Reaction & Rate Law",
                             "Arrhenius Equation",
                             "Catalysis - Homogeneous & Heterogeneous",
@@ -1422,7 +1430,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Periodic Table & Inorganic Chemistry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Periodic Trends - IE, EA, Electronegativity",
                             "s-Block Elements - Alkali & Alkaline Earth",
                             "p-Block Elements - Groups 13 to 18",
@@ -1432,14 +1440,14 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Metallurgy & Environmental Chemistry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "General Principles of Metallurgy",
                             "Environmental Chemistry - Pollution & Ozone",
                         ),
                     ),
                     TemplateChapter(
                         name = "Organic Chemistry - Basics & Hydrocarbons",
-                        topics = listOf(
+                        topics = topicsOf(
                             "IUPAC Nomenclature & Isomerism",
                             "Electronic Effects - Inductive, Resonance",
                             "Alkanes, Alkenes & Alkynes",
@@ -1448,7 +1456,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Organic Functional Groups",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Haloalkanes & Haloarenes",
                             "Alcohols, Phenols & Ethers",
                             "Aldehydes & Ketones",
@@ -1458,7 +1466,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Biomolecules & Polymers",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Carbohydrates & Amino Acids",
                             "Proteins & Nucleic Acids",
                             "Polymers - Natural & Synthetic",
@@ -1473,7 +1481,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Cell Biology",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Cell Structure - Prokaryotic & Eukaryotic",
                             "Cell Organelles & Functions",
                             "Cell Division - Mitosis & Meiosis",
@@ -1482,7 +1490,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Plant Anatomy & Morphology",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Root, Stem & Leaf Anatomy",
                             "Flower, Fruit & Seed Morphology",
                             "Tissue Systems - Meristematic & Permanent",
@@ -1491,7 +1499,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Plant Physiology",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Photosynthesis - Light & Dark Reactions",
                             "Respiration - Glycolysis, Krebs, ETC",
                             "Plant Growth & Development - Hormones",
@@ -1501,7 +1509,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Plant Reproduction",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Sexual Reproduction in Flowering Plants",
                             "Pollination & Fertilization",
                             "Seed & Fruit Development",
@@ -1510,7 +1518,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Genetics & Molecular Biology",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Mendelian Genetics - Laws of Inheritance",
                             "Chromosomal Theory & Linkage",
                             "DNA Replication & Transcription",
@@ -1520,7 +1528,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Biotechnology",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Recombinant DNA Technology",
                             "PCR, Gel Electrophoresis & Cloning",
                             "Applications - GMOs, Gene Therapy",
@@ -1529,7 +1537,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Ecology & Environment",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ecosystem - Structure & Function",
                             "Energy Flow & Nutrient Cycling",
                             "Ecological Succession",
@@ -1545,7 +1553,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Animal Diversity & Classification",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basis of Classification - Phyla Overview",
                             "Non-Chordates - Porifera to Echinodermata",
                             "Chordates - Pisces to Mammalia",
@@ -1554,7 +1562,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Human Physiology",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Digestion & Absorption",
                             "Breathing & Gas Exchange",
                             "Circulation - Heart, Blood, Blood Groups",
@@ -1566,7 +1574,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Human Reproduction & Development",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Male & Female Reproductive Systems",
                             "Gametogenesis & Fertilization",
                             "Embryonic Development & Pregnancy",
@@ -1575,7 +1583,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Evolution",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Origin of Life - Chemical Evolution",
                             "Darwinism & Natural Selection",
                             "Hardy-Weinberg Principle",
@@ -1584,7 +1592,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Human Health & Disease",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Common Diseases - Bacterial, Viral, Parasitic",
                             "Immunity - Innate & Adaptive",
                             "AIDS, Cancer & Drug Abuse",
@@ -1593,7 +1601,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Microbes & Applications",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Microbes in Household & Industry",
                             "Microbes in Sewage Treatment",
                             "Microbes as Biocontrol Agents",
@@ -1616,7 +1624,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Reading Comprehension",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Passage-based comprehension",
                             "Main idea and central theme",
                             "Inference-based questions",
@@ -1628,7 +1636,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Vocabulary and Word Usage",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Synonyms",
                             "Antonyms",
                             "One-word substitution",
@@ -1641,7 +1649,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Grammar Basics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Parts of speech",
                             "Articles and determiners",
                             "Nouns and pronouns",
@@ -1655,7 +1663,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Sentence Correction and Error Detection",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Spotting errors",
                             "Subject-verb agreement",
                             "Correct use of tenses",
@@ -1669,7 +1677,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Sentence Arrangement and Cohesion",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Para jumbles",
                             "Sentence rearrangement",
                             "Ordering of sentences",
@@ -1680,7 +1688,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Fillers and Cloze Practice",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Fill in the blanks",
                             "Cloze test",
                             "Appropriate word selection",
@@ -1696,7 +1704,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Current Events",
-                        topics = listOf(
+                        topics = topicsOf(
                             "National current affairs",
                             "International current affairs",
                             "Defence and security developments",
@@ -1713,7 +1721,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Indian History",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ancient Indian civilisation",
                             "Indus Valley Civilisation",
                             "Vedic period",
@@ -1737,7 +1745,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Indian Culture and Civilisation",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Indian art and architecture",
                             "Classical dances and music",
                             "Literature and languages",
@@ -1750,7 +1758,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Geography",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Physical geography of India",
                             "World physical geography",
                             "Latitude and longitude",
@@ -1770,7 +1778,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Indian Polity and Constitution",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Making of the Constitution",
                             "Preamble",
                             "Salient features of the Constitution",
@@ -1791,7 +1799,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Indian Economy",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic concepts of economics",
                             "National income",
                             "Inflation",
@@ -1809,7 +1817,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "General Science",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Physics in everyday life",
                             "Motion, force, work, power, and energy",
                             "Heat and temperature",
@@ -1831,7 +1839,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Defence and Security Awareness",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Indian Armed Forces structure",
                             "Commands of Army, Navy, and Air Force",
                             "Defence exercises",
@@ -1851,7 +1859,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Arithmetic - Number System",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Natural numbers",
                             "Integers",
                             "Rational numbers",
@@ -1865,7 +1873,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Arithmetic - Applications",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Unitary method",
                             "Time and distance",
                             "Time and work",
@@ -1881,7 +1889,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Elementary Number Theory",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Division algorithm",
                             "Prime and composite numbers",
                             "Tests of divisibility by 2, 3, 4, 5, 9, and 11",
@@ -1896,7 +1904,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Algebra",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic operations in algebra",
                             "Simple factors",
                             "Remainder theorem",
@@ -1916,7 +1924,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Trigonometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Sine, cosine, and tangent",
                             "Trigonometric values for 0°, 30°, 45°, 60°, and 90°",
                             "Simple trigonometric identities",
@@ -1926,7 +1934,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Geometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Lines and angles",
                             "Plane figures",
                             "Properties of angles at a point",
@@ -1943,7 +1951,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Mensuration",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Area of square",
                             "Area of rectangle",
                             "Area of parallelogram",
@@ -1958,7 +1966,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Statistics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Collection of data",
                             "Tabulation of data",
                             "Frequency distribution",
@@ -1981,7 +1989,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Stage I Screening",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Officer Intelligence Rating tests",
                             "Verbal reasoning practice",
                             "Non-verbal reasoning practice",
@@ -1993,7 +2001,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Stage II Psychology Tests",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Thematic Apperception Test",
                             "Word Association Test",
                             "Situation Reaction Test",
@@ -2004,7 +2012,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Stage II GTO Tasks",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Group discussion",
                             "Group planning exercise",
                             "Progressive group task",
@@ -2017,7 +2025,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Interview and Conference",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Personal interview preparation",
                             "Personal information questionnaire review",
                             "Academic and career background questions",
@@ -2043,7 +2051,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Comprehension",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Passage-based comprehension",
                             "Central idea of passage",
                             "Inference-based questions",
@@ -2055,7 +2063,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Error Detection and Grammar",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Detect error in sentence",
                             "Subject-verb agreement",
                             "Tenses",
@@ -2070,7 +2078,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Sentence Completion and Fillers",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Sentence completion",
                             "Filling in the correct word",
                             "Phrase completion",
@@ -2081,7 +2089,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Vocabulary",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Synonyms",
                             "Antonyms",
                             "One-word substitution",
@@ -2093,7 +2101,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Sentence Rearrangement",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Sentence rearranging",
                             "Para jumbles",
                             "Logical sequence of ideas",
@@ -2109,7 +2117,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "History",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ancient Indian history",
                             "Medieval Indian history",
                             "Modern Indian history",
@@ -2121,7 +2129,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Geography",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Physical geography",
                             "Indian geography",
                             "World geography",
@@ -2133,7 +2141,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Indian Polity and Civics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Constitution of India",
                             "Preamble",
                             "Fundamental Rights",
@@ -2149,7 +2157,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Economy",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic economic terms",
                             "National income",
                             "Inflation",
@@ -2163,7 +2171,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Science and Technology",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Basic physics",
                             "Basic chemistry",
                             "Basic biology",
@@ -2176,7 +2184,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Environment and Ecology",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Ecosystem basics",
                             "Biodiversity",
                             "Pollution",
@@ -2188,7 +2196,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Defence and Security",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Indian Air Force basics",
                             "Indian Armed Forces structure",
                             "Commands and training institutions",
@@ -2201,7 +2209,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Miscellaneous Current Awareness",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Current affairs - national",
                             "Current affairs - international",
                             "Sports",
@@ -2221,7 +2229,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Number System and Fractions",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Number system",
                             "Number series",
                             "Decimal fractions",
@@ -2232,7 +2240,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Percentage, Average, and Ratio",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Percentages",
                             "Average",
                             "Ratio and proportion",
@@ -2242,7 +2250,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Profit, Loss, and Interest",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Profit and loss",
                             "Discount",
                             "Simple interest",
@@ -2251,7 +2259,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Time, Work, and Distance",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Time and work",
                             "Pipes and cisterns basics",
                             "Time and distance",
@@ -2263,7 +2271,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Mensuration and Probability",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Area and perimeter",
                             "Basic geometry-based area",
                             "Probability basics",
@@ -2278,7 +2286,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Verbal Reasoning",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Analogy",
                             "Classification",
                             "Odd one out",
@@ -2294,7 +2302,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Non-Verbal Reasoning",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Figure series",
                             "Figure classification",
                             "Pattern completion",
@@ -2309,7 +2317,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Military Aptitude",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Spatial orientation",
                             "Situation-based judgement",
                             "Basic officer aptitude",
@@ -2327,7 +2335,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Algebra",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Concept of set",
                             "Operations on sets",
                             "Venn diagrams",
@@ -2353,7 +2361,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Matrices and Determinants",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Types of matrices",
                             "Matrix operations",
                             "Determinant of a matrix",
@@ -2366,7 +2374,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Trigonometry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Angles in degrees and radians",
                             "Trigonometrical ratios",
                             "Trigonometric identities",
@@ -2379,7 +2387,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Analytical Geometry of Two and Three Dimensions",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Rectangular Cartesian coordinate system",
                             "Distance formula",
                             "Equation of a line",
@@ -2402,7 +2410,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Differential Calculus",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Real-valued functions",
                             "Domain, range, and graph of a function",
                             "Composite functions",
@@ -2424,7 +2432,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Integral Calculus and Differential Equations",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Integration as inverse of differentiation",
                             "Integration by substitution",
                             "Integration by parts",
@@ -2440,7 +2448,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Vector Algebra",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Vectors in two and three dimensions",
                             "Magnitude and direction of a vector",
                             "Unit vector",
@@ -2456,7 +2464,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Statistics and Probability",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Classification of data",
                             "Frequency distribution",
                             "Cumulative frequency distribution",
@@ -2495,7 +2503,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "English",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Grammar and usage",
                             "Vocabulary",
                             "Comprehension",
@@ -2507,7 +2515,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Physics",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Physical properties and states of matter",
                             "Mass, weight, volume, density, and specific gravity",
                             "Archimedes' principle",
@@ -2536,7 +2544,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Chemistry",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Physical and chemical changes",
                             "Elements, mixtures, and compounds",
                             "Symbols and formulae",
@@ -2555,7 +2563,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "General Science",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Living and non-living things",
                             "Cells, protoplasm, and tissues",
                             "Growth and reproduction in plants and animals",
@@ -2572,7 +2580,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "History and Freedom Movement",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Broad survey of Indian history",
                             "Culture and civilisation",
                             "Freedom movement in India",
@@ -2598,7 +2606,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Geography",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Earth, shape, and size",
                             "Latitude and longitude",
                             "Concept of time",
@@ -2627,7 +2635,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Current Events",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Important national events",
                             "Important international events",
                             "Prominent personalities",
@@ -2645,7 +2653,7 @@ private val localExamTemplates = listOf(
                 chapters = listOf(
                     TemplateChapter(
                         name = "Stage I Screening",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Officer Intelligence Rating tests",
                             "Picture Perception and Description Test",
                             "Story narration",
@@ -2655,7 +2663,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Psychological Tests",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Thematic Apperception Test",
                             "Word Association Test",
                             "Situation Reaction Test",
@@ -2665,7 +2673,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Group Testing Officer Tasks",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Group discussion",
                             "Group planning exercise",
                             "Progressive group task",
@@ -2678,7 +2686,7 @@ private val localExamTemplates = listOf(
                     ),
                     TemplateChapter(
                         name = "Interview and Conference",
-                        topics = listOf(
+                        topics = topicsOf(
                             "Personal interview",
                             "Personal information questionnaire preparation",
                             "Current affairs discussion",

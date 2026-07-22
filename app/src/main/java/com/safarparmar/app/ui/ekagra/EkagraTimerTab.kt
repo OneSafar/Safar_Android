@@ -142,14 +142,27 @@ internal fun ModeTabs(
     onSelect: (TimerMode) -> Unit,
 ) {
     val modes = remember { TimerMode.entries.filter { it.showInPill } }
-    val effective = if (selected == TimerMode.POMODORO) TimerMode.FOCUS else selected
 
     EkagraTextTabs(
         items = modes,
-        selected = effective,
+        selected = selected,
         accent = accentColor,
         ink = ink,
         label = { it.label },
+        icon = { mode, color ->
+            val iconVector = when (mode) {
+                TimerMode.FOCUS -> Icons.Default.HourglassEmpty
+                TimerMode.BREAK -> Icons.Default.FreeBreakfast
+                TimerMode.STOPWATCH -> Icons.Default.Timer
+                else -> Icons.Default.Timer
+            }
+            Icon(
+                imageVector = iconVector,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(16.dp),
+            )
+        },
         onSelect = onSelect,
     )
 }
@@ -346,6 +359,7 @@ internal fun TimerFocusTab(
                         val subtext = when (timerMode) {
                             TimerMode.STOPWATCH -> if (isRunning) "Stopwatch running" else "Ready to start"
                             TimerMode.BREAK -> if (isRunning) "Break running" else "Ready to break"
+                            TimerMode.POMODORO -> if (isRunning) "Pomodoro running" else "Ready for Pomodoro"
                             else -> if (isRunning) "Ekagra running" else "Ready to ekagra"
                         }
                         Text(

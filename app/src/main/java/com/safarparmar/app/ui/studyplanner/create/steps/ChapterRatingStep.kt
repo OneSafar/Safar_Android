@@ -50,12 +50,28 @@ internal fun ChapterRatingStep(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
-                Text(
-                    text = "How tough is each chapter? Tough chapters get more room in your schedule. Skip if you're not sure — everything stays normal.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurfaceVariant,
+                val chapterCount = outline.sumOf { it.chapters.size }
+                val ratedCount = ratings.size
+                Column(
                     modifier = Modifier.padding(bottom = 6.dp),
-                )
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = "Tough chapters get more room in your schedule; easy ones get less.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurfaceVariant,
+                    )
+                    // With 50-80 chapters in a big template, the screen must make
+                    // it obvious that rating a handful is a complete action —
+                    // otherwise it reads as 80 required decisions.
+                    Text(
+                        text = "Rate only the ones you find hard. The other " +
+                            "${(chapterCount - ratedCount).coerceAtLeast(0)} stay Normal.",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.primary,
+                    )
+                }
             }
             outline.forEach { subject ->
                 item(key = "subject-${subject.name}") {

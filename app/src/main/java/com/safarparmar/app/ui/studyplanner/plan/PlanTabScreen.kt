@@ -232,12 +232,12 @@ fun PlanTabScreen(
     if (showReschedule) {
         RescheduleFlowSheet(
             subjects = plan.subjects,
-            onRebuildNow = { strategy, overloadMode, priority ->
-                actions.rescheduleAfterExamDateChange(strategy, overloadMode, priority)
+            onRebuildNow = { strategy, priority, orderMode ->
+                actions.rescheduleAfterExamDateChange(strategy, prioritySubjectNames = priority, priorityOrderMode = orderMode)
                 showReschedule = false
             },
-            onReorderFirst = { strategy, overloadMode, priority ->
-                actions.armRebuild(strategy, overloadMode, priority)
+            onReorderFirst = { strategy, priority, orderMode ->
+                actions.armRebuild(strategy, prioritySubjectNames = priority, priorityOrderMode = orderMode)
                 actions.setSection(PlannerSection.SYLLABUS)
                 showReschedule = false
             },

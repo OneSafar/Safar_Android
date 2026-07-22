@@ -222,7 +222,14 @@ data class CalendarTopicItem(
     val status: TopicStatus = TopicStatus.TODO,
     val revisionReminderDates: List<String> = emptyList(),
     val revisionScheduleType: String? = null,
-)
+    /** Effective size, already resolved server-side (topic's own, else its
+     *  chapter's rating, else medium). Null only from older servers. */
+    val size: TopicSize? = null,
+    val progressPercent: Int? = null,
+) {
+    /** Effort points for this scheduled item; medium (2) when the server sent no size. */
+    val points: Int get() = (size ?: TopicSize.MEDIUM).points
+}
 
 @Immutable
 data class HeatmapPoint(
@@ -263,11 +270,41 @@ data class TemplateSubject(
     val chapters: List<TemplateChapter> = emptyList(),
 )
 
+/**
+ * A topic inside a bundled exam template. The server sends either a bare name
+ * ("Kinematics") for unweighted templates, or a hand-weighted object
+ * ({"name": "Kinematics", "size": "big"}) for the ones that carry effort sizes.
+ * Both forms are parsed by TemplateTopicDeserializer — do NOT change this to a
+ * plain String again, it will crash on weighted templates.
+ */
+@Immutable
+data class TemplateTopic(
+    val name: String = "",
+    val size: TopicSize? = null,
+)
+
 @Immutable
 data class TemplateChapter(
     val name: String = "",
-    val topics: List<String> = emptyList(),
-)
+    val topics: List<TemplateTopic> = emptyList(),
+) {
+    /**
+     * The chapter's effort rating implied by its topics' sizes — templates are
+     * hand-weighted a whole chapter at a time, so this is what pre-fills the
+     * "Rate your chapters" step. Null when the template carries no weights.
+     */
+    val impliedDifficulty: ChapterDifficulty?
+        get() {
+            val sizes = topics.mapNotNull { it.size }
+            if (sizes.isEmpty() || sizes.size != topics.size) return null
+            return when {
+                sizes.all { it == TopicSize.BIG } -> ChapterDifficulty.TOUGH
+                sizes.all { it == TopicSize.SMALL } -> ChapterDifficulty.EASY
+                sizes.all { it == TopicSize.MEDIUM } -> ChapterDifficulty.NORMAL
+                else -> null
+            }
+        }
+}
 
 @Immutable
 data class AutoDistributeResult(

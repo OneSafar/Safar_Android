@@ -45,6 +45,7 @@ import com.safarparmar.app.ui.components.SafarResultSlot
 import com.safarparmar.app.ui.components.SyllabusRowSkeleton
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.GlassButton
 import com.safarparmar.app.ui.studyplanner.components.TextInputDialog
@@ -359,13 +360,20 @@ fun SyllabusSubjectsScreen(
                 ) { padding ->
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(padding),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 32.dp),
+                        // One continuous page — hairlines divide it, not gaps.
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
                     ) {
                         item {
-                            SyllabusAddButton(
-                                label = "Add Chapter",
-                                onClick = {
+                            val subjectTopics = subject.chapters.sumOf { it.topics.size }
+                            val subjectDone = subject.chapters.sumOf { ch ->
+                                ch.topics.count { it.status == TopicStatus.DONE }
+                            }
+                            SyllabusMagazineChapterHeader(
+                                completionPercent = if (subjectTopics > 0) (subjectDone * 100) / subjectTopics else 0,
+                                chapterCount = subject.chapters.size,
+                                topicCount = subjectTopics,
+                                onAddChapter = {
                                     subjects.firstOrNull { it.id == subject.id }?.let {
                                         dialogState = SyllabusDialogState.AddChapter(it)
                                     }
@@ -374,27 +382,30 @@ fun SyllabusSubjectsScreen(
                         }
                         if (subject.chapters.isEmpty()) {
                             item {
-                                Text(
-                                    text = "No chapters yet. Tap Add Chapter to add one.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(24.dp),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                SyllabusMagazineEmptyNote(
+                                    text = "No chapters yet. Add your first chapter to this subject.",
+                                    actionLabel = "+ Add chapter",
+                                    onAction = {
+                                        subjects.firstOrNull { it.id == subject.id }?.let {
+                                            dialogState = SyllabusDialogState.AddChapter(it)
+                                        }
+                                    },
                                 )
                             }
                         } else {
                             items(subject.chapters, key = { it.id }) { chapter ->
-                                SyllabusChapterAccordionRow(
+                                PlanHairline(alpha = 0.6f)
+                                SyllabusMagazineChapterRow(
                                     chapter = chapter,
                                     onOpenTopics = { openTopicsChapterId = chapter.id },
                                     onRename = { dialogState = SyllabusDialogState.RenameChapter(subject.id, chapter) },
                                     onDelete = { dialogState = SyllabusDialogState.DeleteChapter(subject.id, chapter) },
                                     onMarkDone = { actions.batchMarkTopicsDone(chapter.topics.map { it.id }) },
-                                    canReorder = canReorderSyllabus,
-                                    onMoveChapterUp = { moveChapter(subject.id, chapter.id, -1) },
-                                    onMoveChapterDown = { moveChapter(subject.id, chapter.id, 1) },
-                                    onDragEnd = { saveChapterOrder(subject.id) },
                                     onRate = { difficulty -> actions.rateChapter(subject.id, chapter.id, difficulty) },
+                                    canReorder = canReorderSyllabus,
+                                    onMoveUp = { moveChapter(subject.id, chapter.id, -1) },
+                                    onMoveDown = { moveChapter(subject.id, chapter.id, 1) },
+                                    onDragEnd = { saveChapterOrder(subject.id) },
                                     modifier = Modifier.animateItem(),
                                 )
                             }
@@ -473,126 +484,71 @@ fun SyllabusSubjectsScreen(
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                top = 4.dp,
-                                bottom = 24.dp,
+                                start = 24.dp,
+                                end = 24.dp,
+                                top = 16.dp,
+                                bottom = 32.dp,
                             ),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            // One continuous page — hairlines divide it, not gaps.
+                            verticalArrangement = Arrangement.spacedBy(0.dp),
                         ) {
                             item {
-                                SyllabusOverviewCard(
+                                SyllabusMagazineHeader(
                                     planTitle = selectedPlan?.title.orEmpty().ifBlank { "Study Plan" },
-                                    examType = selectedPlan?.examType,
-                                    progress = planProgress,
+                                    completionPercent = planProgress,
                                     subjectCount = localSubjects.size,
                                     chapterCount = totalChapters,
                                     topicCount = totalTopics,
-                                    isTemplatePlan = isTemplatePlan,
+                                    onOverflowClick = { showReorderBuildInfo = true },
                                 )
-                            }
-
-                            item {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    SyllabusBuildButton(
-                                        onClick = {
-                                            val pending = state.pendingRebuild
-                                            if (pending != null) {
-                                                // User changed the exam date and chose to reorder
-                                                // first — apply the strategy they picked in the
-                                                // re-plan flow, honouring the order they just set.
-                                                actions.rescheduleAfterExamDateChange(
-                                                    strategy = pending.strategy,
-                                                    overloadMode = pending.overloadMode,
-                                                    prioritySubjectNames = pending.prioritySubjectNames,
-                                                )
-                                            } else {
-                                                actions.autoDistribute(
-                                                    lockExisting = false,
-                                                    strategy = "sequential",
-                                                    preserveToday = true,
-                                                )
-                                            }
-                                        },
-                                        enabled = localSubjects.isNotEmpty() && !state.mutating,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    IconButton(
-                                        onClick = { showReorderBuildInfo = true },
-                                        enabled = !state.mutating,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .background(
-                                                MaterialTheme.colorScheme.surfaceContainerHigh,
-                                                RoundedCornerShape(14.dp),
-                                            ),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Visibility,
-                                            contentDescription = "What does Build re-ordered syllabus do?",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                        )
-                                    }
-                                }
-                            }
-
-
-
-                            if (localSubjects.isNotEmpty()) {
-                                item {
-                                    OutlinedTextField(
-                                        value = searchQuery,
-                                        onValueChange = { searchQuery = it },
-                                        placeholder = { Text("Search subjects, chapters, topics") },
-                                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
-                                        trailingIcon = {
-                                            if (searchQuery.isNotBlank()) {
-                                                IconButton(onClick = { searchQuery = "" }) {
-                                                    Icon(Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
-                                                }
-                                            }
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true,
-                                    )
-                                }
-                            }
-
-                            item {
-                                SyllabusSectionHeader(
+                                Spacer(Modifier.height(18.dp))
+                                SyllabusMagazineToolbar(
+                                    searchQuery = searchQuery,
+                                    onSearchChange = { searchQuery = it },
+                                    buildEnabled = localSubjects.isNotEmpty() && !state.mutating,
+                                    onBuild = {
+                                        val pending = state.pendingRebuild
+                                        if (pending != null) {
+                                            // User changed the exam date and chose to reorder
+                                            // first — apply the strategy they picked in the
+                                            // re-plan flow, honouring the order they just set.
+                                            actions.rescheduleAfterExamDateChange(
+                                                strategy = pending.strategy,
+                                                prioritySubjectNames = pending.prioritySubjectNames,
+                                                priorityOrderMode = pending.priorityOrderMode,
+                                            )
+                                        } else {
+                                            actions.autoDistribute(
+                                                lockExisting = false,
+                                                strategy = "sequential",
+                                                preserveToday = true,
+                                            )
+                                        }
+                                    },
+                                )
+                                SyllabusMagazineListHeader(
                                     title = if (isTemplatePlan) "Syllabus" else "Your syllabus",
-                                    subtitle = if (isTemplatePlan) null else "$totalChapters chapters • $totalTopics topics",
+                                    onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
+                                    modifier = Modifier.padding(top = 22.dp, bottom = 6.dp),
                                 )
                             }
 
                             if (localSubjects.isEmpty() && !shouldShowFullImport) {
                                 item {
-                                    SyllabusEmptySubjectsCard(
-                                        onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
+                                    SyllabusMagazineEmptyNote(
+                                        text = "No subjects yet. Add your first one to start building the syllabus.",
+                                        actionLabel = "+ Add subject",
+                                        onAction = { dialogState = SyllabusDialogState.AddSubject },
                                     )
                                 }
                             } else if (filteredSubjects.isEmpty()) {
                                 item {
-                                    Text(
-                                        text = "No matches for '$searchQuery'",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(vertical = 24.dp),
-                                    )
+                                    SyllabusMagazineEmptyNote(text = "No matches for \'$searchQuery\'")
                                 }
                             } else {
-                                item {
-                                    SyllabusAddButton(
-                                        label = "Add Subject",
-                                        onClick = { dialogState = SyllabusDialogState.AddSubject },
-                                    )
-                                }
                                 items(filteredSubjects, key = { it.id }) { subject ->
-                                    SyllabusSubjectAccordionCard(
+                                    PlanHairline(alpha = 0.6f)
+                                    SyllabusMagazineSubjectRow(
                                         subject = subject,
                                         onClick = { activeSubjectId = subject.id },
                                         onAddChapter = {
@@ -608,14 +564,13 @@ fun SyllabusSubjectsScreen(
                                             actions.batchMarkTopicsDone(subject.chapters.flatMap { it.topics }.map { it.id })
                                         },
                                         canReorder = canReorderSyllabus,
-                                        onMoveSubjectUp = { moveSubject(subject.id, -1) },
-                                        onMoveSubjectDown = { moveSubject(subject.id, 1) },
+                                        onMoveUp = { moveSubject(subject.id, -1) },
+                                        onMoveDown = { moveSubject(subject.id, 1) },
                                         onDragEnd = { saveSubjectOrder() },
+                                        modifier = Modifier.animateItem(),
                                     )
                                 }
                             }
-
-
                         }
                     }
                 }
@@ -815,314 +770,18 @@ fun SyllabusSubjectsScreen(
     }
 }
 
-@Composable
-private fun SyllabusOverviewCard(
-    planTitle: String,
-    examType: String?,
-    progress: Int,
-    subjectCount: Int,
-    chapterCount: Int,
-    topicCount: Int,
-    isTemplatePlan: Boolean,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = scheme.surfaceContainerHighest,
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
-        shadowElevation = 1.dp,
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(verticalAlignment = Alignment.Top) {
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(scheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.FolderOpen,
-                        contentDescription = null,
-                        tint = scheme.onPrimaryContainer,
-                    )
-                }
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(
-                        text = planTitle,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = scheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = listOfNotNull(examType?.takeIf { it.isNotBlank() }, if (isTemplatePlan) "Syllabus" else "Custom syllabus").joinToString(" • "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Text(
-                    text = "$progress%",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = scheme.primary,
-                )
-            }
 
-            LinearProgressIndicator(
-                progress = { progress / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(7.dp)
-                    .clip(CircleShape),
-                color = scheme.primary,
-                trackColor = scheme.surfaceContainerHighest,
-            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SyllabusMetaPill(label = "Subjects", value = subjectCount.toString(), modifier = Modifier.weight(1f))
-                SyllabusMetaPill(label = "Chapters", value = chapterCount.toString(), modifier = Modifier.weight(1f))
-                SyllabusMetaPill(label = "Topics", value = topicCount.toString(), modifier = Modifier.weight(1f))
-            }
-        }
-    }
-}
 
-@Composable
-private fun SyllabusMetaPill(label: String, value: String, modifier: Modifier = Modifier) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = scheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.32f)),
-    ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = scheme.onSurface)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
-        }
-    }
-}
 
-/** Rectangular "Add X" action pinned above a list (subjects, chapters, or topics)
- *  instead of a floating action button — a FAB visually sits on top of the cards
- *  underneath it, which reads as covering/obscuring content rather than being a
- *  clearly separate action. A distinct teal fill (vs. the blue "Build re-ordered
- *  syllabus" button) makes it unmistakably the "add" action at a glance. */
-@Composable
-internal fun SyllabusAddButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    GlassButton(
-        onClick = onClick,
-        accentColor = PlannerAccent.Teal,
-        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
-        shape = RoundedCornerShape(14.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-    ) {
-        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-        Spacer(Modifier.width(8.dp))
-        Text(label, fontWeight = FontWeight.Bold, color = Color.White)
-    }
-}
 
-/** Replaces the old "Add Subject" + "Build Planner" pair — the FAB already covers
- *  adding a subject, so this single button just builds the plan in exactly the
- *  order the syllabus is arranged on screen (the "in order" strategy). */
-@Composable
-private fun SyllabusBuildButton(
-    onClick: () -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    val buildColor = if (enabled) {
-        PlannerFlatColors.PrimaryAccent
-    } else {
-        scheme.onSurface.copy(alpha = 0.12f)
-    }
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = buildColor,
-            contentColor = if (enabled) Color.White else scheme.onSurface.copy(alpha = 0.38f),
-        ),
-    ) {
-        Text("Build re-ordered syllabus", maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
-    }
-}
 
-@Composable
-private fun SyllabusImportTray(
-    isTemplatePlan: Boolean,
-    state: StudyPlannerUiState,
-    actions: PlannerActions,
-    canUseAiImport: Boolean,
-    onUpgrade: () -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = scheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
-    ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = if (isTemplatePlan) "Copy-paste in the syllabus screen" else "Import or update syllabus",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = scheme.onSurface,
-                    )
-                    Text(
-                        text = if (isTemplatePlan) "Open only when you want to add or replace template topics." else "Paste syllabus text when you want to merge or replace topics.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                    )
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = scheme.onSurfaceVariant,
-                )
-            }
-            if (expanded) {
-                Box(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
-                    SyllabusFullImportCard(
-                        state = state,
-                        actions = actions,
-                        canUseAiImport = canUseAiImport,
-                        onUpgrade = onUpgrade,
-                    )
-                }
-            }
-        }
-    }
-}
 
-@Composable
-private fun SyllabusSectionHeader(title: String, subtitle: String? = null) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        if (subtitle != null) {
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
 
-@Composable
-private fun SyllabusEmptySubjectsCard(onAddSubject: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerHighest),
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 36.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(scheme.primaryContainer.copy(alpha = 0.4f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.FolderOpen,
-                    contentDescription = null,
-                    tint = scheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "No subjects yet",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Black,
-                color = scheme.onSurface,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Add your first subject to start building your custom study planner syllabus.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = scheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.height(20.dp))
-            val addSubColor = PlannerFlatColors.PrimaryAccent
-            Button(
-                onClick = onAddSubject,
-                shape = RoundedCornerShape(50),
-                modifier = Modifier
-                    .heightIn(min = 44.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = addSubColor,
-                    contentColor = Color.White,
-                ),
-                contentPadding = PaddingValues(horizontal = 28.dp, vertical = 12.dp),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                Spacer(Modifier.width(8.dp))
-                Text("Add Subject", fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
 
-@Composable
-internal fun SubjectInitialBadge(name: String) {
-    val scheme = MaterialTheme.colorScheme
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(scheme.primaryContainer.copy(alpha = 0.72f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = name.trim().take(1).uppercase().ifBlank { "S" },
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = scheme.onPrimaryContainer,
-        )
-    }
-}
+
+
+
+
+
+

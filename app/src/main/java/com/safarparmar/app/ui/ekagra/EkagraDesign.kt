@@ -57,10 +57,10 @@ internal fun rememberEkagraInk(onCanvas: Boolean): EkagraInk {
     return if (onCanvas) {
         EkagraInk(
             primaryText = Color.White,
-            secondaryText = Color.White.copy(alpha = 0.72f),
-            mutedText = Color.White.copy(alpha = 0.48f),
-            hairline = Color.White.copy(alpha = 0.14f),
-            trackFaint = Color.White.copy(alpha = 0.12f),
+            secondaryText = Color.White.copy(alpha = 0.88f),
+            mutedText = Color.White.copy(alpha = 0.65f),
+            hairline = Color.White.copy(alpha = 0.22f),
+            trackFaint = Color.White.copy(alpha = 0.16f),
         )
     } else {
         EkagraInk(
@@ -118,7 +118,7 @@ internal fun EkagraEyebrow(
     )
 }
 
-/** Italic serif line that names the screen, sitting under the eyebrow. */
+/** Serif line that names the screen, sitting under the eyebrow. */
 @Composable
 internal fun EkagraDisplayTitle(
     text: String,
@@ -128,7 +128,7 @@ internal fun EkagraDisplayTitle(
     Text(
         text = text,
         fontFamily = EkagraSerif,
-        fontStyle = FontStyle.Italic,
+        fontStyle = FontStyle.Normal,
         fontWeight = FontWeight.Normal,
         fontSize = 30.sp,
         color = color,
@@ -185,7 +185,7 @@ internal fun EkagraPill(
 
 /**
  * Text tabs with an accent underline on the active one — replaces the filled
- * segmented pill.
+ * segmented pill. Supports optional icon per tab.
  */
 @Composable
 internal fun <T> EkagraTextTabs(
@@ -194,18 +194,16 @@ internal fun <T> EkagraTextTabs(
     accent: Color,
     ink: EkagraInk,
     label: (T) -> String,
+    icon: (@Composable (T, Color) -> Unit)? = null,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(26.dp)) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
         items.forEach { item ->
             val isSelected = item == selected
+            val tabColor = if (isSelected) ink.primaryText else ink.mutedText
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                // Column must size to its Text, not the Row's available width —
-                // otherwise the underline's fillMaxWidth() below inherits loose
-                // constraints from the Row and stretches edge-to-edge, shoving
-                // every tab after the first one off-screen.
                 modifier = Modifier
                     .width(IntrinsicSize.Min)
                     .clickable(
@@ -213,12 +211,20 @@ internal fun <T> EkagraTextTabs(
                         indication = null,
                     ) { onSelect(item) },
             ) {
-                Text(
-                    text = label(item),
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (isSelected) ink.primaryText else ink.mutedText,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    if (icon != null) {
+                        icon(item, tabColor)
+                    }
+                    Text(
+                        text = label(item),
+                        fontSize = 13.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                        color = tabColor,
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Box(
                     Modifier

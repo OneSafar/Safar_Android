@@ -410,23 +410,58 @@ fun HtmlPrimaryButton(
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val buttonShape = RoundedCornerShape(16.dp)
+    val isDarkTheme = LocalIsDarkTheme.current
+    val shape = RoundedCornerShape(20.dp)
+
+    val buttonColor = if (enabled) PrimaryAccent else PrimaryAccent.copy(alpha = 0.5f)
+    val borderBrush = if (isDarkTheme) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.05f))
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+        )
+    }
+
+    val shadowElevation = if (isDarkTheme) 12.dp else 4.dp
+    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.12f)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp)
+            .height(64.dp)
             .shadow(
-                elevation = 6.dp, 
-                shape = buttonShape, 
-                spotColor = PrimaryAccent.copy(alpha = 0.4f)
+                elevation = shadowElevation,
+                shape = shape,
+                spotColor = shadowColor,
+                ambientColor = shadowColor
             )
-            .clip(buttonShape)
-            .background(if (enabled) PrimaryAccent else PrimaryAccent.copy(alpha = 0.5f))
+            .clip(shape)
+            .background(buttonColor)
+            .border(
+                width = 0.5.dp,
+                brush = borderBrush,
+                shape = shape
+            )
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.2.sp
+            )
+        }
     }
 }
 
@@ -435,37 +470,72 @@ fun GoogleSignInButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val cardShape = RoundedCornerShape(16.dp)
+    val isDarkTheme = LocalIsDarkTheme.current
+    val shape = RoundedCornerShape(20.dp)
 
-    Row(
+    val bodyColor = if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
+    val borderBrush = if (isDarkTheme) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+        )
+    }
+
+    val shadowElevation = if (isDarkTheme) 12.dp else 4.dp
+    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.12f)
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp)
+            .height(64.dp)
             .shadow(
-                elevation = 4.dp, 
-                shape = cardShape, 
-                spotColor = ShadowSoft, 
-                ambientColor = ShadowSoft
+                elevation = shadowElevation,
+                shape = shape,
+                spotColor = shadowColor,
+                ambientColor = shadowColor
             )
-            .clip(cardShape)
-            .background(CardWhite)
-            .border(width = 1.5.dp, color = BorderSoft, shape = cardShape)
+            .clip(shape)
+            .background(bodyColor)
+            .border(
+                width = 0.5.dp,
+                brush = borderBrush,
+                shape = shape
+            )
             .clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+        contentAlignment = Alignment.Center
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.ic_google_logo),
-            contentDescription = null,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = "Continue with Google", 
-            color = TextDark, 
-            fontSize = 16.sp, 
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_google_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "Continue with Google",
+                color = TextDark,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.2.sp
+            )
+        }
     }
 }
 

@@ -57,12 +57,14 @@ fun PlanSettingsStep(
     onExamDateChange: (String) -> Unit,
     offDays: Set<Int>,
     onToggleOffDay: (Int) -> Unit,
-    strategy: String,
-    overloadMode: String,
+    studyStyle: String,
     onStudyStyleChange: (String) -> Unit,
     dailyGoal: String,
     onDailyGoalChange: (String) -> Unit,
     topicCount: Int,
+    /** Mixed Bag needs at least one subject left over for its second phase, so
+     *  the card is hidden entirely below 3 subjects. */
+    subjectCount: Int,
     error: String?,
     premiumRequired: Boolean,
     onBuildPlan: () -> Unit,
@@ -70,11 +72,7 @@ fun PlanSettingsStep(
     onOpenMixedBagPicker: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val selectedStyle = when {
-        strategy == "sequential" -> "deep_focus"
-        overloadMode == "strict" -> "balanced"
-        else -> "mixed_bag"
-    }
+    val selectedStyle = studyStyle
 
     val context = LocalContext.current
     var buildAttempted by remember { mutableStateOf(false) }
@@ -119,18 +117,23 @@ fun PlanSettingsStep(
                         onOpenDeepFocusOrder()
                     },
                 )
-                StudyStyleIconOption(
-                    icon = Icons.Default.Shuffle,
-                    accent = PlannerAccent.Teal,
-                    title = "Mixed Bag",
-                    body = "Choose topics from two or more different subjects.",
-                    info = "Choose the first three hardest subjects and the system will give more topics from these subjects first.",
-                    selected = selectedStyle == "mixed_bag",
-                    onClick = {
-                        onStudyStyleChange("mixed_bag")
-                        onOpenMixedBagPicker()
-                    },
-                )
+                // With 2 subjects or fewer there is nothing to defer to a second
+                // phase — Mixed Bag would behave identically to Deep Focus or
+                // Balanced, so it is not offered at all.
+                if (subjectCount > 2) {
+                    StudyStyleIconOption(
+                        icon = Icons.Default.Shuffle,
+                        accent = PlannerAccent.Teal,
+                        title = "Mixed Bag",
+                        body = "Tackle your hardest subjects first.",
+                        info = "Pick your 2-3 hardest subjects. They get scheduled first, in the order you choose, and your other subjects start once they're covered.",
+                        selected = selectedStyle == "mixed_bag",
+                        onClick = {
+                            onStudyStyleChange("mixed_bag")
+                            onOpenMixedBagPicker()
+                        },
+                    )
+                }
                 StudyStyleIconOption(
                     icon = Icons.Default.Bolt,
                     accent = PlannerAccent.Amber,

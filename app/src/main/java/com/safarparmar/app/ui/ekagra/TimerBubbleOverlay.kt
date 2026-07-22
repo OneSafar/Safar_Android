@@ -51,11 +51,12 @@ private fun ExpandedPill(
     kavachActive: Boolean,
     isRunning: Boolean,
     snappedRight: Boolean,
+    themeAccent: Color? = null,
     onPlayPause: () -> Unit,
     onCollapse: () -> Unit,
     onOpen: () -> Unit,
 ) {
-    val accent = if (kavachActive) Color(0xFF4ADE80) else Color(0xFF7C6FF7)
+    val accent = if (kavachActive) Color(0xFF4ADE80) else (themeAccent ?: Color(0xFF7C6FF7))
     // Fully rounded capsule.
     val shape = RoundedCornerShape(percent = 50)
 
@@ -164,9 +165,10 @@ private fun ExpandedPill(
 private fun CollapsedTab(
     kavachActive: Boolean,
     snappedRight: Boolean,
+    themeAccent: Color? = null,
     onExpand: () -> Unit,
 ) {
-    val accent = if (kavachActive) Color(0xFF4ADE80) else Color(0xFF7C6FF7)
+    val accent = if (kavachActive) Color(0xFF4ADE80) else (themeAccent ?: Color(0xFF7C6FF7))
     // Rounded on the inner side, flat toward the screen edge it docks against.
     val shape = if (snappedRight)
         RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp)
@@ -201,6 +203,7 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
     var isRunning    by mutableStateOf(true)
     var snappedRight by mutableStateOf(true)
     var collapsed    by mutableStateOf(false)
+    var themeAccent  by mutableStateOf<Color?>(null)
 
     // Wired up by the manager so the composable can drive window position + actions.
     var onDrag:     (Float, Float) -> Unit = { _, _ -> }
@@ -228,6 +231,7 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
                 CollapsedTab(
                     kavachActive = kavachActive,
                     snappedRight = snappedRight,
+                    themeAccent = themeAccent,
                     onExpand = { collapsed = false; onCollapsedChanged() },
                 )
             } else {
@@ -237,6 +241,7 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
                     kavachActive = kavachActive,
                     isRunning = isRunning,
                     snappedRight = snappedRight,
+                    themeAccent = themeAccent,
                     onPlayPause = onPlayPause,
                     onCollapse = { collapsed = true; onCollapsedChanged() },
                     onOpen = onOpen,

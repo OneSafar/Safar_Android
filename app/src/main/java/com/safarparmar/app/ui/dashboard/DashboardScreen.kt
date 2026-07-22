@@ -11,17 +11,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,31 +42,239 @@ import com.safarparmar.app.domain.model.*
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.glass.GlassDivider
 import com.safarparmar.app.ui.glass.SafarGlassBackdrop
-import com.safarparmar.app.ui.glass.SafarGlassButton
-import com.safarparmar.app.ui.glass.SafarGlassCard
-import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
-import com.safarparmar.app.ui.glass.SafarGlassPalette
-import com.safarparmar.app.ui.glass.safarFrostedPanel
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.components.StatCardSkeleton
 import com.safarparmar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
 import com.safarparmar.app.ui.studyplanner.screens.InsightsOverallProgressRedesign
-import com.safarparmar.app.ui.theme.*
 
-private fun glassTextPrimary(isDark: Boolean) =
-    if (isDark) SafarGlassPalette.TextPrimary else SafarGlassPalette.LightTextPrimary
+// ── macOS Control Center Design Helpers ─────────────────────────────────────
 
-private fun glassTextSecondary(isDark: Boolean) =
-    if (isDark) SafarGlassPalette.TextSecondary else SafarGlassPalette.LightTextSecondary
+@Composable
+private fun MacOSControlCard(
+    isDarkTheme: Boolean,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(16.dp),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val shape = RoundedCornerShape(20.dp)
+    val bodyColor = if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
+    val borderBrush = if (isDarkTheme) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+        )
+    }
+    val shadowElevation = if (isDarkTheme) 12.dp else 4.dp
+    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.12f)
 
-private fun glassAccent(isDark: Boolean) =
-    if (isDark) SafarGlassPalette.Violet else SafarGlassPalette.LightViolet
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                spotColor = shadowColor,
+                ambientColor = shadowColor
+            )
+            .clip(shape)
+            .background(bodyColor)
+            .border(
+                width = 0.5.dp,
+                brush = borderBrush,
+                shape = shape
+            )
+            .padding(contentPadding)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            content = content
+        )
+    }
+}
 
-private fun glassNestedBg(isDark: Boolean) =
-    if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+@Composable
+private fun MacOSControlButton(
+    iconVector: ImageVector? = null,
+    iconLetter: String? = null,
+    title: String,
+    subtitle: String,
+    isDarkTheme: Boolean,
+    modifier: Modifier = Modifier,
+    iconBackgroundColor: Color = Color(0xFF0A84FF),
+    onClick: () -> Unit = {}
+) {
+    val shape = RoundedCornerShape(20.dp)
+    val bodyColor = if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
+    val textColor = if (isDarkTheme) Color.White else Color.Black
+    val subtitleColor = if (isDarkTheme) Color.White.copy(alpha = 0.55f) else Color.Black.copy(alpha = 0.55f)
+    val borderBrush = if (isDarkTheme) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+        )
+    }
+    val shadowElevation = if (isDarkTheme) 12.dp else 4.dp
+    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.12f)
 
+    Box(
+        modifier = modifier
+            .height(68.dp)
+            .shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                spotColor = shadowColor,
+                ambientColor = shadowColor
+            )
+            .clip(shape)
+            .background(bodyColor)
+            .border(
+                width = 0.5.dp,
+                brush = borderBrush,
+                shape = shape
+            )
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(iconBackgroundColor),
+                contentAlignment = Alignment.Center
+            ) {
+                if (iconVector != null) {
+                    Icon(
+                        imageVector = iconVector,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else if (iconLetter != null) {
+                    Text(
+                        text = iconLetter,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Column(verticalArrangement = Arrangement.Center) {
+                Text(
+                    text = title,
+                    color = textColor,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(1.dp))
+                Text(
+                    text = subtitle,
+                    color = subtitleColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.2.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MacOSButton(
+    text: String,
+    icon: ImageVector? = null,
+    onClick: () -> Unit,
+    isDarkTheme: Boolean,
+    modifier: Modifier = Modifier,
+    buttonColor: Color = Color(0xFF0A84FF),
+) {
+    val shape = RoundedCornerShape(16.dp)
+    val borderBrush = if (isDarkTheme) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.05f))
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+        )
+    }
+    val shadowElevation = if (isDarkTheme) 8.dp else 3.dp
+    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.1f)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                spotColor = shadowColor,
+                ambientColor = shadowColor
+            )
+            .clip(shape)
+            .background(buttonColor)
+            .border(
+                width = 0.5.dp,
+                brush = borderBrush,
+                shape = shape
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.2.sp
+            )
+        }
+    }
+}
+
+private fun macTextColor(isDark: Boolean) = if (isDark) Color.White else Color.Black
+private fun macSubtitleColor(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.55f) else Color.Black.copy(alpha = 0.55f)
+private fun macAccentBlue() = Color(0xFF0A84FF)
+
+private enum class DashboardSheetType {
+    NONE, MOOD, GOALS, STREAKS, BADGES
+}
+
+// ── Main Dashboard Screen ───────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     currentRoute: String = Routes.DASHBOARD,
@@ -73,6 +285,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var activeSheet by remember { mutableStateOf(DashboardSheetType.NONE) }
 
     SafarDrawerScaffold(
         title = stringResource(R.string.dashboard_title),
@@ -108,42 +321,73 @@ fun DashboardScreen(
                     onRefresh = { viewModel.onEvent(DashboardEvent.Refresh) },
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
-                ) {
-                    item { WelcomeBanner(uiState.userName, isDarkTheme) }
-                    item { StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate) }
-                    item {
-                        ActiveTitleCard(
-                            title = uiState.activeTitle,
-                            titleId = uiState.activeTitleId,
-                            isDark = isDarkTheme,
-                            hasEarnedAchievements = uiState.earnedAchievements.isNotEmpty(),
-                            onNavigateToAchievements = { onNavigate(Routes.ACHIEVEMENTS) }
-                        )
-                    }
-                    item { MoodCard(uiState.todayMood, isDarkTheme, onNavigate) }
-                    item { StreaksCard(uiState.streaks, isDarkTheme, onNavigate) }
-                    if (uiState.allAchievements.isNotEmpty()) {
-                        item { BadgesCard(uiState.earnedAchievements, uiState.allAchievements, isDarkTheme, onNavigate) }
-                    }
-                    item { TodayGoalsCard(uiState.todayGoals, isDarkTheme, onNavigate) }
-                    uiState.monthlyReport?.let { item { MonthlyCard(it, isDarkTheme, onNavigate) } }
-                    if (uiState.weeklyMoods.isNotEmpty()) {
-                        item { WeeklyMoodChart(uiState.weeklyMoods, isDarkTheme, onNavigate) }
-                    }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
+                    ) {
+                        // 1. Hero Welcome Header
+                        item { WelcomeBanner(uiState.userName, isDarkTheme) }
 
-                }
+                        // 2. Active Title Card
+                        item {
+                            ActiveTitleCard(
+                                title = uiState.activeTitle,
+                                titleImageUrl = uiState.activeTitleImageUrl,
+                                isDark = isDarkTheme,
+                                hasEarnedAchievements = uiState.earnedAchievements.isNotEmpty(),
+                                onNavigateToAchievements = { onNavigate(Routes.ACHIEVEMENTS) }
+                            )
+                        }
+
+                        // 3. Study Plan Progress
+                        item { StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate) }
+
+                        // 4. macOS Quick Control Grid (Interactive Hub)
+                        item {
+                            MacOSQuickControlGrid(
+                                uiState = uiState,
+                                isDark = isDarkTheme,
+                                onOpenSheet = { sheet -> activeSheet = sheet }
+                            )
+                        }
+
+                        // 5. Analytics & Monthly Snapshot
+                        item { MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate) }
+
+                        // 6. Weekly Mood Graph
+                        if (uiState.weeklyMoods.isNotEmpty()) {
+                            item { WeeklyMoodChart(uiState.weeklyMoods, isDarkTheme) }
+                        }
+                    }
                 }
             }
 
-            // ── Welcome note overlay ──────────────────────────────────────
+            // ── Interactive Detail Bottom Sheets ─────────────────────────────
+            if (activeSheet != DashboardSheetType.NONE) {
+                ModalBottomSheet(
+                    onDismissRequest = { activeSheet = DashboardSheetType.NONE },
+                    containerColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFF9F9FB),
+                    contentColor = macTextColor(isDarkTheme),
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                ) {
+                    Box(modifier = Modifier.padding(bottom = 32.dp)) {
+                        when (activeSheet) {
+                            DashboardSheetType.MOOD -> MoodSheetContent(uiState.todayMood, isDarkTheme, onNavigate, onDismiss = { activeSheet = DashboardSheetType.NONE })
+                            DashboardSheetType.GOALS -> TodayGoalsSheetContent(uiState.todayGoals, isDarkTheme, onNavigate, onDismiss = { activeSheet = DashboardSheetType.NONE })
+                            DashboardSheetType.STREAKS -> StreaksSheetContent(uiState.streaks, isDarkTheme, onNavigate, onDismiss = { activeSheet = DashboardSheetType.NONE })
+                            DashboardSheetType.BADGES -> BadgesSheetContent(uiState.earnedAchievements, uiState.allAchievements, isDarkTheme, onNavigate, onDismiss = { activeSheet = DashboardSheetType.NONE })
+                            else -> Unit
+                        }
+                    }
+                }
+            }
+
+            // ── Welcome Overlay ──────────────────────────────────────
             androidx.compose.animation.AnimatedVisibility(
                 visible = uiState.showWelcomeOverlay,
-                enter   = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it / 3 },
-                exit    = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { it / 3 },
+                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it / 3 },
+                exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { it / 3 },
                 modifier = Modifier.align(Alignment.Center),
             ) {
                 DashboardWelcomeOverlay(
@@ -165,77 +409,127 @@ fun DashboardScreen(
     }
 }
 
+// ── macOS Quick Control Grid ────────────────────────────────────────────────
+
 @Composable
-private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss: () -> Unit) {
-    val isLight = !isDark
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .safarFrostedPanel(
-                    isLight = isLight,
-                    shape = RoundedCornerShape(SafarGlassChromeRadius),
-                )
-                .padding(28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+private fun MacOSQuickControlGrid(
+    uiState: DashboardUiState,
+    isDark: Boolean,
+    onOpenSheet: (DashboardSheetType) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(
-                painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_leaf),
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = glassAccent(isDark),
+            MacOSControlButton(
+                iconVector = Icons.Default.Favorite,
+                title = "Today Mood",
+                subtitle = uiState.todayMood?.mood?.replaceFirstChar { it.uppercase() } ?: "Check In",
+                isDarkTheme = isDark,
+                iconBackgroundColor = Color(0xFFFF2D55), // macOS Pink
+                modifier = Modifier.weight(1f),
+                onClick = { onOpenSheet(DashboardSheetType.MOOD) }
             )
-            Text(
-                text = "Welcome back,\n${userName.replaceFirstChar { it.uppercase() }.ifEmpty { "Friend" }}",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                lineHeight = 28.sp,
-                color = glassTextPrimary(isDark),
+
+            MacOSControlButton(
+                iconVector = Icons.Default.TrackChanges,
+                title = "Today Goals",
+                subtitle = "${uiState.todayGoals.count { it.completed }}/${uiState.todayGoals.size} Done",
+                isDarkTheme = isDark,
+                iconBackgroundColor = Color(0xFF0A84FF), // macOS Blue
+                modifier = Modifier.weight(1f),
+                onClick = { onOpenSheet(DashboardSheetType.GOALS) }
             )
-            Text(
-                text = "Your journey continues here.\nEvery small step forward counts — today is a new opportunity to grow, reflect, and be present.",
-                fontSize = 14.sp,
-                color = glassTextSecondary(isDark),
-                textAlign = TextAlign.Center,
-                lineHeight = 20.sp,
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            MacOSControlButton(
+                iconVector = Icons.Default.LocalFireDepartment,
+                title = "Streak",
+                subtitle = "${uiState.streaks.checkInStreak} Days Active",
+                isDarkTheme = isDark,
+                iconBackgroundColor = Color(0xFFFF9500), // macOS Orange
+                modifier = Modifier.weight(1f),
+                onClick = { onOpenSheet(DashboardSheetType.STREAKS) }
             )
-            Spacer(Modifier.height(4.dp))
-            SafarGlassButton(
-                text = "Let's begin",
-                icon = Icons.Default.Star,
-                onClick = onDismiss,
-                isLight = isLight,
+
+            MacOSControlButton(
+                iconVector = Icons.Default.EmojiEvents,
+                title = "Badges",
+                subtitle = "${uiState.earnedAchievements.size} Unlocked",
+                isDarkTheme = isDark,
+                iconBackgroundColor = Color(0xAF5856D6), // macOS Purple
+                modifier = Modifier.weight(1f),
+                onClick = { onOpenSheet(DashboardSheetType.BADGES) }
             )
         }
     }
 }
 
+// ── Welcome Banner Section ──────────────────────────────────────────────────
+
 @Composable
 private fun WelcomeBanner(userName: String, isDark: Boolean) {
-    val accent = glassAccent(isDark)
-    DashCard(isDark) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row {
-                Text("Welcome back, ", color = glassTextPrimary(isDark), fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    userName.replaceFirstChar { it.uppercase() }.ifEmpty { "User" },
-                    color = accent,
-                    fontSize = 22.sp, fontWeight = FontWeight.Bold
-                )
+    MacOSControlCard(isDarkTheme = isDark) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(macAccentBlue()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = userName.take(1).uppercase().ifEmpty { "S" },
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Welcome back,",
+                        color = macSubtitleColor(isDark),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = userName.replaceFirstChar { it.uppercase() }.ifEmpty { "User" },
+                        color = macTextColor(isDark),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
-            
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.FormatQuote, contentDescription = null,
-                        tint = accent, modifier = Modifier.size(16.dp))
-                    Text("DAILY INSPIRATION", fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                        color = glassTextSecondary(isDark), letterSpacing = 1.sp)
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FormatQuote,
+                        contentDescription = null,
+                        tint = macAccentBlue(),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "DAILY INSPIRATION",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = macSubtitleColor(isDark),
+                        letterSpacing = 1.sp
+                    )
                 }
                 Text(
-                    "\"Your limit is mostly your imagination.\"",
-                    color = glassTextSecondary(isDark),
+                    text = "\"Your limit is mostly your imagination.\"",
+                    color = macSubtitleColor(isDark),
                     fontSize = 13.sp,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -243,6 +537,8 @@ private fun WelcomeBanner(userName: String, isDark: Boolean) {
         }
     }
 }
+
+// ── Study Plan Progress Card ────────────────────────────────────────────────
 
 @Composable
 private fun StudyPlanProgressCard(
@@ -264,27 +560,40 @@ private fun StudyPlanProgressCard(
     }
 
     if (state.status == DashboardStudyPlanStatus.NO_ACTIVE_PLAN) {
-        val accent = glassAccent(isDark)
-        DashCard(isDark) {
+        MacOSControlCard(isDarkTheme = isDark) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(Icons.Default.Today, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
-                CardTitle("Study Plan Progress", isDark)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(macAccentBlue()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Today, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                }
+                Text(
+                    text = "Study Plan Progress",
+                    color = macTextColor(isDark),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
             Spacer(Modifier.height(10.dp))
             Text(
                 "Create a study plan to track your syllabus completion.",
-                color = glassTextSecondary(isDark),
+                color = macSubtitleColor(isDark),
                 fontSize = 13.sp,
             )
             Spacer(Modifier.height(12.dp))
-            SafarGlassButton(
+            MacOSButton(
                 text = "Create Plan",
                 icon = Icons.Default.Add,
                 onClick = ::openPlanner,
-                isLight = !isDark,
+                isDarkTheme = isDark,
+                buttonColor = macAccentBlue()
             )
         }
     } else {
@@ -300,51 +609,36 @@ private fun StudyPlanProgressCard(
     }
 }
 
+// ── Active Title Card ───────────────────────────────────────────────────────
+
 @Composable
 private fun ActiveTitleCard(
     title: String,
-    titleId: String,
+    titleImageUrl: String?,
     isDark: Boolean,
     hasEarnedAchievements: Boolean,
     onNavigateToAchievements: () -> Unit,
 ) {
-    val imagePath = titleId.takeIf { it.isNotEmpty() }?.let { achievementImages[it] }
-    val imageUrl = imagePath?.let { path ->
-        val origin = BuildConfig.BASE_URL.trimEnd('/').let {
-            val uri = android.net.Uri.parse(it)
-            "${uri.scheme}://${uri.host}"
-        }
-        "$origin$path"
-    }
-    val isLight = !isDark
-    val accent = glassAccent(isDark)
-    val textPrimary = glassTextPrimary(isDark)
-    val textSecondary = glassTextSecondary(isDark)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .safarFrostedPanel(
-                isLight = isLight,
-                shape = RoundedCornerShape(SafarGlassChromeRadius),
-                tintAlpha = if (isDark) 0.12f else 0.42f,
-            )
-            .clickable { onNavigateToAchievements() }
-            .padding(20.dp)
+    MacOSControlCard(
+        isDarkTheme = isDark,
+        modifier = Modifier.clickable { onNavigateToAchievements() }
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text(
                 "CURRENT TITLE",
                 fontSize = 10.sp,
                 letterSpacing = 2.sp,
-                color = textSecondary,
+                color = macSubtitleColor(isDark),
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(12.dp))
             if (title.isNotEmpty()) {
-                if (imageUrl != null) {
+                if (titleImageUrl != null) {
                     AsyncImage(
-                        model = imageUrl,
+                        model = titleImageUrl,
                         contentDescription = title,
                         modifier = Modifier.width(180.dp).height(90.dp),
                         contentScale = ContentScale.Fit
@@ -352,47 +646,41 @@ private fun ActiveTitleCard(
                 } else {
                     Box(
                         Modifier
-                            .size(72.dp)
+                            .size(64.dp)
                             .clip(CircleShape)
-                            .background(
-                                if (isLight) accent.copy(alpha = 0.16f)
-                                else Color.White.copy(alpha = 0.16f),
-                            ),
+                            .background(macAccentBlue()),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_zap),
                             contentDescription = null,
                             modifier = Modifier.size(28.dp),
-                            tint = if (isLight) accent else Color.White,
+                            tint = Color.White,
                         )
                     }
                 }
                 Spacer(Modifier.height(12.dp))
-                Text(title, color = textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(title, color = macTextColor(isDark), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             } else {
                 Box(
                     Modifier
-                        .size(72.dp)
+                        .size(64.dp)
                         .clip(CircleShape)
-                        .background(
-                            if (isLight) accent.copy(alpha = 0.16f)
-                            else Color.White.copy(alpha = 0.16f),
-                        ),
+                        .background(macAccentBlue()),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_zap),
                         contentDescription = null,
                         modifier = Modifier.size(28.dp),
-                        tint = if (isLight) accent else Color.White,
+                        tint = Color.White,
                     )
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = if (hasEarnedAchievements) "Tap to set achievement title" else "Unlock achievements to earn titles",
-                    color = textPrimary,
-                    fontSize = 16.sp,
+                    color = macTextColor(isDark),
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -400,43 +688,293 @@ private fun ActiveTitleCard(
     }
 }
 
+// ── Interactive Detail Sheets ──────────────────────────────────────────────
+
 @Composable
-private fun MoodCard(todayMood: Mood?, isDark: Boolean, onNavigate: (String) -> Unit) {
-    val accent = glassAccent(isDark)
-    DashCard(isDark) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Default.FavoriteBorder, contentDescription = null,
-                tint = accent, modifier = Modifier.size(16.dp))
-            CardTitle(stringResource(R.string.dashboard_today_mood), isDark)
+private fun MoodSheetContent(
+    todayMood: Mood?,
+    isDark: Boolean,
+    onNavigate: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF2D55)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            }
+            Text("Today's Mood Check-In", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
         }
-        Spacer(Modifier.height(8.dp))
+
         if (todayMood != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(moodEmoji(todayMood.mood), fontSize = 32.sp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f))
+                    .padding(16.dp)
+            ) {
+                Text(moodEmoji(todayMood.mood), fontSize = 40.sp)
                 Column {
                     Text(
                         todayMood.mood.replaceFirstChar { it.uppercase() },
-                        color = glassTextPrimary(isDark),
-                        fontSize = 18.sp, fontWeight = FontWeight.SemiBold
+                        color = macTextColor(isDark),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         stringResource(R.string.dashboard_intensity, todayMood.intensity),
-                        color = glassTextSecondary(isDark), fontSize = 12.sp
+                        color = macSubtitleColor(isDark),
+                        fontSize = 13.sp
                     )
                 }
             }
         } else {
-            Text(stringResource(R.string.dashboard_no_checkin),
-                color = glassTextSecondary(isDark), fontSize = 13.sp)
-            Spacer(Modifier.height(10.dp))
-            SafarGlassButton(
+            Text("You haven't checked in your mood today. Reflecting on your state helps build self-awareness.", color = macSubtitleColor(isDark), fontSize = 14.sp)
+            Spacer(Modifier.height(4.dp))
+            MacOSButton(
                 text = "Check In Now",
                 icon = Icons.Default.FavoriteBorder,
-                onClick = { onNavigate(Routes.NISHTHA) },
-                isLight = !isDark,
-                customTint = if (isDark) SafarGlassPalette.Pink else SafarGlassPalette.LightPink,
+                onClick = {
+                    onDismiss()
+                    onNavigate(Routes.NISHTHA)
+                },
+                isDarkTheme = isDark,
+                buttonColor = Color(0xFFFF2D55)
             )
         }
+    }
+}
+
+@Composable
+private fun TodayGoalsSheetContent(
+    goals: List<Goal>,
+    isDark: Boolean,
+    onNavigate: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val completed = goals.count { it.completed }
+    val progress = if (goals.isNotEmpty()) completed.toFloat() / goals.size else 0f
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(macAccentBlue()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.TrackChanges, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Text("Today's Goals", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+            }
+            Text("$completed / ${goals.size} Done", fontSize = 13.sp, color = macSubtitleColor(isDark), fontWeight = FontWeight.SemiBold)
+        }
+
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+            color = macAccentBlue(),
+            trackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+        )
+
+        if (goals.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                goals.forEach { goal ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .border(1.5.dp, if (goal.completed) macAccentBlue() else macSubtitleColor(isDark), CircleShape)
+                                .background(if (goal.completed) macAccentBlue() else Color.Transparent),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (goal.completed) Text("✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Text(goal.title, color = macTextColor(isDark), fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        } else {
+            Text("No goals scheduled for today.", color = macSubtitleColor(isDark), fontSize = 14.sp)
+        }
+
+        Spacer(Modifier.height(4.dp))
+        MacOSButton(
+            text = "Manage Goals",
+            icon = Icons.Default.TrackChanges,
+            onClick = {
+                onDismiss()
+                onNavigate(Routes.nishthaTab(2))
+            },
+            isDarkTheme = isDark,
+            buttonColor = macAccentBlue()
+        )
+    }
+}
+
+@Composable
+private fun StreaksSheetContent(
+    streaks: Streaks,
+    isDark: Boolean,
+    onNavigate: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF9500)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            }
+            Text("Activity Streaks", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f))
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            StreakRow(stringResource(R.string.dashboard_streak_checkin), "${streaks.checkInStreak}", isDark)
+            GlassDivider()
+            StreakRow(stringResource(R.string.dashboard_streak_login), "${streaks.loginStreak}", isDark)
+            GlassDivider()
+            StreakRow(stringResource(R.string.dashboard_streak_goal), "${streaks.goalCompletionStreak}", isDark)
+        }
+
+        MacOSButton(
+            text = "View Streak History",
+            icon = Icons.Default.Loop,
+            onClick = {
+                onDismiss()
+                onNavigate(Routes.nishthaTab(3))
+            },
+            isDarkTheme = isDark,
+            buttonColor = Color(0xFFFF9500)
+        )
+    }
+}
+
+@Composable
+private fun BadgesSheetContent(
+    earned: List<Achievement>,
+    all: List<Achievement>,
+    isDark: Boolean,
+    onNavigate: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xAF5856D6)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Text("Unlocked Badges", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = macTextColor(isDark))
+            }
+            Text("${earned.size} Unlocked", fontSize = 13.sp, color = macSubtitleColor(isDark), fontWeight = FontWeight.SemiBold)
+        }
+
+        val display = remember(earned, all) { (if (earned.isNotEmpty()) earned else all).take(6) }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(display, key = { it.id }) { achievement ->
+                Column(
+                    modifier = Modifier
+                        .width(90.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.04f))
+                        .padding(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(
+                            id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal
+                        ),
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = Color(0xAF5856D6),
+                    )
+                    Text(
+                        achievement.name,
+                        color = macTextColor(isDark),
+                        fontSize = 10.sp, textAlign = TextAlign.Center,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+
+        MacOSButton(
+            text = "View All Achievements",
+            icon = Icons.Default.EmojiEvents,
+            onClick = {
+                onDismiss()
+                onNavigate(Routes.ACHIEVEMENTS)
+            },
+            isDarkTheme = isDark,
+            buttonColor = Color(0xAF5856D6)
+        )
     }
 }
 
@@ -453,393 +991,42 @@ private fun moodEmoji(mood: String) = when (mood.lowercase()) {
 }
 
 @Composable
-private fun StreaksCard(streaks: Streaks, isDark: Boolean, onNavigate: (String) -> Unit) {
-    val accent = glassAccent(isDark)
-    DashCard(isDark) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Default.Loop, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
-            CardTitle(stringResource(R.string.dashboard_streaks), isDark)
-            Spacer(Modifier.weight(1f))
-            Text(
-                "View →",
-                color = accent,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { onNavigate(Routes.nishthaTab(3)) },
-            )
-        }
-        Spacer(Modifier.height(12.dp))
-        StreakRow(stringResource(R.string.dashboard_streak_checkin), "${streaks.checkInStreak}", isDark)
-        GlassDivider()
-        StreakRow(stringResource(R.string.dashboard_streak_login), "${streaks.loginStreak}", isDark)
-        GlassDivider()
-        StreakRow(stringResource(R.string.dashboard_streak_goal), "${streaks.goalCompletionStreak}", isDark)
-    }
-}
-
-@Composable
 private fun StreakRow(label: String, value: String, isDark: Boolean) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = glassTextPrimary(isDark), fontSize = 14.sp)
-        Text(value, color = glassTextPrimary(isDark), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = macTextColor(isDark), fontSize = 14.sp)
+        Text(value, color = macTextColor(isDark), fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 
-private val achievementImages: Map<String, String> = mapOf(
-    "G001" to "/Achievments/Badges/Badge (1).webp",
-    "G002" to "/Achievments/Badges/Badge (2).webp",
-    "G003" to "/Achievments/Badges/Badge (3).webp",
-    "G004" to "/Achievments/Badges/Badge (4).webp",
-    "F001" to "/Achievments/Badges/Special_Badge (2).webp",
-    "F002" to "/Achievments/Badges/Special_Badge (5).webp",
-    "F003" to "/Achievments/Badges/Special_Badge (4).webp",
-    "F004" to "/Achievments/Badges/Badge (6).webp",
-    "F005" to "/Achievments/Badges/Badge (7).webp",
-    "S001" to "/Achievments/Badges/Badge (8).webp",
-    "S002" to "/Achievments/Badges/Special_Badge (1).webp",
-    "ET006" to "/Achievments/Badges/Special_Badge (3).webp",
-    "SP001" to "/Achievments/Badges/Badge (4).webp",
-    "SP002" to "/Achievments/Badges/Badge (8).webp",
-    "D001" to "/Achievments/Badges/Special_Badge (1).webp",
-    "D002" to "/Achievments/Badges/Special_Badge (3).webp",
-    "K001" to "/Achievments/Badges/Badge (6).webp",
-    "M001" to "/Achievments/Badges/Badge (7).webp",
-    "T005" to "/Achievments/Titles/Title (5).webp",
-    "T006" to "/Achievments/Titles/Title (3).webp",
-    "T007" to "/Achievments/Titles/Title (7).webp",
-    "T008" to "/Achievments/Titles/Title (6).webp",
-    "T001" to "/Achievments/Titles/Title (8).webp",
-    "T002" to "/Achievments/Titles/Title (2).webp",
-    "T003" to "/Achievments/Titles/Title (1).webp",
-    "T004" to "/Achievments/Titles/Title (4).webp",
-    "ET001" to "/Achievments/Titles/Special_Title (2).webp",
-    "ET002" to "/Achievments/Titles/Special_Title (1).webp",
-    "ET003" to "/Achievments/Titles/Special_Title (5).webp",
-    "ET004" to "/Achievments/Titles/Special_Title (3).webp",
-    "ET005" to "/Achievments/Titles/Special_Title (4).webp",
-    "T010" to "/Achievments/Titles/Special_Title (1).webp",
-    "T011" to "/Achievments/Titles/Special_Title (2).webp",
-    "T012" to "/Achievments/Titles/Special_Title (3).webp",
-    "T013" to "/Achievments/Titles/Special_Title (4).webp",
-    "T014" to "/Achievments/Titles/Special_Title (5).webp",
-    "T009" to "/Achievments/svgviewer-output.svg",
-)
+// ── Monthly Report Section ──────────────────────────────────────────────────
 
 @Composable
-private fun BadgesCard(earned: List<Achievement>, all: List<Achievement>, isDark: Boolean, onNavigate: (String) -> Unit) {
-    var selectedAchievement by remember { mutableStateOf<Achievement?>(null) }
-    val accent = glassAccent(isDark)
-
-    selectedAchievement?.let { achievement ->
-        AchievementDetailDialog(
-            achievement = achievement,
-            isDark = isDark,
-            onDismiss = { selectedAchievement = null },
-        )
-    }
-
-    DashCard(isDark) {
+private fun MonthlyCard(report: MonthlyReport?, isDark: Boolean, onNavigate: (String) -> Unit) {
+    if (report == null) return
+    MacOSControlCard(isDarkTheme = isDark) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Default.EmojiEvents, contentDescription = null,
-                    tint = accent, modifier = Modifier.size(16.dp))
-                CardTitle(stringResource(R.string.dashboard_achievements), isDark)
-            }
-            Text(
-                "View All",
-                color = accent,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { onNavigate(Routes.ACHIEVEMENTS) },
-            )
-        }
-        Spacer(Modifier.height(12.dp))
-        val display = remember(earned, all) {
-            (if (earned.isNotEmpty()) earned else all.take(3)).take(6)
-        }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(display, key = { it.id }) { achievement ->
-                val onAchievementClick = remember(achievement) { { selectedAchievement = achievement } }
-                Column(
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
                     modifier = Modifier
-                        .width(80.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(glassNestedBg(isDark))
-                        .clickable(onClick = onAchievementClick)
-                        .padding(10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF34C759)), // macOS Green
+                    contentAlignment = Alignment.Center
                 ) {
-                    val imagePath = achievementImages[achievement.id]
-                    if (imagePath != null) {
-                        val imageUrl = remember(imagePath) {
-                            val origin = BuildConfig.BASE_URL.trimEnd('/').let {
-                                val uri = android.net.Uri.parse(it)
-                                "${uri.scheme}://${uri.host}"
-                            }
-                            "$origin$imagePath"
-                        }
-                        AsyncImage(
-                            model = imageUrl,
-                            contentDescription = achievement.name,
-                            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp))
-                        )
-                    } else {
-                        Icon(
-                            painter = androidx.compose.ui.res.painterResource(
-                                id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal
-                            ),
-                            contentDescription = null,
-                            modifier = Modifier.size(26.dp),
-                            tint = accent,
-                        )
-                    }
-                    Text(
-                        achievement.name,
-                        color = glassTextPrimary(isDark),
-                        fontSize = 9.sp, textAlign = TextAlign.Center,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis
-                    )
-                    if (achievement.earned) {
-                        Text("Active Badge", color = accent,
-                            fontSize = 8.sp, textAlign = TextAlign.Center)
-                    }
+                    Icon(Icons.Default.BarChart, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                 }
+                Text(stringResource(R.string.dashboard_monthly_snapshot), color = macTextColor(isDark), fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
-        }
-    }
-}
-
-@Composable
-private fun AchievementDetailDialog(achievement: Achievement, isDark: Boolean, onDismiss: () -> Unit) {
-    val isLight = !isDark
-    val imagePath = achievementImages[achievement.id]
-    val imageUrl = imagePath?.let { path ->
-        val origin = BuildConfig.BASE_URL.trimEnd('/').let {
-            val uri = android.net.Uri.parse(it)
-            "${uri.scheme}://${uri.host}"
-        }
-        "$origin$path"
-    }
-    val tierLabel = achievement.tier?.let { "Tier $it" } ?: ""
-    val typeLabel = achievement.type.replaceFirstChar { it.uppercase() }
-
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        SafarGlassCard(
-            isLight = isLight,
-            contentPadding = PaddingValues(24.dp),
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (imageUrl != null) {
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = achievement.name,
-                        modifier = Modifier.size(88.dp).clip(CircleShape),
-                    )
-                } else {
-                    Box(
-                        Modifier
-                            .size(88.dp)
-                            .clip(CircleShape)
-                            .background(glassNestedBg(isDark)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            painter = androidx.compose.ui.res.painterResource(
-                                id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal,
-                            ),
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp),
-                            tint = glassAccent(isDark),
-                        )
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (typeLabel.isNotEmpty()) {
-                        Box(
-                            Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(glassAccent(isDark).copy(alpha = 0.12f))
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                        ) {
-                            Text(
-                                typeLabel.uppercase(),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = glassAccent(isDark),
-                                letterSpacing = 0.5.sp,
-                            )
-                        }
-                    }
-                    if (tierLabel.isNotEmpty()) {
-                        Box(
-                            Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(glassNestedBg(isDark))
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                        ) {
-                            Text(
-                                tierLabel.uppercase(),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = glassTextSecondary(isDark),
-                                letterSpacing = 0.5.sp,
-                            )
-                        }
-                    }
-                }
-
-                Text(
-                    achievement.name,
-                    color = glassTextPrimary(isDark),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                )
-
-                if (!achievement.description.isNullOrBlank()) {
-                    Text(
-                        achievement.description,
-                        fontSize = 13.sp,
-                        color = glassTextSecondary(isDark),
-                        textAlign = TextAlign.Center,
-                        lineHeight = 18.sp,
-                    )
-                }
-
-                if (tierLabel.isNotEmpty()) {
-                    Text(
-                        "A $tierLabel achievement.",
-                        fontSize = 13.sp,
-                        color = glassTextSecondary(isDark),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                SafarGlassButton(
-                    text = "Close",
-                    icon = Icons.Default.Check,
-                    onClick = onDismiss,
-                    isLight = isLight,
-                    customTint = Color(0xFF2E7D32),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TodayGoalsCard(goals: List<Goal>, isDark: Boolean, onNavigate: (String) -> Unit) {
-    val visibleGoals = remember(goals) { goals.take(3) }
-    val completed = remember(goals) { goals.count { it.completed } }
-    val progress = remember(goals, completed) { if (goals.isNotEmpty()) completed.toFloat() / goals.size else 0f }
-    val accent = glassAccent(isDark)
-    DashCard(isDark) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Default.TrackChanges, contentDescription = null,
-                    tint = accent, modifier = Modifier.size(16.dp))
-                CardTitle(stringResource(R.string.dashboard_today_goals), isDark)
-            }
-            Text(
-                stringResource(R.string.dashboard_goals_count, completed, goals.size),
-                color = glassTextSecondary(isDark),
-                fontSize = 12.sp,
-            )
-        }
-        if (goals.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
-            Text("Stay focused and consistent.", color = glassTextSecondary(isDark), fontSize = 12.sp)
-            Spacer(Modifier.height(10.dp))
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                color = accent,
-                trackColor = glassNestedBg(isDark),
-            )
-            Spacer(Modifier.height(12.dp))
-            visibleGoals.forEach { goal ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(glassNestedBg(isDark))
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        Modifier
-                            .size(18.dp)
-                            .clip(CircleShape)
-                            .border(
-                                1.5.dp,
-                                if (goal.completed) accent else glassTextSecondary(isDark),
-                                CircleShape,
-                            )
-                            .background(if (goal.completed) accent else Color.Transparent),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (goal.completed) {
-                            Text(
-                                "✓",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
-                    Text(
-                        goal.title,
-                        color = glassTextPrimary(isDark),
-                        fontSize = 13.sp, modifier = Modifier.weight(1f),
-                        maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
-            }
-        } else {
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.dashboard_no_goals),
-                color = glassTextSecondary(isDark), fontSize = 13.sp)
-        }
-        Spacer(Modifier.height(8.dp))
-        SafarGlassButton(
-            text = "Manage Goals",
-            icon = Icons.Default.TrackChanges,
-            onClick = { onNavigate(Routes.nishthaTab(2)) },
-            isLight = !isDark,
-            customTint = if (isDark) SafarGlassPalette.Violet else SafarGlassPalette.LightViolet,
-        )
-    }
-}
-
-@Composable
-private fun MonthlyCard(report: MonthlyReport, isDark: Boolean, onNavigate: (String) -> Unit) {
-    val accent = glassAccent(isDark)
-    DashCard(isDark) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Default.BarChart, contentDescription = null,
-                    tint = accent, modifier = Modifier.size(16.dp))
-                CardTitle(stringResource(R.string.dashboard_monthly_snapshot), isDark)
-            }
-            Text(report.month, color = glassTextSecondary(isDark), fontSize = 12.sp)
+            Text(report.month, color = macSubtitleColor(isDark), fontSize = 12.sp)
         }
         Spacer(Modifier.height(4.dp))
         Text(
             "A quick look at your performance this month.",
-            color = glassTextSecondary(isDark),
+            color = macSubtitleColor(isDark),
             fontSize = 12.sp,
         )
         Spacer(Modifier.height(12.dp))
@@ -849,12 +1036,12 @@ private fun MonthlyCard(report: MonthlyReport, isDark: Boolean, onNavigate: (Str
         GlassDivider()
         StatRow(stringResource(R.string.dashboard_focus), "${report.focusDepth.toInt()}m/day", isDark)
         Spacer(Modifier.height(10.dp))
-        SafarGlassButton(
+        MacOSButton(
             text = "View Full Report",
             icon = Icons.Default.BarChart,
             onClick = { onNavigate(Routes.nishthaTab(4)) },
-            isLight = !isDark,
-            customTint = if (isDark) SafarGlassPalette.Lavender else SafarGlassPalette.LightLavender,
+            isDarkTheme = isDark,
+            buttonColor = Color(0xFF34C759)
         )
     }
 }
@@ -865,44 +1052,40 @@ private fun StatRow(label: String, value: String, isDark: Boolean) {
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = glassTextPrimary(isDark), fontSize = 14.sp)
-        Text(value, color = glassAccent(isDark), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = macTextColor(isDark), fontSize = 14.sp)
+        Text(value, color = macAccentBlue(), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
-@Composable
-private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean, onNavigate: (String) -> Unit) {
-    var showDetailDialog by remember { mutableStateOf(false) }
-    if (showDetailDialog) {
-        WeeklyMoodDetailDialog(moods = moods, isDark = isDark, onDismiss = { showDetailDialog = false })
-    }
+// ── Weekly Mood Chart Section ───────────────────────────────────────────────
 
+@Composable
+private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean) {
     val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val accent = glassAccent(isDark)
-    DashCard(isDark) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Default.ShowChart, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
-            CardTitle(stringResource(R.string.dashboard_weekly_mood), isDark)
-            Spacer(Modifier.weight(1f))
-            Text(
-                "View →",
-                color = accent,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { showDetailDialog = true },
-            )
+    MacOSControlCard(isDarkTheme = isDark) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(macAccentBlue()),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            }
+            Text(stringResource(R.string.dashboard_weekly_mood), color = macTextColor(isDark), fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(4.dp))
         Text(
             "Your emotional journey from Monday to Sunday.",
-            color = glassTextSecondary(isDark),
+            color = macSubtitleColor(isDark),
             fontSize = 12.sp,
         )
         Spacer(Modifier.height(16.dp))
 
         val intensityValues = remember(moods) { moods.take(7).map { it.intensity.toFloat() } }
-        val primaryColor = accent
-        val surfaceColor = glassNestedBg(isDark)
+        val primaryColor = macAccentBlue()
+        val surfaceColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
 
         Canvas(modifier = Modifier.fillMaxWidth().height(120.dp)) {
             val w = size.width
@@ -913,12 +1096,10 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean, onNavigate: (Str
                 val y = h - (v / maxVal) * h * 0.85f
                 Offset(x, y)
             }
-            // Grid lines
             for (i in 0..2) {
                 val y = h - (i * h / 2f)
                 drawLine(surfaceColor, Offset(0f, y), Offset(w, y), strokeWidth = 1f)
             }
-            // Fill path
             if (pts.size > 1) {
                 val fillPath = Path().apply {
                     moveTo(pts.first().x, h)
@@ -927,7 +1108,6 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean, onNavigate: (Str
                     close()
                 }
                 drawPath(fillPath, primaryColor.copy(alpha = 0.12f))
-                // Line
                 for (i in 0 until pts.size - 1) {
                     drawLine(primaryColor, pts[i], pts[i + 1], strokeWidth = 2.5f, cap = StrokeCap.Round)
                 }
@@ -943,129 +1123,59 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean, onNavigate: (Str
                     if (moodItem != null && moodItem.mood.isNotBlank()) {
                         Text(moodEmoji(moodItem.mood), fontSize = 12.sp)
                     } else {
-                        Text("—", fontSize = 12.sp, color = glassTextSecondary(isDark))
+                        Text("—", fontSize = 12.sp, color = macSubtitleColor(isDark))
                     }
                     Spacer(Modifier.height(4.dp))
-                    Text(d, fontSize = 10.sp, color = glassTextSecondary(isDark), textAlign = TextAlign.Center)
+                    Text(d, fontSize = 10.sp, color = macSubtitleColor(isDark), textAlign = TextAlign.Center)
                 }
             }
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            LegendDot(primaryColor, "Intensity", isDark)
-            LegendDot(primaryColor.copy(alpha = 0.5f), "Mood", isDark)
         }
     }
 }
 
+// ── Overlays & Dialogs ──────────────────────────────────────────────────────
+
 @Composable
-private fun WeeklyMoodDetailDialog(moods: List<Mood>, isDark: Boolean, onDismiss: () -> Unit) {
-    val isLight = !isDark
+private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss: () -> Unit) {
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        SafarGlassCard(
-            isLight = isLight,
-            contentPadding = PaddingValues(24.dp),
-        ) {
-            Text(
-                "Weekly Mood Log",
-                color = glassTextPrimary(isDark),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(Modifier.height(16.dp))
-            if (moods.isEmpty()) {
-                Text("No moods logged this week.", color = glassTextSecondary(isDark))
-            } else {
-                androidx.compose.foundation.lazy.LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.heightIn(max = 400.dp),
-                ) {
-                    items(moods) { mood ->
-                        Row(
-                            verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Text(moodEmoji(mood.mood), fontSize = 28.sp)
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    mood.mood.replaceFirstChar { it.uppercase() },
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 16.sp,
-                                    color = glassTextPrimary(isDark),
-                                )
-                                val dateText = try {
-                                    val parser = java.text.SimpleDateFormat(
-                                        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-                                        java.util.Locale.getDefault(),
-                                    ).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
-                                    val formatter = java.text.SimpleDateFormat(
-                                        "EEE, MMM d",
-                                        java.util.Locale.getDefault(),
-                                    )
-                                    val date = parser.parse(mood.timestamp)
-                                    if (date != null) formatter.format(date) else mood.timestamp
-                                } catch (_: Exception) {
-                                    mood.timestamp
-                                }
-                                Text(dateText, fontSize = 12.sp, color = glassTextSecondary(isDark))
-                                if (!mood.notes.isNullOrBlank()) {
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        "Why: ${mood.notes}",
-                                        fontSize = 13.sp,
-                                        color = glassTextPrimary(isDark),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+        MacOSControlCard(isDarkTheme = isDark, contentPadding = PaddingValues(28.dp)) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_leaf),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = macAccentBlue(),
+                )
+                Text(
+                    text = "Welcome back,\n${userName.replaceFirstChar { it.uppercase() }.ifEmpty { "Friend" }}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 28.sp,
+                    color = macTextColor(isDark),
+                )
+                Text(
+                    text = "Your journey continues here.\nEvery small step forward counts — today is a new opportunity to grow, reflect, and be present.",
+                    fontSize = 14.sp,
+                    color = macSubtitleColor(isDark),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp,
+                )
+                Spacer(Modifier.height(4.dp))
+                MacOSButton(
+                    text = "Let's begin",
+                    icon = Icons.Default.Star,
+                    onClick = onDismiss,
+                    isDarkTheme = isDark,
+                    buttonColor = macAccentBlue()
+                )
             }
-            Spacer(Modifier.height(16.dp))
-            SafarGlassButton(
-                text = "Close",
-                icon = Icons.Default.Check,
-                onClick = onDismiss,
-                isLight = isLight,
-            )
         }
     }
 }
-
-@Composable
-private fun LegendDot(color: Color, label: String, isDark: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-        Text(label, fontSize = 10.sp, color = glassTextSecondary(isDark))
-    }
-}
-
-
-
-@Composable
-private fun DashCard(isDark: Boolean, content: @Composable ColumnScope.() -> Unit) {
-    SafarGlassCard(
-        isLight = !isDark,
-        content = content,
-    )
-}
-
-@Composable
-private fun CardTitle(text: String, isDark: Boolean) {
-    Text(text, color = glassTextPrimary(isDark), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-}
-
-private data class ConfettiParticle(
-    var x: Float,
-    var y: Float,
-    var vx: Float,
-    var vy: Float,
-    val color: Color,
-    val size: Float,
-    val isCircle: Boolean,
-    var rotation: Float,
-    val rotationSpeed: Float
-)
 
 @Composable
 private fun ConfettiCelebration(
@@ -1075,12 +1185,12 @@ private fun ConfettiCelebration(
     if (!isActive) return
 
     val colors = listOf(
-        Color(0xFFFFC107), // Amber
-        Color(0xFFFF5722), // Deep Orange
-        Color(0xFF4CAF50), // Green
-        Color(0xFF2196F3), // Blue
-        Color(0xFF9C27B0), // Purple
-        Color(0xFFE91E63)  // Pink
+        Color(0xFFFFC107),
+        Color(0xFFFF5722),
+        Color(0xFF4CAF50),
+        Color(0xFF2196F3),
+        Color(0xFF9C27B0),
+        Color(0xFFE91E63)
     )
 
     var ticks by remember { mutableStateOf(0) }
@@ -1119,7 +1229,6 @@ private fun ConfettiCelebration(
         }
 
         if (particles.isNotEmpty()) {
-            val frame = ticks
             particles.forEach { p ->
                 p.x += p.vx
                 p.y += p.vy
@@ -1153,104 +1262,95 @@ private fun ConfettiCelebration(
     }
 }
 
+private data class ConfettiParticle(
+    var x: Float,
+    var y: Float,
+    var vx: Float,
+    var vy: Float,
+    val color: Color,
+    val size: Float,
+    val isCircle: Boolean,
+    var rotation: Float,
+    val rotationSpeed: Float
+)
+
 @Composable
 private fun CelebrationDialog(
     achievements: List<Achievement>,
     isDark: Boolean,
     onDismiss: () -> Unit,
 ) {
-    val isLight = !isDark
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .safarFrostedPanel(
-                    isLight = isLight,
-                    shape = RoundedCornerShape(SafarGlassChromeRadius),
-                )
-                .padding(24.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            ConfettiCelebration(modifier = Modifier.matchParentSize())
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+        MacOSControlCard(isDarkTheme = isDark, contentPadding = PaddingValues(24.dp)) {
+            Box(
                 modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    "Congratulations! 🎉",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = glassAccent(isDark),
-                    textAlign = TextAlign.Center,
-                )
+                ConfettiCelebration(modifier = Modifier.matchParentSize())
 
-                Text(
-                    if (achievements.size > 1) {
-                        "You have unlocked new achievements!"
-                    } else {
-                        "You unlocked a new achievement!"
-                    },
-                    fontSize = 14.sp,
-                    color = glassTextSecondary(isDark),
-                    textAlign = TextAlign.Center,
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        "Congratulations! 🎉",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = macAccentBlue(),
+                        textAlign = TextAlign.Center,
+                    )
 
-                achievements.forEach { achievement ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        val imagePath = achievementImages[achievement.id]
-                        if (imagePath != null) {
-                            val imageUrl = remember(imagePath) {
-                                val origin = BuildConfig.BASE_URL.trimEnd('/').let {
-                                    val uri = android.net.Uri.parse(it)
-                                    "${uri.scheme}://${uri.host}"
-                                }
-                                "$origin$imagePath"
-                            }
-                            AsyncImage(
-                                model = imageUrl,
-                                contentDescription = achievement.name,
-                                modifier = Modifier.size(96.dp).clip(CircleShape),
-                                contentScale = ContentScale.Fit,
-                            )
+                    Text(
+                        if (achievements.size > 1) {
+                            "You have unlocked new achievements!"
                         } else {
+                            "You unlocked a new achievement!"
+                        },
+                        fontSize = 14.sp,
+                        color = macSubtitleColor(isDark),
+                        textAlign = TextAlign.Center,
+                    )
+
+                    achievements.forEach { achievement ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                             Text(
                                 if (achievement.type == "title") "👑" else "🏅",
                                 fontSize = 48.sp,
                             )
-                        }
 
-                        Text(
-                            achievement.name,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = glassTextPrimary(isDark),
-                            textAlign = TextAlign.Center,
-                        )
-
-                        if (!achievement.description.isNullOrBlank()) {
                             Text(
-                                achievement.description,
-                                fontSize = 13.sp,
-                                color = glassTextSecondary(isDark),
+                                achievement.name,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = macTextColor(isDark),
                                 textAlign = TextAlign.Center,
                             )
+
+                            if (!achievement.description.isNullOrBlank()) {
+                                Text(
+                                    achievement.description,
+                                    fontSize = 13.sp,
+                                    color = macSubtitleColor(isDark),
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
                         }
                     }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    MacOSButton(
+                        text = "Awesome!",
+                        icon = Icons.Default.Star,
+                        onClick = onDismiss,
+                        isDarkTheme = isDark,
+                        buttonColor = macAccentBlue()
+                    )
                 }
-
-                Spacer(Modifier.height(8.dp))
-
-                SafarGlassButton(
-                    text = "Awesome!",
-                    icon = Icons.Default.Star,
-                    onClick = onDismiss,
-                    isLight = isLight,
-                )
             }
         }
     }

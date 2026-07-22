@@ -1,65 +1,72 @@
 package com.safarparmar.app.ui.settings
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,16 +74,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Brush
-import com.safarparmar.app.ui.components.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import android.widget.Toast
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -89,16 +94,10 @@ import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
 import com.safarparmar.app.ui.premium.PremiumUiState
 import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.profile.GlassCard
-import com.safarparmar.app.ui.profile.NotificationToggleRow
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
-import androidx.compose.ui.res.stringResource
-import androidx.compose.material.icons.filled.Language
-import com.safarparmar.app.R
 
 private enum class SettingsInfoSheet {
     EULA,
@@ -107,28 +106,6 @@ private enum class SettingsInfoSheet {
     OVERLAY,
     USAGE_ACCESS,
     NOTIFICATIONS,
-}
-
-// Top-level Settings screen sections. Only one is expanded at a time — this is
-// the fix for the screen reading as "extremely complicated": instead of every
-// card being permanently expanded and stacked on screen, the user sees a short
-// list of section headers and opens exactly the one they came for.
-private enum class SettingsSection {
-    APPEARANCE,
-    ACCOUNT,
-    NOTIFICATIONS,
-    PERMISSIONS,
-    LEGAL,
-    ADMIN,
-}
-
-private fun isValidReminderTimeInput(value: String): Boolean {
-    if (!Regex("^\\d{2}:\\d{2}$").matches(value)) return false
-    val parts = value.split(":")
-    if (parts.size != 2) return false
-    val hour = parts[0].toIntOrNull() ?: return false
-    val minute = parts[1].toIntOrNull() ?: return false
-    return hour in 0..23 && minute in 0..59
 }
 
 private fun settingsPremiumPlanLabel(planType: String?): String {
@@ -146,6 +123,22 @@ private fun formatSettingsPremiumExpiry(expiresAt: String?): String? {
     val instant = runCatching { Instant.parse(expiresAt) }.getOrNull() ?: return expiresAt.take(10)
     val formatter = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.ENGLISH)
     return formatter.format(instant.atZone(ZoneId.systemDefault()))
+}
+
+private fun formatTimeDisplay(timeStr: String): String {
+    if (timeStr.isBlank()) return "19:00 (7:00 PM)"
+    val parts = timeStr.split(":")
+    if (parts.size != 2) return timeStr
+    val hour = parts[0].toIntOrNull() ?: return timeStr
+    val minute = parts[1].toIntOrNull() ?: return timeStr
+    val isPm = hour >= 12
+    val displayHour = when {
+        hour == 0 -> 12
+        hour > 12 -> hour - 12
+        else -> hour
+    }
+    val amPm = if (isPm) "PM" else "AM"
+    return String.format(Locale.US, "%02d:%02d (%d:%02d %s)", hour, minute, displayHour, minute, amPm)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -167,13 +160,12 @@ fun SettingsScreen(
     val premiumUiState by premiumViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scheme = MaterialTheme.colorScheme
 
     var pendingMasterEnable by remember { mutableStateOf(false) }
     var pendingDailyEnable by remember { mutableStateOf(false) }
-    var reminderDraft by remember(uiState.dailyReminderTime) { mutableStateOf(uiState.dailyReminderTime) }
+    var showTimePickerDialog by remember { mutableStateOf(false) }
     var activeInfoSheet by remember { mutableStateOf<SettingsInfoSheet?>(null) }
-    // Only one top-level section open at a time — see SettingsSection doc comment.
-    var expandedSection by remember { mutableStateOf<SettingsSection?>(null) }
 
     var hasUsageAccess by remember { mutableStateOf(FocusShieldPermissionHelper.hasUsageStatsPermission(context)) }
     var hasFocusShieldOverlay by remember { mutableStateOf(FocusShieldPermissionHelper.hasOverlayPermission(context)) }
@@ -182,7 +174,7 @@ fun SettingsScreen(
     val premiumExpiryText = remember(premiumStatus.expiresAt) { formatSettingsPremiumExpiry(premiumStatus.expiresAt) }
     val premiumPlanText = remember(premiumStatus.planType) { settingsPremiumPlanLabel(premiumStatus.planType) }
 
-    androidx.compose.runtime.LaunchedEffect(premiumUiState) {
+    LaunchedEffect(premiumUiState) {
         when (val state = premiumUiState) {
             is PremiumUiState.PaymentSuccess -> {
                 Toast.makeText(context, "Safar Premium status synced.", Toast.LENGTH_SHORT).show()
@@ -240,32 +232,50 @@ fun SettingsScreen(
         )
     }
 
-    val scheme = MaterialTheme.colorScheme
+    if (showTimePickerDialog) {
+        DailyReminderTimePickerDialog(
+            currentTime = uiState.dailyReminderTime,
+            onDismiss = { showTimePickerDialog = false },
+            onConfirm = { selectedTime ->
+                viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(selectedTime))
+                showTimePickerDialog = false
+            }
+        )
+    }
+
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = scheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text("Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                        Text("Appearance, notifications, and permissions.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f))
+                    Column {
+                        Text(
+                            text = "Settings",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 20.sp),
+                            color = scheme.onSurface
+                        )
+                        Text(
+                            text = "Preferences, notifications, and permissions",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant
+                        )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = scheme.onSurface)
                     }
                 },
                 actions = {
                     IconButton(onClick = onHome) {
-                        Icon(Icons.Default.Home, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Default.Home, contentDescription = "Home", tint = scheme.onSurfaceVariant)
                     }
                     IconButton(onClick = onToggleDarkTheme) {
                         Icon(
-                            if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.Nightlight,
-                            null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            imageVector = if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.Nightlight,
+                            contentDescription = "Toggle Theme",
+                            tint = scheme.onSurface,
                         )
                     }
                 },
@@ -273,72 +283,21 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(scheme.background)
-        ) {
-            val gradientStart = if (isDarkTheme) Color(0xFF1B212D) else Color(0xFFD6E9FF)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(gradientStart, Color.Transparent)
-                        )
-                    )
-            )
-
+        Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                SettingsAccordionSection(
-                    section = SettingsSection.APPEARANCE,
-                    expandedSection = expandedSection,
-                    onToggle = { expandedSection = if (expandedSection == SettingsSection.APPEARANCE) null else SettingsSection.APPEARANCE },
-                    icon = Icons.Default.Tune,
-                    title = "Appearance & About",
-                    subtitle = if (isDarkTheme) "Dark theme" else "Light theme",
-                ) {
-                    Text(
-                        "Sun/moon toggles light and dark theme.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    NotificationToggleRow(
-                        title = "Dark Mode",
-                        subtitle = if (isDarkTheme) "On — dark theme enabled" else "Off",
-                        checked = isDarkTheme,
-                        onCheckedChange = { onToggleDarkTheme() },
-                    )
-                    Text(
-                        "Version ${BuildConfig.VERSION_NAME.substringBefore('-')}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                SettingsAccordionSection(
-                    section = SettingsSection.ACCOUNT,
-                    expandedSection = expandedSection,
-                    onToggle = { expandedSection = if (expandedSection == SettingsSection.ACCOUNT) null else SettingsSection.ACCOUNT },
-                    icon = Icons.Default.Security,
-                    title = "Account & Premium",
-                    subtitle = if (premiumStatus.hasAnyPaidAccess) "Premium active" else "Free plan",
-                ) {
-                    SettingsPremiumStatusCard(
+                // ── ACCOUNT & PREMIUM ─────────────────────────────────────────────────────────────
+                SettingsGroupCard(title = "ACCOUNT & SUBSCRIPTION") {
+                    SettingsPremiumHeaderCard(
                         isPremiumActive = premiumStatus.hasAnyPaidAccess,
                         planLabel = premiumPlanText,
                         expiryText = premiumExpiryText,
-                        canUseNishthaAnalytics = premiumStatus.canUseNishthaAnalytics,
-                        canUseStudyPlannerInsights = premiumStatus.canUseStudyPlannerInsights,
-                        canUseMehfilDm = premiumStatus.canUseMehfilDm,
                         isSyncing = isPremiumSyncing,
                         onManagePlan = onPremium,
                         onSyncStatus = {
@@ -350,25 +309,30 @@ fun SettingsScreen(
                     )
                 }
 
-                SettingsAccordionSection(
-                    section = SettingsSection.NOTIFICATIONS,
-                    expandedSection = expandedSection,
-                    onToggle = { expandedSection = if (expandedSection == SettingsSection.NOTIFICATIONS) null else SettingsSection.NOTIFICATIONS },
-                    icon = Icons.Default.Notifications,
-                    title = "Notifications",
-                    subtitle = if (uiState.notificationsEnabled) "On" else "Off",
-                ) {
-                    Text(
-                        "Helpful alerts for ekagra sessions, streaks, and important class updates.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // ── PREFERENCES & THEME ──────────────────────────────────────────────────────────
+                SettingsGroupCard(title = "PREFERENCES & APPEARANCE") {
+                    SettingsSwitchRow(
+                        icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
+                        iconBgColor = scheme.primaryContainer,
+                        iconTint = scheme.primary,
+                        title = "Dark Theme",
+                        subtitle = if (isDarkTheme) "Dark mode enabled" else "Light mode enabled",
+                        checked = isDarkTheme,
+                        onCheckedChange = { onToggleDarkTheme() },
                     )
-                    NotificationToggleRow(
-                        title = "Notifications",
-                        subtitle = "Master switch for SAFAR alerts.",
+                }
+
+                // ── STUDY NOTIFICATIONS ───────────────────────────────────────────────────────────
+                SettingsGroupCard(title = "STUDY NOTIFICATIONS") {
+                    SettingsSwitchRow(
+                        icon = Icons.Default.Notifications,
+                        iconBgColor = scheme.primaryContainer,
+                        iconTint = scheme.primary,
+                        title = "Allow Notifications",
+                        subtitle = "Master switch for SAFAR study & class alerts",
                         checked = uiState.notificationsEnabled,
-                        onCheckedChange = {
-                            if (!it) {
+                        onCheckedChange = { enabled ->
+                            if (!enabled) {
                                 viewModel.onEvent(SettingsEvent.ToggleNotifications(false))
                             } else {
                                 pendingMasterEnable = true
@@ -376,39 +340,38 @@ fun SettingsScreen(
                             }
                         },
                     )
-                    // Notification sources only appear once the master switch is on —
-                    // there's nothing to configure per-category while notifications
-                    // are globally off, and collapsing them keeps the screen short.
+
                     AnimatedVisibility(
                         visible = uiState.notificationsEnabled,
-                        enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(220)),
-                        exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(140)),
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.08f))
-                            SettingsPermissionRow(
+                        Column {
+                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.4f))
+
+                            SettingsSwitchRow(
                                 icon = Icons.Default.CheckCircle,
-                                title = "Notifications (system)",
-                                subtitle = "Android permission that lets SAFAR actually show these alerts.",
-                                granted = hasNotificationPermission,
-                                accent = MaterialTheme.colorScheme.primary,
-                                onClickWhenNotGranted = requestNotificationPermission,
-                                onInfoClick = { activeInfoSheet = SettingsInfoSheet.NOTIFICATIONS },
-                            )
-                            NotificationToggleRow(
-                                title = "Ekagra timer updates",
-                                subtitle = "Timer running, session complete, and break status.",
+                                iconBgColor = scheme.secondaryContainer,
+                                iconTint = scheme.secondary,
+                                title = "Ekagra Timer Updates",
+                                subtitle = "Active timer status, break alerts, and session complete",
                                 checked = uiState.focusTimerNotificationsEnabled,
                                 enabled = uiState.notificationsEnabled,
                                 onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
                             )
-                            NotificationToggleRow(
-                                title = "Daily study reminders",
-                                subtitle = "A planned reminder for your Ekagra study block.",
+
+                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
+
+                            SettingsSwitchRow(
+                                icon = Icons.Default.AccessTime,
+                                iconBgColor = scheme.tertiaryContainer,
+                                iconTint = scheme.tertiary,
+                                title = "Daily Study Reminder",
+                                subtitle = "Scheduled daily reminder for your Ekagra focus block",
                                 checked = uiState.dailyStudyReminderEnabled,
                                 enabled = uiState.notificationsEnabled,
-                                onCheckedChange = {
-                                    if (!it) {
+                                onCheckedChange = { enabled ->
+                                    if (!enabled) {
                                         viewModel.onEvent(SettingsEvent.ToggleDailyStudyReminder(false))
                                     } else {
                                         pendingDailyEnable = true
@@ -416,156 +379,173 @@ fun SettingsScreen(
                                     }
                                 },
                             )
-                            SafarCustomTextField(
-                                label = "DAILY REMINDER TIME",
-                                value = reminderDraft,
-                                onValueChange = { value ->
-                                    if (value.length <= 5 && value.all { it.isDigit() || it == ':' }) {
-                                        reminderDraft = value
+
+                            if (uiState.dailyStudyReminderEnabled) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { showTimePickerDialog = true }
+                                        .padding(start = 66.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "REMINDER TIME",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                                            color = scheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = formatTimeDisplay(uiState.dailyReminderTime),
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            color = scheme.primary
+                                        )
                                     }
-                                    if (isValidReminderTimeInput(value)) {
-                                        viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(value))
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = scheme.primaryContainer,
+                                        modifier = Modifier.clickable { showTimePickerDialog = true }
+                                    ) {
+                                        Text(
+                                            text = "Change",
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = scheme.primary
+                                        )
                                     }
-                                },
-                                enabled = uiState.notificationsEnabled && uiState.dailyStudyReminderEnabled,
-                                placeholder = "19:00",
-                                errorText = if (reminderDraft.isNotBlank() && !isValidReminderTimeInput(reminderDraft)) {
-                                    "Use 24-hour time in HH:mm format (e.g., 07:30, 19:00)."
-                                } else null,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            NotificationToggleRow(
-                                title = "Streak reminders",
-                                subtitle = "Evening warning before your streak expires.",
+                                }
+                            }
+
+                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
+
+                            SettingsSwitchRow(
+                                icon = Icons.Default.Notifications,
+                                title = "Streak Expiry Warnings",
+                                subtitle = "Evening reminder before your study streak expires",
                                 checked = uiState.streakReminderEnabled,
                                 enabled = uiState.notificationsEnabled,
                                 onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleStreakReminder(it)) },
                             )
-                            NotificationToggleRow(
-                                title = "Course/class updates",
-                                subtitle = "New lessons, tests, PDFs, and live class alerts.",
+
+                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
+
+                            SettingsSwitchRow(
+                                icon = Icons.Default.Notifications,
+                                title = "Course & Class Updates",
+                                subtitle = "Live class alerts, new tests, and study PDFs",
                                 checked = uiState.courseUpdatesEnabled,
                                 enabled = uiState.notificationsEnabled,
                                 onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
                             )
-                            NotificationToggleRow(
-                                title = "Achievements",
-                                subtitle = "Badges, milestones, and goal completion.",
-                                checked = uiState.achievementsEnabled,
-                                enabled = uiState.notificationsEnabled,
-                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAchievements(it)) },
-                            )
-                            NotificationToggleRow(
-                                title = "Community replies",
-                                subtitle = "Mehfil replies, mentions, and teacher responses.",
+
+                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
+
+                            SettingsSwitchRow(
+                                icon = Icons.Default.Notifications,
+                                title = "Community & Teacher Replies",
+                                subtitle = "Mehfil replies, mentions, and Parmar Sir alerts",
                                 checked = uiState.communityRepliesEnabled,
                                 enabled = uiState.notificationsEnabled,
                                 onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
-                            )
-                            NotificationToggleRow(
-                                title = "SAFAR announcements",
-                                subtitle = "Admin announcements and major challenges.",
-                                checked = uiState.announcementsEnabled,
-                                enabled = uiState.notificationsEnabled,
-                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleAnnouncements(it)) },
-                            )
-                            NotificationToggleRow(
-                                title = "Weekly summary",
-                                subtitle = "Progress recap when summaries are enabled.",
-                                checked = uiState.weeklySummaryEnabled,
-                                enabled = uiState.notificationsEnabled,
-                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleWeeklySummary(it)) },
-                            )
-                            Text(
-                                "Quiet hours: ${uiState.quietHoursStart} to ${uiState.quietHoursEnd}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                 }
 
-                val grantedPermissionCount = listOf(hasUsageAccess, hasFocusShieldOverlay).count { it }
-                SettingsAccordionSection(
-                    section = SettingsSection.PERMISSIONS,
-                    expandedSection = expandedSection,
-                    onToggle = { expandedSection = if (expandedSection == SettingsSection.PERMISSIONS) null else SettingsSection.PERMISSIONS },
-                    icon = Icons.Default.Lock,
-                    title = "Permissions",
-                    subtitle = "$grantedPermissionCount of 2 granted",
-                ) {
-                    Text(
-                        "Android permissions KAVACH uses to block distracting apps during ekagra sessions.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                // ── KAVACH PERMISSIONS ───────────────────────────────────────────────────────────
+                val grantedCount = listOf(hasUsageAccess, hasFocusShieldOverlay, hasNotificationPermission).count { it }
+                SettingsGroupCard(title = "KAVACH PERMISSIONS ($grantedCount OF 3 GRANTED)") {
                     SettingsPermissionRow(
-                        icon = Icons.Default.Info,
+                        icon = Icons.Default.Security,
                         title = "App Usage Permission",
-                        subtitle = "Helps KAVACH notice when a selected app opens during a ekagra session.",
+                        subtitle = "Required for KAVACH to detect blocked apps during Ekagra sessions",
                         granted = hasUsageAccess,
-                        accent = MaterialTheme.colorScheme.primary,
                         onClickWhenNotGranted = { FocusShieldPermissionHelper.openUsageAccessSettings(context) },
                         onInfoClick = { activeInfoSheet = SettingsInfoSheet.USAGE_ACCESS },
                     )
+
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
+
                     SettingsPermissionRow(
-                        icon = Icons.Default.Info,
-                        title = "Display over other apps",
-                        subtitle = "Lets KAVACH show its block screen over a distracting app.",
+                        icon = Icons.Default.Lock,
+                        title = "Display Over Other Apps",
+                        subtitle = "Allows KAVACH to show its block screen over distracting apps",
                         granted = hasFocusShieldOverlay,
-                        accent = MaterialTheme.colorScheme.primary,
                         onClickWhenNotGranted = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
                         onInfoClick = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
                     )
+
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
+
+                    SettingsPermissionRow(
+                        icon = Icons.Default.Notifications,
+                        title = "System Notification Permission",
+                        subtitle = "Android permission for SAFAR study and timer alerts",
+                        granted = hasNotificationPermission,
+                        onClickWhenNotGranted = requestNotificationPermission,
+                        onInfoClick = { activeInfoSheet = SettingsInfoSheet.NOTIFICATIONS },
+                    )
                 }
 
-                SettingsAccordionSection(
-                    section = SettingsSection.LEGAL,
-                    expandedSection = expandedSection,
-                    onToggle = { expandedSection = if (expandedSection == SettingsSection.LEGAL) null else SettingsSection.LEGAL },
-                    icon = Icons.Default.Info,
-                    title = "Legal & Info",
-                ) {
-                    Text(
-                        "Simple notes about SAFAR, your choices, and the permissions KAVACH uses.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    SettingsInfoRow(
-                        title = "EULA",
-                        subtitle = "Your basic agreement for using SAFAR.",
+                // ── LEGAL & ABOUT ────────────────────────────────────────────────────────────────
+                SettingsGroupCard(title = "LEGAL & ABOUT") {
+                    SettingsNavigationRow(
+                        icon = Icons.Default.Info,
+                        title = "End User License Agreement (EULA)",
+                        subtitle = "User terms and conditions for SAFAR",
                         onClick = { activeInfoSheet = SettingsInfoSheet.EULA },
                     )
-                    SettingsInfoRow(
-                        title = "Privacy & data",
-                        subtitle = "What SAFAR uses, and what it does not read.",
+
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
+
+                    SettingsNavigationRow(
+                        icon = Icons.Default.Lock,
+                        title = "Privacy Policy & Data Security",
+                        subtitle = "How SAFAR handles your data and privacy",
                         onClick = { activeInfoSheet = SettingsInfoSheet.PRIVACY },
                     )
-                    SettingsInfoRow(
-                        title = "Why KAVACH needs permissions",
-                        subtitle = "A friendly guide to ekagra blocking.",
+
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
+
+                    SettingsNavigationRow(
+                        icon = Icons.Default.Tune,
+                        title = "Why KAVACH Needs Permissions",
+                        subtitle = "A guide to KAVACH distraction blocking",
                         onClick = { activeInfoSheet = SettingsInfoSheet.KAVACH },
                     )
+
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "App Version",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = scheme.onSurface
+                        )
+                        Text(
+                            text = "v${BuildConfig.VERSION_NAME.substringBefore('-')}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 if (canAccessAdminComposer) {
-                    SettingsAccordionSection(
-                        section = SettingsSection.ADMIN,
-                        expandedSection = expandedSection,
-                        onToggle = { expandedSection = if (expandedSection == SettingsSection.ADMIN) null else SettingsSection.ADMIN },
-                        icon = Icons.Default.Notifications,
-                        title = "Admin",
-                    ) {
-                        Text(
-                            "Internal admin tools.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    SettingsGroupCard(title = "ADMIN TOOLS") {
                         Button(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
                             onClick = onOpenAdminNotificationComposer,
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Open Admin Notification Composer")
+                            Text("Open Admin Notification Composer", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -573,208 +553,385 @@ fun SettingsScreen(
                 NotificationDebugSettingsEntry()
 
                 Spacer(Modifier.height(24.dp))
-        }
+            }
         }
     }
 }
 
-// A single top-level Settings row: icon + title + optional one-line status,
-// tap to expand/collapse its content. Chevron rotates 180° on expand. Content
-// only composes its AnimatedVisibility while expanded, so collapsed sections
-// cost nothing extra on screen — this is what turns "every card open at once"
-// into a short scannable list, matching the accordion pattern requested.
+// ── Grouped Inset Container ──────────────────────────────────────────────────────────────────────
 @Composable
-private fun SettingsAccordionSection(
-    section: SettingsSection,
-    expandedSection: SettingsSection?,
-    onToggle: () -> Unit,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun SettingsGroupCard(
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        if (title != null) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    letterSpacing = 0.5.sp
+                ),
+                color = scheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+        GlassCard {
+            Column(
+                modifier = Modifier.padding(vertical = 4.dp),
+                content = content
+            )
+        }
+    }
+}
+
+// ── Switch Row Item ──────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun SettingsSwitchRow(
+    icon: ImageVector,
+    iconBgColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
     title: String,
     subtitle: String? = null,
-    content: @Composable ColumnScope.() -> Unit,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit,
 ) {
-    val expanded = expandedSection == section
-    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "settingsChevron")
-
-    GlassCard {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onToggle)
-                    .padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp))
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                    if (subtitle != null) {
-                        Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.rotate(rotation),
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(iconBgColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = scheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(220)),
-                exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(140)),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .padding(bottom = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                ) {
-                    content()
+        }
+        Switch(
+            checked = checked,
+            enabled = enabled,
+            onCheckedChange = onCheckedChange,
+        )
+    }
+}
+
+// ── Navigation Row Item ──────────────────────────────────────────────────────────────────────────
+@Composable
+private fun SettingsNavigationRow(
+    icon: ImageVector,
+    iconBgColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    title: String,
+    subtitle: String? = null,
+    onClick: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(iconBgColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = scheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+            contentDescription = null,
+            tint = scheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+// ── Permission Row Item ──────────────────────────────────────────────────────────────────────────
+@Composable
+private fun SettingsPermissionRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    granted: Boolean,
+    onClickWhenNotGranted: (() -> Unit)?,
+    onInfoClick: (() -> Unit)? = null,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val statusColor = if (granted) Color(0xFF10B981) else scheme.error
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !granted && onClickWhenNotGranted != null) {
+                onClickWhenNotGranted?.invoke()
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(if (granted) Color(0xFF10B981).copy(alpha = 0.15f) else scheme.errorContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (granted) Icons.Default.Check else icon,
+                contentDescription = null,
+                tint = statusColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = scheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = if (granted) "Granted" else "Required",
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = statusColor,
+            )
+            if (onInfoClick != null) {
+                IconButton(onClick = onInfoClick, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "More info",
+                        tint = scheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
     }
 }
 
+// ── macOS Control Hero Card for Premium ──────────────────────────────────────────────────────────
 @Composable
-private fun SettingsPremiumStatusCard(
+private fun SettingsPremiumHeaderCard(
     isPremiumActive: Boolean,
     planLabel: String,
     expiryText: String?,
-    canUseNishthaAnalytics: Boolean,
-    canUseStudyPlannerInsights: Boolean,
-    canUseMehfilDm: Boolean,
     isSyncing: Boolean,
     onManagePlan: () -> Unit,
     onSyncStatus: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val statusColor = if (isPremiumActive) Color(0xFF16A34A) else scheme.onSurfaceVariant
-    val statusBg = if (isPremiumActive) Color(0xFFEAF8F0) else scheme.surfaceVariant.copy(alpha = 0.38f)
     val statusText = if (isPremiumActive) {
-        expiryText?.let { "$planLabel active until $it" } ?: "$planLabel is active"
+        expiryText?.let { "Valid until $it" } ?: "$planLabel is active"
     } else {
-        "No active Premium plan on this account."
-    }
-    val featureSummary = when {
-        isPremiumActive -> buildList {
-            if (canUseNishthaAnalytics) add("Nishtha Analytics")
-            if (canUseStudyPlannerInsights) add("Exam Planner Insights")
-            if (canUseMehfilDm) add("Mehfil Private Connect")
-        }.takeIf { it.isNotEmpty() }?.joinToString(" / ") ?: "Premium features active"
-        else -> "Unlock analytics, planner insights, focus reports, and private connect."
+        "Free plan active on this account"
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(statusBg)
-                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(if (isPremiumActive) Color(0xFF10B981) else scheme.outline.copy(alpha = 0.25f)),
-                contentAlignment = Alignment.Center,
+                    .background(if (isPremiumActive) Color(0xFF10B981) else scheme.primaryContainer),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isPremiumActive) Icons.Default.CheckCircle else Icons.Default.Info,
+                    imageVector = Icons.Default.WorkspacePremium,
                     contentDescription = null,
-                    tint = if (isPremiumActive) Color.White else scheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp),
+                    tint = if (isPremiumActive) Color.White else scheme.primary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
+
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = if (isPremiumActive) "Safar Premium Active" else "Safar Plus",
+                    text = if (isPremiumActive) "Safar Premium Active" else "Safar Plus Plan",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = scheme.onSurface,
+                    color = scheme.onSurface
                 )
                 Text(
                     text = statusText,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (isPremiumActive) FontWeight.SemiBold else FontWeight.Normal),
-                    color = statusColor,
-                )
-                Text(
-                    text = featureSummary,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = if (isPremiumActive) FontWeight.SemiBold else FontWeight.Normal
+                    ),
+                    color = if (isPremiumActive) Color(0xFF10B981) else scheme.onSurfaceVariant
                 )
             }
         }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
                 onClick = onManagePlan,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = scheme.primary)
             ) {
-                Text(if (isPremiumActive) "Manage Plan" else "View Plans", fontWeight = FontWeight.Bold)
+                Text(if (isPremiumActive) "Manage Plan" else "Explore Premium", fontWeight = FontWeight.Bold)
             }
-            TextButton(
+
+            OutlinedButton(
                 onClick = onSyncStatus,
                 enabled = !isSyncing,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp),
+                shape = RoundedCornerShape(12.dp),
             ) {
                 Text(
-                    if (isSyncing) "Syncing..." else if (isPremiumActive) "Sync Status" else "Restore Premium",
-                    fontWeight = FontWeight.Bold,
+                    text = if (isSyncing) "Syncing..." else "Restore Status",
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
     }
 }
 
+// ── Native Material 3 TimePicker Dialog ──────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsInfoRow(
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
+private fun DailyReminderTimePickerDialog(
+    currentTime: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(onClick = onClick)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val initialHour = currentTime.split(":").getOrNull(0)?.toIntOrNull() ?: 19
+    val initialMinute = currentTime.split(":").getOrNull(1)?.toIntOrNull() ?: 0
+
+    val timePickerState = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = false,
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Select Daily Reminder Time",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        },
+        text = {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                TimePicker(state = timePickerState)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val formatted = String.format(Locale.US, "%02d:%02d", timePickerState.hour, timePickerState.minute)
+                    onConfirm(formatted)
+                },
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Set Time", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
         }
-        Icon(Icons.AutoMirrored.Filled.OpenInNew, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-    }
+    )
 }
 
+// ── Legal Bottom Sheet Component ─────────────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsLegalInfoSheet(
@@ -784,73 +941,59 @@ private fun SettingsLegalInfoSheet(
 ) {
     val content = when (sheet) {
         SettingsInfoSheet.EULA -> SettingsInfoContent(
-            title = "EULA",
-            subtitle = "Use SAFAR for learning, ekagra, and exam preparation.",
+            title = "End User License Agreement",
+            subtitle = "Terms for using SAFAR study and Ekagra focus tools.",
             points = listOf(
-                "Keep your account details private.",
+                "Keep your account credentials secure.",
                 "Use study tools fairly and respectfully.",
-                "SAFAR may improve features and fix issues over time.",
-                "KAVACH Focus Shield is optional. If enabled, it uses Usage Access and Accessibility Service only to detect selected blocked apps during active Ekagra focus timer sessions and return you to SAFAR.",
-                "SAFAR does not use KAVACH permissions to read screen content, messages, passwords, typed text, or to control your phone.",
-                "SAFAR does not sell or share Accessibility Service or Usage Access data, and it does not upload the names of apps you open or block.",
-                "Ekagra may use foreground service, media playback, notifications, and Picture-in-Picture only for active user-started focus sessions.",
+                "KAVACH Focus Shield uses Usage Access and Overlay permissions solely to detect and block selected distracting apps during active Ekagra focus sessions.",
+                "SAFAR does not read passwords, screen text, messages, or typed text.",
+                "SAFAR does not sell or share application usage data.",
             ),
         )
         SettingsInfoSheet.PRIVACY -> SettingsInfoContent(
-            title = "Privacy & data",
-            subtitle = "We keep permission use focused on the feature you choose.",
+            title = "Privacy Policy & Data Protection",
+            subtitle = "How SAFAR keeps your personal information private.",
             points = listOf(
-                "KAVACH does not read messages, passwords, photos, or typed text.",
-                "Your blocked app choices stay on this device.",
-                "Usage Access is used only to match opened apps against your blocked app list.",
-                "Accessibility Service is used only to show SAFAR's KAVACH block screen when a selected app opens during an active focus session.",
-                "SAFAR does not sell or share Accessibility Service or Usage Access data, and it does not upload the names of apps you open or block.",
-                "SAFAR may use limited KAVACH status, such as selected blocked app count, to keep the feature working.",
-                "Notifications are used for reminders and active session status.",
-                "Foreground service, media playback, and Picture-in-Picture are used only for active user-started Ekagra focus sessions.",
-                "Payments are handled by Razorpay/PhonePe; SAFAR stores your Premium status and validity date.",
+                "Blocked app preferences remain stored locally on your device.",
+                "Usage access is checked locally to match opened apps against your blocklist.",
+                "SAFAR does not sell or share your activity or usage data with third parties.",
+                "Payments are processed securely via Razorpay/PhonePe.",
             ),
         )
         SettingsInfoSheet.KAVACH -> SettingsInfoContent(
-            title = "Why KAVACH asks",
-            subtitle = "KAVACH needs a few Android permissions to block distractions during ekagra time.",
+            title = "Why KAVACH Needs Permissions",
+            subtitle = "Guide to KAVACH distraction shielding.",
             points = listOf(
-                "Usage Access helps notice opened apps only so KAVACH can compare them with your blocked app list.",
-                "Accessibility brings you back to SAFAR when a selected app opens during an active focus timer.",
-                "SAFAR does not upload the names of apps you open or block.",
-                "You can use SAFAR without KAVACH permissions.",
+                "Usage Access detects when a blocked app is opened.",
+                "Display Over Other Apps renders the KAVACH focus screen over blocked apps.",
+                "All checks happen locally on your device.",
             ),
         )
         SettingsInfoSheet.OVERLAY -> SettingsInfoContent(
-            title = "Display over other apps",
-            subtitle = "KAVACH is optional. It helps block only the apps you choose during an active Ekagra focus timer session.",
+            title = "Display Over Other Apps",
+            subtitle = "Permission required to show the KAVACH block screen.",
             points = listOf(
-                "SAFAR uses this permission only to draw its own KAVACH block screen on top of a distracting app you selected.",
-                "The block screen appears only when a user-selected blocked app opens during an active focus session.",
-                "SAFAR does not read, capture, or overlay anything else on other apps.",
-                "SAFAR does not collect, sell, store, or share data for ads, analytics, or third parties. All processing happens locally on your device.",
-                "You can keep using SAFAR without KAVACH, and you can turn this permission off anytime in Android Settings → Display over other apps.",
+                "Used only during active Ekagra focus timer sessions.",
+                "Draws the KAVACH focus block screen when a selected app is launched.",
+                "No background recording or screen reading takes place.",
             ),
         )
         SettingsInfoSheet.USAGE_ACCESS -> SettingsInfoContent(
-            title = "Usage Access",
-            subtitle = "Helps KAVACH understand which app is open.",
+            title = "App Usage Access",
+            subtitle = "Permission to detect opened apps.",
             points = listOf(
-                "Used during KAVACH setup and active ekagra sessions.",
-                "Helps match opened apps with your blocked app list.",
-                "SAFAR does not use Usage Access for ads, marketing, or third-party sharing.",
-                "SAFAR does not upload the names of apps you open or block.",
-                "You stay in control of the permission.",
+                "Allows KAVACH to compare opened apps with your study blocklist.",
+                "Used solely during active focus timer sessions.",
             ),
         )
         SettingsInfoSheet.NOTIFICATIONS -> SettingsInfoContent(
-            title = "Notifications",
-            subtitle = "Helpful study updates, only when enabled.",
+            title = "System Notification Permission",
+            subtitle = "Android notification permissions for SAFAR.",
             points = listOf(
-                "Timer progress and session complete alerts.",
-                "Daily study reminders if you switch them on.",
-                "KAVACH status while a ekagra session is active.",
-                "Foreground service and media playback notifications keep active Ekagra sessions visible and controllable outside the app.",
+                "Ekagra timer progress and session complete alerts.",
+                "Daily study reminder notifications.",
+                "Streak loss warning alerts.",
             ),
         )
     }
@@ -871,7 +1014,7 @@ private fun SettingsLegalInfoSheet(
                     Box(
                         modifier = Modifier
                             .padding(top = 6.dp)
-                            .size(7.dp)
+                            .size(6.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary),
                     )
@@ -882,7 +1025,7 @@ private fun SettingsLegalInfoSheet(
                 Button(
                     onClick = onOpenOverlaySettings,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Text("Open Display Over Apps Settings", fontWeight = FontWeight.Bold)
                 }
@@ -903,67 +1046,3 @@ private data class SettingsInfoContent(
     val subtitle: String,
     val points: List<String>,
 )
-
-@Composable
-private fun SettingsPermissionRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    granted: Boolean,
-    accent: Color,
-    onClickWhenNotGranted: (() -> Unit)?,
-    onInfoClick: (() -> Unit)? = null,
-) {
-    val statusColor = if (granted) accent else MaterialTheme.colorScheme.error
-    Card(
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(
-                    if (!granted && onClickWhenNotGranted != null) {
-                        Modifier.clickable(onClick = onClickWhenNotGranted)
-                    } else {
-                        Modifier
-                    },
-                )
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(statusColor))
-                Text(
-                    if (granted) "Granted" else "Required",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = statusColor,
-                )
-                if (!granted && onClickWhenNotGranted != null) {
-                    Icon(Icons.AutoMirrored.Filled.OpenInNew, null, tint = statusColor, modifier = Modifier.size(14.dp))
-                }
-                if (onInfoClick != null) {
-                    IconButton(onClick = onInfoClick, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Info, contentDescription = "More info", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                    }
-                }
-            }
-        }
-    }
-}

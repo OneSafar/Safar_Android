@@ -282,9 +282,12 @@ data class AutoDistributeRequest(
     val includeRevisionNeeded: Boolean = false,
     val overloadMode: String? = null,
     val strategy: String? = null,
-    /** For strategy "priority_split" ("Mixed Bag"): the subject names that should
-     *  get a topic every study day. Ignored for other strategies. */
+    /** For strategy "priority_split" ("Mixed Bag"): the chosen subject names, in
+     *  pick order. They are scheduled exclusively before every other subject.
+     *  Ignored for other strategies. */
     val prioritySubjectNames: List<String>? = null,
+    /** "sequential" | "balanced" — ordering within the priority phase. */
+    val priorityOrderMode: String? = null,
 )
 
 data class ReorderSyllabusRequest(
@@ -326,6 +329,10 @@ data class PlanPreviewRequest(
      *  scheduling to "priority_split" — these subjects get topics every study day,
      *  the rest rotate in one at a time on alternate days. */
     val prioritySubjects: List<String>? = null,
+    /** How the Mixed Bag priority phase is ordered: "sequential" finishes each
+     *  chosen subject in pick order; "balanced" interleaves them. Either way the
+     *  remaining subjects only start once the chosen ones run out. */
+    val priorityOrderMode: String? = null,
     val subjects: List<ImportSyllabusSubjectRequest>? = null,
     val examDate: String? = null,
     val dailyGoal: Int? = null,
@@ -428,6 +435,9 @@ data class ImportSyllabusChapterRequest(
 
 data class ImportSyllabusTopicRequest(
     val name: String,
+    /** "small" | "medium" | "big" — preserved so a weighted template keeps its
+     *  effort sizes when materialized through the syllabus-import path. */
+    val size: String? = null,
 )
 
 data class TopicPatchRequest(

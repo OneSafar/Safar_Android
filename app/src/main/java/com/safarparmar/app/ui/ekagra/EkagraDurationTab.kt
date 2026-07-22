@@ -57,6 +57,7 @@ import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.glass.SafarGlassCard
 import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
+import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import kotlinx.coroutines.delay
@@ -168,32 +169,62 @@ internal fun DurationTab(
     }
 
     if (showPomodoroDialog) {
-        androidx.compose.material3.AlertDialog(
+        val isLight = scheme.background.luminance() > 0.5f
+        val dialogBg: Color = if (isLight) SafarGlassPalette.LightGlassTint.copy(alpha = 0.95f) else Color(0xFF1A1A1E).copy(alpha = 0.95f)
+        AlertDialog(
             onDismissRequest = { showPomodoroDialog = false },
-            shape = RoundedCornerShape(24.dp),
-            title = { androidx.compose.material3.Text("Start Pomodoro") },
+            containerColor = dialogBg,
+            shape = RoundedCornerShape(SafarGlassChromeRadius),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Timer, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(24.dp))
+                    Text(
+                        "Start Pomodoro",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = scheme.onSurface
+                    )
+                }
+            },
             text = {
-                Column {
-                    androidx.compose.material3.Text("How many loops would you like to run?")
-                    Spacer(Modifier.height(8.dp))
-                    androidx.compose.material3.OutlinedTextField(
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "How many focus-break loops would you like to run?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
                         value = pomodoroLoopsInput,
-                        onValueChange = { pomodoroLoopsInput = it },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                        onValueChange = { pomodoroLoopsInput = it.filter { c -> c.isDigit() } },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        singleLine = true,
+                        shape = RoundedCornerShape(SafarGlassChromeRadius),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = scheme.primary,
+                            unfocusedBorderColor = scheme.outlineVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    showPomodoroDialog = false
-                    onStartPomodoro(pomodoroLoopsInput.toIntOrNull() ?: 4)
-                }) {
-                    androidx.compose.material3.Text("Start")
+                Button(
+                    onClick = {
+                        showPomodoroDialog = false
+                        onStartPomodoro(pomodoroLoopsInput.toIntOrNull() ?: 4)
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = scheme.primary, contentColor = scheme.onPrimary)
+                ) {
+                    Text("Start", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showPomodoroDialog = false }) {
-                    androidx.compose.material3.Text("Cancel")
+                TextButton(onClick = { showPomodoroDialog = false }) {
+                    Text("Cancel", color = scheme.onSurfaceVariant)
                 }
             }
         )
@@ -254,13 +285,13 @@ internal fun DurationSection(
                 color    = ink.mutedText,
                 modifier = Modifier.padding(bottom = 3.dp),
             )
-            // Type an exact value — a quiet pencil, not a filled icon button
+            // Type an exact value — 48dp touch target for accessibility
             IconButton(
                 onClick  = { showCustomInput = !showCustomInput; customText = "" },
-                modifier = Modifier.size(30.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(Icons.Default.Edit, contentDescription = "Custom value",
-                    modifier = Modifier.size(14.dp), tint = ink.mutedText)
+                    modifier = Modifier.size(16.dp), tint = ink.mutedText)
             }
         }
 

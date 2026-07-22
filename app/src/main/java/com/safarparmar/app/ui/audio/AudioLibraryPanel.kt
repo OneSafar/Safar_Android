@@ -6,6 +6,8 @@ import android.net.Uri
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,6 +32,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
+import com.safarparmar.app.ui.ekagra.EkagraDisplayTitle
+import com.safarparmar.app.ui.ekagra.EkagraEyebrow
+import com.safarparmar.app.ui.ekagra.EkagraHairline
+import com.safarparmar.app.ui.ekagra.EkagraTextTabs
+import com.safarparmar.app.ui.ekagra.rememberEkagraInk
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioLibraryPanel(
@@ -39,6 +47,7 @@ fun AudioLibraryPanel(
 ) {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
+    val ink = rememberEkagraInk(onCanvas = false)
 
     var selectedCategory by remember { mutableStateOf<AudioCategory?>(null) }
     var previewingTrackId by remember { mutableStateOf<String?>(null) }
@@ -109,6 +118,8 @@ fun AudioLibraryPanel(
         }
     }
 
+    val categories = remember { listOf<AudioCategory?>(null) + AudioCategory.entries }
+
     val filteredTracks = remember(selectedCategory) {
         if (selectedCategory == null) AudioLibrary.TRACKS
         else AudioLibrary.TRACKS.filter { it.category == selectedCategory }
@@ -116,131 +127,130 @@ fun AudioLibraryPanel(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = scheme.surfaceContainerLow,
+        containerColor = scheme.background,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = ink.hairline) }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
+                .padding(horizontal = 24.dp)
         ) {
-            // Header
+            // Header — Ekagra typography
+            Spacer(Modifier.height(4.dp))
+            EkagraEyebrow("Music", ink.secondaryText)
+            Spacer(Modifier.height(4.dp))
+            EkagraDisplayTitle("Audio library", ink.primaryText)
+            Spacer(Modifier.height(18.dp))
+
+            // Categories using EkagraTextTabs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .horizontalScroll(rememberScrollState())
             ) {
-                Text(
-                    text = "Audio Library",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                EkagraTextTabs(
+                    items = categories,
+                    selected = selectedCategory,
+                    accent = scheme.primary,
+                    ink = ink,
+                    label = { it?.displayName ?: "All" },
+                    onSelect = { selectedCategory = it }
                 )
             }
 
-            // Categories
-            ScrollableTabRow(
-                selectedTabIndex = if (selectedCategory == null) 0 else AudioCategory.values().indexOf(selectedCategory) + 1,
-                modifier = Modifier.fillMaxWidth(),
-                edgePadding = 20.dp,
-                containerColor = Color.Transparent,
-                divider = {}
-            ) {
-                Tab(
-                    selected = selectedCategory == null,
-                    onClick = { selectedCategory = null },
-                    text = { Text("All") }
-                )
-                AudioCategory.values().forEach { category ->
-                    Tab(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        text = { Text(category.displayName) }
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
+            EkagraHairline(ink.hairline)
+            Spacer(Modifier.height(8.dp))
 
             // Track List
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                    .weight(1f),
+                contentPadding = PaddingValues(bottom = 40.dp)
             ) {
                 items(filteredTracks, key = { it.id }) { track ->
                     val isSelected = track.id == selectedTrackId
                     val isPreviewing = track.id == previewingTrackId
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isSelected) scheme.primaryContainer.copy(alpha = 0.5f)
-                                else Color.Transparent
-                            )
-                            .clickable {
-                                onTrackSelect(track)
-                                releasePreview()
-                                onDismiss()
-                            }
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Play/Preview button
-                        Box(
+                    Column(Modifier.fillMaxWidth()) {
+                        Row(
                             modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(if (isSelected) scheme.primary else scheme.surfaceVariant)
-                                .clickable { playPreview(track) },
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .clickable {
+                                    onTrackSelect(track)
+                                    releasePreview()
+                                    onDismiss()
+                                }
+                                .padding(vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            if (isPreviewing) {
-                                EqualizerAnimation(color = if (isSelected) scheme.onPrimary else scheme.primary)
-                            } else {
-                                Icon(
-                                    imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayArrow,
-                                    contentDescription = "Preview",
-                                    tint = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                            // Play/Preview button
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) scheme.primary.copy(alpha = 0.15f) else ink.trackFaint)
+                                    .clickable { playPreview(track) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isPreviewing) {
+                                    EqualizerAnimation(color = scheme.primary)
+                                } else {
+                                    Icon(
+                                        imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayArrow,
+                                        contentDescription = "Preview",
+                                        tint = if (isSelected) scheme.primary else ink.secondaryText,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
-                        }
 
-                        // Track info
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = track.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) scheme.primary else scheme.onSurface
-                            )
-                            if (track.description != null) {
+                            // Track info
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = track.description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = scheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    text = track.name,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = ink.primaryText
                                 )
+                                if (track.description != null) {
+                                    Text(
+                                        text = track.description,
+                                        fontSize = 12.sp,
+                                        color = ink.mutedText,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
+                            }
+
+                            // Selected indicator — accent dot + checkmark
+                            if (isSelected) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(scheme.primary)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = scheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
-
-                        // Selected indicator
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Selected",
-                                tint = scheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        EkagraHairline(ink.hairline.copy(alpha = ink.hairline.alpha * 0.6f))
                     }
                 }
             }

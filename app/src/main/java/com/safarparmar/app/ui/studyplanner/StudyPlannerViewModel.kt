@@ -134,7 +134,6 @@ data class StudyPlannerUiState(
      *  a generic message that doesn't match what was actually undone. */
     val lastUndoableActionLabel: String? = null,
     /** Per-plan scheduling mode: "flex" (allow over-goal days) or "strict". */
-    val planningMode: String = "flex",
     /** "How do you like to study" default: "interleaved" (mix subjects) or "sequential"
      *  (deep focus). Chosen during plan creation, reused as the Build Planner default. */
     val preferredStudyStrategy: String = "interleaved",
@@ -182,8 +181,10 @@ data class PlannerBackDestination(
  *  reorder the syllabus first. */
 data class PendingRebuild(
     val strategy: String,
-    val overloadMode: String? = null,
+    /** Mixed Bag's chosen subjects, in pick order. */
     val prioritySubjectNames: List<String> = emptyList(),
+    /** "sequential" | "balanced" ordering within the priority phase. */
+    val priorityOrderMode: String? = null,
 )
 
 @HiltViewModel
@@ -371,13 +372,6 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    override fun setPlanningMode(mode: String) {
-        val normalized = if (mode == "strict") "strict" else "flex"
-        val planId = _uiState.value.selectedPlan?.id ?: return
-        _uiState.update { it.copy(planningMode = normalized) }
-        viewModelScope.launch { dataStore.setPlannerPlanningMode(planId, normalized) }
-    }
-
     override fun setPreferredStudyStrategy(strategy: String) {
         val normalized = if (strategy == "sequential") "sequential" else "interleaved"
         _uiState.update { it.copy(preferredStudyStrategy = normalized) }
@@ -499,7 +493,6 @@ class StudyPlannerViewModel @Inject constructor(
                         )
                     }
                     refreshOnboardingProgress(planId)
-                    refreshPlanningMode(planId)
                     refreshPreferredStudyStrategy(planId)
                     refreshCalendar(planId)
                     refreshAnalytics(planId)
@@ -508,13 +501,6 @@ class StudyPlannerViewModel @Inject constructor(
                 is Resource.Error -> _uiState.update { it.copy(error = r.message, loading = false) }
                 is Resource.Loading -> Unit
             }
-        }
-    }
-
-    private fun refreshPlanningMode(planId: String) = viewModelScope.launch {
-        val mode = dataStore.plannerPlanningMode(planId).first()
-        _uiState.update { state ->
-            if (state.selectedPlan?.id == planId) state.copy(planningMode = mode) else state
         }
     }
 
@@ -1064,7 +1050,6 @@ class StudyPlannerViewModel @Inject constructor(
             _uiState.update { it.copy(error = "Set an exam date before building the planner.") }
             return
         }
-        val resolvedMode = overloadMode ?: _uiState.value.planningMode
         val resolvedStrategy = strategy?.takeIf { it == "interleaved" || it == "sequential" }
         mutateAuto {
             repo.autoDistribute(
@@ -1074,7 +1059,7 @@ class StudyPlannerViewModel @Inject constructor(
                     includeRevisionNeeded = false,
                     lockExistingDates = lockExisting,
                     preserveFromDate = preserveToday,
-                    overloadMode = resolvedMode,
+                    overloadMode = overloadMode,
                     strategy = resolvedStrategy,
                 ),
             )
@@ -1083,15 +1068,15 @@ class StudyPlannerViewModel @Inject constructor(
 
     override fun armRebuild(
         strategy: String,
-        overloadMode: String?,
         prioritySubjectNames: List<String>,
+        priorityOrderMode: String?,
     ) {
         _uiState.update {
             it.copy(
                 pendingRebuild = PendingRebuild(
                     strategy = strategy,
-                    overloadMode = overloadMode,
                     prioritySubjectNames = prioritySubjectNames,
+                    priorityOrderMode = priorityOrderMode,
                 ),
             )
         }
@@ -1101,6 +1086,7 @@ class StudyPlannerViewModel @Inject constructor(
         strategy: String,
         overloadMode: String?,
         prioritySubjectNames: List<String>,
+        priorityOrderMode: String?,
     ) {
         if (_uiState.value.selectedPlan?.examDate.isNullOrBlank()) {
             _uiState.update { it.copy(error = "Set an exam date before rebuilding the planner.") }
@@ -1113,7 +1099,6 @@ class StudyPlannerViewModel @Inject constructor(
             "priority_split" -> if (prioritySubjectNames.isNotEmpty()) "priority_split" else "interleaved"
             else -> "interleaved"
         }
-        val resolvedMode = overloadMode ?: _uiState.value.planningMode
         // Keep the plan-tab "how you study" label in sync with the choice.
         setPreferredStudyStrategy(if (resolvedStrategy == "sequential") "sequential" else "interleaved")
         _uiState.update { it.copy(pendingRebuild = null) }
@@ -1128,9 +1113,10 @@ class StudyPlannerViewModel @Inject constructor(
                     // (manually moved) ones automatically.
                     lockExistingDates = false,
                     preserveFromDate = true,
-                    overloadMode = resolvedMode,
+                    overloadMode = overloadMode,
                     strategy = resolvedStrategy,
                     prioritySubjectNames = prioritySubjectNames.takeIf { resolvedStrategy == "priority_split" },
+                    priorityOrderMode = priorityOrderMode.takeIf { resolvedStrategy == "priority_split" },
                 ),
             )
         }
@@ -1779,8 +1765,11 @@ class StudyPlannerViewModel @Inject constructor(
                 chapters = subject.chapters.map { chapter ->
                     ImportSyllabusChapterRequest(
                         name = chapter.name,
-                        topics = chapter.topics.map { topicName ->
-                            ImportSyllabusTopicRequest(name = topicName)
+                        topics = chapter.topics.map { topic ->
+                            ImportSyllabusTopicRequest(
+                                name = topic.name,
+                                size = topic.size?.wireValue,
+                            )
                         }
                     )
                 }

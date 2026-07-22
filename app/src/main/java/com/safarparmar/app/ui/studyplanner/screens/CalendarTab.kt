@@ -207,6 +207,10 @@ import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 // ── Liquid Glass design system (Dhyan / Dashboard recipe) ────────────────────
 import com.safarparmar.app.ui.studyplanner.components.flatCard
 import com.safarparmar.app.ui.studyplanner.components.GlassButton
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.studyplanner.components.glassSurface
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.PlannerCalendarStatus
@@ -287,8 +291,7 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassSurface(shape = RoundedCornerShape(24.dp))
-                        .padding(vertical = 16.dp, horizontal = 12.dp)
+                        .padding(vertical = 8.dp)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -395,39 +398,22 @@ internal fun CalendarTab(plan: StudyPlan, state: StudyPlannerUiState, actions: P
             }
 
             item {
-                // Keeps its existing accent color — macOS glass chrome only.
-                GlassButton(
+                // Flat magazine actions: hairline-separated rows with the colour
+                // carried by the label, not a filled button.
+                Spacer(Modifier.height(10.dp))
+                PlanHairline()
+                CalendarActionRow(
+                    label = "View revision topics",
+                    accent = PlannerFlatColors.PrimaryAccent,
                     onClick = { actions.openRevisionTopics() },
-                    accentColor = PlannerFlatColors.PrimaryAccent,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                ) {
-                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color.White)
-                    Spacer(Modifier.width(8.dp))
-                    Text("View Revision Topics", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            item {
-                // Keeps its existing rose/red — macOS glass chrome only.
-                GlassButton(
+                )
+                PlanHairline(alpha = 0.6f)
+                CalendarActionRow(
+                    label = "View missed topics",
+                    accent = Color(0xFFDC2626),
                     onClick = { showUnscheduledTopicsScreen = true },
-                    accentColor = Color(0xFFDC2626),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                ) {
-                    Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null, tint = Color.White)
-                    Spacer(Modifier.width(8.dp))
-                    Text("View Missed Topics", color = Color.White, fontWeight = FontWeight.Bold)
-                }
+                )
+                PlanHairline()
             }
         }
 
@@ -451,55 +437,51 @@ private fun CalendarPlainHeader(plan: StudyPlan, isLight: Boolean = false, modif
     val examDays = daysUntil(plan.examDate)
     val examDate = readableDate(plan.examDate).takeUnless { it == "Not set" }.orEmpty()
 
-    Box(
-        modifier = modifier
-            .padding(bottom = 8.dp)
-            .fillMaxWidth()
-            .glassSurface(shape = RoundedCornerShape(24.dp))
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(
+    // Flat magazine header: eyebrow, then the plan title with the countdown
+    // numeral in serif, and the exam date as a quiet meta line. No card.
+    Column(modifier = modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+        PlanEyebrow("Target exam")
+        Spacer(Modifier.height(16.dp))
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = plan.title.ifBlank { "Your Study Journey" },
+                fontFamily = LoraFontFamily,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Normal,
+                color = PlannerFlatColors.TextDark,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
+            )
+            Spacer(Modifier.width(10.dp))
+            if (examDays != null && examDays >= 0L) {
                 Text(
-                    text = "TARGET EXAM",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = PlannerFlatColors.TextMuted,
-                        letterSpacing = 0.8.sp,
-                    ),
+                    text = "$examDays",
+                    fontFamily = LoraFontFamily,
+                    fontSize = 22.sp,
+                    color = PlannerFlatColors.PrimaryAccent,
+                    maxLines = 1,
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = plan.title.ifBlank { "Your Study Journey" },
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = PlannerFlatColors.TextDark,
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                }
-                if (examDate.isNotEmpty()) {
-                    Text(
-                        text = examDate,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PlannerFlatColors.TextMuted,
-                    )
-                }
+                Spacer(Modifier.width(5.dp))
+                Text(
+                    text = if (examDays == 1L) "day left" else "days left",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PlannerFlatColors.TextMuted,
+                    modifier = Modifier.padding(bottom = 2.dp),
+                )
             }
-            ExamDaysCountdownBadge(days = examDays)
         }
+        if (examDate.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = examDate,
+                fontSize = 11.5.sp,
+                color = PlannerFlatColors.TextMuted,
+            )
+        }
+        Spacer(Modifier.height(18.dp))
+        PlanHairline()
     }
 }
 
@@ -779,10 +761,17 @@ private fun DayStatBox(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier = Modifier,
 ) {
+    // The day sheet is a pop-up, so it belongs to the glass layer: each tile
+    // keeps its own status colour but renders as tinted glass rather than a
+    // solid block. Alphas are raised because the tile carries white content.
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(color)
+            .glassSurface(
+                shape = RoundedCornerShape(12.dp),
+                tint = color,
+                tintTopAlpha = 0.78f,
+                tintBottomAlpha = 0.58f,
+            )
             .padding(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -840,13 +829,14 @@ private fun CompactDayTopicRow(
     
     var showFullName by remember { mutableStateOf(false) }
 
+    // Pop-up layer → glass. Each row keeps its status colour as a light tint.
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .glassSurface(shape = RoundedCornerShape(12.dp), tint = topicStatus.color)
             .clickable { showFullName = !showFullName },
         shape = RoundedCornerShape(12.dp),
-        color = topicStatus.color.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, topicStatus.color.copy(alpha = 0.25f))
+        color = Color.Transparent,
     ) {
         Row(
             modifier = Modifier
@@ -941,5 +931,43 @@ private fun ChangeDatePill(onClick: () -> Unit) {
                 ),
             )
         }
+    }
+}
+
+/** A flat calendar action: accent label on the left, chevron on the right. */
+@Composable
+private fun CalendarActionRow(
+    label: String,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(accent),
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = accent,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = PlannerFlatColors.BorderSoft,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }

@@ -395,7 +395,7 @@ fun TemplatePickerStep(
                                 items(visibleTopicIndices, key = { "template_topic_${subjectIndex}_${chapterRef.index}_$it" }) { ti ->
                                     val key = Triple(subjectIndex, chapterRef.index, ti)
                                     TopicAddedRow(
-                                        name = chapter.topics[ti],
+                                        name = chapter.topics[ti].name,
                                         onRemove = { onToggleTopic(key.first, key.second, key.third) },
                                     )
                                 }

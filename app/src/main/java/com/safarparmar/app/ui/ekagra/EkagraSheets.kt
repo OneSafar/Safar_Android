@@ -72,45 +72,32 @@ import androidx.compose.runtime.staticCompositionLocalOf
 @Composable
 internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> Unit, onDismiss: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
-    val isLight = scheme.background.luminance() > 0.5f
+    val ink = rememberEkagraInk(onCanvas = false)
+    val dialogBg = scheme.background
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isLight) {
-            SafarGlassPalette.LightGlassTint.copy(alpha = 0.92f)
-        } else {
-            Color(0xFF1A1A1E).copy(alpha = 0.94f)
-        },
-        shape = RoundedCornerShape(SafarGlassChromeRadius),
-        title  = { 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    Icons.Default.Palette, 
-                    contentDescription = null, 
-                    tint = scheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    "Visual Theme", 
-                    style = MaterialTheme.typography.titleLarge, 
-                    fontWeight = FontWeight.ExtraBold,
-                    color = scheme.onSurface
-                )
+        containerColor = dialogBg,
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Column(Modifier.fillMaxWidth()) {
+                EkagraEyebrow("Theme", ink.secondaryText)
+                Spacer(Modifier.height(4.dp))
+                EkagraDisplayTitle("Visual theme", ink.primaryText)
             }
         },
-        text   = {
+        text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     "Select a backdrop and music theme to personalize your focus session.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurfaceVariant
+                    fontSize = 12.sp,
+                    color = ink.mutedText
                 )
-                
+                EkagraHairline(ink.hairline)
+
                 val chunks = visualThemes.chunked(2)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -124,85 +111,72 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
                             pair.forEach { theme ->
                                 val isSelected = theme.name == current.name
                                 val cardBorder = if (isSelected) {
-                                    BorderStroke(2.dp, theme.accent)
+                                    BorderStroke(1.5.dp, theme.accent)
                                 } else {
-                                    BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f))
+                                    BorderStroke(1.dp, ink.hairline)
                                 }
-                                val cardBg = if (isSelected) theme.accent.copy(alpha = 0.15f) else scheme.surfaceContainerHigh
+                                val cardBg = if (isSelected) theme.accent.copy(alpha = 0.12f) else scheme.surfaceContainerLow
 
-                                Card(
+                                Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(100.dp)
-                                        .clip(RoundedCornerShape(SafarGlassChromeRadius))
-                                        .clickable { onSelect(theme) },
-                                    shape = RoundedCornerShape(SafarGlassChromeRadius),
-                                    border = cardBorder,
-                                    colors = CardDefaults.cardColors(containerColor = cardBg)
+                                        .height(84.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(cardBg)
+                                        .border(cardBorder, RoundedCornerShape(16.dp))
+                                        .clickable { onSelect(theme) }
+                                        .padding(12.dp)
                                 ) {
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        if (theme.gradientColors != null) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .background(
-                                                        androidx.compose.ui.graphics.Brush.linearGradient(
-                                                            colors = theme.gradientColors
-                                                        )
-                                                    )
-                                                    .alpha(0.35f)
-                                            )
-                                        } else {
-                                            // Same accent color that drives the entire screen's
-                                            // dynamic color scheme once this theme is selected
-                                            // (see `themeColorScheme` in EkagraScreen.kt) — the
-                                            // swatch is never a color the user won't actually see.
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .background(theme.accent)
-                                                    .alpha(0.25f)
-                                            )
-                                        }
-
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(12.dp),
-                                            verticalArrangement = Arrangement.SpaceBetween
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Row(
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.fillMaxWidth()
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(30.dp)
+                                                    .clip(CircleShape)
+                                                    .background(theme.accent.copy(alpha = 0.18f)),
+                                                contentAlignment = Alignment.Center
                                             ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(32.dp)
-                                                        .clip(CircleShape)
-                                                        .background(theme.accent.copy(alpha = 0.25f)),
-                                                    contentAlignment = Alignment.Center
+                                                Text(theme.emoji, fontSize = 15.sp)
+                                            }
+                                            if (isSelected) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                                 ) {
-                                                    Text(theme.emoji, fontSize = 16.sp)
-                                                }
-                                                if (isSelected) {
+                                                    Box(
+                                                        Modifier
+                                                            .size(6.dp)
+                                                            .clip(CircleShape)
+                                                            .background(theme.accent)
+                                                    )
                                                     Icon(
                                                         Icons.Default.CheckCircle,
                                                         contentDescription = "Selected",
                                                         tint = theme.accent,
-                                                        modifier = Modifier.size(20.dp)
+                                                        modifier = Modifier.size(18.dp)
                                                     )
                                                 }
                                             }
-                                            Text(
-                                                theme.name,
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = scheme.onSurface
-                                            )
                                         }
+                                        Text(
+                                            theme.name,
+                                            fontFamily = EkagraSerif,
+                                            fontSize = 15.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                            color = ink.primaryText
+                                        )
                                     }
                                 }
+                            }
+                            if (pair.size == 1) {
+                                Spacer(Modifier.weight(1f))
                             }
                         }
                     }

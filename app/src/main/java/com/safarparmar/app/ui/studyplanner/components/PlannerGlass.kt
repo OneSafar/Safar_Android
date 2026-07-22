@@ -77,6 +77,11 @@ fun Modifier.glassSurface(
     shape: Shape = RoundedCornerShape(20.dp),
     tint: Color? = null,
     isDarkTheme: Boolean = plannerIsDark(MaterialTheme.colorScheme),
+    /** How saturated the [tint] wash reads. Defaults are subtle enough for a
+     *  card behind dark text; raise them when the surface carries white content
+     *  (e.g. the day-sheet stat tiles) so it stays legible. */
+    tintTopAlpha: Float = if (isDarkTheme) 0.22f else 0.16f,
+    tintBottomAlpha: Float = if (isDarkTheme) 0.07f else 0.05f,
 ): Modifier {
     val bodyColor = if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
     var m = this
@@ -89,14 +94,11 @@ fun Modifier.glassSurface(
         .clip(shape)
         .background(bodyColor)
     if (tint != null) {
-        // Colored wash over the glass base — kept low-alpha so it stays glassy
-        // and translucent, just tinted. Slightly stronger in dark mode where the
-        // darker base would otherwise swallow the colour.
-        val top = if (isDarkTheme) 0.22f else 0.16f
-        val bottom = if (isDarkTheme) 0.07f else 0.05f
+        // Colored wash over the glass base — the surface stays glassy and
+        // translucent, just tinted.
         m = m.background(
             Brush.verticalGradient(
-                colors = listOf(tint.copy(alpha = top), tint.copy(alpha = bottom)),
+                colors = listOf(tint.copy(alpha = tintTopAlpha), tint.copy(alpha = tintBottomAlpha)),
             ),
         )
     }

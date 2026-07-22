@@ -8,6 +8,7 @@ data class DashboardUiState(
     val userAvatar: String? = null,
     val activeTitle: String = "",
     val activeTitleId: String = "",
+    val activeTitleImageUrl: String? = null,
     val streaks: Streaks = Streaks(),
     val todayMood: Mood? = null,
     val todayGoals: List<Goal> = emptyList(),

@@ -329,7 +329,6 @@ private fun MetricSquareCard(
 ) {
     Box(
         modifier = modifier
-            .flatCard(shape = RoundedCornerShape(20.dp))
             .padding(horizontal = 12.dp, vertical = 16.dp),
     ) {
         Column(
@@ -390,7 +389,6 @@ internal fun ConsistencyStreakCard(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .flatCard(shape = RoundedCornerShape(24.dp))
             .animateContentSize()
             .padding(18.dp),
     ) {
@@ -608,7 +606,6 @@ internal fun InsightsStudySpeedCard(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .flatCard(shape = RoundedCornerShape(24.dp))
             .padding(horizontal = 18.dp, vertical = 20.dp),
     ) {
         Column(
@@ -717,7 +714,6 @@ internal fun SubjectProgressChart(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .flatCard(shape = RoundedCornerShape(24.dp))
             .animateContentSize()
             .padding(18.dp),
     ) {
@@ -1041,7 +1037,6 @@ internal fun InsightsFinishLineCard(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .flatCard(shape = RoundedCornerShape(24.dp))
             .padding(18.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -1295,7 +1290,6 @@ internal fun InsightsRevisionPulseCard(
         modifier = Modifier
             .fillMaxWidth()
             .insightsEntrance(entrance)
-            .flatCard(shape = RoundedCornerShape(24.dp))
             .animateContentSize()
             .padding(18.dp),
     ) {
