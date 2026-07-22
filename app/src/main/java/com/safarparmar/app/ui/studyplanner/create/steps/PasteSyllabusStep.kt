@@ -39,7 +39,6 @@ fun PasteSyllabusStep(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (structuredPreview == null) {
-            Text("Paste your syllabus", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
             Text(
                 "Copy text from a PDF, website, notes, or any source.",
                 style = MaterialTheme.typography.bodyMedium,

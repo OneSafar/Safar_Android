@@ -59,7 +59,6 @@ fun ManualTopicTreeStep(
         modifier = modifier.fillMaxWidth().padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Build your syllabus", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
         Text(
             "Add the subjects, chapters, and topics you want to study.",
             style = MaterialTheme.typography.bodyMedium,

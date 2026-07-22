@@ -187,7 +187,6 @@ class CreatePlanViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CreatePlanUiState())
     val uiState = _uiState.asStateFlow()
     private var templateDetailJob: Job? = null
-    private val previewRenameVersions = mutableMapOf<String, Int>()
 
     fun clearError() = _uiState.update { it.copy(error = null, premiumRequired = false) }
 
@@ -1113,45 +1112,6 @@ class CreatePlanViewModel @Inject constructor(
         }
     }
 
-    fun renamePreviewTopic(topicId: String, newName: String) {
-        val currentPreview = _uiState.value.previewResult ?: return
-        val draftId = currentPreview.draftId
-        val oldName = currentPreview.calendarPreview.values.asSequence().flatten()
-            .firstOrNull { it.topicId == topicId }?.topicName ?: return
-        val version = (previewRenameVersions[topicId] ?: 0) + 1
-        previewRenameVersions[topicId] = version
-
-        // Optimistically update the UI state
-        val updatedCalendar = currentPreview.calendarPreview.mapValues { (_, topics) ->
-            topics.map { if (it.topicId == topicId) it.copy(topicName = newName) else it }
-        }
-        val updatedPreview = currentPreview.copy(calendarPreview = updatedCalendar)
-        _uiState.update { it.copy(previewResult = updatedPreview) }
-
-        // Call the backend to update the topic in the draft plan
-        viewModelScope.launch {
-            val patch = com.safarparmar.app.data.remote.api.TopicPatchRequest(name = newName)
-            when (val result = repo.updateTopic(draftId, topicId, patch)) {
-                is Resource.Success -> Unit // Already updated optimistically
-                is Resource.Error -> {
-                    if (previewRenameVersions[topicId] == version) {
-                        _uiState.update { state ->
-                            val preview = state.previewResult ?: return@update state
-                            state.copy(
-                                previewResult = preview.copy(
-                                    calendarPreview = preview.calendarPreview.mapValues { (_, topics) ->
-                                        topics.map { if (it.topicId == topicId) it.copy(topicName = oldName) else it }
-                                    },
-                                ),
-                                error = result.message,
-                            )
-                        }
-                    }
-                }
-                is Resource.Loading -> Unit
-            }
-        }
-    }
 }
 
 internal fun validateManualSubjects(subjects: List<DraftSubject>): String? {

@@ -91,6 +91,9 @@ object StudyPlannerOnboardingSteps {
     const val BUILD_SCHEDULE = "build_schedule"
     const val REVIEW_CALENDAR = "review_calendar"
     const val FIRST_TOPIC_DONE = "first_topic_done"
+    /** Hold-and-slide is undiscoverable on its own, so Today shows a one-line
+     *  tip until the student has used it once. */
+    const val PARTIAL_PROGRESS_TIP = "partial_progress_tip"
 }
 
 private fun StudyPlan.withPlannedDates(datesByTopicId: Map<String, String?>): StudyPlan = copy(
@@ -847,6 +850,7 @@ class StudyPlannerViewModel @Inject constructor(
     }
     override fun setTopicProgress(topicId: String, percent: Int) {
         val clamped = percent.coerceIn(0, 99)
+        markOnboardingStepDone(StudyPlannerOnboardingSteps.PARTIAL_PROGRESS_TIP)
         mutateSelected(refreshCalendar = true, refreshAnalytics = true, successMessage = "Progress saved") { planId ->
             repo.updateTopic(planId, topicId, TopicPatchRequest(progressPercent = clamped, clientDateKey = todayKey()))
         }

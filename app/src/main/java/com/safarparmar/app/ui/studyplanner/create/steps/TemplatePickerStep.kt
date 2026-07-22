@@ -47,6 +47,14 @@ import com.safarparmar.app.ui.studyplanner.create.DraftSubject
 import com.safarparmar.app.ui.studyplanner.create.DraftTopic
 import com.safarparmar.app.ui.studyplanner.create.TemplateChapterRef
 import com.safarparmar.app.ui.studyplanner.components.TextInputDialog
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.screens.PremiumPlannerGateCard
 
 @Composable
@@ -102,7 +110,9 @@ fun TemplatePickerStep(
         }
 
         if (selectedTemplateId == null || templateDetail == null) {
-            Text("Templates", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+            val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+            val categoryShape = RoundedCornerShape(20.dp)
+
             if (loadingTemplates) {
                 CircularProgressIndicator()
             } else {
@@ -115,12 +125,41 @@ fun TemplatePickerStep(
                 }
                 var expandedCategories by remember { mutableStateOf(setOf<String>()) }
                 
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    sortedGroups.forEach { (category, categoryTemplates) ->
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(sortedGroups, key = { it.key }) { (category, categoryTemplates) ->
                         val isExpanded = expandedCategories.contains(category)
                         
-                        item(key = "header_$category") {
-                            Card(
+                        val bodyColor = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E).copy(alpha = 0.65f)
+                        val borderBrush = if (!isLight) {
+                            Brush.verticalGradient(
+                                colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
+                            )
+                        } else {
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+                            )
+                        }
+                        val shadowElevation = if (isLight) 4.dp else 12.dp
+                        val shadowColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f)
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = shadowElevation,
+                                    shape = categoryShape,
+                                    spotColor = shadowColor,
+                                    ambientColor = shadowColor,
+                                )
+                                .clip(categoryShape)
+                                .background(bodyColor)
+                                .border(
+                                    width = 0.5.dp,
+                                    brush = borderBrush,
+                                    shape = categoryShape,
+                                )
+                        ) {
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -129,31 +168,36 @@ fun TemplatePickerStep(
                                         } else {
                                             expandedCategories + category
                                         }
-                                    },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                    }
+                                    .padding(horizontal = 18.dp, vertical = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(category, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                                    Icon(
-                                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                        contentDescription = if (isExpanded) "Collapse" else "Expand"
+                                Text(
+                                    category,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Icon(
+                                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            
+                            if (isExpanded) {
+                                PlanHairline()
+                                categoryTemplates.forEachIndexed { index, template ->
+                                    if (index > 0) {
+                                        PlanHairline()
+                                    }
+                                    TemplateSummaryRow(
+                                        template = template,
+                                        loading = loadingTemplateDetail && selectedTemplateId == template.id,
+                                        onClick = { onSelectTemplate(template.id) },
                                     )
                                 }
-                            }
-                        }
-                        
-                        if (isExpanded) {
-                            items(categoryTemplates, key = { it.id }) { template ->
-                                TemplateSummaryCard(
-                                    template = template,
-                                    loading = loadingTemplateDetail && selectedTemplateId == template.id,
-                                    onClick = { onSelectTemplate(template.id) },
-                                )
                             }
                         }
                     }
@@ -460,13 +504,13 @@ fun TemplatePickerStep(
         }
 
         if (subjectIndex == null) {
-            Button(
+            val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+            MacOSPrimaryActionButton(
+                text = "Continue",
                 onClick = onContinue,
                 enabled = canUsePremiumPlannerFeatures && remainingTopicCount > 0,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Continue", fontWeight = FontWeight.Bold)
-            }
+                isLight = isLight,
+            )
         }
     }
 }
@@ -569,35 +613,48 @@ private fun TopicAddedRow(name: String, onRemove: () -> Unit) {
 }
 
 @Composable
-private fun TemplateSummaryCard(
+private fun TemplateSummaryRow(
     template: ExamTemplateSummary,
     loading: Boolean,
     onClick: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(template.name, fontWeight = FontWeight.Bold)
-                val subtitle = listOfNotNull(
-                    template.subjectCount?.let { "$it subjects" },
-                    template.topicCount?.let { "$it topics" },
-                ).joinToString(" · ")
-                if (subtitle.isNotBlank()) {
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                template.name,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = scheme.onSurface,
+            )
+            val subtitle = listOfNotNull(
+                template.subjectCount?.let { "$it subjects" },
+                template.topicCount?.let { "$it topics" },
+            ).joinToString(" · ")
+            if (subtitle.isNotBlank()) {
+                Text(
+                    subtitle,
+                    fontSize = 12.sp,
+                    color = scheme.onSurfaceVariant,
+                )
             }
-            if (loading) {
-                CircularProgressIndicator(modifier = Modifier.padding(4.dp))
-            }
+        }
+        if (loading) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        } else {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp),
+                tint = scheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
         }
     }
 }

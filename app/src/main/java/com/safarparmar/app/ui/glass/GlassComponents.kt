@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -258,6 +259,131 @@ fun SafarGlassButton(
         }
     }
 }
+
+/**
+ * Full-width macOS Control Center Primary Action Button Component.
+ * Enforces the exact macOS Control Center recipe:
+ * 1. Shape: RoundedCornerShape(20.dp) (or CircleShape for full-width action pills)
+ * 2. Background:
+ *    - Light Mode: #7845E5 (Auth Purple)
+ *    - Dark Mode: #A78BFA (Lighter Purple)
+ * 3. 0.5.dp Precise Border:
+ *    - Dark Mode: Top light catch Brush.verticalGradient(White 25% -> White 2%)
+ *    - Light Mode: Metallic silver Brush.verticalGradient(#E5E5EA -> #D1D1D6)
+ * 4. Ambient Black Drop Shadow:
+ *    - Dark Mode: 12.dp elevation with Black 80% opacity
+ *    - Light Mode: 4.dp elevation with Black 12% opacity
+ */
+@Composable
+fun MacOSPrimaryActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
+    isLight: Boolean = false,
+    customAccent: Color? = null,
+    icon: ImageVector? = null,
+) {
+    val shape = RoundedCornerShape(20.dp)
+    val purpleLight = Color(0xFF7845E5)
+    val purpleDark = Color(0xFFA78BFA)
+    val accent = customAccent ?: if (isLight) purpleLight else purpleDark
+
+    val bodyColor = if (!enabled) {
+        if (customAccent != null) {
+            if (isLight) accent.copy(alpha = 0.15f) else accent.copy(alpha = 0.22f)
+        } else {
+            if (isLight) Color(0xFFE5E5EA) else Color(0xFF2C2C2E).copy(alpha = 0.50f)
+        }
+    } else {
+        accent
+    }
+
+    val textColor = if (!enabled) {
+        if (customAccent != null) {
+            if (isLight) accent.copy(alpha = 0.50f) else accent.copy(alpha = 0.60f)
+        } else {
+            if (isLight) Color(0xFF8E8E93) else Color.White.copy(alpha = 0.40f)
+        }
+    } else {
+        Color.White
+    }
+
+    val borderBrush = if (!isLight) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+        )
+    }
+
+    val shadowElevation = if (isLight) 4.dp else 12.dp
+    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .shadow(
+                elevation = if (enabled) shadowElevation else 0.dp,
+                shape = shape,
+                spotColor = shadowColor,
+                ambientColor = shadowColor,
+            )
+            .clip(shape)
+            .background(bodyColor)
+            .border(
+                width = 0.5.dp,
+                brush = borderBrush,
+                shape = shape,
+            )
+            .then(
+                if (enabled && !isLoading) {
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick,
+                    )
+                } else {
+                    Modifier
+                }
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = textColor,
+                    strokeWidth = 2.5.dp,
+                )
+            } else {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = textColor,
+                        modifier = Modifier.size(18.dp).padding(end = 6.dp),
+                    )
+                }
+                Text(
+                    text = text,
+                    color = textColor,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // macOS CONTROL CENTER — solid panel recipe (Home tab)

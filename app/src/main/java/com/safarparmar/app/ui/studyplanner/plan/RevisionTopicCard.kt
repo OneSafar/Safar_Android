@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,14 +53,11 @@ import java.util.Locale
 // Mirrors the SM-2 interval labels used when scheduling. The Nth session (dates
 // sorted ascending) maps to the Nth label, so this stays correct as sessions
 // move from "remaining" to "completed" without changing the overall order.
+import com.safarparmar.app.ui.studyplanner.components.PlannerRevisionAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerStatusAccent
+
 private val REVISION_SESSION_LABELS = listOf("Day 1", "Day 3", "Week 1", "Week 2", "Month 1")
 
-private val RevisionTeal = Color(0xFF26A69A)
-// Spaced-revision cards keep their amber accent; manual (custom-date) revision
-// cards use a distinct violet accent so the two schedule types are instantly
-// distinguishable in both the Revision screen and the Progress tower card.
-private val RevisionAmber = Color(0xFFFFB300)
-private val RevisionCustomViolet = Color(0xFF8B5CF6)
 private val RevisionRed = Color(0xFFEF5350)
 
 private data class RevisionSessionUi(
@@ -87,9 +85,9 @@ internal fun RevisionTopicCard(
     val today = remember { todayKey() }
     val isSpaced = ref.topic.revisionScheduleType == "spaced"
     val isCustom = ref.topic.revisionScheduleType == "custom"
-    // Accent used for pending sessions + the card outline; violet for manual
-    // (custom-date) revision, amber for spaced revision.
-    val typeAccent = if (isCustom) RevisionCustomViolet else RevisionAmber
+    // Accent used for pending sessions + the card outline; Cyan for spaced,
+    // Amber for manual custom revision.
+    val typeAccent = if (isCustom) PlannerRevisionAccent.Custom else PlannerRevisionAccent.Spaced
 
     val sessions = remember(ref.topic.revisionReminderDates, ref.topic.revisionCompletedDates) {
         val completed = ref.topic.revisionCompletedDates.map { it.take(10) }.toSet()
@@ -157,8 +155,8 @@ internal fun RevisionTopicCard(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = RevisionTeal.copy(alpha = 0.14f),
-                    contentColor = RevisionTeal,
+                    color = PlannerStatusAccent.Done.copy(alpha = 0.14f),
+                    contentColor = PlannerStatusAccent.Done,
                 ) {
                     Text(
                         text = "$doneCount / $total done",
@@ -168,16 +166,23 @@ internal fun RevisionTopicCard(
                     )
                 }
                 if (isSpaced) {
-                    Text(
-                        text = "Spaced revision",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onSurfaceVariant,
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = PlannerRevisionAccent.Spaced.copy(alpha = 0.14f),
+                        contentColor = PlannerRevisionAccent.Spaced,
+                    ) {
+                        Text(
+                            text = "Spaced revision",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                        )
+                    }
                 } else if (isCustom) {
                     Surface(
                         shape = CircleShape,
-                        color = RevisionCustomViolet.copy(alpha = 0.14f),
-                        contentColor = RevisionCustomViolet,
+                        color = PlannerRevisionAccent.Custom.copy(alpha = 0.14f),
+                        contentColor = PlannerRevisionAccent.Custom,
                     ) {
                         Text(
                             text = "Custom date",
@@ -213,12 +218,12 @@ private fun RevisionSessionRow(
     val haptic = LocalHapticFeedback.current
 
     val accent = when {
-        session.done -> RevisionTeal
+        session.done -> PlannerStatusAccent.Done
         session.overdue -> RevisionRed
         else -> pendingAccent
     }
     val circleColor by animateColorAsState(
-        targetValue = if (session.done) RevisionTeal else Color.Transparent,
+        targetValue = if (session.done) PlannerStatusAccent.Done else Color.Transparent,
         label = "revisionSessionFill",
     )
     val checkScale by animateFloatAsState(
@@ -230,27 +235,23 @@ private fun RevisionSessionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (session.done) RevisionTeal.copy(alpha = 0.06f)
-                else scheme.surfaceVariant.copy(alpha = 0.35f),
-            )
-            .bounceClick(scaleDown = 0.96f) {
+            .clip(RoundedCornerShape(10.dp))
+            .clickable {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onToggle()
             }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(26.dp)
+                .size(24.dp)
                 .clip(CircleShape)
                 .background(circleColor)
                 .border(
-                    width = if (session.done) 0.dp else 1.5.dp,
-                    color = accent.copy(alpha = 0.6f),
+                    width = 2.dp,
+                    color = if (session.done) PlannerStatusAccent.Done else accent.copy(alpha = 0.7f),
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
@@ -258,7 +259,7 @@ private fun RevisionSessionRow(
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
                     .size(16.dp)
                     .scale(checkScale)
@@ -270,7 +271,7 @@ private fun RevisionSessionRow(
             text = session.label,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = if (session.done) RevisionTeal else scheme.onSurface,
+            color = if (session.done) PlannerStatusAccent.Done else scheme.onSurface,
             modifier = Modifier.width(64.dp),
         )
         Column(Modifier.weight(1f)) {
@@ -292,7 +293,7 @@ private fun RevisionSessionRow(
             text = if (session.done) "Revised" else "Tap",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = if (session.done) RevisionTeal else scheme.onSurfaceVariant,
+            color = if (session.done) PlannerStatusAccent.Done else scheme.onSurfaceVariant,
         )
         Spacer(Modifier.width(2.dp))
     }

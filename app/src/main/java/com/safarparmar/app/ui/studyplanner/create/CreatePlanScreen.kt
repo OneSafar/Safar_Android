@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.studyplanner.create.steps.BuildingPreviewStep
@@ -135,7 +136,15 @@ fun CreatePlanScreen(
         topBar = {
             if (!showCelebration) {
                 CenterAlignedTopAppBar(
-                    title = { Text(stepTitle(state.step)) },
+                    title = {
+                        Text(
+                            text = stepTitle(state.step).uppercase(),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = { handleBack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -260,6 +269,7 @@ fun CreatePlanScreen(
                     onRate = viewModel::setChapterRating,
                     onSkip = viewModel::skipChapterRating,
                     onContinue = viewModel::buildPreview,
+                    studyStyle = state.studyStyle,
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.DeepFocusOrder -> DeepFocusOrderStep(
@@ -269,6 +279,7 @@ fun CreatePlanScreen(
                     onMoveSubject = viewModel::moveDeepFocusSubject,
                     onMoveChapter = viewModel::moveDeepFocusChapter,
                     onMoveTopic = viewModel::moveDeepFocusTopic,
+                    onContinue = { viewModel.goToStep(CreatePlanStep.PlanSettings) },
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.MixedBagSubjectPicker -> MixedBagSubjectPickerStep(
@@ -292,7 +303,6 @@ fun CreatePlanScreen(
                             viewModel.discardDraft()
                             viewModel.goToStep(CreatePlanStep.PlanSettings)
                         },
-                        onEditTopic = viewModel::renamePreviewTopic,
                         modifier = Modifier.padding(padding),
                     )
                 }

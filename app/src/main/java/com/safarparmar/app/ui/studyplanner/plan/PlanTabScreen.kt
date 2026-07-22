@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -650,6 +651,22 @@ fun PlanTabScreen(
                                 modifier = Modifier.padding(top = 22.dp, bottom = 10.dp),
                             )
                         }
+
+                        // Hold-and-slide cannot be discovered by looking at a card,
+                        // so say it in words until the student has done it once.
+                        if (StudyPlannerOnboardingSteps.PARTIAL_PROGRESS_TIP !in onboardingCompletedSteps &&
+                            todayTopics.any { it.topic.status != TopicStatus.DONE }
+                        ) {
+                            item(key = "partial_progress_tip") {
+                                PartialProgressTip(
+                                    onDismiss = {
+                                        actions.markOnboardingStepDone(
+                                            StudyPlannerOnboardingSteps.PARTIAL_PROGRESS_TIP,
+                                        )
+                                    },
+                                )
+                            }
+                        }
                         items(
                             items = todayTopics.take(10),
                             key = { ref -> "today_${ref.topic.id}" },
@@ -928,7 +945,7 @@ private fun EditTopicDialog(
                         FilterChip(
                             selected = option == selectedSize,
                             onClick = { selectedSize = option },
-                            label = { Text("${option.shortLabel} · ${option.label}") },
+                            label = { Text(option.label) },
                         )
                     }
                 }
@@ -1238,24 +1255,50 @@ private fun DoneForTheDayBar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+    val shape = RoundedCornerShape(20.dp)
+
+    val bodyColor = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E).copy(alpha = 0.65f)
+    val textColor = if (isLight) Color.Black else Color(0xFFA78BFA)
+
+    val borderBrush = if (!isLight) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+        )
+    }
+
+    val shadowElevation = if (isLight) 4.dp else 12.dp
+    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.Transparent)
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Button(
-            onClick = onClick,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0B1221),
-                contentColor = if (isDark) Color(0xFF0B1221) else Color.White
-            ),
-            shape = RoundedCornerShape(12.dp)
+                .height(54.dp)
+                .shadow(
+                    elevation = shadowElevation,
+                    shape = shape,
+                    spotColor = shadowColor,
+                    ambientColor = shadowColor,
+                )
+                .clip(shape)
+                .background(bodyColor)
+                .border(
+                    width = 0.5.dp,
+                    brush = borderBrush,
+                    shape = shape,
+                )
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "DONE FOR THE DAY",
@@ -1263,6 +1306,53 @@ private fun DoneForTheDayBar(
                 letterSpacing = 1.sp,
                 fontSize = 16.sp
             )
+        }
+    }
+}
+
+/**
+ * Only finished half a topic? A tick box is all-or-nothing, and the hold-and-slide
+ * gesture that records partial work is invisible until someone names it. Shown on
+ * Today until the student uses it once, then never again.
+ */
+@Composable
+private fun PartialProgressTip(onDismiss: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = scheme.secondaryContainer.copy(alpha = 0.45f),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // A miniature of the gesture's result — a part-filled card — says
+            // "these cards fill up" faster than a sentence describing it.
+            Box(
+                modifier = Modifier
+                    .width(34.dp)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(scheme.onSecondaryContainer.copy(alpha = 0.12f)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(0.55f)
+                        .background(scheme.onSecondaryContainer.copy(alpha = 0.45f)),
+                )
+            }
+            Text(
+                text = "Did only part of a topic? Hold it, then slide.",
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSecondaryContainer,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onDismiss) {
+                Text("Got it", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

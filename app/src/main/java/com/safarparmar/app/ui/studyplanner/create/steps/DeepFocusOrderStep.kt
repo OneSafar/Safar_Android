@@ -43,7 +43,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
+import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.create.DeepFocusOutlineSubject
+import com.safarparmar.app.ui.theme.isLightBackground
 
 /**
  * Deep Focus's "finish topics in syllabus order" only makes sense if the user can
@@ -79,6 +82,7 @@ fun DeepFocusOrderStep(
     onMoveSubject: (fromIndex: Int, toIndex: Int) -> Unit,
     onMoveChapter: (subjectName: String, fromIndex: Int, toIndex: Int) -> Unit,
     onMoveTopic: (subjectName: String, chapterName: String, fromIndex: Int, toIndex: Int) -> Unit,
+    onContinue: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val subject = drillSubjectIndex?.let { outline.getOrNull(it) }
@@ -88,7 +92,6 @@ fun DeepFocusOrderStep(
             modifier = modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Order your syllabus", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
             Text(
                 "Tap a subject to order its chapters and topics. Press and hold anywhere on a card, then drag, to reorder it.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -114,6 +117,14 @@ fun DeepFocusOrderStep(
                     )
                 }
             }
+
+            val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+            MacOSPrimaryActionButton(
+                text = "Continue",
+                onClick = onContinue,
+                isLight = isLight,
+                customAccent = PlannerAccent.Coral,
+            )
         }
     } else {
         // Holds just the chapter's name, not the chapter object itself — the sheet

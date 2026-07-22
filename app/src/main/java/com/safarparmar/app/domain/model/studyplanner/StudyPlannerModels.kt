@@ -20,15 +20,15 @@ enum class TopicStatus(val wireValue: String, val label: String) {
 }
 
 /** Effort size of a topic. Missing on the wire = MEDIUM. Points: 1 / 2 / 4. */
-enum class TopicSize(val wireValue: String, val points: Int, val shortLabel: String, val label: String) {
+enum class TopicSize(val wireValue: String, val points: Int, val label: String) {
     @SerializedName("small")
-    SMALL("small", 1, "S", "Small"),
+    SMALL("small", 1, "Small"),
 
     @SerializedName("medium")
-    MEDIUM("medium", 2, "M", "Medium"),
+    MEDIUM("medium", 2, "Medium"),
 
     @SerializedName("big")
-    BIG("big", 4, "L", "Big"),
+    BIG("big", 4, "Big"),
 }
 
 /** Chapter-level effort rating; topics without their own size inherit it. */

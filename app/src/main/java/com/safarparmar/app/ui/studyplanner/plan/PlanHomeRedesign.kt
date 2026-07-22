@@ -580,7 +580,7 @@ internal fun PlanHomeTaskRow(
             .drawBehind {
                 if (!done && shownPercent > 0f) {
                     drawRect(
-                        color = accent.copy(alpha = if (fillArmed) 0.16f else 0.09f),
+                        color = dotColor.copy(alpha = if (fillArmed) 0.12f else 0.07f),
                         size = Size(size.width * (shownPercent / 100f), size.height),
                     )
                 }

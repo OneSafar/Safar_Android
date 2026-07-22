@@ -1,22 +1,28 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import kotlin.math.roundToInt
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -46,13 +52,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.safarparmar.app.data.remote.api.PlanPreviewResult
+import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
+import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
+import com.safarparmar.app.ui.studyplanner.components.TopicEffortBars
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import com.safarparmar.app.domain.model.studyplanner.CalendarTopicItem
 import com.safarparmar.app.domain.model.studyplanner.TopicSize
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 
 private val dayFormatter = DateTimeFormatter.ofPattern("MMM d")
 
@@ -61,8 +82,6 @@ private data class PreviewWeek(val label: String, val days: List<Pair<LocalDate,
     val studyDays: Int get() = days.count { it.second.isNotEmpty() }
 }
 
-/** A day's load judged in effort points against the daily budget (goal x 2), so
- *  a day of four big topics reads as heavy even though four is the goal. */
 private enum class DayLoad(val label: String) { REST("Rest day"), LIGHT("Light"), FULL("Full"), HEAVY("Heavy") }
 
 private fun dayLoadOf(items: List<CalendarTopicItem>, dailyGoal: Int): DayLoad {
@@ -76,9 +95,6 @@ private fun dayLoadOf(items: List<CalendarTopicItem>, dailyGoal: Int): DayLoad {
     }
 }
 
-/** Groups the (sparse — only study days are keys) calendarPreview map into 7-day weeks
- *  running from the first scheduled date, filling gaps as rest days so the student sees
- *  their whole week, not just the days with topics. */
 private fun buildWeeks(preview: PlanPreviewResult): List<PreviewWeek> {
     val dates = preview.calendarPreview.keys.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
     if (dates.isEmpty()) return emptyList()
@@ -100,17 +116,15 @@ fun PlanPreviewStep(
     error: String?,
     onConfirm: () -> Unit,
     onAdjust: () -> Unit,
-    /** Rebuilds with the daily budget allowed to stretch so nothing is dropped.
-     *  Null once this preview was already built that way — re-offering it would
-     *  be a button that changes nothing. */
     onScheduleAnyway: (() -> Unit)?,
-    onEditTopic: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val weeks = remember(preview) { buildWeeks(preview) }
     val examDateLabel = remember(preview.examDate) {
         preview.examDate?.take(10)?.let { runCatching { LocalDate.parse(it).format(dayFormatter) }.getOrNull() }
     }
+    val scheme = MaterialTheme.colorScheme
+    val accent = scheme.primary
 
     var weekIndex by remember(weeks) { mutableIntStateOf(0) }
     val week = weeks.getOrNull(weekIndex)
@@ -124,187 +138,234 @@ fun PlanPreviewStep(
     }
 
     Column(
-        modifier = modifier.fillMaxWidth().padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        Text("Here's your plan — does it look right?", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
-
         val goal = preview.dailyGoal ?: 0
         val needed = preview.summary.requiredPerDay ?: 0
         val skipped = preview.summary.scheduleSkipped
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SummaryStat(value = preview.summary.scheduleAssigned.toString(), label = "Topics scheduled")
-            // "Topics/day" used to show requiredPerDay right next to the number the
-            // user typed in settings, with no way to tell them apart. When they
-            // disagree, that gap IS the story, so both are labelled explicitly.
-            SummaryStat(
-                value = if (goal > 0) goal.toString() else needed.toString(),
-                label = "Your goal/day",
-            )
-            SummaryStat(value = (preview.summary.daysUntilExam ?: 0).toString(), label = "Days to exam")
-        }
-
-        // The honest verdict. scheduleSkipped was computed and sent by the server
-        // all along but never shown, so a plan that silently dropped 40 topics
-        // looked identical to one that fit perfectly.
-        if (skipped > 0) {
-            PreviewVerdictCard(
-                accent = MaterialTheme.colorScheme.error,
-                icon = Icons.Default.Warning,
-                title = "$skipped ${if (skipped == 1) "topic doesn't" else "topics don't"} fit before your exam",
-                body = buildString {
-                    append("Only ${preview.summary.scheduleAssigned} of ${preview.summary.totalTopics} topics could be scheduled. ")
-                    append(
-                        if (needed > 0 && goal in 1 until needed) {
-                            "Raise your daily goal to about $needed, push the exam date, or trim topics."
-                        } else {
-                            "Push the exam date back, or remove some topics."
-                        },
-                    )
-                },
-                actionLabel = onScheduleAnyway?.let { "Schedule them anyway" },
-                actionHint = if (onScheduleAnyway == null) null else if (needed > 0) {
-                    "Fits everything in by studying about $needed a day instead of $goal."
-                } else {
-                    "Fits everything in by making your days fuller than your goal."
-                },
-                onAction = onScheduleAnyway,
-            )
-        } else if (needed > goal && goal > 0) {
-            PreviewVerdictCard(
-                accent = PlannerAccent.Amber,
-                icon = Icons.Default.Warning,
-                title = "This plan needs about $needed topics a day",
-                body = "That's more than the $goal you asked for. Everything fits before your exam, but the days will be fuller than your goal. Go back if you'd rather raise the goal yourself or trim topics.",
-            )
-        } else {
-            PreviewVerdictCard(
-                accent = PlannerAccent.Teal,
-                icon = Icons.Default.CheckCircle,
-                title = "Everything fits before your exam",
-                body = "All ${preview.summary.totalTopics} topics are scheduled within your daily goal.",
-            )
-        }
-
-        // Server-side scheduling warnings — most importantly Mixed Bag's
-        // deferral notice, which tells the user exactly when their non-chosen
-        // subjects start. Shown before they commit, not discovered in March.
-        preview.warnings.forEach { warning ->
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Text(
-                        text = warning,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            item {
+                Text(
+                    "Here's your schedule",
+                    fontFamily = LoraFontFamily,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = scheme.onSurface,
+                )
+                Spacer(Modifier.height(8.dp))
             }
-        }
 
-        if (week == null) {
-            Text(
-                "We couldn't build a schedule preview yet.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                WeekNavHeader(
-                    weekNumber = weekIndex + 1,
-                    rangeLabel = "${week.days.first().first.format(dayFormatter)} – ${week.days.last().first.format(dayFormatter)}",
-                    loadLabel = "${week.topicCount} topics · ${week.studyDays} study days",
-                    onPrevious = { weekIndex = (weekIndex - 1).coerceAtLeast(0) },
-                    onNext = { weekIndex = (weekIndex + 1).coerceAtMost(weeks.lastIndex) },
-                    hasPrevious = weekIndex > 0,
-                    hasNext = weekIndex < weeks.lastIndex,
-                )
-
-                DayChipRow(
-                    days = week.days.map { it.first },
-                    loads = week.days.map { dayLoadOf(it.second, goal) },
-                    selectedIndex = dayIndex,
-                    onSelect = { dayIndex = it },
-                )
-
-                val selectedDay = week.days.getOrNull(dayIndex)
-                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (selectedDay != null) {
-                        val load = dayLoadOf(selectedDay.second, goal)
-                        if (selectedDay.second.isNotEmpty()) {
-                            item {
-                                Text(
-                                    text = "${selectedDay.second.size} topics · ${load.label.lowercase()} day",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = when (load) {
-                                        DayLoad.HEAVY -> MaterialTheme.colorScheme.error
-                                        DayLoad.FULL -> PlannerAccent.Amber
-                                        else -> PlannerAccent.Teal
-                                    },
-                                )
-                            }
+            item {
+                PlanHairline()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                        .padding(vertical = 12.dp),
+                ) {
+                    // Days to exam is the number the whole app orbits — the one a
+                    // student feels. It carries the signature colour; the other two
+                    // are context and stay quiet.
+                    val stats = listOf(
+                        Triple(preview.summary.scheduleAssigned.toString(), "Topics scheduled", false),
+                        Triple(if (goal > 0) goal.toString() else needed.toString(), "Goal / day", false),
+                        Triple((preview.summary.daysUntilExam ?: 0).toString(), "Days to exam", true),
+                    )
+                    stats.forEachIndexed { index, (value, label, isHero) ->
+                        if (index > 0) {
+                            Box(
+                                Modifier
+                                    .width(1.dp)
+                                    .fillMaxHeight()
+                                    .background(scheme.outlineVariant.copy(alpha = 0.4f)),
+                            )
                         }
-                        if (selectedDay.second.isEmpty()) {
-                            item {
-                                Text(
-                                    "Rest day 🌿",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 8.dp),
-                                )
-                            }
-                        } else {
-                            items(selectedDay.second) { topic ->
-                                TopicPill(
-                                    topic = topic,
-                                    onEditTopic = onEditTopic
-                                )
-                            }
-                        }
-                    }
-                    if (examDateLabel != null) {
-                        item {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
                             Text(
-                                "Exam Date: $examDateLabel 🎯",
+                                text = value,
+                                fontFamily = LoraFontFamily,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = if (isHero) PlannerAccent.Coral else scheme.onSurface,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = label.uppercase(),
+                                fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleSmall,
-                                modifier = Modifier.padding(top = 12.dp),
+                                letterSpacing = 0.5.sp,
+                                color = if (isHero) {
+                                    PlannerAccent.Coral.copy(alpha = 0.75f)
+                                } else {
+                                    scheme.onSurfaceVariant
+                                },
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
                 }
+                PlanHairline()
             }
-        }
 
-        if (error != null) {
-            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = onAdjust, modifier = Modifier.weight(1f), enabled = !isConfirming) {
-                Text("Go Back")
-            }
-            Button(onClick = onConfirm, modifier = Modifier.weight(1f), enabled = !isConfirming) {
-                if (isConfirming) {
-                    CircularProgressIndicator(modifier = Modifier.padding(2.dp))
-                } else {
-                    Text("Looks Good", fontWeight = FontWeight.Bold)
+            if (skipped > 0) {
+                item {
+                    PlanCoverageMeter(
+                        totalTopics = preview.summary.totalTopics,
+                        scheduledTopics = preview.summary.scheduleAssigned,
+                        skippedTopics = skipped,
+                        neededPerDay = needed,
+                        goalPerDay = goal,
+                        onScheduleAnyway = onScheduleAnyway,
+                        scheme = scheme,
+                    )
+                }
+            } else if (needed > goal && goal > 0) {
+                item {
+                    PreviewVerdictCard(
+                        accent = PlannerAccent.Amber,
+                        icon = Icons.Default.Warning,
+                        title = "This plan needs about $needed topics a day",
+                        body = "You asked for $goal a day. Every topic still has a date, but some days will have more than you planned.",
+                    )
+                }
+            } else {
+                item {
+                    PreviewVerdictCard(
+                        accent = PlannerAccent.Teal,
+                        icon = Icons.Default.CheckCircle,
+                        title = "Your plan fits before your exam",
+                        body = "All ${preview.summary.totalTopics} topics have a date, and no day goes over your goal.",
+                    )
                 }
             }
+
+            preview.warnings.forEach { warning ->
+                item {
+                    DeferredSubjectsCard(warning = warning, scheme = scheme)
+                }
+            }
+
+            if (week == null) {
+                item {
+                    Text(
+                        "We couldn't build a schedule preview yet.",
+                        fontSize = 13.sp,
+                        color = scheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                item {
+                    WeekNavHeader(
+                        weekNumber = weekIndex + 1,
+                        rangeLabel = "${week.days.first().first.format(dayFormatter)} – ${week.days.last().first.format(dayFormatter)}",
+                        loadLabel = "${week.topicCount} topics · ${week.studyDays} study days",
+                        onPrevious = { weekIndex = (weekIndex - 1).coerceAtLeast(0) },
+                        onNext = { weekIndex = (weekIndex + 1).coerceAtMost(weeks.lastIndex) },
+                        hasPrevious = weekIndex > 0,
+                        hasNext = weekIndex < weeks.lastIndex,
+                        accent = accent,
+                        scheme = scheme,
+                    )
+                }
+
+                item {
+                    DayChipRow(
+                        days = week.days.map { it.first },
+                        dayItems = week.days.map { it.second },
+                        loads = week.days.map { dayLoadOf(it.second, goal) },
+                        selectedIndex = dayIndex,
+                        accent = accent,
+                        scheme = scheme,
+                        onSelect = { dayIndex = it },
+                    )
+                }
+
+                val selectedDay = week.days.getOrNull(dayIndex)
+                if (selectedDay != null) {
+                    val load = dayLoadOf(selectedDay.second, goal)
+                    if (selectedDay.second.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "${selectedDay.second.size} topics · ${load.label.lowercase()} day",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (load) {
+                                    DayLoad.HEAVY -> scheme.error
+                                    DayLoad.FULL -> PlannerAccent.Amber
+                                    else -> PlannerAccent.Teal
+                                },
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                        items(selectedDay.second, key = { it.topicId }) { topic ->
+                            TopicPill(
+                                topic = topic,
+                                scheme = scheme,
+                            )
+                        }
+                    } else {
+                        item {
+                            Text(
+                                "Rest day 🌿",
+                                fontSize = 13.sp,
+                                color = scheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+                    }
+                }
+
+                if (examDateLabel != null) {
+                    item {
+                        Text(
+                            "Exam Date: $examDateLabel 🎯",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 10.dp, bottom = 8.dp),
+                        )
+                    }
+                }
+            }
+
+            if (error != null) {
+                item {
+                    Text(error, color = scheme.error, fontSize = 12.sp)
+                }
+            }
+        }
+
+        PlanHairline()
+        Spacer(Modifier.height(8.dp))
+
+        val isLight = scheme.background.isLightBackground()
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(CircleShape)
+                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+                    .clickable(enabled = !isConfirming) { onAdjust() }
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("Go Back", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
+            }
+            MacOSPrimaryActionButton(
+                text = "Looks Good",
+                onClick = onConfirm,
+                isLoading = isConfirming,
+                enabled = !isConfirming,
+                isLight = isLight,
+                modifier = Modifier.weight(1.2f),
+            )
         }
     }
 }
@@ -318,49 +379,46 @@ private fun WeekNavHeader(
     onNext: () -> Unit,
     hasPrevious: Boolean,
     hasNext: Boolean,
+    accent: Color,
+    scheme: androidx.compose.material3.ColorScheme,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = PlannerAccent.Teal.copy(alpha = 0.14f),
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onPrevious, enabled = hasPrevious) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Previous week",
-                    tint = if (hasPrevious) PlannerAccent.Teal else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                )
-            }
-            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "WEEK $weekNumber",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = PlannerAccent.Teal,
-                )
-                Text(
-                    rangeLabel,
-                    fontWeight = FontWeight.Black,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    loadLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            IconButton(onClick = onNext, enabled = hasNext) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Next week",
-                    tint = if (hasNext) PlannerAccent.Teal else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                )
-            }
+        IconButton(onClick = onPrevious, enabled = hasPrevious) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Previous week",
+                tint = if (hasPrevious) accent else scheme.onSurfaceVariant.copy(alpha = 0.3f),
+            )
+        }
+        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "WEEK $weekNumber",
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp,
+                letterSpacing = 1.sp,
+                color = accent,
+            )
+            Text(
+                rangeLabel,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = scheme.onSurface,
+            )
+            Text(
+                loadLabel,
+                fontSize = 11.sp,
+                color = scheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onNext, enabled = hasNext) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Next week",
+                tint = if (hasNext) accent else scheme.onSurfaceVariant.copy(alpha = 0.3f),
+            )
         }
     }
 }
@@ -368,51 +426,78 @@ private fun WeekNavHeader(
 @Composable
 private fun DayChipRow(
     days: List<LocalDate>,
+    dayItems: List<List<CalendarTopicItem>>,
     loads: List<DayLoad>,
     selectedIndex: Int,
+    accent: Color,
+    scheme: androidx.compose.material3.ColorScheme,
     onSelect: (Int) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        days.forEachIndexed { index, date ->
-            val selected = index == selectedIndex
-            Surface(
-                modifier = Modifier.weight(1f).clickable { onSelect(index) },
-                shape = RoundedCornerShape(50),
-                color = if (selected) PlannerAccent.Teal else MaterialTheme.colorScheme.surfaceContainerLow,
-            ) {
-                Column(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            days.forEachIndexed { index, date ->
+                val selected = index == selectedIndex
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(CircleShape)
+                        .then(
+                            if (selected) Modifier.background(accent)
+                            else Modifier.border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), CircleShape),
+                        )
+                        .clickable { onSelect(index) }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    // Load dot — lets a heavy day be spotted while scanning the
-                    // week rather than only after tapping into it.
-                    val load = loads.getOrNull(index) ?: DayLoad.REST
-                    Box(
-                        modifier = Modifier
-                            .size(5.dp)
-                            .clip(CircleShape)
-                            .background(
-                                when {
-                                    selected -> Color.White.copy(alpha = if (load == DayLoad.REST) 0.35f else 0.9f)
-                                    load == DayLoad.REST -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
-                                    load == DayLoad.LIGHT -> PlannerAccent.Teal
-                                    load == DayLoad.FULL -> PlannerAccent.Amber
-                                    else -> MaterialTheme.colorScheme.error
-                                },
-                            ),
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Text(
+                            date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                            fontSize = 12.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selected) Color.White else scheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
+        }
+
+        // Workload as a mini bar chart across the week: bar height is that day's
+        // topic count against the busiest day, so the shape of the row answers
+        // "which days are heavy?" without tapping into any of them.
+        val busiest = dayItems.maxOfOrNull { it.size }?.coerceAtLeast(1) ?: 1
+        Row(
+            modifier = Modifier.fillMaxWidth().height(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            days.indices.forEach { index ->
+                DayVolumeBar(
+                    topicCount = dayItems.getOrNull(index)?.size ?: 0,
+                    busiestCount = busiest,
+                    isOverGoal = loads.getOrNull(index) == DayLoad.HEAVY,
+                    isSelected = index == selectedIndex,
+                    accent = accent,
+                    scheme = scheme,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Taller = busier",
+                fontSize = 10.sp,
+                color = scheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
         }
     }
 }
@@ -420,82 +505,47 @@ private fun DayChipRow(
 @Composable
 private fun TopicPill(
     topic: CalendarTopicItem,
-    onEditTopic: (String, String) -> Unit,
+    scheme: androidx.compose.material3.ColorScheme,
 ) {
-    var showEditDialog by remember { mutableStateOf(false) }
-    var editName by remember(topic.topicName) { mutableStateOf(topic.topicName) }
 
-    if (showEditDialog) {
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            title = { Text("Edit Topic Name") },
-            text = {
-                OutlinedTextField(
-                    value = editName,
-                    onValueChange = { editName = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (editName.isNotBlank() && editName != topic.topicName) {
-                            onEditTopic(topic.topicId, editName)
-                        }
-                        showEditDialog = false
-                    }
-                ) {
-                    Text("Save")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
+    Column {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // The dot carries the SUBJECT, not the size. Subject is the thing a
+            // student scans a day for ("how much Physics today?"), and the server
+            // has always sent a distinct colour per subject that this screen
+            // never used. Size moved to the bars on the right, so one row now
+            // shows both dimensions without reading either.
             Box(
-                modifier = Modifier.size(8.dp).clip(CircleShape).background(
-                    when (topic.size) {
-                        TopicSize.BIG -> PlannerAccent.Coral
-                        TopicSize.SMALL -> PlannerAccent.Teal.copy(alpha = 0.55f)
-                        else -> PlannerAccent.Teal
-                    },
-                ),
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(subjectDotColor(topic.subjectColor)),
             )
             Column(
-                modifier = Modifier.padding(start = 12.dp).weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.padding(start = 10.dp).weight(1f),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(
                     topic.topicName,
-                    style = MaterialTheme.typography.bodyMedium,
+                    fontSize = 13.5.sp,
                     fontWeight = FontWeight.Medium,
+                    color = scheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (topic.subjectName.isNotBlank()) {
                         Text(
                             topic.subjectName,
-                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = scheme.primary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -503,16 +553,15 @@ private fun TopicPill(
                     if (topic.subjectName.isNotBlank() && topic.chapterName.isNotBlank()) {
                         Text(
                             "·",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            fontSize = 11.sp,
+                            color = scheme.onSurfaceVariant.copy(alpha = 0.5f),
                         )
                     }
                     if (topic.chapterName.isNotBlank()) {
                         Text(
                             topic.chapterName,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Normal,
-                            color = MaterialTheme.colorScheme.secondary,
+                            fontSize = 11.sp,
+                            color = scheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false),
@@ -520,47 +569,18 @@ private fun TopicPill(
                     }
                 }
             }
-            IconButton(
-                onClick = {
-                    editName = topic.topicName
-                    showEditDialog = true
-                },
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit topic",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+            TopicEffortBars(
+                size = topic.size ?: TopicSize.MEDIUM,
+                activeColor = scheme.onSurfaceVariant,
+                inactiveColor = scheme.outlineVariant.copy(alpha = 0.45f),
+                large = true,
+                modifier = Modifier.padding(end = 4.dp),
+            )
         }
+        PlanHairline(alpha = 0.4f)
     }
 }
 
-
-
-@Composable
-private fun SummaryStat(value: String, label: String, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 10.dp, horizontal = 14.dp),
-        ) {
-            Text(value, fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-/**
- * The one-line answer to "will this plan actually work?", shown directly under
- * the summary stats. Green when everything fits, amber when it fits but only by
- * exceeding the daily goal, red when topics had to be dropped entirely.
- */
 @Composable
 private fun PreviewVerdictCard(
     accent: Color,
@@ -571,52 +591,320 @@ private fun PreviewVerdictCard(
     actionHint: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = accent.copy(alpha = 0.12f),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(18.dp).padding(top = 2.dp),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = accent,
+            )
+            Text(
+                text = body,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (actionLabel != null && onAction != null) {
+                TextButton(
+                    onClick = onAction,
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp),
+                ) {
+                    Text(actionLabel, fontWeight = FontWeight.Bold, color = accent, fontSize = 12.sp)
+                }
+                if (actionHint != null) {
+                    Text(
+                        text = actionHint,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlanCoverageMeter(
+    totalTopics: Int,
+    scheduledTopics: Int,
+    skippedTopics: Int,
+    neededPerDay: Int,
+    goalPerDay: Int,
+    onScheduleAnyway: (() -> Unit)?,
+    scheme: androidx.compose.material3.ColorScheme,
+) {
+    val assignedPercent = if (totalTopics > 0) (scheduledTopics.toFloat() / totalTopics.toFloat() * 100).roundToInt() else 100
+    val accent = scheme.primary
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "$skippedTopics topics don't fit",
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = scheme.error,
+            )
+            Text(
+                text = "$assignedPercent% fit",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = accent,
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(CircleShape)
+                .background(scheme.error.copy(alpha = 0.25f)),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth((assignedPercent / 100f).coerceIn(0f, 1f))
+                    .clip(CircleShape)
+                    .background(accent),
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "$scheduledTopics of $totalTopics topics got a date",
+                fontSize = 11.5.sp,
+                color = scheme.onSurfaceVariant,
+            )
+
+            if (onScheduleAnyway != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .border(1.dp, scheme.error.copy(alpha = 0.6f), CircleShape)
+                        .clickable { onScheduleAnyway() }
+                        .padding(horizontal = 12.dp, vertical = 5.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (neededPerDay > 0) "Fit all · $neededPerDay a day" else "Fit them all anyway",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.error,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class ParsedDeferralWarning(
+    val subjectChips: List<String>,
+    val timelineText: String,
+    val adviceText: String,
+)
+
+private fun parseDeferralWarning(warning: String): ParsedDeferralWarning? {
+    if (!warning.contains("won't start until")) return null
+    val parts = warning.split("won't start until")
+    if (parts.size < 2) return null
+
+    val rawSubjects = parts[0].trim()
+    val remainder = parts[1].trim()
+
+    val subjects = rawSubjects
+        .split(", ")
+        .flatMap { part ->
+            if (part.contains(" and ")) {
+                part.split(" and ")
+            } else {
+                listOf(part)
+            }
+        }
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+
+    val dotSplit = remainder.split(". ")
+    val timeline = dotSplit.getOrNull(0)?.let { "Starts $it" } ?: remainder
+    val advice = dotSplit.getOrNull(1) ?: ""
+
+    return ParsedDeferralWarning(
+        subjectChips = subjects,
+        timelineText = timeline,
+        adviceText = advice,
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DeferredSubjectsCard(
+    warning: String,
+    scheme: androidx.compose.material3.ColorScheme,
+) {
+    val parsed = remember(warning) { parseDeferralWarning(warning) }
+    var expanded by remember { mutableStateOf(false) }
+
+    if (parsed == null) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = icon,
+                imageVector = Icons.Default.Info,
                 contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(20.dp),
+                tint = scheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
             )
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = warning,
+                fontSize = 12.sp,
+                color = scheme.onSurfaceVariant,
+            )
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = PlannerAccent.Amber,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(8.dp))
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelLarge,
+                    text = "${parsed.subjectChips.size} subjects start close to exam",
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = accent,
+                    color = scheme.onSurface,
+                    modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = body,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = if (expanded) "Hide ▴" else "View (${parsed.subjectChips.size}) ▾",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.primary,
+                    modifier = Modifier
+                        .clickable { expanded = !expanded }
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
                 )
-                if (actionLabel != null && onAction != null) {
-                    // The one route to flex scheduling, offered only here — with
-                    // the real numbers on screen — instead of as a setting picked
-                    // blind before the plan exists.
-                    TextButton(
-                        onClick = onAction,
-                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+            }
+
+            Text(
+                text = parsed.timelineText,
+                fontSize = 12.sp,
+                color = scheme.onSurfaceVariant,
+            )
+
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(actionLabel, fontWeight = FontWeight.Bold, color = accent)
+                        parsed.subjectChips.forEach { subjectName ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                            ) {
+                                Text(
+                                    text = subjectName,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = scheme.onSurface,
+                                )
+                            }
+                        }
                     }
-                    if (actionHint != null) {
+                    if (parsed.adviceText.isNotBlank()) {
                         Text(
-                            text = actionHint,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = parsed.adviceText,
+                            fontSize = 11.5.sp,
+                            color = scheme.onSurfaceVariant.copy(alpha = 0.8f),
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * One day's workload as a single bar, scaled against the busiest day of the
+ * week. Height alone carries the comparison, so it stays readable at the ~40dp
+ * a day chip gets on a phone — where proportional subject bands collapsed into
+ * unreadable slivers. Red marks a day that runs past the student's daily goal.
+ */
+@Composable
+private fun DayVolumeBar(
+    topicCount: Int,
+    busiestCount: Int,
+    isOverGoal: Boolean,
+    isSelected: Boolean,
+    accent: Color,
+    scheme: ColorScheme,
+    modifier: Modifier = Modifier,
+) {
+    val fraction = if (busiestCount <= 0) 0f else topicCount.toFloat() / busiestCount
+    Box(modifier = modifier.fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
+        if (topicCount == 0) {
+            // Rest day: a faint rule keeps the week continuous instead of a gap.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .clip(RoundedCornerShape(1.dp))
+                    .background(scheme.outlineVariant.copy(alpha = 0.35f)),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(fraction.coerceIn(0.18f, 1f))
+                    .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                    .background(
+                        when {
+                            isOverGoal -> scheme.error
+                            isSelected -> accent
+                            else -> accent.copy(alpha = 0.35f)
+                        },
+                    ),
+            )
         }
     }
 }

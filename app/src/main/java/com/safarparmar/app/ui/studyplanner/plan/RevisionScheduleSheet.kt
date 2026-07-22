@@ -37,6 +37,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.rememberScrollState
+import com.safarparmar.app.ui.studyplanner.components.PlannerRevisionAccent
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
@@ -275,7 +277,7 @@ private fun SpacedRevisionOptionCard(
                 Icon(
                     painter = painterResource(id = com.safarparmar.app.R.drawable.ic_brain),
                     contentDescription = null,
-                    tint = if (hasSlots) scheme.primary else scheme.onSurfaceVariant,
+                    tint = if (hasSlots) PlannerRevisionAccent.Spaced else scheme.onSurfaceVariant,
                     modifier = Modifier.size(32.dp)
                 )
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {

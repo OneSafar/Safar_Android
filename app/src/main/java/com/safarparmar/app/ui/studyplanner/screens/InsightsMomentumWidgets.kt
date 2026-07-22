@@ -263,9 +263,20 @@ internal fun InsightsOverallProgressRedesign(
                     )
                 }
             }
+            // "12 of 40 topics done" used to sit directly under the ring, but the
+            // ring is effort-weighted (a big topic counts for more) so the two
+            // numbers disagreed — teaching the student that the app's maths can't
+            // be trusted. Now the caption states what is finished and what is
+            // left, and one plain line explains why the % isn't just done/total.
             Text(
-                text = "$doneTopics of $totalTopics topics done",
+                text = "$doneTopics done · ${(totalTopics - doneTopics).coerceAtLeast(0)} to go",
                 style = MaterialTheme.typography.bodySmall,
+                color = secondaryText,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "Big topics count more",
+                style = MaterialTheme.typography.labelSmall,
                 color = secondaryText,
                 textAlign = TextAlign.Center,
             )

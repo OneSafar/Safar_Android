@@ -52,11 +52,6 @@ fun SafarDrawerScaffold(
     showTopBarTitle: Boolean = true,
     useGlassTopBar: Boolean = false,
     useDetachedMenuGlass: Boolean = false,
-    // Lets a caller with showTopBar = false (a fully custom header) still open
-    // this drawer — invoked once with the opener function, not on every
-    // recomposition, so store it in a `remember { mutableStateOf(...) }` at
-    // the call site rather than calling it directly during composition.
-    onDrawerControllerReady: ((openDrawer: () -> Unit) -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -88,10 +83,6 @@ fun SafarDrawerScaffold(
     }
 
     val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
-
-    LaunchedEffect(onDrawerControllerReady) {
-        onDrawerControllerReady?.invoke(openDrawer)
-    }
 
     @Composable
     fun GlassSurfaceModifier(shape: RoundedCornerShape, height: androidx.compose.ui.unit.Dp = 52.dp): Modifier {
@@ -188,7 +179,7 @@ fun SafarDrawerScaffold(
                                 )
                             }
                             Box(
-                                modifier = GlassSurfaceModifier(RoundedCornerShape(14.dp))
+                                modifier = GlassSurfaceModifier(RoundedCornerShape(50.dp))
                                     .weight(1f)
                                     .fillMaxWidth(),
                                 contentAlignment = Alignment.Center,

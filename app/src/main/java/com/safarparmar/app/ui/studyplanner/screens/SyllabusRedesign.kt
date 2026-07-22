@@ -62,6 +62,8 @@ import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.domain.model.studyplanner.effectiveSize
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.TopicEffortBars
+import com.safarparmar.app.domain.model.studyplanner.TopicSize
 import com.safarparmar.app.ui.studyplanner.logic.percentDone
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
@@ -581,12 +583,28 @@ internal fun SyllabusMagazineDifficultyChips(
                     .clickable { onSelect(if (isSelected) null else option.wireValue) }
                     .padding(horizontal = 9.dp, vertical = 3.dp),
             ) {
-                Text(
-                    text = option.label,
-                    fontSize = 10.5.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = tint,
-                )
+                // The bars sit on the chip itself, so "Tough means each topic
+                // takes more room" is visible in the control rather than needing
+                // a sentence above it.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    Text(
+                        text = option.label,
+                        fontSize = 10.5.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = tint,
+                    )
+                    TopicEffortBars(
+                        size = when (option) {
+                            ChapterDifficulty.EASY -> TopicSize.SMALL
+                            ChapterDifficulty.NORMAL -> TopicSize.MEDIUM
+                            ChapterDifficulty.TOUGH -> TopicSize.BIG
+                        },
+                        activeColor = tint,
+                    )
+                }
             }
         }
     }
@@ -884,19 +902,7 @@ internal fun SyllabusMagazineTopicRow(
                 )
                 if (showSize) {
                     Spacer(Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 5.dp, vertical = 1.dp),
-                    ) {
-                        Text(
-                            text = effective.shortLabel,
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PlannerFlatColors.TextMuted,
-                        )
-                    }
+                    TopicEffortBars(size = effective)
                 }
             }
             Spacer(Modifier.height(3.dp))

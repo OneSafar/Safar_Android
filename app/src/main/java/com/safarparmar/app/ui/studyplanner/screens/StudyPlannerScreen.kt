@@ -130,6 +130,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.safarparmar.app.ui.studyplanner.components.PlannerTabAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerRevisionAccent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -1035,26 +1037,10 @@ private data class TargetExamTone(
 )
 
 private fun targetExamTone(planId: String, isDark: Boolean): TargetExamTone {
-    val tones = if (isDark) {
-        listOf(
-            TargetExamTone(Color(0xFF81C784), Color(0xFF1B3B22), Color(0xFF2E5B36)), // Green
-            TargetExamTone(Color(0xFFB39DDB), Color(0xFF2D1F4D), Color(0xFF453075)), // Purple
-            TargetExamTone(Color(0xFFFFB74D), Color(0xFF4E2C0F), Color(0xFF75451D)), // Orange
-            TargetExamTone(Color(0xFF64B5F6), Color(0xFF0F3156), Color(0xFF1B4E85)), // Blue
-            TargetExamTone(Color(0xFF4DD0E1), Color(0xFF0D3A40), Color(0xFF185D66)), // Teal
-            TargetExamTone(Color(0xFFF06292), Color(0xFF451325), Color(0xFF6B223E)), // Pink
-        )
-    } else {
-        listOf(
-            TargetExamTone(Color(0xFF4FAD38), Color(0xFFE6F3E2), Color(0xFFECF6E9)),
-            TargetExamTone(Color(0xFF8358D3), Color(0xFFEDE7FB), Color(0xFFF1ECFC)),
-            TargetExamTone(Color(0xFFFF8A37), Color(0xFFFFECDD), Color(0xFFFFF0E5)),
-            TargetExamTone(Color(0xFF438DDD), Color(0xFFE3F0FD), Color(0xFFEAF3FE)),
-            TargetExamTone(Color(0xFF45A1A7), Color(0xFFE0F2F3), Color(0xFFE8F5F5)),
-            TargetExamTone(Color(0xFFE477A1), Color(0xFFFBE7EF), Color(0xFFFCECF2)),
-        )
-    }
-    return tones[(planId.hashCode() and Int.MAX_VALUE) % tones.size]
+    val accent = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5)
+    val bg = if (isDark) Color(0xFF818CF8).copy(alpha = 0.16f) else Color(0xFF4F46E5).copy(alpha = 0.10f)
+    val chipBg = if (isDark) Color(0xFF818CF8).copy(alpha = 0.25f) else Color(0xFF4F46E5).copy(alpha = 0.18f)
+    return TargetExamTone(accent, bg, chipBg)
 }
 
 
@@ -1371,6 +1357,14 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
     ) {
         sections.forEach { section ->
             val isSelected = selected == section
+            val tabAccent = when (section) {
+                PlannerSection.PLAN -> PlannerTabAccent.Home
+                PlannerSection.YOUR_EXAMS -> PlannerTabAccent.Plan
+                PlannerSection.SYLLABUS -> PlannerTabAccent.Syllabus
+                PlannerSection.CALENDAR -> PlannerTabAccent.Calendar
+                PlannerSection.INSIGHTS -> PlannerTabAccent.Progress
+                PlannerSection.REVISION -> PlannerRevisionAccent.Parent
+            }
             NavigationBarItem(
                 selected = isSelected,
                 onClick = { onSelect(section) },
@@ -1390,11 +1384,11 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = scheme.onSecondaryContainer,
-                    selectedTextColor = scheme.onSurface,
-                    unselectedIconColor = scheme.onSurfaceVariant,
-                    unselectedTextColor = scheme.onSurfaceVariant,
-                    indicatorColor = scheme.secondaryContainer,
+                    selectedIconColor = tabAccent,
+                    selectedTextColor = tabAccent,
+                    unselectedIconColor = scheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    unselectedTextColor = scheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    indicatorColor = if (scheme.background.isLightBackground()) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.12f),
                 ),
             )
         }
