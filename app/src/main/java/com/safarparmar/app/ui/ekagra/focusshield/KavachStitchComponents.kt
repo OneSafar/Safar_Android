@@ -5,7 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,8 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,10 +35,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.studyplanner.components.GlassButton
+import com.safarparmar.app.ui.studyplanner.components.glassSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +92,7 @@ fun KavachStitchBackHeader(
     }
 }
 
+/** Primary CTA — macOS translucent coloured glass (GlassButton recipe). */
 @Composable
 fun KavachStitchPrimaryButton(
     text: String,
@@ -95,27 +100,84 @@ fun KavachStitchPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Button(
+    val isDark = KavachDesign.isDark
+    GlassButton(
         onClick = onClick,
-        enabled = enabled,
+        accentColor = KavachDesign.Primary,
         modifier = modifier
             .fillMaxWidth()
-            // heightIn instead of height: button grows when system font is Large
-            // but never shrinks below the M3 comfortable touch-target baseline.
             .heightIn(min = 56.dp),
-        shape = RoundedCornerShape(999.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = KavachDesign.Primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = KavachDesign.Primary.copy(alpha = 0.4f),
-            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-        ),
+        shape = RoundedCornerShape(16.dp),
+        enabled = enabled,
+        isDarkTheme = isDark,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.Center,
     ) {
         Text(
             text = text,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
             fontWeight = FontWeight.SemiBold,
-            // No hard-coded sp — let M3 typography scale with system font size
-            style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+            color = Color.White.copy(alpha = if (enabled) 1f else 0.65f),
+            style = MaterialTheme.typography.labelLarge,
+        )
+    }
+}
+
+/** Secondary / dismiss CTA — neutral macOS glass panel. */
+@Composable
+fun KavachStitchSecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val isDark = KavachDesign.isDark
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .glassSurface(shape = RoundedCornerShape(16.dp), isDarkTheme = isDark)
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            textAlign = TextAlign.Center,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = KavachDesign.HubTextMuted.copy(alpha = if (enabled) 1f else 0.5f),
+        )
+    }
+}
+
+/** Compact allow CTA used in permission rows. */
+@Composable
+fun KavachStitchAllowButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isDark = KavachDesign.isDark
+    GlassButton(
+        onClick = onClick,
+        accentColor = KavachDesign.Primary,
+        modifier = modifier.heightIn(min = 32.dp),
+        shape = RoundedCornerShape(999.dp),
+        isDarkTheme = isDark,
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
         )
     }
 }
@@ -132,7 +194,7 @@ fun KavachStitchStatusChip(
                 .background(KavachDesign.SuccessBg)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Icon(
                 Icons.Default.CheckCircle,

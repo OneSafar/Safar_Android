@@ -13,6 +13,12 @@ enum class StudyPlannerTab {
     DAILY_TODO
 }
 
+data class TopicSchedulingResult(
+    val added: Int,
+    val notAdded: Int,
+    val failed: Boolean = false,
+)
+
 interface PlannerActions {
     fun setSection(section: PlannerSection)
     fun setPlanTab(tab: StudyPlannerTab)
@@ -117,12 +123,15 @@ interface PlannerActions {
     fun cancelRevision(topicId: String)
     fun deleteTopic(topicId: String)
     /**
-     * Recovery for missed work: reschedules ONLY [topicIds] into the free days
-     * ahead, leaving every other topic exactly where it is. Backs the Missed
-     * screen's one-tap "Move all to my free days" so a student who lost a week
-     * doesn't have to re-date thirty topics by hand.
+     * Gives dates only to [topicIds], leaving every other topic where it is.
+     * Normal mode respects the saved daily goal. [fitAll] is used only after
+     * the student agrees to study more each day.
      */
-    fun rescheduleMissedTopics(topicIds: List<String>)
+    fun rescheduleMissedTopics(
+        topicIds: List<String>,
+        fitAll: Boolean = false,
+        onResult: (TopicSchedulingResult) -> Unit = {},
+    )
     /**
      * [overloadMode] is an escape hatch, not a setting: null (the normal case)
      * means respect the plan's daily goal and report anything that doesn't fit.

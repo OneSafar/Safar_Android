@@ -52,6 +52,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -76,6 +77,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
@@ -85,13 +87,8 @@ import com.safarparmar.app.ui.theme.isLightBackground
  * Opaque macOS Control Center glass for tappable option tiles.
  * Page chrome / CTAs stay flat-hairline via [LaunchFlatColors].
  */
-private fun Modifier.launchGlassPanel(
-    isLight: Boolean,
-    selected: Boolean,
-    accent: Color,
-    shape: RoundedCornerShape = RoundedCornerShape(20.dp),
-): Modifier {
-    val bodyColor = if (selected) {
+private fun glassBodyColor(isLight: Boolean, selected: Boolean, accent: Color): Color {
+    return if (selected) {
         if (isLight) lerp(Color(0xFFF9F9FB), accent, 0.18f)
         else lerp(Color(0xFF2C2C2E), accent, 0.28f)
     } else if (isLight) {
@@ -99,6 +96,24 @@ private fun Modifier.launchGlassPanel(
     } else {
         Color(0xFF2C2C2E)
     }
+}
+
+/** Title + subtitle ink keyed to the glass fill, not the page theme. */
+private fun onGlassInk(bodyColor: Color): Pair<Color, Color> {
+    return if (bodyColor.isLightBackground()) {
+        Color(0xFF1C1C1E) to Color(0xFF3A3A3C)
+    } else {
+        Color(0xFFF5F5F7) to Color(0xFFD1D1D6)
+    }
+}
+
+private fun Modifier.launchGlassPanel(
+    isLight: Boolean,
+    selected: Boolean,
+    accent: Color,
+    shape: RoundedCornerShape = RoundedCornerShape(20.dp),
+): Modifier {
+    val bodyColor = glassBodyColor(isLight, selected, accent)
     val borderBrush = if (!isLight) {
         Brush.verticalGradient(
             listOf(
@@ -196,14 +211,9 @@ private fun kavachModes(): List<KavachModeOption> = listOf(
         accent = LaunchFlatColors.Normal,
         badge = "Recommended",
     ),
-    KavachModeOption(
-        mode = AppUsageMode.ALWAYS_ON,
-        title = "Always On",
-        description = "Blocked apps stay closed until you turn KAVACH off.",
-        icon = Icons.Rounded.ShieldMoon,
-        accent = LaunchFlatColors.AlwaysOn,
-        badge = "Strong",
-    ),
+    // "Always On" is HIDDEN for this release — only Normal and Beast Mode ship.
+    // The mode, its service and its repository plumbing are all left intact so it
+    // can be restored by putting this option back; nothing else needs changing.
     KavachModeOption(
         mode = AppUsageMode.BEAST,
         title = "Beast Mode",
@@ -257,61 +267,63 @@ fun LaunchUsageQuestionnaireScreen(
 
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(LaunchFlatColors.Bg),
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets.safeDrawing,
-            topBar = {
-                QuestionnaireTopBar(
-                    page = page,
-                    onBack = { if (page > 0) page-- },
-                )
-            },
-            bottomBar = {
-                QuestionnaireBottomBar(
-                    page = page,
-                    canContinue = when (page) {
-                        0 -> uiState.selectedReasons.isNotEmpty()
-                        else -> selectedMode != null
-                    },
-                    onBack = { if (page > 0) page-- },
-                    onContinue = {
-                        if (page == 0) page = 1 else onFinishQuestionnaire()
-                    },
-                )
-            },
-        ) { padding ->
-            AnimatedContent(
-                targetState = page,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                transitionSpec = {
-                    if (targetState > initialState) {
-                        (slideInHorizontally { it / 4 } + fadeIn(tween(280)))
-                            .togetherWith(slideOutHorizontally { -it / 4 } + fadeOut(tween(220)))
-                    } else {
-                        (slideInHorizontally { -it / 4 } + fadeIn(tween(280)))
-                            .togetherWith(slideOutHorizontally { it / 4 } + fadeOut(tween(220)))
-                    }
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(LaunchFlatColors.Bg),
+        ) {
+            Scaffold(
+                containerColor = Color.Transparent,
+                contentWindowInsets = WindowInsets.safeDrawing,
+                topBar = {
+                    QuestionnaireTopBar(
+                        page = page,
+                        onBack = { if (page > 0) page-- },
+                    )
                 },
-                label = "questionnairePage",
-            ) { currentPage ->
-                when (currentPage) {
-                    0 -> WhyHerePage(
-                        selectedReasons = uiState.selectedReasons,
-                        onToggleReason = viewModel::toggleReason,
-                        isLight = isLight,
+                bottomBar = {
+                    QuestionnaireBottomBar(
+                        page = page,
+                        canContinue = when (page) {
+                            0 -> uiState.selectedReasons.isNotEmpty()
+                            else -> selectedMode != null
+                        },
+                        onBack = { if (page > 0) page-- },
+                        onContinue = {
+                            if (page == 0) page = 1 else onFinishQuestionnaire()
+                        },
                     )
-                    else -> KavachModePage(
-                        selectedMode = selectedMode,
-                        onSelectMode = { selectedMode = it },
-                        isLight = isLight,
-                    )
+                },
+            ) { padding ->
+                AnimatedContent(
+                    targetState = page,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            (slideInHorizontally { it / 4 } + fadeIn(tween(280)))
+                                .togetherWith(slideOutHorizontally { -it / 4 } + fadeOut(tween(220)))
+                        } else {
+                            (slideInHorizontally { -it / 4 } + fadeIn(tween(280)))
+                                .togetherWith(slideOutHorizontally { it / 4 } + fadeOut(tween(220)))
+                        }
+                    },
+                    label = "questionnairePage",
+                ) { currentPage ->
+                    when (currentPage) {
+                        0 -> WhyHerePage(
+                            selectedReasons = uiState.selectedReasons,
+                            onToggleReason = viewModel::toggleReason,
+                            isLight = isLight,
+                        )
+                        else -> KavachModePage(
+                            selectedMode = selectedMode,
+                            onSelectMode = { selectedMode = it },
+                            isLight = isLight,
+                        )
+                    }
                 }
             }
         }
@@ -545,6 +557,8 @@ private fun ReasonOptionCard(
         label = "reasonCardScale",
     )
     val shape = RoundedCornerShape(20.dp)
+    val body = glassBodyColor(isLight, selected, option.accent)
+    val (titleInk, mutedInk) = onGlassInk(body)
 
     Row(
         modifier = Modifier
@@ -578,7 +592,11 @@ private fun ReasonOptionCard(
             Icon(
                 imageVector = option.icon,
                 contentDescription = null,
-                tint = if (selected) Color.White else option.accent,
+                tint = if (selected) {
+                    if (option.accent.isLightBackground()) Color(0xFF1C1C1E) else Color.White
+                } else {
+                    option.accent
+                },
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -591,17 +609,17 @@ private fun ReasonOptionCard(
                 text = option.title,
                 fontSize = 15.sp,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                color = LaunchFlatColors.Text,
+                color = titleInk,
             )
             Text(
                 text = option.subtitle,
                 fontSize = 12.sp,
-                color = LaunchFlatColors.Muted,
+                color = mutedInk,
                 lineHeight = 17.sp,
             )
         }
 
-        SelectionIndicator(selected = selected, accent = option.accent)
+        SelectionIndicator(selected = selected, accent = option.accent, isLight = isLight)
     }
 }
 
@@ -618,7 +636,14 @@ private fun KavachModeCard(
         label = "modeCardScale",
     )
     val shape = RoundedCornerShape(20.dp)
-    val titleColor = if (selected) option.accent else LaunchFlatColors.Text
+    val body = glassBodyColor(isLight, selected, option.accent)
+    val (titleInk, mutedInk) = onGlassInk(body)
+    // Accent title only when it stays readable on the tinted glass fill.
+    val titleColor = when {
+        !selected -> titleInk
+        option.accent.isLightBackground() -> titleInk
+        else -> option.accent
+    }
 
     Row(
         modifier = Modifier
@@ -652,7 +677,11 @@ private fun KavachModeCard(
             Icon(
                 imageVector = option.icon,
                 contentDescription = null,
-                tint = if (selected) Color.White else option.accent,
+                tint = if (selected) {
+                    if (option.accent.isLightBackground()) Color(0xFF1C1C1E) else Color.White
+                } else {
+                    option.accent
+                },
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -672,13 +701,14 @@ private fun KavachModeCard(
                     color = titleColor,
                 )
                 option.badge?.let { badge ->
+                    val badgeInk = if (option.accent.isLightBackground()) titleInk else option.accent
                     Text(
                         text = badge,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = option.accent,
+                        color = badgeInk,
                         modifier = Modifier
-                            .border(1.dp, option.accent.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
+                            .border(1.dp, badgeInk.copy(alpha = 0.55f), RoundedCornerShape(6.dp))
                             .padding(horizontal = 7.dp, vertical = 2.dp),
                     )
                 }
@@ -686,12 +716,12 @@ private fun KavachModeCard(
             Text(
                 text = option.description,
                 fontSize = 13.sp,
-                color = LaunchFlatColors.Muted,
+                color = mutedInk,
                 lineHeight = 18.sp,
             )
         }
 
-        SelectionIndicator(selected = selected, accent = option.accent)
+        SelectionIndicator(selected = selected, accent = option.accent, isLight = isLight)
     }
 }
 
@@ -699,7 +729,9 @@ private fun KavachModeCard(
 private fun SelectionIndicator(
     selected: Boolean,
     accent: Color,
+    isLight: Boolean,
 ) {
+    val ring = if (isLight) Color(0xFF8E8E93) else Color(0xFFAEAEB2)
     Box(
         modifier = Modifier
             .size(26.dp)
@@ -707,11 +739,7 @@ private fun SelectionIndicator(
             .background(if (selected) accent else Color.Transparent)
             .then(
                 if (!selected) {
-                    Modifier.border(
-                        width = 1.5.dp,
-                        color = LaunchFlatColors.Hairline,
-                        shape = CircleShape,
-                    )
+                    Modifier.border(width = 1.5.dp, color = ring, shape = CircleShape)
                 } else {
                     Modifier
                 },
@@ -726,7 +754,7 @@ private fun SelectionIndicator(
             Icon(
                 Icons.Default.Check,
                 contentDescription = null,
-                tint = Color.White,
+                tint = if (accent.isLightBackground()) Color(0xFF1C1C1E) else Color.White,
                 modifier = Modifier.size(16.dp),
             )
         }

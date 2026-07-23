@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
+import com.safarparmar.app.ui.studyplanner.logic.jsDayOfWeek
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.studyplanner.plan.PlanRestDaysRow
@@ -172,10 +173,19 @@ fun PlanSettingsStep(
 
         PlanHairline(alpha = 0.5f)
 
+        // Count actual STUDY days — every day between now and the exam minus the
+        // weekly rest days the student picked. Dividing by plain calendar days was
+        // the bug: choosing rest days left the recommendation unchanged even
+        // though there are now fewer days to cover the same topics.
         val studyDaysEstimate = runCatching {
             val exam = java.time.LocalDate.parse(examDateOnly)
-            val today = java.time.LocalDate.now()
-            java.time.temporal.ChronoUnit.DAYS.between(today, exam).toInt().coerceAtLeast(1)
+            var cursor = java.time.LocalDate.now()
+            var count = 0
+            while (!cursor.isAfter(exam)) {
+                if (jsDayOfWeek(cursor) !in offDays) count++
+                cursor = cursor.plusDays(1)
+            }
+            count.coerceAtLeast(1)
         }.getOrNull()
 
         SettingsSection(title = "How many topics per day?", subtitle = "Optional — we'll recommend one for you.") {

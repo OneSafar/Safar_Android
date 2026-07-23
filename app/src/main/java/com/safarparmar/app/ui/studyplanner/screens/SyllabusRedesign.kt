@@ -25,7 +25,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
@@ -103,10 +102,7 @@ internal fun SyllabusMagazineHeader(
     topicCount: Int,
     daysUntilExam: Int?,
     notStartedChapters: Int,
-    buildEnabled: Boolean,
-    onBuild: () -> Unit,
     onExamDateClick: () -> Unit,
-    onOverflowClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accent = PlannerFlatColors.PrimaryAccent
@@ -122,55 +118,16 @@ internal fun SyllabusMagazineHeader(
                 .heightIn(min = 40.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PlanEyebrow("Syllabus", modifier = Modifier.weight(1f))
-            Row(
-                modifier = Modifier
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .clickable(enabled = buildEnabled, onClick = onBuild)
-                    .padding(horizontal = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Build",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (buildEnabled) accent else PlannerFlatColors.TextMuted,
-                    maxLines = 1,
-                )
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Build schedule",
-                    tint = if (buildEnabled) accent else PlannerFlatColors.TextMuted,
-                    modifier = Modifier.size(14.dp),
-                )
-            }
-            Spacer(Modifier.width(2.dp))
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clickable(onClick = onOverflowClick),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Syllabus options",
-                        tint = PlannerFlatColors.TextMuted,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
+            PlanEyebrow("Your syllabus", modifier = Modifier.weight(1f))
         }
 
-        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Your study plan is made from these subjects and topics.",
+            fontSize = 12.sp,
+            color = PlannerFlatColors.TextMuted,
+        )
+
+        Spacer(Modifier.height(14.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -250,6 +207,59 @@ internal fun SyllabusMagazineHeader(
     }
 }
 
+/**
+ * One obvious edit entry point. It stays in the flat magazine system: two
+ * hairlines and type hierarchy, without an elevated or filled card.
+ */
+@Composable
+internal fun SyllabusChangePlanBand(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        PlanHairline()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Change your study plan",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.TextDark,
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = "Add subjects, change daily study, or make new dates.",
+                    fontSize = 11.5.sp,
+                    color = PlannerFlatColors.TextMuted,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = "Change My Plan",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.TextMuted,
+            )
+            Spacer(Modifier.width(2.dp))
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.TextMuted,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        PlanHairline()
+    }
+}
+
 @Composable
 private fun SyllabusNodeProgressRule(
     progress: NodeProgress,
@@ -284,7 +294,7 @@ private fun SyllabusNodeProgressRule(
 
 private fun NodeProgress.stateLabel(): String = when (state) {
     NodeState.NOT_STARTED -> "Not started"
-    NodeState.DOING -> "Doing now · ${finishedTopics + startedTopics} of $totalTopics"
+    NodeState.DOING -> "Started · ${finishedTopics + startedTopics} of $totalTopics"
     NodeState.FINISHED -> "Finished"
 }
 
@@ -409,9 +419,9 @@ internal fun SyllabusCourseMapNudge(
 ) {
     val lead = when (nudge.kind) {
         CourseMapNudgeKind.LATE -> "Study first: "
-        CourseMapNudgeKind.TODAY -> "Today's focus: "
+        CourseMapNudgeKind.TODAY -> "Today's work: "
         CourseMapNudgeKind.TODAY_FINISHED -> "Today's work is finished ✓"
-        CourseMapNudgeKind.NEEDS_SCHEDULE -> "Build your schedule to see what to study next"
+        CourseMapNudgeKind.NEEDS_SCHEDULE -> "Make study dates to see today's work"
         CourseMapNudgeKind.ON_TRACK -> "You're on track · No late topics"
     }
     val actionable = nudge.kind == CourseMapNudgeKind.LATE ||
@@ -420,6 +430,7 @@ internal fun SyllabusCourseMapNudge(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .clickable(enabled = actionable, onClick = onClick)
             .padding(vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -458,23 +469,30 @@ internal fun SyllabusCourseMapNudge(
             )
         }
         if (actionable) {
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = if (nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE) "Make dates" else "Open",
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = PlannerFlatColors.PrimaryAccent,
+            )
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = PlannerFlatColors.BorderSoft,
+                tint = PlannerFlatColors.PrimaryAccent,
                 modifier = Modifier.size(16.dp),
             )
         }
     }
 }
 
-/** "Your syllabus" on the left, "+ Add subject" as a text link on the right. */
+/** "Your subjects" on the left, with a full-height Add Subject touch target. */
 @Composable
 internal fun SyllabusMagazineListHeader(
     title: String,
     onAddSubject: () -> Unit,
     modifier: Modifier = Modifier,
-    addLabel: String = "+ Add subject",
+    addLabel: String = "Add Subject",
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -489,13 +507,21 @@ internal fun SyllabusMagazineListHeader(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
-            text = addLabel,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = PlannerFlatColors.PrimaryAccent,
-            modifier = Modifier.clickable(onClick = onAddSubject),
-        )
+        Box(
+            modifier = Modifier
+                .heightIn(min = 48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onAddSubject)
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = addLabel,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = PlannerFlatColors.PrimaryAccent,
+            )
+        }
     }
 }
 
@@ -656,10 +682,16 @@ internal fun SyllabusMagazineSubjectRow(
             }
         }
 
+        Text(
+            text = "Open",
+            fontSize = 11.5.sp,
+            fontWeight = FontWeight.Bold,
+            color = PlannerFlatColors.PrimaryAccent,
+        )
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = PlannerFlatColors.BorderSoft,
+            tint = PlannerFlatColors.PrimaryAccent,
             modifier = Modifier.size(18.dp),
         )
     }

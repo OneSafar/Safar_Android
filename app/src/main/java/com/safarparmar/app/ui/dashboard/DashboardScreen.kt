@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
@@ -32,22 +34,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
-import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.*
+import com.safarparmar.app.ui.achievements.AchievementImages
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
-import com.safarparmar.app.ui.glass.GlassDivider
-import com.safarparmar.app.ui.glass.SafarGlassBackdrop
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.components.StatCardSkeleton
 import com.safarparmar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
+import com.safarparmar.app.ui.studyplanner.components.GlassButton
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
+import com.safarparmar.app.ui.studyplanner.components.glassSurface
+import com.safarparmar.app.ui.studyplanner.components.rememberPlannerBackdropBlur
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.studyplanner.screens.InsightsOverallProgressRedesign
+import com.safarparmar.app.ui.theme.LoraFontFamily
 
 // ── macOS Control Center Design Helpers ─────────────────────────────────────
 
@@ -59,7 +68,7 @@ private fun MacOSControlCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(20.dp)
-    val bodyColor = if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
+    val bodyColor = DashboardFlatColors.glassBody(isDarkTheme)
     val borderBrush = if (isDarkTheme) {
         Brush.verticalGradient(
             colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
@@ -109,9 +118,9 @@ private fun MacOSControlButton(
     onClick: () -> Unit = {}
 ) {
     val shape = RoundedCornerShape(20.dp)
-    val bodyColor = if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
-    val textColor = if (isDarkTheme) Color.White else Color.Black
-    val subtitleColor = if (isDarkTheme) Color.White.copy(alpha = 0.55f) else Color.Black.copy(alpha = 0.55f)
+    val bodyColor = DashboardFlatColors.glassBody(isDarkTheme)
+    val textColor = DashboardFlatColors.onGlassText(isDarkTheme)
+    val subtitleColor = DashboardFlatColors.onGlassMuted(isDarkTheme)
     val borderBrush = if (isDarkTheme) {
         Brush.verticalGradient(
             colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
@@ -207,65 +216,33 @@ private fun MacOSButton(
     modifier: Modifier = Modifier,
     buttonColor: Color = Color(0xFF0A84FF),
 ) {
-    val shape = RoundedCornerShape(16.dp)
-    val borderBrush = if (isDarkTheme) {
-        Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.05f))
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
-        )
-    }
-    val shadowElevation = if (isDarkTheme) 8.dp else 3.dp
-    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.1f)
-
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
             .height(50.dp)
-            .shadow(
-                elevation = shadowElevation,
-                shape = shape,
-                spotColor = shadowColor,
-                ambientColor = shadowColor
-            )
-            .clip(shape)
+            .clip(RoundedCornerShape(14.dp))
             .background(buttonColor)
-            .border(
-                width = 0.5.dp,
-                brush = borderBrush,
-                shape = shape
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(
-                text = text,
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.2.sp
-            )
+        if (icon != null) {
+            Icon(icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
         }
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.2.sp,
+        )
     }
 }
 
-private fun macTextColor(isDark: Boolean) = if (isDark) Color.White else Color.Black
-private fun macSubtitleColor(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.55f) else Color.Black.copy(alpha = 0.55f)
+private fun macTextColor(isDark: Boolean) = DashboardFlatColors.onGlassText(isDark)
+private fun macSubtitleColor(isDark: Boolean) = DashboardFlatColors.onGlassMuted(isDark)
 private fun macAccentBlue() = Color(0xFF0A84FF)
 
 private enum class DashboardSheetType {
@@ -287,6 +264,7 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var activeSheet by remember { mutableStateOf(DashboardSheetType.NONE) }
 
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
     SafarDrawerScaffold(
         title = stringResource(R.string.dashboard_title),
         subtitle = stringResource(R.string.app_name),
@@ -294,12 +272,11 @@ fun DashboardScreen(
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
-        containerColor = Color.Transparent,
-        useGlassTopBar = true,
-        useDetachedMenuGlass = true,
+        containerColor = DashboardFlatColors.Bg,
+        useGlassTopBar = false,
+        useDetachedMenuGlass = false,
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            SafarGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = !isDarkTheme)
+        Box(modifier = Modifier.fillMaxSize().background(DashboardFlatColors.Bg)) {
 
             if (uiState.error != null && uiState.userName.isEmpty() && !uiState.isLoading) {
                 SafarErrorState(
@@ -367,9 +344,10 @@ fun DashboardScreen(
             if (activeSheet != DashboardSheetType.NONE) {
                 ModalBottomSheet(
                     onDismissRequest = { activeSheet = DashboardSheetType.NONE },
-                    containerColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFF9F9FB),
-                    contentColor = macTextColor(isDarkTheme),
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    containerColor = DashboardFlatColors.Bg,
+                    contentColor = DashboardFlatColors.Text,
+                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                    dragHandle = { BottomSheetDefaults.DragHandle(color = DashboardFlatColors.Hairline) },
                 ) {
                     Box(modifier = Modifier.padding(bottom = 32.dp)) {
                         when (activeSheet) {
@@ -383,13 +361,8 @@ fun DashboardScreen(
                 }
             }
 
-            // ── Welcome Overlay ──────────────────────────────────────
-            androidx.compose.animation.AnimatedVisibility(
-                visible = uiState.showWelcomeOverlay,
-                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it / 3 },
-                exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { it / 3 },
-                modifier = Modifier.align(Alignment.Center),
-            ) {
+            // ── Welcome Overlay (macOS glass + backdrop blur) ──────────────
+            if (uiState.showWelcomeOverlay) {
                 DashboardWelcomeOverlay(
                     userName = uiState.userName,
                     isDark = isDarkTheme,
@@ -407,6 +380,7 @@ fun DashboardScreen(
             }
         }
     }
+    } // CompositionLocalProvider
 }
 
 // ── macOS Quick Control Grid ────────────────────────────────────────────────
@@ -882,9 +856,9 @@ private fun StreaksSheetContent(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             StreakRow(stringResource(R.string.dashboard_streak_checkin), "${streaks.checkInStreak}", isDark)
-            GlassDivider()
+            PlanHairline()
             StreakRow(stringResource(R.string.dashboard_streak_login), "${streaks.loginStreak}", isDark)
-            GlassDivider()
+            PlanHairline()
             StreakRow(stringResource(R.string.dashboard_streak_goal), "${streaks.goalCompletionStreak}", isDark)
         }
 
@@ -938,6 +912,9 @@ private fun BadgesSheetContent(
         val display = remember(earned, all) { (if (earned.isNotEmpty()) earned else all).take(6) }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(display, key = { it.id }) { achievement ->
+                val imageUrl = remember(achievement.id) {
+                    AchievementImages.urlFor(achievement.id)
+                }
                 Column(
                     modifier = Modifier
                         .width(90.dp)
@@ -947,14 +924,27 @@ private fun BadgesSheetContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        painter = androidx.compose.ui.res.painterResource(
-                            id = if (achievement.type == "title") R.drawable.ic_crown else R.drawable.ic_medal
-                        ),
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = Color(0xAF5856D6),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xAF5856D6).copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (imageUrl != null) {
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription = achievement.name,
+                                modifier = Modifier.size(36.dp),
+                                contentScale = ContentScale.Fit,
+                            )
+                        } else {
+                            Text(
+                                if (achievement.type == "title") "👑" else "🏅",
+                                fontSize = 20.sp,
+                            )
+                        }
+                    }
                     Text(
                         achievement.name,
                         color = macTextColor(isDark),
@@ -1031,9 +1021,9 @@ private fun MonthlyCard(report: MonthlyReport?, isDark: Boolean, onNavigate: (St
         )
         Spacer(Modifier.height(12.dp))
         StatRow(stringResource(R.string.dashboard_consistency), "${report.consistencyScore.toInt()}%", isDark)
-        GlassDivider()
+        PlanHairline()
         StatRow(stringResource(R.string.dashboard_completion), "${report.completionRate.toInt()}%", isDark)
-        GlassDivider()
+        PlanHairline()
         StatRow(stringResource(R.string.dashboard_focus), "${report.focusDepth.toInt()}m/day", isDark)
         Spacer(Modifier.height(10.dp))
         MacOSButton(
@@ -1137,12 +1127,34 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean) {
 
 @Composable
 private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss: () -> Unit) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        MacOSControlCard(isDarkTheme = isDark, contentPadding = PaddingValues(28.dp)) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        val blurred = rememberPlannerBackdropBlur()
+        val scrimColor = when {
+            blurred && isDark -> Color.Black.copy(alpha = 0.28f)
+            blurred -> Color(0xFF1C1C1E).copy(alpha = 0.12f)
+            isDark -> Color.Black.copy(alpha = 0.55f)
+            else -> Color(0xFF1C1C1E).copy(alpha = 0.28f)
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(scrimColor),
+            contentAlignment = Alignment.Center,
+        ) {
             Column(
+                modifier = Modifier
+                    .padding(horizontal = 28.dp)
+                    .widthIn(max = 420.dp)
+                    .fillMaxWidth()
+                    .glassSurface(shape = RoundedCornerShape(22.dp), isDarkTheme = isDark)
+                    .padding(horizontal = 22.dp, vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                PlanEyebrow("Safar")
                 Icon(
                     painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_leaf),
                     contentDescription = null,
@@ -1151,8 +1163,9 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
                 )
                 Text(
                     text = "Welcome back,\n${userName.replaceFirstChar { it.uppercase() }.ifEmpty { "Friend" }}",
+                    fontFamily = LoraFontFamily,
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.Center,
                     lineHeight = 28.sp,
                     color = macTextColor(isDark),
@@ -1165,13 +1178,27 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
                     lineHeight = 20.sp,
                 )
                 Spacer(Modifier.height(4.dp))
-                MacOSButton(
-                    text = "Let's begin",
-                    icon = Icons.Default.Star,
+                GlassButton(
                     onClick = onDismiss,
+                    accentColor = macAccentBlue(),
+                    modifier = Modifier.fillMaxWidth(),
                     isDarkTheme = isDark,
-                    buttonColor = macAccentBlue()
-                )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Let's begin",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.2.sp,
+                    )
+                }
             }
         }
     }
@@ -1280,10 +1307,30 @@ private fun CelebrationDialog(
     isDark: Boolean,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        MacOSControlCard(isDarkTheme = isDark, contentPadding = PaddingValues(24.dp)) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        val blurred = rememberPlannerBackdropBlur()
+        val scrimColor = when {
+            blurred && isDark -> Color.Black.copy(alpha = 0.28f)
+            blurred -> Color(0xFF1C1C1E).copy(alpha = 0.12f)
+            isDark -> Color.Black.copy(alpha = 0.55f)
+            else -> Color(0xFF1C1C1E).copy(alpha = 0.28f)
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(scrimColor),
+            contentAlignment = Alignment.Center,
+        ) {
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .padding(horizontal = 28.dp)
+                    .widthIn(max = 420.dp)
+                    .fillMaxWidth()
+                    .glassSurface(shape = RoundedCornerShape(22.dp), isDarkTheme = isDark)
+                    .padding(horizontal = 22.dp, vertical = 20.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 ConfettiCelebration(modifier = Modifier.matchParentSize())
@@ -1293,11 +1340,13 @@ private fun CelebrationDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
+                    PlanEyebrow("Safar")
                     Text(
                         "Congratulations! 🎉",
+                        fontFamily = LoraFontFamily,
                         fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = macAccentBlue(),
+                        fontWeight = FontWeight.Normal,
+                        color = macTextColor(isDark),
                         textAlign = TextAlign.Center,
                     )
 
@@ -1312,44 +1361,67 @@ private fun CelebrationDialog(
                         textAlign = TextAlign.Center,
                     )
 
-                    achievements.forEach { achievement ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text(
-                                if (achievement.type == "title") "👑" else "🏅",
-                                fontSize = 48.sp,
-                            )
-
-                            Text(
-                                achievement.name,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = macTextColor(isDark),
-                                textAlign = TextAlign.Center,
-                            )
-
-                            if (!achievement.description.isNullOrBlank()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 280.dp)
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        achievements.forEach { achievement ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
                                 Text(
-                                    achievement.description,
-                                    fontSize = 13.sp,
-                                    color = macSubtitleColor(isDark),
+                                    if (achievement.type == "title") "👑" else "🏅",
+                                    fontSize = 48.sp,
+                                )
+
+                                Text(
+                                    achievement.name,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = macTextColor(isDark),
                                     textAlign = TextAlign.Center,
                                 )
+
+                                if (!achievement.description.isNullOrBlank()) {
+                                    Text(
+                                        achievement.description,
+                                        fontSize = 13.sp,
+                                        color = macSubtitleColor(isDark),
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
                             }
                         }
                     }
 
                     Spacer(Modifier.height(8.dp))
 
-                    MacOSButton(
-                        text = "Awesome!",
-                        icon = Icons.Default.Star,
+                    GlassButton(
                         onClick = onDismiss,
+                        accentColor = macAccentBlue(),
+                        modifier = Modifier.fillMaxWidth(),
                         isDarkTheme = isDark,
-                        buttonColor = macAccentBlue()
-                    )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Awesome!",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.2.sp,
+                        )
+                    }
                 }
             }
         }

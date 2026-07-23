@@ -249,6 +249,12 @@ class CreatePlanViewModel @Inject constructor(
                         title = state.title.ifBlank { r.data.name },
                         examType = state.examType.ifBlank { r.data.name },
                         dailyGoal = r.data.recommendedDailyGoal?.toString() ?: state.dailyGoal,
+                        // Seed the rating chips from the template's own weights as
+                        // soon as the detail lands. Without this, a detail that
+                        // arrives after the user has already reached the rating
+                        // step leaves every chip blank (openChapterRating only
+                        // seeds once, at open). User edits still win via `+`.
+                        chapterRatings = impliedTemplateRatings(r.data) + state.chapterRatings,
                     )
                 }
                 is Resource.Error -> _uiState.update { state ->
@@ -896,7 +902,22 @@ class CreatePlanViewModel @Inject constructor(
      * Manual/paste syllabi carry no weights, so they start empty.
      */
     fun openChapterRating() = _uiState.update { state ->
-        val seeded = state.templateDetail
+        state.copy(
+            step = CreatePlanStep.ChapterRating,
+            // User edits always win over the template's own weighting.
+            chapterRatings = impliedTemplateRatings(state.templateDetail) + state.chapterRatings,
+        )
+    }
+
+    /**
+     * The (subject, chapter) → difficulty map implied by a template's own
+     * hand-weighted topics. Shared by [openChapterRating] and the template-detail
+     * load so the rating chips pre-fill regardless of which happens first.
+     */
+    private fun impliedTemplateRatings(
+        template: ExamTemplate?,
+    ): Map<Pair<String, String>, String> =
+        template
             ?.subjects
             ?.flatMap { subject ->
                 subject.chapters.mapNotNull { chapter ->
@@ -907,12 +928,6 @@ class CreatePlanViewModel @Inject constructor(
             }
             ?.toMap()
             .orEmpty()
-        state.copy(
-            step = CreatePlanStep.ChapterRating,
-            // User edits always win over the template's own weighting.
-            chapterRatings = seeded + state.chapterRatings,
-        )
-    }
 
     /** Subject/chapter outline shown by the rating step. */
     fun ratingOutline(): List<DeepFocusOutlineSubject> = orderedOutline()

@@ -189,18 +189,10 @@ fun KavachStepRow(
                         Text("Done", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = grantedColor)
                     }
                 } else {
-                    Button(
+                    KavachStitchAllowButton(
+                        text = "Allow",
                         onClick = onAllow,
-                        shape = RoundedCornerShape(999.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            horizontal = 14.dp,
-                            vertical = 4.dp,
-                        ),
-                        colors = ButtonDefaults.buttonColors(containerColor = accent),
-                        modifier = Modifier.heightIn(min = 34.dp),
-                    ) {
-                        Text("Allow", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
+                    )
                 }
             }
 
@@ -283,13 +275,13 @@ fun PermissionGuideSheet(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(scheme.primary.copy(alpha = 0.12f)),
+                        .background(KavachDesign.Primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Default.Shield,
                         contentDescription = null,
-                        tint = scheme.primary,
+                        tint = KavachDesign.Primary,
                         modifier = Modifier.size(24.dp),
                     )
                 }
@@ -319,7 +311,7 @@ fun PermissionGuideSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(scheme.primary.copy(alpha = 0.06f))
+                    .background(KavachDesign.Primary.copy(alpha = 0.06f))
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -335,7 +327,7 @@ fun PermissionGuideSheet(
                                 "Tap Allow usage access",
                                 "Press back to return to SAFAR",
                             ),
-                            accent = scheme.primary,
+                            accent = KavachDesign.Primary,
                         )
                     }
                     PermissionTarget.OVERLAY -> {
@@ -347,7 +339,7 @@ fun PermissionGuideSheet(
                                 "Turn 'Allow display over other apps' on",
                                 "Press back to return to SAFAR",
                             ),
-                            accent = scheme.primary,
+                            accent = KavachDesign.Primary,
                         )
                     }
                     PermissionTarget.NOTIFICATIONS -> {
@@ -359,7 +351,7 @@ fun PermissionGuideSheet(
                                 "Tap Allow on the prompt that follows",
                                 "(This is optional — KAVACH works without it)",
                             ),
-                            accent = scheme.primary,
+                            accent = KavachDesign.Primary,
                         )
                     }
                     PermissionTarget.NOTIFICATION_ACCESS -> {
@@ -372,7 +364,7 @@ fun PermissionGuideSheet(
                                 "Turn notification access on",
                                 "Press back to return to SAFAR",
                             ),
-                            accent = scheme.primary,
+                            accent = KavachDesign.Primary,
                         )
                     }
                 }

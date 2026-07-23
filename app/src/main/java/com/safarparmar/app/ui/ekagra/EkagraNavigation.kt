@@ -107,12 +107,12 @@ internal fun EkagraBottomNav(
                 val isSelected = tab == selectedTab
 
                 val iconColor by animateColorAsState(
-                    targetValue = if (isSelected) accentColor else ink.mutedText,
+                    targetValue = if (isSelected) accentColor else ink.secondaryText,
                     animationSpec = tween(durationMillis = 220),
                     label = "navIcon_${tab.name}",
                 )
                 val textColor by animateColorAsState(
-                    targetValue = if (isSelected) ink.primaryText else ink.mutedText,
+                    targetValue = if (isSelected) ink.primaryText else ink.secondaryText,
                     animationSpec = tween(durationMillis = 220),
                     label = "navTextColor_${tab.name}",
                 )
@@ -127,24 +127,24 @@ internal fun EkagraBottomNav(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
-                    Icon(
+                    EkagraChromeIcon(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
                         tint = iconColor,
-                        modifier = Modifier.size(20.dp),
+                        baseSizeDp = 20f,
                     )
 
                     Box(
                         modifier = Modifier
-                            .size(4.dp)
+                            .size(EkagraChrome.size(4f))
                             .clip(CircleShape)
                             .background(if (isSelected) accentColor else Color.Transparent),
                     )
 
                     Text(
                         text = tab.label,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = EkagraChrome.text(11f),
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                         color = textColor,
                     )
                 }

@@ -658,15 +658,6 @@ fun StudyPlannerScreen(
             isDarkTheme = isDarkTheme,
             onNavigate = onNavigate,
             onToggleDarkTheme = onToggleDarkTheme,
-            topBarActions = {
-                IconButton(onClick = { tourState?.start() }) {
-                    androidx.compose.foundation.Image(
-                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_butterfly_tour),
-                        contentDescription = "Guide",
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-            },
             showTopBarTitle = chromeState.section != PlannerSection.SYLLABUS,
         ) { padding ->
             Scaffold(
@@ -757,7 +748,7 @@ fun StudyPlannerScreen(
                         dataStore = viewModel.dataStore,
                         steps = studyPlannerTourSteps,
                         section = "study_planner",
-                        askOnFirstVisit = true,
+                        askOnFirstVisit = false,
                         onTourStateReady = { tourState = it },
                     )
                 }
@@ -1088,19 +1079,15 @@ private fun PlannerTargetExamRow(
         },
         trailingContent = {
             Box {
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
-                        .clickable { menuExpanded = true },
-                    contentAlignment = Alignment.Center,
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(36.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Open $title options",
                         tint = menuIconTint,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                     )
                 }
                 PlannerOverflowMenu(
@@ -1267,6 +1254,7 @@ private fun PlannerHome(
                         preferredStudyStrategy = detailState.preferredStudyStrategy,
                         pendingManualSubjectOrder = detailState.pendingManualSubjectOrder,
                         pendingOpenUnscheduledTopics = chromeState.pendingOpenUnscheduledTopics,
+                        mutating = chromeState.mutating,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                     )

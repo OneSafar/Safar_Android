@@ -71,12 +71,12 @@ private fun ProfileSectionHeader(
     val scheme = MaterialTheme.colorScheme
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
     ) {
         Box(
             modifier = Modifier
-                .size(34.dp)
+                .size(38.dp)
                 .clip(CircleShape)
                 .background(scheme.primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
@@ -85,14 +85,14 @@ private fun ProfileSectionHeader(
                 imageVector = icon,
                 contentDescription = null,
                 tint = scheme.primary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
         Text(
             text = title.uppercase(),
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.5.sp,
+            letterSpacing = 1.2.sp,
             color = PlannerFlatColors.TextDark,
         )
     }
@@ -145,7 +145,7 @@ fun ProfileScreen(
         CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
             SafarDrawerScaffold(
                 title = "Profile",
-                subtitle = "Identity & Study Focus",
+                subtitle = null,
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = onNavigate,
@@ -185,14 +185,14 @@ fun ProfileScreen(
                         // Main Screen Title Banner
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = "Your Profile",
+                                text = "My Profile",
                                 fontFamily = LoraFontFamily,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Normal,
                                 color = PlannerFlatColors.TextDark,
                             )
                             Text(
-                                text = "Manage your identity, personal info, and academic target exam",
+                                text = "Update your personal and exam details",
                                 fontSize = 13.sp,
                                 color = PlannerFlatColors.TextMuted,
                             )
@@ -363,10 +363,10 @@ private fun ProfileHeaderSection(
         Box(contentAlignment = Alignment.BottomEnd) {
             Box(
                 modifier = Modifier
-                    .size(96.dp)
+                    .size(104.dp)
                     .clip(CircleShape)
                     .background(scheme.primaryContainer.copy(alpha = 0.4f))
-                    .border(2.dp, scheme.primary.copy(alpha = 0.4f), CircleShape)
+                    .border(2.5.dp, scheme.primary.copy(alpha = 0.45f), CircleShape)
                     .clickable(enabled = !uiState.isAvatarUploading) { onAvatarClick() },
                 contentAlignment = Alignment.Center,
             ) {
@@ -407,7 +407,7 @@ private fun ProfileHeaderSection(
             Box(
                 modifier = Modifier
                     .offset(x = 2.dp, y = 2.dp)
-                    .size(30.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
                     .background(scheme.primary)
                     .clickable(enabled = !uiState.isAvatarUploading) { onEditAvatarClick() },
@@ -417,19 +417,19 @@ private fun ProfileHeaderSection(
                     imageVector = Icons.Default.CameraAlt,
                     contentDescription = "Change profile photo",
                     tint = scheme.onPrimary,
-                    modifier = Modifier.size(15.dp),
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = uiState.userName.ifEmpty { "User" },
                 fontFamily = LoraFontFamily,
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 maxLines = 2,
@@ -438,7 +438,7 @@ private fun ProfileHeaderSection(
             )
             Text(
                 text = uiState.userEmail,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 color = PlannerFlatColors.TextMuted,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -543,7 +543,7 @@ private fun PersonalInfoFields(uiState: ProfileUiState, viewModel: ProfileViewMo
                     )
                 }
             },
-            helperText = "Primary email is managed by your sign-in account.",
+            helperText = "Linked to your account.",
         )
 
         ProfileDropdownMenu(
@@ -746,10 +746,10 @@ private fun ProfileTextField(
     ) {
         Text(
             text = label,
-            fontSize = 11.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-            color = PlannerFlatColors.TextMuted,
+            letterSpacing = 0.8.sp,
+            color = PlannerFlatColors.TextDark.copy(alpha = 0.9f),
         )
         OutlinedTextField(
             value = value,
@@ -757,9 +757,9 @@ private fun ProfileTextField(
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
-            placeholder = placeholder?.let { { Text(it, fontSize = 14.sp, color = PlannerFlatColors.TextMuted.copy(alpha = 0.6f)) } },
+            placeholder = placeholder?.let { { Text(it, fontSize = 15.sp, color = PlannerFlatColors.TextMuted.copy(alpha = 0.6f)) } },
             leadingIcon = leadingIcon?.let {
-                { Icon(it, contentDescription = null, modifier = Modifier.size(18.dp), tint = scheme.primary) }
+                { Icon(it, contentDescription = null, modifier = Modifier.size(20.dp), tint = scheme.primary) }
             },
             trailingIcon = trailingIcon,
             isError = errorText != null,
@@ -775,12 +775,12 @@ private fun ProfileTextField(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
             ),
-            textStyle = LocalTextStyle.current.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+            textStyle = LocalTextStyle.current.copy(fontSize = 15.sp, fontWeight = FontWeight.Medium),
         )
         if (errorText != null) {
-            Text(text = errorText, color = scheme.error, fontSize = 11.5.sp)
+            Text(text = errorText, color = scheme.error, fontSize = 12.5.sp)
         } else if (helperText != null) {
-            Text(text = helperText, color = PlannerFlatColors.TextMuted, fontSize = 11.5.sp)
+            Text(text = helperText, color = PlannerFlatColors.TextMuted, fontSize = 12.5.sp)
         }
     }
 }
@@ -804,10 +804,10 @@ private fun ProfileDropdownMenu(
     ) {
         Text(
             text = label,
-            fontSize = 11.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-            color = PlannerFlatColors.TextMuted,
+            letterSpacing = 0.8.sp,
+            color = PlannerFlatColors.TextDark.copy(alpha = 0.9f),
         )
         ExposedDropdownMenuBox(
             expanded = expanded,
@@ -823,7 +823,7 @@ private fun ProfileDropdownMenu(
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
                 shape = RoundedCornerShape(10.dp),
                 leadingIcon = leadingIcon?.let {
-                    { Icon(it, contentDescription = null, modifier = Modifier.size(18.dp), tint = scheme.primary) }
+                    { Icon(it, contentDescription = null, modifier = Modifier.size(20.dp), tint = scheme.primary) }
                 },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = OutlinedTextFieldDefaults.colors(
@@ -834,7 +834,7 @@ private fun ProfileDropdownMenu(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                 ),
-                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                textStyle = LocalTextStyle.current.copy(fontSize = 15.sp, fontWeight = FontWeight.Medium),
             )
             ExposedDropdownMenu(
                 expanded = expanded,
@@ -843,7 +843,7 @@ private fun ProfileDropdownMenu(
             ) {
                 options.forEach { opt ->
                     DropdownMenuItem(
-                        text = { Text(text = opt, fontSize = 14.sp, color = PlannerFlatColors.TextDark) },
+                        text = { Text(text = opt, fontSize = 15.sp, color = PlannerFlatColors.TextDark) },
                         onClick = {
                             onSelect(opt)
                             expanded = false

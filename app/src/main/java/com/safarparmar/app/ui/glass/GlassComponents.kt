@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -474,71 +475,104 @@ fun MacOSExamPlanCard(
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
+    val shape = MacOSControlShape
+    val activeBorder = if (isLight) Color.Black else Color.White
+    val panelModifier = if (isActive) {
+        Modifier
             .fillMaxWidth()
-            .macOSControlPanel(isLight = isLight)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onOpen,
-            ),
-    ) {
-        Row(
+            .shadow(
+                elevation = MacOSControlStyle.shadowElevation(isLight),
+                shape = shape,
+                spotColor = MacOSControlStyle.shadowColor(isLight),
+                ambientColor = MacOSControlStyle.shadowColor(isLight),
+            )
+            .clip(shape)
+            .background(MacOSControlStyle.bodyColor(isLight))
+            .border(width = 2.5.dp, color = activeBorder, shape = shape)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .macOSControlPanel(isLight = isLight, shape = shape)
+    }
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .then(panelModifier)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onOpen,
+                ),
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(accentColor),
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .padding(start = 14.dp, end = 6.dp, top = 14.dp, bottom = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                leadingIcon()
-            }
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(accentColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    leadingIcon()
+                }
 
-            Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(12.dp))
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
-                Text(
-                    text = title,
-                    color = MacOSControlStyle.titleColor(isLight),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                )
-                Text(
-                    text = subtitle,
-                    color = MacOSControlStyle.subtitleColor(isLight),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.2.sp,
-                    maxLines = 1,
-                )
-                if (isActive) {
-                    Spacer(Modifier.height(4.dp))
-                    GlassActivePill(isLight = isLight)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = title,
+                        color = MacOSControlStyle.titleColor(isLight),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = subtitle,
+                        color = MacOSControlStyle.subtitleColor(isLight),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.2.sp,
+                        maxLines = 1,
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = badgeText,
+                        color = if (isLight) accentColor else Color.White.copy(alpha = 0.88f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.1.sp,
+                    )
+                    trailingContent()
                 }
             }
+        }
 
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = badgeText,
-                    color = if (isLight) accentColor else Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                trailingContent()
-            }
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 3.dp, y = (-3).dp)
+                    .size(12.dp)
+                    .border(
+                        width = 2.dp,
+                        color = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E),
+                        shape = CircleShape,
+                    )
+                    .background(Color(0xFFFF3B30), CircleShape),
+            )
         }
     }
 }
@@ -704,137 +738,86 @@ fun ExamPlanGlassCard(
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Mostly transparent base tints to look premium over black/white canvas backgrounds.
-    val surfaceTint = when {
-        isLight && isActive -> SafarGlassPalette.LightViolet
-        isLight             -> Color.Black
-        isActive            -> SafarGlassPalette.Violet
-        else                -> Color.White
-    }
-    val tintAlpha = when {
-        isLight && isActive -> 0.08f
-        isLight             -> 0.04f   // mostly transparent black on white canvas
-        isActive            -> 0.08f
-        else                -> 0.05f   // mostly transparent white on black canvas
-    }
+    val surfaceTint = if (isLight) Color.Black else Color.White
+    val tintAlpha = if (isLight) 0.04f else 0.05f
     val titleColor    = if (isLight) SafarGlassPalette.LightTextPrimary   else SafarGlassPalette.TextPrimary
     val subtitleColor = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val activeBorder = if (isLight) Color.Black else Color.White
+    val cardShape = RoundedCornerShape(24.dp)
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .liquidGlass(
-                shape       = RoundedCornerShape(24.dp),
-                surfaceTint = surfaceTint,
-                tintAlpha   = tintAlpha,
-                isLight     = isLight,
-            )
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onOpen,
-            )
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        leadingIcon()
-
-        // Accent bar — gradient from accent to transparent
-        Box(
+    Box(modifier = modifier.fillMaxWidth()) {
+        Row(
             modifier = Modifier
-                .width(3.dp)
-                .height(48.dp)
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(accentColor, accentColor.copy(alpha = 0.2f)),
-                    ),
-                    shape = CircleShape,
-                ),
-        )
-
-        // Title + subtitle + active pill
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+                .fillMaxWidth()
+                .liquidGlass(
+                    shape       = cardShape,
+                    surfaceTint = surfaceTint,
+                    tintAlpha   = tintAlpha,
+                    isLight     = isLight,
+                )
+                .then(
+                    if (isActive) {
+                        Modifier.border(width = 2.5.dp, color = activeBorder, shape = cardShape)
+                    } else Modifier,
+                )
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onOpen,
+                )
+                .padding(horizontal = 14.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text       = title,
-                color      = titleColor,
-                fontSize   = 16.sp,
-                fontWeight = FontWeight.ExtraBold,
-                maxLines   = 1,
-            )
-            Text(
-                text     = subtitle,
-                color    = subtitleColor,
-                fontSize = 13.sp,
-                maxLines = 1,
-            )
-            if (isActive) {
-                GlassActivePill(isLight = isLight)
+            leadingIcon()
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text(
+                    text       = title,
+                    color      = titleColor,
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines   = 1,
+                )
+                Text(
+                    text     = subtitle,
+                    color    = subtitleColor,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                )
             }
-        }
 
-        // Right column: countdown badge + overflow menu
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isLight)
-                            accentColor.copy(alpha = 0.12f)
-                        else
-                            Color.White.copy(alpha = 0.14f),
-                    )
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text       = badgeText,
-                    color      = if (isLight) accentColor else Color.White,
-                    fontSize   = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    color      = if (isLight) accentColor else Color.White.copy(alpha = 0.88f),
+                    fontSize   = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
                 )
+                trailingContent()
             }
-            trailingContent()
         }
-    }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTIVE PILL
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun GlassActivePill(isLight: Boolean = false) {
-    val bg        = if (isLight) SafarGlassPalette.LightViolet.copy(alpha = 0.12f)
-                    else         SafarGlassPalette.Violet.copy(alpha = 0.24f)
-    val dotColor  = if (isLight) Color(0xFF00C896) else Color(0xFF64FFDA)
-    val textColor = if (isLight) SafarGlassPalette.LightViolet else Color.White
-
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(bg)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .background(dotColor, CircleShape),
-        )
-        Text(
-            text       = "Active",
-            color      = textColor,
-            fontSize   = 11.sp,
-            fontWeight = FontWeight.Bold,
-        )
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 3.dp, y = (-3).dp)
+                    .size(12.dp)
+                    .border(
+                        width = 2.dp,
+                        color = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E),
+                        shape = CircleShape,
+                    )
+                    .background(Color(0xFFFF3B30), CircleShape),
+            )
+        }
     }
 }
 

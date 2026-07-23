@@ -181,7 +181,7 @@ fun SafarDrawer(
     ModalDrawerSheet(
         modifier = Modifier
             .fillMaxHeight()
-            .widthIn(max = 310.dp)
+            .width(320.dp)
             .statusBarsPadding(),
         drawerContainerColor = Color.Transparent,
         drawerContentColor   = Color.Transparent,
@@ -442,7 +442,7 @@ private fun DrawerNavRow(
                 imageVector        = item.icon,
                 contentDescription = label,
                 tint               = iconColor,
-                modifier           = Modifier.size(20.dp),
+                modifier           = Modifier.size(22.dp),
             )
             Row(
                 verticalAlignment     = Alignment.CenterVertically,
@@ -454,7 +454,7 @@ private fun DrawerNavRow(
                         text       = label,
                         modifier   = Modifier.weight(1f, fill = false),
                         fontWeight = fontWeight,
-                        style      = MaterialTheme.typography.bodyMedium.copy(color = textColor),
+                        style      = MaterialTheme.typography.bodyLarge.copy(color = textColor),
                     )
                 } else {
                     Text(
@@ -464,7 +464,7 @@ private fun DrawerNavRow(
                         color      = textColor,
                         maxLines   = 1,
                         overflow   = TextOverflow.Ellipsis,
-                        style      = MaterialTheme.typography.bodyMedium,
+                        style      = MaterialTheme.typography.bodyLarge,
                     )
                 }
                 if (showLock) {

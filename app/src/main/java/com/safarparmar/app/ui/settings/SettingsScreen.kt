@@ -68,12 +68,12 @@ private fun SettingsSectionHeader(
     val scheme = MaterialTheme.colorScheme
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
     ) {
         Box(
             modifier = Modifier
-                .size(34.dp)
+                .size(38.dp)
                 .clip(CircleShape)
                 .background(scheme.primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
@@ -82,14 +82,14 @@ private fun SettingsSectionHeader(
                 imageVector = icon,
                 contentDescription = null,
                 tint = scheme.primary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
         Text(
             text = title.uppercase(),
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.5.sp,
+            letterSpacing = 1.2.sp,
             color = PlannerFlatColors.TextDark,
         )
     }
@@ -141,7 +141,7 @@ fun SettingsScreen(
         CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
             SafarDrawerScaffold(
                 title = "Settings",
-                subtitle = "Preferences & Permissions",
+                subtitle = null,
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = onNavigate,
@@ -160,14 +160,14 @@ fun SettingsScreen(
                         // Main Screen Title Banner
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = "App Preferences",
+                                text = "App Settings",
                                 fontFamily = LoraFontFamily,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Normal,
                                 color = PlannerFlatColors.TextDark,
                             )
                             Text(
-                                text = "Customize theme, notification alerts, and Kavach system permissions",
+                                text = "Customize theme, notifications, and permissions",
                                 fontSize = 13.sp,
                                 color = PlannerFlatColors.TextMuted,
                             )
@@ -242,7 +242,7 @@ fun SettingsScreen(
                                 PlanHairline(alpha = 0.5f)
                                 SettingsSwitchRow(
                                     title = "Dark Theme",
-                                    subtitle = "Switch between dark slate and warm off-white canvas",
+                                    subtitle = "Switch between dark and light theme",
                                     checked = isDarkTheme,
                                     onCheckedChange = { onToggleDarkTheme() },
                                     icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
@@ -289,7 +289,7 @@ fun SettingsScreen(
                             ) {
                                 SettingsSectionHeader(
                                     icon = Icons.Default.Security,
-                                    title = "Kavach System Permissions ($grantedCount/3)"
+                                    title = "App Permissions ($grantedCount/3)"
                                 )
                                 PlanHairline(alpha = 0.5f)
                                 PermissionsSection(
@@ -430,7 +430,7 @@ private fun NotificationsSection(
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SettingsSwitchRow(
             title = "Allow Notifications",
-            subtitle = "Master toggle for study alerts and reminders",
+            subtitle = "Turn on all study alerts and reminders",
             checked = uiState.notificationsEnabled,
             onCheckedChange = { onEvent(SettingsEvent.ToggleNotifications(it)) },
             icon = Icons.Default.Notifications,
@@ -441,14 +441,14 @@ private fun NotificationsSection(
 
             SettingsSwitchRow(
                 title = "Ekagra Timer Updates",
-                subtitle = "Sound and vibration alerts for study intervals",
+                subtitle = "Sound and vibration alerts for study timer",
                 checked = uiState.focusTimerNotificationsEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
             )
 
             SettingsSwitchRow(
                 title = "Daily Study Reminder",
-                subtitle = "Daily prompt to start your planned focus sessions",
+                subtitle = "Daily alert to start your study sessions",
                 checked = uiState.dailyStudyReminderEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleDailyStudyReminder(it)) },
             )
@@ -492,21 +492,21 @@ private fun NotificationsSection(
 
             SettingsSwitchRow(
                 title = "Streak Expiry Warnings",
-                subtitle = "Alert 2 hours before losing your Nishtha streak",
+                subtitle = "Alert 2 hours before losing daily streak",
                 checked = uiState.streakReminderEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleStreakReminder(it)) },
             )
 
             SettingsSwitchRow(
                 title = "Course Updates",
-                subtitle = "Announcements for Dhyan audio & live sessions",
+                subtitle = "Alerts for live classes & audio",
                 checked = uiState.courseUpdatesEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
             )
 
             SettingsSwitchRow(
                 title = "Mehfil Replies",
-                subtitle = "Alerts when students reply to your posts",
+                subtitle = "Alerts when someone replies to your posts",
                 checked = uiState.communityRepliesEnabled,
                 onCheckedChange = { onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
             )
@@ -524,7 +524,7 @@ private fun PermissionsSection(
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         PermissionRow(
             title = "Usage Access",
-            subtitle = "Required for Kavach focus app tracking",
+            subtitle = "Required for focus app tracking",
             isGranted = hasUsagePermission,
             onGrantClick = {
                 val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
@@ -536,7 +536,7 @@ private fun PermissionsSection(
 
         PermissionRow(
             title = "Display Over Apps",
-            subtitle = "Required to show Kavach focus shield overlay",
+            subtitle = "Required to show focus shield overlay",
             isGranted = hasOverlayPermission,
             onGrantClick = {
                 val intent = Intent(
@@ -550,7 +550,7 @@ private fun PermissionsSection(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             PermissionRow(
                 title = "System Notifications",
-                subtitle = "Required for focus timer and study reminders",
+                subtitle = "Required for timer and study alerts",
                 isGranted = hasNotificationPermission,
                 onGrantClick = {
                     val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
@@ -608,17 +608,17 @@ private fun PermissionRow(
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
                 text = title,
-                fontSize = 15.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = PlannerFlatColors.TextDark
             )
             Text(
                 text = subtitle,
-                fontSize = 12.sp,
+                fontSize = 13.5.sp,
                 color = PlannerFlatColors.TextMuted
             )
         }
@@ -633,11 +633,11 @@ private fun PermissionRow(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
                     tint = Color(0xFF10B981),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Text(
                     text = "Granted",
-                    fontSize = 13.sp,
+                    fontSize = 13.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF10B981)
                 )
@@ -648,12 +648,12 @@ private fun PermissionRow(
                     .clip(RoundedCornerShape(8.dp))
                     .background(scheme.primary)
                     .clickable(onClick = onGrantClick)
-                    .padding(vertical = 6.dp, horizontal = 12.dp),
+                    .padding(vertical = 7.dp, horizontal = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "Grant",
-                    fontSize = 12.5.sp,
+                    fontSize = 13.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onPrimary
                 )
@@ -676,13 +676,13 @@ private fun SettingsSwitchRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCheckedChange(!checked) }
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.weight(1f)
         ) {
             if (icon != null) {
@@ -690,19 +690,19 @@ private fun SettingsSwitchRow(
                     imageVector = icon,
                     contentDescription = null,
                     tint = scheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     text = title,
-                    fontSize = 15.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = PlannerFlatColors.TextDark
                 )
                 Text(
                     text = subtitle,
-                    fontSize = 12.sp,
+                    fontSize = 13.5.sp,
                     color = PlannerFlatColors.TextMuted
                 )
             }

@@ -40,47 +40,8 @@ fun TourManager(
     dataStore: SafarDataStore,
     steps: List<ButterflyTourStep>,
     section: String,
-    askOnFirstVisit: Boolean = true,
+    askOnFirstVisit: Boolean = false,
     onTourStateReady: ((ButterflyTourState) -> Unit)? = null,
 ) {
-    val scope = rememberCoroutineScope()
-    var showAskDialog by remember { mutableStateOf(false) }
-    val tourState = rememberButterflyTourState(steps)
-
-    // Surface the state to the caller immediately so the guide icon can trigger it
-    LaunchedEffect(tourState) {
-        onTourStateReady?.invoke(tourState)
-    }
-
-    DisposableEffect(tourState) {
-        tourState.onStartRequest = {
-            showAskDialog = true
-        }
-        onDispose {
-            tourState.onStartRequest = null
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        if (askOnFirstVisit) {
-            val done = dataStore.isTourDone(section).first()
-            if (!done) showAskDialog = true
-        }
-    }
-
-    if (showAskDialog) {
-        TourAskDialog(
-            onYes = {
-                showAskDialog = false
-                tourState.startDirectly()
-                scope.launch { dataStore.setTourDone(section, true) }
-            },
-            onNo = {
-                showAskDialog = false
-                scope.launch { dataStore.setTourDone(section, true) }
-            },
-        )
-    }
-
-    ButterflyOverlay(state = tourState)
+    // Tutorials and tours globally hidden across all screens
 }

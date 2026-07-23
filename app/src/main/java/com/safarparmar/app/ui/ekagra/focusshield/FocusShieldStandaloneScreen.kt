@@ -29,7 +29,7 @@ fun FocusShieldStandaloneScreen(
     viewModel: FocusShieldViewModel = hiltViewModel(),
 ) {
     val state by viewModel.shieldState.collectAsStateWithLifecycle()
-    val accent = MaterialTheme.colorScheme.primary
+    val accent = KavachDesign.Primary
     val scheme = MaterialTheme.colorScheme
     val needsRequiredPermissions =
         !state.hasUsageStats || !state.hasOverlayPermission || !state.hasNotificationSuppressionAccess

@@ -135,11 +135,11 @@ fun FocusShieldBlockedBottomSheet(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = if (prompt.alwaysOn) {
-                    "Always On is active. Turn it off manually from the KAVACH screen when you are ready."
+                    "Always On is working. Open KAVACH and turn it off when you want to use this app."
                 } else if (prompt.strict) {
-                    "Nice Try! You are in Beast Mode."
+                    "Beast Mode is on. You cannot open this app until your study timer ends."
                 } else {
-                    "KAVACH brought you back to Ekagra. Use Quick unlock only when you intentionally need a short window."
+                    "This app is blocked while you study. Tap Quick unlock if you need it for a few minutes."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,

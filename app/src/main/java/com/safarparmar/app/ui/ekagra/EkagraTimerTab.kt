@@ -156,11 +156,11 @@ internal fun ModeTabs(
                 TimerMode.STOPWATCH -> Icons.Default.Timer
                 else -> Icons.Default.Timer
             }
-            Icon(
+            EkagraChromeIcon(
                 imageVector = iconVector,
                 contentDescription = null,
                 tint = color,
-                modifier = Modifier.size(16.dp),
+                baseSizeDp = 16f,
             )
         },
         onSelect = onSelect,
@@ -248,23 +248,23 @@ internal fun TimerFocusTab(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
                                 .clip(CircleShape)
-                                .border(1.dp, ink.hairline, CircleShape)
+                                .border(EkagraChrome.stroke(1f), ink.hairline, CircleShape)
                                 .clickable { onToggleKavach(!shieldState.isEnabled) }
-                                .padding(horizontal = 14.dp, vertical = 7.dp),
+                                .padding(horizontal = EkagraChrome.size(14f), vertical = EkagraChrome.size(7f)),
                         ) {
                             Box(
                                 Modifier
-                                    .size(6.dp)
+                                    .size(EkagraChrome.size(6f))
                                     .clip(CircleShape)
                                     .then(
                                         if (shieldState.isEnabled) Modifier.background(themeAccent)
-                                        else Modifier.border(1.dp, ink.mutedText, CircleShape)
+                                        else Modifier.border(EkagraChrome.stroke(1f), ink.mutedText, CircleShape)
                                     ),
                             )
                             Text(
                                 text = if (shieldState.isEnabled) "Kavach on" else "Kavach off",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
+                                fontSize = EkagraChrome.text(12f),
+                                fontWeight = FontWeight.SemiBold,
                                 color = if (shieldState.isEnabled) ink.primaryText else ink.mutedText,
                             )
                         }
@@ -280,13 +280,13 @@ internal fun TimerFocusTab(
             val ringColor  = themeAccent
             val trackColor = ink.trackFaint
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(252.dp)) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(EkagraChrome.size(252f))) {
                 // Track ring
                 CircularProgressIndicator(
                     progress      = { 1f },
                     modifier      = Modifier.fillMaxSize(),
                     color         = trackColor,
-                    strokeWidth   = 5.dp,
+                    strokeWidth   = EkagraChrome.stroke(5f),
                     strokeCap     = StrokeCap.Round,
                     trackColor    = Color.Transparent,
                     gapSize       = 0.dp,
@@ -297,7 +297,7 @@ internal fun TimerFocusTab(
                     progress      = { clampedProgress },
                     modifier      = Modifier.fillMaxSize(),
                     color         = ringColor,
-                    strokeWidth   = (5f + pulse * 0.8f).dp,
+                    strokeWidth   = EkagraChrome.stroke(5f + pulse * 0.8f),
                     strokeCap     = StrokeCap.Round,
                     trackColor    = Color.Transparent,
                     gapSize       = 0.dp,
@@ -327,9 +327,9 @@ internal fun TimerFocusTab(
                         // Tier 2 — 1 min – 59 min → e.g. "59m 59s"    → 50sp
                         // Tier 3 — 1 h+          → e.g. "1h 59m 59s"  → 34sp (fits comfortably)
                         val timerFontSize = when {
-                            secondsLeft >= 3600 -> 34.sp
-                            secondsLeft >= 60   -> 50.sp
-                            else                -> 62.sp
+                            secondsLeft >= 3600 -> EkagraChrome.text(34f)
+                            secondsLeft >= 60   -> EkagraChrome.text(50f)
+                            else                -> EkagraChrome.text(62f)
                         }
                         val timerLetterSpacing = if (secondsLeft >= 3600) 0.sp else 1.sp
 
@@ -341,7 +341,7 @@ internal fun TimerFocusTab(
                             timerText,
                             fontFamily    = EkagraSerif,
                             fontSize      = timerFontSize,
-                            fontWeight    = FontWeight.Normal,
+                            fontWeight    = FontWeight.Medium,
                             letterSpacing = timerLetterSpacing,
                             color         = ink.primaryText,
                             textAlign     = TextAlign.Center,
@@ -363,8 +363,8 @@ internal fun TimerFocusTab(
                         }
                         Text(
                             subtext,
-                            fontSize      = 12.sp,
-                            fontWeight    = FontWeight.Medium,
+                            fontSize      = EkagraChrome.text(12f),
+                            fontWeight    = FontWeight.SemiBold,
                             letterSpacing = 0.5.sp,
                             color         = ink.secondaryText,
                             textAlign     = TextAlign.Center,
@@ -416,10 +416,10 @@ internal fun TimerFocusTab(
 
                     Text(
                         text       = mottoText,
-                        fontSize   = 10.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontSize   = EkagraChrome.text(10f),
+                        fontWeight = FontWeight.SemiBold,
                         letterSpacing = 2.sp,
-                        color      = ink.mutedText,
+                        color      = ink.secondaryText,
                         textAlign  = TextAlign.Center,
                     )
 

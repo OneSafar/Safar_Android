@@ -96,6 +96,7 @@ import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.PlannerActions
 import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.studyplanner.StudyPlannerOnboardingSteps
+import com.safarparmar.app.ui.studyplanner.TopicSchedulingResult
 import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
@@ -129,6 +130,7 @@ fun PlanTabScreen(
     preferredStudyStrategy: String = "interleaved",
     pendingManualSubjectOrder: Boolean = false,
     pendingOpenUnscheduledTopics: Boolean = false,
+    mutating: Boolean = false,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
@@ -183,6 +185,9 @@ fun PlanTabScreen(
     )
 
     var showSettings by remember(plan.id) { mutableStateOf(false) }
+    var returnToUnscheduledAfterSettings by remember(plan.id) { mutableStateOf(false) }
+    var focusDailyGoalInSettings by remember(plan.id) { mutableStateOf(false) }
+    var focusExamDateInSettings by remember(plan.id) { mutableStateOf(false) }
     var showReschedule by remember(plan.id) { mutableStateOf(false) }
     var resetConfirm by remember { mutableStateOf(false) }
     var completionPromptTopic by remember { mutableStateOf<TopicRef?>(null) }
@@ -231,8 +236,24 @@ fun PlanTabScreen(
             actions = actions,
             onExport = ::exportPlan,
             onReset = { resetConfirm = true },
-            onDismiss = { showSettings = false },
-            onExamDateChanged = { showReschedule = true },
+            onDismiss = {
+                showSettings = false
+                if (returnToUnscheduledAfterSettings) {
+                    returnToUnscheduledAfterSettings = false
+                    showUnscheduledTopicsScreen = true
+                }
+                focusDailyGoalInSettings = false
+                focusExamDateInSettings = false
+            },
+            onExamDateChanged = {
+                if (returnToUnscheduledAfterSettings) {
+                    returnToUnscheduledAfterSettings = false
+                    showUnscheduledTopicsScreen = false
+                }
+                showReschedule = true
+            },
+            focusDailyGoal = focusDailyGoalInSettings,
+            focusExamDate = focusExamDateInSettings,
         )
     }
 
@@ -775,6 +796,21 @@ fun PlanTabScreen(
                 plan = plan,
                 unscheduledTopics = unscheduledTopics,
                 actions = actions,
+                isWorking = mutating,
+                onStudyMore = {
+                    showUnscheduledTopicsScreen = false
+                    returnToUnscheduledAfterSettings = true
+                    focusDailyGoalInSettings = true
+                    focusExamDateInSettings = false
+                    showSettings = true
+                },
+                onChangeExamDate = {
+                    showUnscheduledTopicsScreen = false
+                    returnToUnscheduledAfterSettings = true
+                    focusDailyGoalInSettings = false
+                    focusExamDateInSettings = true
+                    showSettings = true
+                },
                 onDismiss = { showUnscheduledTopicsScreen = false }
             )
         }
@@ -1020,6 +1056,9 @@ internal fun UnscheduledTopicsScreen(
     plan: StudyPlan,
     unscheduledTopics: List<TopicRef>,
     actions: PlannerActions,
+    isWorking: Boolean = false,
+    onStudyMore: () -> Unit = {},
+    onChangeExamDate: () -> Unit = {},
     onDismiss: () -> Unit,
 ) {
     TopicSchedulingScreen(
@@ -1027,16 +1066,24 @@ internal fun UnscheduledTopicsScreen(
         unscheduledTopics = unscheduledTopics,
         actions = actions,
         onDismiss = onDismiss,
-        screenTitle = "Not planned yet",
+        screenTitle = "Topics without a date",
         searchPlaceholder = "Search topics...",
         subtitle = if (unscheduledTopics.size == 1) {
             "1 topic doesn't have a day yet."
         } else {
             "${unscheduledTopics.size} topics don't have a day yet."
         },
-        bulkActionLabel = "Add these to my plan",
-        bulkActionHint = "We'll fit them into your free days.",
-        onBulkAction = { actions.rescheduleMissedTopics(unscheduledTopics.map { it.topic.id }) },
+        bulkActionLabel = "Give dates to these topics",
+        bulkActionHint = "We'll add them where there is space.",
+        isWorking = isWorking,
+        onStudyMore = { _ -> onStudyMore() },
+        onChangeExamDate = onChangeExamDate,
+        onBulkAction = { onResult ->
+            actions.rescheduleMissedTopics(
+                topicIds = unscheduledTopics.map { it.topic.id },
+                onResult = onResult,
+            )
+        },
     )
 }
 
@@ -1061,10 +1108,100 @@ internal fun MissedTopicsScreen(
         } else {
             "You missed ${missedTopics.size} topics. Life happens — let's fit them back in."
         },
-        bulkActionLabel = "Move all to my free days",
-        bulkActionHint = "Today's topics stay exactly as they are.",
-        onBulkAction = { actions.rescheduleMissedTopics(missedTopics.map { it.topic.id }) },
+        bulkActionLabel = "Give new dates to these topics",
+        bulkActionHint = "Today's topics will not change.",
+        onStudyMore = { onResult ->
+            actions.rescheduleMissedTopics(
+                topicIds = missedTopics.map { it.topic.id },
+                fitAll = true,
+                onResult = onResult,
+            )
+        },
+        onBulkAction = { onResult ->
+            actions.rescheduleMissedTopics(
+                topicIds = missedTopics.map { it.topic.id },
+                onResult = onResult,
+            )
+        },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MoreTimeNeededSheet(
+    addedCount: Int,
+    notAddedCount: Int,
+    onStudyMore: () -> Unit,
+    onChangeExamDate: (() -> Unit)?,
+    onDismiss: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = scheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                "These topics need more time",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = scheme.onSurface,
+            )
+            Text(
+                when {
+                    addedCount > 0 ->
+                        "${if (addedCount == 1) "1 topic now has a date." else "$addedCount topics now have dates."} " +
+                            if (notAddedCount == 1) "1 topic still needs more time." else "$notAddedCount topics still need more time."
+                    else ->
+                        "Your study days are already full until the exam."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+            )
+            Text(
+                "Choose what you want to do.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+            )
+            Button(
+                onClick = onStudyMore,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text("Study more each day", fontWeight = FontWeight.Bold)
+            }
+            Text(
+                "Increase Topics per day to make room for these topics.",
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (onChangeExamDate != null) {
+                OutlinedButton(
+                    onClick = onChangeExamDate,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Text("Change exam date", fontWeight = FontWeight.Bold)
+                }
+            }
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) {
+                Text("Not now", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1082,11 +1219,38 @@ private fun TopicSchedulingScreen(
     // student should never have to do it one calendar tap at a time.
     bulkActionLabel: String,
     bulkActionHint: String,
-    onBulkAction: () -> Unit,
+    isWorking: Boolean = false,
+    onStudyMore: (((TopicSchedulingResult) -> Unit) -> Unit)? = null,
+    onChangeExamDate: (() -> Unit)? = null,
+    onBulkAction: ((TopicSchedulingResult) -> Unit) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
     var selectedTopicForDatePicker by remember { mutableStateOf<TopicRef?>(null) }
     var searchQuery by remember { mutableStateOf("") }
+    var moreTimeResult by remember { mutableStateOf<TopicSchedulingResult?>(null) }
+
+    val noSpace = moreTimeResult
+    if (noSpace != null) {
+        MoreTimeNeededSheet(
+            addedCount = noSpace.added,
+            notAddedCount = noSpace.notAdded,
+            onStudyMore = {
+                moreTimeResult = null
+                onStudyMore?.invoke { result ->
+                    if (!result.failed && result.notAdded > 0) {
+                        moreTimeResult = result
+                    }
+                }
+            },
+            onChangeExamDate = onChangeExamDate?.let { changeDate ->
+                {
+                    moreTimeResult = null
+                    changeDate()
+                }
+            },
+            onDismiss = { moreTimeResult = null },
+        )
+    }
 
     val filteredTopics = remember(unscheduledTopics, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -1187,11 +1351,21 @@ private fun TopicSchedulingScreen(
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Button(
-                            onClick = onBulkAction,
+                            onClick = {
+                                onBulkAction { result ->
+                                    if (!result.failed && result.notAdded > 0) {
+                                        moreTimeResult = result
+                                    }
+                                }
+                            },
+                            enabled = !isWorking,
                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                             shape = RoundedCornerShape(12.dp),
                         ) {
-                            Text(bulkActionLabel, fontWeight = FontWeight.Bold)
+                            Text(
+                                if (isWorking) "Saving your changes…" else bulkActionLabel,
+                                fontWeight = FontWeight.Bold,
+                            )
                         }
                         Spacer(Modifier.height(6.dp))
                         Text(

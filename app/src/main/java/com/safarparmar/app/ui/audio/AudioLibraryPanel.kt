@@ -3,24 +3,51 @@ package com.safarparmar.app.ui.audio
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,24 +57,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.theme.isLightBackground
 
-import com.safarparmar.app.ui.ekagra.EkagraDisplayTitle
-import com.safarparmar.app.ui.ekagra.EkagraEyebrow
-import com.safarparmar.app.ui.ekagra.EkagraHairline
-import com.safarparmar.app.ui.ekagra.EkagraTextTabs
-import com.safarparmar.app.ui.ekagra.rememberEkagraInk
+/** Flat-hairline ink for the shared audio library sheet. */
+private object AudioLibraryFlat {
+    val Bg: Color @Composable get() {
+        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
+        return if (dark) Color(0xFF131316) else Color(0xFFFFF9F0)
+    }
+    val Text: Color @Composable get() {
+        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
+        return if (dark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
+    }
+    val Muted: Color @Composable get() {
+        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
+        return if (dark) Color(0xFFCBD5E1) else Color(0xFF475569)
+    }
+    val Hairline: Color @Composable get() {
+        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
+        return if (dark) Color(0xFF3F3F46) else Color(0xFFE2DDF0)
+    }
+    val Accent @Composable get() = MaterialTheme.colorScheme.primary
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioLibraryPanel(
     selectedTrackId: String,
     onTrackSelect: (AudioTrack) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    val scheme = MaterialTheme.colorScheme
-    val ink = rememberEkagraInk(onCanvas = false)
 
     var selectedCategory by remember { mutableStateOf<AudioCategory?>(null) }
     var previewingTrackId by remember { mutableStateOf<String?>(null) }
@@ -72,7 +115,6 @@ fun AudioLibraryPanel(
             return
         }
         if (previewingTrackId == track.id) {
-            // Stop preview if tapping the same track
             releasePreview()
             return
         }
@@ -86,7 +128,7 @@ fun AudioLibraryPanel(
                         AudioAttributes.Builder()
                             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                             .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .build()
+                            .build(),
                     )
                     if (track.isLocal && track.localResId != null) {
                         setDataSource(context, Uri.parse("android.resource://${context.packageName}/${track.localResId}"))
@@ -127,49 +169,70 @@ fun AudioLibraryPanel(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = scheme.background,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = ink.hairline) }
+        containerColor = AudioLibraryFlat.Bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = AudioLibraryFlat.Hairline) },
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp),
         ) {
-            // Header — Ekagra typography
             Spacer(Modifier.height(4.dp))
-            EkagraEyebrow("Music", ink.secondaryText)
-            Spacer(Modifier.height(4.dp))
-            EkagraDisplayTitle("Audio library", ink.primaryText)
-            Spacer(Modifier.height(18.dp))
+            PlanEyebrow("Music")
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Audio library",
+                fontFamily = LoraFontFamily,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Normal,
+                color = AudioLibraryFlat.Text,
+            )
+            Spacer(Modifier.height(16.dp))
 
-            // Categories using EkagraTextTabs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                EkagraTextTabs(
-                    items = categories,
-                    selected = selectedCategory,
-                    accent = scheme.primary,
-                    ink = ink,
-                    label = { it?.displayName ?: "All" },
-                    onSelect = { selectedCategory = it }
-                )
+                categories.forEach { category ->
+                    val selected = selectedCategory == category
+                    val label = category?.displayName ?: "All"
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .then(
+                                if (selected) {
+                                    Modifier.background(AudioLibraryFlat.Accent)
+                                } else {
+                                    Modifier.border(1.dp, AudioLibraryFlat.Hairline, RoundedCornerShape(10.dp))
+                                },
+                            )
+                            .clickable { selectedCategory = category }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            label,
+                            fontSize = 12.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selected) Color.White else AudioLibraryFlat.Muted,
+                        )
+                    }
+                }
             }
 
-            Spacer(Modifier.height(16.dp))
-            EkagraHairline(ink.hairline)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(14.dp))
+            PlanHairline()
+            Spacer(Modifier.height(4.dp))
 
-            // Track List
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(bottom = 40.dp)
+                contentPadding = PaddingValues(bottom = 40.dp),
             ) {
                 items(filteredTracks, key = { it.id }) { track ->
                     val isSelected = track.id == selectedTrackId
@@ -186,71 +249,63 @@ fun AudioLibraryPanel(
                                 }
                                 .padding(vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
-                            // Play/Preview button
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(if (isSelected) scheme.primary.copy(alpha = 0.15f) else ink.trackFaint)
+                                    .background(
+                                        if (isSelected) {
+                                            AudioLibraryFlat.Accent.copy(alpha = 0.15f)
+                                        } else {
+                                            AudioLibraryFlat.Hairline.copy(alpha = 0.45f)
+                                        },
+                                    )
                                     .clickable { playPreview(track) },
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
                                 if (isPreviewing) {
-                                    EqualizerAnimation(color = scheme.primary)
+                                    EqualizerAnimation(color = AudioLibraryFlat.Accent)
                                 } else {
                                     Icon(
                                         imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayArrow,
                                         contentDescription = "Preview",
-                                        tint = if (isSelected) scheme.primary else ink.secondaryText,
-                                        modifier = Modifier.size(18.dp)
+                                        tint = if (isSelected) AudioLibraryFlat.Accent else AudioLibraryFlat.Muted,
+                                        modifier = Modifier.size(18.dp),
                                     )
                                 }
                             }
 
-                            // Track info
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = track.name,
                                     fontSize = 14.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = ink.primaryText
+                                    color = AudioLibraryFlat.Text,
                                 )
                                 if (track.description != null) {
                                     Text(
                                         text = track.description,
                                         fontSize = 12.sp,
-                                        color = ink.mutedText,
+                                        color = AudioLibraryFlat.Muted,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(top = 2.dp)
+                                        modifier = Modifier.padding(top = 2.dp),
                                     )
                                 }
                             }
 
-                            // Selected indicator — accent dot + checkmark
                             if (isSelected) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Box(
-                                        Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(scheme.primary)
-                                    )
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Selected",
-                                        tint = scheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = AudioLibraryFlat.Accent,
+                                    modifier = Modifier.size(18.dp),
+                                )
                             }
                         }
-                        EkagraHairline(ink.hairline.copy(alpha = ink.hairline.alpha * 0.6f))
+                        PlanHairline(alpha = 0.55f)
                     }
                 }
             }
@@ -263,7 +318,7 @@ fun EqualizerAnimation(color: Color) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.height(16.dp)
+        modifier = Modifier.height(16.dp),
     ) {
         listOf(300, 400, 500, 350).forEachIndexed { index, delayMillis ->
             val infiniteTransition = rememberInfiniteTransition(label = "eq_$index")
@@ -272,9 +327,9 @@ fun EqualizerAnimation(color: Color) {
                 targetValue = 1f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(durationMillis = delayMillis, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse
+                    repeatMode = RepeatMode.Reverse,
                 ),
-                label = "eq_height_$index"
+                label = "eq_height_$index",
             )
 
             Box(
@@ -282,7 +337,7 @@ fun EqualizerAnimation(color: Color) {
                     .width(3.dp)
                     .fillMaxHeight(height)
                     .clip(RoundedCornerShape(1.dp))
-                    .background(color)
+                    .background(color),
             )
         }
     }

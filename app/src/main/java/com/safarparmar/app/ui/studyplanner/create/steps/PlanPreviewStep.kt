@@ -55,6 +55,7 @@ import com.safarparmar.app.data.remote.api.PlanPreviewResult
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
 import com.safarparmar.app.ui.studyplanner.components.TopicEffortBars
 import java.time.LocalDate
@@ -124,18 +125,12 @@ fun PlanPreviewStep(
         preview.examDate?.take(10)?.let { runCatching { LocalDate.parse(it).format(dayFormatter) }.getOrNull() }
     }
     val scheme = MaterialTheme.colorScheme
-    val accent = scheme.primary
+    // The planner's own coral, not Material's generic blue primary — the blue read
+    // as off-brand and washed-out on the cream light-mode sheet.
+    val accent = PlannerFlatColors.PrimaryAccent
 
     var weekIndex by remember(weeks) { mutableIntStateOf(0) }
     val week = weeks.getOrNull(weekIndex)
-
-    var dayIndex by remember(weekIndex, weeks) {
-        val today = LocalDate.now()
-        val defaultIndex = week?.days?.indexOfFirst { it.first == today }?.takeIf { it >= 0 }
-            ?: week?.days?.indexOfFirst { it.second.isNotEmpty() }?.takeIf { it >= 0 }
-            ?: 0
-        mutableIntStateOf(defaultIndex)
-    }
 
     Column(
         modifier = modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
@@ -275,61 +270,56 @@ fun PlanPreviewStep(
                     )
                 }
 
-                item {
-                    DayChipRow(
-                        days = week.days.map { it.first },
-                        dayItems = week.days.map { it.second },
-                        loads = week.days.map { dayLoadOf(it.second, goal) },
-                        selectedIndex = dayIndex,
-                        accent = accent,
-                        scheme = scheme,
-                        onSelect = { dayIndex = it },
-                    )
-                }
-
-                val selectedDay = week.days.getOrNull(dayIndex)
-                if (selectedDay != null) {
-                    val load = dayLoadOf(selectedDay.second, goal)
-                    if (selectedDay.second.isNotEmpty()) {
-                        item {
+                // The whole week, top to bottom: every day is a labelled block with
+                // its topics beneath it. A student sees "Monday: Physics, Physics,
+                // Maths / Tuesday: rest / Wednesday: …" in one scroll — the way a
+                // real timetable reads — instead of tapping through seven days.
+                week.days.forEach { (date, dayTopics) ->
+                    item(key = "dayhead_$date") {
+                        DayHeader(
+                            date = date,
+                            topicCount = dayTopics.size,
+                            load = dayLoadOf(dayTopics, goal),
+                            scheme = scheme,
+                        )
+                    }
+                    if (dayTopics.isEmpty()) {
+                        item(key = "rest_$date") {
                             Text(
-                                text = "${selectedDay.second.size} topics · ${load.label.lowercase()} day",
+                                "No study — take a break",
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = when (load) {
-                                    DayLoad.HEAVY -> scheme.error
-                                    DayLoad.FULL -> PlannerAccent.Amber
-                                    else -> PlannerAccent.Teal
-                                },
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
-                        }
-                        items(selectedDay.second, key = { it.topicId }) { topic ->
-                            TopicPill(
-                                topic = topic,
-                                scheme = scheme,
+                                color = scheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 16.dp, top = 2.dp, bottom = 2.dp),
                             )
                         }
                     } else {
-                        item {
-                            Text(
-                                "Rest day 🌿",
-                                fontSize = 13.sp,
-                                color = scheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 8.dp),
-                            )
+                        items(dayTopics, key = { "${date}_${it.topicId}" }) { topic ->
+                            TopicPill(topic = topic, scheme = scheme)
                         }
                     }
                 }
 
-                if (examDateLabel != null) {
+                // The exam is the anchor of the whole plan, shown once after the
+                // final week so the student ends the review on the deadline.
+                if (weekIndex == weeks.lastIndex && examDateLabel != null) {
                     item {
-                        Text(
-                            "Exam Date: $examDateLabel 🎯",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(top = 10.dp, bottom = 8.dp),
-                        )
+                        Column(modifier = Modifier.padding(top = 14.dp, bottom = 6.dp)) {
+                            PlanHairline(alpha = 0.6f)
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                "Your exam",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                color = scheme.onSurfaceVariant,
+                            )
+                            Text(
+                                examDateLabel,
+                                fontFamily = LoraFontFamily,
+                                fontSize = 20.sp,
+                                color = PlannerAccent.Coral,
+                            )
+                        }
                     }
                 }
             }
@@ -423,82 +413,68 @@ private fun WeekNavHeader(
     }
 }
 
+/**
+ * One day's heading in the whole-week list: the weekday and date on the left, and
+ * on the right a plain word for how full the day is (Rest / Light / Full / Busy)
+ * with a matching colour dot. Words + a dot, so the load reads at a glance without
+ * decoding a chart — the whole point for a first-time user.
+ */
 @Composable
-private fun DayChipRow(
-    days: List<LocalDate>,
-    dayItems: List<List<CalendarTopicItem>>,
-    loads: List<DayLoad>,
-    selectedIndex: Int,
-    accent: Color,
+private fun DayHeader(
+    date: LocalDate,
+    topicCount: Int,
+    load: DayLoad,
     scheme: androidx.compose.material3.ColorScheme,
-    onSelect: (Int) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    val loadColor = when (load) {
+        DayLoad.REST -> scheme.onSurfaceVariant
+        DayLoad.LIGHT -> PlannerAccent.Teal
+        DayLoad.FULL -> PlannerAccent.Amber
+        DayLoad.HEAVY -> scheme.error
+    }
+    // "Busy" is friendlier than "Heavy" for the over-goal day.
+    val loadWord = if (load == DayLoad.HEAVY) "Busy" else load.label
+
+    Column {
+        Spacer(Modifier.height(12.dp))
+        PlanHairline(alpha = 0.6f)
+        Spacer(Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            days.forEachIndexed { index, date ->
-                val selected = index == selectedIndex
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurface,
+                )
+                Text(
+                    date.format(dayFormatter),
+                    fontSize = 11.sp,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 Box(
                     modifier = Modifier
-                        .weight(1f)
+                        .size(7.dp)
                         .clip(CircleShape)
-                        .then(
-                            if (selected) Modifier.background(accent)
-                            else Modifier.border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), CircleShape),
-                        )
-                        .clickable { onSelect(index) }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(3.dp),
-                    ) {
-                        Text(
-                            date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
-                            fontSize = 12.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selected) Color.White else scheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
-
-        // Workload as a mini bar chart across the week: bar height is that day's
-        // topic count against the busiest day, so the shape of the row answers
-        // "which days are heavy?" without tapping into any of them.
-        val busiest = dayItems.maxOfOrNull { it.size }?.coerceAtLeast(1) ?: 1
-        Row(
-            modifier = Modifier.fillMaxWidth().height(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            days.indices.forEach { index ->
-                DayVolumeBar(
-                    topicCount = dayItems.getOrNull(index)?.size ?: 0,
-                    busiestCount = busiest,
-                    isOverGoal = loads.getOrNull(index) == DayLoad.HEAVY,
-                    isSelected = index == selectedIndex,
-                    accent = accent,
-                    scheme = scheme,
-                    modifier = Modifier.weight(1f),
+                        .background(loadColor),
+                )
+                Text(
+                    text = if (topicCount == 0) loadWord else "$topicCount topics · $loadWord",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = loadColor,
                 )
             }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Taller = busier",
-                fontSize = 10.sp,
-                color = scheme.onSurfaceVariant.copy(alpha = 0.7f),
-            )
-        }
+        Spacer(Modifier.height(4.dp))
     }
 }
 
@@ -541,11 +517,14 @@ private fun TopicPill(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (topic.subjectName.isNotBlank()) {
+                        // Muted, not coloured — the subject is already carried by the
+                        // dot on the left, so a blue label on every single row just
+                        // shouted and crowded the list.
                         Text(
                             topic.subjectName,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
-                            color = scheme.primary,
+                            color = PlannerFlatColors.TextMuted,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -645,30 +624,27 @@ private fun PlanCoverageMeter(
     scheme: androidx.compose.material3.ColorScheme,
 ) {
     val assignedPercent = if (totalTopics > 0) (scheduledTopics.toFloat() / totalTopics.toFloat() * 100).roundToInt() else 100
-    val accent = scheme.primary
 
+    // One plain sentence, one bar, one fix — down from four stacked lines that
+    // all said "some topics don't fit" three different ways.
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "$skippedTopics topics don't fit",
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = scheme.error,
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = scheme.error,
+                modifier = Modifier.size(18.dp),
             )
             Text(
-                text = "$assignedPercent% fit",
-                fontSize = 12.sp,
+                text = "$skippedTopics topics won't fit before your exam",
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = accent,
+                color = scheme.error,
             )
         }
 
@@ -677,44 +653,33 @@ private fun PlanCoverageMeter(
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(CircleShape)
-                .background(scheme.error.copy(alpha = 0.25f)),
+                .background(scheme.error.copy(alpha = 0.22f)),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth((assignedPercent / 100f).coerceIn(0f, 1f))
                     .clip(CircleShape)
-                    .background(accent),
+                    .background(PlannerAccent.Teal),
             )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "$scheduledTopics of $totalTopics topics got a date",
-                fontSize = 11.5.sp,
-                color = scheme.onSurfaceVariant,
-            )
-
-            if (onScheduleAnyway != null) {
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .border(1.dp, scheme.error.copy(alpha = 0.6f), CircleShape)
-                        .clickable { onScheduleAnyway() }
-                        .padding(horizontal = 12.dp, vertical = 5.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = if (neededPerDay > 0) "Fit all · $neededPerDay a day" else "Fit them all anyway",
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.error,
-                    )
-                }
+        if (onScheduleAnyway != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(1.dp, PlannerFlatColors.PrimaryAccent, RoundedCornerShape(12.dp))
+                    .clickable { onScheduleAnyway() }
+                    .padding(vertical = 11.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (neededPerDay > 0) "Fit them all — study $neededPerDay a day" else "Fit them all anyway",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.PrimaryAccent,
+                )
             }
         }
     }
@@ -793,8 +758,13 @@ private fun DeferredSubjectsCard(
                 .padding(vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            // One quiet tappable line by default — the fit warning above is the
+            // headline, and a second bold alarm here just piled on. Details
+            // (when each subject starts, the list) open only on tap.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
@@ -805,31 +775,27 @@ private fun DeferredSubjectsCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "${parsed.subjectChips.size} subjects start close to exam",
+                    text = "${parsed.subjectChips.size} subjects start late in your plan",
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     color = scheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = if (expanded) "Hide ▴" else "View (${parsed.subjectChips.size}) ▾",
+                    text = if (expanded) "Hide ▴" else "Details ▾",
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = scheme.primary,
-                    modifier = Modifier
-                        .clickable { expanded = !expanded }
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    color = PlannerFlatColors.PrimaryAccent,
                 )
             }
 
-            Text(
-                text = parsed.timelineText,
-                fontSize = 12.sp,
-                color = scheme.onSurfaceVariant,
-            )
-
             AnimatedVisibility(visible = expanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+                    Text(
+                        text = parsed.timelineText,
+                        fontSize = 12.sp,
+                        color = scheme.onSurfaceVariant,
+                    )
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -860,51 +826,6 @@ private fun DeferredSubjectsCard(
                     }
                 }
             }
-        }
-    }
-}
-
-/**
- * One day's workload as a single bar, scaled against the busiest day of the
- * week. Height alone carries the comparison, so it stays readable at the ~40dp
- * a day chip gets on a phone — where proportional subject bands collapsed into
- * unreadable slivers. Red marks a day that runs past the student's daily goal.
- */
-@Composable
-private fun DayVolumeBar(
-    topicCount: Int,
-    busiestCount: Int,
-    isOverGoal: Boolean,
-    isSelected: Boolean,
-    accent: Color,
-    scheme: ColorScheme,
-    modifier: Modifier = Modifier,
-) {
-    val fraction = if (busiestCount <= 0) 0f else topicCount.toFloat() / busiestCount
-    Box(modifier = modifier.fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
-        if (topicCount == 0) {
-            // Rest day: a faint rule keeps the week continuous instead of a gap.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.dp)
-                    .clip(RoundedCornerShape(1.dp))
-                    .background(scheme.outlineVariant.copy(alpha = 0.35f)),
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(fraction.coerceIn(0.18f, 1f))
-                    .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
-                    .background(
-                        when {
-                            isOverGoal -> scheme.error
-                            isSelected -> accent
-                            else -> accent.copy(alpha = 0.35f)
-                        },
-                    ),
-            )
         }
     }
 }

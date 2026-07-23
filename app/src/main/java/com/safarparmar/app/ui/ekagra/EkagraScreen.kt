@@ -1184,13 +1184,6 @@ fun EkagraScreen(
                     // out of the old glass bar and into EkagraTopBar's trailing slot.
                     val ekagraTopBarActions: @Composable RowScope.() -> Unit = {
                         val tintColor = topBarTint
-                        IconButton(onClick = { tourState?.start() }) {
-                            Image(
-                                painter = painterResource(R.drawable.ic_butterfly_tour),
-                                contentDescription = "Guide",
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
                         Box {
                             var showOverflowMenu by remember { mutableStateOf(false) }
                             IconButton(onClick = { showOverflowMenu = true }) {
@@ -1587,7 +1580,7 @@ fun EkagraScreen(
         dataStore = viewModel.dataStore,
         steps = ekagraTourSteps,
         section = "ekagra",
-        askOnFirstVisit = true,
+        askOnFirstVisit = false,
         onTourStateReady = { tourState = it },
     )
 }

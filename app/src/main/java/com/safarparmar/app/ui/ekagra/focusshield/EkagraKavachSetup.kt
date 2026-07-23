@@ -199,7 +199,7 @@ fun EkagraKavachInlineCard(
                     onCheckedChange = ::onKavachToggle,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = scheme.onPrimary,
-                        checkedTrackColor = scheme.primary,
+                        checkedTrackColor = KavachDesign.Primary,
                         uncheckedThumbColor = scheme.outline,
                         uncheckedTrackColor = scheme.surfaceVariant,
                         uncheckedBorderColor = scheme.outlineVariant,
@@ -235,7 +235,7 @@ fun EkagraKavachInlineCard(
                     ) {
                         Column {
                             Text("Beast Mode", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = scheme.onSurface)
-                            Text("No quick unlocks or bypass.", fontSize = 11.sp, color = secondaryText)
+                            Text("No short unlock until the timer ends.", fontSize = 11.sp, color = secondaryText)
                         }
                         Switch(
                             checked = shieldState.isStrictMode,
@@ -290,8 +290,8 @@ private fun EkagraKavachAppsRow(
     } else {
         stringResource(R.string.kavach_blocked_apps_count, blockedCount)
     }
-    val rowBg = if (needsApps) scheme.primaryContainer.copy(alpha = 0.4f) else scheme.surfaceVariant.copy(alpha = 0.5f)
-    val rowBorder = if (needsApps) scheme.primary.copy(alpha = 0.5f) else scheme.outlineVariant
+    val rowBg = if (needsApps) KavachDesign.Primary.copy(alpha = 0.14f) else scheme.surfaceVariant.copy(alpha = 0.5f)
+    val rowBorder = if (needsApps) KavachDesign.Primary.copy(alpha = 0.5f) else scheme.outlineVariant
 
     Row(
         modifier = Modifier
@@ -306,7 +306,7 @@ private fun EkagraKavachAppsRow(
         Icon(
             if (needsApps) Icons.Default.Warning else Icons.Default.Apps,
             contentDescription = null,
-            tint = if (needsApps) scheme.primary else secondaryText,
+            tint = if (needsApps) KavachDesign.Primary else secondaryText,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(10.dp))
@@ -327,7 +327,7 @@ private fun EkagraKavachAppsRow(
             text = if (needsApps) "Choose" else "Edit",
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            color = scheme.primary,
+            color = KavachDesign.Primary,
         )
     }
 }

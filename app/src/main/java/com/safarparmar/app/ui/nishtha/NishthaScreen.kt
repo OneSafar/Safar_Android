@@ -155,15 +155,6 @@ fun NishthaScreen(
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
         containerColor = SafarSemanticColors.plannerBackground(),
-        topBarActions = {
-            IconButton(onClick = { tourState?.start() }) {
-                Image(
-                    painter = painterResource(R.drawable.ic_butterfly_tour),
-                    contentDescription = "Guide",
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        },
     ) { padding ->
         Box(Modifier.fillMaxSize()) {
             Scaffold(
@@ -211,12 +202,12 @@ fun NishthaScreen(
                 }
             }
 
-            // Tour overlay — asks on first visit; guide icon re-triggers any time
+            // Tour overlay disabled
             TourManager(
                 dataStore = viewModel.dataStore,
                 steps = nishthaTourSteps,
                 section = "nishtha",
-                askOnFirstVisit = true,
+                askOnFirstVisit = false,
                 onTourStateReady = { tourState = it },
             )
         }

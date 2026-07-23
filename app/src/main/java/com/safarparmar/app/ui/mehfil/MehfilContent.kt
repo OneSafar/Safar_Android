@@ -142,13 +142,6 @@ internal fun MehfilContent(
                         modifier = Modifier.size(18.dp),
                     )
                 }
-                FlatTopIconChip(onClick = onTourClick) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_butterfly_tour),
-                        contentDescription = "Guide",
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
                 FlatTopIconChip(onClick = onGuidelinesClick) {
                     Icon(
                         Icons.Default.Info,

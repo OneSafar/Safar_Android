@@ -1,7 +1,5 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
-import android.content.Intent
-import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -11,12 +9,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -67,6 +68,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
+import com.safarparmar.app.ui.studyplanner.components.GlassButton
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
 import kotlinx.coroutines.launch
 
 private data class KavachPermissionColors(
@@ -86,18 +92,19 @@ private data class KavachPermissionColors(
 @Composable
 private fun kavachPermissionColors(): KavachPermissionColors {
     val scheme = MaterialTheme.colorScheme
+    val purple = KavachDesign.Primary
     return KavachPermissionColors(
         screen = scheme.background,
         card = scheme.surfaceContainerHigh,
         primaryText = scheme.onBackground,
         secondaryText = scheme.onSurfaceVariant,
         divider = scheme.outlineVariant,
-        progress = scheme.primary,
+        progress = purple,
         progressTrack = scheme.surfaceContainerHighest,
-        helpBg = scheme.primaryContainer.copy(alpha = 0.72f),
-        helpText = scheme.onPrimaryContainer,
-        cta = scheme.primary,
-        ctaText = scheme.onPrimary,
+        helpBg = purple.copy(alpha = 0.14f),
+        helpText = purple,
+        cta = purple,
+        ctaText = Color.White,
     )
 }
 
@@ -124,7 +131,13 @@ fun KavachOnboardingScreen(
     var hasNotifications by remember { mutableStateOf(shieldState.hasNotifications) }
     var hasNotificationSuppressionAccess by remember { mutableStateOf(shieldState.hasNotificationSuppressionAccess) }
     var selectedPermission by remember { mutableStateOf<PermissionTarget?>(null) }
+    var awaitingPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     val scope = rememberCoroutineScope()
+
+    AwaitPermissionThenReturnToApp(
+        awaiting = awaitingPermission,
+        onReturned = { awaitingPermission = null },
+    )
 
     fun skipSetup() {
         viewModel.setEnabled(false)
@@ -145,6 +158,11 @@ fun KavachOnboardingScreen(
                 hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
                 hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
                 viewModel.refreshPermissions()
+                // If we already returned and the watched permission is granted, stop polling.
+                val watching = awaitingPermission
+                if (watching != null && FocusShieldPermissionHelper.isPermissionGranted(context, watching)) {
+                    awaitingPermission = null
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -267,7 +285,7 @@ fun KavachOnboardingScreen(
 
                 KavachRegainPermissionRow(
                     title = "Usage permission",
-                    subtitle = "Lets KAVACH check which app you opened.",
+                    subtitle = "Lets KAVACH see which app you opened.",
                     granted = hasUsageStats,
                     isNext = isUsageNext,
                     colors = colors,
@@ -293,8 +311,8 @@ fun KavachOnboardingScreen(
                 HorizontalDivider(color = colors.divider)
 
                 KavachRegainPermissionRow(
-                    title = "Display over other apps",
-                    subtitle = "Lets KAVACH show the block screen over a distracting app.",
+                    title = "Show on top",
+                    subtitle = "Lets KAVACH show a block screen over a distracting app.",
                     granted = hasOverlay,
                     isNext = isOverlayNext,
                     colors = colors,
@@ -305,7 +323,7 @@ fun KavachOnboardingScreen(
 
                 KavachRegainPermissionRow(
                     title = "Notification Shield",
-                    subtitle = "Keeps notifications from selected blocked apps out of the way.",
+                    subtitle = "Hides notifications from the apps you chose to block.",
                     granted = hasNotificationSuppressionAccess,
                     isNext = isNotificationAccessNext,
                     colors = colors,
@@ -359,16 +377,17 @@ fun KavachOnboardingScreen(
                 onDismiss = { selectedPermission = null },
                 onAllow = {
                     selectedPermission = null
+                    // Watch settings toggles so we auto-return to this Kavach screen
+                    // the moment Usage / Overlay / Notification Shield is granted.
+                    if (it != PermissionTarget.NOTIFICATIONS) {
+                        awaitingPermission = it
+                    }
                     scope.launch {
                         when (it) {
-                            PermissionTarget.USAGE_STATS -> {
-                                context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                })
-                            }
-                            PermissionTarget.OVERLAY -> {
+                            PermissionTarget.USAGE_STATS ->
+                                FocusShieldPermissionHelper.openUsageAccessSettings(context)
+                            PermissionTarget.OVERLAY ->
                                 FocusShieldPermissionHelper.openOverlaySettings(context)
-                            }
                             PermissionTarget.NOTIFICATIONS -> requestNotificationPermission()
                             PermissionTarget.NOTIFICATION_ACCESS ->
                                 FocusShieldPermissionHelper.openNotificationListenerSettings(context)
@@ -455,48 +474,50 @@ private fun KavachRegainExplanationSheet(
     onAllow: (PermissionTarget) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val colors = kavachPermissionColors()
+    val isDark = KavachDesign.isDark
+    val accent = KavachDesign.Primary
+    val ctaLabelColor = if (accent.luminance() > 0.55f) Color(0xFF16161A) else Color.White
 
     val title = when (permission) {
-        PermissionTarget.USAGE_STATS -> "Allow usage permission to check app use"
-        PermissionTarget.OVERLAY -> "Allow display over other apps"
-        PermissionTarget.NOTIFICATIONS -> "Allow notifications for status"
-        PermissionTarget.NOTIFICATION_ACCESS -> "Enable Notification shield"
+        PermissionTarget.USAGE_STATS -> "Allow app check"
+        PermissionTarget.OVERLAY -> "Allow show on top"
+        PermissionTarget.NOTIFICATIONS -> "Allow notifications"
+        PermissionTarget.NOTIFICATION_ACCESS -> "Allow notification shield"
     }
 
     val bullets = when (permission) {
         PermissionTarget.USAGE_STATS -> listOf(
-            "We do not read your messages, passwords, photos, or screen content.",
-            "Usage Access helps SAFAR understand which app is currently open.",
-            "SAFAR uses this only for KAVACH Focus Shield to compare opened apps with the apps you selected for blocking.",
-            "SAFAR does not use Usage Access for ads, marketing, or third-party sharing.",
-            "SAFAR does not upload the names of apps you open or block.",
-            "This helps KAVACH block only the apps you choose during an active Ekagra focus timer session.",
+            "We do not read your messages, passwords, or photos.",
+            "This only tells SAFAR which app is open right now.",
+            "SAFAR uses it only to block the apps you chose.",
+            "Nothing is shared for ads, and app names are not uploaded.",
         )
         PermissionTarget.OVERLAY -> listOf(
-            "This lets SAFAR draw its own KAVACH block screen on top of a distracting app you selected.",
-            "It is used only for the block screen during an active Ekagra focus session.",
-            "SAFAR does not read, capture, or overlay anything on other apps beyond showing the block screen.",
-            "You can turn this off anytime in Android Settings → Display over other apps.",
+            "This lets SAFAR show a block screen over a distracting app.",
+            "It is used only while you are studying with the timer on.",
+            "SAFAR does not read or capture other apps.",
+            "You can turn this off anytime in phone Settings.",
         )
         PermissionTarget.NOTIFICATIONS -> listOf(
-            "Receive alerts when the Ekagra timer finishes.",
-            "Keep KAVACH status visible in the background.",
-            "Foreground service and media playback notifications keep active Ekagra sessions visible and controllable outside the app.",
+            "Get a message when your study timer ends.",
+            "See that KAVACH is still running in the background.",
         )
         PermissionTarget.NOTIFICATION_ACCESS -> listOf(
-            "KAVACH can dismiss notifications only from apps you selected to block.",
-            "This works only during an active Ekagra focus timer session.",
-            "SAFAR does not store notification content or use it for ads.",
-            "You can turn Notification access off anytime in Android Settings.",
+            "KAVACH can hide notifications only from apps you chose to block.",
+            "This works only while your study timer is on.",
+            "SAFAR does not save notification text.",
+            "You can turn this off anytime in phone Settings.",
         )
     }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = colors.card,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = PlannerFlatColors.BgCream,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft)
+        },
     ) {
         Column(
             modifier = Modifier
@@ -505,111 +526,125 @@ private fun KavachRegainExplanationSheet(
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
         ) {
+            PlanEyebrow("KAVACH")
+            Spacer(Modifier.height(10.dp))
+
             Text(
                 text = title,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.primaryText,
-                lineHeight = 30.sp,
+                fontFamily = LoraFontFamily,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Normal,
+                color = PlannerFlatColors.TextDark,
+                lineHeight = 32.sp,
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
+            PlanHairline()
+            Spacer(Modifier.height(16.dp))
 
+            // Help cue — flat hairline outline (not a filled card)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(colors.helpBg)
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     Icons.Default.HelpOutline,
                     contentDescription = null,
-                    tint = colors.helpText,
+                    tint = PlannerFlatColors.TextMuted,
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
                     text = "Is it safe to give this permission?",
-                    color = colors.helpText,
+                    color = PlannerFlatColors.TextMuted,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.weight(1f))
                 Icon(
                     Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = colors.helpText,
+                    tint = PlannerFlatColors.TextMuted,
                     modifier = Modifier.size(18.dp),
                 )
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(20.dp))
 
-            bullets.forEach { bullet ->
-                Row(
-                    modifier = Modifier.padding(bottom = 20.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
+            bullets.forEachIndexed { index, bullet ->
+                if (index > 0) {
+                    Spacer(Modifier.height(12.dp))
+                    PlanHairline(alpha = 0.7f)
+                    Spacer(Modifier.height(12.dp))
+                }
+                Row(verticalAlignment = Alignment.Top) {
                     Text(
-                        text = "-",
-                        color = colors.secondaryText.copy(alpha = 0.7f),
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(top = 2.dp),
+                        text = "–",
+                        color = PlannerFlatColors.TextMuted,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(top = 1.dp, end = 12.dp),
                     )
-                    Spacer(Modifier.width(16.dp))
                     Text(
                         text = bullet,
-                        color = colors.secondaryText,
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp,
+                        color = PlannerFlatColors.TextMuted,
+                        fontSize = 14.sp,
+                        lineHeight = 21.sp,
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(24.dp))
+            PlanHairline()
+            Spacer(Modifier.height(20.dp))
 
-            Surface(
+            // Primary CTA — macOS translucent glass
+            GlassButton(
                 onClick = { onAllow(permission) },
+                accentColor = accent,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(99.dp),
-                color = colors.cta,
+                    .heightIn(min = 56.dp),
+                shape = RoundedCornerShape(16.dp),
+                isDarkTheme = isDark,
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.Center,
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
-                            "Agree & enable Notification Shield"
-                        } else {
-                            "Allow"
-                        },
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.ctaText,
-                    )
-                }
+                Text(
+                    text = if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
+                        "Agree & enable Notification Shield"
+                    } else {
+                        "Allow"
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ctaLabelColor,
+                )
             }
 
             if (permission == PermissionTarget.NOTIFICATION_ACCESS) {
                 Spacer(Modifier.height(12.dp))
-                Surface(
-                    onClick = onDismiss,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(99.dp),
-                    color = Color.Transparent,
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(14.dp))
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "Not now",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.secondaryText,
-                        )
-                    }
+                    Text(
+                        text = "Not now",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PlannerFlatColors.TextMuted,
+                    )
                 }
             }
         }

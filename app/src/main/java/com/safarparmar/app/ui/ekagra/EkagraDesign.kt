@@ -36,6 +36,16 @@ import com.safarparmar.app.ui.theme.LoraFontFamily
  * sits on the Timer tab's video/gradient canvas).
  */
 
+/** +5% size / +15% stroke weight for timer chrome (nav, ring, action pills). */
+internal object EkagraChrome {
+    const val SizeScale = 1.05f
+    const val WeightScale = 1.15f
+
+    fun size(baseDp: Float) = (baseDp * SizeScale).dp
+    fun stroke(baseDp: Float) = (baseDp * WeightScale).dp
+    fun text(baseSp: Float) = (baseSp * SizeScale).sp
+}
+
 /** Display face for numerals and section titles. */
 val EkagraSerif: FontFamily = LoraFontFamily
 
@@ -73,26 +83,27 @@ internal fun rememberEkagraInk(
             EkagraInk(
                 primaryText = primaryInk,
                 secondaryText = secondaryInk,
-                mutedText = secondaryInk.copy(alpha = 0.75f),
-                hairline = primaryInk.copy(alpha = 0.20f),
-                trackFaint = primaryInk.copy(alpha = 0.14f),
+                mutedText = secondaryInk.copy(alpha = 0.82f),
+                hairline = primaryInk.copy(alpha = 0.32f),
+                trackFaint = primaryInk.copy(alpha = 0.22f),
             )
         } else {
+            // Brighter whites so icons/rings/labels stay luminous on the video canvas
             EkagraInk(
                 primaryText = Color.White,
-                secondaryText = Color.White.copy(alpha = 0.88f),
-                mutedText = Color.White.copy(alpha = 0.65f),
-                hairline = Color.White.copy(alpha = 0.22f),
-                trackFaint = Color.White.copy(alpha = 0.16f),
+                secondaryText = Color.White.copy(alpha = 0.96f),
+                mutedText = Color.White.copy(alpha = 0.82f),
+                hairline = Color.White.copy(alpha = 0.42f),
+                trackFaint = Color.White.copy(alpha = 0.30f),
             )
         }
     } else {
         EkagraInk(
             primaryText = scheme.onSurface,
             secondaryText = scheme.onSurfaceVariant,
-            mutedText = scheme.onSurfaceVariant.copy(alpha = 0.6f),
-            hairline = scheme.outlineVariant.copy(alpha = 0.55f),
-            trackFaint = scheme.onSurfaceVariant.copy(alpha = 0.16f),
+            mutedText = scheme.onSurfaceVariant.copy(alpha = 0.72f),
+            hairline = scheme.outlineVariant.copy(alpha = 0.65f),
+            trackFaint = scheme.onSurfaceVariant.copy(alpha = 0.22f),
         )
     }
 }
@@ -118,7 +129,12 @@ internal fun EkagraTopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onOpenDrawer) {
-            Icon(Icons.Default.Menu, contentDescription = "Open menu", tint = ink.primaryText)
+            Icon(
+                Icons.Default.Menu,
+                contentDescription = "Open menu",
+                tint = ink.primaryText,
+                modifier = Modifier.size(EkagraChrome.size(24f)),
+            )
         }
         Spacer(Modifier.weight(1f))
         trailing()
@@ -169,7 +185,7 @@ internal fun EkagraHairline(
     Box(
         modifier
             .fillMaxWidth()
-            .height(1.dp)
+            .height(EkagraChrome.stroke(1f))
             .background(color),
     )
 }
@@ -192,16 +208,16 @@ internal fun EkagraPill(
             .clip(CircleShape)
             .then(
                 if (selected) Modifier.background(accent)
-                else Modifier.border(1.dp, ink.hairline, CircleShape),
+                else Modifier.border(EkagraChrome.stroke(1f), ink.hairline, CircleShape),
             )
             .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 7.dp),
+            .padding(horizontal = EkagraChrome.size(14f), vertical = EkagraChrome.size(7f)),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            fontSize = EkagraChrome.text(12f),
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
             color = if (selected) contrastOn(accent) else ink.secondaryText,
         )
     }
@@ -244,7 +260,7 @@ internal fun <T> EkagraTextTabs(
                     }
                     Text(
                         text = label(item),
-                        fontSize = 13.sp,
+                        fontSize = EkagraChrome.text(13f),
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                         color = tabColor,
                     )
@@ -253,7 +269,7 @@ internal fun <T> EkagraTextTabs(
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .height(2.dp)
+                        .height(EkagraChrome.stroke(2f))
                         .background(if (isSelected) accent else Color.Transparent),
                 )
             }
@@ -271,17 +287,17 @@ internal fun EkagraPrimaryAction(
 ) {
     Box(
         modifier
-            .height(48.dp)
+            .height(EkagraChrome.size(48f))
             .clip(CircleShape)
             .background(accent)
-            .border(1.dp, contrastOn(accent).copy(alpha = 0.35f), CircleShape)
+            .border(EkagraChrome.stroke(1f), contrastOn(accent).copy(alpha = 0.45f), CircleShape)
             .clickable(interactionSource = remembered(), indication = null) { onClick() }
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = EkagraChrome.size(20f)),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            fontSize = 14.5.sp,
+            fontSize = EkagraChrome.text(14.5f),
             fontWeight = FontWeight.Bold,
             color = contrastOn(accent),
             maxLines = 1,
@@ -300,18 +316,18 @@ internal fun EkagraGhostAction(
 ) {
     Box(
         modifier
-            .height(48.dp)
+            .height(EkagraChrome.size(48f))
             .clip(CircleShape)
-            .border(1.dp, ink.hairline, CircleShape)
+            .border(EkagraChrome.stroke(1f), ink.hairline, CircleShape)
             .clickable(interactionSource = remembered(), indication = null) { onClick() }
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = EkagraChrome.size(20f)),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = ink.secondaryText,
+            fontSize = EkagraChrome.text(14f),
+            fontWeight = FontWeight.Bold,
+            color = ink.primaryText,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -331,3 +347,36 @@ private fun Color.luminanceCompat(): Float =
 @Composable
 private fun remembered() =
     androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+
+/**
+ * Icon with +5% size and a soft underlay so filled glyphs read ~15% heavier
+ * against the timer canvas without swapping to custom stroke assets.
+ */
+@Composable
+internal fun EkagraChromeIcon(
+    imageVector: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    contentDescription: String?,
+    baseSizeDp: Float = 20f,
+    modifier: Modifier = Modifier,
+) {
+    val size = EkagraChrome.size(baseSizeDp)
+    val weightSize = size * EkagraChrome.WeightScale
+    Box(
+        modifier = modifier.size(weightSize),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = imageVector,
+            contentDescription = null,
+            tint = tint.copy(alpha = (tint.alpha * 0.40f).coerceIn(0f, 1f)),
+            modifier = Modifier.size(size * 1.10f),
+        )
+        Icon(
+            imageVector = imageVector,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(size),
+        )
+    }
+}

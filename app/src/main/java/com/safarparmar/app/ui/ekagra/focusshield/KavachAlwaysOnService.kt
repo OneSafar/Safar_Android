@@ -186,7 +186,7 @@ class KavachAlwaysOnService : Service() {
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
             .setContentTitle("KAVACH Always On")
-            .setContentText("Selected apps stay blocked until you turn Always On off in KAVACH.")
+            .setContentText("Your chosen apps stay blocked. Turn Always On off in KAVACH when you want them back.")
             .setContentIntent(openKavach)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(NotificationCompat.PRIORITY_LOW)

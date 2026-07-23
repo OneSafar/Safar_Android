@@ -94,24 +94,32 @@ fun FocusShieldSettingsContent(
     var pendingEnableAfterOverlay by remember { mutableStateOf(false) }
     var showLearnMore by remember { mutableStateOf(false) }
     var guideTarget by remember { mutableStateOf<PermissionTarget?>(null) }
+    var awaitingPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     var grantedBannerText by remember { mutableStateOf<String?>(null) }
     val requestNotificationPermission = rememberNotificationPermissionRequester {
         hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
     }
 
+    AwaitPermissionThenReturnToApp(
+        awaiting = awaitingPermission,
+        onReturned = { awaitingPermission = null },
+    )
+
     val requiredPermissionsGranted = hasUsageStats && hasOverlay
     val primaryCtaLabel = when {
-        !state.isEnabled -> "Turn On KAVACH"
-        !hasUsageStats -> "Allow App Check"
-        !hasOverlay -> "Allow Display Over Apps"
-        state.blockedPackages.isEmpty() -> "Choose Apps"
-        else -> "Edit App List"
+        !state.isEnabled -> "Turn on Kavach"
+        !hasUsageStats -> "Allow app check"
+        !hasOverlay -> "Allow show on top"
+        state.blockedPackages.isEmpty() -> "Choose apps"
+        else -> "Change apps"
     }
 
     // Identify active mode
+    // Always On is hidden, so a legacy user still carrying that flag resolves to
+    // Normal rather than leaving every card unselected. (The flag is also cleared
+    // at startup — see SafarApplication.)
     val activeMode = when {
         !state.isEnabled -> null
-        state.isAlwaysOnMode -> AppUsageMode.ALWAYS_ON
         state.isStrictMode -> AppUsageMode.BEAST
         else -> AppUsageMode.FOCUSED
     }
@@ -141,10 +149,10 @@ fun FocusShieldSettingsContent(
                 val newNotif = FocusShieldPermissionHelper.hasNotificationPermission(context)
                 val newNotificationAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
                 if (newUsage && !hasUsageStats) grantedBannerText = "App check is ready"
-                if (newOverlay && !hasOverlay) grantedBannerText = "Block screen is ready"
+                if (newOverlay && !hasOverlay) grantedBannerText = "Show on top is ready"
                 if (newNotif && !hasNotifications) grantedBannerText = "Notifications are on"
                 if (newNotificationAccess && !hasNotificationSuppressionAccess) {
-                    grantedBannerText = "Notification Shield is ready"
+                    grantedBannerText = "Notification shield is ready"
                 }
                 hasUsageStats = newUsage
                 hasOverlay = newOverlay
@@ -187,9 +195,9 @@ fun FocusShieldSettingsContent(
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             // Flat Hairline Header
-            EkagraEyebrow("KAVACH SHIELD", ink.secondaryText)
+            EkagraEyebrow("KAVACH", ink.secondaryText)
             Spacer(Modifier.height(4.dp))
-            EkagraDisplayTitle("Focus Protection", ink.primaryText)
+            EkagraDisplayTitle("Block apps while you study", ink.primaryText)
             Spacer(Modifier.height(16.dp))
             EkagraHairline(ink.hairline)
 
@@ -205,14 +213,14 @@ fun FocusShieldSettingsContent(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = "Enable Protection",
+                        text = "Turn on Kavach",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = ink.primaryText,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = if (state.isEnabled) "Kavach is active" else "Kavach is currently off",
+                        text = if (state.isEnabled) "Kavach is on" else "Kavach is off",
                         fontSize = 13.sp,
                         color = ink.secondaryText,
                     )
@@ -228,7 +236,7 @@ fun FocusShieldSettingsContent(
                     },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
-                        checkedTrackColor = scheme.primary,
+                        checkedTrackColor = KavachDesign.Primary,
                     ),
                 )
             }
@@ -254,7 +262,7 @@ fun FocusShieldSettingsContent(
                     Spacer(Modifier.height(28.dp))
 
                     // Blocked Apps Row
-                    EkagraEyebrow("APP SELECTION", ink.secondaryText)
+                    EkagraEyebrow("YOUR APPS", ink.secondaryText)
                     Spacer(Modifier.height(12.dp))
 
                     Row(
@@ -273,25 +281,29 @@ fun FocusShieldSettingsContent(
                                 modifier = Modifier
                                     .size(38.dp)
                                     .clip(CircleShape)
-                                    .background(scheme.primary.copy(alpha = 0.14f)),
+                                    .background(KavachDesign.Primary.copy(alpha = 0.14f)),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
                                     Icons.Default.Apps,
                                     contentDescription = null,
-                                    tint = scheme.primary,
+                                    tint = KavachDesign.Primary,
                                     modifier = Modifier.size(20.dp),
                                 )
                             }
                             Column {
                                 Text(
-                                    text = "Blocked Apps",
+                                    text = "Apps to block",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = ink.primaryText,
                                 )
                                 Text(
-                                    text = if (state.blockedPackages.isEmpty()) "No apps selected" else "${state.blockedPackages.size} apps selected for blocking",
+                                    text = if (state.blockedPackages.isEmpty()) {
+                                        "No apps chosen yet"
+                                    } else {
+                                        "${state.blockedPackages.size} apps chosen"
+                                    },
                                     fontSize = 13.sp,
                                     color = ink.secondaryText,
                                 )
@@ -301,7 +313,7 @@ fun FocusShieldSettingsContent(
                             text = "Choose >",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = scheme.primary,
+                            color = KavachDesign.Primary,
                         )
                     }
 
@@ -317,7 +329,7 @@ fun FocusShieldSettingsContent(
                 exit = fadeOut(),
             ) {
                 Column {
-                    EkagraEyebrow("PERMISSIONS REQUIRED", ink.secondaryText)
+                    EkagraEyebrow("PERMISSIONS NEEDED", ink.secondaryText)
                     Spacer(Modifier.height(12.dp))
 
                     KavachPermissionDisclosureCard(
@@ -346,7 +358,7 @@ fun FocusShieldSettingsContent(
                 }
             },
             onSecondaryClick = onMaybeLater,
-            secondaryLabel = "Maybe Later",
+            secondaryLabel = "Not now",
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
@@ -379,6 +391,9 @@ fun FocusShieldSettingsContent(
             },
             onOpenSettings = {
                 guideTarget = null
+                if (target != PermissionTarget.NOTIFICATIONS) {
+                    awaitingPermission = target
+                }
                 when (target) {
                     PermissionTarget.USAGE_STATS ->
                         FocusShieldPermissionHelper.openUsageAccessSettings(context)
@@ -395,7 +410,8 @@ fun FocusShieldSettingsContent(
 }
 
 /**
- * 3-Way Mutually Exclusive Profile Selector cleanly presented with Flat Hairline rules.
+ * Mutually exclusive profile selector (Normal / Beast Mode) presented with Flat
+ * Hairline rules. A third "Always On" option is hidden for this release.
  */
 @Composable
 private fun KavachProfileSelector(
@@ -409,14 +425,14 @@ private fun KavachProfileSelector(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        EkagraEyebrow("PROTECTION PROFILE", ink.secondaryText)
+        EkagraEyebrow("CHOOSE HOW IT WORKS", ink.secondaryText)
         Spacer(Modifier.height(12.dp))
 
         // 1. Kavach Normal
         val isNormalSelected = isEnabled && (activeMode == AppUsageMode.FOCUSED || activeMode == AppUsageMode.STANDARD)
         ProfileOptionRow(
-            title = "Kavach Normal",
-            subtitle = "Timer-bound protection. Allows 5-minute Quick Unlocks for short intentional access during study sessions.",
+            title = "Normal",
+            subtitle = "Blocks apps when your study timer is on. You can open a blocked app for 5 minutes if you need to.",
             icon = Icons.Default.Shield,
             isSelected = isNormalSelected,
             ink = ink,
@@ -429,25 +445,15 @@ private fun KavachProfileSelector(
         val isBeastSelected = isEnabled && activeMode == AppUsageMode.BEAST
         ProfileOptionRow(
             title = "Beast Mode",
-            subtitle = "Timer-bound strict lockout. Quick Unlocks are completely disabled until your Ekagra timer finishes.",
+            subtitle = "Blocks apps when your study timer is on. You cannot open blocked apps until the timer ends.",
             icon = Icons.Default.FlashOn,
             isSelected = isBeastSelected,
             ink = ink,
             onClick = { onSelectProfile(AppUsageMode.BEAST) },
         )
 
-        EkagraHairline(ink.hairline)
-
-        // 3. Always On
-        val isAlwaysOnSelected = isEnabled && activeMode == AppUsageMode.ALWAYS_ON
-        ProfileOptionRow(
-            title = "Always On",
-            subtitle = "24/7 perpetual shield across your entire phone, inside and outside Ekagra timer sessions.",
-            icon = Icons.Default.Lock,
-            isSelected = isAlwaysOnSelected,
-            ink = ink,
-            onClick = { onSelectProfile(AppUsageMode.ALWAYS_ON) },
-        )
+        // "Always On" was a third option here. It is HIDDEN for this release —
+        // only Normal and Beast Mode are offered. See AppUsageMode.ALWAYS_ON.
 
         EkagraHairline(ink.hairline)
     }
@@ -463,7 +469,7 @@ private fun ProfileOptionRow(
     onClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val accent = scheme.primary
+    val accent = KavachDesign.Primary
 
     Row(
         modifier = Modifier

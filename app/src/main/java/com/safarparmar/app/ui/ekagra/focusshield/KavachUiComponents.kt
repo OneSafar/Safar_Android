@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -36,8 +37,6 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,7 +47,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -72,6 +70,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.studyplanner.components.GlassButton
 
 private val KavachIconTint @Composable get() = if (KavachDesign.isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
 private val KavachTitleColor @Composable get() = KavachDesign.TextMain
@@ -164,8 +163,8 @@ fun KavachIntroHeroCard(
             .heightIn(min = 120.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = scheme.primaryContainer.copy(alpha = 0.72f),
-            contentColor = scheme.onPrimaryContainer,
+            containerColor = KavachDesign.Primary.copy(alpha = 0.14f),
+            contentColor = KavachDesign.Primary,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
@@ -188,7 +187,7 @@ fun KavachIntroHeroCard(
                     modifier = Modifier
                         .size(52.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(scheme.primary),
+                        .background(KavachDesign.Primary),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -209,13 +208,13 @@ fun KavachIntroHeroCard(
                     fontSize = 18.sp,
                     lineHeight = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = scheme.onPrimaryContainer,
+                    color = KavachDesign.TextMain,
                 )
                 Text(
                     text = stringResource(R.string.kavach_intro_hero_subtitle),
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
-                    color = scheme.onPrimaryContainer.copy(alpha = 0.78f),
+                    color = KavachDesign.TextMuted,
                 )
             }
         }
@@ -292,13 +291,13 @@ private fun KavachFeatureCard(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(scheme.primary.copy(alpha = 0.10f)),
+                    .background(KavachDesign.Primary.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = scheme.primary,
+                    tint = KavachDesign.Primary,
                     modifier = Modifier.size(24.dp),
                 )
             }
@@ -357,13 +356,13 @@ fun KavachPermissionDisclosureCard(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(scheme.primary.copy(alpha = 0.12f)),
+                        .background(KavachDesign.Primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Default.Shield,
                         contentDescription = null,
-                        tint = scheme.primary,
+                        tint = KavachDesign.Primary,
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -478,21 +477,10 @@ private fun KavachPermissionStatusRow(
                 )
             }
         } else {
-            Button(
+            KavachStitchAllowButton(
+                text = if (required) "Allow" else "Optional",
                 onClick = onClick,
-                shape = RoundedCornerShape(999.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = 14.dp,
-                    vertical = 4.dp,
-                ),
-                modifier = Modifier.heightIn(min = 32.dp),
-            ) {
-                Text(
-                    text = if (required) "Allow" else "Optional",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+            )
         }
     }
 }
@@ -570,7 +558,7 @@ fun KavachBottomActions(
     onPrimaryClick: () -> Unit,
     onSecondaryClick: () -> Unit,
     modifier: Modifier = Modifier,
-    secondaryLabel: String = "Maybe Later",
+    secondaryLabel: String = "Not now",
     primaryEnabled: Boolean = true,
 ) {
     Column(
@@ -589,20 +577,10 @@ fun KavachBottomActions(
             onClick = onPrimaryClick,
             enabled = primaryEnabled,
         )
-        TextButton(
+        KavachStitchSecondaryButton(
+            text = secondaryLabel,
             onClick = onSecondaryClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp),
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            Text(
-                text = secondaryLabel,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = KavachDesign.HubTextMuted,
-            )
-        }
+        )
         }
     }
 }
@@ -958,41 +936,33 @@ fun KavachControlCenterContainer(
                     onClick = onGoToEkagra,
                     isDark = isDark,
                 ) {
-                    Button(
+                    GlassButton(
                         onClick = onGoToEkagra,
-                        colors = ButtonDefaults.buttonColors(containerColor = accent),
+                        accentColor = accent,
                         shape = RoundedCornerShape(16.dp),
+                        isDarkTheme = isDark,
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                     ) {
                         Text(
                             text = stringResource(R.string.kavach_go_to_ekagra_button),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
                         )
                     }
                 }
 
                 HorizontalDivider(color = KavachDesign.HubBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
 
-                KavachControlRow(
-                    iconRes = R.drawable.ic_shield_check,
-                    title = "Always On",
-                    subtitle = "Blocks selected apps outside Ekagra until you turn it off here.",
-                    onClick = { onAlwaysOnChange(!alwaysOn) },
-                    isDark = isDark,
-                ) {
-                    KavachSwitch(
-                        checked = alwaysOn,
-                        accent = accent,
-                        onCheckedChange = onAlwaysOnChange,
-                    )
-                }
-
-                HorizontalDivider(color = KavachDesign.HubBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
+                // An "Always On" toggle row lived here. It is HIDDEN for this
+                // release — only Normal and Beast Mode ship. The [alwaysOn] and
+                // [onAlwaysOnChange] parameters are kept so restoring it is a
+                // matter of putting this row back.
 
                 KavachControlRow(
                     iconRes = R.drawable.ic_shield_check,
                     title = "Notification Shield",
-                    subtitle = "Optional — dismiss notifications from blocked apps during a session.",
+                    subtitle = "Optional — hide notifications from blocked apps while you study.",
                     onClick = { if (!hasNotificationShield) onEnableNotificationShield() },
                     isDark = isDark,
                 ) {
@@ -1013,15 +983,18 @@ fun KavachControlCenterContainer(
                             )
                         }
                     } else {
-                        Button(
+                        GlassButton(
                             onClick = onEnableNotificationShield,
-                            colors = ButtonDefaults.buttonColors(containerColor = accent),
+                            accentColor = accent,
                             shape = RoundedCornerShape(16.dp),
+                            isDarkTheme = isDark,
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             Text(
                                 text = "Enable",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
                             )
                         }
                     }
@@ -1045,13 +1018,13 @@ private fun KavachSwitch(
         enabled = enabled,
         colors = SwitchDefaults.colors(
             checkedThumbColor = scheme.onPrimary,
-            checkedTrackColor = scheme.primary,
+            checkedTrackColor = KavachDesign.Primary,
             uncheckedThumbColor = scheme.outline,
             uncheckedTrackColor = scheme.surfaceVariant,
             uncheckedBorderColor = scheme.outlineVariant,
             disabledCheckedThumbColor = scheme.onPrimary.copy(alpha = 0.7f),
             disabledUncheckedThumbColor = scheme.onSurfaceVariant.copy(alpha = 0.45f),
-            disabledCheckedTrackColor = scheme.primary.copy(alpha = 0.36f),
+            disabledCheckedTrackColor = KavachDesign.Primary.copy(alpha = 0.36f),
             disabledUncheckedTrackColor = scheme.surfaceVariant.copy(alpha = 0.5f),
             disabledUncheckedBorderColor = scheme.outlineVariant.copy(alpha = 0.5f),
         ),
@@ -1204,7 +1177,7 @@ private fun KavachAboutSheetHeader(
             modifier = Modifier
                 .size(56.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(scheme.primary),
+                .background(KavachDesign.Primary),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -1258,7 +1231,7 @@ private fun KavachPrivacyGuaranteeCard(
             Icon(
                 painter = painterResource(R.drawable.ic_shield_check),
                 contentDescription = null,
-                tint = scheme.primary,
+                tint = KavachDesign.Primary,
                 modifier = Modifier.size(20.dp),
             )
             Text(
@@ -1358,7 +1331,7 @@ private fun KavachDevicePermissionCard(
 @Composable
 private fun KavachPermissionBadge(required: Boolean) {
     val scheme = MaterialTheme.colorScheme
-    val bg = if (required) scheme.primary else scheme.surfaceVariant
+    val bg = if (required) KavachDesign.Primary else scheme.surfaceVariant
     val fg = if (required) scheme.onPrimary else scheme.onSurfaceVariant
     val label = if (required) "REQUIRED" else "OPTIONAL"
     Text(

@@ -81,18 +81,18 @@ fun FocusShieldConsentDialog(
                         .background(
                             Brush.radialGradient(
                                 listOf(
-                                    scheme.primaryContainer,
-                                    scheme.primaryContainer.copy(alpha = 0.4f),
+                                    KavachDesign.Primary.copy(alpha = 0.35f),
+                                    KavachDesign.Primary.copy(alpha = 0.12f),
                                 )
                             )
                         )
-                        .border(1.dp, scheme.primaryContainer.copy(alpha = 0.6f), CircleShape),
+                        .border(1.dp, KavachDesign.Primary.copy(alpha = 0.45f), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Default.Shield,
                         contentDescription = null,
-                        tint = scheme.primary,
+                        tint = KavachDesign.Primary,
                         modifier = Modifier.size(36.dp),
                     )
                 }
@@ -150,7 +150,7 @@ fun FocusShieldConsentDialog(
                         .heightIn(min = 50.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = scheme.primary,
+                        containerColor = KavachDesign.Primary,
                         contentColor = scheme.onPrimary,
                     ),
                 ) {

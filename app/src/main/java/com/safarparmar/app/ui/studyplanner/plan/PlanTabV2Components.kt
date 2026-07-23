@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogTextAction
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -29,6 +33,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
@@ -112,6 +117,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import com.safarparmar.app.data.remote.api.UpdatePlanRequest
 import com.safarparmar.app.domain.model.studyplanner.PlanProgress
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
@@ -250,6 +256,8 @@ fun PlanSettingsSheet(
     onReset: () -> Unit,
     onDismiss: () -> Unit,
     onExamDateChanged: (String) -> Unit = {},
+    focusDailyGoal: Boolean = false,
+    focusExamDate: Boolean = false,
 ) {
     var title by remember(plan.id) { mutableStateOf(plan.title) }
     var examType by remember(plan.id) { mutableStateOf(plan.examType.orEmpty()) }
@@ -266,6 +274,15 @@ fun PlanSettingsSheet(
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val listState = rememberLazyListState()
+    val hasFieldFocus = focusDailyGoal || focusExamDate
+
+    LaunchedEffect(focusDailyGoal, focusExamDate) {
+        if (!hasFieldFocus) return@LaunchedEffect
+        delay(250)
+        // Header = 0, help = 1, exam = 2, study load = 3.
+        listState.animateScrollToItem(if (focusDailyGoal) 3 else 2)
+    }
 
     val scheme = MaterialTheme.colorScheme
 
@@ -276,6 +293,7 @@ fun PlanSettingsSheet(
         containerColor = PlannerFlatColors.BgCream,
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding(),
@@ -302,7 +320,40 @@ fun PlanSettingsSheet(
                     Column {
                         Text("Plan Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = PlannerFlatColors.TextDark)
                         Text(
-                            "Fine-tune your exam and study routine",
+                            if (focusDailyGoal) {
+                                "Increase Topics per day to make room for more topics."
+                            } else if (focusExamDate) {
+                                "Choose a new exam date to give your topics more time."
+                            } else {
+                                "Change your exam and daily study."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = PlannerFlatColors.TextMuted,
+                        )
+                    }
+                }
+            }
+            if (hasFieldFocus) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, PlannerFlatColors.PrimaryAccent.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                            .padding(14.dp),
+                    ) {
+                        Text(
+                            "What to do",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = PlannerFlatColors.TextDark,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            if (focusDailyGoal) {
+                                "Increase Topics per day below. Then tap Save and return. After that, tap Give dates again."
+                            } else {
+                                "Choose a new exam date below. Then tap Save and return."
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = PlannerFlatColors.TextMuted,
                         )
@@ -334,7 +385,12 @@ fun PlanSettingsSheet(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                         )
-                        PlannerExamDateField(examDateIso = examDate, onExamDateChange = { examDate = it })
+                        PulsingPlanField(active = focusExamDate) {
+                            PlannerExamDateField(
+                                examDateIso = examDate,
+                                onExamDateChange = { examDate = it },
+                            )
+                        }
                     }
                 }
             }
@@ -355,14 +411,16 @@ fun PlanSettingsSheet(
                             fontWeight = FontWeight.Bold,
                             color = scheme.onSurfaceVariant.copy(alpha = 0.7f),
                         )
-                        OutlinedTextField(
-                            value = dailyGoal,
-                            onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) },
-                            label = { Text("Topics per day") },
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
+                        PulsingPlanField(active = focusDailyGoal) {
+                            OutlinedTextField(
+                                value = dailyGoal,
+                                onValueChange = { dailyGoal = it.filter(Char::isDigit).take(2) },
+                                label = { Text("Topics per day") },
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                            )
+                        }
                         PlanRestDaysRow(
                             selected = offDays,
                             onToggle = { day ->
@@ -405,7 +463,10 @@ fun PlanSettingsSheet(
                     ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                 ) {
-                    Text("Save details", fontWeight = FontWeight.Bold)
+                    Text(
+                        if (hasFieldFocus) "Save and return" else "Save details",
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
             if (isPlanScheduled && onExport != null) {
@@ -426,6 +487,43 @@ fun PlanSettingsSheet(
     }
 }
 
+@Composable
+private fun PulsingPlanField(
+    active: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val pulse = remember { Animatable(0f) }
+
+    LaunchedEffect(active) {
+        pulse.snapTo(0f)
+        if (active) {
+            repeat(3) {
+                pulse.animateTo(1f, animationSpec = tween(280))
+                pulse.animateTo(0f, animationSpec = tween(280))
+            }
+        }
+    }
+
+    val highlight = pulse.value
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                val scale = 1f + (highlight * 0.025f)
+                scaleX = scale
+                scaleY = scale
+            }
+            .border(
+                width = if (active) 2.dp else 0.dp,
+                color = PlannerFlatColors.PrimaryAccent.copy(alpha = highlight),
+                shape = RoundedCornerShape(17.dp),
+            )
+            .padding(if (active) 3.dp else 0.dp),
+    ) {
+        content()
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReplaceTopicSheet(
@@ -442,6 +540,7 @@ fun ReplaceTopicSheet(
     var selectedSubjectKey by remember(currentRef?.topic?.id) { mutableStateOf<String?>(null) }
     var selectedChapterKey by remember(currentRef?.topic?.id) { mutableStateOf<String?>(null) }
     var searchQuery by remember(currentRef?.topic?.id) { mutableStateOf("") }
+    var scheduledTopicToMove by remember(currentRef?.topic?.id) { mutableStateOf<TopicRef?>(null) }
 
     // Available replacement candidates: TODO topics not scheduled for today, excluding the current topic
     val candidates = remember(allRefs, today, currentRef?.topic?.id) {
@@ -487,6 +586,10 @@ fun ReplaceTopicSheet(
 
     fun chooseReplacement(ref: TopicRef) {
         if (currentRef == null) {
+            if (!ref.topic.plannedDate.isNullOrBlank()) {
+                scheduledTopicToMove = ref
+                return
+            }
             onPull?.invoke(ref.topic.id)
             onDismiss()
             return
@@ -639,32 +742,34 @@ fun ReplaceTopicSheet(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = if (currentRef == null) "Pull topic to today" else "Choose topic to swap",
+                    text = if (currentRef == null) "Choose a topic for today" else "Choose a topic to replace",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
                     color = scheme.onSurface,
                 )
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    color = scheme.surfaceContainerHigh,
-                    tonalElevation = 1.dp,
-                ) {
-                    Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            "Replacing",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = scheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            currentRef?.topic?.name.orEmpty(),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = scheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                if (currentRef != null) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.large,
+                        color = scheme.surfaceContainerHigh,
+                        tonalElevation = 1.dp,
+                    ) {
+                        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                "Replacing",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = scheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                currentRef.topic.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = scheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }
@@ -697,7 +802,11 @@ fun ReplaceTopicSheet(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "No available topics to swap",
+                        text = if (currentRef == null) {
+                            "No topics are available to add today"
+                        } else {
+                            "No topics are available to replace this one"
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = scheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -807,16 +916,18 @@ fun ReplaceTopicSheet(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = if (hasDate) Color(0xFFF59E0B).copy(alpha = if (isDark) 0.28f else 0.16f) else scheme.primaryContainer,
-                                    contentColor = if (hasDate) Color(0xFF92400E) else scheme.onPrimaryContainer,
-                                ) {
-                                    Icon(
-                                        imageVector = if (hasDate) Icons.Default.CalendarMonth else Icons.Default.SwapHoriz,
-                                        contentDescription = null,
-                                        modifier = Modifier.padding(8.dp).size(18.dp),
-                                    )
+                                if (currentRef != null) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (hasDate) Color(0xFFF59E0B).copy(alpha = if (isDark) 0.28f else 0.16f) else scheme.primaryContainer,
+                                        contentColor = if (hasDate) Color(0xFF92400E) else scheme.onPrimaryContainer,
+                                    ) {
+                                        Icon(
+                                            imageVector = if (hasDate) Icons.Default.CalendarMonth else Icons.Default.SwapHoriz,
+                                            contentDescription = null,
+                                            modifier = Modifier.padding(8.dp).size(18.dp),
+                                        )
+                                    }
                                 }
                                 Column(
                                     modifier = Modifier.weight(1f).widthIn(min = 0.dp),
@@ -831,18 +942,27 @@ fun ReplaceTopicSheet(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     Text(
-                                        text = if (hasDate) "Scheduled ${readableDate(ref.topic.plannedDate)}" else "Not Assigned topic",
+                                        text = if (hasDate) {
+                                            "Planned for ${readableDate(ref.topic.plannedDate)}"
+                                        } else {
+                                            "No date yet"
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = scheme.onSurfaceVariant,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
-                                Icon(
-                                    imageVector = if (currentRef == null) Icons.Default.Add else Icons.Default.SwapHoriz,
-                                    contentDescription = if (currentRef == null) "Pull" else if (hasDate) "Swap dates" else "Replace",
-                                    tint = scheme.primary,
-                                    modifier = Modifier.size(22.dp),
+                                Text(
+                                    text = if (currentRef == null) {
+                                        if (hasDate) "Move to today" else "Add to today"
+                                    } else {
+                                        if (hasDate) "Swap" else "Replace"
+                                    },
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.primary,
+                                    maxLines = 1,
                                 )
                             }
                         }
@@ -850,6 +970,29 @@ fun ReplaceTopicSheet(
                 }
             }
         }
+    }
+
+    scheduledTopicToMove?.let { ref ->
+        PlannerDialog(
+            onDismissRequest = { scheduledTopicToMove = null },
+            title = "Move this topic to today?",
+            text = {
+                PlannerDialogText(
+                    "\"${ref.topic.name}\" is planned for ${readableDate(ref.topic.plannedDate)}. " +
+                        "Its old date will be replaced with today."
+                )
+            },
+            dismissButton = {
+                PlannerDialogTextAction("Not now") { scheduledTopicToMove = null }
+            },
+            confirmButton = {
+                PlannerDialogAction(text = "Move to today") {
+                    scheduledTopicToMove = null
+                    onPull?.invoke(ref.topic.id)
+                    onDismiss()
+                }
+            },
+        )
     }
 }
 

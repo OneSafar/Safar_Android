@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -32,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -110,7 +112,9 @@ fun SyllabusSubjectsScreen(
     // after leaving and reopening the sheet.
     var openTopicsChapterId by rememberSaveable { mutableStateOf<String?>(null) }
     var topicForDatePicker by remember { mutableStateOf<StudyTopic?>(null) }
-    var showReorderBuildInfo by rememberSaveable { mutableStateOf(false) }
+    var showChangePlan by rememberSaveable { mutableStateOf(false) }
+    var showNewDatesConfirm by rememberSaveable { mutableStateOf(false) }
+    var showChangeHelp by rememberSaveable { mutableStateOf(false) }
     var showPlanSettings by rememberSaveable { mutableStateOf(false) }
 
     BackHandler {
@@ -530,10 +534,12 @@ fun SyllabusSubjectsScreen(
                                     topicCount = totalTopics,
                                     daysUntilExam = examDays,
                                     notStartedChapters = notStartedChapters,
-                                    buildEnabled = localSubjects.isNotEmpty() && !state.mutating,
-                                    onBuild = buildSchedule,
                                     onExamDateClick = { showPlanSettings = true },
-                                    onOverflowClick = { showReorderBuildInfo = true },
+                                )
+                                Spacer(Modifier.height(14.dp))
+                                SyllabusChangePlanBand(
+                                    enabled = !state.mutating,
+                                    onClick = { showChangePlan = true },
                                 )
                                 Spacer(Modifier.height(10.dp))
                                 if (state.pendingRatingChapterIds.isNotEmpty() && !state.ratingRebuildPromptDismissed) {
@@ -552,7 +558,7 @@ fun SyllabusSubjectsScreen(
                                         nudge = nudge,
                                         onClick = {
                                             if (nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE) {
-                                                buildSchedule()
+                                                showChangePlan = true
                                             } else {
                                                 val targetSubject = localSubjects.firstOrNull { it.id == nudge.subjectId }
                                                 val targetChapter = targetSubject?.chapters?.firstOrNull { it.id == nudge.chapterId }
@@ -569,7 +575,7 @@ fun SyllabusSubjectsScreen(
                                     onSearchChange = { searchQuery = it },
                                 )
                                 SyllabusMagazineListHeader(
-                                    title = if (isTemplatePlan) "Syllabus" else "Your syllabus",
+                                    title = "Your subjects",
                                     onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
                                     modifier = Modifier.padding(top = 14.dp, bottom = 6.dp),
                                 )
@@ -794,17 +800,62 @@ fun SyllabusSubjectsScreen(
         SyllabusDialogState.Closed -> {}
     }
 
-    if (showReorderBuildInfo) {
+    if (showChangePlan) {
+        SyllabusChangePlanSheet(
+            canMakeDates = localSubjects.isNotEmpty() && !state.mutating,
+            onAddSubject = {
+                showChangePlan = false
+                dialogState = SyllabusDialogState.AddSubject
+            },
+            onChangeDetails = {
+                showChangePlan = false
+                showPlanSettings = true
+            },
+            onChangeOrderOrSize = {
+                showChangePlan = false
+                showChangeHelp = true
+            },
+            onMakeNewDates = {
+                showChangePlan = false
+                showNewDatesConfirm = true
+            },
+            onDismiss = { showChangePlan = false },
+        )
+    }
+
+    if (showNewDatesConfirm) {
         PlannerDialog(
-            onDismissRequest = { showReorderBuildInfo = false },
-            title = "Build re-ordered syllabus",
+            onDismissRequest = { showNewDatesConfirm = false },
+            title = "Make new study dates?",
             text = {
                 PlannerDialogText(
-                    "This rebuilds your study plan in the subject, chapter, and topic order you chose."
+                    "This will give new dates to your unfinished topics. Today's work will stay the same."
+                )
+            },
+            dismissButton = {
+                PlannerDialogTextAction("Not now") { showNewDatesConfirm = false }
+            },
+            confirmButton = {
+                PlannerDialogAction(text = "Make new dates") {
+                    showNewDatesConfirm = false
+                    buildSchedule()
+                }
+            },
+        )
+    }
+
+    if (showChangeHelp) {
+        PlannerDialog(
+            onDismissRequest = { showChangeHelp = false },
+            title = "Change order or topic size",
+            text = {
+                PlannerDialogText(
+                    "To change order, press and hold a subject, chapter, or topic, then move it. " +
+                        "To change topic size, open a subject and choose Easy, Normal, or Tough for a chapter."
                 )
             },
             confirmButton = {
-                PlannerDialogAction(text = "Got it") { showReorderBuildInfo = false }
+                PlannerDialogAction(text = "Got it") { showChangeHelp = false }
             },
         )
     }
@@ -820,7 +871,115 @@ fun SyllabusSubjectsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SyllabusChangePlanSheet(
+    canMakeDates: Boolean,
+    onAddSubject: () -> Unit,
+    onChangeDetails: () -> Unit,
+    onChangeOrderOrSize: () -> Unit,
+    onMakeNewDates: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft) },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = 24.dp, end = 24.dp, bottom = 28.dp),
+        ) {
+            Text(
+                text = "What do you want to change?",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = PlannerFlatColors.TextDark,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "Choose one option. Your plan will not change until you save it.",
+                fontSize = 12.5.sp,
+                color = PlannerFlatColors.TextMuted,
+            )
+            Spacer(Modifier.height(18.dp))
+            PlanHairline()
+            SyllabusChangePlanRow(
+                title = "Add a subject",
+                description = "Add something missing from your syllabus.",
+                onClick = onAddSubject,
+            )
+            PlanHairline()
+            SyllabusChangePlanRow(
+                title = "Change plan details",
+                description = "Change exam date, daily study, or rest days.",
+                onClick = onChangeDetails,
+            )
+            PlanHairline()
+            SyllabusChangePlanRow(
+                title = "Change order or topic size",
+                description = "See how to move topics or mark work as easy or tough.",
+                onClick = onChangeOrderOrSize,
+            )
+            PlanHairline()
+            SyllabusChangePlanRow(
+                title = "Make new study dates",
+                description = "Give new dates using your latest changes.",
+                enabled = canMakeDates,
+                onClick = onMakeNewDates,
+            )
+            PlanHairline()
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) {
+                Text("Not now", fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
+            }
+        }
+    }
+}
 
+@Composable
+private fun SyllabusChangePlanRow(
+    title: String,
+    description: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 68.dp)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (enabled) PlannerFlatColors.TextDark else PlannerFlatColors.TextMuted,
+            )
+            Spacer(Modifier.height(3.dp))
+            Text(
+                text = description,
+                fontSize = 11.5.sp,
+                color = PlannerFlatColors.TextMuted,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.BorderSoft,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
 
 
 

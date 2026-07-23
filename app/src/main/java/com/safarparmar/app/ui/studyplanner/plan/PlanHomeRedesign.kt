@@ -639,7 +639,7 @@ internal fun PlanHomeAddActions(
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text(
-            text = "+ Add from syllabus",
+            text = "+ Add a topic for today",
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.PrimaryAccent,

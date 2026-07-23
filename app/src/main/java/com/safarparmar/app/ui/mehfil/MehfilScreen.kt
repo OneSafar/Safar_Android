@@ -222,7 +222,7 @@ fun MehfilScreen(
         dataStore = viewModel.dataStore,
         steps = mehfilTourSteps,
         section = "mehfil",
-        askOnFirstVisit = true,
+        askOnFirstVisit = false,
         onTourStateReady = { tourState = it },
     )
 }

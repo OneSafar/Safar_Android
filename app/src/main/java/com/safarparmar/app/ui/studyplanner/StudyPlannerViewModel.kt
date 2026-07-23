@@ -676,6 +676,10 @@ class StudyPlannerViewModel @Inject constructor(
 
     override fun renameSubject(subjectId: String, name: String) = mutateSelected { planId -> repo.renameSubject(planId, subjectId, SubjectRequest(name = name)) }
     override fun deleteSubject(subjectId: String) = mutateSelected(
+        // Removing a subject drops all its topics, so the calendar and analytics
+        // must be refetched or Progress keeps counting the deleted work.
+        refreshCalendar = true,
+        refreshAnalytics = true,
         successMessage = "Subject deleted",
         undoLabel = "Subject deletion",
     ) { planId -> repo.deleteSubject(planId, subjectId) }
@@ -795,6 +799,10 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
     override fun deleteChapter(subjectId: String, chapterId: String) = mutateSelected(
+        // Same as deleteSubject: the removed chapter's topics must leave the
+        // calendar/analytics too, or Progress shows stale counts.
+        refreshCalendar = true,
+        refreshAnalytics = true,
         successMessage = "Chapter deleted",
         undoLabel = "Chapter deletion",
     ) { planId -> repo.deleteChapter(planId, subjectId, chapterId) }
@@ -1123,7 +1131,11 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    override fun rescheduleMissedTopics(topicIds: List<String>) {
+    override fun rescheduleMissedTopics(
+        topicIds: List<String>,
+        fitAll: Boolean,
+        onResult: (TopicSchedulingResult) -> Unit,
+    ) {
         if (topicIds.isEmpty()) return
         val state = _uiState.value
         val planId = state.selectedPlan?.id ?: return
@@ -1146,7 +1158,7 @@ class StudyPlannerViewModel @Inject constructor(
                     includeRevisionNeeded = false,
                     // Null = the server's honest default: respect the daily goal and
                     // report anything that still doesn't fit.
-                    overloadMode = null,
+                    overloadMode = if (fitAll) "flex" else null,
                     strategy = state.preferredStudyStrategy,
                 ),
             )
@@ -1155,10 +1167,10 @@ class StudyPlannerViewModel @Inject constructor(
                     val moved = result.data.assigned
                     val skipped = result.data.skipped
                     val message = when {
-                        moved == 0 -> "There was no free day left before your exam."
-                        skipped == 0 && moved == 1 -> "Done — 1 topic moved to a free day."
-                        skipped == 0 -> "Done — $moved topics moved to your free days."
-                        else -> "$moved moved. $skipped still don't fit before your exam."
+                        moved == 0 -> "Your study days are already full until the exam."
+                        skipped == 0 && moved == 1 -> "Done — 1 topic now has a date."
+                        skipped == 0 -> "Done — $moved topics now have dates."
+                        else -> "$moved added. $skipped still need more time."
                     }
                     _uiState.update {
                         it.copy(
@@ -1170,8 +1182,18 @@ class StudyPlannerViewModel @Inject constructor(
                     reloadSelected()
                     refreshCalendar(planId)
                     refreshAnalytics(planId)
+                    onResult(TopicSchedulingResult(added = moved, notAdded = skipped))
                 }
-                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = result.message) }
+                is Resource.Error -> {
+                    _uiState.update { it.copy(mutating = false, error = result.message) }
+                    onResult(
+                        TopicSchedulingResult(
+                            added = 0,
+                            notAdded = topicIds.size,
+                            failed = true,
+                        ),
+                    )
+                }
                 is Resource.Loading -> Unit
             }
         }
