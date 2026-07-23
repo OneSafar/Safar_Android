@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
@@ -61,11 +63,17 @@ import com.safarparmar.app.domain.model.studyplanner.StudySubject
 import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.domain.model.studyplanner.effectiveSize
+import com.safarparmar.app.domain.model.studyplanner.progressPercentValue
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.TopicEffortBars
 import com.safarparmar.app.domain.model.studyplanner.TopicSize
-import com.safarparmar.app.ui.studyplanner.logic.percentDone
+import com.safarparmar.app.ui.studyplanner.logic.NodeProgress
+import com.safarparmar.app.ui.studyplanner.logic.NodeState
+import com.safarparmar.app.ui.studyplanner.logic.CourseMapNudge
+import com.safarparmar.app.ui.studyplanner.logic.CourseMapNudgeKind
+import com.safarparmar.app.ui.studyplanner.logic.progressState
 import com.safarparmar.app.ui.studyplanner.logic.readableDate
+import com.safarparmar.app.ui.studyplanner.logic.todayKey
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
@@ -93,6 +101,11 @@ internal fun SyllabusMagazineHeader(
     subjectCount: Int,
     chapterCount: Int,
     topicCount: Int,
+    daysUntilExam: Int?,
+    notStartedChapters: Int,
+    buildEnabled: Boolean,
+    onBuild: () -> Unit,
+    onExamDateClick: () -> Unit,
     onOverflowClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -104,28 +117,60 @@ internal fun SyllabusMagazineHeader(
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 40.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             PlanEyebrow("Syllabus", modifier = Modifier.weight(1f))
+            Row(
+                modifier = Modifier
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable(enabled = buildEnabled, onClick = onBuild)
+                    .padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Build",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (buildEnabled) accent else PlannerFlatColors.TextMuted,
+                    maxLines = 1,
+                )
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Build schedule",
+                    tint = if (buildEnabled) accent else PlannerFlatColors.TextMuted,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+            Spacer(Modifier.width(2.dp))
             Box(
                 modifier = Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
+                    .size(40.dp)
                     .clickable(onClick = onOverflowClick),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Syllabus options",
-                    tint = PlannerFlatColors.TextMuted,
-                    modifier = Modifier.size(16.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Syllabus options",
+                        tint = PlannerFlatColors.TextMuted,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(8.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -152,7 +197,29 @@ internal fun SyllabusMagazineHeader(
             )
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(4.dp))
+
+        val timeContext = when {
+            daysUntilExam == null -> "Set your exam date"
+            daysUntilExam < 0 -> "Exam date passed"
+            daysUntilExam == 0 -> "Exam today"
+            daysUntilExam == 1 -> "1 day left"
+            else -> "$daysUntilExam days left"
+        }
+        val chapterContext = when (notStartedChapters) {
+            0 -> "every chapter started"
+            1 -> "1 chapter not started"
+            else -> "$notStartedChapters chapters not started"
+        }
+        Text(
+            text = if (daysUntilExam == null) timeContext else "$timeContext · $chapterContext",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (daysUntilExam == null) accent else PlannerFlatColors.TextDark,
+            modifier = if (daysUntilExam == null) Modifier.clickable(onClick = onExamDateClick) else Modifier,
+        )
+
+        Spacer(Modifier.height(8.dp))
 
         // Thin completion rule — the progress bar without a card around it.
         Box(
@@ -171,7 +238,7 @@ internal fun SyllabusMagazineHeader(
             )
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(6.dp))
 
         Text(
             text = "$subjectCount subjects · $chapterCount chapters · $topicCount topics",
@@ -183,16 +250,51 @@ internal fun SyllabusMagazineHeader(
     }
 }
 
+@Composable
+private fun SyllabusNodeProgressRule(
+    progress: NodeProgress,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(2.dp)
+    val base = modifier
+        .widthIn(max = 180.dp)
+        .fillMaxWidth()
+        .height(3.dp)
+        .clip(shape)
+    Box(
+        base.then(
+            if (progress.state == NodeState.NOT_STARTED) {
+                Modifier.border(1.dp, PlannerFlatColors.BorderSoft, shape)
+            } else {
+                Modifier.background(PlannerFlatColors.BorderSoft)
+            },
+        ),
+    ) {
+        if (progress.state != NodeState.NOT_STARTED) {
+            val fill = if (progress.state == NodeState.FINISHED) 1f else progress.percent / 100f
+            Box(
+                Modifier
+                    .fillMaxWidth(fill.coerceIn(0f, 1f))
+                    .height(3.dp)
+                    .background(PlannerFlatColors.PrimaryAccent),
+            )
+        }
+    }
+}
+
+private fun NodeProgress.stateLabel(): String = when (state) {
+    NodeState.NOT_STARTED -> "Not started"
+    NodeState.DOING -> "Doing now · ${finishedTopics + startedTopics} of $totalTopics"
+    NodeState.FINISHED -> "Finished"
+}
+
 /**
- * Slim borderless toolbar: inline search on the left, "Build" on the right,
- * bounded by hairlines instead of a boxed text field plus a filled button.
+ * Slim borderless search row bounded by hairlines instead of a boxed field.
  */
 @Composable
 internal fun SyllabusMagazineToolbar(
     searchQuery: String,
     onSearchChange: (String) -> Unit,
-    onBuild: () -> Unit,
-    buildEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val accent = PlannerFlatColors.PrimaryAccent
@@ -201,7 +303,7 @@ internal fun SyllabusMagazineToolbar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 18.dp),
+                .heightIn(min = 46.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -248,31 +350,121 @@ internal fun SyllabusMagazineToolbar(
                     )
                 }
             }
-            Spacer(Modifier.width(12.dp))
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .clickable(enabled = buildEnabled, onClick = onBuild)
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Build",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (buildEnabled) accent else PlannerFlatColors.TextMuted,
-                    maxLines = 1,
-                )
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Build re-ordered syllabus",
-                    tint = if (buildEnabled) accent else PlannerFlatColors.TextMuted,
-                    modifier = Modifier.size(14.dp),
-                )
-            }
         }
         PlanHairline()
+    }
+}
+
+@Composable
+internal fun SyllabusRatingRebuildBar(
+    hasExamDate: Boolean,
+    rebuilding: Boolean,
+    onRebuild: () -> Unit,
+    onSetExamDate: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(8.dp))
+            .padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (hasExamDate) {
+                "Ratings changed. Today's topics stay where they are."
+            } else {
+                "Ratings changed. Set an exam date to rebuild."
+            },
+            fontSize = 11.5.sp,
+            color = PlannerFlatColors.TextDark,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = if (hasExamDate) "Rebuild schedule" else "Set exam date",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = PlannerFlatColors.PrimaryAccent,
+            modifier = Modifier.clickable(
+                enabled = !rebuilding,
+                onClick = if (hasExamDate) onRebuild else onSetExamDate,
+            ),
+        )
+        Box(
+            modifier = Modifier.size(28.dp).clip(CircleShape).clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = PlannerFlatColors.TextMuted, modifier = Modifier.size(14.dp))
+        }
+    }
+}
+
+@Composable
+internal fun SyllabusCourseMapNudge(
+    nudge: CourseMapNudge,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val lead = when (nudge.kind) {
+        CourseMapNudgeKind.LATE -> "Study first: "
+        CourseMapNudgeKind.TODAY -> "Today's focus: "
+        CourseMapNudgeKind.TODAY_FINISHED -> "Today's work is finished ✓"
+        CourseMapNudgeKind.NEEDS_SCHEDULE -> "Build your schedule to see what to study next"
+        CourseMapNudgeKind.ON_TRACK -> "You're on track · No late topics"
+    }
+    val actionable = nudge.kind == CourseMapNudgeKind.LATE ||
+        nudge.kind == CourseMapNudgeKind.TODAY ||
+        nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = actionable, onClick = onClick)
+            .padding(vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (nudge.chapterName != null) {
+            Text(lead, fontSize = 11.5.sp, color = PlannerFlatColors.TextMuted)
+            Text(
+                nudge.chapterName,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = PlannerFlatColors.TextDark,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            val detail = when (nudge.kind) {
+                CourseMapNudgeKind.LATE -> if (nudge.topicCount == 1) "1 topic late" else "${nudge.topicCount} topics late"
+                else -> if (nudge.topicCount == 1) "1 topic left" else "${nudge.topicCount} topics left"
+            }
+            Text(
+                text = " · $detail",
+                fontSize = 11.sp,
+                color = if (nudge.kind == CourseMapNudgeKind.LATE) Color(0xFFF97316) else PlannerFlatColors.TextMuted,
+            )
+        } else {
+            Text(
+                text = lead,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE) {
+                    PlannerFlatColors.PrimaryAccent
+                } else {
+                    PlannerFlatColors.TextDark
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (actionable) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = PlannerFlatColors.BorderSoft,
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }
 
@@ -331,7 +523,7 @@ internal fun SyllabusMagazineSubjectRow(
     modifier: Modifier = Modifier,
 ) {
     val accent = PlannerFlatColors.PrimaryAccent
-    val percent = subject.percentDone()
+    val progress = subject.progressState()
     val chapterCount = subject.chapters.size
     val topicCount = subject.chapters.sumOf { it.topics.size }
 
@@ -428,25 +620,15 @@ internal fun SyllabusMagazineSubjectRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            Spacer(Modifier.height(3.dp))
+            Text(
+                text = "${progress.stateLabel()} · ${progress.percent}%",
+                fontSize = 10.5.sp,
+                color = PlannerFlatColors.TextMuted,
+                maxLines = 1,
+            )
             Spacer(Modifier.height(8.dp))
-            // Inline progress — deliberately muted, so the gold accent stays
-            // reserved for the page-level completion figure.
-            Box(
-                Modifier
-                    .widthIn(max = 180.dp)
-                    .fillMaxWidth()
-                    .height(2.5.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(PlannerFlatColors.BorderSoft),
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxWidth((percent / 100f).coerceIn(0f, 1f))
-                        .height(2.5.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(PlannerFlatColors.TextMuted),
-                )
-            }
+            SyllabusNodeProgressRule(progress)
         }
 
         Spacer(Modifier.width(8.dp))
@@ -629,9 +811,7 @@ internal fun SyllabusMagazineChapterRow(
     onDragEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val percent = chapter.percentDone()
-    val topicCount = chapter.topics.size
-
+    val progress = chapter.progressState()
     var showMenu by remember { mutableStateOf(false) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
@@ -704,28 +884,13 @@ internal fun SyllabusMagazineChapterRow(
                 )
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    text = "$topicCount topics · $percent%",
+                    text = "${progress.stateLabel()} · ${progress.percent}%",
                     fontSize = 11.sp,
                     color = PlannerFlatColors.TextMuted,
                     maxLines = 1,
                 )
                 Spacer(Modifier.height(8.dp))
-                Box(
-                    Modifier
-                        .widthIn(max = 180.dp)
-                        .fillMaxWidth()
-                        .height(2.5.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(PlannerFlatColors.BorderSoft),
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth((percent / 100f).coerceIn(0f, 1f))
-                            .height(2.5.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(PlannerFlatColors.TextMuted),
-                    )
-                }
+                SyllabusNodeProgressRule(progress)
             }
 
             Spacer(Modifier.width(8.dp))
@@ -804,6 +969,7 @@ internal fun SyllabusMagazineTopicRow(
     val hasDate = !topic.plannedDate.isNullOrBlank()
     val effective = topic.effectiveSize(chapter)
     val showSize = topic.size != null || chapter?.difficulty != null
+    val plannedToday = topic.plannedDate?.take(10) == todayKey()
 
     var showMenu by remember { mutableStateOf(false) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
@@ -906,26 +1072,36 @@ internal fun SyllabusMagazineTopicRow(
                 }
             }
             Spacer(Modifier.height(3.dp))
-            if (hasDate) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = readableDate(topic.plannedDate),
+                    text = if (hasDate) readableDate(topic.plannedDate) else "Not planned",
                     fontSize = 11.sp,
                     color = if (needsRevision) Color(0xFFF97316) else PlannerFlatColors.TextMuted,
                     maxLines = 1,
-                )
-            } else {
-                Text(
-                    text = "Not planned · Add to today",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accent,
-                    maxLines = 1,
-                    modifier = Modifier.clickable(onClick = onAssignToday),
                 )
             }
         }
 
         Spacer(Modifier.width(6.dp))
+
+        if (!done && !plannedToday) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(7.dp))
+                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(7.dp))
+                    .clickable(onClick = onAssignToday)
+                    .padding(horizontal = 8.dp, vertical = 5.dp),
+            ) {
+                Text(
+                    text = "Study today",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accent,
+                    maxLines = 1,
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+        }
 
         Box {
             Box(

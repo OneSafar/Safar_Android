@@ -56,7 +56,7 @@ class PlannerAlertsWorker(
                 var notified = false
                 val allTopics = plan.subjects.flatMap { it.chapters }.flatMap { it.topics }
 
-                // 1. Overdue Tasks
+                // 1. Missed topics
                 val overdueTopics = allTopics.filter { topic ->
                     val plannedDateStr = topic.plannedDate
                     if (plannedDateStr != null && topic.status != TopicStatus.DONE) {
@@ -71,8 +71,8 @@ class PlannerAlertsWorker(
                     val dedupeKey = PlannerAlertDedupe.overdueKey(plan.id, today)
                     if (!dataStore.hasPlannerAlertDedupeKey(dedupeKey)) {
                         notificationManager.showStudyReminder(
-                            title = "Overdue Tasks: ${plan.title}",
-                            body = "You have ${overdueTopics.size} tasks that need your attention.",
+                            title = "Missed topics: ${plan.title}",
+                            body = "You missed ${overdueTopics.size} ${if (overdueTopics.size == 1) "topic" else "topics"}. Tap to fit them back in.",
                             deepLink = "safar://studyplanner",
                             dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
                         )

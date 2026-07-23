@@ -265,7 +265,7 @@ private fun planHomeCountdownCaption(days: Long?): String = when {
  * Four counts in a row, separated by vertical hairlines rather than boxed in.
  *
  * Each count is a real entry point, not just a readout: Today/Done switch the
- * tab below, Overdue opens the missed-topics list and Upcoming jumps to the
+ * tab below, Missed opens the missed-topics list and Upcoming jumps to the
  * Calendar. A stat with nothing behind it (count of 0) stays inert so the user
  * never taps into an empty screen.
  */
@@ -291,7 +291,7 @@ internal fun PlanHomeStatStrip(
     )
     val stats = listOf(
         Stat(todayCount, "TODAY", accent, onTodayClick),
-        Stat(overdueCount, "OVERDUE", if (overdueCount > 0) Color(0xFFEF4444) else ink, onOverdueClick),
+        Stat(overdueCount, "MISSED", if (overdueCount > 0) Color(0xFFEF4444) else ink, onOverdueClick),
         Stat(upcomingCount, "UPCOMING", ink, onUpcomingClick),
         Stat(completedCount, "DONE", ink, onDoneClick),
     )
@@ -507,8 +507,6 @@ internal fun PlanHomeTaskRow(
     onRemoveFromToday: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onFocus: (() -> Unit)? = null,
-    /** Saves a partial completion (0–99). Long-press the row, then drag sideways. */
-    onSetProgress: ((Int) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val done = ref.topic.status == TopicStatus.DONE
@@ -518,73 +516,14 @@ internal fun PlanHomeTaskRow(
         needsRevision -> Color(0xFFF97316)
         else -> subjectDotColor(ref.subject.color)
     }
-    val accent = PlannerFlatColors.PrimaryAccent
 
     var showMenu by remember { mutableStateOf(false) }
     val hasMenu = onEdit != null || onReplace != null ||
         (onRemoveFromToday != null && !done) || (onFocus != null && !done)
 
-    // Drag-to-fill partial completion. Long-press arms it so it never steals the
-    // list's vertical scroll; a horizontal drag then fills the row. Rendered as a
-    // flat wash via drawBehind (no box, no border) to stay in the hairline design.
-    val savedProgress = ref.topic.progressPercentValue()
-    var rowWidthPx by remember { mutableIntStateOf(0) }
-    var fillArmed by remember { mutableStateOf(false) }
-    var dragFillPercent by remember(ref.topic.id, savedProgress) {
-        mutableFloatStateOf(savedProgress.toFloat())
-    }
-    val haptic = LocalHapticFeedback.current
-    val shownPercent = if (fillArmed) dragFillPercent else savedProgress.toFloat()
-    val canFill = onSetProgress != null && !done
-
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .onGloballyPositioned { rowWidthPx = it.size.width }
-            .then(
-                if (canFill) {
-                    Modifier.pointerInput(ref.topic.id) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = {
-                                fillArmed = true
-                                dragFillPercent = savedProgress.toFloat()
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            },
-                            onDragEnd = {
-                                fillArmed = false
-                                // Snap to 5% steps. Reaching 100% goes through the
-                                // normal completion flow so the Done vs To-Revise
-                                // prompt (and revision scheduling) still runs.
-                                val snapped = ((dragFillPercent / 5f).roundToInt() * 5).coerceIn(0, 100)
-                                if (snapped >= 100) {
-                                    onDoneChange(true)
-                                } else if (snapped != savedProgress) {
-                                    onSetProgress?.invoke(snapped)
-                                }
-                            },
-                            onDragCancel = { fillArmed = false },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                if (rowWidthPx > 0) {
-                                    dragFillPercent =
-                                        (dragFillPercent + dragAmount.x / rowWidthPx * 100f)
-                                            .coerceIn(0f, 100f)
-                                }
-                            },
-                        )
-                    }
-                } else {
-                    Modifier
-                },
-            )
-            .drawBehind {
-                if (!done && shownPercent > 0f) {
-                    drawRect(
-                        color = dotColor.copy(alpha = if (fillArmed) 0.12f else 0.07f),
-                        size = Size(size.width * (shownPercent / 100f), size.height),
-                    )
-                }
-            }
             .padding(vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -634,17 +573,6 @@ internal fun PlanHomeTaskRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (!done && (fillArmed || savedProgress in 1..99)) {
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = "${shownPercent.roundToInt()}% done" +
-                        if (fillArmed) " · release to save" else "",
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accent,
-                    maxLines = 1,
-                )
-            }
         }
         if (needsRevision) {
             Spacer(Modifier.width(8.dp))

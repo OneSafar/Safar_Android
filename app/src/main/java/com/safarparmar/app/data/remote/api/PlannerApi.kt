@@ -288,6 +288,10 @@ data class AutoDistributeRequest(
     val prioritySubjectNames: List<String>? = null,
     /** "sequential" | "balanced" — ordering within the priority phase. */
     val priorityOrderMode: String? = null,
+    /** Restricts the run to these topics; everything else keeps its dates.
+     *  Used by "Move all to my free days" so recovering missed work never
+     *  disturbs the topics the student hasn't reached yet. */
+    val onlyTopicIds: List<String>? = null,
 )
 
 data class ReorderSyllabusRequest(

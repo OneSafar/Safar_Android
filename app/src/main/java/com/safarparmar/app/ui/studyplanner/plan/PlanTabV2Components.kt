@@ -246,7 +246,7 @@ fun PlanSectionHeader(
 fun PlanSettingsSheet(
     plan: StudyPlan,
     actions: PlannerActions,
-    onExport: () -> Unit,
+    onExport: (() -> Unit)?,
     onReset: () -> Unit,
     onDismiss: () -> Unit,
     onExamDateChanged: (String) -> Unit = {},
@@ -408,7 +408,7 @@ fun PlanSettingsSheet(
                     Text("Save details", fontWeight = FontWeight.Bold)
                 }
             }
-            if (isPlanScheduled) {
+            if (isPlanScheduled && onExport != null) {
                 item {
                     OutlinedButton(
                         onClick = onExport,

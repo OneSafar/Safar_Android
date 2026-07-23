@@ -100,6 +100,112 @@ fun StudySubject.percentDone(): Int =
 fun StudyChapter.percentDone(): Int =
     weightedCompletionPercent(topics.map { it to this })
 
+enum class NodeState { NOT_STARTED, DOING, FINISHED }
+
+data class NodeProgress(
+    val state: NodeState,
+    val percent: Int,
+    val totalTopics: Int,
+    val finishedTopics: Int,
+    val startedTopics: Int,
+)
+
+private fun nodeProgress(
+    topics: List<StudyTopic>,
+    percent: Int,
+): NodeProgress {
+    val finished = topics.count { it.status == TopicStatus.DONE }
+    // With partial completion and the "in progress" status both gone, a node is
+    // DOING purely because some — but not all — of its topics are done.
+    val started = 0
+    val state = when {
+        topics.isNotEmpty() && finished == topics.size -> NodeState.FINISHED
+        finished > 0 -> NodeState.DOING
+        else -> NodeState.NOT_STARTED
+    }
+    return NodeProgress(
+        state = state,
+        percent = percent,
+        totalTopics = topics.size,
+        finishedTopics = finished,
+        startedTopics = started,
+    )
+}
+
+fun StudyChapter.progressState(): NodeProgress =
+    nodeProgress(topics, weightedCompletionPercent(topics.map { it to this }))
+
+fun StudySubject.progressState(): NodeProgress {
+    val topics = chapters.flatMap { it.topics }
+    return nodeProgress(
+        topics,
+        weightedCompletionPercent(chapters.flatMap { chapter -> chapter.topics.map { it to chapter } }),
+    )
+}
+
+enum class CourseMapNudgeKind { LATE, TODAY, TODAY_FINISHED, NEEDS_SCHEDULE, ON_TRACK }
+
+data class CourseMapNudge(
+    val kind: CourseMapNudgeKind,
+    val subjectId: String? = null,
+    val chapterId: String? = null,
+    val chapterName: String? = null,
+    val topicCount: Int = 0,
+)
+
+/**
+ * One plain-language answer to "what should I do next?" for the Syllabus map.
+ * Lateness depends only on dates and completion status; partial progress never
+ * makes a topic late. Ties keep syllabus order so the recommendation is stable.
+ */
+fun StudyPlan.courseMapNudge(today: String = todayKey()): CourseMapNudge {
+    val refs = flattenTopics()
+    val lateByChapter = refs
+        .filter { ref ->
+            ref.topic.status != TopicStatus.DONE &&
+                (ref.topic.plannedDate?.take(10)?.let { it < today } == true)
+        }
+        .groupBy { it.subject.id to it.chapter.id }
+    val late = lateByChapter.values.sortedWith(
+        compareByDescending<List<TopicRef>> { it.size }
+            .thenBy { group -> group.minOf { it.topic.plannedDate?.take(10).orEmpty() } },
+    ).firstOrNull()
+    if (!late.isNullOrEmpty()) {
+        val first = late.first()
+        return CourseMapNudge(
+            kind = CourseMapNudgeKind.LATE,
+            subjectId = first.subject.id,
+            chapterId = first.chapter.id,
+            chapterName = first.chapter.name,
+            topicCount = late.size,
+        )
+    }
+
+    val todayRefs = refs.filter { it.topic.plannedDate?.take(10) == today }
+    val unfinishedTodayByChapter = todayRefs
+        .filter { it.topic.status != TopicStatus.DONE }
+        .groupBy { it.subject.id to it.chapter.id }
+    val todayFocus = unfinishedTodayByChapter.values.maxByOrNull { it.size }
+    if (!todayFocus.isNullOrEmpty()) {
+        val first = todayFocus.first()
+        return CourseMapNudge(
+            kind = CourseMapNudgeKind.TODAY,
+            subjectId = first.subject.id,
+            chapterId = first.chapter.id,
+            chapterName = first.chapter.name,
+            topicCount = todayFocus.size,
+        )
+    }
+
+    if (todayRefs.isNotEmpty() && todayRefs.all { it.topic.status == TopicStatus.DONE }) {
+        return CourseMapNudge(CourseMapNudgeKind.TODAY_FINISHED)
+    }
+    if (refs.none { !it.topic.plannedDate.isNullOrBlank() }) {
+        return CourseMapNudge(CourseMapNudgeKind.NEEDS_SCHEDULE)
+    }
+    return CourseMapNudge(CourseMapNudgeKind.ON_TRACK)
+}
+
 /** Returns a user-facing error, or null if [rawName] is acceptable to submit. */
 fun validateSyllabusNodeName(rawName: String): String? =
     if (rawName.trim().isBlank()) "Please type a name first" else null

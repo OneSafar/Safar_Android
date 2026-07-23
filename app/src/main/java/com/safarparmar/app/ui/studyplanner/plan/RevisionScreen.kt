@@ -48,14 +48,12 @@ internal fun RevisionScreen(
     actions: PlannerActions,
     modifier: Modifier = Modifier,
 ) {
+    // Keep the syllabus order stable. A completed session advances a topic's
+    // plannedDate to its next revision; sorting by that mutable date made the
+    // whole cluster jump down immediately after the student tapped its circle.
     val revisionRefs = remember(plan) {
         plan.flattenTopics()
             .filter { it.topic.status == TopicStatus.REVISION_NEEDED }
-            .sortedWith(
-                compareBy<TopicRef> {
-                    it.topic.plannedDate?.take(10).orEmpty().ifBlank { "9999-99-99" }
-                }.thenBy { it.topic.name.lowercase() },
-            )
     }
     var editingRef by remember { mutableStateOf<TopicRef?>(null) }
 

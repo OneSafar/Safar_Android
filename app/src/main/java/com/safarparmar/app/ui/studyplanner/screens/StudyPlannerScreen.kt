@@ -247,16 +247,6 @@ import com.safarparmar.app.ui.glass.MacOSExamPlanCard
 
 import com.safarparmar.app.ui.glass.GlassDivider as GlassHDivider
 
-private val plannerTopicStatusFilterChips = listOf(
-    TopicStatus.TODO,
-    TopicStatus.DONE,
-)
-
-private fun syllabusTopicMatchesFilter(topicStatus: TopicStatus, filter: TopicStatus?): Boolean {
-    if (filter == null) return true
-    return topicStatus == filter
-}
-
 @Immutable
 private data class StudyPlannerChromeState(
     val selectedPlan: StudyPlan? = null,
@@ -265,6 +255,7 @@ private data class StudyPlannerChromeState(
     val mutating: Boolean = false,
     val error: String? = null,
     val message: String? = null,
+    val messageOpensUnscheduled: Boolean = false,
     val rolloverUndoToken: String? = null,
     val deleteUndoToken: String? = null,
     val finishDayUndoAvailable: Boolean = false,
@@ -350,6 +341,7 @@ fun StudyPlannerScreen(
             mutating = state.mutating,
             error = state.error,
             message = state.message,
+            messageOpensUnscheduled = state.messageOpensUnscheduled,
             rolloverUndoToken = state.rolloverUndoToken,
             deleteUndoToken = state.deleteUndoToken,
             finishDayUndoAvailable = state.finishDayUndo != null,
@@ -366,6 +358,7 @@ fun StudyPlannerScreen(
                     mutating = state.mutating,
                     error = state.error,
                     message = state.message,
+                    messageOpensUnscheduled = state.messageOpensUnscheduled,
                     rolloverUndoToken = state.rolloverUndoToken,
                     deleteUndoToken = state.deleteUndoToken,
                     finishDayUndoAvailable = state.finishDayUndo != null,
@@ -471,13 +464,18 @@ fun StudyPlannerScreen(
                 chromeState.rolloverUndoToken != null || chromeState.deleteUndoToken != null
             val result = snackbar.showSnackbar(
                 message = it,
-                actionLabel = if (hasUndo) "Undo" else null,
+                actionLabel = when {
+                    hasUndo -> "Undo"
+                    chromeState.messageOpensUnscheduled -> "View"
+                    else -> null
+                },
             )
             if (result == SnackbarResult.ActionPerformed) {
                 when {
                     chromeState.finishDayUndoAvailable -> actions.undoFinishDay()
                     chromeState.deleteUndoToken != null -> actions.undoDelete()
                     chromeState.rolloverUndoToken != null -> actions.undoRollover()
+                    chromeState.messageOpensUnscheduled -> actions.openUnscheduledTopics()
                 }
             }
             actions.clearTransient()
@@ -661,6 +659,7 @@ fun StudyPlannerScreen(
                     )
                 }
             },
+            showTopBarTitle = chromeState.section != PlannerSection.SYLLABUS,
         ) { padding ->
             Scaffold(
                 modifier = Modifier.padding(top = padding.calculateTopPadding()),

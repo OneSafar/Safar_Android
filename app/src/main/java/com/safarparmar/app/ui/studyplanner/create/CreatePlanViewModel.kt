@@ -786,7 +786,53 @@ class CreatePlanViewModel @Inject constructor(
 
     /** Subject names for whichever source is active — used to populate the "choose
      *  your 2-3 most difficult subjects" picker. */
-    fun currentSubjectNames(): List<String> = currentOutline().map { it.name }
+    fun currentSubjectNames(): List<String> = orderedOutline().map { it.name }
+
+    /**
+     * [currentOutline] in the order the plan will ACTUALLY be built in.
+     *
+     * buildPreview sends deepFocusSubjectOrder / deepFocusChapterOrder to the
+     * server, so once a student has dragged their syllabus the real schedule
+     * follows that order — but every screen reading currentOutline() kept
+     * showing the raw source order instead, so "Rate your chapters" and the
+     * Mixed Bag picker listed subjects in an order the plan would never use.
+     *
+     * Sorted rather than rebuilt from the order maps: anything missing from
+     * them (a subject added after the reorder screen was last opened) keeps its
+     * place at the end instead of vanishing. This mirrors the server's own
+     * sortByNameOrder, so client and schedule agree.
+     */
+    private fun orderedOutline(): List<DeepFocusOutlineSubject> {
+        val state = _uiState.value
+        val outline = currentOutline()
+        val subjectRank = state.deepFocusSubjectOrder
+            ?.withIndex()
+            ?.associate { (index, name) -> name to index }
+            .orEmpty()
+
+        // Mixed Bag schedules the chosen "hardest" subjects exclusively first, so
+        // that is the order the plan really runs in — the rating screen should
+        // show the same, not the syllabus order those subjects came from.
+        val priorityRank = state.mixedBagPrioritySubjects
+            ?.withIndex()
+            ?.associate { (index, name) -> name to index }
+            .orEmpty()
+
+        return outline
+            .sortedWith(
+                compareBy<DeepFocusOutlineSubject> { priorityRank[it.name] ?: Int.MAX_VALUE }
+                    .thenBy { subjectRank[it.name] ?: Int.MAX_VALUE },
+            )
+            .map { subject ->
+                val chapterRank = state.deepFocusChapterOrder[subject.name]
+                    ?.withIndex()
+                    ?.associate { (index, name) -> name to index }
+                    ?: return@map subject
+                subject.copy(
+                    chapters = subject.chapters.sortedBy { chapterRank[it.name] ?: Int.MAX_VALUE },
+                )
+            }
+    }
 
     fun openMixedBagPicker() = _uiState.update { it.copy(step = CreatePlanStep.MixedBagSubjectPicker) }
 
@@ -869,7 +915,7 @@ class CreatePlanViewModel @Inject constructor(
     }
 
     /** Subject/chapter outline shown by the rating step. */
-    fun ratingOutline(): List<DeepFocusOutlineSubject> = currentOutline()
+    fun ratingOutline(): List<DeepFocusOutlineSubject> = orderedOutline()
 
     /**
      * Routes the Plan Settings "continue" through the optional chapter-rating

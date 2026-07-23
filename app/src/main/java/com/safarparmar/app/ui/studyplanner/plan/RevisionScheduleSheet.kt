@@ -1,7 +1,7 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,26 +21,20 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.rememberScrollState
-import com.safarparmar.app.ui.studyplanner.components.PlannerRevisionAccent
-import androidx.compose.ui.res.painterResource
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,7 +47,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -112,10 +105,6 @@ fun RevisionScheduleSheet(
     val tomorrowMillis = remember {
         today.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     }
-    val examMaxMillis = remember(examLocalDate) {
-        examLocalDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
-    }
-
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = tomorrowMillis,
         selectableDates = object : SelectableDates {
@@ -131,6 +120,7 @@ fun RevisionScheduleSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = PlannerFlatColors.BgCream,
     ) {
         if (showDatePicker) {
             Column(
@@ -138,17 +128,18 @@ fun RevisionScheduleSheet(
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
-                    .padding(bottom = 32.dp),
+                    .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                PlanEyebrow("Custom revision")
                 Text(
-                    text = "Select Revision Date",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 20.dp)
+                    text = "Select revision date",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PlannerFlatColors.TextDark,
                 )
+                PlanHairline()
 
                 DatePicker(
                     state = datePickerState,
@@ -157,13 +148,13 @@ fun RevisionScheduleSheet(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     OutlinedButton(
                         onClick = { showDatePicker = false },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("Back", fontWeight = FontWeight.Bold)
                     }
@@ -179,7 +170,7 @@ fun RevisionScheduleSheet(
                             showDatePicker = false
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(8.dp),
                     ) {
                         Text("Set Date", fontWeight = FontWeight.Bold)
                     }
@@ -191,28 +182,28 @@ fun RevisionScheduleSheet(
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = 24.dp)
                     .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                // Header
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    PlanEyebrow("Revision plan")
                     Text(
                         "Schedule Revision",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PlannerFlatColors.TextDark,
                     )
                     Text(
                         text = topicName,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = PlannerFlatColors.TextMuted,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                PlanHairline()
 
                 // Option 1: Spaced Revision
                 SpacedRevisionOptionCard(
@@ -228,17 +219,24 @@ fun RevisionScheduleSheet(
                 CustomDateOptionCard(onClick = { showDatePicker = true })
 
                 if (isAlreadyRevisionNeeded && onCancelRevision != null) {
-                    OutlinedButton(
-                        onClick = {
-                            onCancelRevision()
-                            onDismiss()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+                    PlanHairline()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
+                            .clickable {
+                                onCancelRevision()
+                                onDismiss()
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text("Remove Revision Schedule", fontWeight = FontWeight.Bold)
+                        Text(
+                            "Remove revision schedule",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
             }
@@ -252,134 +250,122 @@ private fun SpacedRevisionOptionCard(
     today: LocalDate,
     onSchedule: (dates: List<String>) -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val accent = PlannerFlatColors.PrimaryAccent
     val hasSlots = dates.isNotEmpty()
     var selectedCount by remember(dates) { mutableStateOf(dates.size.coerceAtMost(5).coerceAtLeast(1)) }
     val selectedDates = remember(dates, selectedCount) { dates.take(selectedCount.coerceIn(1, dates.size.coerceAtMost(5).coerceAtLeast(1))) }
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = if (hasSlots) scheme.primaryContainer else scheme.surfaceContainerLow,
-        border = BorderStroke(
-            1.5.dp,
-            if (hasSlots) scheme.primary.copy(alpha = 0.5f) else scheme.outlineVariant.copy(alpha = 0.4f),
-        ),
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        PlanHairline()
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Icon(
-                    painter = painterResource(id = com.safarparmar.app.R.drawable.ic_brain),
-                    contentDescription = null,
-                    tint = if (hasSlots) PlannerRevisionAccent.Spaced else scheme.onSurfaceVariant,
-                    modifier = Modifier.size(32.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        "Spaced Revision",
+                        "Spaced revision",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (hasSlots) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PlannerFlatColors.TextDark,
                     )
                     Text(
-                        if (hasSlots) "Choose how many spaced reviews you want before the exam"
+                        if (hasSlots) "Short reviews that help you remember for longer"
                         else "No review slots fit before your exam",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (hasSlots) scheme.onPrimaryContainer.copy(alpha = 0.75f) else scheme.onSurfaceVariant,
+                        color = PlannerFlatColors.TextMuted,
                     )
                 }
             }
 
             if (hasSlots) {
                 val maxRevisions = dates.size.coerceAtMost(5)
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    text = "How many reviews?",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.TextDark,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            text = "Number of revisions:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onPrimaryContainer,
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                    for (count in 1..maxRevisions) {
+                        val isSelected = count == selectedCount
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .then(
+                                    if (isSelected) Modifier.background(accent)
+                                    else Modifier.border(1.dp, PlannerFlatColors.BorderSoft, CircleShape),
+                                )
+                                .clickable { selectedCount = count },
+                            contentAlignment = Alignment.Center,
                         ) {
-                            for (count in 1..maxRevisions) {
-                                val isSelected = count == selectedCount
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isSelected) scheme.primary else scheme.onPrimaryContainer.copy(alpha = 0.08f))
-                                        .clickable { selectedCount = count },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = "$count",
-                                        color = if (isSelected) scheme.onPrimary else scheme.onPrimaryContainer,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                }
-                            }
+                            Text(
+                                text = "$count",
+                                color = if (isSelected) Color.White else PlannerFlatColors.TextDark,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
                         }
                     }
-                    val lastDate = selectedPreviewLastDate(selectedDates)
-                    Text(
-                        text = "Last reminder: $lastDate",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onPrimaryContainer.copy(alpha = 0.75f),
-                        modifier = Modifier.padding(bottom = 4.dp),
-                    )
                 }
+                Text(
+                    text = "Last review: ${selectedPreviewLastDate(selectedDates)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PlannerFlatColors.TextMuted,
+                )
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column {
                     selectedDates.forEachIndexed { index, dateStr ->
-                        SpacedRevisionDateRow(
-                            index = index,
-                            dateStr = dateStr,
-                            color = scheme.onPrimaryContainer,
-                        )
+                        if (index > 0) PlanHairline(alpha = 0.6f)
+                        SpacedRevisionDateRow(index = index, dateStr = dateStr)
                     }
                 }
 
-                Surface(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSchedule(selectedDates) },
-                    shape = RoundedCornerShape(12.dp),
-                    color = scheme.primary,
-                    contentColor = scheme.onPrimary,
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(1.dp, accent, RoundedCornerShape(8.dp))
+                        .clickable { onSchedule(selectedDates) }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Row(
-                        modifier = Modifier.padding(vertical = 10.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            "Schedule ${selectedDates.size} Revision Session${if (selectedDates.size == 1) "" else "s"}",
+                            "Schedule ${selectedDates.size} revision session${if (selectedDates.size == 1) "" else "s"}",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
+                            color = accent,
                         )
                     }
                 }
             }
         }
+        PlanHairline()
     }
 }
 
@@ -387,7 +373,6 @@ private fun SpacedRevisionOptionCard(
 private fun SpacedRevisionDateRow(
     index: Int,
     dateStr: String,
-    color: Color,
 ) {
     val interval = SPACED_INTERVALS.getOrNull(index)
     val localDate = runCatching { LocalDate.parse(dateStr) }.getOrNull()
@@ -395,32 +380,35 @@ private fun SpacedRevisionDateRow(
         ?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
         ?: dateStr
     Row(
+        modifier = Modifier.padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Surface(
-            shape = CircleShape,
-            color = color.copy(alpha = 0.14f),
-            contentColor = color,
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "${index + 1}",
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Black,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                fontWeight = FontWeight.Bold,
+                color = PlannerFlatColors.TextMuted,
             )
         }
         Text(
             text = interval?.label ?: "",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = color,
+            color = PlannerFlatColors.TextDark,
             modifier = Modifier.width(56.dp),
         )
         Text(
             text = formatted,
             style = MaterialTheme.typography.labelMedium,
-            color = color.copy(alpha = 0.85f),
+            color = PlannerFlatColors.TextMuted,
             modifier = Modifier.weight(1f),
         )
     }
@@ -434,54 +422,46 @@ private fun selectedPreviewLastDate(dates: List<String>): String {
 
 @Composable
 private fun CustomDateOptionCard(onClick: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        color = scheme.surfaceContainerLowest,
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.55f)),
+            .clickable(onClick = onClick)
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                .size(38.dp)
+                .clip(CircleShape)
+                .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape),
+            contentAlignment = Alignment.Center,
         ) {
-            Surface(
-                shape = CircleShape,
-                color = scheme.secondaryContainer,
-                contentColor = scheme.onSecondaryContainer,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .size(22.dp),
-                )
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    "Custom Date",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = scheme.onSurface,
-                )
-                Text(
-                    "Pick a specific date",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
-                )
-            }
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Default.CalendarMonth,
                 contentDescription = null,
-                tint = scheme.primary,
-                modifier = Modifier.size(20.dp),
+                tint = PlannerFlatColors.PrimaryAccent,
+                modifier = Modifier.size(18.dp),
             )
         }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                "Pick a custom date",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = PlannerFlatColors.TextDark,
+            )
+            Text(
+                "Choose one revision day yourself",
+                style = MaterialTheme.typography.bodySmall,
+                color = PlannerFlatColors.TextMuted,
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = PlannerFlatColors.TextMuted,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }

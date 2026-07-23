@@ -5,12 +5,18 @@ import com.google.gson.annotations.SerializedName
 
 typealias CalendarMap = Map<String, List<CalendarTopicItem>>
 
+/**
+ * A topic is either not done, done, or waiting to be revised.
+ *
+ * "in_progress" was removed along with partial completion — nothing set it once
+ * the drag-to-fill slider went away, and a third "started" state the student
+ * could never reach was just noise. Topics stored with that status before the
+ * change deserialise to [TODO] via the `alternate` below, so old plans keep
+ * working without a data migration.
+ */
 enum class TopicStatus(val wireValue: String, val label: String) {
-    @SerializedName("todo")
-    TODO("todo", "Todo"),
-
-    @SerializedName("in_progress")
-    IN_PROGRESS("in_progress", "In progress"),
+    @SerializedName(value = "todo", alternate = ["in_progress"])
+    TODO("todo", "Not done"),
 
     @SerializedName("done")
     DONE("done", "Done"),
@@ -59,9 +65,16 @@ fun StudyTopic.effectiveSize(chapter: StudyChapter? = null): TopicSize =
 /** Effort points for a topic: small=1, medium=2, big=4. */
 fun StudyTopic.effortPoints(chapter: StudyChapter? = null): Int = effectiveSize(chapter).points
 
-/** Partial completion with the server's backward-compatible default: done = 100, else 0. */
+/**
+ * Completion as a percentage. Partial completion (drag-to-fill) is HIDDEN for
+ * this release: this deliberately ignores any stored [progressPercent] and
+ * reports pure done/not-done, so a stray partial value written during testing
+ * can never leak into progress rings, weighted rollups or the syllabus. The
+ * field is kept on the model so partial progress can be re-enabled next update
+ * by restoring the `progressPercent?.coerceIn(0, 100) ?:` prefix here.
+ */
 fun StudyTopic.progressPercentValue(): Int =
-    progressPercent?.coerceIn(0, 100) ?: if (status == TopicStatus.DONE) 100 else 0
+    if (status == TopicStatus.DONE) 100 else 0
 
 /** Remaining effort: a half-done big topic counts as 2 points, not 4. */
 fun StudyTopic.remainingPoints(chapter: StudyChapter? = null): Float =

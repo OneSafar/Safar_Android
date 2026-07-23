@@ -55,7 +55,14 @@ import com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel
 import com.safarparmar.app.ui.studyplanner.SubjectUiModel
 import com.safarparmar.app.ui.studyplanner.logic.deleteImpact
 import com.safarparmar.app.ui.studyplanner.logic.findDuplicateSiblingName
+import com.safarparmar.app.ui.studyplanner.logic.daysUntil
+import com.safarparmar.app.ui.studyplanner.logic.NodeState
+import com.safarparmar.app.ui.studyplanner.logic.CourseMapNudgeKind
+import com.safarparmar.app.ui.studyplanner.logic.courseMapNudge
+import com.safarparmar.app.ui.studyplanner.logic.progressState
+import com.safarparmar.app.ui.studyplanner.logic.rollup
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
+import com.safarparmar.app.ui.studyplanner.plan.PlanSettingsSheet
 
 internal sealed interface SyllabusDialogState {
     object Closed : SyllabusDialogState
@@ -100,6 +107,7 @@ fun SyllabusSubjectsScreen(
     var openTopicsChapterId by rememberSaveable { mutableStateOf<String?>(null) }
     var topicForDatePicker by remember { mutableStateOf<StudyTopic?>(null) }
     var showReorderBuildInfo by rememberSaveable { mutableStateOf(false) }
+    var showPlanSettings by rememberSaveable { mutableStateOf(false) }
 
     BackHandler {
         if (activeSubjectId != null) activeSubjectId = null else onBack()
@@ -229,10 +237,12 @@ fun SyllabusSubjectsScreen(
 
     val totalTopics = localSubjects.sumOf { subject -> subject.chapters.sumOf { it.topics.size } }
     val totalChapters = localSubjects.sumOf { it.chapters.size }
-    val doneTopics = localSubjects.sumOf { subject ->
-        subject.chapters.sumOf { chapter -> chapter.topics.count { it.status == TopicStatus.DONE } }
+    val planProgress = selectedPlan?.rollup()?.completionPercent ?: 0
+    val notStartedChapters = localSubjects.sumOf { subject ->
+        subject.chapters.count { it.progressState().state == NodeState.NOT_STARTED }
     }
-    val planProgress = if (totalTopics > 0) (doneTopics * 100) / totalTopics else 0
+    val examDays = daysUntil(selectedPlan?.examDate)?.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())?.toInt()
+    val courseMapNudge = remember(selectedPlan) { selectedPlan?.courseMapNudge() }
     val isTemplatePlan = !selectedPlan?.templateId.isNullOrBlank()
     val shouldShowFullImport = localSubjects.isEmpty() && !isTemplatePlan
 
@@ -241,6 +251,23 @@ fun SyllabusSubjectsScreen(
         else localSubjects.filter { subjectMatchesQuery(it, searchQuery) }
     }
     val canReorderSyllabus = searchQuery.isBlank() && !state.mutating
+
+    val buildSchedule: () -> Unit = {
+        val pending = state.pendingRebuild
+        if (pending != null) {
+            actions.rescheduleAfterExamDateChange(
+                strategy = pending.strategy,
+                prioritySubjectNames = pending.prioritySubjectNames,
+                priorityOrderMode = pending.priorityOrderMode,
+            )
+        } else {
+            actions.autoDistribute(
+                lockExisting = false,
+                strategy = "sequential",
+                preserveToday = true,
+            )
+        }
+    }
 
     fun <T> moveItem(items: List<T>, fromIndex: Int, toIndex: Int): List<T> {
         if (fromIndex !in items.indices || toIndex !in items.indices || fromIndex == toIndex) return items
@@ -320,6 +347,11 @@ fun SyllabusSubjectsScreen(
             fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
         )
     }
+    val syllabusWindowInsets = if (showBottomBar) {
+        WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
+    } else {
+        WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
+    }
 
     CompositionLocalProvider(LocalDensity provides clampedDensity) {
         androidx.compose.animation.AnimatedContent(
@@ -340,9 +372,7 @@ fun SyllabusSubjectsScreen(
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(),
-                    contentWindowInsets = WindowInsets.safeDrawing.only(
-                        WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
-                    ),
+                    contentWindowInsets = syllabusWindowInsets,
                     topBar = {
                         @OptIn(ExperimentalMaterial3Api::class)
                         androidx.compose.material3.TopAppBar(
@@ -366,11 +396,8 @@ fun SyllabusSubjectsScreen(
                     ) {
                         item {
                             val subjectTopics = subject.chapters.sumOf { it.topics.size }
-                            val subjectDone = subject.chapters.sumOf { ch ->
-                                ch.topics.count { it.status == TopicStatus.DONE }
-                            }
                             SyllabusMagazineChapterHeader(
-                                completionPercent = if (subjectTopics > 0) (subjectDone * 100) / subjectTopics else 0,
+                                completionPercent = subject.progressState().percent,
                                 chapterCount = subject.chapters.size,
                                 topicCount = subjectTopics,
                                 onAddChapter = {
@@ -448,9 +475,7 @@ fun SyllabusSubjectsScreen(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(),
-            contentWindowInsets = WindowInsets.safeDrawing.only(
-                WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
-            ),
+            contentWindowInsets = syllabusWindowInsets,
             bottomBar = {
                 if (showBottomBar) {
                     PlannerBottomBar(
@@ -486,7 +511,7 @@ fun SyllabusSubjectsScreen(
                             contentPadding = PaddingValues(
                                 start = 24.dp,
                                 end = 24.dp,
-                                top = 16.dp,
+                                top = if (showBottomBar) 16.dp else 8.dp,
                                 bottom = 32.dp,
                             ),
                             // One continuous page — hairlines divide it, not gaps.
@@ -499,37 +524,50 @@ fun SyllabusSubjectsScreen(
                                     subjectCount = localSubjects.size,
                                     chapterCount = totalChapters,
                                     topicCount = totalTopics,
+                                    daysUntilExam = examDays,
+                                    notStartedChapters = notStartedChapters,
+                                    buildEnabled = localSubjects.isNotEmpty() && !state.mutating,
+                                    onBuild = buildSchedule,
+                                    onExamDateClick = { showPlanSettings = true },
                                     onOverflowClick = { showReorderBuildInfo = true },
                                 )
-                                Spacer(Modifier.height(18.dp))
+                                Spacer(Modifier.height(10.dp))
+                                if (state.pendingRatingChapterIds.isNotEmpty() && !state.ratingRebuildPromptDismissed) {
+                                    SyllabusRatingRebuildBar(
+                                        hasExamDate = !selectedPlan?.examDate.isNullOrBlank(),
+                                        rebuilding = state.mutating,
+                                        onRebuild = actions::rebuildAfterRatingChanges,
+                                        onSetExamDate = { showPlanSettings = true },
+                                        onDismiss = actions::dismissRatingRebuildPrompt,
+                                    )
+                                    Spacer(Modifier.height(10.dp))
+                                }
+                                courseMapNudge?.let { nudge ->
+                                    PlanHairline(alpha = 0.6f)
+                                    SyllabusCourseMapNudge(
+                                        nudge = nudge,
+                                        onClick = {
+                                            if (nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE) {
+                                                buildSchedule()
+                                            } else {
+                                                val targetSubject = localSubjects.firstOrNull { it.id == nudge.subjectId }
+                                                val targetChapter = targetSubject?.chapters?.firstOrNull { it.id == nudge.chapterId }
+                                                if (targetSubject != null && targetChapter != null) {
+                                                    activeSubjectId = targetSubject.id
+                                                    openTopicsChapterId = targetChapter.id
+                                                }
+                                            }
+                                        },
+                                    )
+                                }
                                 SyllabusMagazineToolbar(
                                     searchQuery = searchQuery,
                                     onSearchChange = { searchQuery = it },
-                                    buildEnabled = localSubjects.isNotEmpty() && !state.mutating,
-                                    onBuild = {
-                                        val pending = state.pendingRebuild
-                                        if (pending != null) {
-                                            // User changed the exam date and chose to reorder
-                                            // first — apply the strategy they picked in the
-                                            // re-plan flow, honouring the order they just set.
-                                            actions.rescheduleAfterExamDateChange(
-                                                strategy = pending.strategy,
-                                                prioritySubjectNames = pending.prioritySubjectNames,
-                                                priorityOrderMode = pending.priorityOrderMode,
-                                            )
-                                        } else {
-                                            actions.autoDistribute(
-                                                lockExisting = false,
-                                                strategy = "sequential",
-                                                preserveToday = true,
-                                            )
-                                        }
-                                    },
                                 )
                                 SyllabusMagazineListHeader(
                                     title = if (isTemplatePlan) "Syllabus" else "Your syllabus",
                                     onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
-                                    modifier = Modifier.padding(top = 22.dp, bottom = 6.dp),
+                                    modifier = Modifier.padding(top = 14.dp, bottom = 6.dp),
                                 )
                             }
 
@@ -768,12 +806,17 @@ fun SyllabusSubjectsScreen(
             },
         )
     }
+
+    if (showPlanSettings && selectedPlan != null) {
+        PlanSettingsSheet(
+            plan = selectedPlan,
+            actions = actions,
+            onExport = null,
+            onReset = {},
+            onDismiss = { showPlanSettings = false },
+        )
+    }
 }
-
-
-
-
-
 
 
 

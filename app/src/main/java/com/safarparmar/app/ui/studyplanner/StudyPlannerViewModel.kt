@@ -91,9 +91,6 @@ object StudyPlannerOnboardingSteps {
     const val BUILD_SCHEDULE = "build_schedule"
     const val REVIEW_CALENDAR = "review_calendar"
     const val FIRST_TOPIC_DONE = "first_topic_done"
-    /** Hold-and-slide is undiscoverable on its own, so Today shows a one-line
-     *  tip until the student has used it once. */
-    const val PARTIAL_PROGRESS_TIP = "partial_progress_tip"
 }
 
 private fun StudyPlan.withPlannedDates(datesByTopicId: Map<String, String?>): StudyPlan = copy(
@@ -129,6 +126,8 @@ data class StudyPlannerUiState(
     val mutating: Boolean = false,
     val error: String? = null,
     val message: String? = null,
+    /** The current snackbar's action should open the unscheduled-topics sheet. */
+    val messageOpensUnscheduled: Boolean = false,
     val rolloverUndoToken: String? = null,
     val deleteUndoToken: String? = null,
     val finishDayUndo: FinishDayUndoState? = null,
@@ -173,6 +172,10 @@ data class StudyPlannerUiState(
     /** Set when the user changed the exam date and chose to reorder the syllabus
      *  before rebuilding; consumed by the Syllabus "Build" button. */
     val pendingRebuild: PendingRebuild? = null,
+    /** Chapter ratings saved since the last schedule rebuild. */
+    val pendingRatingChapterIds: Set<String> = emptySet(),
+    /** Dismissal only hides the prompt; a later rating change shows it again. */
+    val ratingRebuildPromptDismissed: Boolean = false,
 )
 
 data class PlannerBackDestination(
@@ -371,6 +374,7 @@ class StudyPlannerViewModel @Inject constructor(
                 deleteUndoToken = null,
                 finishDayUndo = null,
                 lastUndoableActionLabel = null,
+                messageOpensUnscheduled = false,
             )
         }
     }
@@ -478,7 +482,15 @@ class StudyPlannerViewModel @Inject constructor(
         initialLandingResolved = true
         savedStateHandle[SELECTED_PLAN_ID_KEY] = planId
         viewModelScope.launch {
-            _uiState.update { it.copy(loading = true, error = null, section = PlannerSection.PLAN) }
+            _uiState.update {
+                it.copy(
+                    loading = true,
+                    error = null,
+                    section = PlannerSection.PLAN,
+                    pendingRatingChapterIds = emptySet(),
+                    ratingRebuildPromptDismissed = false,
+                )
+            }
             when (val r = repo.getPlan(planId)) {
                 is Resource.Success -> {
                     val digest = r.data.rolloverDigest
@@ -527,6 +539,8 @@ class StudyPlannerViewModel @Inject constructor(
                 section = PlannerSection.PLAN,
                 onboardingCompletedSteps = emptySet(),
                 backDestination = null,
+                pendingRatingChapterIds = emptySet(),
+                ratingRebuildPromptDismissed = false,
             )
         }
         refreshPlans()
@@ -717,9 +731,67 @@ class StudyPlannerViewModel @Inject constructor(
     override fun renameChapter(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(name)) }
     override fun rateChapter(subjectId: String, chapterId: String, difficulty: String?) = mutateSelected(
         successMessage = "Chapter rated",
+        onSuccess = {
+            _uiState.update {
+                it.copy(
+                    pendingRatingChapterIds = it.pendingRatingChapterIds + chapterId,
+                    ratingRebuildPromptDismissed = false,
+                )
+            }
+        },
     ) { planId ->
         // "" clears the rating server-side; Gson would drop a null field entirely.
         repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(difficulty = difficulty ?: ""))
+    }
+
+    override fun dismissRatingRebuildPrompt() {
+        _uiState.update { it.copy(ratingRebuildPromptDismissed = true) }
+    }
+
+    override fun rebuildAfterRatingChanges() {
+        val state = _uiState.value
+        val plan = state.selectedPlan ?: return
+        if (plan.examDate.isNullOrBlank()) {
+            _uiState.update { it.copy(error = "Set an exam date before rebuilding the planner.") }
+            return
+        }
+        if (state.pendingRatingChapterIds.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, error = null) }
+            val result = repo.autoDistribute(
+                plan.id,
+                AutoDistributeRequest(
+                    fromDate = todayKey(),
+                    includeRevisionNeeded = false,
+                    lockExistingDates = false,
+                    preserveFromDate = true,
+                    overloadMode = null,
+                    strategy = state.preferredStudyStrategy,
+                ),
+            )
+            when (result) {
+                is Resource.Success -> {
+                    val message = if (result.data.skipped > 0) {
+                        "Schedule updated · ${result.data.skipped} ${if (result.data.skipped == 1) "topic is" else "topics are"} unscheduled"
+                    } else {
+                        "Schedule updated"
+                    }
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = result.data.plan ?: it.selectedPlan,
+                            mutating = false,
+                            message = message,
+                            messageOpensUnscheduled = result.data.skipped > 0,
+                            pendingRatingChapterIds = emptySet(),
+                            ratingRebuildPromptDismissed = false,
+                        )
+                    }
+                    reloadSelected(message)
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = result.message) }
+                is Resource.Loading -> Unit
+            }
+        }
     }
     override fun deleteChapter(subjectId: String, chapterId: String) = mutateSelected(
         successMessage = "Chapter deleted",
@@ -834,7 +906,7 @@ class StudyPlannerViewModel @Inject constructor(
         val beforeDoneCount = todayTopics.count { it.status == TopicStatus.DONE }
         val statusMessage = when (status) {
             TopicStatus.DONE -> "Marked done"
-            TopicStatus.TODO -> "Marked as to-do"
+            TopicStatus.TODO -> "Marked as not done"
             TopicStatus.REVISION_NEEDED -> "Scheduled for revision"
             else -> "Saved"
         }
@@ -847,13 +919,6 @@ class StudyPlannerViewModel @Inject constructor(
             }
             refreshPlannerAchievements()
         }) { planId -> repo.updateTopic(planId, topicId, TopicPatchRequest(name = name, status = status, plannedDate = plannedDate, notes = notes, pinned = pinned, size = size, clientDateKey = today)) }
-    }
-    override fun setTopicProgress(topicId: String, percent: Int) {
-        val clamped = percent.coerceIn(0, 99)
-        markOnboardingStepDone(StudyPlannerOnboardingSteps.PARTIAL_PROGRESS_TIP)
-        mutateSelected(refreshCalendar = true, refreshAnalytics = true, successMessage = "Progress saved") { planId ->
-            repo.updateTopic(planId, topicId, TopicPatchRequest(progressPercent = clamped, clientDateKey = todayKey()))
-        }
     }
 
     override fun deleteTopic(topicId: String) {
@@ -1041,6 +1106,60 @@ class StudyPlannerViewModel @Inject constructor(
                     clientDateKey = today,
                 )
             )
+        }
+    }
+
+    override fun rescheduleMissedTopics(topicIds: List<String>) {
+        if (topicIds.isEmpty()) return
+        val state = _uiState.value
+        val planId = state.selectedPlan?.id ?: return
+        if (state.selectedPlan?.examDate.isNullOrBlank()) {
+            _uiState.update { it.copy(error = "Set an exam date first, then we can fit these back in.") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, error = null) }
+            val result = repo.autoDistribute(
+                planId,
+                AutoDistributeRequest(
+                    fromDate = todayKey(),
+                    // Only the missed topics move; everything already placed on a
+                    // future day keeps its date.
+                    onlyTopicIds = topicIds,
+                    lockExistingDates = false,
+                    // Today's list must not change under the student mid-recovery.
+                    preserveFromDate = true,
+                    includeRevisionNeeded = false,
+                    // Null = the server's honest default: respect the daily goal and
+                    // report anything that still doesn't fit.
+                    overloadMode = null,
+                    strategy = state.preferredStudyStrategy,
+                ),
+            )
+            when (result) {
+                is Resource.Success -> {
+                    val moved = result.data.assigned
+                    val skipped = result.data.skipped
+                    val message = when {
+                        moved == 0 -> "There was no free day left before your exam."
+                        skipped == 0 && moved == 1 -> "Done — 1 topic moved to a free day."
+                        skipped == 0 -> "Done — $moved topics moved to your free days."
+                        else -> "$moved moved. $skipped still don't fit before your exam."
+                    }
+                    _uiState.update {
+                        it.copy(
+                            mutating = false,
+                            selectedPlan = result.data.plan ?: it.selectedPlan,
+                            message = message,
+                        )
+                    }
+                    reloadSelected()
+                    refreshCalendar(planId)
+                    refreshAnalytics(planId)
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = result.message) }
+                is Resource.Loading -> Unit
+            }
         }
     }
 

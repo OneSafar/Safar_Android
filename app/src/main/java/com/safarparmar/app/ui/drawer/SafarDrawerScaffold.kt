@@ -52,6 +52,13 @@ fun SafarDrawerScaffold(
     showTopBarTitle: Boolean = true,
     useGlassTopBar: Boolean = false,
     useDetachedMenuGlass: Boolean = false,
+    /**
+     * Hands the caller a function that opens this scaffold's drawer. Screens
+     * that draw their own top bar (Ekagra) still need the hamburger to work,
+     * and the drawer state lives in here — so the opener is hoisted out rather
+     * than duplicating the state outside.
+     */
+    onDrawerControllerReady: (() -> Unit) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -82,7 +89,13 @@ fun SafarDrawerScaffold(
         topBarContentColor ?: if (liveDark) Color.White else MaterialTheme.colorScheme.onSurface
     }
 
-    val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
+    // Remembered so the identity is stable — otherwise a fresh lambda every
+    // recomposition would re-fire the callback below on every frame.
+    val openDrawer: () -> Unit = remember(scope, drawerState) {
+        { scope.launch { drawerState.open() } }
+    }
+
+    LaunchedEffect(openDrawer) { onDrawerControllerReady(openDrawer) }
 
     @Composable
     fun GlassSurfaceModifier(shape: RoundedCornerShape, height: androidx.compose.ui.unit.Dp = 52.dp): Modifier {

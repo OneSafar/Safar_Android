@@ -67,6 +67,10 @@ interface PlannerActions {
     fun renameChapter(subjectId: String, chapterId: String, name: String)
     /** Rates a chapter's effort ("easy" | "normal" | "tough"); null clears it. */
     fun rateChapter(subjectId: String, chapterId: String, difficulty: String?)
+    /** Hides the rating rebuild prompt until another chapter rating changes. */
+    fun dismissRatingRebuildPrompt()
+    /** Rebuilds future dates after rating changes while preserving today's topics. */
+    fun rebuildAfterRatingChanges()
     fun deleteChapter(subjectId: String, chapterId: String)
     /** Adds a single topic, then moves it to the front of the chapter's topic list
      *  so the user sees it immediately without scrolling. */
@@ -89,12 +93,6 @@ interface PlannerActions {
         pinned: Boolean? = null,
         size: String? = null,
     )
-    /**
-     * Saves a partial completion (0–99) from the drag-to-fill card. 100 must
-     * instead route through the normal completion flow (Done vs To Revise
-     * prompt) so revision scheduling is never bypassed.
-     */
-    fun setTopicProgress(topicId: String, percent: Int)
     fun batchMarkTopicsDone(topicIds: List<String>)
     /**
      * Sets a topic to REVISION_NEEDED and schedules [revisionDates] on it.
@@ -118,6 +116,13 @@ interface PlannerActions {
     fun uncompleteRevisionSession(topicId: String, sessionDate: String)
     fun cancelRevision(topicId: String)
     fun deleteTopic(topicId: String)
+    /**
+     * Recovery for missed work: reschedules ONLY [topicIds] into the free days
+     * ahead, leaving every other topic exactly where it is. Backs the Missed
+     * screen's one-tap "Move all to my free days" so a student who lost a week
+     * doesn't have to re-date thirty topics by hand.
+     */
+    fun rescheduleMissedTopics(topicIds: List<String>)
     /**
      * [overloadMode] is an escape hatch, not a setting: null (the normal case)
      * means respect the plan's daily goal and report anything that doesn't fit.

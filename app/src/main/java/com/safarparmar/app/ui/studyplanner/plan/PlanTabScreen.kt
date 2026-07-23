@@ -529,7 +529,7 @@ fun PlanTabScreen(
                     upcomingCount = upcomingTopics.size,
                     completedCount = completedTopics.size,
                     onTodayClick = { actions.setPlanTab(StudyPlannerTab.TODAY) },
-                    // Overdue opens the missed-topics list in place; Upcoming is
+                    // Missed opens the missed-topics list in place; Upcoming is
                     // date-shaped so it hands off to the Calendar month grid.
                     onOverdueClick = { showMissedTopicsScreen = true },
                     onUpcomingClick = { actions.setSection(PlannerSection.CALENDAR) },
@@ -652,21 +652,6 @@ fun PlanTabScreen(
                             )
                         }
 
-                        // Hold-and-slide cannot be discovered by looking at a card,
-                        // so say it in words until the student has done it once.
-                        if (StudyPlannerOnboardingSteps.PARTIAL_PROGRESS_TIP !in onboardingCompletedSteps &&
-                            todayTopics.any { it.topic.status != TopicStatus.DONE }
-                        ) {
-                            item(key = "partial_progress_tip") {
-                                PartialProgressTip(
-                                    onDismiss = {
-                                        actions.markOnboardingStepDone(
-                                            StudyPlannerOnboardingSteps.PARTIAL_PROGRESS_TIP,
-                                        )
-                                    },
-                                )
-                            }
-                        }
                         items(
                             items = todayTopics.take(10),
                             key = { ref -> "today_${ref.topic.id}" },
@@ -680,7 +665,6 @@ fun PlanTabScreen(
                                 onRemoveFromToday = { removeFromTodayConfirmTopic = ref },
                                 onEdit = { editTopicRef = ref },
                                 onFocus = { onNavigate(Routes.ekagraForTopic(ref.topic.id, ref.topic.name, plan.id)) },
-                                onSetProgress = { percent -> actions.setTopicProgress(ref.topic.id, percent) },
                             )
                         }
 
@@ -710,7 +694,6 @@ fun PlanTabScreen(
                                     PlanHomeTaskRow(
                                         ref = ref,
                                         onDoneChange = { done -> handleTopicDoneCheck(ref, done) },
-                                        onSetProgress = { percent -> actions.setTopicProgress(ref.topic.id, percent) },
                                         onEdit = { editTopicRef = ref },
                                         onFocus = { onNavigate(Routes.ekagraForTopic(ref.topic.id, ref.topic.name, plan.id)) },
                                         // No Replace / Remove-from-today here: a bonus
@@ -730,7 +713,7 @@ fun PlanTabScreen(
                     }
                 }
 
-                // Overdue now lives in Calendar's Missed Topics list, Upcoming in
+                // Missed now lives in Calendar's Missed topics list, Upcoming in
                 // the Calendar month grid, and Revision in its own
                 // PlannerSection.REVISION screen — none are Home sub-tabs anymore.
                 // Handled together purely to keep this `when` exhaustive; all three
@@ -1041,7 +1024,22 @@ internal fun UnscheduledTopicsScreen(
     actions: PlannerActions,
     onDismiss: () -> Unit,
 ) {
-    TopicSchedulingScreen(plan, unscheduledTopics, actions, onDismiss, "Unscheduled Topics", "Search unscheduled topics...")
+    TopicSchedulingScreen(
+        plan = plan,
+        unscheduledTopics = unscheduledTopics,
+        actions = actions,
+        onDismiss = onDismiss,
+        screenTitle = "Not planned yet",
+        searchPlaceholder = "Search topics...",
+        subtitle = if (unscheduledTopics.size == 1) {
+            "1 topic doesn't have a day yet."
+        } else {
+            "${unscheduledTopics.size} topics don't have a day yet."
+        },
+        bulkActionLabel = "Add these to my plan",
+        bulkActionHint = "We'll fit them into your free days.",
+        onBulkAction = { actions.rescheduleMissedTopics(unscheduledTopics.map { it.topic.id }) },
+    )
 }
 
 @Composable
@@ -1051,7 +1049,24 @@ internal fun MissedTopicsScreen(
     actions: PlannerActions,
     onDismiss: () -> Unit,
 ) {
-    TopicSchedulingScreen(plan, missedTopics, actions, onDismiss, "Missed Topics", "Search missed topics...")
+    TopicSchedulingScreen(
+        plan = plan,
+        unscheduledTopics = missedTopics,
+        actions = actions,
+        onDismiss = onDismiss,
+        screenTitle = "Missed topics",
+        searchPlaceholder = "Search topics...",
+        // Warm, not clinical. A student opening a list of their own failures
+        // needs a way forward first, and blame never.
+        subtitle = if (missedTopics.size == 1) {
+            "You missed 1 topic. Life happens — let's fit it back in."
+        } else {
+            "You missed ${missedTopics.size} topics. Life happens — let's fit them back in."
+        },
+        bulkActionLabel = "Move all to my free days",
+        bulkActionHint = "Today's topics stay exactly as they are.",
+        onBulkAction = { actions.rescheduleMissedTopics(missedTopics.map { it.topic.id }) },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1063,6 +1078,13 @@ private fun TopicSchedulingScreen(
     onDismiss: () -> Unit,
     screenTitle: String,
     searchPlaceholder: String,
+    subtitle: String,
+    // The bulk action is what makes these screens a recovery tool rather than a
+    // wall of shame: the engine can re-date thirty topics instantly, so the
+    // student should never have to do it one calendar tap at a time.
+    bulkActionLabel: String,
+    bulkActionHint: String,
+    onBulkAction: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
     var selectedTopicForDatePicker by remember { mutableStateOf<TopicRef?>(null) }
@@ -1148,10 +1170,40 @@ private fun TopicSchedulingScreen(
                         color = scheme.onSurface
                     )
                     Text(
-                        text = "${unscheduledTopics.size} topics need a date",
+                        text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = scheme.onSurfaceVariant
                     )
+                }
+            }
+
+            // The way out, before the list of problems. Hidden while searching,
+            // since the action always applies to every topic, not the filtered few.
+            if (unscheduledTopics.isNotEmpty() && searchQuery.isBlank()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = scheme.primary.copy(alpha = 0.10f),
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Button(
+                            onClick = onBulkAction,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text(bulkActionLabel, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = bulkActionHint,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = scheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
 
@@ -1183,7 +1235,7 @@ private fun TopicSchedulingScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (searchQuery.isBlank()) "All topics are scheduled!" else "No matches for '$searchQuery'",
+                        text = if (searchQuery.isBlank()) "Nothing here — every topic has a day." else "No topic matches '$searchQuery'",
                         style = MaterialTheme.typography.bodyMedium,
                         color = scheme.onSurfaceVariant
                     )
@@ -1306,53 +1358,6 @@ private fun DoneForTheDayBar(
                 letterSpacing = 1.sp,
                 fontSize = 16.sp
             )
-        }
-    }
-}
-
-/**
- * Only finished half a topic? A tick box is all-or-nothing, and the hold-and-slide
- * gesture that records partial work is invisible until someone names it. Shown on
- * Today until the student uses it once, then never again.
- */
-@Composable
-private fun PartialProgressTip(onDismiss: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = scheme.secondaryContainer.copy(alpha = 0.45f),
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 14.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            // A miniature of the gesture's result — a part-filled card — says
-            // "these cards fill up" faster than a sentence describing it.
-            Box(
-                modifier = Modifier
-                    .width(34.dp)
-                    .height(18.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(scheme.onSecondaryContainer.copy(alpha = 0.12f)),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.55f)
-                        .background(scheme.onSecondaryContainer.copy(alpha = 0.45f)),
-                )
-            }
-            Text(
-                text = "Did only part of a topic? Hold it, then slide.",
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSecondaryContainer,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = onDismiss) {
-                Text("Got it", fontWeight = FontWeight.Bold)
-            }
         }
     }
 }
