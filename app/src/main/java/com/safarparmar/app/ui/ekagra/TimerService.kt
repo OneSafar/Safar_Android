@@ -156,6 +156,14 @@ class TimerService : Service() {
         val topicTitle: String?,
     )
 
+    internal data class PlannerTopicMetadata(
+        val clientSessionId: String,
+        val startedAt: String,
+        val topicId: String,
+        val planId: String,
+        val topicTitle: String?,
+    )
+
     // ── Exposed state ─────────────────────────────────────────────────────────
     private val _secondsLeft  = MutableStateFlow(25 * 60)
     private val _totalSeconds = MutableStateFlow(25 * 60)
@@ -333,6 +341,11 @@ class TimerService : Service() {
      */
     private fun monitorForegroundForBlocking() {
         if (!FocusShieldRepository.ShieldPrefs.isActive(this)) return
+        val isStrict = FocusShieldRepository.ShieldPrefs.isStrict(this)
+        // In Normal Mode (non-strict), pausing the timer temporarily unblocks apps.
+        // In Beast Mode (strict), pausing the timer keeps apps locked down!
+        if (!isStrict && !_isRunning.value) return
+
         // Honour the return-to-focus grace and the emergency-unlock grace window.
         if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) return
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) return
@@ -890,6 +903,23 @@ class TimerService : Service() {
         )
         sessionSaveQueuedThisRun = false
         persistAutoSaveMetadata()
+    }
+
+    /**
+     * The foreground service outlives screen recreation. Use its copy of the
+     * planner link when Compose state was recreated while a timer was running.
+     */
+    internal fun plannerTopicMetadata(): PlannerTopicMetadata? {
+        val metadata = autoSaveMetadata ?: return null
+        val topicId = metadata.topicId?.takeIf { it.isNotBlank() } ?: return null
+        val planId = metadata.planId?.takeIf { it.isNotBlank() } ?: return null
+        return PlannerTopicMetadata(
+            clientSessionId = metadata.clientSessionId,
+            startedAt = metadata.startedAt,
+            topicId = topicId,
+            planId = planId,
+            topicTitle = metadata.topicTitle,
+        )
     }
 
     fun togglePlayPause() {

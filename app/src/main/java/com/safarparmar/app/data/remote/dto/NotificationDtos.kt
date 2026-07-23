@@ -34,7 +34,13 @@ data class AdminBroadcastRequest(
     val title: String,
     val body: String,
     val deepLink: String,
+    val audioUrl: String? = null,
     val broadcast: Boolean = true,
+    /** When true on /broadcast, also writes the Home bell inbox. Default false = push only. */
+    val persistToInbox: Boolean = false,
+    /** When true on /inbox, only the admin (or targetEmail admin) sees it in history. */
+    val testOnly: Boolean = false,
+    val targetEmail: String? = null,
 )
 
 data class AdminBroadcastResult(
@@ -47,6 +53,7 @@ data class AdminBroadcastResult(
 data class AdminBroadcastResponse(
     val message: String? = null,
     val count: Int? = null,
+    val inboxId: String? = null,
     val results: List<AdminBroadcastResult>? = null,
 )
 
@@ -58,6 +65,7 @@ data class CustomNotificationDto(
     val channel: String? = null,
     val deepLink: String? = null,
     val priority: String? = null,
+    val audioUrl: String? = null,
     val createdAt: String? = null,
 )
 

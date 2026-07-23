@@ -29,7 +29,6 @@ class NotificationBellViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(NotificationBellUiState())
     val uiState = _uiState.asStateFlow()
-    private val dismissedIds = mutableSetOf<String>()
     private val readIds = mutableSetOf<String>()
 
     init {
@@ -39,6 +38,7 @@ class NotificationBellViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
+            val dismissedIds = dataStore.notificationBellDismissedIds.first()
 
             val customItems = try {
                 val response = notificationApi.getNotificationHistory()
@@ -52,6 +52,7 @@ class NotificationBellViewModel @Inject constructor(
                             body = dto.body ?: "",
                             createdAt = dto.createdAt ?: "",
                             deepLink = dto.deepLink,
+                            audioUrl = dto.audioUrl?.takeIf { it.isNotBlank() },
                             type = announcementTypeFor(
                                 title = dto.title.orEmpty(),
                                 body = dto.body.orEmpty(),
@@ -59,7 +60,7 @@ class NotificationBellViewModel @Inject constructor(
                         )
                     }
                 } else emptyList()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 emptyList()
             }
 
@@ -108,13 +109,15 @@ class NotificationBellViewModel @Inject constructor(
     }
 
     fun dismiss(id: String) {
-        dismissedIds += id
-        _uiState.value = _uiState.value.let { state ->
-            val updatedItems = state.items.filterNot { it.id == id }
-            state.copy(
-                items = updatedItems,
-                unreadCount = updatedItems.count(NotificationFeedItem::isUnread),
-            )
+        viewModelScope.launch {
+            dataStore.addNotificationBellDismissedId(id)
+            _uiState.value = _uiState.value.let { state ->
+                val updatedItems = state.items.filterNot { it.id == id }
+                state.copy(
+                    items = updatedItems,
+                    unreadCount = updatedItems.count(NotificationFeedItem::isUnread),
+                )
+            }
         }
     }
 
@@ -129,5 +132,6 @@ class NotificationBellViewModel @Inject constructor(
         }
     }
 
-    private fun parseTimestamp(raw: String): Instant = runCatching { Instant.parse(raw) }.getOrDefault(Instant.EPOCH)
+    private fun parseTimestamp(raw: String): Instant =
+        runCatching { Instant.parse(raw) }.getOrDefault(Instant.EPOCH)
 }

@@ -3,10 +3,8 @@ package com.safarparmar.app.ui.studyplanner.components
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -43,9 +41,9 @@ fun TextInputDialog(
             fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f),
         )
     }
-    AlertDialog(
+    PlannerDialog(
         onDismissRequest = onDismiss,
-        title = { CompositionLocalProvider(LocalDensity provides clampedDensity) { Text(title) } },
+        title = title,
         text = {
             CompositionLocalProvider(LocalDensity provides clampedDensity) {
                 OutlinedTextField(
@@ -62,14 +60,18 @@ fun TextInputDialog(
                 )
             }
         },
-        confirmButton = {
-            CompositionLocalProvider(LocalDensity provides clampedDensity) {
-                TextButton(enabled = text.trim().length >= 2, onClick = { onConfirm(text.trim()) }) { Text(confirmLabel) }
-            }
-        },
         dismissButton = {
             CompositionLocalProvider(LocalDensity provides clampedDensity) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                PlannerDialogTextAction("Cancel", onClick = onDismiss)
+            }
+        },
+        confirmButton = {
+            CompositionLocalProvider(LocalDensity provides clampedDensity) {
+                PlannerDialogAction(
+                    text = confirmLabel,
+                    onClick = { onConfirm(text.trim()) },
+                    enabled = text.trim().length >= 2,
+                )
             }
         },
     )

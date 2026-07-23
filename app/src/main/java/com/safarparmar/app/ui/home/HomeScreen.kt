@@ -192,7 +192,14 @@ fun HomeScreen(
                 showAnnouncementsSheet = false
                 val deepLink = item.deepLink
                 if (!deepLink.isNullOrBlank()) {
-                    onNavigate(com.safarparmar.app.notifications.NotificationDeepLinkHandler.routeFor(deepLink))
+                    val uri = Uri.parse(deepLink)
+                    if (com.safarparmar.app.notifications.NotificationDeepLinkHandler.isExternalWebLink(uri)) {
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                        }
+                    } else {
+                        onNavigate(com.safarparmar.app.notifications.NotificationDeepLinkHandler.routeFor(deepLink))
+                    }
                 } else {
                     val marketIntent = Intent(
                         Intent.ACTION_VIEW,

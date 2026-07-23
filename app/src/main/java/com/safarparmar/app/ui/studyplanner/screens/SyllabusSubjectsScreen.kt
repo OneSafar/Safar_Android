@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogTextAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
@@ -773,17 +777,17 @@ fun SyllabusSubjectsScreen(
             )
         }
         is SyllabusDialogState.DuplicateNameConfirm -> {
-            AlertDialog(
+            PlannerDialog(
                 onDismissRequest = { dialogState = SyllabusDialogState.Closed },
-                title = { Text("Name already used") },
-                text = { Text(ds.message) },
-                confirmButton = {
-                    TextButton(onClick = { ds.onConfirm(); dialogState = SyllabusDialogState.Closed }) {
-                        Text("Add Anyway")
-                    }
-                },
+                title = "Name already used",
+                text = { PlannerDialogText(ds.message) },
                 dismissButton = {
-                    TextButton(onClick = { dialogState = SyllabusDialogState.Closed }) { Text("Cancel") }
+                    PlannerDialogTextAction("Cancel") { dialogState = SyllabusDialogState.Closed }
+                },
+                confirmButton = {
+                    PlannerDialogAction(text = "Add Anyway") {
+                        ds.onConfirm(); dialogState = SyllabusDialogState.Closed
+                    }
                 },
             )
         }
@@ -791,18 +795,16 @@ fun SyllabusSubjectsScreen(
     }
 
     if (showReorderBuildInfo) {
-        AlertDialog(
+        PlannerDialog(
             onDismissRequest = { showReorderBuildInfo = false },
-            title = { Text("Build re-ordered syllabus") },
+            title = "Build re-ordered syllabus",
             text = {
-                Text(
+                PlannerDialogText(
                     "This rebuilds your study plan in the subject, chapter, and topic order you chose."
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showReorderBuildInfo = false }) {
-                    Text("Got it")
-                }
+                PlannerDialogAction(text = "Got it") { showReorderBuildInfo = false }
             },
         )
     }

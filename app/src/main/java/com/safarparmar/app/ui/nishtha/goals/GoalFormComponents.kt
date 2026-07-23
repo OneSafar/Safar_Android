@@ -1,93 +1,117 @@
 package com.safarparmar.app.ui.nishtha.goals
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
-import com.safarparmar.app.R
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.safarparmar.app.domain.model.Goal
-import com.safarparmar.app.domain.model.GoalSubtask
-import com.safarparmar.app.ui.components.GoalRowSkeleton
-import com.safarparmar.app.ui.components.SafarEmptyState
-import com.safarparmar.app.ui.components.SafarErrorState
-import com.safarparmar.app.ui.components.SafarPullRefreshBox
-import com.safarparmar.app.ui.nishtha.NishthaEvent
-import com.safarparmar.app.ui.nishtha.NishthaViewModel
-import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.util.IstDateUtils
-import java.time.LocalTime
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 internal fun AssistOptionRow(selected: Boolean, title: String, subtitle: String, onClick: () -> Unit) {
-    val borderColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(14.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f))
-            .clickable { onClick() }
-            .padding(12.dp),
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .clip(CircleShape)
+                .border(
+                    width = if (selected) 5.dp else 1.5.dp,
+                    color = if (selected) GoalsFlatColors.Primary else GoalsFlatColors.Hairline,
+                    shape = CircleShape,
+                ),
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                title,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = if (selected) GoalsFlatColors.Primary else GoalsFlatColors.Text,
+            )
+            Text(subtitle, color = GoalsFlatColors.Muted, fontSize = 12.sp, lineHeight = 16.sp)
         }
     }
 }
 
 @Composable
 internal fun ScheduledDatePickerRow(selectedDate: LocalDate, onClick: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("When should this activate?", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton(onClick = onClick, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(IstDateUtils.labelFor(selectedDate.toString()))
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "When should this activate?",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = GoalsFlatColors.Text,
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(12.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = GoalsFlatColors.Scheduled,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    IstDateUtils.labelFor(selectedDate.toString()),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = GoalsFlatColors.Text,
+                )
+            }
         }
-        Text("This goal will activate on ${IstDateUtils.labelFor(selectedDate.toString())}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "This goal will activate on ${IstDateUtils.labelFor(selectedDate.toString())}",
+            fontSize = 12.sp,
+            color = GoalsFlatColors.Muted,
+        )
     }
 }
 
 @Composable
 internal fun GuideSection(title: String, items: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = GoalsFlatColors.Text)
         items.forEach { item ->
-            Text("- $item", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("- $item", fontSize = 12.sp, color = GoalsFlatColors.Muted)
         }
     }
 }

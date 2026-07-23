@@ -79,12 +79,11 @@ internal fun EkagraBottomNav(
     onSelect: (EkagraNavTab) -> Unit,
     isOnVideo: Boolean,
     isDarkTheme: Boolean,
+    selectedTheme: VisualTheme? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val accentColor = scheme.primary
-    // Over the Timer tab's video/gradient canvas the bar reads light-on-dark;
-    // elsewhere it follows the surface.
-    val ink = rememberEkagraInk(onCanvas = isOnVideo)
+    val ink = rememberEkagraInk(onCanvas = isOnVideo, theme = selectedTheme, isDarkTheme = isDarkTheme)
 
     // ── A hairline, an icon, a dot ───────────────────────────────────────────
     // The redesign drops the floating frosted panel and the filled icon discs

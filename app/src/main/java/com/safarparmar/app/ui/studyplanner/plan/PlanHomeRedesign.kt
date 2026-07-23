@@ -30,8 +30,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -70,6 +68,8 @@ import com.safarparmar.app.domain.model.studyplanner.progressPercentValue
 import kotlin.math.roundToInt
 import com.safarparmar.app.ui.studyplanner.StudyPlannerTab
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenu
+import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenuItem
 import com.safarparmar.app.ui.studyplanner.components.subjectDotColor
 import com.safarparmar.app.ui.studyplanner.logic.TopicRef
 import com.safarparmar.app.ui.studyplanner.logic.daysUntil
@@ -600,34 +600,26 @@ internal fun PlanHomeTaskRow(
                         modifier = Modifier.size(16.dp),
                     )
                 }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     if (onFocus != null && !done) {
-                        DropdownMenuItem(
-                            text = { Text("Focus with Ekagra") },
-                            leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
-                            onClick = { showMenu = false; onFocus() },
-                        )
+                        PlannerOverflowMenuItem("Focus with Ekagra", icon = Icons.Default.Timer) {
+                            showMenu = false; onFocus()
+                        }
                     }
                     if (onEdit != null) {
-                        DropdownMenuItem(
-                            text = { Text("Edit topic") },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                            onClick = { showMenu = false; onEdit() },
-                        )
+                        PlannerOverflowMenuItem("Edit topic", icon = Icons.Default.Edit) {
+                            showMenu = false; onEdit()
+                        }
                     }
                     if (onReplace != null) {
-                        DropdownMenuItem(
-                            text = { Text("Replace topic") },
-                            leadingIcon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
-                            onClick = { showMenu = false; onReplace() },
-                        )
+                        PlannerOverflowMenuItem("Replace topic", icon = Icons.Default.SwapHoriz) {
+                            showMenu = false; onReplace()
+                        }
                     }
                     if (onRemoveFromToday != null && !done) {
-                        DropdownMenuItem(
-                            text = { Text("Remove from today") },
-                            leadingIcon = { Icon(Icons.Default.RemoveCircleOutline, contentDescription = null) },
-                            onClick = { showMenu = false; onRemoveFromToday() },
-                        )
+                        PlannerOverflowMenuItem("Remove from today", icon = Icons.Default.RemoveCircleOutline) {
+                            showMenu = false; onRemoveFromToday()
+                        }
                     }
                 }
             }

@@ -121,12 +121,22 @@ internal fun EkagraVideoBackground(videoUrl: String, modifier: Modifier = Modifi
                 override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
                     val mp = textureView.getTag(R.id.ekagra_player_tag) as? MediaPlayer
                     textureView.setTag(R.id.ekagra_player_tag, null)
-                    mp?.setSurface(null) // Disconnect surface immediately
-                    Thread { // Run in background to prevent ANR
-                        try { mp?.stop() } catch (_: Exception) {}
-                        try { mp?.release() } catch (_: Exception) {}
+                    // setSurface/stop/release are all synchronous binder calls into
+                    // mediaserver. The background is streamed over HTTP, so mediaserver
+                    // can be parked on a socket read or DNS lookup — doing any of this on
+                    // the main thread stalls input dispatch and ANRs ("Slow binder call").
+                    // Returning false makes us the owner of the SurfaceTexture, so we can
+                    // keep it alive until the player has fully detached and release it here.
+                    Thread {
+                        try {
+                            runCatching { mp?.setSurface(null) }
+                            runCatching { mp?.stop() }
+                            runCatching { mp?.release() }
+                        } finally {
+                            runCatching { p0.release() }
+                        }
                     }.start()
-                    return true
+                    return false
                 }
                 override fun onSurfaceTextureUpdated(p0: SurfaceTexture) = Unit
             }

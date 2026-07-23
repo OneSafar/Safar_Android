@@ -1,13 +1,26 @@
 package com.safarparmar.app.ui.nishtha.goals
 
-import androidx.compose.foundation.BorderStroke
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,17 +28,41 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -33,28 +70,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
-import com.safarparmar.app.R
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.domain.model.Goal
-import com.safarparmar.app.domain.model.GoalSubtask
-import com.safarparmar.app.ui.components.GoalRowSkeleton
-import com.safarparmar.app.ui.components.SafarEmptyState
-import com.safarparmar.app.ui.components.SafarErrorState
-import com.safarparmar.app.ui.components.SafarPullRefreshBox
+import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.NishthaEvent
 import com.safarparmar.app.ui.nishtha.NishthaViewModel
-import com.safarparmar.app.ui.navigation.Routes
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.util.IstDateUtils
-import java.time.LocalTime
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-private val BrandNavy = Color(0xFF0C2B61)
+import java.time.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,13 +91,25 @@ fun GoalsScreen(
     onNavigate: (String) -> Unit = {},
     viewModel: NishthaViewModel = hiltViewModel()
 ) {
+    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
+        GoalsScreenContent(onNavigate = onNavigate, viewModel = viewModel)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GoalsScreenContent(
+    onNavigate: (String) -> Unit,
+    viewModel: NishthaViewModel,
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+
     // Automatically refresh goals when this screen comes into focus
     LaunchedEffect(Unit) {
         viewModel.onEvent(NishthaEvent.LoadGoals)
     }
-    
+
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Today", "Upcoming", "Completed")
@@ -115,6 +156,18 @@ fun GoalsScreen(
     )
     val timePickerState = rememberTimePickerState(initialHour = selectedHour, initialMinute = selectedMinute, is24Hour = false)
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = GoalsFlatColors.Primary,
+        unfocusedBorderColor = GoalsFlatColors.Hairline,
+        focusedTextColor = GoalsFlatColors.Text,
+        unfocusedTextColor = GoalsFlatColors.Text,
+        focusedLabelColor = GoalsFlatColors.Muted,
+        unfocusedLabelColor = GoalsFlatColors.Muted,
+        cursorColor = GoalsFlatColors.Primary,
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent,
+    )
+
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -124,16 +177,27 @@ fun GoalsScreen(
                         selectedDate = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text("OK", color = GoalsFlatColors.Primary) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } }
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel", color = GoalsFlatColors.Muted)
+                }
+            },
         ) { DatePicker(state = datePickerState) }
     }
 
     if (showTimePicker) {
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("Select Start Time (IST)") },
+            containerColor = GoalsFlatColors.Bg,
+            title = {
+                Text(
+                    "Select Start Time (IST)",
+                    color = GoalsFlatColors.Text,
+                    fontWeight = FontWeight.Bold,
+                )
+            },
             text = { TimePicker(state = timePickerState) },
             confirmButton = {
                 TextButton(onClick = {
@@ -146,9 +210,14 @@ fun GoalsScreen(
                         selectedMinute = timePickerState.minute
                         showTimePicker = false
                     }
-                }) { Text("OK") }
+                }) { Text("OK", color = GoalsFlatColors.Primary) }
             },
-            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Cancel") } }
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Cancel", color = GoalsFlatColors.Muted)
+                }
+            },
+            shape = RoundedCornerShape(24.dp),
         )
     }
 
@@ -156,7 +225,16 @@ fun GoalsScreen(
     completeGoal?.let { goal ->
         AlertDialog(
             onDismissRequest = { completeGoal = null; studyHours = 0; studyMinutes = 0 },
-            title = { Text("How long did you study?", fontWeight = FontWeight.Bold) },
+            containerColor = GoalsFlatColors.Bg,
+            title = {
+                Text(
+                    "How long did you study?",
+                    fontFamily = LoraFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 22.sp,
+                    color = GoalsFlatColors.Text,
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(
@@ -165,8 +243,13 @@ fun GoalsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("HOURS", fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
+                            Text(
+                                "HOURS",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = GoalsFlatColors.Primary,
+                                letterSpacing = 1.sp,
+                            )
                             Spacer(Modifier.height(6.dp))
                             TimeDigitField(
                                 value = studyHours,
@@ -174,10 +257,21 @@ fun GoalsScreen(
                                 maxValue = 99,
                             )
                         }
-                        Text(":", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 20.dp))
+                        Text(
+                            ":",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GoalsFlatColors.Primary,
+                            modifier = Modifier.padding(top = 20.dp),
+                        )
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("MINUTES", fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
+                            Text(
+                                "MINUTES",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = GoalsFlatColors.Primary,
+                                letterSpacing = 1.sp,
+                            )
                             Spacer(Modifier.height(6.dp))
                             TimeDigitField(
                                 value = studyMinutes,
@@ -186,47 +280,80 @@ fun GoalsScreen(
                             )
                         }
                     }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         listOf("+15m" to 15, "+30m" to 30, "+1h" to 60, "+2h" to 120).forEach { (label, mins) ->
-                            OutlinedButton(
-                                onClick = {
-                                    val total = studyHours * 60 + studyMinutes + mins
-                                    studyHours = total / 60
-                                    studyMinutes = total % 60
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(20.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                            ) { Text(label, fontSize = 11.sp) }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(20.dp))
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {
+                                            val total = studyHours * 60 + studyMinutes + mins
+                                            studyHours = total / 60
+                                            studyMinutes = total % 60
+                                        },
+                                    )
+                                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Text)
+                            }
                         }
                     }
                 }
             },
             confirmButton = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = {
-                            val totalMins = studyHours * 60 + studyMinutes
-                            viewModel.completeGoal(goal.id, totalMins)
-                            completeGoal = null; studyHours = 0; studyMinutes = 0
-                            Toast.makeText(context, "Goal completed!", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = ButtonDefaults.shape,
-                    ) { Text("Done", fontWeight = FontWeight.SemiBold) }
-                    TextButton(
-                        onClick = {
-                            viewModel.completeGoal(goal.id, 0)
-                            completeGoal = null
-                            Toast.makeText(context, "Goal completed!", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Skip", color = MaterialTheme.colorScheme.primary) }
-                    OutlinedButton(
-                        onClick = { completeGoal = null; studyHours = 0; studyMinutes = 0 },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = ButtonDefaults.outlinedShape
-                    ) { Text("Cancel") }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(GoalsFlatColors.Primary)
+                            .clickable {
+                                val totalMins = studyHours * 60 + studyMinutes
+                                viewModel.completeGoal(goal.id, totalMins)
+                                completeGoal = null; studyHours = 0; studyMinutes = 0
+                                Toast.makeText(context, "Goal completed!", Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(vertical = 14.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("Done", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                    }
+                    Text(
+                        "Skip",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = GoalsFlatColors.Primary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.completeGoal(goal.id, 0)
+                                completeGoal = null
+                                Toast.makeText(context, "Goal completed!", Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(vertical = 10.dp),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(14.dp))
+                            .clickable {
+                                completeGoal = null; studyHours = 0; studyMinutes = 0
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("Cancel", fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted, fontSize = 13.sp)
+                    }
                 }
             },
             dismissButton = null,
@@ -239,24 +366,41 @@ fun GoalsScreen(
         ModalBottomSheet(
             onDismissRequest = { editGoal = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            containerColor = GoalsFlatColors.Bg,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            dragHandle = {
+                BottomSheetDefaults.DragHandle(color = GoalsFlatColors.Hairline)
+            },
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp).padding(bottom = 40.dp).imePadding(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 40.dp)
+                    .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text("Edit Goal", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                PlanEyebrow("Goals")
+                Text(
+                    "Edit Goal",
+                    fontFamily = LoraFontFamily,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = GoalsFlatColors.Text,
+                )
+                PlanHairline()
                 OutlinedTextField(
                     value = editTitle,
                     onValueChange = { editTitle = it },
                     label = { Text("What do you want to do?") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = fieldColors,
                 )
-                Text("Goal Type", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                PlanHairline(alpha = 0.6f)
+                Text("Goal Type", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     buildList {
                         if (editGoalKind == "one_time") add(Triple("one_time", "One-time (legacy)", "No fixed day. Complete it whenever."))
@@ -279,44 +423,62 @@ fun GoalsScreen(
                     }
                 }
                 if (editGoalKind == "scheduled") {
+                    PlanHairline(alpha = 0.6f)
                     ScheduledDatePickerRow(
                         selectedDate = selectedDate,
                         onClick = { showDatePicker = true }
                     )
                 }
-                OutlinedTextField(value = editDesc, onValueChange = { editDesc = it }, label = { Text("Add details (optional)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                Button(
-                    onClick = {
-                        val scheduledDate = when (editGoalKind) {
-                            "today" -> IstDateUtils.todayKey()
-                            "scheduled" -> selectedDate.toString()
-                            "one_time" -> goal.scheduledDate
-                            else -> IstDateUtils.todayKey()
-                        }
-                        viewModel.updateGoalDetails(
-                            id = goal.id,
-                            title = editTitle.trim(),
-                            description = editDesc.ifBlank { null },
-                            priority = editPriority,
-                            scheduledDate = scheduledDate,
-                            startedAt = goal.startedAt,
-                            subtasks = if (editUnitType == "checklist") goal.subtasks else emptyList(),
-                            goalKind = editGoalKind,
-                            unitType = editUnitType,
-                            linkedFocusEnabled = false,
-                            plannedFocusMinutes = null,
-                            targetValue = goal.targetValue,
-                            achievedValue = goal.achievedValue,
-                            status = editStatus,
-                            carryForwardMode = if (editGoalKind == "scheduled" || editGoalKind == "one_time") "none" else editCarryForward
-                        )
-                        editGoal = null
-                        Toast.makeText(context, "Goal updated!", Toast.LENGTH_SHORT).show()
-                    },
-                    enabled = editTitle.isNotBlank() && !uiState.isSavingGoal,
+                PlanHairline(alpha = 0.6f)
+                OutlinedTextField(
+                    value = editDesc,
+                    onValueChange = { editDesc = it },
+                    label = { Text("Add details (optional)") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = ButtonDefaults.shape,
-                ) { Text("Save Changes") }
+                    shape = RoundedCornerShape(12.dp),
+                    colors = fieldColors,
+                )
+                val saveEnabled = editTitle.isNotBlank() && !uiState.isSavingGoal
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (saveEnabled) GoalsFlatColors.Primary
+                            else GoalsFlatColors.Hairline.copy(alpha = 0.55f),
+                        )
+                        .clickable(enabled = saveEnabled) {
+                            val scheduledDate = when (editGoalKind) {
+                                "today" -> IstDateUtils.todayKey()
+                                "scheduled" -> selectedDate.toString()
+                                "one_time" -> goal.scheduledDate
+                                else -> IstDateUtils.todayKey()
+                            }
+                            viewModel.updateGoalDetails(
+                                id = goal.id,
+                                title = editTitle.trim(),
+                                description = editDesc.ifBlank { null },
+                                priority = editPriority,
+                                scheduledDate = scheduledDate,
+                                startedAt = goal.startedAt,
+                                subtasks = if (editUnitType == "checklist") goal.subtasks else emptyList(),
+                                goalKind = editGoalKind,
+                                unitType = editUnitType,
+                                linkedFocusEnabled = false,
+                                plannedFocusMinutes = null,
+                                targetValue = goal.targetValue,
+                                achievedValue = goal.achievedValue,
+                                status = editStatus,
+                                carryForwardMode = if (editGoalKind == "scheduled" || editGoalKind == "one_time") "none" else editCarryForward
+                            )
+                            editGoal = null
+                            Toast.makeText(context, "Goal updated!", Toast.LENGTH_SHORT).show()
+                        }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("Save Changes", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                }
             }
         }
     }
@@ -340,23 +502,41 @@ fun GoalsScreen(
         ModalBottomSheet(
             onDismissRequest = { showAddSheet = false },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            containerColor = GoalsFlatColors.Bg,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            dragHandle = {
+                BottomSheetDefaults.DragHandle(color = GoalsFlatColors.Hairline)
+            },
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp).imePadding(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 40.dp)
+                    .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text("New Goal", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                PlanEyebrow("Goals")
+                Text(
+                    "New Goal",
+                    fontFamily = LoraFontFamily,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = GoalsFlatColors.Text,
+                )
+                PlanHairline()
                 OutlinedTextField(
                     value = newTitle,
                     onValueChange = { newTitle = it },
                     label = { Text("What do you want to do?") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = fieldColors,
                 )
-                Text("Goal Type", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                PlanHairline(alpha = 0.6f)
+                Text("Goal Type", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
                         Triple("today", "Today", "A task for today only. Disappears tomorrow."),
@@ -376,39 +556,68 @@ fun GoalsScreen(
                     }
                 }
                 if (newGoalKind == "scheduled") {
+                    PlanHairline(alpha = 0.6f)
                     ScheduledDatePickerRow(
                         selectedDate = selectedDate,
                         onClick = { showDatePicker = true }
                     )
                 }
-                OutlinedTextField(value = newDesc, onValueChange = { newDesc = it }, label = { Text("Add details (optional)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                if (uiState.goalError != null) Text(uiState.goalError!!, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-                Button(
-                    onClick = {
-                        val scheduledDate = if (newGoalKind == "scheduled") selectedDate.toString() else IstDateUtils.todayKey()
-                        viewModel.addGoal(
-                            title = newTitle.trim(),
-                            description = newDesc.ifBlank { null },
-                            priority = newPriority,
-                            scheduledDate = scheduledDate,
-                            startedAt = null,
-                            subtasks = emptyList(),
-                            goalKind = newGoalKind,
-                            unitType = "binary",
-                            linkedFocusEnabled = false,
-                            plannedFocusMinutes = null,
-                            targetValue = null,
-                            achievedValue = 0,
-                            status = "not_started",
-                            carryForwardMode = newCarryForward
-                        )
-                    },
-                    enabled = newTitle.isNotBlank() && !uiState.isSavingGoal,
+                PlanHairline(alpha = 0.6f)
+                OutlinedTextField(
+                    value = newDesc,
+                    onValueChange = { newDesc = it },
+                    label = { Text("Add details (optional)") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = ButtonDefaults.shape,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = fieldColors,
+                )
+                if (uiState.goalError != null) {
+                    Text(uiState.goalError!!, color = GoalsFlatColors.Danger, fontSize = 13.sp)
+                }
+                val createEnabled = newTitle.isNotBlank() && !uiState.isSavingGoal
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (createEnabled) GoalsFlatColors.Primary
+                            else GoalsFlatColors.Hairline.copy(alpha = 0.55f),
+                        )
+                        .clickable(enabled = createEnabled) {
+                            val scheduledDate = if (newGoalKind == "scheduled") selectedDate.toString() else IstDateUtils.todayKey()
+                            viewModel.addGoal(
+                                title = newTitle.trim(),
+                                description = newDesc.ifBlank { null },
+                                priority = newPriority,
+                                scheduledDate = scheduledDate,
+                                startedAt = null,
+                                subtasks = emptyList(),
+                                goalKind = newGoalKind,
+                                unitType = "binary",
+                                linkedFocusEnabled = false,
+                                plannedFocusMinutes = null,
+                                targetValue = null,
+                                achievedValue = 0,
+                                status = "not_started",
+                                carryForwardMode = newCarryForward
+                            )
+                        }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    if (uiState.isSavingGoal) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
-                    else { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Create Goal") }
+                    if (uiState.isSavingGoal) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = Color.White)
+                            Spacer(Modifier.width(6.dp))
+                            Text("Create Goal", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                        }
+                    }
                 }
             }
         }
@@ -417,138 +626,147 @@ fun GoalsScreen(
     if (showStatusSheet) {
         AlertDialog(
             onDismissRequest = { showStatusSheet = false },
+            containerColor = GoalsFlatColors.Bg,
             confirmButton = {
-                TextButton(onClick = { showStatusSheet = false }) { Text("Close") }
+                TextButton(onClick = { showStatusSheet = false }) {
+                    Text("Close", color = GoalsFlatColors.Primary, fontWeight = FontWeight.SemiBold)
+                }
             },
-            title = { Text("Status", fontWeight = FontWeight.Bold) },
+            title = {
+                Text(
+                    "Status",
+                    fontFamily = LoraFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 22.sp,
+                    color = GoalsFlatColors.Text,
+                )
+            },
             text = {
                 StatusGrid(goals = uiState.goals, ekagraAnalytics = uiState.ekagraAnalytics)
             },
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
         )
     }
 
-    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
-    // Match the indigo/slate surface used by Today's progress.
-    val addButtonBg = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
-    val addButtonFg = if (isDark) Color(0xFF1E293B) else Color.White
-    val tabSelectedColor = MaterialTheme.colorScheme.primary
+    val todayKey = IstDateUtils.todayKey()
+    val standardGoals = uiState.goals.filter { it.source != "ekagra" }
+    val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
+    val doneToday = manualCompletedGoals.count { it.completedDateKey() == todayKey }
+    val pendingToday = standardGoals.count {
+        !it.completed &&
+            it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
+            !(it.lifecycleStatus == "missed" && it.nextInstanceCreated) &&
+            !it.isDormant(todayKey)
+    }
+    val totalToday = doneToday + pendingToday
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(GoalsFlatColors.Bg),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 0.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        "My Goals",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                    )
-                }
-            }
-            
+            PlanEyebrow("Nishtha")
+            Spacer(Modifier.height(14.dp))
+            Text(
+                "My Goals",
+                fontFamily = LoraFontFamily,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Normal,
+                color = GoalsFlatColors.Text,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "${uiState.goals.size} goals · $doneToday of $totalToday done today",
+                fontSize = 13.sp,
+                color = GoalsFlatColors.Muted,
+            )
+            Spacer(Modifier.height(16.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
+                FlatActionChip(
+                    label = "Status",
+                    icon = {
+                        Icon(
+                            Icons.Default.BarChart,
+                            null,
+                            modifier = Modifier.size(16.dp),
+                            tint = GoalsFlatColors.Muted,
+                        )
+                    },
+                    filled = false,
                     onClick = { showStatusSheet = true },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                    modifier = Modifier.heightIn(min = 40.dp)
-                ) {
-                    Icon(Icons.Default.BarChart, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Status", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Clip, fontWeight = FontWeight.SemiBold)
-                }
-                OutlinedButton(
+                )
+                FlatActionChip(
+                    label = "Insights",
+                    icon = {
+                        Icon(
+                            Icons.AutoMirrored.Filled.TrendingUp,
+                            null,
+                            modifier = Modifier.size(16.dp),
+                            tint = GoalsFlatColors.Muted,
+                        )
+                    },
+                    filled = false,
                     onClick = { onNavigate(Routes.nishthaAnalytics("goals")) },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                    modifier = Modifier.heightIn(min = 40.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.TrendingUp, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Insights", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Clip, fontWeight = FontWeight.SemiBold)
-                }
-                Button(
+                )
+                FlatActionChip(
+                    label = "Add Goal",
+                    icon = {
+                        Icon(
+                            Icons.Default.Add,
+                            null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.White,
+                        )
+                    },
+                    filled = true,
                     onClick = { showAddSheet = true },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = addButtonBg, contentColor = addButtonFg),
-                    modifier = Modifier.heightIn(min = 40.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                ) {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Add Goal", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Clip, fontWeight = FontWeight.SemiBold)
-                }
+                )
             }
 
-            val todayKey = IstDateUtils.todayKey()
-            val standardGoals = uiState.goals.filter { it.source != "ekagra" }
-            val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
-            val doneToday = manualCompletedGoals.count { it.completedDateKey() == todayKey }
-            val pendingToday = standardGoals.count {
-                !it.completed &&
-                it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
-                !(it.lifecycleStatus == "missed" && it.nextInstanceCreated) &&
-                !it.isDormant(todayKey)
-            }
-            val totalToday = doneToday + pendingToday
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+            Spacer(Modifier.height(18.dp))
+            PlanHairline()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text("Today's progress", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
-                    Text("$doneToday of $totalToday goals done 🎯", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            }
-        }
-        TabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = MaterialTheme.colorScheme.surface,
-            indicator = { tabPositions ->
-                TabRowDefaults.SecondaryIndicator(
-                    Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                    color = tabSelectedColor
+                Text(
+                    "$doneToday of $totalToday",
+                    fontFamily = LoraFontFamily,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = GoalsFlatColors.Done,
+                )
+                Text(
+                    "goals done today",
+                    fontSize = 13.sp,
+                    color = GoalsFlatColors.Muted,
                 )
             }
-        ) {
-            tabs.forEachIndexed { i, title ->
-                Tab(
-                    selected = selectedTab == i,
-                    onClick = { selectedTab = i },
-                    text = {
-                        Text(
-                            title,
-                            fontSize = 13.sp,
-                            color = if (selectedTab == i) tabSelectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (selectedTab == i) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                )
-            }
+            PlanHairline()
+
+            Spacer(Modifier.height(14.dp))
+            GoalsUnderlineTabs(
+                tabs = tabs,
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+            )
+            Spacer(Modifier.height(4.dp))
         }
+
         when (selectedTab) {
             0, 1 -> GoalsTab(
                 filterMode = if (selectedTab == 0) "today" else "upcoming",
@@ -587,6 +805,88 @@ fun GoalsScreen(
     }
 }
 
+@Composable
+private fun FlatActionChip(
+    label: String,
+    icon: @Composable () -> Unit,
+    filled: Boolean,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(20.dp)
+    Box(
+        modifier = Modifier
+            .heightIn(min = 40.dp)
+            .clip(shape)
+            .then(
+                if (filled) {
+                    Modifier.background(GoalsFlatColors.Primary)
+                } else {
+                    Modifier.border(1.dp, GoalsFlatColors.Hairline, shape)
+                },
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            icon()
+            Spacer(Modifier.width(if (filled) 4.dp else 6.dp))
+            Text(
+                label,
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+                fontWeight = FontWeight.SemiBold,
+                color = if (filled) Color.White else GoalsFlatColors.Text,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GoalsUnderlineTabs(
+    tabs: List<String>,
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(26.dp),
+    ) {
+        tabs.forEachIndexed { i, title ->
+            val selected = selectedTab == i
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .width(IntrinsicSize.Min)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { onTabSelected(i) },
+                    ),
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 13.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                    color = if (selected) GoalsFlatColors.Text else GoalsFlatColors.Muted,
+                )
+                Spacer(Modifier.height(10.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(if (selected) GoalsFlatColors.Primary else Color.Transparent),
+                )
+            }
+        }
+    }
+}
+
 /** A tappable, typeable hours/minutes digit box for the "How long did you study?"
  *  dialog — previously a plain [Text] with no input handling at all, so the quick-add
  *  chips were the only way to set a value. */
@@ -606,10 +906,11 @@ private fun TimeDigitField(
     }
 
     Box(
-        modifier = Modifier.size(width = 90.dp, height = 72.dp)
+        modifier = Modifier
+            .size(width = 90.dp, height = 72.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-            .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
+            .background(GoalsFlatColors.PrimarySoft)
+            .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.Center,
     ) {
         BasicTextField(
@@ -629,16 +930,16 @@ private fun TimeDigitField(
             textStyle = TextStyle(
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                color = GoalsFlatColors.Primary,
                 textAlign = TextAlign.Center,
             ),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            cursorBrush = SolidColor(GoalsFlatColors.Primary),
             decorationBox = { innerTextField ->
                 Box(
                     modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     if (textValue.isEmpty()) {
                         Text(
@@ -646,14 +947,14 @@ private fun TimeDigitField(
                             style = TextStyle(
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                color = GoalsFlatColors.Primary.copy(alpha = 0.35f),
                                 textAlign = TextAlign.Center,
-                            )
+                            ),
                         )
                     }
                     innerTextField()
                 }
-            }
+            },
         )
     }
 }

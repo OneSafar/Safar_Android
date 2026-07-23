@@ -48,13 +48,24 @@ fun MehfilScreen(
 
     LaunchedEffect(uiState.postSuccess) {
         if (uiState.postSuccess) {
-            Toast.makeText(context, "Post shared!", Toast.LENGTH_SHORT).show()
+            showCreatePostSheet = false
+            Toast.makeText(context, "Post shared.", Toast.LENGTH_SHORT).show()
             viewModel.clearPostSuccess()
         }
     }
 
     LaunchedEffect(uiState.postError) {
-        uiState.postError?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+        uiState.postError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearPostError()
+        }
+    }
+
+    LaunchedEffect(uiState.userMessage) {
+        uiState.userMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearUserMessage()
+        }
     }
 
     LaunchedEffect(uiState.dmState) {
@@ -112,11 +123,13 @@ fun MehfilScreen(
             isLoadingMore = uiState.isLoadingMoreComments,
             hasMore = uiState.hasMoreComments,
             isPosting = uiState.isPostingComment,
+            errorMessage = uiState.commentError,
             commentInput = commentInput,
             onCommentChange = { commentInput = it },
             onPost = {
-                viewModel.postComment(post.id, commentInput)
-                commentInput = ""
+                viewModel.postComment(post.id, commentInput) {
+                    commentInput = ""
+                }
             },
             onLoadMore = { viewModel.loadComments(uiState.currentCommentPostId, loadMore = true) },
             onDismiss = {
@@ -129,9 +142,9 @@ fun MehfilScreen(
     if (showCreatePostSheet) {
         CreatePostSheet(
             selectedSpace = uiState.selectedSpace,
+            isPosting = uiState.isPosting,
             onPost = { content, space, isAnonymous ->
                 viewModel.createPost(content, space, isAnonymous)
-                showCreatePostSheet = false
             },
             onDismiss = { showCreatePostSheet = false },
         )

@@ -1,153 +1,108 @@
 package com.safarparmar.app.ui.settings
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PrivacyTip
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.local.SafarDataStore
-import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
-import com.safarparmar.app.ui.debug.NotificationDebugSettingsEntry
-import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
-import com.safarparmar.app.ui.premium.PremiumUiState
+import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
+import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.premium.PremiumViewModel
-import com.safarparmar.app.ui.profile.GlassCard
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.theme.SafarSemanticColors
+import com.safarparmar.app.ui.theme.SafarTheme
 
-private enum class SettingsInfoSheet {
-    EULA,
-    PRIVACY,
-    KAVACH,
-    OVERLAY,
-    USAGE_ACCESS,
-    NOTIFICATIONS,
-}
+private const val URL_PRIVACY_POLICY = "https://safarapp.in/privacy"
+private const val URL_TERMS = "https://safarapp.in/terms"
 
-private fun settingsPremiumPlanLabel(planType: String?): String {
-    val normalized = planType.orEmpty().lowercase(Locale.US)
-    return when {
-        "3month" in normalized || "3-month" in normalized -> "3-month Premium plan"
-        "6month" in normalized || "6-month" in normalized -> "6-month Premium plan"
-        normalized.isNotBlank() -> "Safar Premium plan"
-        else -> "Safar Premium"
+@Composable
+private fun SettingsSectionHeader(
+    icon: ImageVector,
+    title: String,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(scheme.primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = scheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Text(
+            text = title.uppercase(),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.5.sp,
+            color = PlannerFlatColors.TextDark,
+        )
     }
-}
-
-private fun formatSettingsPremiumExpiry(expiresAt: String?): String? {
-    if (expiresAt.isNullOrBlank()) return null
-    val instant = runCatching { Instant.parse(expiresAt) }.getOrNull() ?: return expiresAt.take(10)
-    val formatter = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", Locale.ENGLISH)
-    return formatter.format(instant.atZone(ZoneId.systemDefault()))
-}
-
-private fun formatTimeDisplay(timeStr: String): String {
-    if (timeStr.isBlank()) return "19:00 (7:00 PM)"
-    val parts = timeStr.split(":")
-    if (parts.size != 2) return timeStr
-    val hour = parts[0].toIntOrNull() ?: return timeStr
-    val minute = parts[1].toIntOrNull() ?: return timeStr
-    val isPm = hour >= 12
-    val displayHour = when {
-        hour == 0 -> 12
-        hour > 12 -> hour - 12
-        else -> hour
-    }
-    val amPm = if (isPm) "PM" else "AM"
-    return String.format(Locale.US, "%02d:%02d (%d:%02d %s)", hour, minute, displayHour, minute, amPm)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    currentRoute: String = Routes.SETTINGS,
     isDarkTheme: Boolean = false,
-    onBack: () -> Unit,
+    onNavigate: (String) -> Unit = {},
+    onToggleDarkTheme: () -> Unit = {},
     onHome: () -> Unit = {},
-    onToggleDarkTheme: () -> Unit,
     dataStore: SafarDataStore,
     canAccessAdminComposer: Boolean = false,
     onOpenAdminNotificationComposer: () -> Unit = {},
@@ -157,892 +112,835 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
-    val premiumUiState by premiumViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scheme = MaterialTheme.colorScheme
 
-    var pendingMasterEnable by remember { mutableStateOf(false) }
-    var pendingDailyEnable by remember { mutableStateOf(false) }
+    var hasUsagePermission by remember { mutableStateOf(false) }
+    var hasOverlayPermission by remember { mutableStateOf(false) }
+    var hasNotificationPermission by remember { mutableStateOf(false) }
     var showTimePickerDialog by remember { mutableStateOf(false) }
-    var activeInfoSheet by remember { mutableStateOf<SettingsInfoSheet?>(null) }
+    var showPermissionInfoDialog by remember { mutableStateOf(false) }
 
-    var hasUsageAccess by remember { mutableStateOf(FocusShieldPermissionHelper.hasUsageStatsPermission(context)) }
-    var hasFocusShieldOverlay by remember { mutableStateOf(FocusShieldPermissionHelper.hasOverlayPermission(context)) }
-    var hasNotificationPermission by remember { mutableStateOf(FocusShieldPermissionHelper.hasNotificationPermission(context)) }
-    val isPremiumSyncing = premiumUiState is PremiumUiState.Loading
-    val premiumExpiryText = remember(premiumStatus.expiresAt) { formatSettingsPremiumExpiry(premiumStatus.expiresAt) }
-    val premiumPlanText = remember(premiumStatus.planType) { settingsPremiumPlanLabel(premiumStatus.planType) }
-
-    LaunchedEffect(premiumUiState) {
-        when (val state = premiumUiState) {
-            is PremiumUiState.PaymentSuccess -> {
-                Toast.makeText(context, "Safar Premium status synced.", Toast.LENGTH_SHORT).show()
-                premiumViewModel.resetState()
-            }
-            is PremiumUiState.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-                premiumViewModel.resetState()
-            }
-            else -> Unit
-        }
+    fun refreshPermissions() {
+        hasUsagePermission = checkUsageStatsPermission(context)
+        hasOverlayPermission = checkOverlayPermission(context)
+        hasNotificationPermission = checkNotificationPermission(context)
     }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                hasUsageAccess = FocusShieldPermissionHelper.hasUsageStatsPermission(context)
-                hasFocusShieldOverlay = FocusShieldPermissionHelper.hasOverlayPermission(context)
-                hasNotificationPermission = FocusShieldPermissionHelper.hasNotificationPermission(context)
-            }
+            if (event == Lifecycle.Event.ON_RESUME) refreshPermissions()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val requestNotificationPermission = rememberNotificationPermissionRequester { granted ->
-        hasNotificationPermission = FocusShieldPermissionHelper.hasNotificationPermission(context)
-        if (pendingMasterEnable) {
-            pendingMasterEnable = false
-            if (granted) {
-                viewModel.onEvent(SettingsEvent.ToggleNotifications(true))
-            } else {
-                Toast.makeText(context, "Notification permission is required to enable alerts.", Toast.LENGTH_SHORT).show()
-            }
-        }
-        if (pendingDailyEnable) {
-            pendingDailyEnable = false
-            if (granted) {
-                if (!uiState.notificationsEnabled) viewModel.onEvent(SettingsEvent.ToggleNotifications(true))
-                viewModel.onEvent(SettingsEvent.ToggleDailyStudyReminder(true))
-            } else {
-                Toast.makeText(context, "Notification permission is required for daily reminders.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+    LaunchedEffect(Unit) { refreshPermissions() }
 
-    activeInfoSheet?.let { sheet ->
-        SettingsLegalInfoSheet(
-            sheet = sheet,
-            onDismiss = { activeInfoSheet = null },
-            onOpenOverlaySettings = {
-                activeInfoSheet = null
-                FocusShieldPermissionHelper.openOverlaySettings(context)
-            },
-        )
-    }
-
-    if (showTimePickerDialog) {
-        DailyReminderTimePickerDialog(
-            currentTime = uiState.dailyReminderTime,
-            onDismiss = { showTimePickerDialog = false },
-            onConfirm = { selectedTime ->
-                viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(selectedTime))
-                showTimePickerDialog = false
-            }
-        )
-    }
-
-    Scaffold(
-        containerColor = scheme.background,
-        contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Settings",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 20.sp),
-                            color = scheme.onSurface
-                        )
-                        Text(
-                            text = "Preferences, notifications, and permissions",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = scheme.onSurface)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onHome) {
-                        Icon(Icons.Default.Home, contentDescription = "Home", tint = scheme.onSurfaceVariant)
-                    }
-                    IconButton(onClick = onToggleDarkTheme) {
-                        Icon(
-                            imageVector = if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.Nightlight,
-                            contentDescription = "Toggle Theme",
-                            tint = scheme.onSurface,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-            )
-        },
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                // ── ACCOUNT & PREMIUM ─────────────────────────────────────────────────────────────
-                SettingsGroupCard(title = "ACCOUNT & SUBSCRIPTION") {
-                    SettingsPremiumHeaderCard(
-                        isPremiumActive = premiumStatus.hasAnyPaidAccess,
-                        planLabel = premiumPlanText,
-                        expiryText = premiumExpiryText,
-                        isSyncing = isPremiumSyncing,
-                        onManagePlan = onPremium,
-                        onSyncStatus = {
-                            premiumViewModel.refreshPremiumStatus(
-                                showLoading = true,
-                                fallbackError = "No active Safar Premium plan found for this account."
-                            )
-                        },
-                    )
-                }
-
-                // ── PREFERENCES & THEME ──────────────────────────────────────────────────────────
-                SettingsGroupCard(title = "PREFERENCES & APPEARANCE") {
-                    SettingsSwitchRow(
-                        icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
-                        iconBgColor = scheme.primaryContainer,
-                        iconTint = scheme.primary,
-                        title = "Dark Theme",
-                        subtitle = if (isDarkTheme) "Dark mode enabled" else "Light mode enabled",
-                        checked = isDarkTheme,
-                        onCheckedChange = { onToggleDarkTheme() },
-                    )
-                }
-
-                // ── STUDY NOTIFICATIONS ───────────────────────────────────────────────────────────
-                SettingsGroupCard(title = "STUDY NOTIFICATIONS") {
-                    SettingsSwitchRow(
-                        icon = Icons.Default.Notifications,
-                        iconBgColor = scheme.primaryContainer,
-                        iconTint = scheme.primary,
-                        title = "Allow Notifications",
-                        subtitle = "Master switch for SAFAR study & class alerts",
-                        checked = uiState.notificationsEnabled,
-                        onCheckedChange = { enabled ->
-                            if (!enabled) {
-                                viewModel.onEvent(SettingsEvent.ToggleNotifications(false))
-                            } else {
-                                pendingMasterEnable = true
-                                requestNotificationPermission()
-                            }
-                        },
-                    )
-
-                    AnimatedVisibility(
-                        visible = uiState.notificationsEnabled,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
+    SafarTheme(darkTheme = isDarkTheme) {
+        CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
+            SafarDrawerScaffold(
+                title = "Settings",
+                subtitle = "Preferences & Permissions",
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = onNavigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                containerColor = SafarSemanticColors.plannerBackground(),
+            ) { paddingValues ->
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
                     ) {
-                        Column {
-                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.4f))
-
-                            SettingsSwitchRow(
-                                icon = Icons.Default.CheckCircle,
-                                iconBgColor = scheme.secondaryContainer,
-                                iconTint = scheme.secondary,
-                                title = "Ekagra Timer Updates",
-                                subtitle = "Active timer status, break alerts, and session complete",
-                                checked = uiState.focusTimerNotificationsEnabled,
-                                enabled = uiState.notificationsEnabled,
-                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
+                        // Main Screen Title Banner
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "App Preferences",
+                                fontFamily = LoraFontFamily,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = PlannerFlatColors.TextDark,
                             )
-
-                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
-
-                            SettingsSwitchRow(
-                                icon = Icons.Default.AccessTime,
-                                iconBgColor = scheme.tertiaryContainer,
-                                iconTint = scheme.tertiary,
-                                title = "Daily Study Reminder",
-                                subtitle = "Scheduled daily reminder for your Ekagra focus block",
-                                checked = uiState.dailyStudyReminderEnabled,
-                                enabled = uiState.notificationsEnabled,
-                                onCheckedChange = { enabled ->
-                                    if (!enabled) {
-                                        viewModel.onEvent(SettingsEvent.ToggleDailyStudyReminder(false))
-                                    } else {
-                                        pendingDailyEnable = true
-                                        requestNotificationPermission()
-                                    }
-                                },
+                            Text(
+                                text = "Customize theme, notification alerts, and Kavach system permissions",
+                                fontSize = 13.sp,
+                                color = PlannerFlatColors.TextMuted,
                             )
+                        }
 
-                            if (uiState.dailyStudyReminderEnabled) {
-                                Row(
+                        // Section Card 1: Account & Subscription
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                SettingsSectionHeader(icon = Icons.Default.WorkspacePremium, title = "Account & Subscription")
+                                PlanHairline(alpha = 0.5f)
+                                PremiumStatusSection(
+                                    isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                                    onExplorePremium = onPremium,
+                                    onRestoreStatus = { premiumViewModel.refreshPremiumStatus() },
+                                )
+                            }
+                        }
+
+                        // Section Card 2: Admin Tools (Conditional)
+                        if (canAccessAdminComposer) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                            ) {
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { showTimePickerDialog = true }
-                                        .padding(start = 66.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                        .padding(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(14.dp),
                                 ) {
-                                    Column {
-                                        Text(
-                                            text = "REMINDER TIME",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
-                                            color = scheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            text = formatTimeDisplay(uiState.dailyReminderTime),
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                            color = scheme.primary
-                                        )
-                                    }
-                                    Surface(
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = scheme.primaryContainer,
-                                        modifier = Modifier.clickable { showTimePickerDialog = true }
-                                    ) {
-                                        Text(
-                                            text = "Change",
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = scheme.primary
-                                        )
-                                    }
+                                    SettingsSectionHeader(icon = Icons.Default.AdminPanelSettings, title = "Admin Tools")
+                                    PlanHairline(alpha = 0.5f)
+                                    SettingsNavigationRow(
+                                        title = "Notification Composer",
+                                        subtitle = "Broadcast push alerts to all enrolled students",
+                                        icon = Icons.Default.AdminPanelSettings,
+                                        onClick = onOpenAdminNotificationComposer,
+                                    )
                                 }
                             }
-
-                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
-
-                            SettingsSwitchRow(
-                                icon = Icons.Default.Notifications,
-                                title = "Streak Expiry Warnings",
-                                subtitle = "Evening reminder before your study streak expires",
-                                checked = uiState.streakReminderEnabled,
-                                enabled = uiState.notificationsEnabled,
-                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleStreakReminder(it)) },
-                            )
-
-                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
-
-                            SettingsSwitchRow(
-                                icon = Icons.Default.Notifications,
-                                title = "Course & Class Updates",
-                                subtitle = "Live class alerts, new tests, and study PDFs",
-                                checked = uiState.courseUpdatesEnabled,
-                                enabled = uiState.notificationsEnabled,
-                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
-                            )
-
-                            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
-
-                            SettingsSwitchRow(
-                                icon = Icons.Default.Notifications,
-                                title = "Community & Teacher Replies",
-                                subtitle = "Mehfil replies, mentions, and Parmar Sir alerts",
-                                checked = uiState.communityRepliesEnabled,
-                                enabled = uiState.notificationsEnabled,
-                                onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
-                            )
                         }
-                    }
-                }
 
-                // ── KAVACH PERMISSIONS ───────────────────────────────────────────────────────────
-                val grantedCount = listOf(hasUsageAccess, hasFocusShieldOverlay, hasNotificationPermission).count { it }
-                SettingsGroupCard(title = "KAVACH PERMISSIONS ($grantedCount OF 3 GRANTED)") {
-                    SettingsPermissionRow(
-                        icon = Icons.Default.Security,
-                        title = "App Usage Permission",
-                        subtitle = "Required for KAVACH to detect blocked apps during Ekagra sessions",
-                        granted = hasUsageAccess,
-                        onClickWhenNotGranted = { FocusShieldPermissionHelper.openUsageAccessSettings(context) },
-                        onInfoClick = { activeInfoSheet = SettingsInfoSheet.USAGE_ACCESS },
-                    )
-
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
-
-                    SettingsPermissionRow(
-                        icon = Icons.Default.Lock,
-                        title = "Display Over Other Apps",
-                        subtitle = "Allows KAVACH to show its block screen over distracting apps",
-                        granted = hasFocusShieldOverlay,
-                        onClickWhenNotGranted = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
-                        onInfoClick = { activeInfoSheet = SettingsInfoSheet.OVERLAY },
-                    )
-
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
-
-                    SettingsPermissionRow(
-                        icon = Icons.Default.Notifications,
-                        title = "System Notification Permission",
-                        subtitle = "Android permission for SAFAR study and timer alerts",
-                        granted = hasNotificationPermission,
-                        onClickWhenNotGranted = requestNotificationPermission,
-                        onInfoClick = { activeInfoSheet = SettingsInfoSheet.NOTIFICATIONS },
-                    )
-                }
-
-                // ── LEGAL & ABOUT ────────────────────────────────────────────────────────────────
-                SettingsGroupCard(title = "LEGAL & ABOUT") {
-                    SettingsNavigationRow(
-                        icon = Icons.Default.Info,
-                        title = "End User License Agreement (EULA)",
-                        subtitle = "User terms and conditions for SAFAR",
-                        onClick = { activeInfoSheet = SettingsInfoSheet.EULA },
-                    )
-
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
-
-                    SettingsNavigationRow(
-                        icon = Icons.Default.Lock,
-                        title = "Privacy Policy & Data Security",
-                        subtitle = "How SAFAR handles your data and privacy",
-                        onClick = { activeInfoSheet = SettingsInfoSheet.PRIVACY },
-                    )
-
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
-
-                    SettingsNavigationRow(
-                        icon = Icons.Default.Tune,
-                        title = "Why KAVACH Needs Permissions",
-                        subtitle = "A guide to KAVACH distraction blocking",
-                        onClick = { activeInfoSheet = SettingsInfoSheet.KAVACH },
-                    )
-
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.2f))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "App Version",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = scheme.onSurface
-                        )
-                        Text(
-                            text = "v${BuildConfig.VERSION_NAME.substringBefore('-')}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                if (canAccessAdminComposer) {
-                    SettingsGroupCard(title = "ADMIN TOOLS") {
-                        Button(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            onClick = onOpenAdminNotificationComposer,
-                            shape = RoundedCornerShape(12.dp)
+                        // Section Card 3: Preferences & Theme
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                         ) {
-                            Text("Open Admin Notification Composer", fontWeight = FontWeight.Bold)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                SettingsSectionHeader(
+                                    icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
+                                    title = "Preferences & Appearance"
+                                )
+                                PlanHairline(alpha = 0.5f)
+                                SettingsSwitchRow(
+                                    title = "Dark Theme",
+                                    subtitle = "Switch between dark slate and warm off-white canvas",
+                                    checked = isDarkTheme,
+                                    onCheckedChange = { onToggleDarkTheme() },
+                                    icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
+                                )
+                            }
                         }
+
+                        // Section Card 4: Study Notifications
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                SettingsSectionHeader(icon = Icons.Default.Notifications, title = "Study Notifications")
+                                PlanHairline(alpha = 0.5f)
+                                NotificationsSection(
+                                    uiState = uiState,
+                                    onEvent = viewModel::onEvent,
+                                    onShowTimePicker = { showTimePickerDialog = true },
+                                )
+                            }
+                        }
+
+                        // Section Card 5: Kavach Permissions
+                        val grantedCount = listOf(hasUsagePermission, hasOverlayPermission, hasNotificationPermission).count { it }
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                SettingsSectionHeader(
+                                    icon = Icons.Default.Security,
+                                    title = "Kavach System Permissions ($grantedCount/3)"
+                                )
+                                PlanHairline(alpha = 0.5f)
+                                PermissionsSection(
+                                    hasUsagePermission = hasUsagePermission,
+                                    hasOverlayPermission = hasOverlayPermission,
+                                    hasNotificationPermission = hasNotificationPermission,
+                                    context = context,
+                                )
+                            }
+                        }
+
+                        // Section Card 6: Legal & Info
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                SettingsSectionHeader(icon = Icons.Default.Info, title = "Legal & Information")
+                                PlanHairline(alpha = 0.5f)
+                                LegalSection(
+                                    context = context,
+                                    onShowPermissionInfo = { showPermissionInfoDialog = true },
+                                )
+                            }
+                        }
+
+                        FooterSection()
+
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
 
-                NotificationDebugSettingsEntry()
-
-                Spacer(Modifier.height(24.dp))
-            }
-        }
-    }
-}
-
-// ── Grouped Inset Container ──────────────────────────────────────────────────────────────────────
-@Composable
-private fun SettingsGroupCard(
-    modifier: Modifier = Modifier,
-    title: String? = null,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        if (title != null) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    letterSpacing = 0.5.sp
-                ),
-                color = scheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        }
-        GlassCard {
-            Column(
-                modifier = Modifier.padding(vertical = 4.dp),
-                content = content
-            )
-        }
-    }
-}
-
-// ── Switch Row Item ──────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun SettingsSwitchRow(
-    icon: ImageVector,
-    iconBgColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    iconTint: Color = MaterialTheme.colorScheme.primary,
-    title: String,
-    subtitle: String? = null,
-    checked: Boolean,
-    enabled: Boolean = true,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled) { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(iconBgColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = scheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-        Switch(
-            checked = checked,
-            enabled = enabled,
-            onCheckedChange = onCheckedChange,
-        )
-    }
-}
-
-// ── Navigation Row Item ──────────────────────────────────────────────────────────────────────────
-@Composable
-private fun SettingsNavigationRow(
-    icon: ImageVector,
-    iconBgColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    iconTint: Color = MaterialTheme.colorScheme.primary,
-    title: String,
-    subtitle: String? = null,
-    onClick: () -> Unit,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(iconBgColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = scheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-            contentDescription = null,
-            tint = scheme.onSurfaceVariant,
-            modifier = Modifier.size(16.dp)
-        )
-    }
-}
-
-// ── Permission Row Item ──────────────────────────────────────────────────────────────────────────
-@Composable
-private fun SettingsPermissionRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    granted: Boolean,
-    onClickWhenNotGranted: (() -> Unit)?,
-    onInfoClick: (() -> Unit)? = null,
-) {
-    val scheme = MaterialTheme.colorScheme
-    val statusColor = if (granted) Color(0xFF10B981) else scheme.error
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !granted && onClickWhenNotGranted != null) {
-                onClickWhenNotGranted?.invoke()
-            }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(if (granted) Color(0xFF10B981).copy(alpha = 0.15f) else scheme.errorContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (granted) Icons.Default.Check else icon,
-                contentDescription = null,
-                tint = statusColor,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = scheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = if (granted) "Granted" else "Required",
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = statusColor,
-            )
-            if (onInfoClick != null) {
-                IconButton(onClick = onInfoClick, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = "More info",
-                        tint = scheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
+                if (showTimePickerDialog) {
+                    val (h, m) = parseReminderTime(uiState.dailyReminderTime)
+                    TimePickerDialog(
+                        initialHour = h,
+                        initialMinute = m,
+                        onDismiss = { showTimePickerDialog = false },
+                        onConfirm = { hour, minute ->
+                            val formatted = String.format("%02d:%02d", hour, minute)
+                            viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(formatted))
+                            showTimePickerDialog = false
+                        },
                     )
+                }
+
+                if (showPermissionInfoDialog) {
+                    PermissionExplanationDialog(onDismiss = { showPermissionInfoDialog = false })
                 }
             }
         }
     }
 }
 
-// ── macOS Control Hero Card for Premium ──────────────────────────────────────────────────────────
 @Composable
-private fun SettingsPremiumHeaderCard(
+private fun PremiumStatusSection(
     isPremiumActive: Boolean,
-    planLabel: String,
-    expiryText: String?,
-    isSyncing: Boolean,
-    onManagePlan: () -> Unit,
-    onSyncStatus: () -> Unit,
+    onExplorePremium: () -> Unit,
+    onRestoreStatus: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val statusText = if (isPremiumActive) {
-        expiryText?.let { "Valid until $it" } ?: "$planLabel is active"
-    } else {
-        "Free plan active on this account"
-    }
+    val statusTitle = if (isPremiumActive) "Safar Premium Active" else "Safar Plus Plan"
+    val statusSubtitle = if (isPremiumActive) "All AI planning and analytics features unlocked" else "Standard free features active"
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f)
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
-                    .background(if (isPremiumActive) Color(0xFF10B981) else scheme.primaryContainer),
+                    .background(if (isPremiumActive) scheme.primary.copy(alpha = 0.12f) else PlannerFlatColors.TextMuted.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.WorkspacePremium,
                     contentDescription = null,
-                    tint = if (isPremiumActive) Color.White else scheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    tint = if (isPremiumActive) scheme.primary else PlannerFlatColors.TextMuted,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
+            Column {
                 Text(
-                    text = if (isPremiumActive) "Safar Premium Active" else "Safar Plus Plan",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = scheme.onSurface
+                    text = statusTitle,
+                    fontSize = 15.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.TextDark
                 )
                 Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = if (isPremiumActive) FontWeight.SemiBold else FontWeight.Normal
-                    ),
-                    color = if (isPremiumActive) Color(0xFF10B981) else scheme.onSurfaceVariant
+                    text = statusSubtitle,
+                    fontSize = 12.5.sp,
+                    color = if (isPremiumActive) scheme.primary else PlannerFlatColors.TextMuted
                 )
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Button(
-                onClick = onManagePlan,
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(44.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = scheme.primary)
-            ) {
-                Text(if (isPremiumActive) "Manage Plan" else "Explore Premium", fontWeight = FontWeight.Bold)
-            }
-
-            OutlinedButton(
-                onClick = onSyncStatus,
-                enabled = !isSyncing,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(44.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(scheme.primary.copy(alpha = 0.08f))
+                    .border(1.dp, scheme.primary.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                    .clickable(onClick = onExplorePremium)
+                    .padding(vertical = 8.dp, horizontal = 12.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (isSyncing) "Syncing..." else "Restore Status",
-                    fontWeight = FontWeight.SemiBold
+                    text = if (isPremiumActive) "Manage" else "Explore",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.primary
                 )
             }
         }
     }
 }
 
-// ── Native Material 3 TimePicker Dialog ──────────────────────────────────────────────────────────
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DailyReminderTimePickerDialog(
-    currentTime: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
+private fun NotificationsSection(
+    uiState: SettingsUiState,
+    onEvent: (SettingsEvent) -> Unit,
+    onShowTimePicker: () -> Unit,
 ) {
-    val initialHour = currentTime.split(":").getOrNull(0)?.toIntOrNull() ?: 19
-    val initialMinute = currentTime.split(":").getOrNull(1)?.toIntOrNull() ?: 0
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        SettingsSwitchRow(
+            title = "Allow Notifications",
+            subtitle = "Master toggle for study alerts and reminders",
+            checked = uiState.notificationsEnabled,
+            onCheckedChange = { onEvent(SettingsEvent.ToggleNotifications(it)) },
+            icon = Icons.Default.Notifications,
+        )
 
-    val timePickerState = rememberTimePickerState(
-        initialHour = initialHour,
-        initialMinute = initialMinute,
-        is24Hour = false,
-    )
+        if (uiState.notificationsEnabled) {
+            PlanHairline(alpha = 0.4f)
+
+            SettingsSwitchRow(
+                title = "Ekagra Timer Updates",
+                subtitle = "Sound and vibration alerts for study intervals",
+                checked = uiState.focusTimerNotificationsEnabled,
+                onCheckedChange = { onEvent(SettingsEvent.ToggleFocusTimerNotifications(it)) },
+            )
+
+            SettingsSwitchRow(
+                title = "Daily Study Reminder",
+                subtitle = "Daily prompt to start your planned focus sessions",
+                checked = uiState.dailyStudyReminderEnabled,
+                onCheckedChange = { onEvent(SettingsEvent.ToggleDailyStudyReminder(it)) },
+            )
+
+            if (uiState.dailyStudyReminderEnabled) {
+                val (h, m) = parseReminderTime(uiState.dailyReminderTime)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(onClick = onShowTimePicker)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "Reminder Time",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = PlannerFlatColors.TextDark
+                        )
+                    }
+                    Text(
+                        text = formatTime12h(h, m),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            SettingsSwitchRow(
+                title = "Streak Expiry Warnings",
+                subtitle = "Alert 2 hours before losing your Nishtha streak",
+                checked = uiState.streakReminderEnabled,
+                onCheckedChange = { onEvent(SettingsEvent.ToggleStreakReminder(it)) },
+            )
+
+            SettingsSwitchRow(
+                title = "Course Updates",
+                subtitle = "Announcements for Dhyan audio & live sessions",
+                checked = uiState.courseUpdatesEnabled,
+                onCheckedChange = { onEvent(SettingsEvent.ToggleCourseUpdates(it)) },
+            )
+
+            SettingsSwitchRow(
+                title = "Mehfil Replies",
+                subtitle = "Alerts when students reply to your posts",
+                checked = uiState.communityRepliesEnabled,
+                onCheckedChange = { onEvent(SettingsEvent.ToggleCommunityReplies(it)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun PermissionsSection(
+    hasUsagePermission: Boolean,
+    hasOverlayPermission: Boolean,
+    hasNotificationPermission: Boolean,
+    context: Context,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        PermissionRow(
+            title = "Usage Access",
+            subtitle = "Required for Kavach focus app tracking",
+            isGranted = hasUsagePermission,
+            onGrantClick = {
+                val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                    data = Uri.fromParts("package", context.packageName, null)
+                }
+                context.startActivity(intent)
+            },
+        )
+
+        PermissionRow(
+            title = "Display Over Apps",
+            subtitle = "Required to show Kavach focus shield overlay",
+            isGranted = hasOverlayPermission,
+            onGrantClick = {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${context.packageName}")
+                )
+                context.startActivity(intent)
+            },
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            PermissionRow(
+                title = "System Notifications",
+                subtitle = "Required for focus timer and study reminders",
+                isGranted = hasNotificationPermission,
+                onGrantClick = {
+                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    }
+                    context.startActivity(intent)
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun LegalSection(
+    context: Context,
+    onShowPermissionInfo: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SettingsNavigationRow(
+            title = "Privacy Policy",
+            subtitle = "How SAFAR handles and protects your data",
+            icon = Icons.Default.PrivacyTip,
+            onClick = { openUrl(context, URL_PRIVACY_POLICY) },
+        )
+
+        SettingsNavigationRow(
+            title = "Terms of Service",
+            subtitle = "End User License Agreement & Rules",
+            icon = Icons.Default.Gavel,
+            onClick = { openUrl(context, URL_TERMS) },
+        )
+
+        SettingsNavigationRow(
+            title = "Why Kavach Needs Permissions",
+            subtitle = "Detailed explanation of Focus Shield privacy guarantees",
+            icon = Icons.Default.Info,
+            onClick = onShowPermissionInfo,
+        )
+    }
+}
+
+@Composable
+private fun PermissionRow(
+    title: String,
+    subtitle: String,
+    isGranted: Boolean,
+    onGrantClick: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = PlannerFlatColors.TextDark
+            )
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = PlannerFlatColors.TextMuted
+            )
+        }
+
+        if (isGranted) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(horizontal = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = "Granted",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF10B981)
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(scheme.primary)
+                    .clickable(onClick = onGrantClick)
+                    .padding(vertical = 6.dp, horizontal = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Grant",
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onPrimary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    icon: ImageVector? = null,
+) {
+    val scheme = MaterialTheme.colorScheme
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = scheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.TextDark
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = PlannerFlatColors.TextMuted
+                )
+            }
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = scheme.onPrimary,
+                checkedTrackColor = scheme.primary,
+                uncheckedTrackColor = PlannerFlatColors.BorderSoft,
+                uncheckedThumbColor = PlannerFlatColors.TextMuted,
+            )
+        )
+    }
+}
+
+@Composable
+private fun SettingsNavigationRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = scheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.TextDark
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = PlannerFlatColors.TextMuted
+                )
+            }
+        }
+
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = PlannerFlatColors.TextMuted,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
+private fun TimePickerDialog(
+    initialHour: Int,
+    initialMinute: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, Int) -> Unit,
+) {
+    var selectedHour by remember { mutableStateOf(initialHour) }
+    var selectedMinute by remember { mutableStateOf(initialMinute) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = SafarSemanticColors.plannerBackground(),
         title = {
             Text(
-                text = "Select Daily Reminder Time",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                text = "Select Reminder Time",
+                fontFamily = LoraFontFamily,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Normal,
+                color = PlannerFlatColors.TextDark
             )
         },
         text = {
-            Box(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                TimePicker(state = timePickerState)
+                Text(
+                    text = formatTime12h(selectedHour, selectedMinute),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val formatted = String.format(Locale.US, "%02d:%02d", timePickerState.hour, timePickerState.minute)
-                    onConfirm(formatted)
-                },
+                onClick = { onConfirm(selectedHour, selectedMinute) },
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("Set Time", fontWeight = FontWeight.Bold)
+                Text("Save Time", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
             }
-        }
+        },
+        shape = RoundedCornerShape(20.dp),
     )
 }
 
-// ── Legal Bottom Sheet Component ─────────────────────────────────────────────────────────────────
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsLegalInfoSheet(
-    sheet: SettingsInfoSheet,
-    onDismiss: () -> Unit,
-    onOpenOverlaySettings: (() -> Unit)? = null,
-) {
-    val content = when (sheet) {
-        SettingsInfoSheet.EULA -> SettingsInfoContent(
-            title = "End User License Agreement",
-            subtitle = "Terms for using SAFAR study and Ekagra focus tools.",
-            points = listOf(
-                "Keep your account credentials secure.",
-                "Use study tools fairly and respectfully.",
-                "KAVACH Focus Shield uses Usage Access and Overlay permissions solely to detect and block selected distracting apps during active Ekagra focus sessions.",
-                "SAFAR does not read passwords, screen text, messages, or typed text.",
-                "SAFAR does not sell or share application usage data.",
-            ),
-        )
-        SettingsInfoSheet.PRIVACY -> SettingsInfoContent(
-            title = "Privacy Policy & Data Protection",
-            subtitle = "How SAFAR keeps your personal information private.",
-            points = listOf(
-                "Blocked app preferences remain stored locally on your device.",
-                "Usage access is checked locally to match opened apps against your blocklist.",
-                "SAFAR does not sell or share your activity or usage data with third parties.",
-                "Payments are processed securely via Razorpay/PhonePe.",
-            ),
-        )
-        SettingsInfoSheet.KAVACH -> SettingsInfoContent(
-            title = "Why KAVACH Needs Permissions",
-            subtitle = "Guide to KAVACH distraction shielding.",
-            points = listOf(
-                "Usage Access detects when a blocked app is opened.",
-                "Display Over Other Apps renders the KAVACH focus screen over blocked apps.",
-                "All checks happen locally on your device.",
-            ),
-        )
-        SettingsInfoSheet.OVERLAY -> SettingsInfoContent(
-            title = "Display Over Other Apps",
-            subtitle = "Permission required to show the KAVACH block screen.",
-            points = listOf(
-                "Used only during active Ekagra focus timer sessions.",
-                "Draws the KAVACH focus block screen when a selected app is launched.",
-                "No background recording or screen reading takes place.",
-            ),
-        )
-        SettingsInfoSheet.USAGE_ACCESS -> SettingsInfoContent(
-            title = "App Usage Access",
-            subtitle = "Permission to detect opened apps.",
-            points = listOf(
-                "Allows KAVACH to compare opened apps with your study blocklist.",
-                "Used solely during active focus timer sessions.",
-            ),
-        )
-        SettingsInfoSheet.NOTIFICATIONS -> SettingsInfoContent(
-            title = "System Notification Permission",
-            subtitle = "Android notification permissions for SAFAR.",
-            points = listOf(
-                "Ekagra timer progress and session complete alerts.",
-                "Daily study reminder notifications.",
-                "Streak loss warning alerts.",
-            ),
-        )
-    }
+private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = SafarSemanticColors.plannerBackground(),
+        icon = { Icon(Icons.Default.Security, null, tint = MaterialTheme.colorScheme.primary) },
+        title = {
+            Text(
+                text = "Kavach Privacy & Permissions",
+                fontFamily = LoraFontFamily,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Normal,
+                color = PlannerFlatColors.TextDark
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "SAFAR Kavach uses Android permissions strictly during active Ekagra study sessions:",
+                    fontSize = 13.sp,
+                    color = PlannerFlatColors.TextMuted
+                )
+                Text(
+                    text = "• Usage Access: Detects when a distracting app is launched so Kavach can block it.",
+                    fontSize = 12.5.sp,
+                    color = PlannerFlatColors.TextDark
+                )
+                Text(
+                    text = "• Display Over Apps: Renders the full-screen study focus shield over distracting apps.",
+                    fontSize = 12.5.sp,
+                    color = PlannerFlatColors.TextDark
+                )
+                Text(
+                    text = "Your personal data is never transmitted or sold.",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss, shape = RoundedCornerShape(10.dp)) {
+                Text("Got It", fontWeight = FontWeight.Bold)
+            }
+        },
+        shape = RoundedCornerShape(20.dp),
+    )
+}
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp)
-                .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Text(content.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-            Text(content.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            content.points.forEach { point ->
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 6.dp)
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                    )
-                    Text(point, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            if (sheet == SettingsInfoSheet.OVERLAY && onOpenOverlaySettings != null) {
-                Button(
-                    onClick = onOpenOverlaySettings,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text("Open Display Over Apps Settings", fontWeight = FontWeight.Bold)
-                }
-                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                    Text("Not Now", fontWeight = FontWeight.Bold)
-                }
-            } else {
-                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                    Text("Got it", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
+@Composable
+private fun FooterSection() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "SAFAR Study Planner & Focus Suite\nVersion 1.0.4 • Build 104",
+            fontSize = 12.sp,
+            color = PlannerFlatColors.TextMuted,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
-private data class SettingsInfoContent(
-    val title: String,
-    val subtitle: String,
-    val points: List<String>,
-)
+private fun parseReminderTime(rawTime: String): Pair<Int, Int> {
+    val parts = rawTime.split(":")
+    if (parts.size != 2) return Pair(19, 0)
+    val h = parts[0].toIntOrNull() ?: 19
+    val m = parts[1].toIntOrNull() ?: 0
+    return Pair(h, m)
+}
+
+private fun formatTime12h(hour: Int, minute: Int): String {
+    val amPm = if (hour >= 12) "PM" else "AM"
+    val hour12 = when {
+        hour == 0 -> 12
+        hour > 12 -> hour - 12
+        else -> hour
+    }
+    val minStr = String.format("%02d", minute)
+    return "$hour12:$minStr $amPm"
+}
+
+private fun checkUsageStatsPermission(context: Context): Boolean {
+    val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? android.app.AppOpsManager ?: return false
+    val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        appOps.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName)
+    } else {
+        @Suppress("DEPRECATION")
+        appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName)
+    }
+    return mode == android.app.AppOpsManager.MODE_ALLOWED
+}
+
+private fun checkOverlayPermission(context: Context): Boolean {
+    return Settings.canDrawOverlays(context)
+}
+
+private fun checkNotificationPermission(context: Context): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        androidx.core.content.ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    } else true
+}
+
+private fun openUrl(context: Context, url: String) {
+    try {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, "Could not open link", Toast.LENGTH_SHORT).show()
+    }
+}

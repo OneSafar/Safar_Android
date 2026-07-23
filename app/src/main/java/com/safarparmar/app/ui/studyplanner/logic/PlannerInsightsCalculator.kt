@@ -43,11 +43,15 @@ object PlannerInsightsCalculator {
         val dailyGoal = max(1, plan.dailyGoal ?: 1)
         val availableStudyDays = examDate?.let { countStudyDaysBetween(today, it, plan.offDays) }
 
-        // Real completion ticks, keyed on the day a topic was actually finished.
-        // Drives both consistency (streak/heatmap) and the honest recent-pace signal.
-        val completedByDate = completedTopicsByDate(refs)
+        // Keep the visible activity count separate from the effort-weighted work
+        // used by the finish-date calculation. A big topic must count as more
+        // work than a small topic, while each completed revision still marks a
+        // real study day.
+        val completedWork = completedWorkByDate(refs)
+        val completedByDate = completedWork.mapValues { it.value.activityCount }
+        val completedEquivalentsByDate = completedWork.mapValues { it.value.topicEquivalents }
         val recentTopicsPerStudyDay =
-            computeRecentTopicsPerStudyDay(completedByDate, plan.offDays, today)
+            computeRecentTopicsPerStudyDay(completedEquivalentsByDate, plan.offDays, today)
         val velocityForecastIso = when {
             examDate == null -> null
             remainingTopics == 0 -> todayIso
@@ -267,16 +271,54 @@ object PlannerInsightsCalculator {
         )
     }
 
-    private fun completedTopicsByDate(refs: List<TopicRef>): Map<String, Int> {
-        val map = mutableMapOf<String, Int>()
+    private data class CompletedWork(
+        val activityCount: Int = 0,
+        val topicEquivalents: Float = 0f,
+    )
+
+    private fun completedWorkByDate(refs: List<TopicRef>): Map<String, CompletedWork> {
+        val map = mutableMapOf<String, CompletedWork>()
         for (ref in refs) {
+            val equivalent = pointsToTopicEquivalents(ref.topic.effortPoints(ref.chapter).toFloat())
+            val completedSessionDates = ref.topic.revisionCompletedDates.orEmpty()
+                .map { it.take(10) }
+                .filter { it.isNotBlank() }
+                .distinct()
+            val completionLog = ref.topic.revisionCompletionLog.orEmpty()
+            val revisionDates = if (completionLog.isNotEmpty()) {
+                completionLog
+                    .map { it.completedDate.take(10) }
+                    .filter { it.isNotBlank() }
+            } else {
+                // Older saved plans only have the planned revision dates.
+                completedSessionDates
+            }
+
+            for (date in revisionDates) {
+                val previous = map[date] ?: CompletedWork()
+                map[date] = previous.copy(
+                    activityCount = previous.activityCount + 1,
+                    topicEquivalents = previous.topicEquivalents + equivalent,
+                )
+            }
+
             if (ref.topic.status != TopicStatus.DONE) continue
-            // Only count a real completion tick. A streak / heatmap must reflect
-            // days the student actually finished something — falling back to
-            // plannedDate would credit activity to days nothing was studied and
-            // inflate the streak, so topics without a completedDate are skipped.
-            val cd = ref.topic.completedDate?.take(10) ?: continue
-            map[cd] = (map[cd] ?: 0) + 1
+            // The last revision also sets completedDate. It is one action, so do
+            // not add the same work a second time on that date.
+            val completedDate = ref.topic.completedDate?.take(10) ?: continue
+            val finalSessionWasLogged = completionLog.any {
+                it.completedDate.take(10) == completedDate
+            }
+            if (finalSessionWasLogged || (
+                    completionLog.isEmpty() &&
+                        completedDate in completedSessionDates
+                    )
+            ) continue
+            val previous = map[completedDate] ?: CompletedWork()
+            map[completedDate] = previous.copy(
+                activityCount = previous.activityCount + 1,
+                topicEquivalents = previous.topicEquivalents + equivalent,
+            )
         }
         return map
     }
@@ -289,21 +331,21 @@ object PlannerInsightsCalculator {
      * window contains no study days, 0f when nothing was completed lately.
      */
     private fun computeRecentTopicsPerStudyDay(
-        completedByDate: Map<String, Int>,
+        completedByDate: Map<String, Float>,
         offDays: List<Int>,
         today: LocalDate,
         windowDays: Int = 14,
     ): Float? {
         val off = offDays.toSet()
         var studyDays = 0
-        var completed = 0
+        var completed = 0f
         for (i in 0 until windowDays) {
             val d = today.minusDays(i.toLong())
-            completed += completedByDate[d.toString()] ?: 0
+            completed += completedByDate[d.toString()] ?: 0f
             if (jsDayOfWeek(d) !in off) studyDays++
         }
         if (studyDays == 0) return null
-        return completed.toFloat() / studyDays
+        return completed / studyDays
     }
 
     /**
@@ -340,7 +382,15 @@ object PlannerInsightsCalculator {
     ): PlannerInsightConsistency {
         val today = LocalDate.parse(todayIso)
         val heatmapCells = if (!apiHeatmap.isNullOrEmpty()) {
-            apiHeatmap.map { HeatmapCell(it.date, it.count) }
+            apiHeatmap.map { point ->
+                // Older server data may contain only finished topics. The local
+                // plan also knows about finished revisions, so keep the larger
+                // complete count for that day.
+                HeatmapCell(
+                    point.date,
+                    max(point.count, completedByDate[point.date] ?: 0),
+                )
+            }
         } else {
             (0 until 30).map { i ->
                 val d = today.minusDays((29 - i).toLong())
@@ -451,20 +501,20 @@ object PlannerInsightsCalculator {
         remaining: Int,
     ): List<String> {
         val out = mutableListOf<String>()
-        if (remaining == 0) out += "Plan complete — keep revision cadence if exams are still ahead."
+        if (remaining == 0) out += "Plan complete — keep revising until your exam."
         if (summary.daysBuffer != null && summary.daysBuffer < 0) {
-            out += "Forecast finishes after your exam date — raise daily pace or reschedule."
+            out += "You may finish after your exam date — study more each day or move some topics."
         }
         if (workload.overloadDays >= 3) {
-            out += "Several upcoming days look overloaded — redistribute topics from Syllabus or reschedule."
+            out += "Some coming days have too much work — move a few topics to other days."
         }
         if (backlog.overdueTotal > 0) {
-            out += "Clear ${backlog.overdueTotal} overdue topics first (Today tab)."
+            out += "Finish ${backlog.overdueTotal} missed topics first in Today."
         }
         if (backlog.unplannedUnfinished > 0) {
-            out += "${backlog.unplannedUnfinished} topics still need dates — run Build Schedule or assign manually."
+            out += "${backlog.unplannedUnfinished} topics still need dates — add them to your plan."
         }
-        if (out.isEmpty()) out += "Stay consistent with your daily goal and review Insights after schedule changes."
+        if (out.isEmpty()) out += "Keep doing your daily goal. Check Progress after you change your plan."
         return out.distinct()
     }
 }

@@ -23,7 +23,8 @@ data class MehfilPostDto(
     val commentsCount: Int? = null,
     val commentCount: Int? = null,
     val hasReacted: Boolean? = null,
-    val userLiked: Boolean? = false
+    val userLiked: Boolean? = false,
+    val isSaved: Boolean? = false,
 )
 
 data class MehfilAuthorDto(val id: String? = null, val name: String? = null, val avatar: String? = null)

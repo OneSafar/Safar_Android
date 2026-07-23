@@ -12,18 +12,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.unit.dp
 
-val LocalPlannerIsDarkTheme = staticCompositionLocalOf { false }
+import androidx.compose.foundation.isSystemInDarkTheme
+
+val LocalPlannerIsDarkTheme = staticCompositionLocalOf<Boolean?> { null }
+
+val isPlannerDark: Boolean
+    @Composable
+    get() = LocalPlannerIsDarkTheme.current ?: isSystemInDarkTheme()
 
 object PlannerFlatColors {
-    val BgCream @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF131316) else Color(0xFFFFF9F0)
-    val CardWhite @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
-    val TextDark @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
-    val TextMuted @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF94A3B8) else Color(0xFF64748B)
-    val BorderSoft @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF33333D) else Color(0xFFE2DDF0)
-    val ShadowSoft @Composable get() = if (LocalPlannerIsDarkTheme.current) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
-    val PrimaryAccent @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFE0654B) else Color(0xFFE0654B) // Coral for Planner
-    val AccentShadow @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFE0654B).copy(alpha = 0.3f) else Color(0xFFE0654B).copy(alpha = 0.3f)
-    val AccentTint @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFE0654B).copy(alpha = 0.15f) else Color(0xFFE0654B).copy(alpha = 0.1f)
+    val BgCream @Composable get() = if (isPlannerDark) Color(0xFF131316) else Color(0xFFFFF9F0)
+    val CardWhite @Composable get() = if (isPlannerDark) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
+    val TextDark @Composable get() = if (isPlannerDark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
+    val TextMuted @Composable get() = if (isPlannerDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val BorderSoft @Composable get() = if (isPlannerDark) Color(0xFF33333D) else Color(0xFFE2DDF0)
+    val ShadowSoft @Composable get() = if (isPlannerDark) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
+    val PrimaryAccent @Composable get() = if (isPlannerDark) Color(0xFFE0654B) else Color(0xFFE0654B) // Coral for Planner
+    val AccentShadow @Composable get() = if (isPlannerDark) Color(0xFFE0654B).copy(alpha = 0.3f) else Color(0xFFE0654B).copy(alpha = 0.3f)
+    val AccentTint @Composable get() = if (isPlannerDark) Color(0xFFE0654B).copy(alpha = 0.15f) else Color(0xFFE0654B).copy(alpha = 0.1f)
 }
 
 /**
@@ -45,39 +51,39 @@ fun Modifier.flatCard(shape: Shape = RoundedCornerShape(16.dp)): Modifier =
  * ad hoc accents.
  */
 object PlannerAccent {
-    val Coral: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFFF7A00) else Color(0xFFEA580C)
-    val Teal: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF38BDF8) else Color(0xFF0284C7)
-    val Amber: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFFBBF24) else Color(0xFFB45309)
+    val Coral: Color @Composable get() = if (isPlannerDark) Color(0xFFFF7A00) else Color(0xFFEA580C)
+    val Teal: Color @Composable get() = if (isPlannerDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
+    val Amber: Color @Composable get() = if (isPlannerDark) Color(0xFFFBBF24) else Color(0xFFB45309)
 }
 
 /**
  * Tab-level signature accent colors for ExamPlanner navigation.
  */
 object PlannerTabAccent {
-    val Home: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFC084FC) else Color(0xFF6D28D9)
-    val Plan: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF818CF8) else Color(0xFF4F46E5)
-    val Syllabus: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF34D399) else Color(0xFF059669)
-    val Calendar: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF38BDF8) else Color(0xFF0284C7)
-    val Progress: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFFF6482) else Color(0xFFE11D48)
+    val Home: Color @Composable get() = if (isPlannerDark) Color(0xFFC084FC) else Color(0xFF6D28D9)
+    val Plan: Color @Composable get() = if (isPlannerDark) Color(0xFF818CF8) else Color(0xFF4F46E5)
+    val Syllabus: Color @Composable get() = if (isPlannerDark) Color(0xFF34D399) else Color(0xFF059669)
+    val Calendar: Color @Composable get() = if (isPlannerDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
+    val Progress: Color @Composable get() = if (isPlannerDark) Color(0xFFFF6482) else Color(0xFFE11D48)
 }
 
 /**
  * Revision Engine signature colors.
  */
 object PlannerRevisionAccent {
-    val Parent: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFA855F7) else Color(0xFF7C3AED)
-    val Spaced: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF22D3EE) else Color(0xFF0891B2)
-    val Custom: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFFBBF24) else Color(0xFFD97706)
+    val Parent: Color @Composable get() = if (isPlannerDark) Color(0xFFA855F7) else Color(0xFF7C3AED)
+    val Spaced: Color @Composable get() = if (isPlannerDark) Color(0xFF22D3EE) else Color(0xFF0891B2)
+    val Custom: Color @Composable get() = if (isPlannerDark) Color(0xFFFBBF24) else Color(0xFFD97706)
 }
 
 /**
  * Semantic Task Status colors.
  */
 object PlannerStatusAccent {
-    val Done: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF34D399) else Color(0xFF059669)
-    val Overdue: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFF87171) else Color(0xFFDC2626)
-    val InProgress: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFFFBBF24) else Color(0xFFD97706)
-    val Pending: Color @Composable get() = if (LocalPlannerIsDarkTheme.current) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val Done: Color @Composable get() = if (isPlannerDark) Color(0xFF34D399) else Color(0xFF059669)
+    val Overdue: Color @Composable get() = if (isPlannerDark) Color(0xFFF87171) else Color(0xFFDC2626)
+    val InProgress: Color @Composable get() = if (isPlannerDark) Color(0xFFFBBF24) else Color(0xFFD97706)
+    val Pending: Color @Composable get() = if (isPlannerDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 }
 
 /** Softened, muted versions of the Calendar tab's original fully-saturated status colors —

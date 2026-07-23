@@ -18,6 +18,7 @@ data class NotificationFeedItem(
     val body: String,
     val createdAt: String,
     val deepLink: String? = null,
+    val audioUrl: String? = null,
     val isUnread: Boolean = false,
     val type: AnnouncementType = AnnouncementType.GENERAL,
 )

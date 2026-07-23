@@ -14,6 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
@@ -56,6 +58,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
@@ -138,6 +141,8 @@ fun EkagraScreen(
     var showThemeDialog          by remember { mutableStateOf(false) }
     var showAudioLibraryPanel    by remember { mutableStateOf(false) }
     var showOrganizeSheet        by remember { mutableStateOf(false) }
+    var showTopicStudySheet      by remember { mutableStateOf(false) }
+    var topicStudySheetState     by remember { mutableStateOf<TopicStudySheetState>(TopicStudySheetState.ReadyToSave) }
     var pendingEndedSession      by remember { mutableStateOf<PendingEndedEkagraSession?>(null) }
     var titleInput               by remember { mutableStateOf("") }
     val showDurationPrompt          by viewModel.showDurationPrompt.collectAsStateWithLifecycle()
@@ -309,6 +314,10 @@ fun EkagraScreen(
     fun endCurrentSession() {
         captureKavachSessionSummary()
         val service = timerService
+        val serviceTopic = service?.plannerTopicMetadata()
+        val endingTopicId = associatedTopicId ?: serviceTopic?.topicId
+        val endingPlanId = associatedPlanId ?: serviceTopic?.planId
+        val endingTopicTitle = associatedTopicTitle ?: serviceTopic?.topicTitle
         if (timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && service?.switchToFocusFromBreak() == true) {
             activeSession?.let { session ->
                 viewModel.pauseActiveSession(
@@ -342,13 +351,61 @@ fun EkagraScreen(
                 secondsLeft  = loggedSecondsLeft,
                 mode         = timerMode.toApiMode(),
                 startedAt    = session.sessionStartedAt,
-                topicId      = associatedTopicId,
-                planId       = associatedPlanId,
-                topicTitle   = associatedTopicTitle,
+                topicId      = endingTopicId,
+                planId       = endingPlanId,
+                topicTitle   = endingTopicTitle,
             )
             titleInput = session.sessionTitle ?: taskText
-            showOrganizeSheet = true
+            if (endingTopicId != null && endingPlanId != null) {
+                topicStudySheetState = TopicStudySheetState.ReadyToSave
+                showTopicStudySheet = true
+            } else {
+                showOrganizeSheet = true
+            }
             return
+        }
+        if (
+            serviceTopic != null &&
+            (timerMode == TimerMode.FOCUS || timerMode == TimerMode.STOPWATCH || timerMode == TimerMode.POMODORO)
+        ) {
+            val progress = service?.focusProgressSnapshot()
+            val plannedSeconds: Int
+            val remainingSeconds: Int
+            if (timerMode == TimerMode.STOPWATCH) {
+                val elapsed = progress?.actualSeconds ?: secondsLeft.coerceAtLeast(0)
+                plannedSeconds = elapsed
+                remainingSeconds = elapsed
+            } else {
+                plannedSeconds = progress?.plannedSeconds ?: totalSeconds
+                val actual = progress?.actualSeconds
+                    ?: (totalSeconds - secondsLeft).coerceAtLeast(0)
+                remainingSeconds = (plannedSeconds - actual).coerceAtLeast(0)
+            }
+            if (topicStudyActualSeconds(
+                    PendingEndedEkagraSession(
+                        sessionId = serviceTopic.clientSessionId,
+                        totalSeconds = plannedSeconds,
+                        secondsLeft = remainingSeconds,
+                        mode = timerMode.toApiMode(),
+                        startedAt = serviceTopic.startedAt,
+                    ),
+                ) > 0
+            ) {
+                timerService?.pause()
+                pendingEndedSession = PendingEndedEkagraSession(
+                    sessionId = serviceTopic.clientSessionId,
+                    totalSeconds = plannedSeconds,
+                    secondsLeft = remainingSeconds,
+                    mode = timerMode.toApiMode(),
+                    startedAt = serviceTopic.startedAt,
+                    topicId = serviceTopic.topicId,
+                    planId = serviceTopic.planId,
+                    topicTitle = serviceTopic.topicTitle,
+                )
+                topicStudySheetState = TopicStudySheetState.ReadyToSave
+                showTopicStudySheet = true
+                return
+            }
         }
         viewModel.onSessionCompleted(totalSeconds, secondsLeft, timerMode.toApiMode())
         timerService?.reset()
@@ -433,11 +490,37 @@ fun EkagraScreen(
                 // completed focus session via enqueueCompletedFocusSessionSave().
                 // Just discard the stale ViewModel draft and refresh analytics —
                 // do NOT call timerService?.reset() or the break will be killed.
+                val completedSession = activeSession
+                val completedTopic = timerService?.plannerTopicMetadata()
+                val completedTopicId = associatedTopicId ?: completedTopic?.topicId
+                val completedPlanId = associatedPlanId ?: completedTopic?.planId
+                val completedTopicTitle = associatedTopicTitle ?: completedTopic?.topicTitle
+                if (
+                    completedSession != null &&
+                    completedTopicId != null &&
+                    completedPlanId != null
+                ) {
+                    pendingEndedSession = PendingEndedEkagraSession(
+                        sessionId = completedSession.id,
+                        totalSeconds = completedSession.totalSeconds.coerceAtLeast(1),
+                        secondsLeft = 0,
+                        mode = completedMode.toApiMode(),
+                        startedAt = completedSession.sessionStartedAt,
+                        endedAt = Instant.now().toString(),
+                        topicId = completedTopicId,
+                        planId = completedPlanId,
+                        topicTitle = completedTopicTitle,
+                    )
+                    topicStudySheetState = TopicStudySheetState.SavedOnPhone
+                    showTopicStudySheet = true
+                }
                 activeSession?.id?.let { viewModel.discardSession(it) }
                 viewModel.loadEkagraAnalytics()
                 associatedGoalId = null
                 associatedGoalTitle = null
-                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+                if (!showTopicStudySheet) {
+                    associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+                }
                 return@LaunchedEffect
             }
             // No auto-break started — normal focus-end cleanup.
@@ -448,12 +531,36 @@ fun EkagraScreen(
             }
             val session = activeSession
             if (session != null) {
+                val completedTopic = timerService?.plannerTopicMetadata()
+                val completedTopicId = associatedTopicId ?: completedTopic?.topicId
+                val completedPlanId = associatedPlanId ?: completedTopic?.planId
+                val completedTopicTitle = associatedTopicTitle ?: completedTopic?.topicTitle
+                if (completedTopicId != null && completedPlanId != null) {
+                    pendingEndedSession = PendingEndedEkagraSession(
+                        sessionId = session.id,
+                        totalSeconds = totalSeconds,
+                        secondsLeft = 0,
+                        mode = completedMode.toApiMode(),
+                        startedAt = session.sessionStartedAt,
+                        endedAt = Instant.now().toString(),
+                        topicId = completedTopicId,
+                        planId = completedPlanId,
+                        topicTitle = completedTopicTitle,
+                    )
+                    // TimerService has already placed this completed session in
+                    // the durable phone queue. Ask about topic completion only
+                    // after the study time is safe.
+                    topicStudySheetState = TopicStudySheetState.SavedOnPhone
+                    showTopicStudySheet = true
+                }
                 viewModel.discardSession(session.id)
                 viewModel.loadEkagraAnalytics()
                 timerService?.reset()
                 associatedGoalId = null
                 associatedGoalTitle = null
-                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+                if (!showTopicStudySheet) {
+                    associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+                }
                 return@LaunchedEffect
             }
             viewModel.loadEkagraAnalytics()
@@ -619,7 +726,10 @@ fun EkagraScreen(
         )
     }
 
-    CompositionLocalProvider(LocalDensity provides clampedDensity) {
+    CompositionLocalProvider(
+        LocalDensity provides clampedDensity,
+        LocalPlannerIsDarkTheme provides isDarkTheme,
+    ) {
         MaterialTheme(colorScheme = themeColorScheme) {
 
             // ── Kavach overlay screens ───────────────────────────────────────────
@@ -686,7 +796,9 @@ fun EkagraScreen(
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                androidx.compose.material3.Button(
+                                EkagraPrimaryAction(
+                                    label = "Grant Permission",
+                                    accent = themeColorScheme.primary,
                                     onClick = {
                                         showOverlayPermPrompt = false
                                         ekagraScope.launch {
@@ -694,12 +806,11 @@ fun EkagraScreen(
                                         }
                                         TimerBubbleOverlay.openOverlayPermissionSettings(pipContext)
                                     },
-                                    modifier = androidx.compose.ui.Modifier.fillMaxWidth().height(50.dp),
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                                ) {
-                                    androidx.compose.material3.Text("Grant Permission", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                                }
-                                androidx.compose.material3.TextButton(
+                                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                                )
+                                EkagraGhostAction(
+                                    label = "Not Now",
+                                    ink = rememberEkagraInk(onCanvas = false),
                                     onClick = {
                                         showOverlayPermPrompt = false
                                         ekagraScope.launch {
@@ -707,9 +818,7 @@ fun EkagraScreen(
                                         }
                                     },
                                     modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
-                                ) {
-                                    androidx.compose.material3.Text("Not now")
-                                }
+                                )
                                 androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.height(16.dp))
                             }
                         }
@@ -771,6 +880,60 @@ fun EkagraScreen(
                                 }
                             }
                         )
+                    }
+                    if (showTopicStudySheet) {
+                        val pending = pendingEndedSession
+                        if (pending != null && pending.topicId != null && pending.planId != null) {
+                            val topicSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+                            fun closeTopicSheet() {
+                                showTopicStudySheet = false
+                                pendingEndedSession = null
+                                timerService?.reset()
+                                associatedTopicId = null
+                                associatedTopicTitle = null
+                                associatedPlanId = null
+                            }
+
+                            TopicStudySaveSheet(
+                                sheetState = topicSheetState,
+                                pending = pending,
+                                state = topicStudySheetState,
+                                selectedTheme = selectedTheme,
+                                isDarkTheme = isDarkTheme,
+                                onDismiss = { closeTopicSheet() },
+                                onSave = {
+                                    topicStudySheetState = TopicStudySheetState.Saving
+                                    viewModel.saveTopicStudyTime(pending) { result ->
+                                        topicStudySheetState = when (result) {
+                                            EkagraViewModel.StudyTimeSaveResult.Saved ->
+                                                TopicStudySheetState.Saved
+                                            EkagraViewModel.StudyTimeSaveResult.SavedOnPhone ->
+                                                TopicStudySheetState.SavedOnPhone
+                                        }
+                                        timerService?.reset()
+                                    }
+                                },
+                                onNotYet = { closeTopicSheet() },
+                                onFinished = {
+                                    topicStudySheetState = TopicStudySheetState.MarkingDone
+                                    viewModel.markPlannerTopicDone(pending.planId, pending.topicId) { result ->
+                                        when (result) {
+                                            EkagraViewModel.TopicDoneResult.Done -> closeTopicSheet()
+                                            is EkagraViewModel.TopicDoneResult.Error -> {
+                                                topicStudySheetState = TopicStudySheetState.TopicError(
+                                                    "Topic could not be marked as done.\nPlease try again.",
+                                                )
+                                            }
+                                        }
+                                    }
+                                },
+                                onDiscard = {
+                                    viewModel.discardSession(pending.sessionId)
+                                    closeTopicSheet()
+                                },
+                            )
+                        }
                     }
                     if (showOrganizeSheet) {
                         val pending = pendingEndedSession
@@ -890,6 +1053,7 @@ fun EkagraScreen(
                         )
                     }
                     if (showDurationPromptDialog) {
+                        val dialogInk = rememberEkagraInk(onCanvas = false)
                         androidx.compose.ui.window.Dialog(
                             onDismissRequest = { showDurationPromptDialog = false },
                         ) {
@@ -900,13 +1064,14 @@ fun EkagraScreen(
                             val dialogBody   = themeColorScheme.onSurfaceVariant
                             val dialogAccent = themeColorScheme.primary
                             Surface(
-                                shape = RoundedCornerShape(24.dp),
+                                shape = RoundedCornerShape(20.dp),
                                 color = dialogBg,
                                 tonalElevation = 0.dp,
-                                shadowElevation = 8.dp,
+                                shadowElevation = 0.dp,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .wrapContentHeight(),
+                                    .wrapContentHeight()
+                                    .border(1.dp, dialogInk.hairline, RoundedCornerShape(20.dp)),
                             ) {
                                 Column(
                                     modifier = Modifier.padding(
@@ -957,14 +1122,16 @@ fun EkagraScreen(
                                         )
                                     }
                                     Spacer(Modifier.height(24.dp))
-                                    // Action buttons — right-aligned, text only
+                                    // Action buttons — hairline styled
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.End,
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         // "Start anyway" — secondary action
-                                        TextButton(
+                                        EkagraGhostAction(
+                                            label = "Start anyway",
+                                            ink = dialogInk,
                                             onClick = {
                                                 if (dontShowDurationPromptAgain) viewModel.disableDurationPrompt()
                                                 showDurationPromptDialog = false
@@ -981,33 +1148,19 @@ fun EkagraScreen(
                                                         true, associatedGoalTitle ?: taskText.takeIf { it.isNotBlank() })
                                                 }
                                             },
-                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                                        ) {
-                                            Text(
-                                                text = "Start anyway",
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = dialogAccent,
-                                            )
-                                        }
-                                        Spacer(Modifier.width(4.dp))
+                                        )
+                                        Spacer(Modifier.width(8.dp))
                                         // "Yes" — primary action
-                                        TextButton(
+                                        EkagraPrimaryAction(
+                                            label = "Yes",
+                                            accent = dialogAccent,
                                             onClick = {
                                                 if (dontShowDurationPromptAgain) viewModel.disableDurationPrompt()
                                                 showDurationPromptDialog = false
                                                 durationPromptActedOn = true
                                                 tabBackStack.select(EkagraNavTab.DURATION)
                                             },
-                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                                        ) {
-                                            Text(
-                                                text = "Yes",
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = dialogAccent,
-                                            )
-                                        }
+                                        )
                                     }
                                 }
                             }
@@ -1019,7 +1172,11 @@ fun EkagraScreen(
                     // and overflow actions now live in EkagraTopBar, a bare row
                     // drawn straight on the canvas. Tint still follows the Timer
                     // tab's video/gradient canvas vs. the plain surface elsewhere.
-                    val headerInk = rememberEkagraInk(onCanvas = selectedTab == EkagraNavTab.TIMER)
+                    val headerInk = rememberEkagraInk(
+                        onCanvas = selectedTab == EkagraNavTab.TIMER,
+                        theme = selectedTheme,
+                        isDarkTheme = isDarkTheme,
+                    )
                     val topBarTint = headerInk.primaryText
                     var openDrawer by remember { mutableStateOf<() -> Unit>({}) }
 
@@ -1041,7 +1198,9 @@ fun EkagraScreen(
                             }
                             androidx.compose.material3.DropdownMenu(
                                 expanded = showOverflowMenu,
-                                onDismissRequest = { showOverflowMenu = false }
+                                onDismissRequest = { showOverflowMenu = false },
+                                modifier = Modifier.border(1.dp, headerInk.hairline, RoundedCornerShape(16.dp)),
+                                shape = RoundedCornerShape(16.dp),
                             ) {
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text(if (isMuted) "Volume On" else "Volume Off") },
@@ -1053,6 +1212,7 @@ fun EkagraScreen(
                                         Icon(if (isMuted) androidx.compose.material.icons.Icons.Default.VolumeUp else androidx.compose.material.icons.Icons.Default.VolumeOff, contentDescription = null)
                                     }
                                 )
+                                EkagraHairline(headerInk.hairline)
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = {
                                         Text(
@@ -1084,6 +1244,7 @@ fun EkagraScreen(
                                 val hasAllPermissions = shieldState.hasUsageStats &&
                                                         shieldState.hasOverlayPermission
                                 if (!hasAllPermissions) {
+                                    EkagraHairline(headerInk.hairline)
                                     androidx.compose.material3.DropdownMenuItem(
                                         text = { Text("Kavach Setup") },
                                         onClick = {
@@ -1095,21 +1256,31 @@ fun EkagraScreen(
                                         }
                                     )
                                 }
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(if (isBeastMode) "Disable Beast Mode" else "Enable Beast Mode") },
-                                    onClick = {
-                                        ekagraScope.launch {
-                                            viewModel.dataStore.setAppUsageMode(
+                                EkagraHairline(headerInk.hairline)
+                                if (isBeastMode && timerRunning) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Beast Mode Active (Locked)") },
+                                        enabled = false,
+                                        onClick = {},
+                                        leadingIcon = {
+                                            Icon(androidx.compose.material.icons.Icons.Default.FlashOn, contentDescription = null)
+                                        }
+                                    )
+                                } else {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(if (isBeastMode) "Disable Beast Mode" else "Enable Beast Mode") },
+                                        onClick = {
+                                            focusShieldViewModel.setKavachProfile(
                                                 if (isBeastMode) AppUsageMode.FOCUSED else AppUsageMode.BEAST
                                             )
+                                            showOverflowMenu = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(androidx.compose.material.icons.Icons.Default.FlashOn, contentDescription = null)
                                         }
-                                        focusShieldViewModel.setStrictMode(!isBeastMode)
-                                        showOverflowMenu = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(androidx.compose.material.icons.Icons.Default.FlashOn, contentDescription = null)
-                                    }
-                                )
+                                    )
+                                }
+                                EkagraHairline(headerInk.hairline)
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text("Apps to Block") },
                                     onClick = {
@@ -1125,9 +1296,7 @@ fun EkagraScreen(
                     }
 
                     Box(
-                        Modifier
-                            .fillMaxSize()
-                            .windowInsetsPadding(WindowInsets.navigationBars)
+                        Modifier.fillMaxSize()
                     ) {
                         SafarDrawerScaffold(
                             title              = stringResource(R.string.module_ekagra),
@@ -1186,12 +1355,22 @@ fun EkagraScreen(
                                     }
                                     Box(modifier = Modifier.fillMaxSize().background(dynamicGradient))
                                 } else {
-                                    EkagraVideoBackground(videoUrl = selectedTheme.videoUrl, modifier = Modifier.fillMaxSize())
+                                    // The first four themes use moving video. Blur only
+                                    // that moving backdrop so the timer stays readable;
+                                    // gradient themes remain sharp.
+                                    EkagraVideoBackground(
+                                        videoUrl = selectedTheme.videoUrl,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .scale(1.06f)
+                                            .blur(10.dp),
+                                    )
                                 }
                                 val scrimAlpha by animateFloatAsState(
                                     targetValue = when {
                                         timerImmersiveActive -> 0.12f
                                         isDarkTheme -> 0.55f
+                                        selectedTheme.gradientColors != null -> 0.08f
                                         else -> 0.38f
                                     },
                                     animationSpec = tween(600),
@@ -1338,6 +1517,7 @@ fun EkagraScreen(
                                         onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },
                                         onNavigate = onNavigate,
                                         isBeastMode = isBeastMode,
+                                        selectedTheme = selectedTheme,
                                     )
 
                                     EkagraNavTab.DURATION -> DurationTab(

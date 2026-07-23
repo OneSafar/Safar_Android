@@ -51,6 +51,14 @@ object Routes {
     fun ekagraForTopic(topicId: String, topicTitle: String, planId: String): String =
         "ekagra?topicId=${android.net.Uri.encode(topicId)}&topicTitle=${android.net.Uri.encode(topicTitle)}&planId=${android.net.Uri.encode(planId)}"
 
+    /**
+     * Context launches carry newly selected work. They must not restore an old
+     * Ekagra back-stack entry with a previous topic/goal in its arguments.
+     */
+    fun isContextualEkagraLaunch(route: String): Boolean =
+        route.substringBefore("?") == EKAGRA &&
+            (route.contains("topicId=") || route.contains("goalId="))
+
     // Analytics is Nishtha tab index 4; resolves to the single NISHTHA_ROUTE.
     fun nishthaAnalytics(section: String = "overview"): String =
         "nishtha?tab=4&section=${android.net.Uri.encode(section)}"

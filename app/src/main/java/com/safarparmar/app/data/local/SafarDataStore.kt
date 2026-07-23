@@ -143,6 +143,7 @@ class SafarDataStore @Inject constructor(
         val TIMER_ALERT_STYLE = stringPreferencesKey("ekagra_timer_alert_style")
 
         val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
+        val NOTIFICATION_BELL_DISMISSED_IDS = stringSetPreferencesKey("notification_bell_dismissed_ids")
         val OVERLAY_PERMISSION_ASKED = booleanPreferencesKey("overlay_permission_asked")
         val VIDEO_GUIDE_TOOLTIP_DISMISSED = booleanPreferencesKey("video_guide_tooltip_dismissed")
     }
@@ -319,6 +320,10 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.NOTIFICATION_BELL_LAST_SEEN_AT] }
 
+    val notificationBellDismissedIds: Flow<Set<String>> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.NOTIFICATION_BELL_DISMISSED_IDS] ?: emptySet() }
+
     val plannerAlertDedupeKeys: Flow<Set<String>> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.PLANNER_ALERT_DEDUPE_KEYS] ?: emptySet() }
@@ -406,6 +411,11 @@ class SafarDataStore @Inject constructor(
     suspend fun setLastSync(time: Long) = context.dataStore.edit { it[Keys.LAST_SYNC] = time }
     suspend fun setTourDone(done: Boolean) = context.dataStore.edit { it[Keys.TOUR_DONE] = done }
     suspend fun setNotificationBellLastSeenAt(iso: String) = context.dataStore.edit { it[Keys.NOTIFICATION_BELL_LAST_SEEN_AT] = iso }
+
+    suspend fun addNotificationBellDismissedId(id: String) = context.dataStore.edit { prefs ->
+        val next = (prefs[Keys.NOTIFICATION_BELL_DISMISSED_IDS] ?: emptySet()) + id
+        prefs[Keys.NOTIFICATION_BELL_DISMISSED_IDS] = next
+    }
     suspend fun setTourDone(section: String, done: Boolean) = context.dataStore.edit {
         it[tourDoneKey(section)] = done
     }

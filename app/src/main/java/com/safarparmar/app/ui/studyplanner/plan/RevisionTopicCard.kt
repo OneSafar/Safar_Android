@@ -90,7 +90,7 @@ internal fun RevisionTopicCard(
     val typeAccent = if (isCustom) PlannerRevisionAccent.Custom else PlannerRevisionAccent.Spaced
 
     val sessions = remember(ref.topic.revisionReminderDates, ref.topic.revisionCompletedDates) {
-        val completed = ref.topic.revisionCompletedDates.map { it.take(10) }.toSet()
+        val completed = ref.topic.revisionCompletedDates.orEmpty().map { it.take(10) }.toSet()
         val remaining = ref.topic.revisionReminderDates.map { it.take(10) }
         val ordered = (completed.toList() + remaining).filter { it.isNotBlank() }.distinct().sorted()
         ordered.mapIndexed { index, date ->

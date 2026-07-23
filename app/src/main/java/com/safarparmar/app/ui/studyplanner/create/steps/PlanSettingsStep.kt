@@ -1,5 +1,8 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,7 +26,6 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -356,11 +358,11 @@ private fun StudyStyleIconOption(
         }
     }
     if (showInfo) {
-        AlertDialog(
+        PlannerDialog(
             onDismissRequest = { showInfo = false },
-            title = { Text(title) },
-            text = { Text(info) },
-            confirmButton = { TextButton(onClick = { showInfo = false }) { Text("OK") } },
+            title = title,
+            text = { PlannerDialogText(info) },
+            confirmButton = { PlannerDialogAction(text = "OK") { showInfo = false } },
         )
     }
 }

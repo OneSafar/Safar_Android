@@ -69,9 +69,9 @@ data class AdminTriggerOption(
 private fun adminBroadcastErrorMessage(httpCode: Int?, raw: String?, email: String?): String {
     if (httpCode == 403 || raw?.contains("forbidden", ignoreCase = true) == true) {
         val who = email?.takeIf { it.isNotBlank() } ?: "your account"
-        return "Admin denied for $who. On Render set ADMIN_EMAILS to this email, redeploy the server, then sign in again. Or use “Send test to this device” below."
+        return "Admin denied for $who. On Render set ADMIN_EMAILS to this email, redeploy the server, then sign in again."
     }
-    return raw ?: "Failed to send broadcast"
+    return raw ?: "Failed to send"
 }
 
 private val triggerOptions = listOf(
@@ -83,12 +83,12 @@ private val triggerOptions = listOf(
         defaultTitle = "SAFAR Update",
         defaultBody = "We have an important update for you.",
         defaultDeepLink = "safar://home",
-    )
+    ),
 )
 
 data class AdminDeepLinkOption(
     val label: String,
-    val path: String
+    val path: String,
 )
 
 private val deepLinkOptions = listOf(
@@ -110,8 +110,15 @@ private val deepLinkOptions = listOf(
     AdminDeepLinkOption("Profile", "safar://profile"),
     AdminDeepLinkOption("Settings", "safar://settings"),
     AdminDeepLinkOption("Achievements", "safar://achievements"),
-    AdminDeepLinkOption("Admin Notifications", "safar://admin/notifications")
+    AdminDeepLinkOption("Admin Notifications", "safar://admin/notifications"),
 )
+
+enum class AdminSendKind {
+    PUSH_TEST,
+    PUSH_BROADCAST,
+    BELL_TEST,
+    BELL_INBOX,
+}
 
 data class AdminNotificationUiState(
     val selectedTriggerId: String = triggerOptions.first().id,
@@ -120,7 +127,7 @@ data class AdminNotificationUiState(
     val deepLink: String = "",
     val isSending: Boolean = false,
     val lastError: String? = null,
-    val sentCount: Int? = null,
+    val lastSuccessMessage: String? = null,
     val userEmail: String? = null,
     val serverAdminGranted: Boolean? = null,
     val tokenAdminClaim: Boolean = false,
@@ -180,36 +187,45 @@ class AdminNotificationComposerViewModel @Inject constructor(
         }
     }
 
-    fun sendBroadcast() {
+    fun clearSuccessMessage() = _uiState.update { it.copy(lastSuccessMessage = null) }
+
+    private fun requireMessageFields(state: AdminNotificationUiState): Boolean {
+        if (state.title.isBlank() || state.body.isBlank() || state.deepLink.isBlank()) {
+            _uiState.update { it.copy(lastError = "Title, body, and deep link are required.") }
+            return false
+        }
+        return true
+    }
+
+    private fun requestPayload(state: AdminNotificationUiState, trigger: AdminTriggerOption) =
+        AdminBroadcastRequest(
+            type = trigger.type,
+            channel = trigger.channel,
+            title = state.title.trim(),
+            body = state.body.trim(),
+            deepLink = state.deepLink.trim(),
+            persistToInbox = false,
+        )
+
+    fun sendPushBroadcast() {
         val state = _uiState.value
         val trigger = triggerOptions.firstOrNull { it.id == state.selectedTriggerId } ?: triggerOptions.first()
         if (state.isSending) return
-        if (state.title.isBlank() || state.body.isBlank() || state.deepLink.isBlank()) {
-            _uiState.update { it.copy(lastError = "Title, body, and deep link are required.") }
-            return
-        }
+        if (!requireMessageFields(state)) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSending = true, lastError = null, sentCount = null) }
+            _uiState.update { it.copy(isSending = true, lastError = null, lastSuccessMessage = null) }
             val result = safeApiCall {
-                notificationApi.sendAdminBroadcast(
-                    AdminBroadcastRequest(
-                        type = trigger.type,
-                        channel = trigger.channel,
-                        title = state.title.trim(),
-                        body = state.body.trim(),
-                        deepLink = state.deepLink.trim(),
-                    ),
-                )
+                notificationApi.sendAdminBroadcast(requestPayload(state, trigger))
             }
-
             when (result) {
                 is Resource.Success -> {
-                    val delivered = result.data.results?.count { it.success } ?: 0
+                    val count = result.data.count ?: 0
                     _uiState.update {
                         it.copy(
                             isSending = false,
-                            sentCount = delivered,
+                            lastSuccessMessage =
+                                "Push broadcast started for $count device(s). Not shown in the Home bell.",
                             title = trigger.defaultTitle,
                             body = trigger.defaultBody,
                             deepLink = trigger.defaultDeepLink,
@@ -227,41 +243,31 @@ class AdminNotificationComposerViewModel @Inject constructor(
         }
     }
 
-    fun sendTestToThisDevice() {
+    fun sendTestPush() {
         val state = _uiState.value
         val trigger = triggerOptions.firstOrNull { it.id == state.selectedTriggerId } ?: triggerOptions.first()
         if (state.isSending) return
-        if (state.title.isBlank() || state.body.isBlank() || state.deepLink.isBlank()) {
-            _uiState.update { it.copy(lastError = "Title, body, and deep link are required.") }
-            return
-        }
+        if (!requireMessageFields(state)) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSending = true, lastError = null, sentCount = null) }
+            _uiState.update { it.copy(isSending = true, lastError = null, lastSuccessMessage = null) }
             val result = safeApiCall {
-                notificationApi.sendTestNotification(
-                    AdminBroadcastRequest(
-                        type = trigger.type,
-                        channel = trigger.channel,
-                        title = state.title.trim(),
-                        body = state.body.trim(),
-                        deepLink = state.deepLink.trim(),
-                    ),
-                )
+                notificationApi.sendTestNotification(requestPayload(state, trigger))
             }
-
             when (result) {
                 is Resource.Success -> {
                     val delivered = result.data.results?.count { it.success } ?: 0
                     val firstFail = result.data.results?.firstOrNull { !it.success }
-                    val err = if (delivered > 0) null else {
+                    val err = if (delivered > 0) {
+                        null
+                    } else {
                         when (firstFail?.error) {
                             "preference_disabled" -> "Test not delivered: This notification type is disabled in your settings."
                             "quiet_hours" -> "Test not delivered: Blocked by your quiet hours settings."
                             "deduped" -> "Test not delivered: Blocked by deduplication. Wait a few minutes and try again."
                             "token_inactive" -> "Test not delivered: Device token is inactive/revoked in database."
                             null -> if (result.data.results.isNullOrEmpty()) {
-                                "Test not delivered: No registered FCM token found for this account. Ensure you are signed in and have granted permissions."
+                                "Test not delivered: No registered FCM token found for this account."
                             } else {
                                 "Test not delivered. Check notification permissions and FCM token."
                             }
@@ -271,13 +277,81 @@ class AdminNotificationComposerViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSending = false,
-                            sentCount = delivered,
                             lastError = err,
+                            lastSuccessMessage = if (err == null) {
+                                "Test push sent to this device tray. Not shown in the Home bell."
+                            } else {
+                                null
+                            },
                         )
                     }
                 }
                 is Resource.Error -> _uiState.update {
-                    it.copy(isSending = false, lastError = result.message ?: "Test notification failed")
+                    it.copy(isSending = false, lastError = result.message ?: "Test push failed")
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun postToBellInbox() {
+        val state = _uiState.value
+        val trigger = triggerOptions.firstOrNull { it.id == state.selectedTriggerId } ?: triggerOptions.first()
+        if (state.isSending) return
+        if (!requireMessageFields(state)) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSending = true, lastError = null, lastSuccessMessage = null) }
+            val result = safeApiCall {
+                notificationApi.postAdminInbox(requestPayload(state, trigger))
+            }
+            when (result) {
+                is Resource.Success -> _uiState.update {
+                    it.copy(
+                        isSending = false,
+                        lastSuccessMessage = "Posted to the Home bell for all users. No push was sent.",
+                        title = trigger.defaultTitle,
+                        body = trigger.defaultBody,
+                        deepLink = trigger.defaultDeepLink,
+                    )
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(
+                        isSending = false,
+                        lastError = adminBroadcastErrorMessage(result.code, result.message, state.userEmail),
+                    )
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun postTestToMyBell() {
+        val state = _uiState.value
+        val trigger = triggerOptions.firstOrNull { it.id == state.selectedTriggerId } ?: triggerOptions.first()
+        if (state.isSending) return
+        if (!requireMessageFields(state)) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSending = true, lastError = null, lastSuccessMessage = null) }
+            val result = safeApiCall {
+                notificationApi.postAdminInbox(
+                    requestPayload(state, trigger).copy(testOnly = true),
+                )
+            }
+            when (result) {
+                is Resource.Success -> _uiState.update {
+                    it.copy(
+                        isSending = false,
+                        lastSuccessMessage =
+                            "Bell test posted for your admin account only. Open Home → bell to see it.",
+                    )
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(
+                        isSending = false,
+                        lastError = adminBroadcastErrorMessage(result.code, result.message, state.userEmail),
+                    )
                 }
                 is Resource.Loading -> Unit
             }
@@ -294,45 +368,84 @@ fun AdminNotificationComposerScreen(
     viewModel: AdminNotificationComposerViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showConfirm by remember { mutableStateOf(false) }
+    var confirmKind by remember { mutableStateOf<AdminSendKind?>(null) }
     val selectedTrigger = triggerOptions.firstOrNull { it.id == uiState.selectedTriggerId } ?: triggerOptions.first()
-    val canSubmit = uiState.title.isNotBlank() && uiState.body.isNotBlank() && uiState.deepLink.isNotBlank() && !uiState.isSending
+    val canSubmit = uiState.title.isNotBlank() &&
+        uiState.body.isNotBlank() &&
+        uiState.deepLink.isNotBlank() &&
+        !uiState.isSending
     val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(uiState.lastError) {
-        uiState.lastError?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+        uiState.lastError?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
     }
-    LaunchedEffect(uiState.sentCount) {
-        uiState.sentCount?.let { Toast.makeText(context, "Broadcast sent to $it device(s).", Toast.LENGTH_SHORT).show() }
+    LaunchedEffect(uiState.lastSuccessMessage) {
+        uiState.lastSuccessMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearSuccessMessage()
+        }
     }
 
-    if (showConfirm) {
-        AlertDialog(
-            onDismissRequest = { if (!uiState.isSending) showConfirm = false },
-            title = { Text("Confirm broadcast") },
-            text = { Text("This will send a push notification to all active Android devices. Proceed?") },
+    when (confirmKind) {
+        AdminSendKind.PUSH_BROADCAST -> AlertDialog(
+            onDismissRequest = { if (!uiState.isSending) confirmKind = null },
+            title = { Text("Confirm push broadcast") },
+            text = {
+                Text(
+                    "Sends a tray/push notification to all active Android devices. " +
+                        "It will not appear in the Home bell.",
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
-                        showConfirm = false
-                        viewModel.sendBroadcast()
+                        confirmKind = null
+                        viewModel.sendPushBroadcast()
                     },
                     enabled = !uiState.isSending,
                 ) {
-                    Text(if (uiState.isSending) "Sending..." else "Send")
+                    Text(if (uiState.isSending) "Sending..." else "Send push")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirm = false }, enabled = !uiState.isSending) {
+                TextButton(onClick = { confirmKind = null }, enabled = !uiState.isSending) {
                     Text("Cancel")
                 }
             },
         )
+        AdminSendKind.BELL_TEST -> Unit
+        AdminSendKind.BELL_INBOX -> AlertDialog(
+            onDismissRequest = { if (!uiState.isSending) confirmKind = null },
+            title = { Text("Confirm in-app update") },
+            text = {
+                Text(
+                    "Adds this message to every user's Home bell (Updates). " +
+                        "No phone push will be sent. Prefer “Post test to my Home bell” first.",
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        confirmKind = null
+                        viewModel.postToBellInbox()
+                    },
+                    enabled = !uiState.isSending,
+                ) {
+                    Text(if (uiState.isSending) "Posting..." else "Post to bell")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmKind = null }, enabled = !uiState.isSending) {
+                    Text("Cancel")
+                }
+            },
+        )
+        else -> Unit
     }
 
     SafarDrawerScaffold(
         title = "Admin Notifications",
-        subtitle = "Broadcast Composer",
+        subtitle = "Notification Composer",
         currentRoute = currentRoute,
         isDarkTheme = isDarkTheme,
         onNavigate = onNavigate,
@@ -342,14 +455,16 @@ fun AdminNotificationComposerScreen(
             padding = padding,
             uiState = uiState,
             canSubmit = canSubmit,
+            selectedTrigger = selectedTrigger,
             onTitleChange = viewModel::onTitleChange,
             onBodyChange = viewModel::onBodyChange,
             onDeepLinkChange = viewModel::onDeepLinkChange,
-            selectedTrigger = selectedTrigger,
             onTriggerChange = viewModel::onTriggerChange,
-            onSendClick = { showConfirm = true },
-            onSendTestClick = viewModel::sendTestToThisDevice,
             onRefreshAdmin = viewModel::refreshAdminStatus,
+            onSendTestPush = viewModel::sendTestPush,
+            onConfirmPushBroadcast = { confirmKind = AdminSendKind.PUSH_BROADCAST },
+            onPostBellTest = viewModel::postTestToMyBell,
+            onConfirmBellPost = { confirmKind = AdminSendKind.BELL_INBOX },
         )
     }
 }
@@ -360,14 +475,16 @@ private fun ComposerContent(
     padding: PaddingValues,
     uiState: AdminNotificationUiState,
     canSubmit: Boolean,
+    selectedTrigger: AdminTriggerOption,
     onTitleChange: (String) -> Unit,
     onBodyChange: (String) -> Unit,
     onDeepLinkChange: (String) -> Unit,
-    selectedTrigger: AdminTriggerOption,
     onTriggerChange: (String) -> Unit,
-    onSendClick: () -> Unit,
-    onSendTestClick: () -> Unit,
     onRefreshAdmin: () -> Unit,
+    onSendTestPush: () -> Unit,
+    onConfirmPushBroadcast: () -> Unit,
+    onPostBellTest: () -> Unit,
+    onConfirmBellPost: () -> Unit,
 ) {
     var triggerExpanded by remember { mutableStateOf(false) }
     var deepLinkExpanded by remember { mutableStateOf(false) }
@@ -382,23 +499,19 @@ private fun ComposerContent(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            text = "Compose a broadcast",
+            text = "Compose a notification",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Visible only to admin users. Requires confirmation before sending.",
+            text = "Write the message once, then choose push (tray) or Home bell. Use both if you need both.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(
-            text = "Pick a predefined trigger, then edit the message content.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+
         val adminLine = when (uiState.serverAdminGranted) {
             true -> "Server admin: yes (${uiState.userEmail ?: "unknown"})"
-            false -> "Server admin: no (${uiState.userEmail ?: "unknown"}) — broadcast blocked until Render ADMIN_EMAILS includes this email."
+            false -> "Server admin: no (${uiState.userEmail ?: "unknown"}) — admin actions blocked until Render ADMIN_EMAILS includes this email."
             null -> "Checking server admin for ${uiState.userEmail ?: "…"}"
         }
         Text(
@@ -422,6 +535,11 @@ private fun ComposerContent(
                 modifier = Modifier.padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                Text(
+                    text = "Message",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 ExposedDropdownMenuBox(
                     expanded = triggerExpanded,
                     onExpandedChange = { triggerExpanded = !triggerExpanded },
@@ -520,20 +638,76 @@ private fun ComposerContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
-        OutlinedButton(
-            onClick = onSendTestClick,
-            enabled = canSubmit,
+        Card(
             modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
         ) {
-            Text(if (uiState.isSending) "Sending..." else "Send test to this device")
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "1. Normal push notification",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Phone notification tray via FCM. Does not appear under the Home bell.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(
+                    onClick = onSendTestPush,
+                    enabled = canSubmit,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (uiState.isSending) "Sending..." else "Send test push to this device")
+                }
+                Button(
+                    onClick = onConfirmPushBroadcast,
+                    enabled = canSubmit && uiState.serverAdminGranted != false,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (uiState.isSending) "Sending..." else "Broadcast push to all devices")
+                }
+            }
         }
-        Button(
-            onClick = onSendClick,
-            enabled = canSubmit && uiState.serverAdminGranted != false,
+
+        Card(
             modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
         ) {
-            Text(if (uiState.isSending) "Sending..." else "Review & Send Broadcast")
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "2. In-app bell (Updates)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Home bell only. Test posts to your admin account; post-for-all reaches every user.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(
+                    onClick = onPostBellTest,
+                    enabled = canSubmit && uiState.serverAdminGranted != false,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (uiState.isSending) "Posting..." else "Post test to my Home bell")
+                }
+                Button(
+                    onClick = onConfirmBellPost,
+                    enabled = canSubmit && uiState.serverAdminGranted != false,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (uiState.isSending) "Posting..." else "Post to Home bell for all users")
+                }
+            }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }

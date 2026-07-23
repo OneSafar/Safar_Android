@@ -1,5 +1,7 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -185,7 +187,12 @@ private fun DeepFocusTopicsSheet(
     onMoveTopic: (fromIndex: Int, toIndex: Int) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = PlannerFlatColors.BgCream,
+    ) {
         Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
             Text(
                 text = chapterName,

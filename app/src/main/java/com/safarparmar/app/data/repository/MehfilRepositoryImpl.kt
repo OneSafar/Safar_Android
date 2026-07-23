@@ -81,7 +81,7 @@ class MehfilRepositoryImpl @Inject constructor(
     }
 
     override suspend fun savePost(thoughtId: String): Resource<Unit> {
-        val r = safeApiCall { thoughtsApi.savePost(SaveRequest(thoughtId)) }
+        val r = safeApiCall { thoughtsApi.savePost(thoughtId) }
         return when (r) {
             is Resource.Success -> Resource.Success(Unit)
             is Resource.Error   -> Resource.Error(r.message)
@@ -139,6 +139,7 @@ class MehfilRepositoryImpl @Inject constructor(
             reactionCount = resolvedReactions,
             commentCount  = resolvedComments,
             userLiked     = resolvedLiked,
+            isSaved       = isSaved ?: false,
         )
     }
     private fun CommentDto.toDomain() = Comment(id = id ?: "", content = content ?: "", authorName = authorName ?: "Anonymous", createdAt = createdAt ?: "")

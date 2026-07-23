@@ -17,6 +17,6 @@ interface MehfilApi {
 interface ThoughtsApi {
     @GET("mehfil/interactions/comments/{thoughtId}") suspend fun getComments(@Path("thoughtId") id: String, @Query("page") page: Int = 1): Response<CommentsResponse>
     @POST("mehfil/interactions/comments") suspend fun postComment(@Body body: CommentRequest): Response<Any>
-    @POST("mehfil/interactions/save") suspend fun savePost(@Body body: SaveRequest): Response<Any>
+    @PUT("mehfil/interactions/save/{thoughtId}") suspend fun savePost(@Path("thoughtId") thoughtId: String): Response<Any>
     @DELETE("mehfil/interactions/save/{thoughtId}") suspend fun unsavePost(@Path("thoughtId") thoughtId: String): Response<Any>
 }

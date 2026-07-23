@@ -99,11 +99,11 @@ fun SafarNavGraph(
         // Navigate to a feature root, saving the current feature's back-stack and
         // restoring the target's. popUpTo(HOME, inclusive=false) keeps Home pinned at
         // the base so every feature collapses to [Home, Feature] and Back is one hop.
-        fun openFeatureRoot(featureRoute: String) {
+        fun openFeatureRoot(featureRoute: String, restorePreviousState: Boolean = true) {
             navController.navigate(featureRoute) {
                 popUpTo(Routes.HOME) { saveState = true; inclusive = false }
                 launchSingleTop = true
-                restoreState = true
+                restoreState = restorePreviousState
             }
         }
 
@@ -149,8 +149,13 @@ fun SafarNavGraph(
                     parentAlreadyPresent = currentRouteBase == Routes.DASHBOARD)
 
             // Feature root (drawer item) — preserve each feature's back-stack independently.
-            routeBase in featureGraphRoots ->
-                openFeatureRoot(route)
+            routeBase in featureGraphRoots -> {
+                // A planner/goal launch carries new work chosen by the student.
+                // Restoring Ekagra's old destination here also restores its old
+                // arguments, which can show the previous topic in the End sheet.
+                val isNewEkagraWork = Routes.isContextualEkagraLaunch(route)
+                openFeatureRoot(route, restorePreviousState = !isNewEkagraWork)
+            }
 
             // All other sub-screens push on top of the current feature's stack.
             else ->
@@ -532,8 +537,9 @@ fun SafarNavGraph(
         composable(Routes.PROFILE) {
             val timerService = LocalTimerService.current
             ProfileScreen(
+                currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
-                onBack = ::safeBack,
+                onNavigate = ::navigate,
                 onLogout = {
                     timerService?.reset()
                     activity?.onLogout()
@@ -549,8 +555,9 @@ fun SafarNavGraph(
 
         composable(Routes.SETTINGS) {
             SettingsScreen(
+                currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
-                onBack = ::safeBack,
+                onNavigate = ::navigate,
                 onHome = { navigate(Routes.HOME) },
                 onToggleDarkTheme = onToggleDarkTheme,
                 dataStore = dataStore,
@@ -577,9 +584,10 @@ fun SafarNavGraph(
 
         composable(Routes.PREMIUM) {
             PremiumPaywallScreen(
+                currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
-                onBack = ::safeBack,
                 onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
             )
         }
     }

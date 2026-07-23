@@ -8,6 +8,7 @@ import com.safarparmar.app.domain.model.studyplanner.PlannerAnalytics
 import com.safarparmar.app.domain.model.studyplanner.RolloverUndoResult
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.model.studyplanner.RevisionCompletion
 import com.safarparmar.app.domain.model.studyplanner.UpgradePlannerResult
 import okhttp3.MultipartBody
 import retrofit2.Response
@@ -456,6 +457,7 @@ data class TopicPatchRequest(
     val revisionMarkedAt: String? = null,
     val revisionReminderDates: List<String>? = null,
     val revisionCompletedDates: List<String>? = null,
+    val revisionCompletionLog: List<RevisionCompletion>? = null,
     val revisionScheduleType: String? = null,
     /** "small" | "medium" | "big" */
     val size: String? = null,

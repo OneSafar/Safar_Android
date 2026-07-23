@@ -27,6 +27,10 @@ interface NotificationApi {
     @POST("admin/notifications/broadcast")
     suspend fun sendAdminBroadcast(@Body request: AdminBroadcastRequest): Response<AdminBroadcastResponse>
 
+    /** Posts to the Home bell inbox only — no FCM / tray notification. */
+    @POST("admin/notifications/inbox")
+    suspend fun postAdminInbox(@Body request: AdminBroadcastRequest): Response<AdminBroadcastResponse>
+
     /** Sends only to the signed-in user — does not require admin (for testing composer content). */
     @POST("notifications/test")
     suspend fun sendTestNotification(@Body request: AdminBroadcastRequest): Response<AdminBroadcastResponse>

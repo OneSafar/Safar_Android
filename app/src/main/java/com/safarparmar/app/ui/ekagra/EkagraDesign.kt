@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
 /**
@@ -52,16 +53,39 @@ class EkagraInk(
 )
 
 @Composable
-internal fun rememberEkagraInk(onCanvas: Boolean): EkagraInk {
+internal fun rememberEkagraInk(
+    onCanvas: Boolean,
+    theme: VisualTheme? = null,
+    isDarkTheme: Boolean = true,
+): EkagraInk {
     val scheme = MaterialTheme.colorScheme
+    val isGradientTheme = theme?.gradientColors != null
+
     return if (onCanvas) {
-        EkagraInk(
-            primaryText = Color.White,
-            secondaryText = Color.White.copy(alpha = 0.88f),
-            mutedText = Color.White.copy(alpha = 0.65f),
-            hairline = Color.White.copy(alpha = 0.22f),
-            trackFaint = Color.White.copy(alpha = 0.16f),
-        )
+        if (!isDarkTheme && theme?.gradientColors != null) {
+            val (primaryInk, secondaryInk) = when (theme.name) {
+                "Focus" -> Color(0xFF0F172A) to Color(0xFF334155)
+                "Habits" -> Color(0xFF062C12) to Color(0xFF1C472A)
+                "Journal" -> Color(0xFF3B0F03) to Color(0xFF571B0A)
+                "Peace" -> Color(0xFF1E0C24) to Color(0xFF3B1A45)
+                else -> Color(0xFF0F172A) to Color(0xFF334155)
+            }
+            EkagraInk(
+                primaryText = primaryInk,
+                secondaryText = secondaryInk,
+                mutedText = secondaryInk.copy(alpha = 0.75f),
+                hairline = primaryInk.copy(alpha = 0.20f),
+                trackFaint = primaryInk.copy(alpha = 0.14f),
+            )
+        } else {
+            EkagraInk(
+                primaryText = Color.White,
+                secondaryText = Color.White.copy(alpha = 0.88f),
+                mutedText = Color.White.copy(alpha = 0.65f),
+                hairline = Color.White.copy(alpha = 0.22f),
+                trackFaint = Color.White.copy(alpha = 0.16f),
+            )
+        }
     } else {
         EkagraInk(
             primaryText = scheme.onSurface,
@@ -247,22 +271,26 @@ internal fun EkagraPrimaryAction(
 ) {
     Box(
         modifier
+            .height(48.dp)
             .clip(CircleShape)
             .background(accent)
+            .border(1.dp, contrastOn(accent).copy(alpha = 0.35f), CircleShape)
             .clickable(interactionSource = remembered(), indication = null) { onClick() }
-            .padding(horizontal = 40.dp, vertical = 15.dp),
+            .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            fontSize = 15.sp,
+            fontSize = 14.5.sp,
             fontWeight = FontWeight.Bold,
             color = contrastOn(accent),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
-/** Quiet text action that sits beside the primary pill (End / Cancel). */
+/** Hairline bordered action pill beside the primary pill (End / Cancel). */
 @Composable
 internal fun EkagraGhostAction(
     label: String,
@@ -272,9 +300,11 @@ internal fun EkagraGhostAction(
 ) {
     Box(
         modifier
+            .height(48.dp)
             .clip(CircleShape)
+            .border(1.dp, ink.hairline, CircleShape)
             .clickable(interactionSource = remembered(), indication = null) { onClick() }
-            .padding(horizontal = 20.dp, vertical = 15.dp),
+            .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -282,6 +312,8 @@ internal fun EkagraGhostAction(
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = ink.secondaryText,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

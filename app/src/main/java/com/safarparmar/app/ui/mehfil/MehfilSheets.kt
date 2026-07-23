@@ -4,8 +4,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,25 +29,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -72,7 +65,9 @@ import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.Comment
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.domain.model.Sandesh
-import com.safarparmar.app.ui.theme.Red500
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,6 +78,7 @@ internal fun CommentsBottomSheet(
     isLoadingMore: Boolean,
     hasMore: Boolean,
     isPosting: Boolean,
+    errorMessage: String?,
     commentInput: String,
     onCommentChange: (String) -> Unit,
     onPost: () -> Unit,
@@ -91,29 +87,40 @@ internal fun CommentsBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MehfilFlatColors.Bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Comments",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text("${comments.size}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                PlanEyebrow("Mehfil")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Comments",
+                        fontFamily = LoraFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 22.sp,
+                        color = MehfilFlatColors.Text,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text("${comments.size}", fontSize = 13.sp, color = MehfilFlatColors.Muted)
+                }
             }
-            HorizontalDivider()
+            PlanHairline(modifier = Modifier.padding(horizontal = 16.dp))
             when {
                 isLoading -> Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MehfilFlatColors.Primary, strokeWidth = 2.dp)
                 }
                 comments.isEmpty() -> Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                    Text("No comments yet. Be the first!", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    Text("No comments yet. Be the first!", color = MehfilFlatColors.Muted, fontSize = 13.sp)
                 }
                 else -> CommentList(
                     comments = comments,
@@ -123,7 +130,15 @@ internal fun CommentsBottomSheet(
                     modifier = Modifier.weight(1f),
                 )
             }
-            HorizontalDivider()
+            PlanHairline(modifier = Modifier.padding(horizontal = 16.dp))
+            if (!errorMessage.isNullOrBlank()) {
+                Text(
+                    errorMessage,
+                    color = MehfilFlatColors.Like,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                )
+            }
             CommentInputRow(
                 value = commentInput,
                 isPosting = isPosting,
@@ -164,7 +179,7 @@ private fun CommentList(
         if (isLoadingMore) {
             item {
                 Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MehfilFlatColors.Primary)
                 }
             }
         }
@@ -174,15 +189,39 @@ private fun CommentList(
 @Composable
 private fun CommentRow(comment: Comment) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.size(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(0.12f)), contentAlignment = Alignment.Center) {
-            Text(comment.authorName.firstOrNull()?.uppercase() ?: "A", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Box(
+            Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(MehfilFlatColors.Primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                comment.authorName.firstOrNull()?.uppercase() ?: "A",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = MehfilFlatColors.Primary,
+            )
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(comment.authorName, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-            Text(comment.content, fontSize = 13.sp, lineHeight = 18.sp)
+            Text(comment.authorName, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MehfilFlatColors.Text)
+            Text(comment.content, fontSize = 13.sp, lineHeight = 18.sp, color = MehfilFlatColors.Text)
         }
     }
 }
+
+@Composable
+private fun mehfilFlatFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = MehfilFlatColors.Primary,
+    unfocusedBorderColor = MehfilFlatColors.Hairline,
+    focusedTextColor = MehfilFlatColors.Text,
+    unfocusedTextColor = MehfilFlatColors.Text,
+    cursorColor = MehfilFlatColors.Primary,
+    focusedContainerColor = Color.Transparent,
+    unfocusedContainerColor = Color.Transparent,
+    focusedPlaceholderColor = MehfilFlatColors.Muted,
+    unfocusedPlaceholderColor = MehfilFlatColors.Muted,
+)
 
 @Composable
 private fun CommentInputRow(
@@ -191,6 +230,7 @@ private fun CommentInputRow(
     onValueChange: (String) -> Unit,
     onPost: () -> Unit,
 ) {
+    val canSend = value.isNotBlank() && !isPosting
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp).navigationBarsPadding(),
         verticalAlignment = Alignment.CenterVertically,
@@ -199,21 +239,29 @@ private fun CommentInputRow(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text("Add a comment...", fontSize = 13.sp) },
+            placeholder = { Text("Add a comment...", fontSize = 13.sp, color = MehfilFlatColors.Muted) },
             modifier = Modifier.weight(1f),
             singleLine = true,
-            shape = OutlinedTextFieldDefaults.shape,
+            shape = RoundedCornerShape(12.dp),
+            colors = mehfilFlatFieldColors(),
         )
         IconButton(
             onClick = { if (value.isNotBlank()) onPost() },
-            modifier = Modifier.size(44.dp).clip(CircleShape).background(
-                if (value.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(0.2f),
-            ),
+            enabled = canSend,
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(if (canSend) MehfilFlatColors.Primary else MehfilFlatColors.Hairline.copy(alpha = 0.55f)),
         ) {
             if (isPosting) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
             } else {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = if (value.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = null,
+                    tint = if (canSend) Color.White else MehfilFlatColors.Muted,
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }
@@ -233,7 +281,7 @@ internal fun SandeshBottomSheet(
     onReact: (String) -> Unit,
     onLoadComments: (String) -> Unit,
     onLoadMoreComments: (String) -> Unit,
-    onPostComment: (String, String) -> Unit,
+    onPostComment: (String, String, () -> Unit) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var commentTargetId by remember { mutableStateOf<String?>(initialCommentTargetId) }
@@ -246,9 +294,10 @@ internal fun SandeshBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = { if (showComments && initialCommentTargetId == null) commentTargetId = null else onDismiss() },
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MehfilFlatColors.Bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) {
         AnimatedContent(
             targetState = showComments,
@@ -271,8 +320,9 @@ internal fun SandeshBottomSheet(
                     onPostComment = {
                         val id = commentTargetId
                         if (commentText.isNotBlank() && id != null) {
-                            onPostComment(id, commentText)
-                            commentText = ""
+                            onPostComment(id, commentText) {
+                                commentText = ""
+                            }
                         }
                     },
                 )
@@ -300,22 +350,49 @@ private fun SandeshCommentsPane(
     onLoadMore: () -> Unit,
     onPostComment: () -> Unit,
 ) {
+    val canSend = commentText.isNotBlank()
     Column(Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            PlanEyebrow("Sandesh")
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, MehfilFlatColors.Hairline, CircleShape)
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = MehfilFlatColors.Text,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+                Text(
+                    "Comments",
+                    fontFamily = LoraFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 22.sp,
+                    color = MehfilFlatColors.Text,
+                    modifier = Modifier.weight(1f),
+                )
+                if (!isLoading) Text("${comments.size}", fontSize = 13.sp, color = MehfilFlatColors.Muted)
             }
-            Text("Comments", fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
-            if (!isLoading) Text("${comments.size}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        HorizontalDivider()
+        PlanHairline(modifier = Modifier.padding(horizontal = 16.dp))
         if (isLoading) {
             Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(modifier = Modifier.size(28.dp), color = MaterialTheme.colorScheme.primary)
+                CircularProgressIndicator(modifier = Modifier.size(28.dp), color = MehfilFlatColors.Primary, strokeWidth = 2.dp)
             }
         } else {
             CommentList(
@@ -326,7 +403,7 @@ private fun SandeshCommentsPane(
                 modifier = Modifier.weight(1f),
             )
         }
-        HorizontalDivider()
+        PlanHairline(modifier = Modifier.padding(horizontal = 16.dp))
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp).navigationBarsPadding().imePadding(),
             verticalAlignment = Alignment.CenterVertically,
@@ -335,18 +412,26 @@ private fun SandeshCommentsPane(
             OutlinedTextField(
                 value = commentText,
                 onValueChange = onCommentTextChange,
-                placeholder = { Text("Add a comment...", fontSize = 13.sp) },
+                placeholder = { Text("Add a comment...", fontSize = 13.sp, color = MehfilFlatColors.Muted) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
-                shape = OutlinedTextFieldDefaults.shape,
+                shape = RoundedCornerShape(12.dp),
+                colors = mehfilFlatFieldColors(),
             )
             IconButton(
                 onClick = onPostComment,
-                modifier = Modifier.size(44.dp).clip(CircleShape).background(
-                    if (commentText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(0.2f),
-                ),
+                enabled = canSend,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(if (canSend) MehfilFlatColors.Primary else MehfilFlatColors.Hairline.copy(alpha = 0.55f)),
             ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = if (commentText.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = null,
+                    tint = if (canSend) Color.White else MehfilFlatColors.Muted,
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }
@@ -360,39 +445,79 @@ private fun SandeshListPane(
     onOpenComments: (String) -> Unit,
 ) {
     Column(
-        Modifier.fillMaxWidth().fillMaxHeight(0.92f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 40.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.92f)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 40.dp),
     ) {
-        Text("Sandesh", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        Text("Messages from the community", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        sandeshes.forEach { sandesh ->
+        PlanEyebrow("Mehfil")
+        Text(
+            "Sandesh",
+            fontFamily = LoraFontFamily,
+            fontWeight = FontWeight.Normal,
+            fontSize = 22.sp,
+            color = MehfilFlatColors.Text,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+        Text(
+            "Messages from the community",
+            fontSize = 12.sp,
+            color = MehfilFlatColors.Muted,
+            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+        )
+        PlanHairline()
+        sandeshes.forEachIndexed { index, sandesh ->
             val isReacted = sandesh.id in reactedSandeshIds
-            Card(
-                shape = MaterialTheme.shapes.medium,
-                border = CardDefaults.outlinedCardBorder(),
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
-                elevation = CardDefaults.cardElevation(0.dp),
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(sandesh.content, fontSize = 14.sp, lineHeight = 20.sp)
-                    Text(sandesh.createdAt.take(10), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                        Row(Modifier.clickable { onReact(sandesh.id) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Icon(
-                                if (isReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = null,
-                                modifier = Modifier.size(15.dp),
-                                tint = if (isReacted) Red500 else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text("${sandesh.reactionCount}", fontSize = 12.sp, color = if (isReacted) Red500 else MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Row(Modifier.clickable { onOpenComments(sandesh.id) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.primary)
-                            Text("${sandesh.commentCount} comments", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
-                        }
+                Text(sandesh.content, fontSize = 14.sp, lineHeight = 20.sp, color = MehfilFlatColors.Text)
+                Text(sandesh.createdAt.take(10), fontSize = 11.sp, color = MehfilFlatColors.Muted)
+                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Row(
+                        Modifier.clickable { onReact(sandesh.id) },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        Icon(
+                            if (isReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                            tint = if (isReacted) MehfilFlatColors.Like else MehfilFlatColors.Muted,
+                        )
+                        Text(
+                            "${sandesh.reactionCount}",
+                            fontSize = 12.sp,
+                            color = if (isReacted) MehfilFlatColors.Like else MehfilFlatColors.Muted,
+                        )
+                    }
+                    Row(
+                        Modifier.clickable { onOpenComments(sandesh.id) },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.ChatBubbleOutline,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                            tint = MehfilFlatColors.Primary,
+                        )
+                        Text(
+                            "${sandesh.commentCount} comments",
+                            fontSize = 12.sp,
+                            color = MehfilFlatColors.Primary,
+                            fontWeight = FontWeight.Medium,
+                        )
                     }
                 }
+            }
+            if (index < sandeshes.lastIndex) {
+                PlanHairline(alpha = 0.6f)
             }
         }
     }
@@ -400,44 +525,101 @@ private fun SandeshListPane(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CreatePostSheet(selectedSpace: String, onPost: (String, String, Boolean) -> Unit, onDismiss: () -> Unit) {
+internal fun CreatePostSheet(
+    selectedSpace: String,
+    isPosting: Boolean,
+    onPost: (String, String, Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
     var content by remember { mutableStateOf("") }
     var space by remember { mutableStateOf(if (selectedSpace == "ALL") "REFLECTIVE" else selectedSpace) }
     var isAnonymous by remember { mutableStateOf(false) }
+    val canPost = content.isNotBlank() && !isPosting
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MehfilFlatColors.Bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("New Post", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 40.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            PlanEyebrow("Mehfil")
+            Text(
+                "New Post",
+                fontFamily = LoraFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 22.sp,
+                color = MehfilFlatColors.Text,
+            )
+            PlanHairline()
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                placeholder = { Text("What's on your mind?") },
+                placeholder = { Text("What's on your mind?", color = MehfilFlatColors.Muted) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                 minLines = 4,
-                shape = OutlinedTextFieldDefaults.shape,
+                shape = RoundedCornerShape(12.dp),
+                colors = mehfilFlatFieldColors(),
             )
-            Text("Space", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Space", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Muted)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("REFLECTIVE", "ACADEMIC").forEach { item ->
-                    FilterChip(
-                        selected = space == item,
-                        onClick = { space = item },
-                        label = { Text(item.replaceFirstChar { it.uppercase() }, fontSize = 12.sp) },
-                    )
+                    val selected = space == item
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .then(
+                                if (selected) {
+                                    Modifier.background(MehfilFlatColors.Primary)
+                                } else {
+                                    Modifier.border(1.dp, MehfilFlatColors.Hairline, CircleShape)
+                                },
+                            )
+                            .clickable { space = item }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            item.replaceFirstChar { it.uppercase() },
+                            fontSize = 12.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selected) Color.White else MehfilFlatColors.Muted,
+                        )
+                    }
                 }
             }
             AnonymousPostToggle(isAnonymous = isAnonymous, onCheckedChange = { isAnonymous = it })
-            Button(
-                onClick = { if (content.isNotBlank()) onPost(content, space, isAnonymous) },
-                enabled = content.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-                shape = ButtonDefaults.shape,
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        if (canPost) MehfilFlatColors.Primary
+                        else MehfilFlatColors.Hairline.copy(alpha = 0.55f),
+                    )
+                    .clickable(enabled = canPost) {
+                        if (content.isNotBlank()) onPost(content, space, isAnonymous)
+                    }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(if (isAnonymous) "Post Anonymously" else "Post", fontWeight = FontWeight.SemiBold)
+                if (isPosting) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                } else {
+                    Text(
+                        if (isAnonymous) "Post without my name" else "Share post",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        color = if (canPost) Color.White else MehfilFlatColors.Muted,
+                    )
+                }
             }
         }
     }
@@ -445,35 +627,40 @@ internal fun CreatePostSheet(selectedSpace: String, onPost: (String, String, Boo
 
 @Composable
 private fun AnonymousPostToggle(isAnonymous: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = if (isAnonymous) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, if (isAnonymous) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Icon(painter = painterResource(id = R.drawable.ic_ghost), contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Column(Modifier.weight(1f)) {
-                Text("Post Anonymously", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Text("Your name won't be shown", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Switch(
-                checked = isAnonymous,
-                onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = MaterialTheme.colorScheme.primary,
-                    checkedBorderColor = MaterialTheme.colorScheme.primary,
-                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                ),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                1.dp,
+                if (isAnonymous) MehfilFlatColors.Primary.copy(alpha = 0.45f) else MehfilFlatColors.Hairline,
+                RoundedCornerShape(12.dp),
             )
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_ghost),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = if (isAnonymous) MehfilFlatColors.Primary else MehfilFlatColors.Muted,
+        )
+        Column(Modifier.weight(1f)) {
+            Text("Hide my name", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MehfilFlatColors.Text)
+            Text("Your name won't be shown", fontSize = 11.sp, color = MehfilFlatColors.Muted)
         }
+        Switch(
+            checked = isAnonymous,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = MehfilFlatColors.Primary,
+                checkedBorderColor = MehfilFlatColors.Primary,
+                uncheckedThumbColor = MehfilFlatColors.Muted,
+                uncheckedTrackColor = MehfilFlatColors.Hairline.copy(alpha = 0.45f),
+                uncheckedBorderColor = MehfilFlatColors.Hairline,
+            ),
+        )
     }
 }
 
@@ -482,28 +669,58 @@ private fun AnonymousPostToggle(isAnonymous: Boolean, onCheckedChange: (Boolean)
 internal fun GuidelinesSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MehfilFlatColors.Bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Community Guidelines", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text("Posting Rules", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-            GuidelineItem(R.drawable.ic_graduation_cap, "Academic Hall", "Research, study hacks, and career help only. No venting.")
-            GuidelineItem(R.drawable.ic_chat, "Thoughts", "Emotional support and venting. Move here for personal struggles.")
-            Text("Consequences", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-            GuidelineItem(R.drawable.ic_shield_check, "Report-Based Bans", "1+ reports trigger automatic bans (2D -> 7D -> Permanent).")
-            GuidelineItem(R.drawable.ic_ghost, "Shadow Banning", "Repeated spam results in silent silencing; others won't see you.")
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 40.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            PlanEyebrow("Mehfil")
+            Text(
+                "Simple rules",
+                fontFamily = LoraFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 22.sp,
+                color = MehfilFlatColors.Text,
+            )
+            PlanHairline()
+            GuidelineItem(R.drawable.ic_graduation_cap, "Study room", "Ask about study, exams and careers.")
+            GuidelineItem(R.drawable.ic_chat, "Talk room", "Share your thoughts and support other students.")
+            GuidelineItem(R.drawable.ic_shield_check, "Be kind", "Do not post abuse, spam or unsafe content.")
+            GuidelineItem(R.drawable.ic_ghost, "Keep it safe", "Unsafe posts may be removed and the account may be blocked.")
         }
     }
 }
 
 @Composable
 private fun GuidelineItem(iconRes: Int, title: String, desc: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Icon(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(MehfilFlatColors.Primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MehfilFlatColors.Primary,
+            )
+        }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-            Text(desc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 17.sp)
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Text)
+            Text(desc, fontSize = 12.sp, color = MehfilFlatColors.Muted, lineHeight = 17.sp)
         }
     }
 }

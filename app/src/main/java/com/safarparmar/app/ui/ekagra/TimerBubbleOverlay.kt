@@ -1,16 +1,19 @@
 package com.safarparmar.app.ui.ekagra
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
 import android.provider.Settings
 import android.view.Gravity
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,13 +59,10 @@ private fun ExpandedPill(
     onOpen: () -> Unit,
 ) {
     val accent = if (kavachActive) Color(0xFF4ADE80) else (themeAccent ?: Color(0xFF7C6FF7))
-    // Fully rounded capsule.
     val shape = RoundedCornerShape(percent = 50)
 
     Box(
         modifier = Modifier
-            // Size to the content, not the screen — otherwise the fillMaxWidth progress
-            // bar below stretches the whole pill to full width.
             .width(IntrinsicSize.Max)
             .clip(shape)
             .background(PillBg)
@@ -169,7 +168,6 @@ private fun CollapsedTab(
     onExpand: () -> Unit,
 ) {
     val accent = if (kavachActive) Color(0xFF4ADE80) else (themeAccent ?: Color(0xFF7C6FF7))
-    // Rounded on the inner side, flat toward the screen edge it docks against.
     val shape = if (snappedRight)
         RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp)
     else
@@ -205,34 +203,73 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
     var collapsed    by mutableStateOf(false)
     var themeAccent  by mutableStateOf<Color?>(null)
 
-    // Wired up by the manager so the composable can drive window position + actions.
-    var onDrag:     (Float, Float) -> Unit = { _, _ -> }
-    var onDragEnd:  () -> Unit = {}
+    // Wired up by the manager so the view can drive window position + actions.
+    var onWindowTouchStart: () -> Unit = {}
+    var onWindowDrag: (Float, Float) -> Unit = { _, _ -> }
+    var onWindowDragEnd: () -> Unit = {}
     var onPlayPause: () -> Unit = {}
-    var onOpen:     () -> Unit = {}
+    var onOpen: () -> Unit = {}
     var onCollapsedChanged: () -> Unit = {}
+
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+    private var initialRawX = 0f
+    private var initialRawY = 0f
+    private var isDragging = false
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                initialRawX = ev.rawX
+                initialRawY = ev.rawY
+                isDragging = false
+                onWindowTouchStart()
+                super.dispatchTouchEvent(ev)
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dx = ev.rawX - initialRawX
+                val dy = ev.rawY - initialRawY
+                if (!isDragging && kotlin.math.hypot(dx, dy) > touchSlop) {
+                    isDragging = true
+                }
+                if (isDragging) {
+                    onWindowDrag(dx, dy)
+                    // Drag-to-expand: if collapsed and user pulls inward from screen edge (> 24dp)
+                    if (collapsed) {
+                        val inwardDrag = if (snappedRight) -dx else dx
+                        if (inwardDrag > 24 * context.resources.displayMetrics.density) {
+                            collapsed = false
+                            onCollapsedChanged()
+                        }
+                    }
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (isDragging) {
+                    isDragging = false
+                    onWindowDragEnd()
+                    return true
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
+    }
 
     @Composable
     override fun Content() {
         val progress = if (totalSeconds > 0) secondsLeft.toFloat() / totalSeconds.toFloat() else 0f
 
-        Box(
-            modifier = Modifier.pointerInput(Unit) {
-                detectDragGestures(
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount.x, dragAmount.y)
-                    },
-                    onDragEnd = { onDragEnd() },
-                )
-            },
-        ) {
+        Box {
             if (collapsed) {
                 CollapsedTab(
                     kavachActive = kavachActive,
                     snappedRight = snappedRight,
                     themeAccent = themeAccent,
-                    onExpand = { collapsed = false; onCollapsedChanged() },
+                    onExpand = {
+                        collapsed = false
+                        onCollapsedChanged()
+                    },
                 )
             } else {
                 ExpandedPill(
@@ -243,7 +280,10 @@ private class BubbleComposeView(context: Context) : AbstractComposeView(context)
                     snappedRight = snappedRight,
                     themeAccent = themeAccent,
                     onPlayPause = onPlayPause,
-                    onCollapse = { collapsed = true; onCollapsedChanged() },
+                    onCollapse = {
+                        collapsed = true
+                        onCollapsedChanged()
+                    },
                     onOpen = onOpen,
                 )
             }
@@ -275,6 +315,7 @@ object TimerBubbleOverlay {
     private var attached = false
     private var currentX = -1
     private var currentY = -1
+    private var snapAnimator: ValueAnimator? = null
 
     fun canDrawOverlays(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
@@ -285,6 +326,17 @@ object TimerBubbleOverlay {
             android.net.Uri.parse("package:${context.packageName}")
         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
+    }
+
+    private fun getScreenDimensions(context: Context): Pair<Int, Int> {
+        val wm = context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && wm != null) {
+            val bounds = wm.currentWindowMetrics.bounds
+            Pair(bounds.width(), bounds.height())
+        } else {
+            val dm = context.resources.displayMetrics
+            Pair(dm.widthPixels, dm.heightPixels)
+        }
     }
 
     /** Shows or refreshes the floating pill. Safe to call repeatedly each tick. */
@@ -313,6 +365,8 @@ object TimerBubbleOverlay {
     }
 
     fun hide() {
+        snapAnimator?.cancel()
+        snapAnimator = null
         val wm   = windowManager ?: return
         val view = bubbleView    ?: return
         if (!attached) return
@@ -323,8 +377,52 @@ object TimerBubbleOverlay {
         attached       = false
         bubbleView     = null
         windowManager  = null
-        lifecycleOwner = null
+        lifecycleOwner = loNull()
         params         = null
+    }
+
+    private fun loNull(): BubbleLifecycleOwner? = null
+
+    private fun snapToNearestEdge(
+        view: BubbleComposeView,
+        wm: WindowManager,
+        p: WindowManager.LayoutParams,
+        context: Context
+    ) {
+        snapAnimator?.cancel()
+        val (screenW, screenH) = getScreenDimensions(context)
+        val maxX = (screenW - view.width).coerceAtLeast(0)
+        val maxY = (screenH - view.height).coerceAtLeast(0)
+
+        val center = p.x + view.width / 2
+        val toRight = center >= screenW / 2
+        val targetX = if (toRight) maxX else 0
+        val targetY = p.y.coerceIn(0, maxY)
+
+        view.snappedRight = toRight
+
+        val startX = p.x
+        if (startX == targetX) {
+            p.y = targetY
+            currentX = p.x
+            currentY = p.y
+            try { wm.updateViewLayout(view, p) } catch (_: Exception) {}
+            return
+        }
+
+        snapAnimator = ValueAnimator.ofInt(startX, targetX).apply {
+            duration = 180L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { anim ->
+                val currentP = params ?: return@addUpdateListener
+                currentP.x = anim.animatedValue as Int
+                currentP.y = targetY
+                currentX = currentP.x
+                currentY = currentP.y
+                try { wm.updateViewLayout(view, currentP) } catch (_: Exception) {}
+            }
+        }
+        snapAnimator?.start()
     }
 
     // ── Private attach ────────────────────────────────────────────────────────
@@ -337,9 +435,7 @@ object TimerBubbleOverlay {
         kavachActive: Boolean,
         isRunning: Boolean,
     ) {
-        val density = context.resources.displayMetrics.density
-        val screenH = context.resources.displayMetrics.heightPixels
-        val screenW = context.resources.displayMetrics.widthPixels
+        val (screenW, screenH) = getScreenDimensions(context)
 
         if (currentY < 0) currentY = screenH / 3
         if (currentX < 0) currentX = screenW  // start docked right
@@ -374,41 +470,68 @@ object TimerBubbleOverlay {
             setViewTreeSavedStateRegistryOwner(lo)
         }
 
-        // Clamped like maxX below: applicationContext's displayMetrics can report a zero
-        // or tiny height (service context, multi-window/large-screen configs), which makes
-        // this negative and blows up the coerceIn(0, maxY) calls with IllegalArgumentException.
-        val maxY = (screenH - 60 * density).toInt().coerceAtLeast(0)
+        var initialXOnDrag = 0
+        var initialYOnDrag = 0
 
-        view.onDrag = fun(dx: Float, dy: Float) {
+        view.onWindowTouchStart = {
+            snapAnimator?.cancel()
+            val p = params
+            if (p != null) {
+                initialXOnDrag = p.x
+                initialYOnDrag = p.y
+            }
+        }
+
+        view.onWindowDrag = fun(dx: Float, dy: Float) {
             val p = params ?: return
-            val maxX = (screenW - view.width).coerceAtLeast(0)
-            p.x = (p.x + dx.toInt()).coerceIn(0, maxX)
-            p.y = (p.y + dy.toInt()).coerceIn(0, maxY)
+            val (curScreenW, curScreenH) = getScreenDimensions(context)
+            val maxX = (curScreenW - view.width).coerceAtLeast(0)
+            val maxY = (curScreenH - view.height).coerceAtLeast(0)
+
+            p.x = (initialXOnDrag + dx.toInt()).coerceIn(0, maxX)
+            p.y = (initialYOnDrag + dy.toInt()).coerceIn(0, maxY)
             currentX = p.x
             currentY = p.y
             try { wm.updateViewLayout(view, p) } catch (_: Exception) {}
         }
-        view.onDragEnd = fun() {
+
+        view.onWindowDragEnd = fun() {
             val p = params ?: return
-            // Snap to nearest horizontal edge, keep vertical position.
-            val center = p.x + view.width / 2
-            val toRight = center >= screenW / 2
-            p.x = if (toRight) (screenW - view.width).coerceAtLeast(0) else 0
-            currentX = p.x
-            view.snappedRight = toRight
-            try { wm.updateViewLayout(view, p) } catch (_: Exception) {}
+            snapToNearestEdge(view, wm, p, context)
         }
+
         view.onCollapsedChanged = fun() {
-            // Re-snap after size change so the tab/pill stays flush against its edge.
             val p = params ?: return
             view.post {
-                val maxX = (screenW - view.width).coerceAtLeast(0)
+                val (curScreenW, curScreenH) = getScreenDimensions(context)
+                val maxX = (curScreenW - view.width).coerceAtLeast(0)
+                val maxY = (curScreenH - view.height).coerceAtLeast(0)
                 p.x = if (view.snappedRight) maxX else 0
                 p.y = p.y.coerceIn(0, maxY)
                 currentX = p.x
+                currentY = p.y
                 try { wm.updateViewLayout(view, p) } catch (_: Exception) {}
             }
         }
+
+        view.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            val newW = right - left
+            val newH = bottom - top
+            val oldW = oldRight - oldLeft
+            val oldH = oldBottom - oldTop
+            if (newW > 0 && newH > 0 && (newW != oldW || newH != oldH)) {
+                val p = params ?: return@addOnLayoutChangeListener
+                val (curScreenW, curScreenH) = getScreenDimensions(context)
+                val maxX = (curScreenW - newW).coerceAtLeast(0)
+                val maxY = (curScreenH - newH).coerceAtLeast(0)
+                p.x = if (view.snappedRight) maxX else 0
+                p.y = p.y.coerceIn(0, maxY)
+                currentX = p.x
+                currentY = p.y
+                try { wm.updateViewLayout(view, p) } catch (_: Exception) {}
+            }
+        }
+
         view.onPlayPause = {
             try {
                 val intent = Intent(context, TimerService::class.java).apply {
@@ -417,6 +540,7 @@ object TimerBubbleOverlay {
                 context.startService(intent)
             } catch (_: Exception) {}
         }
+
         view.onOpen = {
             val intent = Intent(context, com.safarparmar.app.MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or
@@ -435,15 +559,17 @@ object TimerBubbleOverlay {
 
         try { wm.addView(view, lp) } catch (_: Exception) { attached = false }
 
-        // The pill's width isn't known until it lays out. Snap it flush against its docked
-        // edge once measured — otherwise a right-dock with x = screenW sits fully off-screen.
         view.post {
             val p = params ?: return@post
-            val maxX = (screenW - view.width).coerceAtLeast(0)
+            val (curScreenW, curScreenH) = getScreenDimensions(context)
+            val maxX = (curScreenW - view.width).coerceAtLeast(0)
+            val maxY = (curScreenH - view.height).coerceAtLeast(0)
             p.x = if (view.snappedRight) maxX else 0
             p.y = p.y.coerceIn(0, maxY)
             currentX = p.x
+            currentY = p.y
             try { wm.updateViewLayout(view, p) } catch (_: Exception) {}
         }
     }
 }
+

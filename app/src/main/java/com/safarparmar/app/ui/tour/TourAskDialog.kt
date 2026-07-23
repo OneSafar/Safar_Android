@@ -8,11 +8,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,10 +19,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,6 +44,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.safarparmar.app.R
+import com.safarparmar.app.ui.studyplanner.components.rememberPlannerBackdropBlur
+import com.safarparmar.app.ui.studyplanner.components.GlassButton
+import com.safarparmar.app.ui.studyplanner.components.glassSurface
+import com.safarparmar.app.ui.theme.isLightBackground
 
 @Composable
 fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
@@ -70,14 +74,29 @@ fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
         label = "sparkleScale",
     )
 
+    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
+
     Dialog(
         onDismissRequest = onNo,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        // Real backdrop blur via the window's FLAG_BLUR_BEHIND (API 31+, and only
+        // when the system still has cross-window blur enabled). With it live,
+        // Titli's translucent card and her pink GlassButton show genuinely
+        // blurred content through them. Where it isn't available this falls back
+        // to the simulated glass documented in PlannerGlass.kt — translucency +
+        // top-edge light border + depth shadow — so the dialog never regresses.
+        val blurred = rememberPlannerBackdropBlur()
+        val scrimColor = when {
+            blurred && isDark -> Color.Black.copy(alpha = 0.28f)
+            blurred -> Color(0xFF1C1C1E).copy(alpha = 0.12f)
+            isDark -> Color.Black.copy(alpha = 0.55f)
+            else -> Color(0xFF1C1C1E).copy(alpha = 0.28f)
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.56f)), // Standard scrim background
+                .background(scrimColor),
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -86,14 +105,11 @@ fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
                     .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Surface(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 28.dp)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.extraLarge),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    shadowElevation = 6.dp,
+                        .glassSurface(shape = RoundedCornerShape(28.dp), isDarkTheme = isDark),
                 ) {
                     Column(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
@@ -140,19 +156,20 @@ fun TourAskDialog(onYes: () -> Unit, onNo: () -> Unit) {
                             modifier = Modifier.padding(bottom = 24.dp),
                         )
 
-                        Button(
+                        // Titli keeps her pink — GlassButton takes the accent as
+                        // the fill and only adds the macOS chrome on top, so the
+                        // colour is unchanged, just rendered as translucent glass.
+                        GlassButton(
                             onClick = onYes,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            shape = CircleShape, // pill shape for M3 button
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = deepCalmingPink,
-                                contentColor = Color.White,
-                            ),
+                            accentColor = deepCalmingPink,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            isDarkTheme = isDark,
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
                         ) {
                             Text(
                                 text = stringResource(R.string.tour_ask_accept),
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelLarge,
                             )

@@ -60,6 +60,10 @@ import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.glass.safarFrostedPanel
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
+import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.theme.SafarSemanticColors
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.text.SimpleDateFormat
@@ -203,341 +207,315 @@ internal fun OrganizeFreeFocusSheet(
     onLinkGoal: (com.safarparmar.app.domain.model.Goal, Boolean) -> Unit,
     onDiscard: () -> Unit,
 ) {
-    val scheme      = MaterialTheme.colorScheme
-    val isLight = scheme.background.luminance() > 0.5f
-    val focusedSeconds = pending?.let {
-        if (it.mode.equals("stopwatch", ignoreCase = true)) {
-            it.secondsLeft
-        } else {
-            it.totalSeconds - it.secondsLeft
-        }
-    } ?: 0
-    val focusedMins = focusedSeconds / 60
-    val focusedSecsRemainder = focusedSeconds % 60
-    val focusedTimeLabel = when {
-        focusedMins > 0 && focusedSecsRemainder > 0 -> "$focusedMins min $focusedSecsRemainder sec"
-        focusedMins > 0 -> "$focusedMins min"
-        else -> "$focusedSecsRemainder sec"
-    }
-
-    var selectedGoal    by remember { mutableStateOf<com.safarparmar.app.domain.model.Goal?>(null) }
+    @Suppress("UNUSED_VARIABLE")
+    val ignoredSheetState = sheetState
+    val sheetStateLocal = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.6f
+    val scheme = MaterialTheme.colorScheme
+    val ink = rememberEkagraInk(onCanvas = false)
+    val focusedTimeLabel = formatTopicStudyTime(
+        pending?.let(::topicStudyActualSeconds) ?: 0,
+    )
+    var selectedGoal by remember { mutableStateOf<com.safarparmar.app.domain.model.Goal?>(null) }
     var markAsCompleted by remember { mutableStateOf(false) }
+    var markTopicDone by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState       = sheetState,
-        containerColor   = Color.Transparent,
-        shape = RoundedCornerShape(topStart = SafarGlassChromeRadius, topEnd = SafarGlassChromeRadius),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = scheme.onSurfaceVariant.copy(alpha = 0.4f)) }
+        sheetState = sheetStateLocal,
+        containerColor = SafarSemanticColors.plannerBackground(), // Opaque warm canvas
+        dragHandle = { BottomSheetDefaults.DragHandle(color = Color.Black.copy(alpha = 0.3f)) },
     ) {
         Column(
-            Modifier
+            modifier = Modifier
                 .fillMaxWidth()
-                .safarFrostedPanel(
-                    isLight = isLight,
-                    shape = RoundedCornerShape(topStart = SafarGlassChromeRadius, topEnd = SafarGlassChromeRadius),
-                )
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 40.dp)
-                .verticalScroll(rememberScrollState())
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .heightIn(max = maxSheetHeight)
+                .padding(bottom = 24.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(SafarGlassChromeRadius))
-                    .background(scheme.primaryContainer.copy(alpha = 0.25f))
-                    .padding(vertical = 20.dp, horizontal = 16.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(scheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.EmojiEvents,
-                        contentDescription = null,
-                        tint = scheme.primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+            // 2. Header Block
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
                 Text(
-                    "You focused for $focusedTimeLabel",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = scheme.onSurface
+                    text = "Session complete",
+                    fontFamily = LoraFontFamily, // Editorial Serif
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = PlannerFlatColors.TextDark
                 )
                 Text(
-                    "Celebrate your progress! Choose how to save this focus session.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    text = "$focusedTimeLabel focused",
+                    fontSize = 28.sp,
+                    fontFamily = LoraFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    color = PlannerFlatColors.TextDark,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                Text(
+                    text = "Choose how to save your focus session",
+                    fontSize = 13.sp,
+                    color = PlannerFlatColors.TextMuted
                 )
             }
 
-            if (pending != null && pending.topicId != null) {
-                // This session was started from the Study Planner's "Focus" button
-                // on a topic — no goal list here, just the one topic it was for.
-                var markTopicDone by remember { mutableStateOf(true) }
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "STUDIED",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.primary,
-                        letterSpacing = 1.5.sp
-                    )
-                    SafarGlassCard(
-                        isLight = isLight,
-                        contentPadding = PaddingValues(16.dp),
-                    ) {
-                        Column {
-                            Text(
-                                text = pending.topicTitle ?: "Untitled topic",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = scheme.onSurface,
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(SafarGlassChromeRadius))
-                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
-                                    .clickable { markTopicDone = !markTopicDone }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Checkbox(
-                                    checked = markTopicDone,
-                                    onCheckedChange = { markTopicDone = it },
-                                    colors = CheckboxDefaults.colors(checkedColor = scheme.primary)
-                                )
-                                Text(
-                                    text = "Mark this topic as done",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = scheme.onSurface
-                                )
-                            }
-                        }
-                    }
-                }
+            PlanHairline() // 1px separator rule
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedButton(
-                        onClick = onDiscard,
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, scheme.outline.copy(alpha = 0.4f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.error)
-                    ) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Discard", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-
-                    Button(
-                        onClick = { onSaveTopic(markTopicDone) },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = scheme.secondaryContainer,
-                            contentColor = scheme.onSecondaryContainer
+            // 3. Scrollable List Internal to 60% Sheet
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding()) {
+                if (pending?.topicId != null) {
+                    // Exam Planner topic save
+                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "EXAM PLANNER TOPIC",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PlannerFlatColors.TextMuted,
+                            letterSpacing = 1.sp
                         )
-                    ) {
-                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Save", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                }
-            } else {
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "LINK TO A GOAL",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.primary,
-                    letterSpacing = 1.5.sp
-                )
-
-                if (goals.isEmpty()) {
-                    SafarGlassCard(
-                        isLight = isLight,
-                        contentPadding = PaddingValues(16.dp),
-                    ) {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text("No open goals available.", style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+                        Text(
+                            text = pending.topicTitle ?: "Untitled topic",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = PlannerFlatColors.TextDark
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { markTopicDone = !markTopicDone }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .border(
+                                        1.dp,
+                                        if (markTopicDone) scheme.primary else PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
+                                        CircleShape
+                                    )
+                                    .background(
+                                        if (markTopicDone) scheme.primary else Color.Transparent,
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (markTopicDone) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Mark topic as completed",
+                                fontSize = 14.sp,
+                                color = PlannerFlatColors.TextDark
+                            )
                         }
+                    }
+                    PlanHairline()
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ActionPill(
+                            text = "Discard",
+                            accentColor = PlannerFlatColors.TextMuted,
+                            onClick = onDiscard,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionPill(
+                            text = "Save Topic",
+                            accentColor = scheme.primary,
+                            onClick = { onSaveTopic(markTopicDone) },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 } else {
-                    goals.take(5).forEach { goal ->
-                        val isSelected = selectedGoal?.id == goal.id
-                        SafarGlassCard(
-                            isLight = isLight,
-                            tintAlpha = if (isSelected) {
-                                if (isLight) 0.55f else 0.16f
-                            } else {
-                                null
-                            },
-                            contentPadding = PaddingValues(16.dp),
-                            onClick = {
-                                selectedGoal = goal
-                                markAsCompleted = false
-                            },
-                        ) {
-                            Column {
+                    // Goal linking or free save
+                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
+                        Text(
+                            text = "LINK TO A GOAL",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PlannerFlatColors.TextMuted,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        if (goals.isEmpty()) {
+                            Text(
+                                "No active goals available",
+                                fontSize = 14.sp,
+                                color = PlannerFlatColors.TextMuted,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        } else {
+                            goals.take(4).forEachIndexed { index, goal ->
+                                val selected = selectedGoal?.id == goal.id
                                 Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedGoal = if (selected) null else goal
+                                            markAsCompleted = false
+                                        }
+                                        .padding(vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     Icon(
-                                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.Link,
+                                        imageVector = if (selected) Icons.Default.CheckCircle else Icons.Default.Link,
                                         contentDescription = null,
-                                        tint = if (isSelected) scheme.primary else scheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
+                                        tint = if (selected) scheme.primary else PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(18.dp)
                                     )
                                     Text(
                                         text = goal.title,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) scheme.primary else scheme.onSurface,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (selected) scheme.primary else PlannerFlatColors.TextDark,
                                         maxLines = 1,
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.weight(1f),
                                     )
                                 }
-
-                                if (isSelected) {
-                                    Spacer(Modifier.height(12.dp))
-                                    Row(
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(SafarGlassChromeRadius))
-                                            .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
-                                            .clickable { markAsCompleted = !markAsCompleted }
-                                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Checkbox(
-                                            checked = markAsCompleted,
-                                            onCheckedChange = { markAsCompleted = it },
-                                            colors = CheckboxDefaults.colors(checkedColor = scheme.primary)
-                                        )
-                                        Text(
-                                            text = "Mark goal as completed",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = scheme.onSurface
-                                        )
-                                    }
+                                if (index < goals.size - 1) {
+                                    PlanHairline(alpha = 0.6f)
                                 }
                             }
                         }
+
+                        if (selectedGoal != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { markAsCompleted = !markAsCompleted }
+                                    .padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .border(
+                                            1.dp,
+                                            if (markAsCompleted) scheme.primary else PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
+                                            CircleShape
+                                        )
+                                        .background(
+                                            if (markAsCompleted) scheme.primary else Color.Transparent,
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (markAsCompleted) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Mark goal as completed",
+                                    fontSize = 14.sp,
+                                    color = PlannerFlatColors.TextDark
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ActionPill(
+                                text = if (markAsCompleted) "Link & Finish Goal" else "Link Focus Session",
+                                accentColor = scheme.primary,
+                                onClick = { selectedGoal?.let { onLinkGoal(it, markAsCompleted) } },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+
+                    PlanHairline()
+
+                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
+                        Text(
+                            text = "QUICK SAVE",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PlannerFlatColors.TextMuted,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = titleInput,
+                            onValueChange = onTitleChange,
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                color = PlannerFlatColors.TextDark,
+                                fontSize = 16.sp
+                            ),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(scheme.primary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            decorationBox = { field ->
+                                Box {
+                                    if (titleInput.isBlank()) {
+                                        Text("What were you working on?", fontSize = 16.sp, color = PlannerFlatColors.TextMuted)
+                                    }
+                                    field()
+                                }
+                            },
+                        )
+                    }
+
+                    PlanHairline()
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ActionPill(
+                            text = "Discard",
+                            accentColor = PlannerFlatColors.TextMuted,
+                            onClick = onDiscard,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionPill(
+                            text = "Save Session",
+                            accentColor = scheme.primary,
+                            onClick = onSaveFree,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
-            }
-
-            if (selectedGoal != null) {
-                Button(
-                    onClick = {
-                        val g = selectedGoal ?: return@Button
-                        onLinkGoal(g, markAsCompleted)
-                    },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = scheme.primary,
-                        contentColor = scheme.onPrimary
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-                ) {
-                    Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = if (markAsCompleted) "Link & Complete Goal" else "Link Focus Session",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "QUICK SAVE",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.onSurfaceVariant,
-                    letterSpacing = 1.5.sp
-                )
-                OutlinedTextField(
-                    value = titleInput,
-                    onValueChange = onTitleChange,
-                    placeholder = { Text("What were you working on?") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = scheme.primary,
-                        unfocusedBorderColor = scheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-                )
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedButton(
-                    onClick = onDiscard,
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, scheme.outline.copy(alpha = 0.4f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.error)
-                ) {
-                    Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Discard", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                }
-                
-                Button(
-                    onClick = onSaveFree,
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = scheme.secondaryContainer,
-                        contentColor = scheme.onSecondaryContainer
-                    )
-                ) {
-                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Save", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                }
-            }
-
             }
         }
     }
 }
 
-// ─── Private data class ────────────────────────────────────────────────────────
+@Composable
+private fun ActionPill(
+    text: String,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(accentColor.copy(alpha = 0.08f))
+            .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = accentColor
+        )
+    }
+}

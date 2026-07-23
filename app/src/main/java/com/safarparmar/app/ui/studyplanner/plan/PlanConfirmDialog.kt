@@ -1,12 +1,11 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogTextAction
 
 @Composable
 fun PlanConfirmDialog(
@@ -15,22 +14,19 @@ fun PlanConfirmDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    AlertDialog(
+    PlannerDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(body) },
+        title = title,
+        text = { PlannerDialogText(body) },
+        dismissButton = { PlannerDialogTextAction("Cancel", onClick = onDismiss) },
         confirmButton = {
-            Button(
+            // Destructive confirm keeps the error colour — GlassButton renders it
+            // as translucent glass without changing the colour itself.
+            PlannerDialogAction(
+                text = "Confirm",
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-            ) {
-                Text("Confirm")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+                accentColor = MaterialTheme.colorScheme.error,
+            )
         },
     )
 }

@@ -1,5 +1,9 @@
 package com.safarparmar.app.ui.studyplanner.screens
 
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogTextAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -93,7 +97,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -103,8 +106,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -212,6 +213,8 @@ import com.safarparmar.app.ui.studyplanner.plan.DailyTodoSetupSheet
 import com.safarparmar.app.ui.studyplanner.components.ExamDaysCountdownBadge
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenu
+import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenuItem
 import com.safarparmar.app.ui.studyplanner.components.GlassButton
 import com.safarparmar.app.ui.studyplanner.components.flatCard
 import com.safarparmar.app.ui.studyplanner.importexport.StudyPlannerExportUtils
@@ -319,16 +322,21 @@ fun StudyPlannerScreen(
         mutableStateOf(showDailyTodoSetup)
     }
     androidx.compose.runtime.LaunchedEffect(planId, showDailyTodoSetup, openTab) {
-        // A newly-confirmed plan explicitly requests Home + Daily To-Do setup. Other
-        // plan-id deep links retain their existing Calendar landing behavior. A
-        // revision reminder deep link opens straight on the plan's Revision tab.
         planId?.let {
             actionsForPlanId.openPlan(it)
             when {
                 openTab.equals("revision", ignoreCase = true) ->
                     actionsForPlanId.openRevisionTopics()
+                openTab.equals("home", ignoreCase = true) ->
+                    actionsForPlanId.setSection(PlannerSection.PLAN)
                 showDailyTodoSetup -> actionsForPlanId.setSection(PlannerSection.PLAN)
-                else -> actionsForPlanId.setSection(PlannerSection.CALENDAR)
+                else -> actionsForPlanId.setSection(PlannerSection.YOUR_EXAMS)
+            }
+        } ?: run {
+            if (openTab.equals("home", ignoreCase = true)) {
+                actionsForPlanId.setSection(PlannerSection.PLAN)
+            } else {
+                actionsForPlanId.setSection(PlannerSection.YOUR_EXAMS)
             }
         }
     }
@@ -957,7 +965,10 @@ private fun StudyPlansScreen(
                                 plan = plan,
                                 isActive = plan.id == selectedPlanId,
                                 isLight = !isDark,
-                                onOpen = { actions.openPlan(plan.id) },
+                                onOpen = {
+                                    actions.openPlan(plan.id)
+                                    actions.setSection(PlannerSection.PLAN)
+                                },
                                 onDelete = { pendingDelete = plan },
                             )
                         }
@@ -1077,23 +1088,29 @@ private fun PlannerTargetExamRow(
         },
         trailingContent = {
             Box {
-                androidx.compose.material3.IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier.size(28.dp),
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
+                        .clickable { menuExpanded = true },
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Open $title options",
                         tint = menuIconTint,
+                        modifier = Modifier.size(16.dp),
                     )
                 }
-                DropdownMenu(
+                PlannerOverflowMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Delete plan") },
-                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                    PlannerOverflowMenuItem(
+                        text = "Delete plan",
+                        icon = Icons.Default.Delete,
+                        destructive = true,
                         onClick = { menuExpanded = false; onDelete() },
                     )
                 }
@@ -1334,8 +1351,8 @@ private fun PlannerHomeEmptyState(onCreatePlan: () -> Unit) {
 @Composable
 internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSection) -> Unit) {
     val sections = listOf(
-        PlannerSection.PLAN,
         PlannerSection.YOUR_EXAMS,
+        PlannerSection.PLAN,
         PlannerSection.SYLLABUS,
         PlannerSection.CALENDAR,
         PlannerSection.INSIGHTS,
@@ -1348,48 +1365,144 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
         PlannerSection.INSIGHTS to Icons.Default.Insights,
     )
     val scheme = MaterialTheme.colorScheme
+    val isLight = scheme.background.isLightBackground()
 
-    NavigationBar(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = scheme.surface,
-        tonalElevation = 4.dp,
-    ) {
-        sections.forEach { section ->
-            val isSelected = selected == section
-            val tabAccent = when (section) {
-                PlannerSection.PLAN -> PlannerTabAccent.Home
-                PlannerSection.YOUR_EXAMS -> PlannerTabAccent.Plan
-                PlannerSection.SYLLABUS -> PlannerTabAccent.Syllabus
-                PlannerSection.CALENDAR -> PlannerTabAccent.Calendar
-                PlannerSection.INSIGHTS -> PlannerTabAccent.Progress
-                PlannerSection.REVISION -> PlannerRevisionAccent.Parent
-            }
-            NavigationBarItem(
-                selected = isSelected,
-                onClick = { onSelect(section) },
-                icon = {
-                    Icon(
-                        imageVector = icons.getValue(section),
-                        contentDescription = section.label,
-                    )
-                },
-                label = {
-                    Text(
-                        text = section.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = tabAccent,
-                    selectedTextColor = tabAccent,
-                    unselectedIconColor = scheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    unselectedTextColor = scheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    indicatorColor = if (scheme.background.isLightBackground()) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.12f),
-                ),
+    val selectedIndex = sections.indexOf(selected).coerceAtLeast(0)
+    val animatedIndex by animateFloatAsState(
+        targetValue = selectedIndex.toFloat(),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "macOSGlassTabSlide",
+    )
+
+    // macOS Glass Pill Recipe colors
+    val glassBodyColor = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E).copy(alpha = 0.65f)
+    val glassBorderBrush = if (!isLight) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f))
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6))
+        )
+    }
+    val shadowElevation = if (isLight) 6.dp else 14.dp
+    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.85f)
+
+    // macOS Top-Arch Floating Surface Shape
+    val barShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    val topBorderBrush = if (!isLight) {
+        Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.18f), Color.Transparent)
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFE5E5EA), Color.Transparent)
+        )
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = shadowElevation,
+                shape = barShape,
+                spotColor = shadowColor,
+                ambientColor = shadowColor,
             )
+            .border(
+                width = 0.5.dp,
+                brush = topBorderBrush,
+                shape = barShape,
+            ),
+        color = scheme.surface,
+        shape = barShape,
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(vertical = 6.dp, horizontal = 6.dp),
+        ) {
+            val totalWidth = maxWidth
+            val itemWidth = totalWidth / sections.size
+            val pillShape = RoundedCornerShape(20.dp)
+
+            // ── Single Sliding macOS Translucent Glass Indicator Pill ──
+            Box(
+                modifier = Modifier
+                    .offset(x = itemWidth * animatedIndex)
+                    .width(itemWidth)
+                    .height(56.dp)
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .shadow(
+                        elevation = shadowElevation,
+                        shape = pillShape,
+                        spotColor = shadowColor,
+                        ambientColor = shadowColor,
+                    )
+                    .clip(pillShape)
+                    .background(glassBodyColor)
+                    .border(
+                        width = 0.5.dp,
+                        brush = glassBorderBrush,
+                        shape = pillShape,
+                    )
+            )
+
+            // ── Tab Items ──
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                sections.forEach { section ->
+                    val isSelected = selected == section
+                    val tabAccent = when (section) {
+                        PlannerSection.PLAN -> PlannerTabAccent.Home
+                        PlannerSection.YOUR_EXAMS -> PlannerTabAccent.Plan
+                        PlannerSection.SYLLABUS -> PlannerTabAccent.Syllabus
+                        PlannerSection.CALENDAR -> PlannerTabAccent.Calendar
+                        PlannerSection.INSIGHTS -> PlannerTabAccent.Progress
+                        PlannerSection.REVISION -> PlannerRevisionAccent.Parent
+                    }
+
+                    val contentColor by animateColorAsState(
+                        targetValue = if (isSelected) tabAccent else scheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        animationSpec = tween(200),
+                        label = "tabContentColor",
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(pillShape)
+                            .clickable { onSelect(section) },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(
+                            imageVector = icons.getValue(section),
+                            contentDescription = section.label,
+                            tint = contentColor,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            text = section.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = contentColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -1585,26 +1698,27 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
             fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
         )
     }
-    AlertDialog(
+    PlannerDialog(
         onDismissRequest = onDismiss,
-        title = { androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) { Text(title) } },
-        text = { androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) { Text(body) } },
-        confirmButton = {
+        title = title,
+        text = {
             androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-                Button(
-                    onClick = onConfirm,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    )
-                ) {
-                    Text("Confirm", fontWeight = FontWeight.Bold)
-                }
+                PlannerDialogText(body)
             }
         },
         dismissButton = {
             androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                PlannerDialogTextAction("Cancel", onClick = onDismiss)
+            }
+        },
+        confirmButton = {
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
+                // Destructive confirm keeps the error colour, rendered as glass.
+                PlannerDialogAction(
+                    text = "Confirm",
+                    accentColor = MaterialTheme.colorScheme.error,
+                    onClick = onConfirm,
+                )
             }
         },
     )

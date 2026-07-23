@@ -27,8 +27,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +63,8 @@ import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.domain.model.studyplanner.effectiveSize
 import com.safarparmar.app.domain.model.studyplanner.progressPercentValue
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenu
+import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenuItem
 import com.safarparmar.app.ui.studyplanner.components.TopicEffortBars
 import com.safarparmar.app.domain.model.studyplanner.TopicSize
 import com.safarparmar.app.ui.studyplanner.logic.NodeProgress
@@ -648,23 +648,11 @@ internal fun SyllabusMagazineSubjectRow(
                     modifier = Modifier.size(16.dp),
                 )
             }
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(
-                    text = { Text("Add chapter") },
-                    onClick = { showMenu = false; onAddChapter() },
-                )
-                DropdownMenuItem(
-                    text = { Text("Rename") },
-                    onClick = { showMenu = false; onRename() },
-                )
-                DropdownMenuItem(
-                    text = { Text("Mark all done") },
-                    onClick = { showMenu = false; onMarkDone() },
-                )
-                DropdownMenuItem(
-                    text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                    onClick = { showMenu = false; onDelete() },
-                )
+            PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                PlannerOverflowMenuItem("Add chapter") { showMenu = false; onAddChapter() }
+                PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
+                PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
+                PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
             }
         }
 
@@ -910,19 +898,10 @@ internal fun SyllabusMagazineChapterRow(
                         modifier = Modifier.size(16.dp),
                     )
                 }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Rename") },
-                        onClick = { showMenu = false; onRename() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Mark all done") },
-                        onClick = { showMenu = false; onMarkDone() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                        onClick = { showMenu = false; onDelete() },
-                    )
+                PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
+                    PlannerOverflowMenuItem("Mark all done") { showMenu = false; onMarkDone() }
+                    PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
                 }
             }
 
@@ -1118,29 +1097,14 @@ internal fun SyllabusMagazineTopicRow(
                     modifier = Modifier.size(16.dp),
                 )
             }
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(
-                    text = { Text("Rename") },
-                    onClick = { showMenu = false; onRename() },
-                )
-                DropdownMenuItem(
-                    text = { Text("Change date") },
-                    onClick = { showMenu = false; onChangeDate() },
-                )
+            PlannerOverflowMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                PlannerOverflowMenuItem("Rename") { showMenu = false; onRename() }
+                PlannerOverflowMenuItem("Change date") { showMenu = false; onChangeDate() }
                 if (!done) {
-                    DropdownMenuItem(
-                        text = { Text("Mark done") },
-                        onClick = { showMenu = false; onMarkDone() },
-                    )
+                    PlannerOverflowMenuItem("Mark done") { showMenu = false; onMarkDone() }
                 }
-                DropdownMenuItem(
-                    text = { Text("To revise") },
-                    onClick = { showMenu = false; onToRevise() },
-                )
-                DropdownMenuItem(
-                    text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                    onClick = { showMenu = false; onDelete() },
-                )
+                PlannerOverflowMenuItem("To revise") { showMenu = false; onToRevise() }
+                PlannerOverflowMenuItem("Delete", destructive = true) { showMenu = false; onDelete() }
             }
         }
     }

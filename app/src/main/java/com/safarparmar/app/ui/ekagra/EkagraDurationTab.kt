@@ -173,8 +173,9 @@ internal fun DurationTab(
         val dialogBg: Color = if (isLight) SafarGlassPalette.LightGlassTint.copy(alpha = 0.95f) else Color(0xFF1A1A1E).copy(alpha = 0.95f)
         AlertDialog(
             onDismissRequest = { showPomodoroDialog = false },
-            containerColor = dialogBg,
-            shape = RoundedCornerShape(SafarGlassChromeRadius),
+            containerColor = scheme.surface,
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.border(1.dp, ink.hairline, RoundedCornerShape(20.dp)),
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -201,31 +202,31 @@ internal fun DurationTab(
                         onValueChange = { pomodoroLoopsInput = it.filter { c -> c.isDigit() } },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true,
-                        shape = RoundedCornerShape(SafarGlassChromeRadius),
+                        shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = scheme.primary,
-                            unfocusedBorderColor = scheme.outlineVariant.copy(alpha = 0.5f)
+                            unfocusedBorderColor = ink.hairline
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                Button(
+                EkagraPrimaryAction(
+                    label = "Start",
+                    accent = scheme.primary,
                     onClick = {
                         showPomodoroDialog = false
                         onStartPomodoro(pomodoroLoopsInput.toIntOrNull() ?: 4)
                     },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = scheme.primary, contentColor = scheme.onPrimary)
-                ) {
-                    Text("Start", fontWeight = FontWeight.Bold)
-                }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showPomodoroDialog = false }) {
-                    Text("Cancel", color = scheme.onSurfaceVariant)
-                }
+                EkagraGhostAction(
+                    label = "Cancel",
+                    ink = ink,
+                    onClick = { showPomodoroDialog = false },
+                )
             }
         )
     }

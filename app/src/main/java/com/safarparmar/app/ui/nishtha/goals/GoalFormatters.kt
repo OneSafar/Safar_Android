@@ -1,52 +1,18 @@
 package com.safarparmar.app.ui.nishtha.goals
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
-import com.safarparmar.app.R
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.domain.model.Goal
-import com.safarparmar.app.domain.model.GoalSubtask
-import com.safarparmar.app.ui.components.GoalRowSkeleton
-import com.safarparmar.app.ui.components.SafarEmptyState
-import com.safarparmar.app.ui.components.SafarErrorState
-import com.safarparmar.app.ui.components.SafarPullRefreshBox
-import com.safarparmar.app.ui.nishtha.NishthaEvent
-import com.safarparmar.app.ui.nishtha.NishthaViewModel
-import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.util.IstDateUtils
-import java.time.LocalTime
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 internal fun formatStudyTime(mins: Int): String {
     if (mins <= 0) return "0m"
@@ -76,11 +42,13 @@ internal fun Goal.statusBucket(): String = when {
 
 @Composable
 internal fun StatCard(label: String, value: String, modifier: Modifier) {
-    Card(shape = RoundedCornerShape(14.dp), modifier = modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))) {
-        Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+    Column(
+        modifier = modifier.padding(14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Primary)
+        Text(label, fontSize = 11.sp, color = GoalsFlatColors.Muted)
     }
 }
 
@@ -139,22 +107,20 @@ internal fun Goal.progressLabel(): String = when (unitType) {
 
 @Composable
 internal fun statusBadgeBg(status: String): Color {
-    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
     return when (status) {
-        "missed", "expired", "cancelled" -> MaterialTheme.colorScheme.error.copy(0.12f)
-        "in_progress", "partial" -> if (isDark) Color(0xFFFBBF24).copy(alpha = 0.16f) else Color(0xFFFFB300).copy(alpha = 0.14f)
-        "completed" -> if (isDark) Color(0xFF34D399).copy(alpha = 0.16f) else Color(0xFF065F46).copy(alpha = 0.12f)
-        else -> MaterialTheme.colorScheme.surfaceVariant
+        "missed", "expired", "cancelled" -> GoalsFlatColors.Danger.copy(0.12f)
+        "in_progress", "partial" -> GoalsFlatColors.Amber.copy(alpha = 0.14f)
+        "completed" -> GoalsFlatColors.Done.copy(alpha = 0.12f)
+        else -> GoalsFlatColors.Hairline.copy(alpha = 0.5f)
     }
 }
 
 @Composable
 internal fun statusBadgeFg(status: String): Color {
-    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
     return when (status) {
-        "missed", "expired", "cancelled" -> MaterialTheme.colorScheme.error
-        "in_progress", "partial" -> if (isDark) Color(0xFFFBBF24) else Color(0xFFB26A00)
-        "completed" -> if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        "missed", "expired", "cancelled" -> GoalsFlatColors.Danger
+        "in_progress", "partial" -> GoalsFlatColors.Amber
+        "completed" -> GoalsFlatColors.Done
+        else -> GoalsFlatColors.Muted
     }
 }

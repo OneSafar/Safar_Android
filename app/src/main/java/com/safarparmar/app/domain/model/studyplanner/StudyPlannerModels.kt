@@ -108,12 +108,26 @@ data class StudyTopic(
      * with [revisionReminderDates] (the remaining sessions) this is the full
      * original schedule, so the UI can show "3 of 5 done" and which sessions are left.
      */
-    val revisionCompletedDates: List<String> = emptyList(),
+    // Older plans can omit this field completely.
+    val revisionCompletedDates: List<String>? = emptyList(),
+    /**
+     * Links each planned revision day to the day the student actually finished
+     * it. These can differ when late work is completed on a later day.
+     */
+    // Nullable for plans saved before this field existed. Callers use orEmpty()
+    // so old server data can open Progress without crashing.
+    val revisionCompletionLog: List<RevisionCompletion>? = emptyList(),
     val revisionScheduleType: String? = null,
     /** Effort size; null = inherit from chapter difficulty (default medium). */
     val size: TopicSize? = null,
     /** Partial completion 0–100; null = (done ? 100 : 0). */
     val progressPercent: Int? = null,
+)
+
+@Immutable
+data class RevisionCompletion(
+    val sessionDate: String = "",
+    val completedDate: String = "",
 )
 
 @Immutable

@@ -41,6 +41,12 @@ import com.safarparmar.app.ui.theme.isLightBackground
  * toggles. Compose has no native backdrop blur below API 31, so — like the
  * source recipe — glass is simulated with translucency, a light border, and
  * shadow rather than a real blur.
+ *
+ * That limit applies to *inline* surfaces only. Surfaces that live in their own
+ * window (dialogs, popups) can get true backdrop blur from the compositor — see
+ * [rememberPlannerBackdropBlur]. Those callers layer real blur *under* the same
+ * translucent chrome below, and fall back to this simulation when the platform
+ * has blur disabled, so nothing here changes either way.
  */
 
 private fun plannerIsDark(scheme: androidx.compose.material3.ColorScheme): Boolean =

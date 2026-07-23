@@ -1,4 +1,5 @@
 package com.safarparmar.app.ui.studyplanner.screens
+import androidx.compose.material3.BottomSheetDefaults
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -660,6 +661,8 @@ internal fun SelectedDayLogSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = PlannerFlatColors.BgCream,
     ) {
         // Everything — header, badges, AND the topic rows — lives in one single
         // LazyColumn. Nesting a scrollable LazyColumn inside a Modifier.verticalScroll

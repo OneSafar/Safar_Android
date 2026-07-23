@@ -1,52 +1,64 @@
 package com.safarparmar.app.ui.nishtha.goals
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
-import com.safarparmar.app.R
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.domain.model.Goal
-import com.safarparmar.app.domain.model.GoalSubtask
 import com.safarparmar.app.ui.components.GoalRowSkeleton
 import com.safarparmar.app.ui.components.SafarEmptyState
 import com.safarparmar.app.ui.components.SafarErrorState
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
-import com.safarparmar.app.ui.nishtha.NishthaEvent
-import com.safarparmar.app.ui.nishtha.NishthaViewModel
-import com.safarparmar.app.ui.navigation.Routes
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.util.IstDateUtils
-import java.time.LocalTime
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 internal fun GoalsTab(
@@ -67,9 +79,6 @@ internal fun GoalsTab(
 ) {
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = goals.filter { it.source != "ekagra" }
-    // A goal that is missed but already spawned its next auto-repeat instance is
-    // superseded — it must not linger on the board or it piles up forever (every
-    // missed day would add one more stale card that never goes away).
     val pending = goals
         .filter {
             !it.completed && it.source != "ekagra" &&
@@ -86,7 +95,11 @@ internal fun GoalsTab(
     val todayManualGoals = standardGoals.filter { !it.completedViaFocus && it.anchorDateKey() == todayKey }
     val doneToday = manualCompletedGoals.count { it.completedDateKey() == todayKey }
     val completionRate = if (standardGoals.isNotEmpty()) (manualCompletedGoals.size * 100 / standardGoals.size) else 0
-    val dailyProgress = if (todayManualGoals.isNotEmpty()) (todayManualGoals.count { it.isCompletedForStats() } * 100 / todayManualGoals.size) else 0
+    val dailyProgress = if (todayManualGoals.isNotEmpty()) {
+        (todayManualGoals.count { it.isCompletedForStats() } * 100 / todayManualGoals.size)
+    } else {
+        0
+    }
     val focusTodayMinutes = ekagraAnalytics.focusSessions
         .filter { !it.associatedGoalId.isNullOrBlank() && IstDateUtils.getDateKey(it.startedAt) == todayKey }
         .sumOf { it.actualMinutes }
@@ -95,14 +108,15 @@ internal fun GoalsTab(
         .sumOf { it.actualMinutes }
     val manualTodayMinutes = manualCompletedGoals.filter { it.completedDateKey() == todayKey }.sumOf { it.studiedMinutes ?: 0 }
     val manualTotalMinutes = manualCompletedGoals.sumOf { it.studiedMinutes ?: 0 }
+
     if (goalError != null && goals.isEmpty() && !isLoading) {
         SafarErrorState(message = goalError, onRetry = onRefresh, modifier = Modifier.fillMaxSize())
         return
     }
     if (isLoading && goals.isEmpty()) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
+            modifier = Modifier.fillMaxSize().background(GoalsFlatColors.Bg),
+            contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(5) { GoalRowSkeleton() }
@@ -115,107 +129,139 @@ internal fun GoalsTab(
             message = "Add a goal to get started on your study plan.",
             primaryActionLabel = "Add Goal",
             onPrimaryAction = onAddClick,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().background(GoalsFlatColors.Bg),
         )
         return
     }
+
     SafarPullRefreshBox(
         isRefreshing = isLoading && goals.isNotEmpty(),
         onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().background(GoalsFlatColors.Bg),
     ) {
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (filterMode == "today") {
-            if (pending.isNotEmpty()) {
-                item { 
-                    Text("PENDING - ${pending.size} TASKS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp, modifier = Modifier.padding(vertical = 4.dp))
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
+            if (filterMode == "today") {
+                if (pending.isNotEmpty()) {
+                    item { FlatSectionEyebrow("Pending · ${pending.size} tasks") }
+                    itemsIndexed(pending, key = { _, g -> g.id }) { index, goal ->
+                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) }, onRepeat = { onRepeat(goal) })
+                        if (index < pending.lastIndex) PlanHairline(alpha = 0.5f)
+                    }
+                } else {
+                    item { EmptyGoalsCard("All caught up! Time to plan more?", "Anything scheduled for later stays in the upcoming section.") }
                 }
-                items(pending, key = { it.id }) { GoalItem(it, onComplete = { onComplete(it) }, onEdit = { onEdit(it) }, onDelete = { onDelete(it) }, onRepeat = { onRepeat(it) }) }
-            } else {
-                item { EmptyGoalsCard("All caught up! Time to plan more?", "Anything scheduled for later stays in the upcoming section.") }
-            }
-            val completedToday = completed.filter { it.completedDateKey() == todayKey }
-            if (completedToday.isNotEmpty()) {
-                item { 
-                    Spacer(Modifier.height(8.dp))
-                    Text("COMPLETED - ${completedToday.size} TASKS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp, modifier = Modifier.padding(vertical = 4.dp))
+                val completedToday = completed.filter { it.completedDateKey() == todayKey }
+                if (completedToday.isNotEmpty()) {
+                    item {
+                        Spacer(Modifier.height(18.dp))
+                        PlanHairline()
+                        Spacer(Modifier.height(14.dp))
+                        FlatSectionEyebrow("Completed · ${completedToday.size} tasks")
+                    }
+                    itemsIndexed(completedToday, key = { _, g -> g.id }) { index, goal ->
+                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) }, onRepeat = { onRepeat(goal) })
+                        if (index < completedToday.lastIndex) PlanHairline(alpha = 0.5f)
+                    }
                 }
-                items(completedToday, key = { it.id }) { GoalItem(it, onComplete = { onComplete(it) }, onEdit = { onEdit(it) }, onDelete = { onDelete(it) }, onRepeat = { onRepeat(it) }) }
-            }
-        } else if (filterMode == "upcoming") {
-            if (scheduled.isNotEmpty()) {
-                item { 
-                    Text("SCHEDULED - ${scheduled.size} TASKS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp, modifier = Modifier.padding(vertical = 4.dp))
+            } else if (filterMode == "upcoming") {
+                if (scheduled.isNotEmpty()) {
+                    item { FlatSectionEyebrow("Scheduled · ${scheduled.size} tasks") }
+                    itemsIndexed(scheduled, key = { _, g -> "scheduled-${g.id}" }) { index, goal ->
+                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) }, onRepeat = { onRepeat(goal) })
+                        if (index < scheduled.lastIndex) PlanHairline(alpha = 0.5f)
+                    }
+                } else {
+                    item { EmptyGoalsCard("No upcoming tasks", "You have no tasks scheduled for later dates.") }
                 }
-                items(scheduled, key = { "scheduled-${it.id}" }) { GoalItem(it, onComplete = { onComplete(it) }, onEdit = { onEdit(it) }, onDelete = { onDelete(it) }, onRepeat = { onRepeat(it) }) }
-            } else {
-                item { EmptyGoalsCard("No upcoming tasks", "You have no tasks scheduled for later dates.") }
             }
-        }
 
-        item { Spacer(Modifier.height(16.dp)) }
-        item {
-            LivePulseCard(
-                completedToday = doneToday,
-                openManualGoals = pending.size,
-                completionRate = completionRate,
-                studyToday = manualTodayMinutes + focusTodayMinutes,
-                manualToday = manualTodayMinutes,
-                ekagraToday = focusTodayMinutes,
-                dailyProgress = dailyProgress,
-                totalManual = manualTotalMinutes,
-                totalEkagra = focusTotalMinutes
-            )
+            item {
+                Spacer(Modifier.height(22.dp))
+                PlanHairline()
+                Spacer(Modifier.height(18.dp))
+            }
+            item {
+                LivePulseCard(
+                    completedToday = doneToday,
+                    openManualGoals = pending.size,
+                    completionRate = completionRate,
+                    studyToday = manualTodayMinutes + focusTodayMinutes,
+                    manualToday = manualTodayMinutes,
+                    ekagraToday = focusTodayMinutes,
+                    dailyProgress = dailyProgress,
+                    totalManual = manualTotalMinutes,
+                    totalEkagra = focusTotalMinutes,
+                )
+            }
+            item {
+                Spacer(Modifier.height(18.dp))
+                PlanHairline(alpha = 0.6f)
+                Spacer(Modifier.height(16.dp))
+                ProTipCard()
+                Spacer(Modifier.height(24.dp))
+            }
         }
-        item { ProTipCard() }
-    }
     }
 }
 
-
-
 @Composable
-internal fun SectionHeader(title: String, subtitle: String, badge: String) {
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-    ) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            SmallBadge(badge, MaterialTheme.colorScheme.primary.copy(alpha = 0.10f), MaterialTheme.colorScheme.primary)
-        }
-    }
+private fun FlatSectionEyebrow(text: String) {
+    Text(
+        text = text.uppercase(),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 2.sp,
+        color = GoalsFlatColors.Muted,
+        modifier = Modifier.padding(bottom = 10.dp, top = 4.dp),
+    )
 }
 
 @Composable
 internal fun EmptyGoalsCard(title: String, subtitle: String) {
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Text(title, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-            Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .border(1.dp, GoalsFlatColors.Hairline, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = GoalsFlatColors.Primary, modifier = Modifier.size(22.dp))
         }
+        Text(title, fontFamily = LoraFontFamily, fontSize = 16.sp, color = GoalsFlatColors.Text, textAlign = TextAlign.Center)
+        Text(subtitle, fontSize = 12.sp, color = GoalsFlatColors.Muted, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
-internal fun StatInfoCard(title: String, value: String, subtitle: String, modifier: Modifier = Modifier, accent: Color = MaterialTheme.colorScheme.primary) {
-    Card(shape = RoundedCornerShape(18.dp), modifier = modifier.heightIn(min = 124.dp), colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.10f)), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, accent.copy(alpha = 0.28f))) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = accent)
-            Text(subtitle, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+internal fun StatInfoCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    accent: Color = GoalsFlatColors.Primary,
+) {
+    Column(
+        modifier = modifier
+            .heightIn(min = 100.dp)
+            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(0.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted, letterSpacing = 0.8.sp)
+        Text(value, fontFamily = LoraFontFamily, fontSize = 26.sp, fontWeight = FontWeight.Normal, color = accent)
+        if (subtitle.isNotBlank()) {
+            Text(subtitle, fontSize = 11.sp, color = GoalsFlatColors.Muted, lineHeight = 15.sp)
         }
     }
 }
@@ -230,127 +276,224 @@ internal fun LivePulseCard(
     ekagraToday: Int,
     dailyProgress: Int,
     totalManual: Int,
-    totalEkagra: Int
+    totalEkagra: Int,
 ) {
-    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
-    val primaryPulseColor = if (isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A)
-    val completedColor = if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
-    val ekagraColor = if (isDark) Color(0xFFFF9E80) else Color(0xFF9A3412)
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            "Today Pulse",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 2.sp,
+            color = GoalsFlatColors.Progress,
+        )
+        Text(
+            "$completedToday completed",
+            fontFamily = LoraFontFamily,
+            fontSize = 22.sp,
+            color = GoalsFlatColors.Done,
+        )
+        Text("$openManualGoals open manual goals", fontSize = 13.sp, color = GoalsFlatColors.Muted)
+        Text("$completionRate% overall completion rate", fontSize = 13.sp, color = GoalsFlatColors.Muted)
 
-    Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Today Pulse", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = primaryPulseColor)
-            Text("$completedToday Completed", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = completedColor)
-            Text("$openManualGoals open manual goals", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("$completionRate% overall completion rate", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
-            Text("Study Time Today", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(formatStudyTime(studyToday), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = primaryPulseColor)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatInfoCard("Manual", formatStudyTime(manualToday), "", Modifier.weight(1f), accent = completedColor)
-                StatInfoCard("Ekagra", formatStudyTime(ekagraToday), "", Modifier.weight(1f), accent = ekagraColor)
-            }
-            Text("Daily Progress", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            LinearProgressIndicator(progress = { (dailyProgress / 100f).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = completedColor, trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
-            Text("Total Time Studied", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            GoalTimeRow(Icons.Default.Timer, "Ekagra Mode", "", formatStudyTime(totalEkagra), ekagraColor)
-            GoalTimeRow(Icons.Default.Book, "Manual Goal", "", formatStudyTime(totalManual), completedColor)
+        PlanHairline(alpha = 0.5f)
+
+        Text("Study time today", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
+        Text(
+            formatStudyTime(studyToday),
+            fontFamily = LoraFontFamily,
+            fontSize = 24.sp,
+            color = GoalsFlatColors.Progress,
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+            StatInfoCard("Manual", formatStudyTime(manualToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Done)
+            StatInfoCard("Ekagra", formatStudyTime(ekagraToday), "", Modifier.weight(1f), accent = GoalsFlatColors.Ekagra)
         }
+
+        Text("Daily progress", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
+        LinearProgressIndicator(
+            progress = { (dailyProgress / 100f).coerceIn(0f, 1f) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .clip(RoundedCornerShape(1.dp)),
+            color = GoalsFlatColors.Done,
+            trackColor = GoalsFlatColors.Hairline,
+        )
+        Text("$dailyProgress%", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = GoalsFlatColors.Done)
+
+        Spacer(Modifier.height(4.dp))
+        Text("Total time studied", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = GoalsFlatColors.Muted)
+        GoalTimeRow(Icons.Default.Timer, "Ekagra Mode", "", formatStudyTime(totalEkagra), GoalsFlatColors.Ekagra)
+        Spacer(Modifier.height(8.dp))
+        GoalTimeRow(Icons.Default.Book, "Manual Goal", "", formatStudyTime(totalManual), GoalsFlatColors.Done)
     }
 }
 
 @Composable
 internal fun ProTipCard() {
-    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
-    val proTipColor = if (isDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
-
-    Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp), border = BorderStroke(1.dp, proTipColor.copy(alpha = 0.25f))) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = proTipColor)
-            Text("Pro Tip", fontWeight = FontWeight.Bold, color = proTipColor)
-            Text("Consistent daily completion is better than occasional bursts. Break large goals into smaller ekagra tasks.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = GoalsFlatColors.Scheduled, modifier = Modifier.size(16.dp))
+            Text(
+                "Pro tip",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.sp,
+                color = GoalsFlatColors.Scheduled,
+            )
         }
+        Text(
+            "Consistent daily completion is better than occasional bursts. Break large goals into smaller ekagra tasks.",
+            fontSize = 13.sp,
+            color = GoalsFlatColors.Muted,
+            lineHeight = 19.sp,
+        )
     }
 }
 
 @Composable
-internal fun GoalItem(goal: Goal, onComplete: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit, onRepeat: () -> Unit) {
+internal fun GoalItem(
+    goal: Goal,
+    onComplete: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onRepeat: () -> Unit,
+) {
     var showMenu by remember { mutableStateOf(false) }
     val progress = goal.progressPercent()
-    val showProgress = goal.unitType != "binary" && (goal.unitType == "checklist" || goal.targetValue != null || goal.plannedFocusMinutes != null)
-    val isDark = !MaterialTheme.colorScheme.background.luminance().let { it > 0.5f }
-    val completedColor = if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
+    val showProgress = goal.unitType != "binary" &&
+        (goal.unitType == "checklist" || goal.targetValue != null || goal.plannedFocusMinutes != null)
     val badgeColor = when (goal.goalKind) {
-        "today" -> completedColor
-        "scheduled" -> if (isDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
-        else -> if (isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A)
+        "today" -> GoalsFlatColors.Today
+        "scheduled" -> GoalsFlatColors.Scheduled
+        "repeat" -> GoalsFlatColors.Repeat
+        else -> GoalsFlatColors.Progress
     }
 
-    Card(
-        shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(
-                Modifier.size(22.dp).clip(CircleShape)
-                    .border(1.5.dp, if (goal.completed) completedColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(0.4f), CircleShape)
-                    .background(if (goal.completed) completedColor else Color.Transparent)
-                    .clickable(enabled = !goal.completed) { onComplete() },
-                contentAlignment = Alignment.Center,
-            ) { if (goal.completed) Text("✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-            Column(Modifier.weight(1f)) {
-                androidx.compose.material3.Text(
-                    text = goal.title,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = if (goal.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    textDecoration = if (goal.completed) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+        Box(
+            Modifier
+                .size(22.dp)
+                .clip(CircleShape)
+                .border(
+                    1.5.dp,
+                    if (goal.completed) GoalsFlatColors.Done else GoalsFlatColors.Hairline,
+                    CircleShape,
                 )
-                if (!goal.description.isNullOrBlank()) {
-                    Text(goal.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
-                    if (goal.completed) {
-                        val studiedText = if ((goal.studiedMinutes ?: 0) > 0) " · ${formatStudyTime(goal.studiedMinutes ?: 0)} studied" else ""
-                        SmallBadge("✓ Done$studiedText", completedColor.copy(0.12f), completedColor)
+                .background(if (goal.completed) GoalsFlatColors.Done else Color.Transparent)
+                .clickable(
+                    enabled = !goal.completed,
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { onComplete() },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (goal.completed) {
+                Text("✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = goal.title,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = if (goal.completed) GoalsFlatColors.Muted else GoalsFlatColors.Text,
+                textDecoration = if (goal.completed) TextDecoration.LineThrough else null,
+            )
+            if (!goal.description.isNullOrBlank()) {
+                Text(goal.description, fontSize = 12.sp, color = GoalsFlatColors.Muted, maxLines = 2)
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(top = 6.dp),
+            ) {
+                if (goal.completed) {
+                    val studiedText = if ((goal.studiedMinutes ?: 0) > 0) {
+                        " · ${formatStudyTime(goal.studiedMinutes ?: 0)} studied"
                     } else {
-                        SmallBadge(goal.goalKindLabel(), badgeColor.copy(0.10f), badgeColor)
-                        if (goal.unitType != "binary") {
-                            SmallBadge(goal.unitTypeLabel(), MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        ""
                     }
-                }
-                if (goal.source == "ekagra" && !goal.completed) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 5.dp)) {
-                        val ekagraModeColor = if (isDark) Color(0xFFFF9E80) else Color(0xFF9A3412)
-                        SmallBadge("Ekagra mode task", ekagraModeColor.copy(0.12f), ekagraModeColor)
+                    FlatBadge("✓ Done$studiedText", GoalsFlatColors.Done)
+                } else {
+                    FlatBadge(goal.goalKindLabel(), badgeColor)
+                    if (goal.unitType != "binary") {
+                        FlatBadge(goal.unitTypeLabel(), GoalsFlatColors.Muted)
                     }
-                }
-                goal.scheduledDate?.let { Text(IstDateUtils.labelFor(it), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp)) }
-                if (showProgress) {
-                    LinearProgressIndicator(
-                        progress = { progress / 100f },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(6.dp).clip(RoundedCornerShape(3.dp)),
-                        color = completedColor,
-                        trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.14f)
-                    )
-                    Text(goal.progressLabel(), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp))
                 }
             }
-            Box {
-                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Options", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (goal.source == "ekagra" && !goal.completed) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 5.dp),
+                ) {
+                    FlatBadge("Ekagra mode task", GoalsFlatColors.Ekagra)
                 }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    if (!goal.completed) {
-                        DropdownMenuItem(text = { Text("Mark as done") }, leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary) }, onClick = { showMenu = false; onComplete() })
-                        DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { Icon(Icons.Default.Edit, null) }, onClick = { showMenu = false; onEdit() })
-                    }
-                    DropdownMenuItem(text = { Text("Repeat Task") }, leadingIcon = { Icon(Icons.Default.Repeat, null) }, onClick = { showMenu = false; onRepeat() })
-                    DropdownMenuItem(text = { Text("Delete", color = MaterialTheme.colorScheme.error) }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false; onDelete() })
+            }
+            goal.scheduledDate?.let {
+                Text(
+                    IstDateUtils.labelFor(it),
+                    fontSize = 11.sp,
+                    color = GoalsFlatColors.Muted,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            if (showProgress) {
+                LinearProgressIndicator(
+                    progress = { progress / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(1.dp)),
+                    color = GoalsFlatColors.Done,
+                    trackColor = GoalsFlatColors.Hairline,
+                )
+                Text(
+                    goal.progressLabel(),
+                    fontSize = 10.sp,
+                    color = GoalsFlatColors.Muted,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
+        }
+        Box {
+            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(28.dp)) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "Options",
+                    modifier = Modifier.size(18.dp),
+                    tint = GoalsFlatColors.Muted,
+                )
+            }
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                if (!goal.completed) {
+                    DropdownMenuItem(
+                        text = { Text("Mark as done") },
+                        leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = GoalsFlatColors.Primary) },
+                        onClick = { showMenu = false; onComplete() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        leadingIcon = { Icon(Icons.Default.Edit, null) },
+                        onClick = { showMenu = false; onEdit() },
+                    )
                 }
+                DropdownMenuItem(
+                    text = { Text("Repeat Task") },
+                    leadingIcon = { Icon(Icons.Default.Repeat, null) },
+                    onClick = { showMenu = false; onRepeat() },
+                )
+                DropdownMenuItem(
+                    text = { Text("Delete", color = GoalsFlatColors.Danger) },
+                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = GoalsFlatColors.Danger) },
+                    onClick = { showMenu = false; onDelete() },
+                )
             }
         }
     }
@@ -358,39 +501,85 @@ internal fun GoalItem(goal: Goal, onComplete: () -> Unit, onEdit: () -> Unit, on
 
 @Composable
 internal fun RolloverPromptItem(goal: Goal, onRetry: () -> Unit, onArchive: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(14.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.18f)),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.25f))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(goal.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Text("This missed goal can be carried into today or archived.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onRetry, shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1f)) { Text("Retry Today", fontSize = 12.sp) }
-                OutlinedButton(onClick = onArchive, shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1f)) { Text("Archive", fontSize = 12.sp) }
-            }
+        Text(goal.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = GoalsFlatColors.Text)
+        Text(
+            "This missed goal can be carried into today or archived.",
+            fontSize = 12.sp,
+            color = GoalsFlatColors.Muted,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            FlatFilledAction("Retry Today", GoalsFlatColors.Primary, onRetry, Modifier.weight(1f))
+            FlatOutlineAction("Archive", onArchive, Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-internal fun SmallBadge(label: String, bg: Color, fg: Color) {
-    Box(Modifier.clip(RoundedCornerShape(6.dp)).background(bg).padding(horizontal = 7.dp, vertical = 3.dp)) {
-        Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = fg)
+internal fun FlatBadge(label: String, accent: Color) {
+    Box(
+        Modifier
+            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 7.dp, vertical = 3.dp),
+    ) {
+        Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = accent)
     }
 }
 
 @Composable
+internal fun SmallBadge(label: String, bg: Color, fg: Color) {
+    // Kept for call-site compatibility; prefers outlined flat badge when bg is unused.
+    FlatBadge(label, fg)
+}
+
+@Composable
 internal fun PriorityBadge(priority: String) {
-    val (bg, fg) = when (priority) {
-        "high"   -> MaterialTheme.colorScheme.error.copy(0.12f) to MaterialTheme.colorScheme.error
-        "medium" -> MaterialTheme.colorScheme.primary.copy(0.12f) to MaterialTheme.colorScheme.primary
-        else     -> MaterialTheme.colorScheme.onSurfaceVariant.copy(0.1f) to MaterialTheme.colorScheme.onSurfaceVariant
+    val accent = when (priority) {
+        "high" -> GoalsFlatColors.Danger
+        "medium" -> GoalsFlatColors.Primary
+        else -> GoalsFlatColors.Muted
     }
-    Box(Modifier.clip(RoundedCornerShape(6.dp)).background(bg).padding(horizontal = 8.dp, vertical = 3.dp)) {
-        Text(priority.replaceFirstChar { it.uppercase() }, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = fg)
+    FlatBadge(priority.replaceFirstChar { it.uppercase() }, accent)
+}
+
+@Composable
+internal fun FlatFilledAction(
+    label: String,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(accent)
+            .clickable(onClick = onClick)
+            .padding(vertical = 11.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+    }
+}
+
+@Composable
+internal fun FlatOutlineAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 11.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Muted)
     }
 }

@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.ekagra
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.data.remote.dto.EkagraSession
@@ -15,6 +16,7 @@ import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.util.IstDateUtils
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -33,12 +35,23 @@ sealed class StatsUiState {
 
 @HiltViewModel
 class EkagraViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repo: EkagraRepository,
     private val homeRepo: HomeRepository,
     private val plannerRepo: StudyPlannerRepository,
     val dataStore: com.safarparmar.app.data.local.SafarDataStore,
     val focusShieldRepo: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository,
 ) : ViewModel() {
+
+    sealed interface StudyTimeSaveResult {
+        data object Saved : StudyTimeSaveResult
+        data object SavedOnPhone : StudyTimeSaveResult
+    }
+
+    sealed interface TopicDoneResult {
+        data object Done : TopicDoneResult
+        data class Error(val message: String) : TopicDoneResult
+    }
 
     private val _stats = MutableStateFlow<StatsUiState>(StatsUiState.Loading)
     val stats = _stats.asStateFlow()
@@ -465,6 +478,92 @@ class EkagraViewModel @Inject constructor(
                     // Save failed — keep the local draft intact instead of discarding this
                     // session's data, so the user can retry ending it later.
                 }
+            }
+        }
+    }
+
+    /**
+     * Safely records a planner-topic study session before asking whether the
+     * topic itself is finished. The local queue is written first, so closing
+     * the app or losing internet cannot erase the student's study time.
+     */
+    internal fun saveTopicStudyTime(
+        pending: PendingEndedEkagraSession,
+        onResult: (StudyTimeSaveResult) -> Unit,
+    ) {
+        val actualSeconds = topicStudyActualSeconds(pending)
+        if (actualSeconds <= 0) return
+
+        val clientSessionId = pending.sessionId
+        val startedAt = pending.startedAt
+            ?: Instant.now().minusSeconds(actualSeconds.toLong()).toString()
+        val endedAt = pending.endedAt ?: Instant.now().toString()
+        val plannedMinutes = if (pending.mode.equals("stopwatch", ignoreCase = true)) {
+            0
+        } else {
+            (pending.totalSeconds / 60.0).roundToInt()
+        }
+        val shieldWasActive = focusShieldRepo.sessionActive.value || focusShieldRepo.isEnabled.value
+
+        EkagraPendingSessionSaveStore.enqueue(
+            appContext,
+            PendingEkagraSessionSave(
+                clientSessionId = clientSessionId,
+                mode = pending.mode,
+                startedAt = startedAt,
+                endedAt = endedAt,
+                plannedDurationMinutes = plannedMinutes,
+                actualDurationMinutes = (actualSeconds / 60.0).roundToInt(),
+                actualDurationSeconds = actualSeconds,
+                goalId = null,
+                goalTitle = null,
+                topicId = pending.topicId,
+                planId = pending.planId,
+                topicTitle = pending.topicTitle,
+                taskTitle = pending.topicTitle ?: "Study from Exam Planner",
+                shieldEnabled = shieldWasActive,
+            ),
+        )
+        EkagraSessionSaveWorker.enqueue(appContext)
+
+        viewModelScope.launch {
+            val uploaded = EkagraSessionSaveWorker.drainPendingSaves(appContext)
+            if (activeSessionId == clientSessionId || _activeSession.value?.id == clientSessionId) {
+                clearLocalDraft()
+            }
+            focusShieldRepo.deactivateSession()
+            loadStats()
+            refreshEkagra()
+            onResult(if (uploaded) StudyTimeSaveResult.Saved else StudyTimeSaveResult.SavedOnPhone)
+        }
+    }
+
+    fun markPlannerTopicDone(
+        planId: String,
+        topicId: String,
+        onResult: (TopicDoneResult) -> Unit,
+    ) {
+        viewModelScope.launch {
+            when (
+                val result = plannerRepo.updateTopic(
+                    planId,
+                    topicId,
+                    TopicPatchRequest(
+                        status = TopicStatus.DONE,
+                        clientDateKey = IstDateUtils.todayKey(),
+                    ),
+                )
+            ) {
+                is Resource.Success -> {
+                    com.safarparmar.app.ui.studyplanner.PlannerTopicEventBus.postTopicCompleted(planId)
+                    onResult(TopicDoneResult.Done)
+                }
+                is Resource.Error -> onResult(
+                    TopicDoneResult.Error(
+                        if (result.message.isBlank()) "Couldn't mark this topic as done." else result.message,
+                    ),
+                )
+                is Resource.Loading -> Unit
             }
         }
     }

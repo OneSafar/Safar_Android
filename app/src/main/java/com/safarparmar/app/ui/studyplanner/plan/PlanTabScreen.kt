@@ -1,5 +1,11 @@
 package com.safarparmar.app.ui.studyplanner.plan
 
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogTextAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogActionRow
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -50,7 +56,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -68,6 +73,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -260,40 +266,32 @@ fun PlanTabScreen(
     }
 
     completionPromptTopic?.let { ref ->
-        AlertDialog(
+        PlannerDialog(
             onDismissRequest = { completionPromptTopic = null },
-            title = { Text("Mark this topic as?") },
+            title = "Mark this topic as?",
             text = {
                 Text(
                     text = ref.topic.name,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(
-                        onClick = {
-                            // Open the revision scheduler instead of directly setting status
-                            revisionTopicRef = ref
-                            completionPromptTopic = null
-                        },
-                    ) {
-                        Text("To Revise")
-                    }
-                    Button(
-                        onClick = {
-                            actions.updateTopic(ref.topic.id, status = TopicStatus.DONE)
-                            completionPromptTopic = null
-                        },
-                    ) {
-                        Text("Done")
-                    }
-                }
-            },
             dismissButton = {
-                TextButton(onClick = { completionPromptTopic = null }) {
-                    Text("Cancel")
+                PlannerDialogTextAction("Cancel") { completionPromptTopic = null }
+            },
+            confirmButton = {
+                PlannerDialogActionRow {
+                    PlannerDialogTextAction("To Revise") {
+                        // Open the revision scheduler instead of directly setting status
+                        revisionTopicRef = ref
+                        completionPromptTopic = null
+                    }
+                    PlannerDialogAction(text = "Done") {
+                        actions.updateTopic(ref.topic.id, status = TopicStatus.DONE)
+                        completionPromptTopic = null
+                    }
                 }
             },
         )
@@ -335,7 +333,9 @@ fun PlanTabScreen(
         val currentStyleLabel = if (preferredStudyStrategy == "sequential") "Deep Focus mode" else "Balanced mode"
         ModalBottomSheet(
             onDismissRequest = { pendingDistributeAction = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+            containerColor = PlannerFlatColors.BgCream,
         ) {
             Column(
                 modifier = Modifier
@@ -830,6 +830,8 @@ private fun CreatePlanPromptSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = PlannerFlatColors.BgCream,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 24.dp),
@@ -862,9 +864,9 @@ private fun AddCustomTopicDialog(
     onConfirm: (String) -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
-    AlertDialog(
+    PlannerDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add a topic to today") },
+        title = "Add a topic to today",
         text = {
             Column {
                 Text(
@@ -882,14 +884,12 @@ private fun AddCustomTopicDialog(
                 )
             }
         },
+        dismissButton = { PlannerDialogTextAction("Cancel", onClick = onDismiss) },
         confirmButton = {
-            Button(
-                onClick = { onConfirm(name.trim()) },
+            PlannerDialogAction(
+                text = "Add to today",
                 enabled = name.trim().length >= 2,
-            ) { Text("Add to today") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            ) { onConfirm(name.trim()) }
         },
     )
 }
@@ -906,9 +906,9 @@ private fun EditTopicDialog(
     var selectedSize by remember(ref.topic.id) {
         mutableStateOf(ref.topic.effectiveSize(ref.chapter))
     }
-    AlertDialog(
+    PlannerDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit") },
+        title = "Edit",
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -948,20 +948,18 @@ private fun EditTopicDialog(
                 )
             }
         },
+        dismissButton = { PlannerDialogTextAction("Cancel", onClick = onDismiss) },
         confirmButton = {
-            Button(
-                onClick = {
-                    // Only send a size when it actually changed from the current
-                    // effective size, so an untouched dialog stays a no-op patch.
-                    val sizeToSend = selectedSize.wireValue
-                        .takeIf { selectedSize != ref.topic.effectiveSize(ref.chapter) }
-                    onSave(topicName.trim(), chapterName.trim(), subjectName.trim(), sizeToSend)
-                },
+            PlannerDialogAction(
+                text = "Save",
                 enabled = topicName.trim().length >= 2,
-            ) { Text("Save") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            ) {
+                // Only send a size when it actually changed from the current
+                // effective size, so an untouched dialog stays a no-op patch.
+                val sizeToSend = selectedSize.wireValue
+                    .takeIf { selectedSize != ref.topic.effectiveSize(ref.chapter) }
+                onSave(topicName.trim(), chapterName.trim(), subjectName.trim(), sizeToSend)
+            }
         },
     )
 }
@@ -1310,8 +1308,9 @@ private fun DoneForTheDayBar(
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     val shape = RoundedCornerShape(20.dp)
 
-    val bodyColor = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E).copy(alpha = 0.65f)
+    val bodyColor = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E).copy(alpha = 0.82f)
     val textColor = if (isLight) Color.Black else Color(0xFFA78BFA)
+    val auraColor = if (isLight) Color.White.copy(alpha = 0.90f) else Color(0xFF131316).copy(alpha = 0.92f)
 
     val borderBrush = if (!isLight) {
         Brush.verticalGradient(
@@ -1332,6 +1331,15 @@ private fun DoneForTheDayBar(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Blur aura protection scrim behind the glass button to occlude scrolling text
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp)
+                .blur(16.dp)
+                .background(auraColor, shape = shape)
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1356,7 +1364,8 @@ private fun DoneForTheDayBar(
                 text = "DONE FOR THE DAY",
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.sp,
-                fontSize = 16.sp
+                fontSize = 15.sp,
+                color = textColor,
             )
         }
     }

@@ -95,15 +95,37 @@ class KavachAlwaysOnService : Service() {
             FocusShieldPermissionHelper.hasOverlayPermission(this)
         if (!alwaysOn || !enabled || packages.isEmpty() || !ready) {
             KavachAlwaysOnPrefs.clear(this)
+            FocusShieldRepository.Snapshot.active = false
             stopSelf()
             return false
         }
         blockedPackages = packages
         KavachAlwaysOnPrefs.write(this, packages)
+        if (!FocusShieldRepository.ShieldPrefs.isActive(this)) {
+            FocusShieldRepository.Snapshot.active = true
+            FocusShieldRepository.Snapshot.packages = packages
+            FocusShieldRepository.Snapshot.strict = false
+        }
         return true
     }
 
     private fun monitorForegroundApp() {
+        // Yield to TimerService if an Ekagra focus session or break is active
+        val timerPrefs = getSharedPreferences("ekagra_timer_state_prefs", Context.MODE_PRIVATE)
+        if (timerPrefs.getBoolean("has_state", false)) {
+            val mode = timerPrefs.getString("mode", "FOCUS") ?: "FOCUS"
+            // If user is taking a scheduled break during their study session, do NOT block apps
+            if (mode == "BREAK") {
+                lastBlockedPackage = null
+                return
+            }
+            // If TimerService is actively driving focus/stopwatch/pomodoro blocking, yield to TimerService
+            if (FocusShieldRepository.ShieldPrefs.isActive(this)) {
+                lastBlockedPackage = null
+                return
+            }
+        }
+
         val foregroundPackage = currentForegroundPackage() ?: return
         if (foregroundPackage == packageName || foregroundPackage == "com.android.settings" || isHomePackage(foregroundPackage)) {
             lastBlockedPackage = null

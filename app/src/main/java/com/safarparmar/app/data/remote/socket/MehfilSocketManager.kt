@@ -112,6 +112,7 @@ class MehfilSocketManager @Inject constructor(
         val pendingList: List<String> = emptyList(),
         val errorCode: String = "",
         val restored: Boolean = false,
+        val clientMessageId: String = "",
     )
     private val _dmEvent = MutableSharedFlow<DmEvent>(extraBufferCapacity = 16)
     val dmEvent = _dmEvent.asSharedFlow()
@@ -241,6 +242,13 @@ class MehfilSocketManager @Inject constructor(
                         _thoughtCreated.tryEmit(dto.toDomain())
                     } catch (_: Exception) {}
                 }
+                on("thoughtAccepted") { _dmEvent.tryEmit(DmEvent("post_saved")) }
+                on("thoughtRejected") { args ->
+                    val message = runCatching {
+                        JSONObject(args.firstOrNull()?.toString().orEmpty()).optString("message")
+                    }.getOrDefault("")
+                    _dmEvent.tryEmit(DmEvent("post_error", message = message.ifBlank { "Could not share post." }))
+                }
 
                 on("reactionUpdated") { args ->
                     try {
@@ -333,8 +341,9 @@ class MehfilSocketManager @Inject constructor(
                         val roomId       = obj.optString("roomId")
                         // Server sends "text", fallback to "message" for safety
                         val message = obj.optString("text").ifBlank { obj.optString("message") }
+                        val clientMessageId = obj.optString("clientMessageId")
                         android.util.Log.d("MehfilSocket", "dm:message ← from=$fromUserId name=$fromUserName roomId=$roomId text=$message")
-                        _dmEvent.tryEmit(DmEvent("message", fromUserId = fromUserId, fromUserName = fromUserName, fromUserAvatar = fromUserAvatar, roomId = roomId, message = message))
+                        _dmEvent.tryEmit(DmEvent("message", fromUserId = fromUserId, fromUserName = fromUserName, fromUserAvatar = fromUserAvatar, roomId = roomId, message = message, clientMessageId = clientMessageId))
                     } catch (_: Exception) {}
                 }
                 on("dm:error") { args ->
@@ -343,9 +352,16 @@ class MehfilSocketManager @Inject constructor(
                         val obj = JSONObject(raw)
                         val msg = obj.optString("message")
                         val code = obj.optString("code")
+                        val clientMessageId = obj.optString("clientMessageId")
                         android.util.Log.w("MehfilSocket", "dm:error ← $msg")
-                        _dmEvent.tryEmit(DmEvent("error", message = msg, errorCode = code))
+                        _dmEvent.tryEmit(DmEvent("error", message = msg, errorCode = code, clientMessageId = clientMessageId))
                     } catch (_: Exception) {}
+                }
+                on("dm:user_left") {
+                    _dmEvent.tryEmit(DmEvent("room_closed", message = "The other student ended this chat."))
+                }
+                on("dm:user_offline") {
+                    _dmEvent.tryEmit(DmEvent("peer_offline"))
                 }
 
                 // Live session events
@@ -457,13 +473,14 @@ class MehfilSocketManager @Inject constructor(
         s.emit("dm:request", payload)
     }
 
-    fun emitDmMessage(roomId: String, text: String) {
+    fun emitDmMessage(roomId: String, text: String, clientMessageId: String) {
         val s = socket ?: return
         if (!s.connected()) return
         android.util.Log.d("MehfilSocket", "dm:message → roomId=$roomId text=$text")
         s.emit("dm:message", JSONObject().apply {
             put("roomId", roomId)
             put("text", text)
+            put("clientMessageId", clientMessageId)
         })
     }
 

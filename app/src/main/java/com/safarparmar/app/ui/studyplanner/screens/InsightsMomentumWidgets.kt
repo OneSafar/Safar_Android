@@ -422,9 +422,9 @@ internal fun ConsistencyStreakCard(
                 )
                 Text(
                     text = if (consistency.studyStreak > 0) {
-                        "${consistency.studyStreak} day streak"
+                        "Studied ${consistency.studyStreak} day${if (consistency.studyStreak == 1) "" else "s"} in a row"
                     } else {
-                        "No streak yet"
+                        "Study today to begin"
                     },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
@@ -461,7 +461,7 @@ internal fun ConsistencyStreakCard(
                 val dayName = date?.dayOfWeek?.getDisplayName(TextStyle.FULL, Locale.getDefault()) ?: cell.date
                 Text(
                     text = if (cell.count > 0) {
-                        "$dayName · ${cell.count} topic${if (cell.count == 1) "" else "s"} done"
+                        "$dayName · ${cell.count} task${if (cell.count == 1) "" else "s"} done"
                     } else {
                         "$dayName · nothing done"
                     },
@@ -597,13 +597,13 @@ internal fun InsightsStudySpeedCard(
     val subtitle = when {
         nothingLeft -> "Nothing left to schedule — you're ahead."
         noExam && hasRecentPace ->
-            "You're doing ${formatPace(recentTopicsPerDay!!)}/day · goal $dailyGoal/day. Add an exam date to see if that's enough."
+            "You do about ${formatPace(recentTopicsPerDay!!)} work/day · goal $dailyGoal/day. Add your exam date to check your plan."
         noExam ->
-            "Add an exam date and finish a few topics to see your real pace."
+            "Add your exam date and finish some work to check your plan."
         !hasRecentPace ->
-            "No topics finished in the last 2 weeks · need ${formatPace(requiredPerDay!!)}/day."
+            "No work finished in the last 2 weeks · need ${formatPace(requiredPerDay!!)}/day."
         else ->
-            "You're doing ${formatPace(recentTopicsPerDay!!)}/day · need ${formatPace(requiredPerDay!!)}/day."
+            "You do about ${formatPace(recentTopicsPerDay!!)} work/day · need ${formatPace(requiredPerDay!!)}/day."
     }
 
     val arcProgress = remember { Animatable(0f) }
@@ -625,7 +625,7 @@ internal fun InsightsStudySpeedCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Study pace",
+                text = "Daily study",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
                 color = primaryText,
@@ -680,7 +680,7 @@ internal fun InsightsStudySpeedCard(
                     )
                     if (hasRecentPace && !nothingLeft) {
                         Text(
-                            text = "topics/day",
+                            text = "work/day",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = secondaryText,
@@ -1081,7 +1081,7 @@ internal fun InsightsFinishLineCard(
             }
 
             Text(
-                text = if (basedOnRecentPace) "At your recent pace" else "If you hit your daily goal",
+                text = if (basedOnRecentPace) "Based on your recent study" else "If you complete your daily goal",
                 style = MaterialTheme.typography.bodySmall,
                 color = secondaryText,
             )
@@ -1114,7 +1114,7 @@ internal fun InsightsFinishLineCard(
                     ) {
                         Text(
                             text = if (basedOnRecentPace) {
-                                "At your recent pace, you finish $lateDays day${if (lateDays == 1) "" else "s"} after the exam"
+                                "You may finish $lateDays day${if (lateDays == 1) "" else "s"} after the exam"
                             } else {
                                 "Even at your daily goal, you finish $lateDays day${if (lateDays == 1) "" else "s"} after the exam"
                             },
@@ -1259,7 +1259,7 @@ internal fun InsightsRevisionPulseCard(
         plan.flattenTopics()
             .filter { it.topic.status == TopicStatus.REVISION_NEEDED }
             .map { ref ->
-                val completed = ref.topic.revisionCompletedDates.map { d -> d.take(10) }
+                val completed = ref.topic.revisionCompletedDates.orEmpty().map { d -> d.take(10) }
                     .filter { d -> d.isNotBlank() }.toSet()
                 val remaining = ref.topic.revisionReminderDates.map { d -> d.take(10) }
                     .filter { d -> d.isNotBlank() }.toSet()

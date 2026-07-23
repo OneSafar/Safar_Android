@@ -871,7 +871,12 @@ fun ManualSubjectOrderSheet(
     var ordered by remember(subjects) { mutableStateOf(subjects) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(onDismissRequest = onSkip, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onSkip,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = PlannerFlatColors.BgCream,
+    ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -1040,6 +1045,8 @@ fun DailyTodoSetupSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = PlannerFlatColors.BgCream,
     ) {
         Column(
             modifier = Modifier

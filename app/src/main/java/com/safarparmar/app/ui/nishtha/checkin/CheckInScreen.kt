@@ -1,47 +1,91 @@
 package com.safarparmar.app.ui.nishtha.checkin
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.Icon
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
+import com.safarparmar.app.domain.model.Mood
 import com.safarparmar.app.ui.nishtha.NishthaViewModel
-import com.safarparmar.app.ui.theme.*
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.Amber500
+import com.safarparmar.app.ui.theme.Blue500
+import com.safarparmar.app.ui.theme.Emerald500
+import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.theme.Orange500
+import com.safarparmar.app.ui.theme.Rose500
+import com.safarparmar.app.ui.theme.Slate400
+import com.safarparmar.app.ui.theme.Slate500
+import com.safarparmar.app.ui.theme.Teal500
+import com.safarparmar.app.ui.theme.Violet500
+import com.safarparmar.app.ui.theme.isLightBackground
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 
 data class MoodOption(val emoji: String, val labelRes: Int, val color: Color)
 
@@ -56,13 +100,17 @@ fun SlimSlider(
     activeColor: Color = MaterialTheme.colorScheme.primary,
     activeBrush: Brush? = null,
     inactiveColor: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+    /** When true, [activeBrush] is painted at full track width then clipped to the filled fraction —
+     *  so low→high gradient reads correctly as the thumb moves (not compressed into the fill). */
+    stretchBrushToFullTrack: Boolean = false,
 ) {
     val density = LocalDensity.current
     var trackWidthPx by remember { mutableFloatStateOf(1f) }
     val thumbSizeDp = 14.dp
     val trackHeightDp = 2.dp
     val thumbSizePx = with(density) { thumbSizeDp.toPx() }
-    val fraction =((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+    val fraction = ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+    val trackWidthDp = with(density) { trackWidthPx.toDp() }
 
     Box(
         modifier = modifier
@@ -75,8 +123,8 @@ fun SlimSlider(
                         for (change in event.changes) {
                             if (change.pressed) {
                                 change.consume()
-                                val fraction = (change.position.x / trackWidthPx).coerceIn(0f, 1f)
-                                onValueChange(valueRange.start + fraction * (valueRange.endInclusive - valueRange.start))
+                                val next = (change.position.x / trackWidthPx).coerceIn(0f, 1f)
+                                onValueChange(valueRange.start + next * (valueRange.endInclusive - valueRange.start))
                             }
                         }
                     }
@@ -84,7 +132,6 @@ fun SlimSlider(
             },
         contentAlignment = Alignment.CenterStart,
     ) {
-        // Inactive track
         Box(
             Modifier
                 .fillMaxWidth()
@@ -93,21 +140,36 @@ fun SlimSlider(
                 .clip(RoundedCornerShape(1.dp))
                 .background(inactiveColor)
         )
-        // Active track
         if (fraction > 0f) {
-            Box(
-                Modifier
-                    .fillMaxWidth(fraction)
-                    .height(trackHeightDp)
-                    .align(Alignment.CenterStart)
-                    .clip(RoundedCornerShape(1.dp))
-                    .let { 
-                        if (activeBrush != null) it.background(activeBrush) 
-                        else it.background(activeColor) 
-                    }
-            )
+            if (activeBrush != null && stretchBrushToFullTrack && trackWidthDp > 0.dp) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(fraction)
+                        .height(trackHeightDp)
+                        .align(Alignment.CenterStart)
+                        .clip(RoundedCornerShape(1.dp)),
+                ) {
+                    Box(
+                        Modifier
+                            .width(trackWidthDp)
+                            .height(trackHeightDp)
+                            .background(activeBrush),
+                    )
+                }
+            } else {
+                Box(
+                    Modifier
+                        .fillMaxWidth(fraction)
+                        .height(trackHeightDp)
+                        .align(Alignment.CenterStart)
+                        .clip(RoundedCornerShape(1.dp))
+                        .let {
+                            if (activeBrush != null) it.background(activeBrush)
+                            else it.background(activeColor)
+                        },
+                )
+            }
         }
-        // Thumb — small circular notch
         val thumbOffsetPx = (trackWidthPx - thumbSizePx) * fraction
         val thumbOffsetDp = with(density) { thumbOffsetPx.toDp() }
         Box(
@@ -117,7 +179,7 @@ fun SlimSlider(
                 .shadow(2.dp, CircleShape)
                 .clip(CircleShape)
                 .background(activeColor)
-                .border(2.dp, Color.White, CircleShape)
+                .border(2.dp, Color.White, CircleShape),
         )
     }
 }
@@ -127,15 +189,27 @@ fun SlimSlider(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
+    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
+        CheckInScreenContent(viewModel = viewModel, isLight = isLight)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CheckInScreenContent(
+    viewModel: NishthaViewModel,
+    isLight: Boolean,
+) {
     val moodOptions = remember {
         listOf(
-            MoodOption("😄", R.string.mood_happy,   Amber500),
-            MoodOption("😌", R.string.mood_calm,    Teal500),
+            MoodOption("😄", R.string.mood_happy, Amber500),
+            MoodOption("😌", R.string.mood_calm, Teal500),
             MoodOption("😐", R.string.mood_neutral, Slate500),
-            MoodOption("😢", R.string.mood_sad,     Blue500),
-            MoodOption("😠", R.string.mood_angry,   Rose500),
+            MoodOption("😢", R.string.mood_sad, Blue500),
+            MoodOption("😠", R.string.mood_angry, Rose500),
             MoodOption("😰", R.string.mood_anxious, Orange500),
-            MoodOption("🥱", R.string.mood_tired,   Slate400),
+            MoodOption("🥱", R.string.mood_tired, Slate400),
             MoodOption("🤩", R.string.mood_excited, Violet500),
             MoodOption("🌱", R.string.mood_motivated, Emerald500),
         )
@@ -143,7 +217,6 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedMood by remember { mutableStateOf<MoodOption?>(null) }
-    // Resolve selected mood label in composable scope
     val selectedMoodLabel = selectedMood?.let { stringResource(it.labelRes) }
     var intensity by remember { mutableFloatStateOf(0.5f) }
     var note by remember { mutableStateOf("") }
@@ -155,6 +228,8 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val accent = PlannerFlatColors.PrimaryAccent
 
     LaunchedEffect(uiState.checkInSuccess) {
         if (uiState.checkInSuccess) {
@@ -174,223 +249,424 @@ fun CheckInScreen(viewModel: NishthaViewModel = hiltViewModel()) {
         }
     }
 
-
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
-
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(PlannerFlatColors.BgCream)
             .verticalScroll(scrollState)
             .imePadding()
-            .padding(16.dp)
+            .padding(horizontal = 20.dp)
+            .padding(top = 16.dp, bottom = 28.dp)
             .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = { focusManager.clearFocus() }
+                onClick = { focusManager.clearFocus() },
             ),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.checkin_how_feeling), style = MaterialTheme.typography.titleLarge)
-                Text(stringResource(R.string.checkin_today), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            TextButton(onClick = { showHistory = !showHistory }) {
-                Icon(if (showHistory) Icons.Default.EditNote else Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(if (showHistory) stringResource(R.string.checkin_do_checkin) else stringResource(R.string.checkin_history), fontSize = 12.sp)
+        // ── Flat hairline header ────────────────────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PlanEyebrow("Nishtha", modifier = Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
+                    .clickable { showHistory = !showHistory }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (showHistory) Icons.Default.EditNote else Icons.Default.History,
+                        contentDescription = null,
+                        tint = PlannerFlatColors.TextMuted,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (showHistory) {
+                            stringResource(R.string.checkin_do_checkin)
+                        } else {
+                            stringResource(R.string.checkin_history)
+                        },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PlannerFlatColors.TextMuted,
+                    )
+                }
             }
         }
 
+        Spacer(Modifier.height(14.dp))
+        Text(
+            text = stringResource(R.string.checkin_how_feeling),
+            fontFamily = LoraFontFamily,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Normal,
+            color = PlannerFlatColors.TextDark,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.checkin_today),
+            fontSize = 13.sp,
+            color = PlannerFlatColors.TextMuted,
+        )
+        Spacer(Modifier.height(16.dp))
+        PlanHairline()
+
         AnimatedVisibility(visible = !showHistory) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(stringResource(R.string.checkin_select_mood), style = MaterialTheme.typography.titleSmall)
+            Column {
+                Spacer(Modifier.height(22.dp))
+                CheckInSectionLabel(stringResource(R.string.checkin_select_mood))
+                Spacer(Modifier.height(14.dp))
+
+                // ── Mood grid — macOS Control Center tiles only ─────────────
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
                     userScrollEnabled = false,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(bottom = 4.dp, top = 2.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 340.dp)
+                        .heightIn(max = 360.dp),
                 ) {
                     items(moodOptions.size) { index ->
                         val mood = moodOptions[index]
                         MoodChip(
                             mood = mood,
                             selected = selectedMood == mood,
+                            isLight = isLight,
                             onClick = {
                                 selectedMood = mood
                                 scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
-                            }
+                            },
                         )
                     }
                 }
 
                 AnimatedVisibility(visible = selectedMood != null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.checkin_intensity), style = MaterialTheme.typography.titleSmall)
+                    Column {
+                        Spacer(Modifier.height(22.dp))
+                        PlanHairline(alpha = 0.6f)
+                        Spacer(Modifier.height(18.dp))
+                        CheckInSectionLabel(stringResource(R.string.checkin_intensity))
+                        Spacer(Modifier.height(12.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(R.string.checkin_low), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            
-                            val defaultPrimary = MaterialTheme.colorScheme.primary
-                            val baseColor = selectedMood?.color ?: defaultPrimary
-                            val startColor = baseColor.copy(alpha = 0.3f)
-                            val sliderGradient = remember(baseColor) {
-                                Brush.horizontalGradient(listOf(startColor, baseColor))
+                            Text(
+                                stringResource(R.string.checkin_low),
+                                fontSize = 12.sp,
+                                color = PlannerFlatColors.TextMuted,
+                            )
+                            val highColor = selectedMood?.color ?: accent
+                            // Low = muted slate → High = full mood color (clear low→high shift)
+                            val lowColor = if (isLight) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            val currentColor = lerp(lowColor, highColor, intensity)
+                            val sliderGradient = remember(lowColor, highColor) {
+                                Brush.horizontalGradient(listOf(lowColor, highColor))
                             }
-                            val thumbColor = androidx.compose.ui.graphics.lerp(startColor, baseColor, intensity)
-
-                            // ── SlimSlider replaces the old M3 Slider ──────────────────────
                             SlimSlider(
                                 value = intensity,
                                 onValueChange = { intensity = it },
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(horizontal = 12.dp),
-                                activeColor = thumbColor,
+                                activeColor = currentColor,
                                 activeBrush = sliderGradient,
+                                inactiveColor = PlannerFlatColors.BorderSoft,
+                                stretchBrushToFullTrack = true,
                             )
-                            Text(stringResource(R.string.checkin_high), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                stringResource(R.string.checkin_high),
+                                fontSize = 12.sp,
+                                color = PlannerFlatColors.TextMuted,
+                            )
                         }
                         val intensityInt = (intensity * 5).toInt().coerceIn(1, 5)
+                        val intensityColor = lerp(
+                            if (isLight) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            selectedMood?.color ?: accent,
+                            intensity,
+                        )
+                        Spacer(Modifier.height(8.dp))
                         Text(
                             "$intensityInt/5",
-                            fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                            color = selectedMood?.color ?: MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = intensityColor,
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
                         )
                     }
                 }
 
+                Spacer(Modifier.height(22.dp))
+                PlanHairline(alpha = 0.6f)
+                Spacer(Modifier.height(18.dp))
+                CheckInSectionLabel(stringResource(R.string.checkin_note_hint))
+                Spacer(Modifier.height(10.dp))
                 OutlinedTextField(
-                    value = note, onValueChange = { note = it },
-                    label = { Text(stringResource(R.string.checkin_note_hint)) },
-                    modifier = Modifier.fillMaxWidth(), minLines = 2
+                    value = note,
+                    onValueChange = { note = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = accent,
+                        unfocusedBorderColor = PlannerFlatColors.BorderSoft,
+                        focusedTextColor = PlannerFlatColors.TextDark,
+                        unfocusedTextColor = PlannerFlatColors.TextDark,
+                        cursorColor = accent,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                    ),
                 )
 
-                // ── What caused this mood / Due to ─────────────────────────
-                Text("Due to", style = MaterialTheme.typography.titleSmall)
-                // Tag chips
-                androidx.compose.foundation.layout.FlowRow(
+                Spacer(Modifier.height(22.dp))
+                PlanHairline(alpha = 0.6f)
+                Spacer(Modifier.height(18.dp))
+                CheckInSectionLabel("Due to")
+                Spacer(Modifier.height(12.dp))
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     moodTags.forEach { tag ->
-                        val isTagSelected = tag in selectedTags
-                        FilterChip(
-                            selected = isTagSelected,
+                        FlatTagPill(
+                            label = tag,
+                            selected = tag in selectedTags,
+                            accent = accent,
                             onClick = {
-                                selectedTags = if (isTagSelected) selectedTags - tag else selectedTags + tag
+                                selectedTags = if (tag in selectedTags) selectedTags - tag else selectedTags + tag
                             },
-                            label = { Text(tag, fontSize = 12.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                selectedLabelColor = MaterialTheme.colorScheme.primary,
-                            )
                         )
                     }
                 }
 
                 if (uiState.checkInError != null) {
-                    Text(uiState.checkInError!!, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        uiState.checkInError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 13.sp,
+                    )
                 }
 
-                Button(
-                    onClick = {
-                        selectedMoodLabel?.let { label ->
-                            // Encode causedBy and tags into notes
-                            val fullNote = buildString {
-                                if (note.isNotBlank()) append(note)
-                                if (causedBy.isNotBlank()) {
-                                    if (isNotEmpty()) append("\n\n")
-                                    append("Caused by: $causedBy")
+                Spacer(Modifier.height(24.dp))
+                PlanHairline()
+                Spacer(Modifier.height(18.dp))
+
+                // Flat primary save — not macOS glass
+                val saveEnabled = selectedMood != null && !uiState.isCheckingIn
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (saveEnabled) accent else PlannerFlatColors.BorderSoft.copy(alpha = 0.55f),
+                        )
+                        .clickable(enabled = saveEnabled) {
+                            selectedMoodLabel?.let { label ->
+                                val fullNote = buildString {
+                                    if (note.isNotBlank()) append(note)
+                                    if (causedBy.isNotBlank()) {
+                                        if (isNotEmpty()) append("\n\n")
+                                        append("Caused by: $causedBy")
+                                    }
+                                    if (selectedTags.isNotEmpty()) {
+                                        if (isNotEmpty()) append("\n")
+                                        append("Tags: ${selectedTags.joinToString(", ")}")
+                                    }
                                 }
-                                if (selectedTags.isNotEmpty()) {
-                                    if (isNotEmpty()) append("\n")
-                                    append("Tags: ${selectedTags.joinToString(", ")}")
-                                }
+                                viewModel.createMood(
+                                    label,
+                                    (intensity * 5).toInt().coerceIn(1, 5),
+                                    fullNote.ifBlank { null },
+                                )
                             }
-                            viewModel.createMood(label, (intensity * 5).toInt().coerceIn(1, 5), fullNote.ifBlank { null })
                         }
-                    },
-                    enabled = selectedMood != null && !uiState.isCheckingIn,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = ButtonDefaults.shape,
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    if (uiState.isCheckingIn) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
-                        Spacer(Modifier.width(8.dp))
-                    } else {
-                        Icon(Icons.Default.Check, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        if (uiState.isCheckingIn) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        } else {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(
+                            stringResource(R.string.checkin_save),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
                     }
-                    Text(stringResource(R.string.checkin_save))
                 }
             }
         }
 
         AnimatedVisibility(visible = showHistory) {
-            if (uiState.moods.isEmpty()) {
-                Text(stringResource(R.string.checkin_no_history), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-            } else {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                    shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.checkin_history_title), style = MaterialTheme.typography.titleSmall)
-                        uiState.moods.take(5).forEach { mood ->
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(moodEmoji(mood.mood), fontSize = 24.sp)
-                                    Column(Modifier.weight(1f)) {
-                                        Text(mood.mood.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                        Text(stringResource(R.string.checkin_intensity_value, mood.intensity), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    Text(mood.timestamp.take(10), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                // Parse notes field — format: "plain note\n\nCaused by: X\nTags: Y"
-                                val notes = mood.notes ?: ""
-                                val causedByLine = notes.lines().firstOrNull { it.startsWith("Caused by:") }?.removePrefix("Caused by:")?.trim()
-                                val tagsLine = notes.lines().firstOrNull { it.startsWith("Tags:") }?.removePrefix("Tags:")?.trim()
-                                val tags = tagsLine?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
-                                // Plain note = everything before "Caused by:" or "Tags:" lines
-                                val plainNote = notes.lines()
-                                    .filter { !it.startsWith("Caused by:") && !it.startsWith("Tags:") }
-                                    .joinToString(" ").trim()
-                                if (plainNote.isNotBlank()) {
-                                    Text(plainNote, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 32.dp), lineHeight = 16.sp)
-                                }
-                                if (!causedByLine.isNullOrBlank()) {
-                                    Row(modifier = Modifier.padding(start = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_chat), contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(causedByLine, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                                if (tags.isNotEmpty()) {
-                                    androidx.compose.foundation.layout.FlowRow(
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                        modifier = Modifier.padding(start = 32.dp)
-                                    ) {
-                                        tags.forEach { tag ->
-                                            Surface(
-                                                shape = RoundedCornerShape(20.dp),
-                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-                                            ) {
-                                                Text(tag, fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, modifier = androidx.compose.ui.Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                                            }
-                                        }
-                                    }
-                                }
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), modifier = Modifier.padding(top = 4.dp))
-                            }
+            Column {
+                Spacer(Modifier.height(22.dp))
+                CheckInSectionLabel(stringResource(R.string.checkin_history_title))
+                Spacer(Modifier.height(12.dp))
+                PlanHairline()
+
+                if (uiState.moods.isEmpty()) {
+                    Spacer(Modifier.height(18.dp))
+                    Text(
+                        stringResource(R.string.checkin_no_history),
+                        color = PlannerFlatColors.TextMuted,
+                        fontSize = 13.sp,
+                    )
+                } else {
+                    uiState.moods.take(5).forEachIndexed { index, mood ->
+                        HistoryMoodRow(mood = mood)
+                        if (index < uiState.moods.take(5).lastIndex) {
+                            PlanHairline(alpha = 0.5f)
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckInSectionLabel(text: String) {
+    Text(
+        text = text,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold,
+        color = PlannerFlatColors.TextDark,
+    )
+}
+
+/** Flat hairline tag — outlined when idle, accent-filled when selected. */
+@Composable
+private fun FlatTagPill(
+    label: String,
+    selected: Boolean,
+    accent: Color,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .then(
+                if (selected) Modifier.background(accent)
+                else Modifier.border(1.dp, PlannerFlatColors.BorderSoft, CircleShape),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) Color.White else PlannerFlatColors.TextMuted,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HistoryMoodRow(mood: Mood) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(moodEmoji(mood.mood), fontSize = 24.sp)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    mood.mood.replaceFirstChar { it.uppercase() },
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = PlannerFlatColors.TextDark,
+                )
+                Text(
+                    stringResource(R.string.checkin_intensity_value, mood.intensity),
+                    fontSize = 11.sp,
+                    color = PlannerFlatColors.TextMuted,
+                )
+            }
+            Text(
+                mood.timestamp.take(10),
+                fontSize = 11.sp,
+                color = PlannerFlatColors.TextMuted,
+            )
+        }
+
+        val notes = mood.notes.orEmpty()
+        val causedByLine = notes.lines().firstOrNull { it.startsWith("Caused by:") }?.removePrefix("Caused by:")?.trim()
+        val tagsLine = notes.lines().firstOrNull { it.startsWith("Tags:") }?.removePrefix("Tags:")?.trim()
+        val tags = tagsLine?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+        val plainNote = notes.lines()
+            .filter { !it.startsWith("Caused by:") && !it.startsWith("Tags:") }
+            .joinToString(" ")
+            .trim()
+
+        if (plainNote.isNotBlank()) {
+            Text(
+                plainNote,
+                fontSize = 12.sp,
+                color = PlannerFlatColors.TextMuted,
+                modifier = Modifier.padding(start = 34.dp),
+                lineHeight = 16.sp,
+            )
+        }
+        if (!causedByLine.isNullOrBlank()) {
+            Row(
+                modifier = Modifier.padding(start = 34.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_chat),
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = PlannerFlatColors.TextMuted,
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(causedByLine, fontSize = 11.sp, color = PlannerFlatColors.TextMuted)
+            }
+        }
+        if (tags.isNotEmpty()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(start = 34.dp, top = 4.dp),
+            ) {
+                tags.forEach { tag ->
+                    Box(
+                        modifier = Modifier
+                            .border(1.dp, PlannerFlatColors.BorderSoft, CircleShape)
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text(tag, fontSize = 10.sp, color = PlannerFlatColors.TextMuted)
                     }
                 }
             }
@@ -405,37 +681,105 @@ private fun moodEmoji(mood: String) = when (mood.lowercase()) {
     else -> "😊"
 }
 
+/**
+ * Mood tile — macOS Control Center recipe (same chrome as Plan-tab exam cards).
+ * Body is fully opaque so the cream page never shows through as a Material rectangle.
+ * No ripple/indication — glass must stay clean.
+ */
 @Composable
-private fun MoodChip(mood: MoodOption, selected: Boolean, onClick: () -> Unit) {
+private fun MoodChip(
+    mood: MoodOption,
+    selected: Boolean,
+    isLight: Boolean,
+    onClick: () -> Unit,
+) {
     val label = stringResource(mood.labelRes)
+    val shape = RoundedCornerShape(20.dp)
+    // Opaque Control Center fills — translucent alpha was letting BgCream read as an
+    // M3 rectangle inside the glass tile.
+    val bodyColor = if (selected) {
+        if (isLight) {
+            lerp(Color(0xFFF9F9FB), mood.color, 0.18f)
+        } else {
+            lerp(Color(0xFF2C2C2E), mood.color, 0.28f)
+        }
+    } else if (isLight) {
+        Color(0xFFF9F9FB)
+    } else {
+        Color(0xFF2C2C2E)
+    }
+    val borderBrush = if (!isLight) {
+        Brush.verticalGradient(
+            listOf(
+                if (selected) mood.color.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.25f),
+                if (selected) mood.color.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.02f),
+            ),
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                if (selected) mood.color.copy(alpha = 0.6f) else Color(0xFFE5E5EA),
+                if (selected) mood.color.copy(alpha = 0.3f) else Color(0xFFD1D1D6),
+            ),
+        )
+    }
+    val shadowElevation = if (isLight) 4.dp else 12.dp
+    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f)
+    val subtitleColor = if (selected) {
+        mood.color
+    } else if (isLight) {
+        Color.Black.copy(alpha = 0.55f)
+    } else {
+        Color.White.copy(alpha = 0.55f)
+    }
+    val interaction = remember { MutableInteractionSource() }
+
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+            .fillMaxWidth()
+            .shadow(
+                elevation = if (selected) shadowElevation + 2.dp else shadowElevation,
+                shape = shape,
+                spotColor = shadowColor,
+                ambientColor = shadowColor,
+            )
+            // Click before clip so any residual indication cannot paint a raw rectangle
+            // outside the glass shape; indication is still explicitly null.
+            .clip(shape)
+            .background(bodyColor, shape)
             .border(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) mood.color else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(16.dp)
+                width = if (selected) 1.dp else 0.5.dp,
+                brush = borderBrush,
+                shape = shape,
             )
-            .background(
-                if (selected)
-                    Brush.verticalGradient(listOf(mood.color.copy(alpha = 0.22f), mood.color.copy(alpha = 0.07f)))
-                else
-                    Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onClick,
             )
-            .clickable(onClick = onClick)
-            .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 14.dp)
+            .padding(horizontal = 10.dp, vertical = 14.dp),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(mood.emoji, fontSize = 28.sp)
-            Spacer(Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(if (selected) mood.color else mood.color.copy(alpha = if (isLight) 0.16f else 0.28f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(mood.emoji, fontSize = 20.sp)
+            }
+            Spacer(Modifier.height(8.dp))
             Text(
-                label,
+                text = label,
                 fontSize = 11.sp,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (selected) mood.color else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                letterSpacing = 0.2.sp,
+                color = subtitleColor,
+                maxLines = 1,
             )
         }
     }

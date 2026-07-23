@@ -112,6 +112,7 @@ class FocusShieldRepository @Inject constructor(
             return
         }
         activateBlocking(settings, resetUnlocks = true)
+        QuickUnlockNotification.cancel(appContext)
         _activationBlockedReason.value = null
         debugLog("activateForSession enabled for ${settings.packages.size} packages")
     }
@@ -142,11 +143,49 @@ class FocusShieldRepository @Inject constructor(
         _blockedHitsByPackage.value = emptyMap()
     }
 
+    fun setKavachProfile(mode: String) {
+        scope.launch {
+            dataStore.setAppUsageMode(mode)
+            when (mode) {
+                com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON -> {
+                    dataStore.setFocusShieldEnabled(true)
+                    dataStore.setFocusShieldStrictMode(false)
+                    dataStore.setFocusShieldAlwaysOnMode(true)
+                    startAlwaysOnService()
+                }
+                com.safarparmar.app.ui.launch.AppUsageMode.BEAST -> {
+                    dataStore.setFocusShieldEnabled(true)
+                    dataStore.setFocusShieldStrictMode(true)
+                    dataStore.setFocusShieldAlwaysOnMode(false)
+                    KavachAlwaysOnPrefs.clear(appContext)
+                    appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
+                }
+                com.safarparmar.app.ui.launch.AppUsageMode.FOCUSED,
+                com.safarparmar.app.ui.launch.AppUsageMode.STANDARD -> {
+                    dataStore.setFocusShieldEnabled(true)
+                    dataStore.setFocusShieldStrictMode(false)
+                    dataStore.setFocusShieldAlwaysOnMode(false)
+                    KavachAlwaysOnPrefs.clear(appContext)
+                    appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
+                }
+                else -> {
+                    dataStore.setFocusShieldEnabled(false)
+                    dataStore.setFocusShieldStrictMode(false)
+                    dataStore.setFocusShieldAlwaysOnMode(false)
+                    KavachAlwaysOnPrefs.clear(appContext)
+                    appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
+                    deactivateSession()
+                }
+            }
+        }
+    }
+
     fun setEnabled(enabled: Boolean) {
         scope.launch {
             dataStore.setFocusShieldEnabled(enabled)
             if (!enabled) {
                 dataStore.setFocusShieldAlwaysOnMode(false)
+                dataStore.setFocusShieldStrictMode(false)
                 KavachAlwaysOnPrefs.clear(appContext)
                 appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
             }

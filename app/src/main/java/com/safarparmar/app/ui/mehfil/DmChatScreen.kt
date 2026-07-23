@@ -1,8 +1,9 @@
 package com.safarparmar.app.ui.mehfil
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,14 +30,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 
 @Composable
 fun DmChatScreen(
@@ -81,13 +81,14 @@ fun DmChatScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MehfilFlatColors.Bg,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             DmChatTopBar(
                 peerName = dmState.peerName,
                 peerAvatar = dmState.peerAvatar,
                 connected = uiState.socketConnected,
+                peerOnline = uiState.dmPeerOnline,
                 onBack = onBack,
                 onLeave = {
                     viewModel.leaveDmRoom()
@@ -127,6 +128,7 @@ fun DmChatScreen(
                         isMine = msg.isMine,
                         avatarUrl = if (msg.isMine) msg.senderAvatar else msg.senderAvatar ?: dmState.peerAvatar,
                         avatarName = if (msg.isMine) "You" else dmState.peerName,
+                        state = msg.state,
                     )
                 }
             }
@@ -139,59 +141,83 @@ private fun DmChatTopBar(
     peerName: String,
     peerAvatar: String?,
     connected: Boolean,
+    peerOnline: Boolean,
     onBack: () -> Unit,
     onLeave: () -> Unit,
 ) {
-    Surface(
-        tonalElevation = 2.dp,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
+    Column(Modifier.fillMaxWidth().background(MehfilFlatColors.Bg)) {
         Row(
-            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 4.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .border(1.dp, MehfilFlatColors.Hairline, CircleShape)
+                    .clickable(onClick = onBack),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MehfilFlatColors.Text,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
             DmAvatar(name = peerName, avatarUrl = peerAvatar, size = 34.dp)
             Column(Modifier.weight(1f)) {
-                Text(peerName, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    peerName,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = MehfilFlatColors.Text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Box(
                         Modifier
                             .size(6.dp)
                             .clip(CircleShape)
                             .background(
-                                if (connected) MaterialTheme.colorScheme.tertiary
-                                else MaterialTheme.colorScheme.error,
+                                if (connected) MehfilFlatColors.Activity
+                                else MehfilFlatColors.Like,
                             ),
                     )
                     Text(
-                        if (connected) "Ephemeral - Connected" else "Ephemeral - Reconnecting…",
+                        when {
+                            !connected -> "Connecting again…"
+                            !peerOnline -> "Student is away"
+                            else -> "Private chat · Messages are not saved"
+                        },
                         fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MehfilFlatColors.Muted,
                     )
                 }
             }
-            OutlinedButton(
-                onClick = onLeave,
-                shape = ButtonDefaults.outlinedShape,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(0.5f)),
-                modifier = Modifier.heightIn(min = 32.dp),
+            Box(
+                modifier = Modifier
+                    .heightIn(min = 32.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, MehfilFlatColors.Like.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                    .clickable(onClick = onLeave)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Text("Leave", fontSize = 12.sp)
+                Text("Leave", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MehfilFlatColors.Like)
             }
         }
+        PlanHairline()
     }
 }
 
 @Composable
 private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSend: () -> Unit) {
-    Surface(
-        tonalElevation = 3.dp,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
+    val canSend = value.isNotBlank()
+    Column(Modifier.fillMaxWidth().background(MehfilFlatColors.Bg)) {
+        PlanHairline()
         Row(
             Modifier.navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -200,23 +226,38 @@ private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSen
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text("Message...", fontSize = 14.sp) },
+                placeholder = { Text("Message...", fontSize = 14.sp, color = MehfilFlatColors.Muted) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
-                shape = MaterialTheme.shapes.extraLarge,
-                textStyle = TextStyle(fontSize = 14.sp),
+                shape = RoundedCornerShape(12.dp),
+                textStyle = TextStyle(fontSize = 14.sp, color = MehfilFlatColors.Text),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MehfilFlatColors.Primary,
+                    unfocusedBorderColor = MehfilFlatColors.Hairline,
+                    focusedTextColor = MehfilFlatColors.Text,
+                    unfocusedTextColor = MehfilFlatColors.Text,
+                    cursorColor = MehfilFlatColors.Primary,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedPlaceholderColor = MehfilFlatColors.Muted,
+                    unfocusedPlaceholderColor = MehfilFlatColors.Muted,
+                ),
             )
             IconButton(
                 onClick = onSend,
-                modifier = Modifier.size(44.dp).clip(CircleShape).background(
-                    if (value.isNotBlank()) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface.copy(0.12f),
-                ),
+                enabled = canSend,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (canSend) MehfilFlatColors.Primary
+                        else MehfilFlatColors.Hairline.copy(alpha = 0.55f),
+                    ),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.Send,
                     contentDescription = null,
-                    tint = if (value.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (canSend) Color.White else MehfilFlatColors.Muted,
                 )
             }
         }
@@ -227,14 +268,25 @@ private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSen
 private fun EmptyDmState(peerName: String, modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.4f))
-            Text("Say hello to $peerName!", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(
+                Icons.AutoMirrored.Filled.Chat,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = MehfilFlatColors.Muted.copy(alpha = 0.45f),
+            )
+            Text("Say hello to $peerName!", fontSize = 14.sp, color = MehfilFlatColors.Muted)
         }
     }
 }
 
 @Composable
-private fun DmMessageBubble(text: String, isMine: Boolean, avatarUrl: String?, avatarName: String) {
+private fun DmMessageBubble(
+    text: String,
+    isMine: Boolean,
+    avatarUrl: String?,
+    avatarName: String,
+    state: DmMessageState,
+) {
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
@@ -244,21 +296,47 @@ private fun DmMessageBubble(text: String, isMine: Boolean, avatarUrl: String?, a
             DmAvatar(name = avatarName, avatarUrl = avatarUrl, size = 28.dp)
             Spacer(Modifier.size(6.dp))
         }
-        Box(
-            Modifier
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = if (isMine) 16.dp else 4.dp,
-                        bottomEnd = if (isMine) 4.dp else 16.dp,
-                    ),
+        Column(horizontalAlignment = if (isMine) Alignment.End else Alignment.Start) {
+            Box(
+                Modifier
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                            bottomStart = if (isMine) 16.dp else 4.dp,
+                            bottomEnd = if (isMine) 4.dp else 16.dp,
+                        ),
+                    )
+                    .then(
+                        if (isMine) {
+                            Modifier.background(MehfilFlatColors.Primary)
+                        } else {
+                            Modifier
+                                .background(MehfilFlatColors.Hairline.copy(alpha = 0.28f))
+                                .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(
+                                    topStart = 16.dp,
+                                    topEnd = 16.dp,
+                                    bottomStart = 4.dp,
+                                    bottomEnd = 16.dp,
+                                ))
+                        },
+                    )
+                    .padding(horizontal = 14.dp, vertical = 9.dp)
+                    .widthIn(max = 280.dp),
+            ) {
+                Text(
+                    text,
+                    fontSize = 14.sp,
+                    color = if (isMine) Color.White else MehfilFlatColors.Text,
                 )
-                .background(if (isMine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                .padding(horizontal = 14.dp, vertical = 9.dp)
-                .widthIn(max = 280.dp),
-        ) {
-            Text(text, fontSize = 14.sp, color = if (isMine) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (isMine && state != DmMessageState.SENT) {
+                Text(
+                    if (state == DmMessageState.SENDING) "Sending…" else "Not sent",
+                    fontSize = 10.sp,
+                    color = if (state == DmMessageState.FAILED) MehfilFlatColors.Like else MehfilFlatColors.Muted,
+                )
+            }
         }
         if (isMine) {
             Spacer(Modifier.size(6.dp))
@@ -273,7 +351,7 @@ private fun DmAvatar(name: String, avatarUrl: String?, size: Dp) {
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(0.15f)),
+            .background(MehfilFlatColors.Primary.copy(alpha = 0.15f)),
         contentAlignment = Alignment.Center,
     ) {
         if (!avatarUrl.isNullOrBlank()) {
@@ -287,7 +365,7 @@ private fun DmAvatar(name: String, avatarUrl: String?, size: Dp) {
             Text(
                 name.firstOrNull()?.uppercase() ?: "?",
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                color = MehfilFlatColors.Primary,
                 fontSize = if (size.value >= 34f) 14.sp else 11.sp,
             )
         }

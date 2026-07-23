@@ -10,7 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,17 +43,12 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.ShieldMoon
 import androidx.compose.material.icons.rounded.TouchApp
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,51 +65,75 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
+import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.isLightBackground
 
-// ── Premium onboarding palette ───────────────────────────────────────────────
-
-private object OnboardPalette {
-    val BackgroundLight = Color(0xFFF7F5FB)
-    val BackgroundDark = Color(0xFF0F0F14)
-
-    val CardWhite = Color.White
-    val CardDark = Color(0xFF1C1C24)
-    val SelectedLight = Color(0xFFF1E8FF)
-    val SelectedDark = Color(0xFF2A2140)
-
-    val BorderLight = Color(0xFFE5E0F3)
-    val BorderDark = Color(0xFF3A3550)
-    val SelectedBorder = Color(0xFF9B6BE8)
-
-    val Primary = Color(0xFF9B6BE8)
-    val TextPrimaryLight = Color(0xFF161827)
-    val TextPrimaryDark = Color(0xFFF5F3FA)
-    val TextSecondaryLight = Color(0xFF6B6478)
-    val TextSecondaryDark = Color(0xFFA8A0B8)
-
-    val FooterLight = Color.White.copy(alpha = 0.92f)
-    val FooterDark = Color(0xFF16161E).copy(alpha = 0.94f)
-    val FooterBorderLight = Color(0xFFE7E2F0)
-    val FooterBorderDark = Color(0xFF2E2A3A)
-
-    val SecondaryButtonBorder = Color(0xFFC8C1D8)
-    val SecondaryButtonText = Color(0xFF475569)
-
-    val ProgressTrackLight = Color(0xFFE4DFEE)
-    val ProgressTrackDark = Color(0xFF2E2A3A)
-
-    val BeastAccent = Color(0xFFFF5722)
-    val AlwaysOnAccent = Color(0xFF9B6BE8)
-    val NormalAccent = Color(0xFF26A69A)
+/**
+ * Opaque macOS Control Center glass for tappable option tiles.
+ * Page chrome / CTAs stay flat-hairline via [LaunchFlatColors].
+ */
+private fun Modifier.launchGlassPanel(
+    isLight: Boolean,
+    selected: Boolean,
+    accent: Color,
+    shape: RoundedCornerShape = RoundedCornerShape(20.dp),
+): Modifier {
+    val bodyColor = if (selected) {
+        if (isLight) lerp(Color(0xFFF9F9FB), accent, 0.18f)
+        else lerp(Color(0xFF2C2C2E), accent, 0.28f)
+    } else if (isLight) {
+        Color(0xFFF9F9FB)
+    } else {
+        Color(0xFF2C2C2E)
+    }
+    val borderBrush = if (!isLight) {
+        Brush.verticalGradient(
+            listOf(
+                if (selected) accent.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.25f),
+                if (selected) accent.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.02f),
+            ),
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                if (selected) accent.copy(alpha = 0.55f) else Color(0xFFE5E5EA),
+                if (selected) accent.copy(alpha = 0.25f) else Color(0xFFD1D1D6),
+            ),
+        )
+    }
+    val shadowElevation = if (isLight) {
+        if (selected) 6.dp else 4.dp
+    } else {
+        if (selected) 14.dp else 12.dp
+    }
+    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f)
+    return this
+        .shadow(
+            elevation = shadowElevation,
+            shape = shape,
+            spotColor = shadowColor,
+            ambientColor = shadowColor,
+        )
+        .clip(shape)
+        .background(bodyColor)
+        .border(
+            width = if (selected) 1.dp else 0.5.dp,
+            brush = borderBrush,
+            shape = shape,
+        )
 }
 
 private data class UsageReasonOption(
@@ -133,62 +152,64 @@ private data class KavachModeOption(
     val badge: String? = null,
 )
 
-private val usageReasons = listOf(
+@Composable
+private fun usageReasons(): List<UsageReasonOption> = listOf(
     UsageReasonOption(
-        title = "Focus without distractions",
-        subtitle = "Block apps and stay on track",
+        title = "Focus better",
+        subtitle = "Stay away from distractions",
         icon = Icons.Default.AutoStories,
-        accent = OnboardPalette.Primary,
+        accent = LaunchFlatColors.Primary,
     ),
     UsageReasonOption(
-        title = "Build daily discipline",
-        subtitle = "Track goals and stay consistent",
+        title = "Build daily habits",
+        subtitle = "Do small tasks every day",
         icon = Icons.Default.TrackChanges,
-        accent = Color(0xFFE86BA8),
+        accent = LaunchFlatColors.Habit,
     ),
     UsageReasonOption(
-        title = "Reflect with journaling",
-        subtitle = "Write thoughts and review your day",
+        title = "Write my thoughts",
+        subtitle = "Keep a simple daily note",
         icon = Icons.Default.EditNote,
-        accent = Color(0xFFE8846B),
+        accent = LaunchFlatColors.Journal,
     ),
     UsageReasonOption(
-        title = "Calm my mind",
-        subtitle = "Use Dhyan and breathing tools",
+        title = "Feel calm",
+        subtitle = "Try breathing and meditation",
         icon = Icons.Default.SelfImprovement,
-        accent = Color(0xFF9B8BE8),
+        accent = LaunchFlatColors.Calm,
     ),
     UsageReasonOption(
-        title = "Full SAFAR experience",
-        subtitle = "Enable all recommended tools",
+        title = "Use all SAFAR tools",
+        subtitle = "Get the full SAFAR experience",
         icon = Icons.Default.CheckCircle,
-        accent = OnboardPalette.Primary,
+        accent = LaunchFlatColors.Primary,
     ),
 )
 
-private val kavachModes = listOf(
+@Composable
+private fun kavachModes(): List<KavachModeOption> = listOf(
     KavachModeOption(
         mode = AppUsageMode.FOCUSED,
         title = "Normal",
-        description = "Redirects you back when you open a blocked app.",
+        description = "We remind you when you open a blocked app.",
         icon = Icons.Rounded.TouchApp,
-        accent = OnboardPalette.NormalAccent,
+        accent = LaunchFlatColors.Normal,
         badge = "Recommended",
     ),
     KavachModeOption(
         mode = AppUsageMode.ALWAYS_ON,
         title = "Always On",
-        description = "Blocks selected apps until you turn KAVACH off.",
+        description = "Blocked apps stay closed until you turn KAVACH off.",
         icon = Icons.Rounded.ShieldMoon,
-        accent = OnboardPalette.AlwaysOnAccent,
+        accent = LaunchFlatColors.AlwaysOn,
         badge = "Strong",
     ),
     KavachModeOption(
         mode = AppUsageMode.BEAST,
         title = "Beast Mode",
-        description = "Full lockdown. No quick unlock during focus.",
+        description = "Strict block. You cannot open blocked apps during focus.",
         icon = Icons.Rounded.Lock,
-        accent = OnboardPalette.BeastAccent,
+        accent = LaunchFlatColors.Beast,
         badge = "Strict",
     ),
 )
@@ -208,8 +229,13 @@ fun LaunchUsageQuestionnaireScreen(
     }
 
     if (isLoggedIn != true) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Loading…", color = MaterialTheme.colorScheme.onBackground)
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(LaunchFlatColors.Bg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("Loading…", color = LaunchFlatColors.Muted, fontSize = 14.sp)
         }
         return
     }
@@ -230,14 +256,11 @@ fun LaunchUsageQuestionnaireScreen(
     }
 
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-    val primaryText = if (isLight) OnboardPalette.TextPrimaryLight else OnboardPalette.TextPrimaryDark
-    val secondaryText = if (isLight) OnboardPalette.TextSecondaryLight else OnboardPalette.TextSecondaryDark
-    val canvas = if (isLight) OnboardPalette.BackgroundLight else OnboardPalette.BackgroundDark
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(canvas),
+            .background(LaunchFlatColors.Bg),
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -245,9 +268,6 @@ fun LaunchUsageQuestionnaireScreen(
             topBar = {
                 QuestionnaireTopBar(
                     page = page,
-                    isLight = isLight,
-                    primaryText = primaryText,
-                    secondaryText = secondaryText,
                     onBack = { if (page > 0) page-- },
                 )
             },
@@ -258,7 +278,6 @@ fun LaunchUsageQuestionnaireScreen(
                         0 -> uiState.selectedReasons.isNotEmpty()
                         else -> selectedMode != null
                     },
-                    isLight = isLight,
                     onBack = { if (page > 0) page-- },
                     onContinue = {
                         if (page == 0) page = 1 else onFinishQuestionnaire()
@@ -287,15 +306,11 @@ fun LaunchUsageQuestionnaireScreen(
                         selectedReasons = uiState.selectedReasons,
                         onToggleReason = viewModel::toggleReason,
                         isLight = isLight,
-                        primaryText = primaryText,
-                        secondaryText = secondaryText,
                     )
                     else -> KavachModePage(
                         selectedMode = selectedMode,
                         onSelectMode = { selectedMode = it },
                         isLight = isLight,
-                        primaryText = primaryText,
-                        secondaryText = secondaryText,
                     )
                 }
             }
@@ -306,9 +321,6 @@ fun LaunchUsageQuestionnaireScreen(
 @Composable
 private fun QuestionnaireTopBar(
     page: Int,
-    isLight: Boolean,
-    primaryText: Color,
-    secondaryText: Color,
     onBack: () -> Unit,
 ) {
     Column(
@@ -324,14 +336,19 @@ private fun QuestionnaireTopBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (page > 0) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.size(40.dp),
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, LaunchFlatColors.Hairline, CircleShape)
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = primaryText,
+                        tint = LaunchFlatColors.Text,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             } else {
@@ -341,48 +358,36 @@ private fun QuestionnaireTopBar(
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = null,
-                        tint = OnboardPalette.Primary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text = "KAVACH Setup",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = primaryText,
-                        letterSpacing = 0.3.sp,
-                    )
-                }
+                PlanEyebrow("Safar")
+                Text(
+                    text = "KAVACH Setup",
+                    fontFamily = LoraFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 20.sp,
+                    color = LaunchFlatColors.Text,
+                )
                 Text(
                     text = "Step ${page + 1} of 2",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = secondaryText,
+                    fontSize = 12.sp,
+                    color = LaunchFlatColors.Muted,
                 )
             }
 
             Spacer(Modifier.size(40.dp))
         }
 
-        QuestionnaireStepProgress(activePage = page, isLight = isLight)
+        QuestionnaireStepProgress(activePage = page)
+        PlanHairline()
     }
 }
 
 @Composable
 private fun QuestionnaireStepProgress(
     activePage: Int,
-    isLight: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val track = if (isLight) OnboardPalette.ProgressTrackLight else OnboardPalette.ProgressTrackDark
-
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -391,9 +396,12 @@ private fun QuestionnaireStepProgress(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(5.dp)
-                    .clip(RoundedCornerShape(99.dp))
-                    .background(if (index <= activePage) OnboardPalette.Primary else track),
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(
+                        if (index <= activePage) LaunchFlatColors.Primary
+                        else LaunchFlatColors.Hairline.copy(alpha = 0.65f),
+                    ),
             )
         }
     }
@@ -404,9 +412,8 @@ private fun WhyHerePage(
     selectedReasons: Set<Int>,
     onToggleReason: (Int) -> Unit,
     isLight: Boolean,
-    primaryText: Color,
-    secondaryText: Color,
 ) {
+    val reasons = usageReasons()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -416,36 +423,31 @@ private fun WhyHerePage(
     ) {
         Spacer(Modifier.height(8.dp))
 
-        QuestionnaireHeroBadge(
-            icon = Icons.Default.Shield,
-            accent = OnboardPalette.Primary,
-            isLight = isLight,
-        )
+        QuestionnaireTitli()
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "What do you want SAFAR to help with?",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = primaryText,
-                lineHeight = 30.sp,
+                text = "What do you need help with?",
+                fontFamily = LoraFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 26.sp,
+                color = LaunchFlatColors.Text,
+                lineHeight = 32.sp,
             )
             Text(
-                text = "Choose one or more. We'll personalize your setup.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = secondaryText,
-                lineHeight = 22.sp,
+                text = "Choose all that you want.",
+                fontSize = 14.sp,
+                color = LaunchFlatColors.Muted,
+                lineHeight = 20.sp,
             )
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            usageReasons.forEachIndexed { index, option ->
+            reasons.forEachIndexed { index, option ->
                 ReasonOptionCard(
                     option = option,
                     selected = index in selectedReasons,
                     isLight = isLight,
-                    primaryText = primaryText,
-                    secondaryText = secondaryText,
                     onClick = { onToggleReason(index) },
                 )
             }
@@ -460,9 +462,8 @@ private fun KavachModePage(
     selectedMode: String?,
     onSelectMode: (String) -> Unit,
     isLight: Boolean,
-    primaryText: Color,
-    secondaryText: Color,
 ) {
+    val modes = kavachModes()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -472,61 +473,46 @@ private fun KavachModePage(
     ) {
         Spacer(Modifier.height(8.dp))
 
-        QuestionnaireHeroBadge(
-            icon = Icons.Default.Shield,
-            accent = OnboardPalette.Primary,
-            isLight = isLight,
-        )
+        QuestionnaireTitli()
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "Choose your KAVACH strength",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = primaryText,
-                lineHeight = 30.sp,
+                text = "How do you want KAVACH to block apps?",
+                fontFamily = LoraFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 26.sp,
+                color = LaunchFlatColors.Text,
+                lineHeight = 32.sp,
             )
             Text(
-                text = "You can change this anytime from settings.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = secondaryText,
-                lineHeight = 22.sp,
+                text = "You can change this later.",
+                fontSize = 14.sp,
+                color = LaunchFlatColors.Muted,
+                lineHeight = 20.sp,
             )
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            kavachModes.forEach { option ->
+            modes.forEach { option ->
                 KavachModeCard(
                     option = option,
                     selected = selectedMode == option.mode,
                     isLight = isLight,
-                    primaryText = primaryText,
-                    secondaryText = secondaryText,
                     onClick = { onSelectMode(option.mode) },
                 )
             }
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    if (isLight) OnboardPalette.Primary.copy(alpha = 0.08f)
-                    else OnboardPalette.Primary.copy(alpha = 0.16f),
-                )
-                .border(
-                    width = 1.dp,
-                    color = if (isLight) OnboardPalette.Primary.copy(alpha = 0.18f)
-                    else OnboardPalette.Primary.copy(alpha = 0.28f),
-                    shape = RoundedCornerShape(16.dp),
-                )
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+        // Flat tip strip — not a glass tile
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            PlanHairline(alpha = 0.6f)
             Text(
-                text = "New users should start with Normal. You can switch to stricter modes later.",
-                style = MaterialTheme.typography.bodySmall,
-                color = secondaryText,
+                text = "Start with Normal. You can choose a stronger mode later.",
+                fontSize = 13.sp,
+                color = LaunchFlatColors.Muted,
                 lineHeight = 18.sp,
             )
         }
@@ -536,57 +522,14 @@ private fun KavachModePage(
 }
 
 @Composable
-private fun QuestionnaireHeroBadge(
-    icon: ImageVector,
-    accent: Color,
-    isLight: Boolean,
+private fun QuestionnaireTitli(
+    modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .clip(CircleShape)
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        accent.copy(alpha = if (isLight) 0.16f else 0.26f),
-                        accent.copy(alpha = if (isLight) 0.06f else 0.10f),
-                    ),
-                ),
-            )
-            .border(
-                width = 1.dp,
-                color = accent.copy(alpha = if (isLight) 0.28f else 0.40f),
-                shape = CircleShape,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = accent,
-            modifier = Modifier.size(30.dp),
-        )
-    }
-}
-
-@Composable
-private fun onboardCardSurface(
-    selected: Boolean,
-    isLight: Boolean,
-    accent: Color,
-): Pair<Color, Color> {
-    val bg = when {
-        selected && isLight -> OnboardPalette.SelectedLight
-        selected && !isLight -> OnboardPalette.SelectedDark
-        isLight -> OnboardPalette.CardWhite
-        else -> OnboardPalette.CardDark
-    }
-    val border = when {
-        selected -> accent
-        isLight -> OnboardPalette.BorderLight
-        else -> OnboardPalette.BorderDark
-    }
-    return bg to border
+    Image(
+        painter = painterResource(R.drawable.ic_butterfly_tour),
+        contentDescription = null,
+        modifier = modifier.size(56.dp),
+    )
 }
 
 @Composable
@@ -594,8 +537,6 @@ private fun ReasonOptionCard(
     option: UsageReasonOption,
     selected: Boolean,
     isLight: Boolean,
-    primaryText: Color,
-    secondaryText: Color,
     onClick: () -> Unit,
 ) {
     val scale by animateFloatAsState(
@@ -603,34 +544,16 @@ private fun ReasonOptionCard(
         animationSpec = tween(180, easing = FastOutSlowInEasing),
         label = "reasonCardScale",
     )
-    val (bg, borderColor) = onboardCardSurface(
-        selected = selected,
-        isLight = isLight,
-        accent = OnboardPalette.SelectedBorder,
-    )
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(20.dp)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .then(
-                if (isLight && !selected) {
-                    Modifier.shadow(
-                        elevation = 2.dp,
-                        shape = shape,
-                        spotColor = Color.Black.copy(alpha = 0.06f),
-                        ambientColor = Color.Black.copy(alpha = 0.04f),
-                    )
-                } else {
-                    Modifier
-                },
-            )
-            .clip(shape)
-            .background(bg)
-            .border(
-                width = if (selected) 1.5.dp else 1.dp,
-                color = borderColor,
+            .launchGlassPanel(
+                isLight = isLight,
+                selected = selected,
+                accent = option.accent,
                 shape = shape,
             )
             .clickable(
@@ -646,13 +569,16 @@ private fun ReasonOptionCard(
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(option.accent.copy(alpha = if (isLight) 0.12f else 0.20f)),
+                .background(
+                    if (selected) option.accent
+                    else option.accent.copy(alpha = if (isLight) 0.14f else 0.24f),
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = option.icon,
                 contentDescription = null,
-                tint = option.accent,
+                tint = if (selected) Color.White else option.accent,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -663,19 +589,19 @@ private fun ReasonOptionCard(
         ) {
             Text(
                 text = option.title,
-                style = MaterialTheme.typography.titleSmall,
+                fontSize = 15.sp,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                color = primaryText,
+                color = LaunchFlatColors.Text,
             )
             Text(
                 text = option.subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = secondaryText,
-                lineHeight = 18.sp,
+                fontSize = 12.sp,
+                color = LaunchFlatColors.Muted,
+                lineHeight = 17.sp,
             )
         }
 
-        SelectionIndicator(selected = selected, accent = OnboardPalette.Primary, isLight = isLight)
+        SelectionIndicator(selected = selected, accent = option.accent)
     }
 }
 
@@ -684,8 +610,6 @@ private fun KavachModeCard(
     option: KavachModeOption,
     selected: Boolean,
     isLight: Boolean,
-    primaryText: Color,
-    secondaryText: Color,
     onClick: () -> Unit,
 ) {
     val scale by animateFloatAsState(
@@ -693,35 +617,17 @@ private fun KavachModeCard(
         animationSpec = tween(180, easing = FastOutSlowInEasing),
         label = "modeCardScale",
     )
-    val (bg, borderColor) = onboardCardSurface(
-        selected = selected,
-        isLight = isLight,
-        accent = option.accent,
-    )
-    val shape = RoundedCornerShape(18.dp)
-    val titleColor = if (selected) option.accent else primaryText
+    val shape = RoundedCornerShape(20.dp)
+    val titleColor = if (selected) option.accent else LaunchFlatColors.Text
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .then(
-                if (isLight && !selected) {
-                    Modifier.shadow(
-                        elevation = 2.dp,
-                        shape = shape,
-                        spotColor = Color.Black.copy(alpha = 0.06f),
-                        ambientColor = Color.Black.copy(alpha = 0.04f),
-                    )
-                } else {
-                    Modifier
-                },
-            )
-            .clip(shape)
-            .background(bg)
-            .border(
-                width = if (selected) 1.5.dp else 1.dp,
-                color = borderColor,
+            .launchGlassPanel(
+                isLight = isLight,
+                selected = selected,
+                accent = option.accent,
                 shape = shape,
             )
             .clickable(
@@ -737,13 +643,16 @@ private fun KavachModeCard(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(option.accent.copy(alpha = if (isLight) 0.12f else 0.20f)),
+                .background(
+                    if (selected) option.accent
+                    else option.accent.copy(alpha = if (isLight) 0.14f else 0.24f),
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = option.icon,
                 contentDescription = null,
-                tint = option.accent,
+                tint = if (selected) Color.White else option.accent,
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -758,32 +667,31 @@ private fun KavachModeCard(
             ) {
                 Text(
                     text = option.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = titleColor,
                 )
                 option.badge?.let { badge ->
                     Text(
                         text = badge,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = option.accent,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(99.dp))
-                            .background(option.accent.copy(alpha = if (isLight) 0.12f else 0.20f))
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                            .border(1.dp, option.accent.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 7.dp, vertical = 2.dp),
                     )
                 }
             }
             Text(
                 text = option.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = secondaryText,
-                lineHeight = 20.sp,
+                fontSize = 13.sp,
+                color = LaunchFlatColors.Muted,
+                lineHeight = 18.sp,
             )
         }
 
-        SelectionIndicator(selected = selected, accent = option.accent, isLight = isLight)
+        SelectionIndicator(selected = selected, accent = option.accent)
     }
 }
 
@@ -791,7 +699,6 @@ private fun KavachModeCard(
 private fun SelectionIndicator(
     selected: Boolean,
     accent: Color,
-    isLight: Boolean,
 ) {
     Box(
         modifier = Modifier
@@ -802,7 +709,7 @@ private fun SelectionIndicator(
                 if (!selected) {
                     Modifier.border(
                         width = 1.5.dp,
-                        color = if (isLight) OnboardPalette.BorderLight else OnboardPalette.BorderDark,
+                        color = LaunchFlatColors.Hairline,
                         shape = CircleShape,
                     )
                 } else {
@@ -830,93 +737,87 @@ private fun SelectionIndicator(
 private fun QuestionnaireBottomBar(
     page: Int,
     canContinue: Boolean,
-    isLight: Boolean,
     onBack: () -> Unit,
     onContinue: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (isLight) OnboardPalette.FooterLight else OnboardPalette.FooterDark)
+            .background(LaunchFlatColors.Bg)
             .navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(
-                    if (isLight) OnboardPalette.FooterBorderLight else OnboardPalette.FooterBorderDark,
-                ),
-        )
+        PlanHairline()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = if (page > 0) Arrangement.spacedBy(12.dp) else Arrangement.Center,
-        ) {
-            if (page > 0) {
-                OutlinedButton(
-                    onClick = onBack,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = if (page > 0) Arrangement.spacedBy(12.dp) else Arrangement.Center,
+            ) {
+                if (page > 0) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 52.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.dp, LaunchFlatColors.Hairline, RoundedCornerShape(14.dp))
+                            .clickable(onClick = onBack),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                                tint = LaunchFlatColors.Muted,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                "Back",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = LaunchFlatColors.Text,
+                            )
+                        }
+                    }
+                }
+
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 52.dp),
-                    shape = RoundedCornerShape(99.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = if (isLight) OnboardPalette.SecondaryButtonText
-                        else OnboardPalette.TextSecondaryDark,
-                    ),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = if (isLight) OnboardPalette.SecondaryButtonBorder
-                        else OnboardPalette.BorderDark,
-                    ),
+                        .then(if (page > 0) Modifier.weight(1.4f) else Modifier.fillMaxWidth())
+                        .heightIn(min = 52.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (canContinue) LaunchFlatColors.Primary
+                            else LaunchFlatColors.Hairline.copy(alpha = 0.55f),
+                        )
+                        .clickable(enabled = canContinue, onClick = onContinue),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text("Back", fontWeight = FontWeight.SemiBold)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = if (page == 0) "Continue" else "Finish setup",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = if (canContinue) Color.White else LaunchFlatColors.Muted,
+                        )
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = if (canContinue) Color.White else LaunchFlatColors.Muted,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
-
-            Button(
-                onClick = onContinue,
-                enabled = canContinue,
-                modifier = Modifier
-                    .then(if (page > 0) Modifier.weight(1.4f) else Modifier.fillMaxWidth())
-                    .heightIn(min = 52.dp),
-                shape = RoundedCornerShape(99.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = OnboardPalette.Primary,
-                    contentColor = Color.White,
-                    disabledContainerColor = OnboardPalette.Primary.copy(alpha = 0.35f),
-                    disabledContentColor = Color.White.copy(alpha = 0.70f),
-                ),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 0.dp,
-                    pressedElevation = 0.dp,
-                    disabledElevation = 0.dp,
-                ),
-            ) {
-                Text(
-                    text = if (page == 0) "Continue" else "Set up KAVACH",
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.width(6.dp))
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
 
             AnimatedVisibility(
                 visible = page == 0 && !canContinue,
@@ -924,9 +825,9 @@ private fun QuestionnaireBottomBar(
                 exit = fadeOut(tween(120)),
             ) {
                 Text(
-                    text = "Select at least one option to continue",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isLight) OnboardPalette.TextSecondaryLight else OnboardPalette.TextSecondaryDark,
+                    text = "Choose at least one option to continue",
+                    fontSize = 12.sp,
+                    color = LaunchFlatColors.Muted,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )

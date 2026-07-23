@@ -13,7 +13,8 @@ data class MehfilPost(
     val createdAt: String = "",
     val reactionCount: Int = 0,
     val commentCount: Int = 0,
-    val userLiked: Boolean = false
+    val userLiked: Boolean = false,
+    val isSaved: Boolean = false,
 )
 
 @Immutable

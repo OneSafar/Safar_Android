@@ -197,13 +197,12 @@ internal fun TimerFocusTab(
     onOpenAppPicker: () -> Unit,
     onNavigate: (String) -> Unit,
     isBeastMode: Boolean = false,
+    selectedTheme: VisualTheme? = null,
 ) {
     val scheme  = MaterialTheme.colorScheme
     val configuration   = LocalConfiguration.current
     val isCompactHeight = configuration.screenHeightDp < 600
-    // The Timer tab floats over the scrimmed video/gradient canvas, so its ink is
-    // always light-on-dark regardless of the app's light/dark setting.
-    val ink = rememberEkagraInk(onCanvas = true)
+    val ink = rememberEkagraInk(onCanvas = true, theme = selectedTheme, isDarkTheme = isDarkTheme)
 
     val pulse by animateFloatAsState(
         targetValue    = if (isRunning) 1f else 0f,
@@ -377,11 +376,9 @@ internal fun TimerFocusTab(
 
             Spacer(Modifier.height(28.dp))
 
-            // ── Controls — one quiet text action beside one accent pill ──
-            // The accent is whatever the active visual theme supplies, so this
-            // still recolours with the user's chosen theme.
+            // ── Controls — symmetrical horizontal control group ──
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 EkagraGhostAction(
@@ -398,6 +395,13 @@ internal fun TimerFocusTab(
                     accent  = themeAccent,
                     onClick = onPlayPause,
                 )
+                if (canStartBreak) {
+                    EkagraGhostAction(
+                        label = "Break",
+                        ink   = ink,
+                        onClick = onStartBreak,
+                    )
+                }
             }
 
             AnimatedVisibility(
@@ -408,15 +412,6 @@ internal fun TimerFocusTab(
                        shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (canStartBreak) {
-                        Spacer(Modifier.height(4.dp))
-                        EkagraGhostAction(
-                            label = "Take a break",
-                            ink   = ink,
-                            onClick = onStartBreak,
-                        )
-                    }
-
                     Spacer(Modifier.height(24.dp))
 
                     Text(

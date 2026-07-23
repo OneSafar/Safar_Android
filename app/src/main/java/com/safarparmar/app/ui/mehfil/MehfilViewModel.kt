@@ -18,11 +18,18 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class DmMessage(val text: String, val isMine: Boolean, val senderAvatar: String? = null)
+enum class DmMessageState { SENDING, SENT, FAILED }
+data class DmMessage(
+    val text: String,
+    val isMine: Boolean,
+    val senderAvatar: String? = null,
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val state: DmMessageState = DmMessageState.SENT,
+)
 
 sealed class DmState {
     object Idle : DmState()
-    object Waiting : DmState()
+    data class Waiting(val userName: String) : DmState()
     data class IncomingRequest(val fromUserId: String, val fromUserName: String, val fromUserAvatar: String? = null) : DmState()
     data class Open(val peerId: String, val peerName: String, val roomId: String, val peerAvatar: String? = null, val messages: List<DmMessage> = emptyList()) : DmState()
 }
@@ -50,6 +57,7 @@ data class MehfilUiState(
     val commentsPage: Int = 1,
     val currentCommentPostId: String = "",
     val isPostingComment: Boolean = false,
+    val commentError: String? = null,
     val sandeshComments: List<Comment> = emptyList(),
     val isLoadingSandeshComments: Boolean = false,
     val isLoadingMoreSandeshComments: Boolean = false,
@@ -60,6 +68,8 @@ data class MehfilUiState(
     val savedPosts: List<MehfilPost> = emptyList(),
     val isLoadingSaved: Boolean = false,
     val savedPostIds: Set<String> = emptySet(),
+    val savingPostIds: Set<String> = emptySet(),
+    val userMessage: String? = null,
     val dmState: DmState = DmState.Idle,
     val dmError: String? = null,
     val dmTargetUserId: String? = null,
@@ -69,6 +79,7 @@ data class MehfilUiState(
     val currentUserId: String = "",
     val currentUserAvatar: String? = null,
     val dmRequestId: String = "",
+    val dmPeerOnline: Boolean = true,
     // Local overrides so optimistic like state survives list refreshes
     val localLikeOverrides: Map<String, Boolean> = emptyMap(),
     val localReactionOverrides: Map<String, Int> = emptyMap(),
@@ -92,6 +103,7 @@ class MehfilViewModel @Inject constructor(
 
     init {
         loadSandesh()
+        loadSavedPosts()
         loadPremiumFeatures()
         initSocket()
     }
@@ -207,12 +219,13 @@ class MehfilViewModel @Inject constructor(
                     when (event.type) {
                         "request_sent"     -> _uiState.update { it.copy(
                             dmRequestId = event.message,
-                            dmState = DmState.Waiting,
+                            dmState = DmState.Waiting(it.dmTargetUserName.ifBlank { "student" }),
                             dmError = null,
                         ) }
                         "incoming_request" -> _uiState.update { it.copy(
                             dmState = DmState.IncomingRequest(event.fromUserId, event.fromUserName, event.fromUserAvatar),
-                            pendingDmRequests = (it.pendingDmRequests + PendingDmRequest(event.fromUserId, event.fromUserName, event.requestId, event.fromUserAvatar)).distinctBy { p -> p.userId },
+                            pendingDmRequests = listOf(PendingDmRequest(event.fromUserId, event.fromUserName, event.requestId, event.fromUserAvatar)) +
+                                it.pendingDmRequests.filterNot { p -> p.userId == event.fromUserId },
                         ) }
                         "opened"           -> _uiState.update { it.copy(
                             dmState = if (it.mehfilDm) {
@@ -228,6 +241,7 @@ class MehfilViewModel @Inject constructor(
                                 DmState.Idle
                             },
                             showPremiumGate = !it.mehfilDm || it.showPremiumGate,
+                            dmPeerOnline = true,
                         ) }
                         "accepted"         -> _uiState.update { it.copy(
                             dmState = if (it.mehfilDm) {
@@ -241,15 +255,22 @@ class MehfilViewModel @Inject constructor(
                                 DmState.Idle
                             },
                             showPremiumGate = !it.mehfilDm || it.showPremiumGate,
+                            dmPeerOnline = true,
                         ) }
                         "declined"         -> _uiState.update { it.copy(dmState = DmState.Idle, dmError = "Request declined") }
                         "sync_pending"     -> _uiState.update { it.copy(pendingDmRequests = event.pendingList.map { id -> PendingDmRequest(id, id, "") }) }
                         "message"          -> {
                             val cur = _uiState.value.dmState
                             if (cur is DmState.Open) {
-                                // Skip server echo of our own message (no fromUserId or fromUserId == currentUserId)
                                 val isEcho = event.fromUserId.isBlank() || event.fromUserId == _uiState.value.currentUserId
-                                if (!isEcho) {
+                                if (isEcho) {
+                                    _uiState.update { state ->
+                                        val open = state.dmState as? DmState.Open ?: return@update state
+                                        state.copy(dmState = open.copy(messages = open.messages.map { message ->
+                                            if (message.id == event.clientMessageId) message.copy(state = DmMessageState.SENT) else message
+                                        }))
+                                    }
+                                } else {
                                     val updatedPeerName = if (cur.peerName.isBlank() || cur.peerName == cur.peerId) event.fromUserName.ifBlank { cur.peerName } else cur.peerName
                                     val updatedPeerAvatar = event.fromUserAvatar ?: cur.peerAvatar
                                     _uiState.update { it.copy(dmState = cur.copy(peerName = updatedPeerName, peerAvatar = updatedPeerAvatar, messages = cur.messages + DmMessage(event.message, isMine = false, senderAvatar = event.fromUserAvatar))) }
@@ -258,12 +279,23 @@ class MehfilViewModel @Inject constructor(
                         }
                         "error" -> _uiState.update {
                             val showGate = event.errorCode == "PREMIUM_REQUIRED"
+                            val open = it.dmState as? DmState.Open
                             it.copy(
                                 dmError = event.message,
-                                dmState = if (showGate) DmState.Idle else it.dmState,
+                                dmState = if (showGate) DmState.Idle else open?.copy(
+                                    messages = open.messages.map { message ->
+                                        if (message.state == DmMessageState.SENDING &&
+                                            (event.clientMessageId.isBlank() || message.id == event.clientMessageId)
+                                        ) message.copy(state = DmMessageState.FAILED) else message
+                                    },
+                                ) ?: it.dmState,
                                 showPremiumGate = showGate || it.showPremiumGate,
                             )
                         }
+                        "room_closed" -> _uiState.update { it.copy(dmState = DmState.Idle, dmError = event.message) }
+                        "peer_offline" -> _uiState.update { it.copy(dmPeerOnline = false) }
+                        "post_saved" -> _uiState.update { it.copy(isPosting = false, postSuccess = true, postError = null) }
+                        "post_error" -> _uiState.update { it.copy(isPosting = false, postError = event.message) }
                     }
                 }
             }
@@ -273,10 +305,11 @@ class MehfilViewModel @Inject constructor(
     private fun loadPostsFallback() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingPosts = true) }
-            when (val r = repo.getSavedPosts(1)) {
-                is Resource.Success -> _uiState.update { it.copy(isLoadingPosts = false, posts = r.data) }
-                is Resource.Error   -> _uiState.update { it.copy(isLoadingPosts = false) }
-                is Resource.Loading -> Unit
+            _uiState.update {
+                it.copy(
+                    isLoadingPosts = false,
+                    userMessage = "Could not load posts. Check your internet and try again.",
+                )
             }
         }
     }
@@ -287,13 +320,19 @@ class MehfilViewModel @Inject constructor(
             socketManager.joinRoomAndLoad(room)
         } else {
             viewModelScope.launch {
-                val token = dataStore.authToken.first() ?: return@launch
+                val token = dataStore.authToken.first() ?: run {
+                    _uiState.update { it.copy(isLoadingPosts = false, userMessage = "Please sign in again.") }
+                    return@launch
+                }
                 var userId = dataStore.userId.first()
                 if (userId.isNullOrBlank()) {
                     authRepo.getMe()
                     userId = dataStore.userId.first()
                 }
-                if (userId.isNullOrBlank()) return@launch
+                if (userId.isNullOrBlank()) {
+                    _uiState.update { it.copy(isLoadingPosts = false, userMessage = "Could not open this room.") }
+                    return@launch
+                }
                 val userName = dataStore.userName.first() ?: "Safarite"
                 val avatar   = dataStore.userAvatar.first()
                 socketManager.connect(token = token, userId = userId, userName = userName, userAvatar = avatar, initialRoom = room)
@@ -330,7 +369,15 @@ class MehfilViewModel @Inject constructor(
             // Deduplicate by id — keeps the latest version, prevents LazyColumn key crash
             val merged = if (page == 1) patched
                          else (state.posts + patched).distinctBy { it.id }
-            state.copy(posts = merged, currentPage = page, totalPages = if (hasMore) page + 1 else page, hasMore = hasMore, isLoadingPosts = false)
+            state.copy(
+                posts = merged,
+                savedPostIds = (state.savedPostIds - patched.map { it.id }.toSet()) +
+                    patched.filter { it.isSaved }.map { it.id },
+                currentPage = page,
+                totalPages = if (hasMore) page + 1 else page,
+                hasMore = hasMore,
+                isLoadingPosts = false,
+            )
         }
     }
 
@@ -368,13 +415,15 @@ class MehfilViewModel @Inject constructor(
                         hasMoreComments = r.data.size >= 20,
                     )
                 }
-                is Resource.Error   -> _uiState.update { it.copy(isLoadingComments = false, isLoadingMoreComments = false) }
+                is Resource.Error   -> _uiState.update {
+                    it.copy(isLoadingComments = false, isLoadingMoreComments = false, commentError = "Could not load comments. Try again.")
+                }
                 is Resource.Loading -> Unit
             }
         }
     }
 
-    fun postComment(thoughtId: String, content: String) {
+    fun postComment(thoughtId: String, content: String, onSaved: () -> Unit = {}) {
         // Optimistically add comment to list and bump count on post immediately
         val newComment = Comment(id = "local_${System.currentTimeMillis()}", content = content, authorName = "You", createdAt = "")
         _uiState.update { state ->
@@ -388,12 +437,23 @@ class MehfilViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isPostingComment = true) }
             when (val r = repo.postComment(thoughtId, content)) {
-                is Resource.Success -> _uiState.update { it.copy(isPostingComment = false) }
+                is Resource.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isPostingComment = false,
+                            commentError = null,
+                            comments = it.comments.filterNot { comment -> comment.id == newComment.id },
+                        )
+                    }
+                    onSaved()
+                    loadComments(thoughtId)
+                }
                 is Resource.Error   -> {
                     // Rollback optimistic comment and count on failure
                     _uiState.update { state ->
                         state.copy(
                             isPostingComment = false,
+                            commentError = r.message.ifBlank { "Could not post comment. Try again." },
                             comments = state.comments.filter { it.id != newComment.id },
                             posts = state.posts.map { post ->
                                 if (post.id == thoughtId) post.copy(commentCount = maxOf(0, post.commentCount - 1)) else post
@@ -432,10 +492,18 @@ class MehfilViewModel @Inject constructor(
         }
     }
 
-    fun postSandeshComment(sandeshId: String, content: String) {
+    fun postSandeshComment(sandeshId: String, content: String, onSaved: () -> Unit = {}) {
         viewModelScope.launch {
-            repo.postSandeshComment(sandeshId, content)
-            loadSandeshComments(sandeshId)
+            when (val result = repo.postSandeshComment(sandeshId, content)) {
+                is Resource.Success -> {
+                    onSaved()
+                    loadSandeshComments(sandeshId)
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(userMessage = result.message.ifBlank { "Could not post comment. Try again." })
+                }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
@@ -454,44 +522,39 @@ class MehfilViewModel @Inject constructor(
     }
 
     fun createPost(content: String, space: String, isAnonymous: Boolean = false) {
-        // Optimistic insert so the poster sees their post immediately
-        val optimistic = MehfilPost(
-            id = java.util.UUID.randomUUID().toString(),
-            content = content,
-            space = space,
-            authorName = if (isAnonymous) "Anonymous" else "You",
-            userId = "",  // empty so connect button is hidden for own posts
-            createdAt = "",
-            reactionCount = 0,
-            commentCount = 0,
-            userLiked = false,
-        )
-        addSocketPost(optimistic)
         if (socketManager.isConnected()) {
+            _uiState.update { it.copy(isPosting = true, postError = null) }
             socketManager.emitNewThought(content, space, isAnonymous)
+        } else {
+            _uiState.update { it.copy(postError = "Could not share post. Check your internet and try again.") }
         }
-        _uiState.update { it.copy(postSuccess = true) }
     }
 
     fun savePost(thoughtId: String) {
+        if (thoughtId in _uiState.value.savingPostIds) return
         val alreadySaved = thoughtId in _uiState.value.savedPostIds
-        if (alreadySaved) {
-            _uiState.update { it.copy(savedPostIds = it.savedPostIds - thoughtId) }
-            viewModelScope.launch { repo.unsavePost(thoughtId) }
-        } else {
-            _uiState.update { it.copy(savedPostIds = it.savedPostIds + thoughtId) }
-            viewModelScope.launch { repo.savePost(thoughtId) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(savingPostIds = it.savingPostIds + thoughtId) }
+            val result = if (alreadySaved) repo.unsavePost(thoughtId) else repo.savePost(thoughtId)
+            when (result) {
+                is Resource.Success -> _uiState.update {
+                    it.copy(
+                        savedPostIds = if (alreadySaved) it.savedPostIds - thoughtId else it.savedPostIds + thoughtId,
+                        savedPosts = if (alreadySaved) it.savedPosts.filterNot { post -> post.id == thoughtId } else it.savedPosts,
+                        savingPostIds = it.savingPostIds - thoughtId,
+                        userMessage = if (alreadySaved) "Removed from saved posts." else "Post saved.",
+                    )
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(savingPostIds = it.savingPostIds - thoughtId, userMessage = "Could not save. Try again.")
+                }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
     fun unsavePost(thoughtId: String) {
-        _uiState.update { state ->
-            state.copy(
-                savedPostIds = state.savedPostIds - thoughtId,
-                savedPosts   = state.savedPosts.filter { it.id != thoughtId },
-            )
-        }
-        viewModelScope.launch { repo.unsavePost(thoughtId) }
+        savePost(thoughtId)
     }
 
     fun loadActivity() {
@@ -507,22 +570,30 @@ class MehfilViewModel @Inject constructor(
 
     fun loadSavedPosts() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingSaved = true, savedPosts = emptyList()) }
+            _uiState.update { it.copy(isLoadingSaved = true) }
             // Load all pages so saved tab shows everything
             var page = 1
             val allPosts = mutableListOf<MehfilPost>()
+            var loaded = false
             while (true) {
                 when (val r = repo.getSavedPosts(page)) {
                     is Resource.Success -> {
+                        loaded = true
                         allPosts.addAll(r.data)
                         if (r.data.size < 20) break   // no more pages
                         page++
                     }
-                    else -> break
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(isLoadingSaved = false, userMessage = "Could not load saved posts. Try again.") }
+                        break
+                    }
+                    is Resource.Loading -> break
                 }
             }
-            val savedIds = allPosts.map { it.id }.toSet()
-            _uiState.update { it.copy(isLoadingSaved = false, savedPosts = allPosts, savedPostIds = it.savedPostIds + savedIds) }
+            if (loaded) {
+                val savedIds = allPosts.map { it.id }.toSet()
+                _uiState.update { it.copy(isLoadingSaved = false, savedPosts = allPosts, savedPostIds = savedIds) }
+            }
         }
     }
 
@@ -534,6 +605,8 @@ class MehfilViewModel @Inject constructor(
         }
     }
     fun clearPostSuccess() { _uiState.update { it.copy(postSuccess = false) } }
+    fun clearPostError() { _uiState.update { it.copy(postError = null) } }
+    fun clearUserMessage() { _uiState.update { it.copy(userMessage = null) } }
     fun sendDmRequest(
         targetUserId: String,
         targetUserName: String = "",
@@ -580,13 +653,14 @@ class MehfilViewModel @Inject constructor(
             return
         }
         socketManager.emitDmAccept(requestId)
-        _uiState.update { it.copy(
-            pendingDmRequests = it.pendingDmRequests.filter { p -> p.userId != fromUserId },
-            dmError = null,
-        ) }
+        _uiState.update { it.copy(dmError = null) }
     }
     fun declineDm(fromUserId: String) {
         val requestId = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }?.requestId ?: ""
+        if (!socketManager.isConnected() || requestId.isBlank()) {
+            _uiState.update { it.copy(dmError = "Could not decline this request. Try again.") }
+            return
+        }
         socketManager.emitDmDecline(requestId)
         _uiState.update { it.copy(
             dmState = DmState.Idle,
@@ -607,8 +681,9 @@ class MehfilViewModel @Inject constructor(
         }
         val current = _uiState.value.dmState
         if (current is DmState.Open && current.roomId.isNotBlank() && socketManager.isConnected()) {
-            socketManager.emitDmMessage(current.roomId, message)
-            _uiState.update { it.copy(dmState = current.copy(messages = current.messages + DmMessage(message, true, senderAvatar = it.currentUserAvatar))) }
+            val pending = DmMessage(message, true, senderAvatar = _uiState.value.currentUserAvatar, state = DmMessageState.SENDING)
+            socketManager.emitDmMessage(current.roomId, message, pending.id)
+            _uiState.update { it.copy(dmState = current.copy(messages = current.messages + pending)) }
         } else {
             _uiState.update { it.copy(dmError = "Chat is reconnecting. Please try again.") }
         }

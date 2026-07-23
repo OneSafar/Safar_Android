@@ -35,6 +35,7 @@ import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
 import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
+import com.safarparmar.app.domain.model.studyplanner.RevisionCompletion
 import com.safarparmar.app.domain.repository.HomeRepository
 import com.safarparmar.app.domain.repository.StudyPlannerRepository
 import com.safarparmar.app.util.Resource
@@ -121,7 +122,7 @@ data class StudyPlannerUiState(
     val selectedPlan: StudyPlan? = null,
     val calendar: CalendarMap = emptyMap(),
     val analytics: PlannerAnalytics? = null,
-    val section: PlannerSection = PlannerSection.PLAN,
+    val section: PlannerSection = PlannerSection.YOUR_EXAMS,
     val loading: Boolean = false,
     val mutating: Boolean = false,
     val error: String? = null,
@@ -486,7 +487,7 @@ class StudyPlannerViewModel @Inject constructor(
                 it.copy(
                     loading = true,
                     error = null,
-                    section = PlannerSection.PLAN,
+                    section = it.section,
                     pendingRatingChapterIds = emptySet(),
                     ratingRebuildPromptDismissed = false,
                 )
@@ -974,6 +975,7 @@ class StudyPlannerViewModel @Inject constructor(
                     revisionReminderDates = revisionDates,
                     // Fresh cycle: nothing completed yet.
                     revisionCompletedDates = emptyList(),
+                    revisionCompletionLog = emptyList(),
                     revisionScheduleType = revisionScheduleType,
                     clientDateKey = today,
                 ),
@@ -998,10 +1000,14 @@ class StudyPlannerViewModel @Inject constructor(
             .filter { it != target }
             .distinct()
             .sorted()
-        val completed = (topic.revisionCompletedDates.map { it.take(10) } + target)
+        val completed = (topic.revisionCompletedDates.orEmpty().map { it.take(10) } + target)
             .distinct()
             .sorted()
         val today = todayKey()
+        val completionLog = (
+            topic.revisionCompletionLog.orEmpty().filterNot { it.sessionDate.take(10) == target } +
+                RevisionCompletion(sessionDate = target, completedDate = today)
+            ).sortedBy { it.sessionDate.take(10) }
 
         mutateSelected(refreshCalendar = true) { planId ->
             if (remaining.isEmpty()) {
@@ -1012,7 +1018,10 @@ class StudyPlannerViewModel @Inject constructor(
                         status = TopicStatus.DONE,
                         plannedDate = "",
                         revisionReminderDates = emptyList(),
-                        revisionCompletedDates = emptyList(),
+                        // Keep every finished revision so Progress can show the
+                        // study work after the final revision is also done.
+                        revisionCompletedDates = completed,
+                        revisionCompletionLog = completionLog,
                         revisionScheduleType = null,
                         clientDateKey = today,
                     ),
@@ -1028,6 +1037,7 @@ class StudyPlannerViewModel @Inject constructor(
                         pinned = true,
                         revisionReminderDates = remaining,
                         revisionCompletedDates = completed,
+                        revisionCompletionLog = completionLog,
                         revisionScheduleType = topic.revisionScheduleType,
                         clientDateKey = today,
                     ),
@@ -1040,13 +1050,15 @@ class StudyPlannerViewModel @Inject constructor(
     override fun uncompleteRevisionSession(topicId: String, sessionDate: String) {
         val topic = findSelectedTopic(topicId) ?: return
         val target = sessionDate.take(10)
-        if (topic.revisionCompletedDates.none { it.take(10) == target }) return
+        if (topic.revisionCompletedDates.orEmpty().none { it.take(10) == target }) return
 
-        val completed = topic.revisionCompletedDates
+        val completed = topic.revisionCompletedDates.orEmpty()
             .map { it.take(10) }
             .filter { it != target }
             .distinct()
             .sorted()
+        val completionLog = topic.revisionCompletionLog.orEmpty()
+            .filterNot { it.sessionDate.take(10) == target }
         val remaining = (topic.revisionReminderDates.map { it.take(10) } + target)
             .distinct()
             .sorted()
@@ -1062,6 +1074,7 @@ class StudyPlannerViewModel @Inject constructor(
                     pinned = true,
                     revisionReminderDates = remaining,
                     revisionCompletedDates = completed,
+                    revisionCompletionLog = completionLog,
                     revisionScheduleType = topic.revisionScheduleType,
                     clientDateKey = today,
                 ),
@@ -1102,6 +1115,7 @@ class StudyPlannerViewModel @Inject constructor(
                     revisionMarkedAt = null,
                     revisionReminderDates = emptyList(),
                     revisionCompletedDates = emptyList(),
+                    revisionCompletionLog = emptyList(),
                     revisionScheduleType = null,
                     clientDateKey = today,
                 )
