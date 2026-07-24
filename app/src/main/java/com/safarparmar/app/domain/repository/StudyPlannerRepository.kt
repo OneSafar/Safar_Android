@@ -69,6 +69,12 @@ interface StudyPlannerRepository {
     ): Resource<StudyPlan>
     suspend fun importSyllabus(planId: String, request: ImportSyllabusRequest): Resource<StudyPlan>
     suspend fun updateTopic(planId: String, topicId: String, request: TopicPatchRequest): Resource<StudyPlan>
+    suspend fun changeRevisionDate(
+        planId: String,
+        topicId: String,
+        oldDate: String,
+        newDate: String,
+    ): Resource<StudyPlan>
     suspend fun batchUpdateTopics(planId: String, request: BatchTopicUpdateRequest): Resource<StudyPlan>
     suspend fun deleteTopic(planId: String, topicId: String): Resource<StudyPlan>
     suspend fun importManualSyllabus(planId: String, text: String, mode: String): Resource<StudyPlan>

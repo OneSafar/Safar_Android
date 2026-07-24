@@ -238,6 +238,17 @@ internal fun SyllabusChangePlanBand(
                 .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Flat accent rule — magazine marker, not a filled card.
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(1.dp))
+                    .background(
+                        if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.BorderSoft,
+                    ),
+            )
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Change your study plan",
@@ -285,7 +296,7 @@ private fun SyllabusNodeProgressRule(
     Box(
         base.then(
             if (progress.state == NodeState.NOT_STARTED) {
-                Modifier.border(1.dp, PlannerFlatColors.BorderSoft, shape)
+                Modifier.border(0.5.dp, PlannerFlatColors.BorderSoft, shape)
             } else {
                 Modifier.background(PlannerFlatColors.BorderSoft)
             },
@@ -366,7 +377,7 @@ internal fun SyllabusRatingRebuildBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(8.dp))
+            .border(0.5.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(8.dp))
             .padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -416,6 +427,11 @@ internal fun SyllabusCourseMapNudge(
     val actionable = nudge.kind == CourseMapNudgeKind.LATE ||
         nudge.kind == CourseMapNudgeKind.TODAY ||
         nudge.kind == CourseMapNudgeKind.NEEDS_SCHEDULE
+    val markerColor = when (nudge.kind) {
+        CourseMapNudgeKind.LATE -> Color(0xFFF97316)
+        CourseMapNudgeKind.NEEDS_SCHEDULE -> PlannerFlatColors.PrimaryAccent
+        else -> PlannerFlatColors.PrimaryAccent
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -424,12 +440,21 @@ internal fun SyllabusCourseMapNudge(
             .padding(vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .height(28.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(markerColor.copy(alpha = if (actionable) 1f else 0.45f)),
+        )
+        Spacer(Modifier.width(12.dp))
         if (nudge.chapterName != null) {
             Text(lead, fontSize = 11.5.sp, color = PlannerFlatColors.TextMuted)
             Text(
                 nudge.chapterName,
-                fontSize = 11.5.sp,
-                fontWeight = FontWeight.Bold,
+                fontFamily = LoraFontFamily,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -483,33 +508,39 @@ internal fun SyllabusMagazineListHeader(
     modifier: Modifier = Modifier,
     addLabel: String = "Add Subject",
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        Text(
-            text = title,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = PlannerFlatColors.TextDark,
-            modifier = Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Box(
-            modifier = Modifier
-                .heightIn(min = 48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onAddSubject)
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center,
+    Column(modifier = modifier.fillMaxWidth()) {
+        PlanHairline(alpha = 0.55f)
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
         ) {
             Text(
-                text = addLabel,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = PlannerFlatColors.PrimaryAccent,
+                text = title,
+                fontFamily = LoraFontFamily,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal,
+                color = PlannerFlatColors.TextDark,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            Box(
+                modifier = Modifier
+                    .heightIn(min = 40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(0.5.dp, PlannerFlatColors.PrimaryAccent.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                    .clickable(onClick = onAddSubject)
+                    .padding(horizontal = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = addLabel,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.PrimaryAccent,
+                )
+            }
         }
     }
 }
@@ -599,18 +630,19 @@ internal fun SyllabusMagazineSubjectRow(
             .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Initial badge — a hairline square, not a filled circle.
+        // Initial badge — soft accent wash + 0.5dp hairline (flat magazine chip).
         Box(
             modifier = Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(9.dp))
-                .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(9.dp)),
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(PlannerFlatColors.AccentTint)
+                .border(0.5.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = subject.name.trim().take(1).uppercase(),
                 fontFamily = LoraFontFamily,
-                fontSize = 15.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Normal,
                 color = accent,
             )
@@ -621,8 +653,9 @@ internal fun SyllabusMagazineSubjectRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = subject.name,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontFamily = LoraFontFamily,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

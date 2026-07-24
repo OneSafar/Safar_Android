@@ -49,6 +49,7 @@ import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
+import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.premium.PremiumViewModel
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
@@ -56,44 +57,28 @@ import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.SafarSemanticColors
+import com.safarparmar.app.ui.theme.isLightBackground
 
 private val examOptions = listOf("UPSC", "SSC", "IBPS", "RRB", "NEET", "JEE", "12th Boards", "State PSC", "CAT", "GATE", "Other")
 private val stageOptions = listOf("Beginner", "Intermediate", "Advanced", "Revision", "Mock Tests")
 private val genderOptions = listOf("Male", "Female", "Other", "Prefer not to say")
 
 @Composable
-private fun ProfileSectionHeader(
-    icon: ImageVector,
+private fun ProfileSheetSection(
     title: String,
-    modifier: Modifier = Modifier
+    content: @Composable () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(CircleShape)
-                .background(scheme.primary.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = scheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
         Text(
-            text = title.uppercase(),
+            text = title,
             fontSize = 14.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.2.sp,
+            fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.TextDark,
         )
+        content()
     }
 }
 
@@ -158,13 +143,13 @@ fun ProfileScreen(
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
-                            color = scheme.primary
+                            color = SafarSemanticColors.brandPurple()
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Save Profile",
-                            tint = scheme.primary
+                            tint = SafarSemanticColors.brandPurple()
                         )
                     }
                 }
@@ -178,9 +163,8 @@ fun ProfileScreen(
                         .verticalScroll(rememberScrollState())
                         .imePadding()
                         .padding(horizontal = 20.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    // Main Screen Title Banner
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = "My Profile",
@@ -196,101 +180,48 @@ fun ProfileScreen(
                         )
                     }
 
-                    // Hero Header Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        ProfileHeaderSection(
-                            uiState = uiState,
-                            onAvatarClick = {
-                                if (uiState.userAvatar.isNullOrBlank()) imagePicker.launch("image/*")
-                                else showAvatarPreview = true
-                            },
-                            onEditAvatarClick = { imagePicker.launch("image/*") },
+                    ProfileHeaderSection(
+                        uiState = uiState,
+                        onAvatarClick = {
+                            if (uiState.userAvatar.isNullOrBlank()) imagePicker.launch("image/*")
+                            else showAvatarPreview = true
+                        },
+                        onEditAvatarClick = { imagePicker.launch("image/*") },
+                    )
+
+                    PlanHairline(alpha = 0.5f)
+
+                    ProfileSheetSection(title = "Personal Information") {
+                        PersonalInfoFields(uiState = uiState, viewModel = viewModel)
+                    }
+
+                    PlanHairline(alpha = 0.5f)
+
+                    ProfileSheetSection(title = "Academic & Exam Focus") {
+                        ExamFocusFields(uiState = uiState, viewModel = viewModel)
+                    }
+
+                    PlanHairline(alpha = 0.5f)
+
+                    ProfileSheetSection(title = "Account & Subscription") {
+                        AccountStatusRow(
+                            isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                            onPremiumClick = onPremium,
                         )
                     }
 
-                    // Section Card 1: Personal Info
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            ProfileSectionHeader(icon = Icons.Default.Person, title = "Personal Information")
-                            PlanHairline(alpha = 0.5f)
-                            PersonalInfoFields(uiState = uiState, viewModel = viewModel)
-                        }
-                    }
-
-                    // Section Card 2: Academic & Exam Focus
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            ProfileSectionHeader(icon = Icons.Default.School, title = "Academic & Exam Focus")
-                            PlanHairline(alpha = 0.5f)
-                            ExamFocusFields(uiState = uiState, viewModel = viewModel)
-                        }
-                    }
-
-                    // Section Card 3: Account & Subscription
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            ProfileSectionHeader(icon = Icons.Default.WorkspacePremium, title = "Account & Subscription")
-                            PlanHairline(alpha = 0.5f)
-                            AccountStatusRow(
-                                isPremiumActive = premiumStatus.hasAnyPaidAccess,
-                                onPremiumClick = onPremium,
-                            )
-                        }
-                    }
-
                     if (uiState.error != null) {
-                        Surface(
-                            color = scheme.errorContainer,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                text = uiState.error!!,
-                                color = scheme.onErrorContainer,
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(14.dp),
-                                maxLines = 6,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                        Text(
+                            text = uiState.error!!,
+                            color = scheme.error,
+                            fontSize = 13.sp,
+                            maxLines = 6,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
 
-                    // Action Buttons Card
+                    PlanHairline(alpha = 0.5f)
+
                     ActionsRow(
                         isSaving = uiState.isSaving,
                         onLogoutClick = { viewModel.onEvent(ProfileEvent.ShowLogoutDialog) },
@@ -351,9 +282,7 @@ private fun ProfileHeaderSection(
 ) {
     val scheme = MaterialTheme.colorScheme
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(20.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -362,8 +291,8 @@ private fun ProfileHeaderSection(
                 modifier = Modifier
                     .size(104.dp)
                     .clip(CircleShape)
-                    .background(scheme.primaryContainer.copy(alpha = 0.4f))
-                    .border(2.5.dp, scheme.primary.copy(alpha = 0.45f), CircleShape)
+                    .background(SafarSemanticColors.brandPurple().copy(alpha = 0.18f))
+                    .border(2.5.dp, SafarSemanticColors.brandPurple().copy(alpha = 0.45f), CircleShape)
                     .clickable(enabled = !uiState.isAvatarUploading) { onAvatarClick() },
                 contentAlignment = Alignment.Center,
             ) {
@@ -406,14 +335,14 @@ private fun ProfileHeaderSection(
                     .offset(x = 2.dp, y = 2.dp)
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(scheme.primary)
+                    .background(SafarSemanticColors.brandPurple())
                     .clickable(enabled = !uiState.isAvatarUploading) { onEditAvatarClick() },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
                     contentDescription = "Change profile photo",
-                    tint = scheme.onPrimary,
+                    tint = SafarSemanticColors.brandOnPurple(),
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -598,13 +527,13 @@ private fun AccountStatusRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(if (isPremiumActive) scheme.primary.copy(alpha = 0.12f) else PlannerFlatColors.TextMuted.copy(alpha = 0.1f)),
+                    .background(if (isPremiumActive) SafarSemanticColors.brandPurple().copy(alpha = 0.12f) else PlannerFlatColors.TextMuted.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.WorkspacePremium,
                     contentDescription = null,
-                    tint = if (isPremiumActive) scheme.primary else PlannerFlatColors.TextMuted,
+                    tint = if (isPremiumActive) SafarSemanticColors.brandPurple() else PlannerFlatColors.TextMuted,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -618,7 +547,7 @@ private fun AccountStatusRow(
                 Text(
                     text = statusText,
                     fontSize = 12.5.sp,
-                    color = if (isPremiumActive) scheme.primary else PlannerFlatColors.TextMuted
+                    color = if (isPremiumActive) SafarSemanticColors.brandPurple() else PlannerFlatColors.TextMuted
                 )
             }
         }
@@ -626,8 +555,8 @@ private fun AccountStatusRow(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(10.dp))
-                .background(scheme.primary.copy(alpha = 0.08f))
-                .border(1.dp, scheme.primary.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                .background(SafarSemanticColors.brandPurple().copy(alpha = 0.08f))
+                .border(1.dp, SafarSemanticColors.brandPurple().copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                 .clickable(onClick = onPremiumClick)
                 .padding(vertical = 8.dp, horizontal = 14.dp),
             contentAlignment = Alignment.Center
@@ -636,7 +565,7 @@ private fun AccountStatusRow(
                 text = buttonText,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = scheme.primary
+                color = SafarSemanticColors.brandPurple()
             )
         }
     }
@@ -649,47 +578,20 @@ private fun ActionsRow(
     onSaveClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val isLight = scheme.background.isLightBackground()
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Save Button (Flat Action Pill)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(scheme.primary)
-                .clickable(enabled = !isSaving, onClick = onSaveClick)
-                .padding(vertical = 14.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = scheme.onPrimary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = scheme.onPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = "Save Profile",
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.onPrimary
-                    )
-                }
-            }
-        }
+        MacOSPrimaryActionButton(
+            text = "Save Profile",
+            onClick = onSaveClick,
+            enabled = !isSaving,
+            isLoading = isSaving,
+            isLight = isLight,
+            icon = Icons.Default.Check,
+        )
 
         // Logout Button (Bare Outlined Action Pill)
         Box(
@@ -756,13 +658,13 @@ private fun ProfileTextField(
             shape = RoundedCornerShape(10.dp),
             placeholder = placeholder?.let { { Text(it, fontSize = 15.sp, color = PlannerFlatColors.TextMuted.copy(alpha = 0.6f)) } },
             leadingIcon = leadingIcon?.let {
-                { Icon(it, contentDescription = null, modifier = Modifier.size(20.dp), tint = scheme.primary) }
+                { Icon(it, contentDescription = null, modifier = Modifier.size(20.dp), tint = SafarSemanticColors.brandPurple()) }
             },
             trailingIcon = trailingIcon,
             isError = errorText != null,
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = scheme.primary,
+                focusedBorderColor = SafarSemanticColors.brandPurple(),
                 unfocusedBorderColor = PlannerFlatColors.BorderSoft,
                 disabledBorderColor = PlannerFlatColors.BorderSoft.copy(alpha = 0.4f),
                 disabledContainerColor = PlannerFlatColors.BorderSoft.copy(alpha = 0.1f),
@@ -820,11 +722,11 @@ private fun ProfileDropdownMenu(
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
                 shape = RoundedCornerShape(10.dp),
                 leadingIcon = leadingIcon?.let {
-                    { Icon(it, contentDescription = null, modifier = Modifier.size(20.dp), tint = scheme.primary) }
+                    { Icon(it, contentDescription = null, modifier = Modifier.size(20.dp), tint = SafarSemanticColors.brandPurple()) }
                 },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = scheme.primary,
+                    focusedBorderColor = SafarSemanticColors.brandPurple(),
                     unfocusedBorderColor = PlannerFlatColors.BorderSoft,
                     focusedTextColor = PlannerFlatColors.TextDark,
                     unfocusedTextColor = PlannerFlatColors.TextDark,

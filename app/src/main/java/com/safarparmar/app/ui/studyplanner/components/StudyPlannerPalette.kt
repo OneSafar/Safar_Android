@@ -57,14 +57,16 @@ object PlannerAccent {
 }
 
 /**
- * Tab-level signature accent colors for ExamPlanner navigation.
+ * Tab-level signature accent — unified to planner coral so the bottom bar
+ * always matches on-screen CTAs (Open >, %, Change My Plan, etc.).
  */
 object PlannerTabAccent {
-    val Home: Color @Composable get() = if (isPlannerDark) Color(0xFFC084FC) else Color(0xFF6D28D9)
-    val Plan: Color @Composable get() = if (isPlannerDark) Color(0xFF818CF8) else Color(0xFF4F46E5)
-    val Syllabus: Color @Composable get() = if (isPlannerDark) Color(0xFF34D399) else Color(0xFF059669)
-    val Calendar: Color @Composable get() = if (isPlannerDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
-    val Progress: Color @Composable get() = if (isPlannerDark) Color(0xFFFF6482) else Color(0xFFE11D48)
+    private val Coral = Color(0xFFE0654B)
+    val Home: Color @Composable get() = Coral
+    val Plan: Color @Composable get() = Coral
+    val Syllabus: Color @Composable get() = Coral
+    val Calendar: Color @Composable get() = Coral
+    val Progress: Color @Composable get() = Coral
 }
 
 /**

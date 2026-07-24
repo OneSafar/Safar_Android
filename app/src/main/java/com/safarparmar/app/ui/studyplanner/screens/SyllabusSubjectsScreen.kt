@@ -574,7 +574,6 @@ fun SyllabusSubjectsScreen(
                                         },
                                     )
                                 }
-                                PlanHairline(alpha = 0.6f)
                                 SyllabusMagazineListHeader(
                                     title = "Your subjects",
                                     onAddSubject = { dialogState = SyllabusDialogState.AddSubject },

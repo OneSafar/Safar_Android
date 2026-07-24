@@ -63,6 +63,7 @@ import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.SafarSemanticColors
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
+import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -216,6 +217,12 @@ internal fun OrganizeFreeFocusSheet(
     val focusedTimeLabel = formatTopicStudyTime(
         pending?.let(::topicStudyActualSeconds) ?: 0,
     )
+    // One accent per way of saving, so the two paths are never confusable.
+    // All three resolve per-theme, so nothing depends on scheme.primary (which is
+    // an off-brand blue in light mode).
+    val goalAccent = PlannerAccent.Teal      // Link to a goal
+    val quickAccent = PlannerAccent.Amber    // Quick Save
+    val topicAccent = PlannerAccent.Coral    // Exam planner topic
     var selectedGoal by remember { mutableStateOf<com.safarparmar.app.domain.model.Goal?>(null) }
     var markAsCompleted by remember { mutableStateOf(false) }
     var markTopicDone by remember { mutableStateOf(false) }
@@ -263,12 +270,10 @@ internal fun OrganizeFreeFocusSheet(
                 if (pending?.topicId != null) {
                     // Exam Planner topic save
                     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "EXAM PLANNER TOPIC",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PlannerFlatColors.TextMuted,
-                            letterSpacing = 1.sp
+                        SaveSectionHeader(
+                            label = "EXAM PLANNER TOPIC",
+                            accent = topicAccent,
+                            icon = Icons.Default.MenuBook,
                         )
                         Text(
                             text = pending.topicTitle ?: "Untitled topic",
@@ -289,11 +294,11 @@ internal fun OrganizeFreeFocusSheet(
                                     .size(20.dp)
                                     .border(
                                         1.dp,
-                                        if (markTopicDone) scheme.primary else PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
+                                        if (markTopicDone) topicAccent else PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
                                         CircleShape
                                     )
                                     .background(
-                                        if (markTopicDone) scheme.primary else Color.Transparent,
+                                        if (markTopicDone) topicAccent else Color.Transparent,
                                         CircleShape
                                     ),
                                 contentAlignment = Alignment.Center
@@ -328,7 +333,7 @@ internal fun OrganizeFreeFocusSheet(
                         )
                         ActionPill(
                             text = "Save Topic",
-                            accentColor = scheme.primary,
+                            accentColor = topicAccent,
                             onClick = { onSaveTopic(markTopicDone) },
                             modifier = Modifier.weight(1f)
                         )
@@ -336,13 +341,10 @@ internal fun OrganizeFreeFocusSheet(
                 } else {
                     // Goal linking or free save
                     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
-                        Text(
-                            text = "LINK TO A GOAL",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PlannerFlatColors.TextMuted,
-                            letterSpacing = 1.sp,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                        SaveSectionHeader(
+                            label = "LINK TO A GOAL",
+                            accent = goalAccent,
+                            icon = Icons.Default.Link,
                         )
                         if (goals.isEmpty()) {
                             Text(
@@ -365,17 +367,28 @@ internal fun OrganizeFreeFocusSheet(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
-                                    Icon(
-                                        imageVector = if (selected) Icons.Default.CheckCircle else Icons.Default.Link,
-                                        contentDescription = null,
-                                        tint = if (selected) scheme.primary else PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (selected) goalAccent
+                                                else goalAccent.copy(alpha = 0.12f),
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = if (selected) Icons.Default.Check else Icons.Default.Link,
+                                            contentDescription = null,
+                                            tint = if (selected) Color.White else goalAccent,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
                                     Text(
                                         text = goal.title,
                                         fontSize = 14.sp,
                                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (selected) scheme.primary else PlannerFlatColors.TextDark,
+                                        color = if (selected) goalAccent else PlannerFlatColors.TextDark,
                                         maxLines = 1,
                                         modifier = Modifier.weight(1f),
                                     )
@@ -401,11 +414,11 @@ internal fun OrganizeFreeFocusSheet(
                                         .size(20.dp)
                                         .border(
                                             1.dp,
-                                            if (markAsCompleted) scheme.primary else PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
+                                            if (markAsCompleted) goalAccent else PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
                                             CircleShape
                                         )
                                         .background(
-                                            if (markAsCompleted) scheme.primary else Color.Transparent,
+                                            if (markAsCompleted) goalAccent else Color.Transparent,
                                             CircleShape
                                         ),
                                     contentAlignment = Alignment.Center
@@ -428,7 +441,7 @@ internal fun OrganizeFreeFocusSheet(
                             Spacer(modifier = Modifier.height(12.dp))
                             ActionPill(
                                 text = if (markAsCompleted) "Link & Finish Goal" else "Link Focus Session",
-                                accentColor = scheme.primary,
+                                accentColor = goalAccent,
                                 onClick = { selectedGoal?.let { onLinkGoal(it, markAsCompleted) } },
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -439,13 +452,10 @@ internal fun OrganizeFreeFocusSheet(
                     PlanHairline()
 
                     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
-                        Text(
-                            text = "QUICK SAVE",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PlannerFlatColors.TextMuted,
-                            letterSpacing = 1.sp,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                        SaveSectionHeader(
+                            label = "QUICK SAVE",
+                            accent = quickAccent,
+                            icon = Icons.Default.BookmarkBorder,
                         )
                         androidx.compose.foundation.text.BasicTextField(
                             value = titleInput,
@@ -455,7 +465,7 @@ internal fun OrganizeFreeFocusSheet(
                                 color = PlannerFlatColors.TextDark,
                                 fontSize = 16.sp
                             ),
-                            cursorBrush = androidx.compose.ui.graphics.SolidColor(scheme.primary),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(quickAccent),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp),
@@ -484,7 +494,7 @@ internal fun OrganizeFreeFocusSheet(
                         )
                         ActionPill(
                             text = "Save Session",
-                            accentColor = scheme.primary,
+                            accentColor = quickAccent,
                             onClick = onSaveFree,
                             modifier = Modifier.weight(1f)
                         )
@@ -517,5 +527,95 @@ private fun ActionPill(
             fontWeight = FontWeight.Bold,
             color = accentColor
         )
+    }
+}
+
+/**
+ * Colour-coded section heading. The two ways to file a session — linking it to a
+ * goal (teal) versus a free Quick Save (amber) — are otherwise identical grey
+ * lists, so the accent is what tells them apart at a glance. Both accents resolve
+ * per-theme via [PlannerAccent], so they stay legible in light and dark.
+ */
+@Composable
+private fun SaveSectionHeader(
+    label: String,
+    accent: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.padding(bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .clip(RoundedCornerShape(7.dp))
+                .background(accent.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(13.dp))
+        }
+        Text(
+            text = label,
+            fontSize = 11.5.sp,
+            fontWeight = FontWeight.Bold,
+            color = accent,
+            letterSpacing = 1.sp,
+        )
+    }
+}
+
+/**
+ * Last stop before a session is filed. Saving is irreversible — a session can
+ * never be renamed, nor moved between Quick Save and a goal, once saved — so an
+ * accidental tap should not be able to commit it.
+ */
+@Composable
+internal fun EkagraConfirmSaveDialog(
+    label: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val accent = PlannerAccent.Teal
+    androidx.compose.ui.window.Dialog(onDismissRequest = onCancel) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(PlannerFlatColors.CardWhite)
+                .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(20.dp))
+                .padding(22.dp),
+        ) {
+            Text(
+                text = "Save to \"$label\"?",
+                fontFamily = LoraFontFamily,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Normal,
+                color = PlannerFlatColors.TextDark,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "You cannot change this later. Your session will stay here.",
+                fontSize = 13.5.sp,
+                color = PlannerFlatColors.TextMuted,
+            )
+            Spacer(Modifier.height(20.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ActionPill(
+                    text = "Go back",
+                    accentColor = PlannerFlatColors.TextMuted,
+                    onClick = onCancel,
+                    modifier = Modifier.weight(1f),
+                )
+                ActionPill(
+                    text = "Yes, save",
+                    accentColor = accent,
+                    onClick = onConfirm,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
     }
 }

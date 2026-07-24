@@ -132,8 +132,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import com.safarparmar.app.ui.studyplanner.components.PlannerTabAccent
-import com.safarparmar.app.ui.studyplanner.components.PlannerRevisionAccent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -1457,6 +1455,7 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
             val pillShape = RoundedCornerShape(20.dp)
 
             // ── Single Sliding macOS Translucent Glass Indicator Pill ──
+            // Soft coral wash so the active pill matches planner PrimaryAccent.
             Box(
                 modifier = Modifier
                     .offset(x = itemWidth * animatedIndex)
@@ -1471,6 +1470,7 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
                     )
                     .clip(pillShape)
                     .background(glassBodyColor)
+                    .background(PlannerFlatColors.PrimaryAccent.copy(alpha = if (isLight) 0.10f else 0.16f))
                     .border(
                         width = 0.5.dp,
                         brush = glassBorderBrush,
@@ -1487,17 +1487,13 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
             ) {
                 sections.forEach { section ->
                     val isSelected = selected == section
-                    val tabAccent = when (section) {
-                        PlannerSection.PLAN -> PlannerTabAccent.Home
-                        PlannerSection.YOUR_EXAMS -> PlannerTabAccent.Plan
-                        PlannerSection.SYLLABUS -> PlannerTabAccent.Syllabus
-                        PlannerSection.CALENDAR -> PlannerTabAccent.Calendar
-                        PlannerSection.INSIGHTS -> PlannerTabAccent.Progress
-                        PlannerSection.REVISION -> PlannerRevisionAccent.Parent
-                    }
 
                     val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) tabAccent else scheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        targetValue = if (isSelected) {
+                            PlannerFlatColors.PrimaryAccent
+                        } else {
+                            scheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        },
                         animationSpec = tween(200),
                         label = "tabContentColor",
                     )

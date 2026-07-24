@@ -20,6 +20,7 @@ import com.safarparmar.app.data.remote.api.DeleteUndoRequest
 import com.safarparmar.app.data.remote.api.PlanRestoreResult
 import com.safarparmar.app.data.remote.api.ReorderSyllabusRequest
 import com.safarparmar.app.data.remote.api.RolloverUndoRequest
+import com.safarparmar.app.data.remote.api.RevisionDateChangeRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusResponse
 import com.safarparmar.app.data.remote.api.StructuredSyllabusPreview
@@ -105,6 +106,15 @@ class StudyPlannerRepositoryImpl @Inject constructor(
     override suspend fun importSyllabus(planId: String, request: ImportSyllabusRequest): Resource<StudyPlan> =
         safeApiCall { api.importSyllabus(planId, request) }
     override suspend fun updateTopic(planId: String, topicId: String, request: TopicPatchRequest): Resource<StudyPlan> = safeApiCall { api.updateTopic(planId, topicId, request) }
+    override suspend fun changeRevisionDate(
+        planId: String,
+        topicId: String,
+        oldDate: String,
+        newDate: String,
+    ): Resource<StudyPlan> =
+        safeApiCall {
+            api.changeRevisionDate(planId, topicId, RevisionDateChangeRequest(oldDate, newDate))
+        }
     override suspend fun batchUpdateTopics(planId: String, request: BatchTopicUpdateRequest): Resource<StudyPlan> = safeApiCall { api.batchUpdateTopics(planId, request) }
     override suspend fun deleteTopic(planId: String, topicId: String): Resource<StudyPlan> = safeApiCall { api.deleteTopic(planId, topicId) }
 

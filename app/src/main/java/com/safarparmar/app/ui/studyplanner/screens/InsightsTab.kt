@@ -135,7 +135,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.rounded.Whatshot
@@ -160,7 +159,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.safarparmar.app.util.bounceClick
 import androidx.compose.ui.unit.Dp
@@ -326,25 +324,6 @@ internal fun InsightsTab(
             if (topicLinkedSessions.isNotEmpty()) {
                 item {
                     LinkedEkagraSessionsCard(sessions = topicLinkedSessions, isLight = isLight)
-                }
-            }
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "“Jo Paani se Nahayega Woh Libaaz Badelga , Jo Paseene Se Nahayega Woh Ithihaas Badlega”",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontStyle = FontStyle.Italic,
-                            fontWeight = FontWeight.Medium,
-                            color = PlannerFlatColors.TextMuted
-                        ),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
                 }
             }
         }

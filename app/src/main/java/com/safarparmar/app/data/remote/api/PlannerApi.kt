@@ -195,6 +195,14 @@ interface PlannerApi {
         @Body request: TopicPatchRequest,
     ): Response<StudyPlan>
 
+    /** Moves exactly one saved revision appointment. */
+    @PATCH("plans/{planId}/topics/{topicId}/revision-date")
+    suspend fun changeRevisionDate(
+        @Path("planId") planId: String,
+        @Path("topicId") topicId: String,
+        @Body request: RevisionDateChangeRequest,
+    ): Response<StudyPlan>
+
     /**
      * Atomic multi-topic update: applies every item in one server-side
      * read-modify-write instead of N sequential single-topic PATCH calls, so
@@ -463,6 +471,11 @@ data class TopicPatchRequest(
     val size: String? = null,
     /** Partial completion 0–100 (Stage 3 drag-to-fill). */
     val progressPercent: Int? = null,
+)
+
+data class RevisionDateChangeRequest(
+    val oldDate: String,
+    val newDate: String,
 )
 
 data class BatchTopicUpdateItem(

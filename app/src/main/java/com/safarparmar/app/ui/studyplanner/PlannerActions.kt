@@ -57,7 +57,6 @@ interface PlannerActions {
     fun createFromTemplate(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>, manualSubjectOrder: Boolean = false)
     /** Clears the one-time "show the subject-order sheet" flag set after a Manual-mode plan creation. */
     fun clearPendingManualSubjectOrder()
-    fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>)
     fun deletePlan(planId: String)
     fun updatePlan(request: UpdatePlanRequest)
     fun addSubject(name: String)

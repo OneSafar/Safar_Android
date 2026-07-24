@@ -55,6 +55,7 @@ import com.safarparmar.app.util.YoutubeUrls
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.glass.safarFrostedPanel
+import com.safarparmar.app.ui.studyplanner.components.rememberPlannerBackdropBlur
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -600,13 +601,26 @@ fun VideoPlaylistEntryPoint(
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
         ) {
+            // Popup is its own window — enable strong compositor blur so the
+            // busy home hero text doesn't bleed through the tooltip.
+            val blurred = rememberPlannerBackdropBlur(radiusPx = 80)
+
             Row(
                 modifier = Modifier
                     .widthIn(max = 268.dp)
+                    .clip(glassShape)
+                    .background(
+                        if (isLight) {
+                            Color(0xFFEBEEF3).copy(alpha = if (blurred) 0.78f else 0.94f)
+                        } else {
+                            Color(0xFF141418).copy(alpha = if (blurred) 0.72f else 0.90f)
+                        },
+                    )
                     .safarFrostedPanel(
                         isLight = isLight,
                         shape = glassShape,
-                        elevation = if (isLight) 12.dp else 6.dp,
+                        tintAlpha = if (blurred) 0.38f else 0.52f,
+                        elevation = if (isLight) 16.dp else 10.dp,
                     )
                     .clickable(onClick = ::openPlaylist)
                     .padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),

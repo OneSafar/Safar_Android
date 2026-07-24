@@ -76,7 +76,6 @@ sealed interface DateFilter {
 internal fun FocusHistoryTab(
     modifier: Modifier,
     analytics: EkagraAnalyticsStats,
-    onSessionClick: (com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit = {}
 ) {
     val scheme = MaterialTheme.colorScheme
     val allSessions = remember(analytics.focusSessions) {
@@ -263,7 +262,6 @@ internal fun FocusHistoryTab(
             emptyText   = if (selectedSubTab == 0) "No sessions found." else "No stopwatch sessions found.",
             accentColor = tabAccentColor,
             ink         = ink,
-            onSessionClick = onSessionClick,
         )
         Spacer(Modifier.height(24.dp))
     }
@@ -287,7 +285,6 @@ internal fun HistorySection(
     emptyText: String,
     accentColor: Color,
     ink: EkagraInk,
-    onSessionClick: (com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit = {}
 ) {
     if (sessions.isEmpty()) {
         EkagraEmptyNote(text = emptyText, ink = ink)
@@ -326,7 +323,6 @@ internal fun HistorySection(
                     session     = session,
                     accentColor = accentColor,
                     ink         = ink,
-                    onClick     = { onSessionClick(session) },
                 )
                 EkagraHairline(ink.hairline.copy(alpha = ink.hairline.alpha * 0.7f))
             }
@@ -339,7 +335,9 @@ internal fun FocusSessionRow(
     session: com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession,
     accentColor: Color,
     ink: EkagraInk,
-    onClick: () -> Unit = {}
+    /** Null = not interactive. Saved history is read-only, so a row with no
+     *  handler must not show a ripple that implies it can be opened. */
+    onClick: (() -> Unit)? = null,
 ) {
     val isStopwatch = session.timerMode?.equals("stopwatch", ignoreCase = true) == true
     val elapsedSeconds = exactElapsedSeconds(session)
@@ -350,7 +348,7 @@ internal fun FocusSessionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

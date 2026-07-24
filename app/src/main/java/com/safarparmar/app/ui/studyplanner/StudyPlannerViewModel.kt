@@ -52,7 +52,6 @@ import com.safarparmar.app.ui.studyplanner.logic.countBulkSubjectsTopics
 import com.safarparmar.app.ui.studyplanner.logic.flattenTopics
 import com.safarparmar.app.ui.studyplanner.logic.parseBulkSubjectsFromTxt
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
-import com.safarparmar.app.ui.studyplanner.templates.getLocalExamTemplate
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
@@ -575,7 +574,7 @@ class StudyPlannerViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, requiredExamDate, dailyGoal, offDays, manualSubjectOrder)
+            createPlanFromTemplateOnServer(templateId, title, requiredExamDate, dailyGoal, offDays, manualSubjectOrder)
         }
     }
 
@@ -597,22 +596,6 @@ class StudyPlannerViewModel @Inject constructor(
 
     override fun clearPendingOpenUnscheduledTopics() {
         _uiState.update { it.copy(pendingOpenUnscheduledTopics = false) }
-    }
-
-    override fun createFromTemplateOrLocal(templateId: String, title: String, examDate: String?, dailyGoal: Int, offDays: List<Int>) {
-        val requiredExamDate = examDate?.take(10)?.takeIf { it.isNotBlank() }
-        if (requiredExamDate == null) {
-            _uiState.update { it.copy(error = "Exam date is required to create a planner.") }
-            return
-        }
-        viewModelScope.launch {
-            // Always try the fast server-side POST /plans/from-template first
-            // (creates entire plan in one request instead of ~175 sequential calls).
-            // The server independently validates template existence, so a client-side
-            // pre-check against loadTemplates() is unnecessary and was causing the
-            // slow local fallback when templates hadn't loaded yet.
-            tryCreatePlanFromTemplateWithLocalFallback(templateId, title, requiredExamDate, dailyGoal, offDays)
-        }
     }
 
     override fun deletePlan(planId: String) {
@@ -674,7 +657,10 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    override fun renameSubject(subjectId: String, name: String) = mutateSelected { planId -> repo.renameSubject(planId, subjectId, SubjectRequest(name = name)) }
+    // Calendar items carry a denormalized subjectName/chapterName, so a rename
+    // that skips the calendar refresh leaves the Calendar tab showing the old
+    // name until the plan is reopened.
+    override fun renameSubject(subjectId: String, name: String) = mutateSelected(refreshCalendar = true) { planId -> repo.renameSubject(planId, subjectId, SubjectRequest(name = name)) }
     override fun deleteSubject(subjectId: String) = mutateSelected(
         // Removing a subject drops all its topics, so the calendar and analytics
         // must be refetched or Progress keeps counting the deleted work.
@@ -733,8 +719,12 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    override fun renameChapter(subjectId: String, chapterId: String, name: String) = mutateSelected { planId -> repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(name)) }
+    override fun renameChapter(subjectId: String, chapterId: String, name: String) = mutateSelected(refreshCalendar = true) { planId -> repo.renameChapter(planId, subjectId, chapterId, ChapterRequest(name)) }
     override fun rateChapter(subjectId: String, chapterId: String, difficulty: String?) = mutateSelected(
+        // The calendar carries each item's server-resolved effort size, which a
+        // rating changes — without this the Calendar tab keeps drawing the old
+        // effort bars until the plan is reopened.
+        refreshCalendar = true,
         successMessage = "Chapter rated",
         onSuccess = {
             _uiState.update {
@@ -947,24 +937,91 @@ class StudyPlannerViewModel @Inject constructor(
             setError("A revision is already set for this day")
             return
         }
-        val changedDates = savedDates
-            .map { if (it == oldKey) newKey else it }
-            .sorted()
-        mutateSelected(
-            refreshCalendar = true,
-            refreshAnalytics = true,
-            successMessage = "Revision date changed",
-        ) { planId ->
-            repo.updateTopic(
+        viewModelScope.launch {
+            val planId = _uiState.value.selectedPlan?.id ?: return@launch
+            _uiState.update { it.copy(mutating = true, error = null, message = null) }
+            var result = repo.changeRevisionDate(
                 planId,
                 topicId,
-                TopicPatchRequest(
-                    plannedDate = changedDates.firstOrNull(),
-                    pinned = changedDates.isNotEmpty(),
-                    revisionReminderDates = changedDates,
-                    clientDateKey = todayKey(),
-                ),
+                oldKey,
+                newKey,
             )
+            if (result is Resource.Error && result.code == 409) {
+                delay(300)
+                result = repo.changeRevisionDate(
+                    planId,
+                    topicId,
+                    oldKey,
+                    newKey,
+                )
+            }
+            when (val saved = result) {
+                is Resource.Success -> {
+                    val returnedTopic = saved.data.flattenTopics()
+                        .firstOrNull { it.topic.id == topicId }
+                        ?.topic
+                    val returnedDates = returnedTopic
+                        ?.revisionReminderDates
+                        .orEmpty()
+                        .map { it.take(10) }
+                    val serverConfirmed = newKey in returnedDates &&
+                        (newKey == oldKey || oldKey !in returnedDates)
+                    if (!serverConfirmed) {
+                        _uiState.update {
+                            it.copy(
+                                selectedPlan = saved.data,
+                                mutating = false,
+                                error = "The revision date was not saved. Please try again.",
+                            )
+                        }
+                        refreshCalendar(planId)
+                        return@launch
+                    }
+
+                    _uiState.update {
+                        it.copy(
+                            selectedPlan = saved.data,
+                            mutating = false,
+                            message = "Revision moved to $newKey",
+                        )
+                    }
+                    when (val calendarResult = repo.getCalendar(planId)) {
+                        is Resource.Success -> {
+                            val appearsOnNewDay = calendarResult.data[newKey]
+                                .orEmpty()
+                                .any { it.topicId == topicId }
+                            val remainsOnOldDay = newKey != oldKey &&
+                                calendarResult.data[oldKey]
+                                    .orEmpty()
+                                    .any { it.topicId == topicId }
+                            _uiState.update {
+                                it.copy(
+                                    calendar = calendarResult.data,
+                                    error = if (!appearsOnNewDay || remainsOnOldDay) {
+                                        "Date saved, but Calendar did not update. Please reopen Calendar."
+                                    } else {
+                                        it.error
+                                    },
+                                )
+                            }
+                        }
+                        is Resource.Error -> _uiState.update {
+                            it.copy(error = "Date saved, but Calendar could not refresh. Please reopen Calendar.")
+                        }
+                        is Resource.Loading -> Unit
+                    }
+                    refreshAnalytics(planId)
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(
+                        mutating = false,
+                        error = saved.message.ifBlank {
+                            "Could not change the revision date. Please try again."
+                        },
+                    )
+                }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
@@ -1816,7 +1873,7 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
-    private suspend fun tryCreatePlanFromTemplateWithLocalFallback(
+    private suspend fun createPlanFromTemplateOnServer(
         templateId: String,
         title: String,
         examDate: String?,
@@ -1853,21 +1910,12 @@ class StudyPlannerViewModel @Inject constructor(
                 hydratePlanFromServerBestEffort(r.data.id)
                 refreshPlannerAchievements()
             }
-            is Resource.Error -> {
-                if (getLocalExamTemplate(templateId) != null) {
-                    createPlanFromLocalTemplate(
-                        templateId,
-                        title,
-                        examDate,
-                        dailyGoal,
-                        offDays,
-                        successMessage = "Plan created from saved template.",
-                        manualSubjectOrder = manualSubjectOrder,
-                    )
-                } else {
-                    _uiState.update { it.copy(mutating = false, error = r.message) }
-                }
-            }
+            // The server is the single source of truth for exam syllabi — they are
+            // revised as exam boards change them. There used to be a hardcoded
+            // in-app copy to fall back on here, but it silently built plans from a
+            // stale, unweighted syllabus that no backend update could reach.
+            // Failing honestly is better than a quietly outdated plan.
+            is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
             is Resource.Loading -> Unit
         }
     }
@@ -1928,86 +1976,6 @@ class StudyPlannerViewModel @Inject constructor(
             successMessage = "${topicIds.size} topics marked as done",
             undoLabel = "Mark done"
         ) { planId -> repo.batchUpdateTopics(planId, request) }
-    }
-
-    private suspend fun createPlanFromLocalTemplate(
-        templateId: String,
-        title: String,
-        examDate: String?,
-        dailyGoal: Int,
-        offDays: List<Int>,
-        successMessage: String = "Plan created",
-        manualSubjectOrder: Boolean = false,
-    ) {
-        val template = getLocalExamTemplate(templateId)
-        if (template == null) {
-            _uiState.update { it.copy(mutating = false, error = "Template data missing") }
-            return
-        }
-
-        _uiState.update { it.copy(mutating = true, error = null) }
-        val plan = when (val pr = repo.createPlan(CreatePlanRequest(title = title, examType = template.name, examDate = examDate, dailyGoal = dailyGoal, offDays = offDays))) {
-            is Resource.Success -> pr.data
-            is Resource.Error -> {
-                _uiState.update { it.copy(mutating = false, error = pr.message) }
-                return
-            }
-            is Resource.Loading -> return
-        }
-
-        // Map the static template structure to an ImportSyllabusRequest
-        val subjectsRequest = template.subjects.map { subject ->
-            ImportSyllabusSubjectRequest(
-                name = subject.name,
-                chapters = subject.chapters.map { chapter ->
-                    ImportSyllabusChapterRequest(
-                        name = chapter.name,
-                        topics = chapter.topics.map { topic ->
-                            ImportSyllabusTopicRequest(
-                                name = topic.name,
-                                size = topic.size?.wireValue,
-                            )
-                        }
-                    )
-                }
-            )
-        }
-        val importRequest = ImportSyllabusRequest(
-            subjects = subjectsRequest,
-            mode = "replace"
-        )
-
-        val importResult = repo.importSyllabus(plan.id, importRequest)
-        val finalPlan = when (importResult) {
-            is Resource.Success -> importResult.data
-            is Resource.Error -> {
-                val cleanup = repo.deletePlan(plan.id)
-                val cleanupMessage = if (cleanup is Resource.Error) {
-                    " The empty plan could not be removed automatically; it is now visible in Your Exams so you can delete or retry it."
-                } else {
-                    ""
-                }
-                _uiState.update {
-                    it.copy(mutating = false, error = importResult.message.orEmpty() + cleanupMessage)
-                }
-                refreshPlans()
-                return
-            }
-            is Resource.Loading -> return
-        }
-
-        _uiState.update {
-            it.copy(
-                mutating = false,
-                selectedPlan = finalPlan,
-                message = successMessage,
-                section = PlannerSection.PLAN,
-                pendingManualSubjectOrder = manualSubjectOrder && finalPlan.subjects.isNotEmpty(),
-            )
-        }
-        StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLAN_CREATED_TEMPLATE)
-        refreshPlans()
-        refreshPlannerAchievements()
     }
 
     private suspend fun refreshCalendar(planId: String) {

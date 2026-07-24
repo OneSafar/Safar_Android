@@ -939,6 +939,12 @@ fun EkagraScreen(
                         val pending = pendingEndedSession
                         val organizeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
                         val organizeSheetScope = rememberCoroutineScope()
+                        // Filing a session is FINAL — it can never be renamed, nor moved
+                        // between Quick Save and a goal, afterwards. Holds the label to
+                        // confirm plus the action to run if the student says yes.
+                        var pendingSaveConfirmation by remember {
+                            mutableStateOf<Pair<String, () -> Unit>?>(null)
+                        }
 
                         // ModalBottomSheet must finish its hide animation before we tear the
                         // composable down, otherwise its scrim/Popup can be left behind
@@ -1014,33 +1020,43 @@ fun EkagraScreen(
                                 }
                             }
                         }
+                        fun linkGoalNow(goal: com.safarparmar.app.domain.model.Goal, shouldMarkComplete: Boolean) {
+                            if (pending != null) {
+                                closeOrganizeSheet {
+                                    if (pending.sessionId.startsWith("local-")) {
+                                        viewModel.linkGoalAndCompleteSession(pending.sessionId, goal,
+                                            pending.totalSeconds, pending.secondsLeft, pending.mode, pending.startedAt,
+                                            shouldMarkComplete, pending.endedAt)
+                                    } else {
+                                        viewModel.updateExistingSession(
+                                            sessionId = pending.sessionId,
+                                            goalId = goal.id,
+                                            goalTitle = goal.title,
+                                            markGoalComplete = shouldMarkComplete,
+                                        )
+                                    }
+                                    clearAssociations()
+                                }
+                            }
+                        }
+
                         OrganizeFreeFocusSheet(
                             sheetState    = organizeSheetState,
                             pending       = pending,
                             goals         = openGoals,
                             titleInput    = titleInput,
                             onTitleChange = { titleInput = it },
+                            // Swiping the sheet away files the session under its safest
+                            // default rather than losing it. The explicit choices below go
+                            // through a confirmation because they are final.
                             onDismiss     = { if (pending?.topicId != null) saveTopicLinkedSession(false) else savePendingAsFree() },
-                            onSaveFree    = { savePendingAsFree() },
-                            onSaveTopic   = { markDone -> saveTopicLinkedSession(markDone) },
+                            onSaveFree    = { pendingSaveConfirmation = "Quick Save" to { savePendingAsFree() } },
+                            onSaveTopic   = { markDone ->
+                                pendingSaveConfirmation =
+                                    (pending?.topicTitle ?: "this topic") to { saveTopicLinkedSession(markDone) }
+                            },
                             onLinkGoal = { goal, shouldMarkComplete ->
-                                if (pending != null) {
-                                    closeOrganizeSheet {
-                                        if (pending.sessionId.startsWith("local-")) {
-                                            viewModel.linkGoalAndCompleteSession(pending.sessionId, goal,
-                                                pending.totalSeconds, pending.secondsLeft, pending.mode, pending.startedAt,
-                                                shouldMarkComplete, pending.endedAt)
-                                        } else {
-                                            viewModel.updateExistingSession(
-                                                sessionId = pending.sessionId,
-                                                goalId = goal.id,
-                                                goalTitle = goal.title,
-                                                markGoalComplete = shouldMarkComplete,
-                                            )
-                                        }
-                                        clearAssociations()
-                                    }
-                                }
+                                pendingSaveConfirmation = goal.title to { linkGoalNow(goal, shouldMarkComplete) }
                             },
                             onDiscard = {
                                 if (pending != null) {
@@ -1051,6 +1067,17 @@ fun EkagraScreen(
                                 }
                             },
                         )
+
+                        pendingSaveConfirmation?.let { (label, commit) ->
+                            EkagraConfirmSaveDialog(
+                                label = label,
+                                onConfirm = {
+                                    pendingSaveConfirmation = null
+                                    commit()
+                                },
+                                onCancel = { pendingSaveConfirmation = null },
+                            )
+                        }
                     }
                     if (showDurationPromptDialog) {
                         val dialogInk = rememberEkagraInk(onCanvas = false)
@@ -1553,15 +1580,16 @@ fun EkagraScreen(
                                         },
                                     )
 
+                                    // History is READ-ONLY. Tapping a saved session used to
+                                    // reopen the organize sheet so it could be renamed or moved
+                                    // between Quick Save and a goal. That edit path is what
+                                    // produced the duplicated goal pairs in the published app,
+                                    // and a session's category is final once saved — so the row
+                                    // is no longer interactive at all.
                                     EkagraNavTab.HISTORY -> FocusHistoryTab(
                                         modifier  = Modifier.padding(top = innerPadding.calculateTopPadding(),
                                                                       bottom = innerPadding.calculateBottomPadding()),
                                         analytics = ekagraAnalytics,
-                                        onSessionClick = { session ->
-                                            pendingEndedSession = session.toPendingEndedSession()
-                                            titleInput = session.taskText ?: ""
-                                            showOrganizeSheet = true
-                                        }
                                     )
                                     
                                     EkagraNavTab.MUSIC -> {}

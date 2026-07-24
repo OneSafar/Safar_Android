@@ -359,7 +359,7 @@ private fun DhyanSessionSlider(
                 .offset(x = thumbOffsetDp)
                 .clip(CircleShape)
                 .background(pink)
-                .border(2.dp, Color.White.copy(alpha = 0.9f), CircleShape),
+                .border(0.5.dp, Color.White.copy(alpha = 0.85f), CircleShape),
         )
     }
 }
@@ -409,6 +409,14 @@ private fun DhyanControlButton(
     contentDescription: String? = null,
 ) {
     val isLight = !isDarkTheme
+    val pink = DhyanColors.actionPink(isDarkTheme)
+    val playBorder = if (isLight) {
+        Brush.verticalGradient(listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6)))
+    } else {
+        Brush.verticalGradient(
+            listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f)),
+        )
+    }
     Box(
         modifier = Modifier
             .size(size)
@@ -416,13 +424,14 @@ private fun DhyanControlButton(
                 when (style) {
                     DhyanControlStyle.Play -> Modifier
                         .shadow(
-                            elevation = if (isLight) 8.dp else 12.dp,
+                            elevation = if (isLight) 4.dp else 12.dp,
                             shape = DhyanControlShape,
-                            spotColor = DhyanColors.actionPink(isDarkTheme).copy(alpha = 0.4f),
-                            ambientColor = DhyanColors.actionPink(isDarkTheme).copy(alpha = 0.25f),
+                            spotColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f),
+                            ambientColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f),
                         )
                         .clip(DhyanControlShape)
-                        .background(DhyanColors.actionPink(isDarkTheme))
+                        .background(pink)
+                        .border(width = 0.5.dp, brush = playBorder, shape = DhyanControlShape)
                     else -> Modifier.dhyanMacOSPanel(isLight = isLight, shape = DhyanControlShape)
                 },
             )
@@ -854,43 +863,42 @@ private fun BreathingTab(
 
         Spacer(Modifier.height(DhyanSectionGap))
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .dhyanMacOSPanel(isLight = !isDarkTheme)
-                .padding(horizontal = 18.dp, vertical = 14.dp),
+        // Flat hairline session length — structure only (no card).
+        PlanHairline(alpha = 0.7f)
+        Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "SESSION LENGTH",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = DhyanFlatColors.onGlassMuted(!isDarkTheme),
-                )
-                Text(
-                    "${sessionLengthMin} min",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DhyanColors.accentBlue(isDarkTheme),
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            DhyanSessionSlider(
-                value = sessionLengthMin.toFloat(),
-                onValueChange = {
-                    sessionLengthMin = it.toInt()
-                    if (!isRunning) resetTimer(lengthMin = it.toInt())
-                },
-                isDarkTheme = isDarkTheme,
-                valueRange = 1f..60f,
-                modifier = Modifier.fillMaxWidth(),
+            Text(
+                "SESSION LENGTH",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.sp,
+                color = DhyanFlatColors.Muted,
+            )
+            Text(
+                "${sessionLengthMin} min",
+                fontFamily = LoraFontFamily,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                color = DhyanFlatColors.Text,
             )
         }
+        Spacer(Modifier.height(12.dp))
+        DhyanSessionSlider(
+            value = sessionLengthMin.toFloat(),
+            onValueChange = {
+                sessionLengthMin = it.toInt()
+                if (!isRunning) resetTimer(lengthMin = it.toInt())
+            },
+            isDarkTheme = isDarkTheme,
+            valueRange = 1f..60f,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(12.dp))
+        PlanHairline(alpha = 0.7f)
 
         Spacer(Modifier.height(DhyanSectionGap))
 
@@ -925,7 +933,7 @@ private fun BreathingTab(
             )
         }
 
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(22.dp))
 
         DhyanGuidanceSheet(
             isDarkTheme = isDarkTheme,
@@ -936,8 +944,7 @@ private fun BreathingTab(
 }
 
 /**
- * Persistent, compact bottom sheet replacing scattered breathing CTAs and status pills.
- * The full technique selector remains one tap away without competing with session controls.
+ * Flat-hairline guidance chrome + glass row for the tappable technique picker.
  */
 @Composable
 private fun DhyanGuidanceSheet(
@@ -950,36 +957,39 @@ private fun DhyanGuidanceSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-            .background(DhyanFlatColors.glassBody(isLight))
-            .border(
-                width = 0.5.dp,
-                color = DhyanFlatColors.Hairline,
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(bottom = 8.dp),
     ) {
         Box(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .width(48.dp)
-                .height(4.dp)
+                .width(36.dp)
+                .height(3.dp)
                 .clip(CircleShape)
-                .background(DhyanColors.rose(isDarkTheme).copy(alpha = 0.28f)),
+                .background(DhyanFlatColors.Hairline),
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(14.dp))
+        PlanHairline(alpha = 0.65f)
+        Spacer(Modifier.height(12.dp))
         Text(
             "Guidance",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = DhyanFlatColors.onGlassText(isLight),
+            fontFamily = LoraFontFamily,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Normal,
+            color = DhyanFlatColors.Text,
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Choose how you want to breathe",
+            fontSize = 12.5.sp,
+            color = DhyanFlatColors.Muted,
+        )
+        Spacer(Modifier.height(12.dp))
+        PlanHairline(alpha = 0.55f)
+        Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(DhyanFlatShape)
-                .border(1.dp, DhyanColors.rose(isDarkTheme).copy(alpha = 0.32f), DhyanFlatShape)
+                .dhyanMacOSPanel(isLight = isLight, shape = DhyanFlatShape)
                 .clickable(onClick = onEdit)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -987,7 +997,7 @@ private fun DhyanGuidanceSheet(
             Icon(
                 Icons.Default.Air,
                 contentDescription = null,
-                tint = DhyanColors.rose(isDarkTheme),
+                tint = DhyanColors.actionPink(isDarkTheme),
                 modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.width(14.dp))
@@ -1004,7 +1014,7 @@ private fun DhyanGuidanceSheet(
                 Icons.Default.Edit,
                 contentDescription = "Choose breathing guidance",
                 tint = DhyanColors.actionPink(isDarkTheme),
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
     }

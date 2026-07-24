@@ -59,38 +59,21 @@ private const val URL_PRIVACY_POLICY = "https://safarapp.in/privacy"
 private const val URL_TERMS = "https://safarapp.in/terms"
 
 @Composable
-private fun SettingsSectionHeader(
-    icon: ImageVector,
+private fun SettingsSheetSection(
     title: String,
-    modifier: Modifier = Modifier
+    content: @Composable () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(CircleShape)
-                .background(scheme.primary.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = scheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
         Text(
-            text = title.uppercase(),
+            text = title,
             fontSize = 14.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.2.sp,
+            fontWeight = FontWeight.Bold,
             color = PlannerFlatColors.TextDark,
         )
+        content()
     }
 }
 
@@ -153,9 +136,8 @@ fun SettingsScreen(
                         .padding(paddingValues)
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 20.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    // Main Screen Title Banner
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = "App Settings",
@@ -171,154 +153,67 @@ fun SettingsScreen(
                         )
                     }
 
-                    // Section Card 1: Account & Subscription
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            SettingsSectionHeader(icon = Icons.Default.WorkspacePremium, title = "Account & Subscription")
-                            PlanHairline(alpha = 0.5f)
-                            PremiumStatusSection(
-                                isPremiumActive = premiumStatus.hasAnyPaidAccess,
-                                onExplorePremium = onPremium,
-                                onRestoreStatus = { premiumViewModel.refreshPremiumStatus() },
-                            )
-                        }
+                    SettingsSheetSection(title = "Account & Subscription") {
+                        PremiumStatusSection(
+                            isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                            onExplorePremium = onPremium,
+                            onRestoreStatus = { premiumViewModel.refreshPremiumStatus() },
+                        )
                     }
 
-                    // Section Card 2: Admin Tools (Conditional)
                     if (canAccessAdminComposer) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp),
-                            ) {
-                                SettingsSectionHeader(icon = Icons.Default.AdminPanelSettings, title = "Admin Tools")
-                                PlanHairline(alpha = 0.5f)
-                                SettingsNavigationRow(
-                                    title = "Notification Composer",
-                                    subtitle = "Broadcast push alerts to all enrolled students",
-                                    icon = Icons.Default.AdminPanelSettings,
-                                    onClick = onOpenAdminNotificationComposer,
-                                )
-                            }
-                        }
-                    }
-
-                    // Section Card 3: Preferences & Theme
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            SettingsSectionHeader(
-                                icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
-                                title = "Preferences & Appearance"
-                            )
-                            PlanHairline(alpha = 0.5f)
-                            SettingsSwitchRow(
-                                title = "Dark Theme",
-                                subtitle = "Switch between dark and light theme",
-                                checked = isDarkTheme,
-                                onCheckedChange = { onToggleDarkTheme() },
-                                icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
+                        PlanHairline(alpha = 0.5f)
+                        SettingsSheetSection(title = "Admin Tools") {
+                            SettingsNavigationRow(
+                                title = "Notification Composer",
+                                subtitle = "Broadcast push alerts to all enrolled students",
+                                icon = Icons.Default.AdminPanelSettings,
+                                onClick = onOpenAdminNotificationComposer,
                             )
                         }
                     }
 
-                    // Section Card 4: Study Notifications
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            SettingsSectionHeader(icon = Icons.Default.Notifications, title = "Study Notifications")
-                            PlanHairline(alpha = 0.5f)
-                            NotificationsSection(
-                                uiState = uiState,
-                                onEvent = viewModel::onEvent,
-                                onShowTimePicker = { showTimePickerDialog = true },
-                            )
-                        }
+                    PlanHairline(alpha = 0.5f)
+
+                    SettingsSheetSection(title = "Preferences & Appearance") {
+                        SettingsSwitchRow(
+                            title = "Dark Theme",
+                            subtitle = "Switch between dark and light theme",
+                            checked = isDarkTheme,
+                            onCheckedChange = { onToggleDarkTheme() },
+                            icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
+                        )
                     }
 
-                    // Section Card 5: Kavach Permissions
+                    PlanHairline(alpha = 0.5f)
+
+                    SettingsSheetSection(title = "Study Notifications") {
+                        NotificationsSection(
+                            uiState = uiState,
+                            onEvent = viewModel::onEvent,
+                            onShowTimePicker = { showTimePickerDialog = true },
+                        )
+                    }
+
+                    PlanHairline(alpha = 0.5f)
+
                     val grantedCount = listOf(hasUsagePermission, hasOverlayPermission, hasNotificationPermission).count { it }
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            SettingsSectionHeader(
-                                icon = Icons.Default.Security,
-                                title = "App Permissions ($grantedCount/3)"
-                            )
-                            PlanHairline(alpha = 0.5f)
-                            PermissionsSection(
-                                hasUsagePermission = hasUsagePermission,
-                                hasOverlayPermission = hasOverlayPermission,
-                                hasNotificationPermission = hasNotificationPermission,
-                                context = context,
-                            )
-                        }
+                    SettingsSheetSection(title = "App Permissions ($grantedCount/3)") {
+                        PermissionsSection(
+                            hasUsagePermission = hasUsagePermission,
+                            hasOverlayPermission = hasOverlayPermission,
+                            hasNotificationPermission = hasNotificationPermission,
+                            context = context,
+                        )
                     }
 
-                    // Section Card 6: Legal & Info
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            SettingsSectionHeader(icon = Icons.Default.Info, title = "Legal & Information")
-                            PlanHairline(alpha = 0.5f)
-                            LegalSection(
-                                context = context,
-                                onShowPermissionInfo = { showPermissionInfoDialog = true },
-                            )
-                        }
+                    PlanHairline(alpha = 0.5f)
+
+                    SettingsSheetSection(title = "Legal & Information") {
+                        LegalSection(
+                            context = context,
+                            onShowPermissionInfo = { showPermissionInfoDialog = true },
+                        )
                     }
 
                     FooterSection()
@@ -372,13 +267,13 @@ private fun PremiumStatusSection(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(if (isPremiumActive) scheme.primary.copy(alpha = 0.12f) else PlannerFlatColors.TextMuted.copy(alpha = 0.1f)),
+                    .background(if (isPremiumActive) SafarSemanticColors.brandPurple().copy(alpha = 0.12f) else PlannerFlatColors.TextMuted.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.WorkspacePremium,
                     contentDescription = null,
-                    tint = if (isPremiumActive) scheme.primary else PlannerFlatColors.TextMuted,
+                    tint = if (isPremiumActive) SafarSemanticColors.brandPurple() else PlannerFlatColors.TextMuted,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -392,7 +287,7 @@ private fun PremiumStatusSection(
                 Text(
                     text = statusSubtitle,
                     fontSize = 12.5.sp,
-                    color = if (isPremiumActive) scheme.primary else PlannerFlatColors.TextMuted
+                    color = if (isPremiumActive) SafarSemanticColors.brandPurple() else PlannerFlatColors.TextMuted
                 )
             }
         }
@@ -401,8 +296,8 @@ private fun PremiumStatusSection(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(scheme.primary.copy(alpha = 0.08f))
-                    .border(1.dp, scheme.primary.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                    .background(SafarSemanticColors.brandPurple().copy(alpha = 0.08f))
+                    .border(1.dp, SafarSemanticColors.brandPurple().copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                     .clickable(onClick = onExplorePremium)
                     .padding(vertical = 8.dp, horizontal = 12.dp),
                 contentAlignment = Alignment.Center
@@ -411,7 +306,7 @@ private fun PremiumStatusSection(
                     text = if (isPremiumActive) "Manage" else "Explore",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = scheme.primary
+                    color = SafarSemanticColors.brandPurple()
                 )
             }
         }
@@ -468,7 +363,7 @@ private fun NotificationsSection(
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = SafarSemanticColors.brandPurple(),
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
@@ -482,7 +377,7 @@ private fun NotificationsSection(
                         text = formatTime12h(h, m),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = SafarSemanticColors.brandPurple()
                     )
                 }
             }
@@ -643,7 +538,7 @@ private fun PermissionRow(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(scheme.primary)
+                    .background(SafarSemanticColors.brandPurple())
                     .clickable(onClick = onGrantClick)
                     .padding(vertical = 7.dp, horizontal = 14.dp),
                 contentAlignment = Alignment.Center
@@ -652,7 +547,7 @@ private fun PermissionRow(
                     text = "Grant",
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = scheme.onPrimary
+                    color = SafarSemanticColors.brandOnPurple()
                 )
             }
         }
@@ -686,7 +581,7 @@ private fun SettingsSwitchRow(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = scheme.primary,
+                    tint = SafarSemanticColors.brandPurple(),
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -710,7 +605,7 @@ private fun SettingsSwitchRow(
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = scheme.onPrimary,
-                checkedTrackColor = scheme.primary,
+                checkedTrackColor = SafarSemanticColors.brandPurple(),
                 uncheckedTrackColor = PlannerFlatColors.BorderSoft,
                 uncheckedThumbColor = PlannerFlatColors.TextMuted,
             )
@@ -744,7 +639,7 @@ private fun SettingsNavigationRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = scheme.primary,
+                tint = SafarSemanticColors.brandPurple(),
                 modifier = Modifier.size(20.dp)
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -803,14 +698,18 @@ private fun TimePickerDialog(
                     text = formatTime12h(selectedHour, selectedMinute),
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = SafarSemanticColors.brandPurple()
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = { onConfirm(selectedHour, selectedMinute) },
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SafarSemanticColors.brandPurple(),
+                    contentColor = SafarSemanticColors.brandOnPurple(),
+                ),
             ) {
                 Text("Save Time", fontWeight = FontWeight.Bold)
             }
@@ -829,7 +728,7 @@ private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SafarSemanticColors.plannerBackground(),
-        icon = { Icon(Icons.Default.Security, null, tint = MaterialTheme.colorScheme.primary) },
+        icon = { Icon(Icons.Default.Security, null, tint = SafarSemanticColors.brandPurple()) },
         title = {
             Text(
                 text = "Kavach Privacy & Permissions",
@@ -860,12 +759,19 @@ private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
                     text = "Your personal data is never transmitted or sold.",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = SafarSemanticColors.brandPurple()
                 )
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss, shape = RoundedCornerShape(10.dp)) {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SafarSemanticColors.brandPurple(),
+                    contentColor = SafarSemanticColors.brandOnPurple(),
+                ),
+            ) {
                 Text("Got It", fontWeight = FontWeight.Bold)
             }
         },

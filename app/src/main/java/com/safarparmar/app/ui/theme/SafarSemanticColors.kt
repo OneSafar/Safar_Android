@@ -10,6 +10,10 @@ import androidx.compose.ui.graphics.luminance
  */
 object SafarSemanticColors {
 
+    /** Auth / primary-action purple used by macOS primary buttons. */
+    private val BrandPurpleLight = Color(0xFF7845E5)
+    private val BrandPurpleDark = Color(0xFFA78BFA)
+
     @Composable
     fun profileBackground(isDarkTheme: Boolean): Color =
         if (isDarkTheme) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background
@@ -23,13 +27,24 @@ object SafarSemanticColors {
             PlannerWarmBackground
         }
 
+    /**
+     * Brand purple for Profile / Settings buttons and accents.
+     * Light: #7845E5 · Dark: #A78BFA — same as auth primary actions.
+     */
+    @Composable
+    fun brandPurple(isDarkTheme: Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f): Color =
+        if (isDarkTheme) BrandPurpleDark else BrandPurpleLight
+
+    @Composable
+    fun brandOnPurple(): Color = Color.White
+
     @Composable
     fun profilePrimaryContainer(isDarkTheme: Boolean): Color =
-        if (isDarkTheme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary
+        brandPurple(isDarkTheme)
 
     @Composable
     fun profilePrimaryFixed(isDarkTheme: Boolean): Color =
-        if (isDarkTheme) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primaryContainer
+        brandPurple(isDarkTheme).copy(alpha = if (isDarkTheme) 0.22f else 0.12f)
 
     @Composable
     fun profileOnBackground(isDarkTheme: Boolean): Color =
