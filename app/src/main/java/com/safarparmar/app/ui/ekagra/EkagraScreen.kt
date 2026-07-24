@@ -950,8 +950,9 @@ fun EkagraScreen(
                         // Filing a session is FINAL — it can never be renamed, nor moved
                         // between Quick Save and a goal, afterwards. Holds the label to
                         // confirm plus the action to run if the student says yes.
+                        // label, "confirming also completes it", commit action
                         var pendingSaveConfirmation by remember {
-                            mutableStateOf<Pair<String, () -> Unit>?>(null)
+                            mutableStateOf<Triple<String, Boolean, () -> Unit>?>(null)
                         }
 
                         // ModalBottomSheet must finish its hide animation before we tear the
@@ -1058,13 +1059,21 @@ fun EkagraScreen(
                             // default rather than losing it. The explicit choices below go
                             // through a confirmation because they are final.
                             onDismiss     = { if (pending?.topicId != null) saveTopicLinkedSession(false) else savePendingAsFree() },
-                            onSaveFree    = { pendingSaveConfirmation = "Quick Save" to { savePendingAsFree() } },
+                            onSaveFree    = {
+                                pendingSaveConfirmation = Triple("Quick Save", false) { savePendingAsFree() }
+                            },
                             onSaveTopic   = { markDone ->
-                                pendingSaveConfirmation =
-                                    (pending?.topicTitle ?: "this topic") to { saveTopicLinkedSession(markDone) }
+                                pendingSaveConfirmation = Triple(
+                                    pending?.topicTitle ?: "this topic",
+                                    markDone,
+                                ) { saveTopicLinkedSession(markDone) }
                             },
                             onLinkGoal = { goal, shouldMarkComplete ->
-                                pendingSaveConfirmation = goal.title to { linkGoalNow(goal, shouldMarkComplete) }
+                                // Linking always completes the goal now, so the
+                                // dialog says so up front.
+                                pendingSaveConfirmation = Triple(goal.title, shouldMarkComplete) {
+                                    linkGoalNow(goal, shouldMarkComplete)
+                                }
                             },
                             onDiscard = {
                                 if (pending != null) {
@@ -1076,9 +1085,10 @@ fun EkagraScreen(
                             },
                         )
 
-                        pendingSaveConfirmation?.let { (label, commit) ->
+                        pendingSaveConfirmation?.let { (label, completesTarget, commit) ->
                             EkagraConfirmSaveDialog(
                                 label = label,
+                                completesTarget = completesTarget,
                                 onConfirm = {
                                     pendingSaveConfirmation = null
                                     commit()

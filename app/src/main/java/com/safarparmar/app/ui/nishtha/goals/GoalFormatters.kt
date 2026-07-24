@@ -60,7 +60,7 @@ internal fun Goal.isDormant(todayKey: String): Boolean {
 
 internal fun Goal.goalKindLabel(): String = when (goalKind) {
     "scheduled" -> "Scheduled"
-    "repeat" -> "Repeat"
+    "repeat" -> "Daily"
     "one_time" -> "One-time"
     else -> "Today"
 }

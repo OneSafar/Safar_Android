@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.toMutableStateList
@@ -545,7 +546,7 @@ private fun GoalsScreenContent(
                     buildList {
                         if (editGoalKind == "one_time") add(Triple("one_time", "One-time (legacy)", "No fixed day. Complete it whenever."))
                         add(Triple("today", "Today", "A task for today only. Disappears tomorrow."))
-                        add(Triple("repeat", "Repeat", "Recurs automatically every day. Edit it once and future days pick up the change."))
+                        add(Triple("repeat", "Daily", "Comes back every day automatically. Edit it once and future days pick up the change."))
                         add(Triple("scheduled", "Scheduled", "Set a goal for a future date."))
                     }.forEach { (value, label, hint) ->
                         AssistOptionRow(
@@ -680,7 +681,7 @@ private fun GoalsScreenContent(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
                         Triple("today", "Today", "A task for today only. Disappears tomorrow."),
-                        Triple("repeat", "Repeat", "Recurs automatically every day. Edit it once and future days pick up the change."),
+                        Triple("repeat", "Daily", "Comes back every day automatically. Edit it once and future days pick up the change."),
                         Triple("scheduled", "Scheduled", "Set a goal for a future date.")
                     ).forEach { (value, label, hint) ->
                         AssistOptionRow(
@@ -868,11 +869,14 @@ private fun GoalsScreenContent(
                     filled = false,
                     onClick = { showStatusSheet = true },
                 )
+                // Deliberately NOT called "Repeat": that word already names a goal
+                // TYPE (auto-recurring) and the badge on each row. Reusing it for a
+                // one-off bulk action made four unrelated things share one label.
                 FlatActionChip(
-                    label = "Repeat",
+                    label = "Bring forward",
                     icon = {
                         Icon(
-                            Icons.Default.Repeat,
+                            Icons.AutoMirrored.Filled.ArrowForward,
                             null,
                             modifier = Modifier.size(16.dp),
                             tint = GoalsFlatColors.Muted,
@@ -966,13 +970,6 @@ private fun GoalsScreenContent(
                         ?: LocalDate.now(IstDateUtils.zone).plusDays(1)
                 },
                 onDelete = { goal -> deleteGoal = goal },
-                onRepeat = { goal ->
-                    val today = IstDateUtils.todayKey()
-                    // The toast used to fire here, before the request returned, so it
-                    // claimed success even when the server deduped (or failed).
-                    // It is now driven by goalMessage once the result is known.
-                    viewModel.repeatGoal(goal.id, IstDateUtils.dateKeyToUtcIso(today))
-                },
                 onRolloverRetry = { goal -> viewModel.respondToRollover(goal.id, "retry") },
                 onRolloverArchive = { goal -> viewModel.respondToRollover(goal.id, "archive") },
             )

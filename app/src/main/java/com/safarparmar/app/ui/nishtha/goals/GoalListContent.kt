@@ -73,7 +73,6 @@ internal fun GoalsTab(
     onComplete: (Goal) -> Unit,
     onEdit: (Goal) -> Unit,
     onDelete: (Goal) -> Unit,
-    onRepeat: (Goal) -> Unit,
     onRolloverRetry: (Goal) -> Unit,
     onRolloverArchive: (Goal) -> Unit,
 ) {
@@ -160,7 +159,7 @@ internal fun GoalsTab(
                 if (pending.isNotEmpty()) {
                     item { FlatSectionEyebrow("Pending · ${pending.size} tasks") }
                     itemsIndexed(pending, key = { _, g -> g.id }) { index, goal ->
-                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) }, onRepeat = { onRepeat(goal) })
+                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                         if (index < pending.lastIndex) PlanHairline(alpha = 0.5f)
                     }
                 } else {
@@ -175,7 +174,7 @@ internal fun GoalsTab(
                         FlatSectionEyebrow("Completed · ${completedToday.size} tasks")
                     }
                     itemsIndexed(completedToday, key = { _, g -> g.id }) { index, goal ->
-                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) }, onRepeat = { onRepeat(goal) })
+                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                         if (index < completedToday.lastIndex) PlanHairline(alpha = 0.5f)
                     }
                 }
@@ -183,7 +182,7 @@ internal fun GoalsTab(
                 if (scheduled.isNotEmpty()) {
                     item { FlatSectionEyebrow("Scheduled · ${scheduled.size} tasks") }
                     itemsIndexed(scheduled, key = { _, g -> "scheduled-${g.id}" }) { index, goal ->
-                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) }, onRepeat = { onRepeat(goal) }, canRepeat = false)
+                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
                         if (index < scheduled.lastIndex) PlanHairline(alpha = 0.5f)
                     }
                 } else {
@@ -369,10 +368,6 @@ internal fun GoalItem(
     onComplete: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onRepeat: () -> Unit,
-    /** Repeating a goal that has not happened yet is meaningless — it would just
-     *  clone a future goal onto today and leave both. Hidden in Upcoming. */
-    canRepeat: Boolean = true,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val progress = goal.progressPercent()
@@ -499,13 +494,10 @@ internal fun GoalItem(
                         onClick = { showMenu = false; onEdit() },
                     )
                 }
-                if (canRepeat) {
-                    DropdownMenuItem(
-                        text = { Text("Repeat Task") },
-                        leadingIcon = { Icon(Icons.Default.Repeat, null) },
-                        onClick = { showMenu = false; onRepeat() },
-                    )
-                }
+                // "Repeat Task" lived here. Removed: it was a third way to say
+                // "repeat", it cloned goals one at a time with no dedupe (the source
+                // of duplicated goals), and the "Bring forward" picker covers the
+                // single-goal case by simply ticking one row.
                 DropdownMenuItem(
                     text = { Text("Delete", color = GoalsFlatColors.Danger) },
                     leadingIcon = { Icon(Icons.Default.Delete, null, tint = GoalsFlatColors.Danger) },

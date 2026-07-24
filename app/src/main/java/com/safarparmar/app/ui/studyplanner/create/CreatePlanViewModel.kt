@@ -923,10 +923,20 @@ class CreatePlanViewModel @Inject constructor(
      * Manual/paste syllabi carry no weights, so they start empty.
      */
     fun openChapterRating() = _uiState.update { state ->
+        val outline = orderedOutline()
+        val templateImplied = impliedTemplateRatings(state.templateDetail)
+        val merged = templateImplied + state.chapterRatings
+        val completeRatings = outline.flatMap { subject ->
+            subject.chapters.map { chapter ->
+                val key = subject.name to chapter.name
+                key to (merged[key] ?: ChapterDifficulty.NORMAL.wireValue)
+            }
+        }.toMap()
+
         state.copy(
             step = CreatePlanStep.ChapterRating,
-            // User edits always win over the template's own weighting.
-            chapterRatings = impliedTemplateRatings(state.templateDetail) + state.chapterRatings,
+            weightedPlanning = true,
+            chapterRatings = completeRatings,
         )
     }
 
@@ -966,17 +976,13 @@ class CreatePlanViewModel @Inject constructor(
     fun setChapterRating(subjectName: String, chapterName: String, difficulty: String?) {
         _uiState.update { state ->
             val key = subjectName to chapterName
+            val targetDifficulty = difficulty ?: ChapterDifficulty.NORMAL.wireValue
             state.copy(
-                chapterRatings = if (difficulty == null) {
-                    state.chapterRatings - key
-                } else {
-                    state.chapterRatings + (key to difficulty)
-                },
+                chapterRatings = state.chapterRatings + (key to targetDifficulty),
             )
         }
     }
 
-    /** Skipping keeps every unrated chapter at the normal (medium) default. */
     /**
      * "Same number every day": every chapter is marked Normal, which makes the
      * server drop the template's per-topic sizes, so every topic costs the same.
@@ -991,11 +997,6 @@ class CreatePlanViewModel @Inject constructor(
         // must end up with NO difficulty and NO topic size, so the Syllabus screen
         // can tell it is an equal-days plan and hide the rating chips.
         _uiState.update { it.copy(weightedPlanning = false, chapterRatings = emptyMap()) }
-        buildPreview()
-    }
-
-    fun skipChapterRating() {
-        _uiState.update { it.copy(chapterRatings = emptyMap()) }
         buildPreview()
     }
 

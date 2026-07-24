@@ -212,7 +212,7 @@ internal fun HistoryTab(goals: List<Goal>) {
                         .fillMaxWidth()
                         .background(highlightColor),
                 ) {
-                    GoalItem(goal, onComplete = {}, onEdit = {}, onDelete = {}, onRepeat = {})
+                    GoalItem(goal, onComplete = {}, onEdit = {}, onDelete = {})
                 }
                 if (index < filtered.lastIndex) PlanHairline(alpha = 0.5f)
             }

@@ -224,7 +224,6 @@ internal fun OrganizeFreeFocusSheet(
     val quickAccent = PlannerAccent.Amber    // Quick Save
     val topicAccent = PlannerAccent.Coral    // Exam planner topic
     var selectedGoal by remember { mutableStateOf<com.safarparmar.app.domain.model.Goal?>(null) }
-    var markAsCompleted by remember { mutableStateOf(false) }
     var markTopicDone by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
@@ -361,7 +360,6 @@ internal fun OrganizeFreeFocusSheet(
                                         .fillMaxWidth()
                                         .clickable {
                                             selectedGoal = if (selected) null else goal
-                                            markAsCompleted = false
                                         }
                                         .padding(vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -412,49 +410,17 @@ internal fun OrganizeFreeFocusSheet(
                         }
 
                         if (selectedGoal != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { markAsCompleted = !markAsCompleted }
-                                    .padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .border(
-                                            1.dp,
-                                            if (markAsCompleted) goalAccent else PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
-                                            CircleShape
-                                        )
-                                        .background(
-                                            if (markAsCompleted) goalAccent else Color.Transparent,
-                                            CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (markAsCompleted) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = "Mark goal as completed",
-                                    fontSize = 14.sp,
-                                    color = PlannerFlatColors.TextDark
-                                )
-                            }
+                            // There used to be a "Mark goal as completed" checkbox
+                            // here, defaulting to OFF. Linking a finished study
+                            // session to a goal and NOT finishing the goal made no
+                            // sense to students: they linked the session, saw the
+                            // goal still open, and had to go to the Goals screen and
+                            // tick it a second time. Linking now always completes it.
                             Spacer(modifier = Modifier.height(12.dp))
                             ActionPill(
-                                text = if (markAsCompleted) "Link & Finish Goal" else "Link Focus Session",
+                                text = "Link & Complete Goal",
                                 accentColor = goalAccent,
-                                onClick = { selectedGoal?.let { onLinkGoal(it, markAsCompleted) } },
+                                onClick = { selectedGoal?.let { onLinkGoal(it, true) } },
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(modifier = Modifier.height(12.dp))
@@ -610,6 +576,9 @@ internal fun EkagraConfirmSaveDialog(
     label: String,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
+    /** True when confirming will also mark the linked goal/topic finished, so the
+     *  dialog can say so instead of springing it on the student. */
+    completesTarget: Boolean = false,
 ) {
     val accent = PlannerAccent.Teal
     androidx.compose.ui.window.Dialog(onDismissRequest = onCancel) {
@@ -630,7 +599,11 @@ internal fun EkagraConfirmSaveDialog(
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "You cannot change this later. Your session will stay here.",
+                text = if (completesTarget) {
+                    "This also marks \"$label\" as done. You cannot change it later."
+                } else {
+                    "You cannot change this later. Your session will stay here."
+                },
                 fontSize = 13.5.sp,
                 color = PlannerFlatColors.TextMuted,
             )

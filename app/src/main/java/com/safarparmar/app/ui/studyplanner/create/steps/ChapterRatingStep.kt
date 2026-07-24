@@ -52,7 +52,6 @@ internal fun ChapterRatingStep(
     outline: List<DeepFocusOutlineSubject>,
     ratings: Map<Pair<String, String>, String>,
     onRate: (subjectName: String, chapterName: String, difficulty: String?) -> Unit,
-    onSkip: () -> Unit,
     onContinue: () -> Unit,
     /** "Same number every day" — every chapter Normal, so each day holds exactly
      *  the student's number. */
@@ -266,27 +265,12 @@ internal fun ChapterRatingStep(
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             MacOSPrimaryActionButton(
                 text = "Build my plan",
                 onClick = onContinue,
                 isLight = isLight,
                 customAccent = styleAccent,
-            )
-            Text(
-                // NOT "keep everything normal": skipping leaves the template's own
-                // hand-weighted topic sizes in place (RPF-SI ships 19 easy / 72
-                // normal / 23 tough topics). Students read the old wording as
-                // "make every topic equal" and then could not understand why a
-                // 2-a-day goal produced 3-topic days.
-                text = "Skip — keep the ratings shown above",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = scheme.onSurfaceVariant,
-                modifier = Modifier
-                    .clickable { onSkip() }
-                    .padding(vertical = 6.dp),
             )
         }
     }

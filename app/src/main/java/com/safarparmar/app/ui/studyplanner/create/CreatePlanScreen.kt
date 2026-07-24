@@ -267,7 +267,6 @@ fun CreatePlanScreen(
                     outline = viewModel.ratingOutline(),
                     ratings = state.chapterRatings,
                     onRate = viewModel::setChapterRating,
-                    onSkip = viewModel::skipChapterRating,
                     onContinue = viewModel::buildPreview,
                     onBuildEven = viewModel::buildEvenPlan,
                     dailyGoal = state.dailyGoal.toIntOrNull() ?: 0,
