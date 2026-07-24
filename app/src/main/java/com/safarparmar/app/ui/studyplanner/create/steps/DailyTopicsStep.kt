@@ -60,8 +60,8 @@ fun DailyTopicsStep(
     val scheme = MaterialTheme.colorScheme
     val isLight = scheme.background.isLightBackground()
     val accent = PlannerFlatColors.PrimaryAccent
-    val ink = PlannerFlatColors.TextDark
-    val muted = PlannerFlatColors.TextMuted
+    val ink = scheme.onSurface
+    val muted = scheme.onSurfaceVariant
     var taskName by remember { mutableStateOf("") }
     var topics by remember { mutableStateOf(emptyList<DailyTodo>()) }
 

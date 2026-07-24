@@ -49,6 +49,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -265,7 +266,7 @@ private fun GoalsScreenContent(
             ) {
                 PlanEyebrow("Goals")
                 Text(
-                    "Bring yesterday forward",
+                    "Repeat yesterday's goals",
                     fontFamily = LoraFontFamily,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Normal,
@@ -275,11 +276,29 @@ private fun GoalsScreenContent(
                     if (candidates.isEmpty()) {
                         "You had no goals yesterday."
                     } else {
-                        "Untick anything you are done with."
+                        "Select the goals you want to do again today."
                     },
                     fontSize = 13.sp,
                     color = GoalsFlatColors.Muted,
                 )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(GoalsFlatColors.Muted.copy(alpha = 0.08f))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Auto-repeat every day", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
+                        Text("Automatically copy active goals when a new day starts", fontSize = 11.5.sp, color = GoalsFlatColors.Muted)
+                    }
+                    Switch(
+                        checked = uiState.autoRepeatGoals,
+                        onCheckedChange = { viewModel.setAutoRepeatGoals(it) },
+                    )
+                }
                 PlanHairline()
 
                 Column(
@@ -334,7 +353,7 @@ private fun GoalsScreenContent(
                 ) {
                     Text(
                         if (selectedIds.isEmpty()) "Choose at least one"
-                        else "Repeat ${selectedIds.size} goal${if (selectedIds.size == 1) "" else "s"} today",
+                        else "Copy ${selectedIds.size} goal${if (selectedIds.size == 1) "" else "s"} to today",
                         fontWeight = FontWeight.Bold,
                         color = if (selectedIds.isEmpty()) GoalsFlatColors.Muted else GoalsFlatColors.Primary,
                     )
@@ -541,35 +560,22 @@ private fun GoalsScreenContent(
                     colors = fieldColors,
                 )
                 PlanHairline(alpha = 0.6f)
-                Text("Goal Type", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    buildList {
-                        if (editGoalKind == "one_time") add(Triple("one_time", "One-time (legacy)", "No fixed day. Complete it whenever."))
-                        add(Triple("today", "Today", "A task for today only. Disappears tomorrow."))
-                        add(Triple("repeat", "Daily", "Comes back every day automatically. Edit it once and future days pick up the change."))
-                        add(Triple("scheduled", "Scheduled", "Set a goal for a future date."))
-                    }.forEach { (value, label, hint) ->
-                        AssistOptionRow(
-                            selected = editGoalKind == value,
-                            title = label,
-                            subtitle = hint,
-                            onClick = {
-                                editGoalKind = value
-                                if (value == "scheduled" && !selectedDate.isAfter(LocalDate.now(IstDateUtils.zone))) {
-                                    selectedDate = LocalDate.now(IstDateUtils.zone).plusDays(1)
-                                }
-                                if (value == "repeat") editCarryForward = "full"
-                            }
-                        )
+                val editIsScheduled = editGoalKind == "scheduled"
+                AssistOptionRow(
+                    selected = editIsScheduled,
+                    title = "Schedule for a future date",
+                    subtitle = if (editIsScheduled) "Set for ${selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))}" else "Set for today. Tap to pick a future date.",
+                    onClick = {
+                        if (editIsScheduled) {
+                            editGoalKind = "today"
+                            selectedDate = LocalDate.now(IstDateUtils.zone)
+                        } else {
+                            editGoalKind = "scheduled"
+                            selectedDate = LocalDate.now(IstDateUtils.zone).plusDays(1)
+                            showDatePicker = true
+                        }
                     }
-                }
-                if (editGoalKind == "scheduled") {
-                    PlanHairline(alpha = 0.6f)
-                    ScheduledDatePickerRow(
-                        selectedDate = selectedDate,
-                        onClick = { showDatePicker = true }
-                    )
-                }
+                )
                 PlanHairline(alpha = 0.6f)
                 OutlinedTextField(
                     value = editDesc,
@@ -677,32 +683,22 @@ private fun GoalsScreenContent(
                     colors = fieldColors,
                 )
                 PlanHairline(alpha = 0.6f)
-                Text("Goal Type", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoalsFlatColors.Text)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(
-                        Triple("today", "Today", "A task for today only. Disappears tomorrow."),
-                        Triple("repeat", "Daily", "Comes back every day automatically. Edit it once and future days pick up the change."),
-                        Triple("scheduled", "Scheduled", "Set a goal for a future date.")
-                    ).forEach { (value, label, hint) ->
-                        AssistOptionRow(
-                            selected = newGoalKind == value,
-                            title = label,
-                            subtitle = hint,
-                            onClick = {
-                                newGoalKind = value
-                                newCarryForward = if (value == "repeat") "full" else "none"
-                                selectedDate = if (value == "scheduled") LocalDate.now(IstDateUtils.zone).plusDays(1) else LocalDate.now(IstDateUtils.zone)
-                            }
-                        )
+                val isScheduled = newGoalKind == "scheduled"
+                AssistOptionRow(
+                    selected = isScheduled,
+                    title = "Schedule for a future date",
+                    subtitle = if (isScheduled) "Set for ${selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))}" else "Default is Today. Tap to pick a future date.",
+                    onClick = {
+                        if (isScheduled) {
+                            newGoalKind = "today"
+                            selectedDate = LocalDate.now(IstDateUtils.zone)
+                        } else {
+                            newGoalKind = "scheduled"
+                            selectedDate = LocalDate.now(IstDateUtils.zone).plusDays(1)
+                            showDatePicker = true
+                        }
                     }
-                }
-                if (newGoalKind == "scheduled") {
-                    PlanHairline(alpha = 0.6f)
-                    ScheduledDatePickerRow(
-                        selectedDate = selectedDate,
-                        onClick = { showDatePicker = true }
-                    )
-                }
+                )
                 PlanHairline(alpha = 0.6f)
                 OutlinedTextField(
                     value = newDesc,
@@ -873,10 +869,10 @@ private fun GoalsScreenContent(
                 // TYPE (auto-recurring) and the badge on each row. Reusing it for a
                 // one-off bulk action made four unrelated things share one label.
                 FlatActionChip(
-                    label = "Bring forward",
+                    label = "Repeat yesterday",
                     icon = {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
+                            Icons.Default.Repeat,
                             null,
                             modifier = Modifier.size(16.dp),
                             tint = GoalsFlatColors.Muted,

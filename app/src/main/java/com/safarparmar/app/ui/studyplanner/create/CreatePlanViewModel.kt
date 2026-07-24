@@ -1001,6 +1001,46 @@ class CreatePlanViewModel @Inject constructor(
         buildPreview()
     }
 
+    fun calculateRequiredWeightedDailyGoal(): Int {
+        val state = _uiState.value
+        val userGoal = state.dailyGoal.toIntOrNull() ?: 1
+        if (!state.weightedPlanning) return userGoal
+
+        val outline = currentOutline()
+        if (outline.isEmpty()) return userGoal
+
+        val examDateStr = state.examDate.ifBlank { return userGoal }
+        val studyDays = runCatching {
+            val exam = java.time.LocalDate.parse(examDateStr)
+            var cursor = java.time.LocalDate.now()
+            var count = 0
+            while (!cursor.isAfter(exam)) {
+                val jsDay = if (cursor.dayOfWeek.value == 7) 0 else cursor.dayOfWeek.value
+                if (jsDay !in state.offDays) count++
+                cursor = cursor.plusDays(1)
+            }
+            count.coerceAtLeast(1)
+        }.getOrNull() ?: return userGoal
+
+        val ratings = state.chapterRatings
+        var totalPoints = 0
+        outline.forEach { subject ->
+            subject.chapters.forEach { chapter ->
+                val diffStr = ratings[subject.name to chapter.name] ?: ChapterDifficulty.NORMAL.wireValue
+                val pointsPerTopic = when (diffStr) {
+                    ChapterDifficulty.EASY.wireValue -> 1
+                    ChapterDifficulty.TOUGH.wireValue -> 4
+                    else -> 2
+                }
+                totalPoints += chapter.topicNames.size * pointsPerTopic
+            }
+        }
+
+        val requiredDailyPoints = Math.ceil(totalPoints.toDouble() / studyDays.toDouble()).toInt()
+        val requiredDailyGoal = Math.ceil(requiredDailyPoints.toDouble() / 2.0).toInt().coerceAtLeast(1)
+        return maxOf(userGoal, requiredDailyGoal)
+    }
+
     // ── Preview / confirm ────────────────────────────────────────────
 
     fun buildPreview() {
@@ -1042,6 +1082,7 @@ class CreatePlanViewModel @Inject constructor(
         val chapterRatings = state.chapterRatings.takeIf { it.isNotEmpty() }?.map { (key, difficulty) ->
             ChapterRatingRequest(subject = key.first, chapter = key.second, difficulty = difficulty)
         }
+        val effectiveDailyGoal = calculateRequiredWeightedDailyGoal()
         val request = when (source) {
             PlanSource.Template -> {
                 val templateId = state.selectedTemplateId ?: return
@@ -1072,7 +1113,7 @@ class CreatePlanViewModel @Inject constructor(
                     prioritySubjects = prioritySubjects,
                     priorityOrderMode = priorityOrderMode,
                     examDate = state.examDate.ifBlank { null },
-                    dailyGoal = state.dailyGoal.toIntOrNull(),
+                    dailyGoal = effectiveDailyGoal,
                     offDays = state.offDays.toList(),
                     strategy = effectiveStrategy,
                     overloadMode = overloadMode,
@@ -1088,9 +1129,9 @@ class CreatePlanViewModel @Inject constructor(
                 chapterOrder = chapterOrder,
                 topicOrder = topicOrder,
                 prioritySubjects = prioritySubjects,
-                    priorityOrderMode = priorityOrderMode,
+                priorityOrderMode = priorityOrderMode,
                 examDate = state.examDate.ifBlank { null },
-                dailyGoal = state.dailyGoal.toIntOrNull(),
+                dailyGoal = effectiveDailyGoal,
                 offDays = state.offDays.toList(),
                 strategy = effectiveStrategy,
                 overloadMode = overloadMode,
@@ -1119,7 +1160,7 @@ class CreatePlanViewModel @Inject constructor(
                     prioritySubjects = prioritySubjects,
                     priorityOrderMode = priorityOrderMode,
                     examDate = state.examDate.ifBlank { null },
-                    dailyGoal = state.dailyGoal.toIntOrNull(),
+                    dailyGoal = effectiveDailyGoal,
                     offDays = state.offDays.toList(),
                     strategy = effectiveStrategy,
                     overloadMode = overloadMode,

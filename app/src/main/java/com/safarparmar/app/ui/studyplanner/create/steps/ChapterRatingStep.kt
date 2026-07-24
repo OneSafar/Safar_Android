@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.theme.isLightBackground
@@ -125,6 +127,23 @@ internal fun ChapterRatingStep(
             return@Column
         }
 
+        val requiredGoal = remember(ratings, outline) {
+            val totalPoints = outline.sumOf { subject ->
+                subject.chapters.sumOf { chapter ->
+                    val diffStr = ratings[subject.name to chapter.name] ?: ChapterDifficulty.NORMAL.wireValue
+                    val points = when (diffStr) {
+                        ChapterDifficulty.EASY.wireValue -> 1
+                        ChapterDifficulty.TOUGH.wireValue -> 4
+                        else -> 2
+                    }
+                    chapter.topicNames.size * points
+                }
+            }
+            val estDays = 60
+            val reqPoints = Math.ceil(totalPoints.toDouble() / estDays.toDouble()).toInt()
+            Math.ceil(reqPoints.toDouble() / 2.0).toInt().coerceAtLeast(1)
+        }
+
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(bottom = 16.dp),
@@ -134,12 +153,44 @@ internal fun ChapterRatingStep(
                 val chapterCount = outline.sumOf { it.chapters.size }
                 val ratedCount = ratings.size
                 Column(
-                    modifier = Modifier.padding(bottom = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    // A template arrives already weighted, so most chips are
-                    // pre-selected. Saying "only rate the hard ones" implied a
-                    // blank slate and hid the fact that ratings are already set.
+                    if (requiredGoal > dailyGoal && dailyGoal > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = PlannerAccent.Amber.copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, PlannerAccent.Amber.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    text = "⚡ SMART EFFORT ADJUSTMENT",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = PlannerAccent.Amber,
+                                )
+                                Text(
+                                    text = "Daily goal set to $requiredGoal topics/day",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.onSurface,
+                                )
+                                Text(
+                                    text = "Because of your Tough chapters, we automatically adjusted your daily effort from $dailyGoal to $requiredGoal topics/day so all topics finish before your exam.",
+                                    fontSize = 12.5.sp,
+                                    color = scheme.onSurfaceVariant,
+                                    lineHeight = 17.sp,
+                                )
+                            }
+                        }
+                    }
+
                     Text(
                         text = if (ratedCount > 0) {
                             "We rated these for you. Change any you disagree with. " +
@@ -266,6 +317,50 @@ internal fun ChapterRatingStep(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val requiredGoal = remember(ratings, outline) {
+                val totalPoints = outline.sumOf { subject ->
+                    subject.chapters.sumOf { chapter ->
+                        val diffStr = ratings[subject.name to chapter.name] ?: ChapterDifficulty.NORMAL.wireValue
+                        val points = when (diffStr) {
+                            ChapterDifficulty.EASY.wireValue -> 1
+                            ChapterDifficulty.TOUGH.wireValue -> 4
+                            else -> 2
+                        }
+                        chapter.topicNames.size * points
+                    }
+                }
+                val estDays = 60
+                val reqPoints = Math.ceil(totalPoints.toDouble() / estDays.toDouble()).toInt()
+                Math.ceil(reqPoints.toDouble() / 2.0).toInt().coerceAtLeast(1)
+            }
+
+            if (goByDifficulty == true && requiredGoal > dailyGoal && dailyGoal > 0) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = PlannerAccent.Amber.copy(alpha = 0.12f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = "💡 Adjusted for your Tough chapters",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.onSurface,
+                        )
+                        Text(
+                            text = "To finish all topics before your exam, your daily goal is set to $requiredGoal topics/day.",
+                            fontSize = 12.sp,
+                            color = scheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             MacOSPrimaryActionButton(
                 text = "Build my plan",
                 onClick = onContinue,

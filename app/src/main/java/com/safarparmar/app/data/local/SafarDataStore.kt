@@ -138,6 +138,7 @@ class SafarDataStore @Inject constructor(
         val FOCUS_SHIELD_EMERGENCY_UNLOCK_SECONDS      = intPreferencesKey("focus_shield_emergency_unlock_seconds")
 
         val LAUNCH_USAGE_QUESTIONNAIRE_COMPLETED = booleanPreferencesKey("launch_usage_questionnaire_completed")
+        val AUTO_REPEAT_GOALS                    = booleanPreferencesKey("auto_repeat_goals_daily")
         val APP_USAGE_MODE = stringPreferencesKey("app_usage_mode")
         val AUTO_START_BREAK = booleanPreferencesKey("ekagra_auto_start_break")
         val TIMER_ALERT_STYLE = stringPreferencesKey("ekagra_timer_alert_style")
@@ -339,6 +340,14 @@ class SafarDataStore @Inject constructor(
     val isPremium: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.IS_PREMIUM] ?: false }
+
+    val autoRepeatGoals: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.AUTO_REPEAT_GOALS] ?: false }
+
+    suspend fun setAutoRepeatGoals(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.AUTO_REPEAT_GOALS] = enabled }
+    }
 
     val premiumPlanType: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }

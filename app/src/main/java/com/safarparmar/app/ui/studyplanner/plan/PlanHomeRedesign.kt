@@ -108,7 +108,7 @@ internal fun PlanEyebrow(text: String, modifier: Modifier = Modifier) {
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 3.sp,
-        color = PlannerFlatColors.TextMuted,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )
 }

@@ -30,7 +30,31 @@ class NishthaViewModel @Inject constructor(
     // screen's Monthly Review tab needs it (via LoadReportForMonth). Loading it
     // unconditionally for every Nishtha open, even on tabs that never show it, was
     // a wasted network call on every launch.
-    init { loadMoods(); loadJournals(); loadGoals(); loadGoalRolloverPrompts(); loadEkagraAnalytics(); loadStreaks(); loadLoginHistory(); loadAchievements() }
+    init {
+        observeAutoRepeatSettings()
+        loadMoods()
+        loadJournals()
+        loadGoals()
+        loadGoalRolloverPrompts()
+        loadEkagraAnalytics()
+        loadStreaks()
+        loadLoginHistory()
+        loadAchievements()
+    }
+
+    private fun observeAutoRepeatSettings() {
+        viewModelScope.launch {
+            dataStore.autoRepeatGoals.collect { enabled ->
+                _uiState.update { it.copy(autoRepeatGoals = enabled) }
+            }
+        }
+    }
+
+    fun setAutoRepeatGoals(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStore.setAutoRepeatGoals(enabled)
+        }
+    }
 
     fun onEvent(event: NishthaEvent) {
         when (event) {
@@ -100,9 +124,31 @@ class NishthaViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingGoals = true) }
             when (val r = homeRepository.getGoals()) {
-                is Resource.Success -> _uiState.update { it.copy(isLoadingGoals = false, goals = r.data) }
+                is Resource.Success -> {
+                    _uiState.update { it.copy(isLoadingGoals = false, goals = r.data) }
+                    checkAndAutoRepeatIfNeeded(r.data)
+                }
                 is Resource.Error   -> _uiState.update { it.copy(isLoadingGoals = false, goalError = r.message) }
                 is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    private fun checkAndAutoRepeatIfNeeded(goals: List<com.safarparmar.app.domain.model.Goal>) {
+        if (!_uiState.value.autoRepeatGoals) return
+        val todayKey = com.safarparmar.app.util.IstDateUtils.todayKey()
+        val hasTodayGoals = goals.any { com.safarparmar.app.util.IstDateUtils.getDateKey(it.scheduledDate ?: it.createdAt) == todayKey }
+        if (!hasTodayGoals) {
+            val yesterdayKey = runCatching {
+                java.time.LocalDate.parse(todayKey).minusDays(1).toString()
+            }.getOrDefault(todayKey)
+            val yesterdayGoalIds = goals.filter {
+                it.source != "ekagra" &&
+                    it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
+                    com.safarparmar.app.util.IstDateUtils.getDateKey(it.scheduledDate ?: it.createdAt) == yesterdayKey
+            }.map { it.id }
+            if (yesterdayGoalIds.isNotEmpty()) {
+                repeatGoals(yesterdayGoalIds)
             }
         }
     }

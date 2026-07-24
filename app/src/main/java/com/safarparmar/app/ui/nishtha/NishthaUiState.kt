@@ -18,6 +18,7 @@ data class NishthaUiState(
     val rolloverPrompts: List<Goal> = emptyList(),
     val ekagraAnalytics: EkagraAnalyticsStats = EkagraAnalyticsStats(),
     val isSavingGoal: Boolean = false,
+    val autoRepeatGoals: Boolean = false,
     val goalSaveSuccess: Boolean = false,
     val goalError: String? = null,
     /** One-shot toast text for goal actions. Cleared via clearGoalMessage(). */
