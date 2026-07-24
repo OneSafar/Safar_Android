@@ -126,6 +126,16 @@ android {
         }
     }
 
+    // Opt-in Play-Protect-safe QA build: ./gradlew :app:assembleQaDebug -PstripKavach=true
+    // Swaps in a manifest overlay that drops the permission trio Play Protect
+    // reads as stalkerware (usage stats + draw-over + notification listener),
+    // which is what makes a sideloaded debug APK fail with "App blocked".
+    // KAVACH is non-functional in such a build; everything else works.
+    // Without the flag, builds are completely unaffected.
+    if (providers.gradleProperty("stripKavach").orNull?.toBoolean() == true) {
+        sourceSets.getByName("qa").manifest.srcFile("src/qa/AndroidManifestStripped.xml")
+    }
+
     signingConfigs {
         create("release") {
             if (hasReleaseSigning) {

@@ -41,6 +41,17 @@ object Routes {
 
     fun nishthaTab(tab: Int): String = "nishtha?tab=$tab"
 
+    /** Canonical entry route for drawer / HomeScreen launches. */
+    fun nishthaRoot(): String = "nishtha?tab=0&section=${android.net.Uri.encode("overview")}"
+
+    /** Normalize legacy/plain feature routes to their registered destination patterns. */
+    fun normalizeFeatureRoute(route: String): String =
+        if (route == NISHTHA || route.substringBefore("?") == NISHTHA && !route.contains("tab=")) {
+            nishthaRoot()
+        } else {
+            route
+        }
+
     /** Deep-link target that opens a specific plan straight on its Revision tab. */
     fun studyPlannerRevision(planId: String): String =
         "study_planner?planId=${android.net.Uri.encode(planId)}&showDailyTodoSetup=false&openTab=revision"

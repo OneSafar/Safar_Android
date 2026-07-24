@@ -64,7 +64,7 @@ object NotificationDeepLinkHandler {
                 "goals"     -> Routes.nishthaTab(2)
                 "streaks"   -> Routes.nishthaTab(3)
                 "analytics" -> Routes.nishthaTab(4)
-                else        -> Routes.NISHTHA
+                else        -> Routes.nishthaRoot()
             }
             "streaks" -> Routes.nishthaTab(3)
             "goals"   -> Routes.nishthaTab(2)
@@ -77,7 +77,7 @@ object NotificationDeepLinkHandler {
             "achievements" -> Routes.ACHIEVEMENTS
             "dhyan" -> Routes.DHYAN
             "focus_shield" -> Routes.FOCUS_SHIELD
-            "course" -> Routes.NISHTHA
+            "course" -> Routes.nishthaRoot()
             "studyplanner", "study_planner" -> {
                 val planId = queryUri?.getQueryParameter("planId").orEmpty()
                 val tab = queryUri?.getQueryParameter("tab").orEmpty()

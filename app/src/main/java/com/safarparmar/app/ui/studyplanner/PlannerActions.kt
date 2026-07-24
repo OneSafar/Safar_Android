@@ -99,6 +99,9 @@ interface PlannerActions {
         pinned: Boolean? = null,
         size: String? = null,
     )
+    /** Moves the revision appointment shown on the calendar. This is separate
+     * from moving a topic's first-study date. */
+    fun changeRevisionDate(topicId: String, oldDate: String, newDate: String)
     fun batchMarkTopicsDone(topicIds: List<String>)
     /**
      * Sets a topic to REVISION_NEEDED and schedules [revisionDates] on it.

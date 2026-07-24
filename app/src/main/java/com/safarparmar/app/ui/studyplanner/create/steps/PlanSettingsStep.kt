@@ -164,9 +164,17 @@ fun PlanSettingsStep(
                     accent = PlannerAccent.Amber,
                     title = "Balanced",
                     body = "Study a little bit of all your subjects every day.",
-                    info = "Study a steady mix of subjects while staying within your daily topic limit.",
+                    info = "Study a steady mix of every subject each day, in the order you arrange. Nothing waits till the end.",
                     selected = selectedStyle == "balanced",
-                    onClick = { onStudyStyleChange("balanced") },
+                    onClick = {
+                        onStudyStyleChange("balanced")
+                        // Balanced arranges the syllabus too. It reuses the exact
+                        // same screen as Deep Focus — the two styles differ in what
+                        // they DO with the order (Deep Focus finishes one subject
+                        // before the next; Balanced only uses it to decide who
+                        // leads the daily mix), not in how it is collected.
+                        onOpenDeepFocusOrder()
+                    },
                 )
             }
         }

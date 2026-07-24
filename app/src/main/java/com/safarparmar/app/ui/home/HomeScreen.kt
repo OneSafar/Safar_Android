@@ -52,10 +52,15 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayCircle
 import com.safarparmar.app.util.YoutubeUrls
+import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
+import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.glass.safarFrostedPanel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 private data class HomeSlide(
     val titleRes: Int,
@@ -88,7 +93,7 @@ private val slides = listOf(
         "Build Daily\nHabits",
         "Track consistency, journal, reflect\non your emotional state",
         "img_nishtha.webp",
-        Routes.NISHTHA,
+        Routes.nishthaRoot(),
         Color(0xFFA9D0B3),
         Color(0xFF143723)
     ),
@@ -124,7 +129,7 @@ private val slides = listOf(
 
 private val toolCards = listOf(
     ToolCard(R.string.module_ekagra, R.drawable.tool_ekagra, Routes.EKAGRA),
-    ToolCard(R.string.module_nishtha, R.drawable.tool_nistha, Routes.NISHTHA),
+    ToolCard(R.string.module_nishtha, R.drawable.tool_nistha, Routes.nishthaRoot()),
     ToolCard(R.string.module_mehfil, R.drawable.tool_mehfil, Routes.MEHFIL),
     ToolCard(R.string.module_study_planner, R.drawable.tool_study_planner, Routes.STUDY_PLANNER),
     ToolCard(R.string.module_dhyan, R.drawable.tool_dhyan, Routes.DHYAN),
@@ -232,6 +237,7 @@ fun HomeScreen(
             VideoPlaylistEntryPoint(
                 dataStore = dataStore,
                 tint = if (isDarkTheme) Color.White else Color.Black,
+                isDarkTheme = isDarkTheme,
                 showTooltip = true,
             )
             IconButton(onClick = { showAnnouncementsSheet = true }) {
@@ -276,8 +282,9 @@ fun HomeScreen(
                 .fillMaxSize()
                 .background(baseBgColor)
         ) {
+            val slideRouteBase = slides[currentPage].route.substringBefore("?")
             val bgImageRes = if (isDarkTheme) {
-                when (slides[currentPage].route) {
+                when (slideRouteBase) {
                     Routes.EKAGRA -> R.drawable.ekagra_dark
                     Routes.MEHFIL -> R.drawable.dark_mehfil
                     Routes.DHYAN -> R.drawable.dark_dhyan
@@ -285,7 +292,7 @@ fun HomeScreen(
                     else -> R.drawable.bg_home_dark
                 }
             } else {
-                when (slides[currentPage].route) {
+                when (slideRouteBase) {
                     Routes.EKAGRA -> R.drawable.ekagra_light
                     Routes.MEHFIL -> R.drawable.light_mehfil
                     Routes.DHYAN -> R.drawable.dhyan_liight
@@ -417,7 +424,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             rowItems.forEach { tool ->
-                                val isActive = slides[currentPage].route == tool.route
+                                val isActive = slides[currentPage].route.substringBefore("?") == tool.route.substringBefore("?")
                                 Box(
                                     modifier = Modifier.weight(1f),
                                     contentAlignment = Alignment.Center,
@@ -480,76 +487,73 @@ private fun SafarWelcomeDialog(
     isDarkTheme: Boolean,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
-        Card(
+    val isLight = !isDarkTheme
+    val titleColor = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Lavender
+    val headlineColor = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+    val bodyColor = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+    val accentLine = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+    val shape = RoundedCornerShape(24.dp)
+
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Column(
             modifier = Modifier
-                .size(320.dp)
-                .border(
-                    width = 1.dp,
-                    color = if (isDarkTheme) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f),
-                    shape = RoundedCornerShape(24.dp),
-                ),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isDarkTheme) Color(0xFF0F1115) else Color.White,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                .width(320.dp)
+                .height(360.dp)
+                .safarFrostedPanel(isLight = isLight, shape = shape, elevation = if (isLight) 18.dp else 10.dp)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
+            Text(
+                text = "Hello${if (userName.isNotBlank()) ", $userName" else ""}.",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Black,
+                color = titleColor,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 12.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    text = "Hello${if (userName.isNotBlank()) ", $userName" else ""}.",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary,
+                    text = "Welcome to SAFAR, your space to focus, plan, and grow.",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = headlineColor,
                     textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 18.sp,
                 )
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = 12.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text(
-                        text = "Welcome to SAFAR, your space to focus, plan, and grow.",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) Color.White else Color(0xFF1E293B),
-                        textAlign = TextAlign.Center,
-                        lineHeight = 18.sp,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "Where it's just you and me, and our little battle of staying consistent.\n\nWe'll celebrate small wins, and we'll sit through the bad days together.\n\nA virtual pat on your back.\nSmile",
-                        fontSize = 12.sp,
-                        color = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else Color(0xFF475569),
-                        textAlign = TextAlign.Center,
-                        lineHeight = 16.sp,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = "Your journey starts here.",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Text("Let's get started", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Where it's just you and me, and our little battle of staying consistent.\n\nWe'll celebrate small wins, and we'll sit through the bad days together.\n\nA virtual pat on your back.\nSmile",
+                    fontSize = 12.sp,
+                    color = bodyColor,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp,
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "Your journey starts here.",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentLine,
+                    textAlign = TextAlign.Center,
+                )
             }
+            MacOSPrimaryActionButton(
+                text = "Let's get started",
+                onClick = onDismiss,
+                isLight = isLight,
+            )
         }
     }
 }
@@ -559,6 +563,7 @@ fun VideoPlaylistEntryPoint(
     dataStore: SafarDataStore?,
     tint: Color = MaterialTheme.colorScheme.onSurface,
     modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = false,
     showTooltip: Boolean = false,
 ) {
     val context = LocalContext.current
@@ -568,6 +573,10 @@ fun VideoPlaylistEntryPoint(
     }
     val tooltipDismissed by dismissalFlow.collectAsStateWithLifecycle(initialValue = false)
     var tooltipVisible by remember { mutableStateOf(showTooltip) }
+    val isLight = !isDarkTheme
+    val glassShape = RoundedCornerShape(14.dp)
+    val tipTitleColor = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+    val tipIconTint = if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink
 
     fun openPlaylist() {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YoutubeUrls.VISUAL_GUIDANCE_PLAYLIST_URL))
@@ -586,26 +595,35 @@ fun VideoPlaylistEntryPoint(
         DropdownMenu(
             expanded = tooltipVisible && !tooltipDismissed,
             onDismissRequest = { tooltipVisible = false },
-            shape = RoundedCornerShape(12.dp),
+            shape = glassShape,
+            containerColor = Color.Transparent,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
         ) {
             Row(
                 modifier = Modifier
-                    .widthIn(max = 260.dp)
+                    .widthIn(max = 268.dp)
+                    .safarFrostedPanel(
+                        isLight = isLight,
+                        shape = glassShape,
+                        elevation = if (isLight) 12.dp else 6.dp,
+                    )
                     .clickable(onClick = ::openPlaylist)
-                    .padding(start = 16.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
+                    .padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayCircle,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = tipIconTint,
                     modifier = Modifier.size(22.dp),
                 )
                 Text(
                     text = "Need help with SAFAR? Watch our YouTube video.",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
+                    color = tipTitleColor,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(
@@ -620,6 +638,7 @@ fun VideoPlaylistEntryPoint(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Do not show this tip again",
+                        tint = tipTitleColor.copy(alpha = 0.65f),
                         modifier = Modifier.size(18.dp),
                     )
                 }

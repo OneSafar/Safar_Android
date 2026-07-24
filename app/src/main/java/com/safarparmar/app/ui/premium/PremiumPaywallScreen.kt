@@ -45,7 +45,6 @@ import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.SafarSemanticColors
-import com.safarparmar.app.ui.theme.SafarTheme
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -224,164 +223,162 @@ fun PremiumPaywallScreen(
         currentExpiryDate = activeStatus.expiresAt
     }
 
-    SafarTheme(darkTheme = isDarkTheme) {
-        CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
-            if (uiState is PremiumUiState.PaymentSuccess) {
-                PremiumUnlockedDialog(
-                    state = uiState as PremiumUiState.PaymentSuccess,
-                    onDismiss = viewModel::resetState,
-                )
-            }
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
+        if (uiState is PremiumUiState.PaymentSuccess) {
+            PremiumUnlockedDialog(
+                state = uiState as PremiumUiState.PaymentSuccess,
+                onDismiss = viewModel::resetState,
+            )
+        }
 
-            if (showTrialConfirmation) {
-                StartTrialConfirmationDialog(
-                    onDismiss = { showTrialConfirmation = false },
-                    onConfirm = {
-                        showTrialConfirmation = false
-                        viewModel.startFreeTrial()
-                    },
-                )
-            }
+        if (showTrialConfirmation) {
+            StartTrialConfirmationDialog(
+                onDismiss = { showTrialConfirmation = false },
+                onConfirm = {
+                    showTrialConfirmation = false
+                    viewModel.startFreeTrial()
+                },
+            )
+        }
 
-            SafarDrawerScaffold(
-                title = "Safar Premium",
-                subtitle = "Unlimited Access & Analytics",
-                currentRoute = currentRoute,
-                isDarkTheme = isDarkTheme,
-                onNavigate = onNavigate,
-                onToggleDarkTheme = onToggleDarkTheme,
-                containerColor = SafarSemanticColors.plannerBackground(),
-            ) { paddingValues ->
-                Scaffold(
-                    containerColor = Color.Transparent,
-                    bottomBar = {
-                        PremiumBottomBar(
-                            selectedPlan = selectedPlan,
-                            isPremiumActive = isPremiumActive,
-                            isLoading = isLoading,
-                            onPurchase = {
-                                viewModel.createOrder(
-                                    duration = selectedPlan.durationMonths,
-                                )
-                            },
+        SafarDrawerScaffold(
+            title = "Safar Premium",
+            subtitle = "Unlimited Access & Analytics",
+            currentRoute = currentRoute,
+            isDarkTheme = isDarkTheme,
+            onNavigate = onNavigate,
+            onToggleDarkTheme = onToggleDarkTheme,
+            containerColor = SafarSemanticColors.plannerBackground(),
+        ) { paddingValues ->
+            Scaffold(
+                containerColor = Color.Transparent,
+                bottomBar = {
+                    PremiumBottomBar(
+                        selectedPlan = selectedPlan,
+                        isPremiumActive = isPremiumActive,
+                        isLoading = isLoading,
+                        onPurchase = {
+                            viewModel.createOrder(
+                                duration = selectedPlan.durationMonths,
+                            )
+                        },
+                    )
+                },
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(paddingValues)
+                        .padding(innerPadding)
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    // Main Title Banner
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Safar Premium",
+                            fontFamily = LoraFontFamily,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = PlannerFlatColors.TextDark,
                         )
-                    },
-                ) { innerPadding ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(paddingValues)
-                            .padding(innerPadding)
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                        Text(
+                            text = "Unlock AI study planning, Ekagra focus reports, and live sessions",
+                            fontSize = 13.sp,
+                            color = PlannerFlatColors.TextMuted,
+                        )
+                    }
+
+                    if (isPremiumActive) {
+                        // Card 1: Active Subscription Summary
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+                        ) {
+                            PremiumActiveSummaryCard(
+                                planLabel = planLabel,
+                                expiryText = formattedExpiry,
+                            )
+                        }
+                    } else {
+                        // Card 1: 7-Day Free Trial Banner
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                        ) {
+                            SevenDayTrialBanner(
+                                isLoading = isLoading,
+                                onStartTrial = { showTrialConfirmation = true },
+                            )
+                        }
+                    }
+
+                    // Card 2: Features Card
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
                     ) {
-                        // Main Title Banner
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = "Safar Premium",
-                                fontFamily = LoraFontFamily,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Normal,
-                                color = PlannerFlatColors.TextDark,
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            PremiumSectionHeader(icon = Icons.Default.Star, title = "Premium Features")
+                            PlanHairline(alpha = 0.5f)
+                            PremiumBenefitsCard()
+                        }
+                    }
+
+                    // Card 3: Subscription Plan Options
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            PremiumSectionHeader(
+                                icon = Icons.Default.WorkspacePremium,
+                                title = if (isPremiumActive) "Extend Your Plan" else "Select Plan"
                             )
                             Text(
-                                text = "Unlock AI study planning, Ekagra focus reports, and live sessions",
-                                fontSize = 13.sp,
+                                text = "Purchasing extra time adds directly onto your existing plan without losing days.",
+                                fontSize = 12.5.sp,
                                 color = PlannerFlatColors.TextMuted,
                             )
+                            PlanHairline(alpha = 0.5f)
+                            PremiumPricingPanel(
+                                plans = plans,
+                                selectedPlanId = selectedPlanId,
+                                selectedPlan = selectedPlan,
+                                currentExpiryText = formattedExpiry,
+                                newExpiryText = formattedNewExpiry,
+                                onSelectPlan = updateSelectedPlan,
+                            )
                         }
-
-                        if (isPremiumActive) {
-                            // Card 1: Active Subscription Summary
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
-                            ) {
-                                PremiumActiveSummaryCard(
-                                    planLabel = planLabel,
-                                    expiryText = formattedExpiry,
-                                )
-                            }
-                        } else {
-                            // Card 1: 7-Day Free Trial Banner
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
-                            ) {
-                                SevenDayTrialBanner(
-                                    isLoading = isLoading,
-                                    onStartTrial = { showTrialConfirmation = true },
-                                )
-                            }
-                        }
-
-                        // Card 2: Features Card
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                            ) {
-                                PremiumSectionHeader(icon = Icons.Default.Star, title = "Premium Features")
-                                PlanHairline(alpha = 0.5f)
-                                PremiumBenefitsCard()
-                            }
-                        }
-
-                        // Card 3: Subscription Plan Options
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                            ) {
-                                PremiumSectionHeader(
-                                    icon = Icons.Default.WorkspacePremium,
-                                    title = if (isPremiumActive) "Extend Your Plan" else "Select Plan"
-                                )
-                                Text(
-                                    text = "Purchasing extra time adds directly onto your existing plan without losing days.",
-                                    fontSize = 12.5.sp,
-                                    color = PlannerFlatColors.TextMuted,
-                                )
-                                PlanHairline(alpha = 0.5f)
-                                PremiumPricingPanel(
-                                    plans = plans,
-                                    selectedPlanId = selectedPlanId,
-                                    selectedPlan = selectedPlan,
-                                    currentExpiryText = formattedExpiry,
-                                    newExpiryText = formattedNewExpiry,
-                                    onSelectPlan = updateSelectedPlan,
-                                )
-                            }
-                        }
-
-                        UiStateMessage(uiState = uiState)
-
-                        PaywallFooter(
-                            isLoading = isLoading,
-                            onRestore = { viewModel.refreshPremiumStatus() },
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
+
+                    UiStateMessage(uiState = uiState)
+
+                    PaywallFooter(
+                        isLoading = isLoading,
+                        onRestore = { viewModel.refreshPremiumStatus() },
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }

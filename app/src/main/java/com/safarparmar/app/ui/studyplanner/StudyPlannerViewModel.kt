@@ -930,6 +930,44 @@ class StudyPlannerViewModel @Inject constructor(
         }) { planId -> repo.updateTopic(planId, topicId, TopicPatchRequest(name = name, status = status, plannedDate = plannedDate, notes = notes, pinned = pinned, size = size, clientDateKey = today)) }
     }
 
+    override fun changeRevisionDate(topicId: String, oldDate: String, newDate: String) {
+        val topic = findSelectedTopic(topicId)
+        if (topic == null) {
+            setError("Could not find this topic")
+            return
+        }
+        val oldKey = oldDate.take(10)
+        val newKey = newDate.take(10)
+        val savedDates = topic.revisionReminderDates.map { it.take(10) }
+        if (oldKey !in savedDates) {
+            setError("Could not find this revision date")
+            return
+        }
+        if (newKey != oldKey && newKey in savedDates) {
+            setError("A revision is already set for this day")
+            return
+        }
+        val changedDates = savedDates
+            .map { if (it == oldKey) newKey else it }
+            .sorted()
+        mutateSelected(
+            refreshCalendar = true,
+            refreshAnalytics = true,
+            successMessage = "Revision date changed",
+        ) { planId ->
+            repo.updateTopic(
+                planId,
+                topicId,
+                TopicPatchRequest(
+                    plannedDate = changedDates.firstOrNull(),
+                    pinned = changedDates.isNotEmpty(),
+                    revisionReminderDates = changedDates,
+                    clientDateKey = todayKey(),
+                ),
+            )
+        }
+    }
+
     override fun deleteTopic(topicId: String) {
         viewModelScope.launch {
             val planId = _uiState.value.selectedPlan?.id ?: return@launch

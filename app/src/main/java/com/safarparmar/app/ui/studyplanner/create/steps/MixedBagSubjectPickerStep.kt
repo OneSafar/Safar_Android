@@ -20,10 +20,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
+import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
 import com.safarparmar.app.ui.theme.isLightBackground
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,10 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
@@ -139,8 +144,7 @@ fun MixedBagSubjectPickerStep(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 MixedBagOrderOption(
                     label = "In my order",
-                    detail = selected.joinToString(" → "),
-                    caption = "one finishes, then the next",
+                    info = "Finish the first subject you picked completely. Then start the next one. Keep going in the same order you tapped them.",
                     selected = orderMode == "sequential",
                     accent = accent,
                     scheme = scheme,
@@ -149,8 +153,7 @@ fun MixedBagSubjectPickerStep(
                 )
                 MixedBagOrderOption(
                     label = "Mix them together",
-                    detail = selected.take(3).joinToString(" + "),
-                    caption = "a bit of each, every day",
+                    info = "Each day you study a little bit of every subject you picked — mixed together, not one after another.",
                     selected = orderMode == "balanced",
                     accent = accent,
                     scheme = scheme,
@@ -193,15 +196,16 @@ fun MixedBagSubjectPickerStep(
 @Composable
 private fun MixedBagOrderOption(
     label: String,
-    detail: String,
-    caption: String,
+    info: String,
     selected: Boolean,
     accent: Color,
     scheme: androidx.compose.material3.ColorScheme,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
+    var showInfo by remember { mutableStateOf(false) }
+
+    Row(
         modifier = modifier
             .clip(CircleShape)
             .then(
@@ -209,31 +213,34 @@ private fun MixedBagOrderOption(
                 else Modifier.border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), CircleShape),
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center,
+            .padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) accent else scheme.onSurface,
-            )
-            Text(
-                text = detail,
-                fontSize = 10.5.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (selected) accent else scheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = caption,
-                fontSize = 9.5.sp,
-                color = scheme.onSurfaceVariant,
-                maxLines = 1,
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) accent else scheme.onSurface,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        IconButton(onClick = { showInfo = true }, modifier = Modifier.size(28.dp)) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "About $label",
+                tint = if (selected) accent else scheme.onSurfaceVariant,
+                modifier = Modifier.size(15.dp),
             )
         }
+    }
+
+    if (showInfo) {
+        PlannerDialog(
+            onDismissRequest = { showInfo = false },
+            title = label,
+            text = { PlannerDialogText(info) },
+            confirmButton = { PlannerDialogAction(text = "OK") { showInfo = false } },
+        )
     }
 }
 

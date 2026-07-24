@@ -641,10 +641,21 @@ internal fun SelectedDayLogSheet(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             val newDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                            // Single-topic patch — moving one topic's date never rebuilds
-                            // or redistributes the rest of the plan, and the server treats
-                            // the daily goal as advisory, so this never blocks on capacity.
-                            actions.updateTopic(target.topicId, plannedDate = newDate.toString())
+                            if (target.status == TopicStatus.REVISION_NEEDED &&
+                                target.revisionReminderDates.orEmpty().any { it.take(10) == dateIso }
+                            ) {
+                                // Revision cards come from revisionReminderDates. Changing
+                                // plannedDate alone leaves the visible revision on its old day.
+                                actions.changeRevisionDate(
+                                    topicId = target.topicId,
+                                    oldDate = dateIso,
+                                    newDate = newDate.toString(),
+                                )
+                            } else {
+                                // Moving one normal topic pins only that topic. It does not
+                                // rebuild or redistribute the weighted study plan.
+                                actions.updateTopic(target.topicId, plannedDate = newDate.toString())
+                            }
                         }
                         changeDateTarget = null
                     },

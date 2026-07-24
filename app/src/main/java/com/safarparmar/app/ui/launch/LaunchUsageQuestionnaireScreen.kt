@@ -209,7 +209,7 @@ private fun kavachModes(): List<KavachModeOption> = listOf(
         description = "We remind you when you open a blocked app.",
         icon = Icons.Rounded.TouchApp,
         accent = LaunchFlatColors.Normal,
-        badge = "Recommended",
+        badge = null,
     ),
     // "Always On" is HIDDEN for this release — only Normal and Beast Mode ship.
     // The mode, its service and its repository plumbing are all left intact so it
@@ -217,10 +217,10 @@ private fun kavachModes(): List<KavachModeOption> = listOf(
     KavachModeOption(
         mode = AppUsageMode.BEAST,
         title = "Beast Mode",
-        description = "Strict block. You cannot open blocked apps during focus.",
+        description = "Use this mode for the best SAFAR experience.",
         icon = Icons.Rounded.Lock,
         accent = LaunchFlatColors.Beast,
-        badge = "Strict",
+        badge = "Recommended",
     ),
 )
 
@@ -256,12 +256,12 @@ fun LaunchUsageQuestionnaireScreen(
 
     LaunchedEffect(page) {
         if (page == 1 && selectedMode == null) {
-            selectedMode = AppUsageMode.FOCUSED
+            selectedMode = AppUsageMode.BEAST
         }
     }
 
     fun onFinishQuestionnaire() {
-        val mode = selectedMode ?: AppUsageMode.FOCUSED
+        val mode = selectedMode ?: AppUsageMode.BEAST
         viewModel.markQuestionnaireFinished(mode, onNavigateKavach)
     }
 
@@ -479,7 +479,6 @@ private fun KavachModePage(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -504,32 +503,25 @@ private fun KavachModePage(
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             modes.forEach { option ->
                 KavachModeCard(
                     option = option,
                     selected = selectedMode == option.mode,
                     isLight = isLight,
                     onClick = { onSelectMode(option.mode) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                 )
             }
         }
-
-        // Flat tip strip — not a glass tile
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            PlanHairline(alpha = 0.6f)
-            Text(
-                text = "Start with Normal. You can choose a stronger mode later.",
-                fontSize = 13.sp,
-                color = LaunchFlatColors.Muted,
-                lineHeight = 18.sp,
-            )
-        }
-
-        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -629,13 +621,14 @@ private fun KavachModeCard(
     selected: Boolean,
     isLight: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val scale by animateFloatAsState(
         targetValue = if (selected) 1f else 0.995f,
         animationSpec = tween(180, easing = FastOutSlowInEasing),
         label = "modeCardScale",
     )
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(24.dp)
     val body = glassBodyColor(isLight, selected, option.accent)
     val (titleInk, mutedInk) = onGlassInk(body)
     // Accent title only when it stays readable on the tinted glass fill.
@@ -646,8 +639,7 @@ private fun KavachModeCard(
     }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .scale(scale)
             .launchGlassPanel(
                 isLight = isLight,
@@ -660,14 +652,14 @@ private fun KavachModeCard(
                 indication = null,
                 onClick = onClick,
             )
-            .padding(horizontal = 14.dp, vertical = 16.dp),
+            .padding(horizontal = 18.dp, vertical = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .size(56.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .background(
                     if (selected) option.accent
                     else option.accent.copy(alpha = if (isLight) 0.14f else 0.24f),
@@ -682,13 +674,13 @@ private fun KavachModeCard(
                 } else {
                     option.accent
                 },
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(28.dp),
             )
         }
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -696,7 +688,7 @@ private fun KavachModeCard(
             ) {
                 Text(
                     text = option.title,
-                    fontSize = 16.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = titleColor,
                 )
@@ -715,9 +707,9 @@ private fun KavachModeCard(
             }
             Text(
                 text = option.description,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 color = mutedInk,
-                lineHeight = 18.sp,
+                lineHeight = 20.sp,
             )
         }
 

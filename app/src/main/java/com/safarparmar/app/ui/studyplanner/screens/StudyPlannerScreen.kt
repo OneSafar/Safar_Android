@@ -118,6 +118,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -233,12 +234,16 @@ import com.safarparmar.app.ui.tour.studyPlannerTourSteps
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.source
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.max
@@ -470,14 +475,23 @@ fun StudyPlannerScreen(
         chromeState.message?.let {
             val hasUndo = chromeState.finishDayUndoAvailable ||
                 chromeState.rolloverUndoToken != null || chromeState.deleteUndoToken != null
-            val result = snackbar.showSnackbar(
-                message = it,
-                actionLabel = when {
-                    hasUndo -> "Undo"
-                    chromeState.messageOpensUnscheduled -> "View"
-                    else -> null
-                },
-            )
+            val result = if (hasUndo) {
+                // Undo stays long enough to use, but never covers the screen forever.
+                // The close icon also lets the student remove it immediately.
+                withTimeoutOrNull(5_000L) {
+                    snackbar.showSnackbar(
+                        message = it,
+                        actionLabel = "Undo",
+                        withDismissAction = true,
+                        duration = SnackbarDuration.Indefinite,
+                    )
+                } ?: SnackbarResult.Dismissed
+            } else {
+                snackbar.showSnackbar(
+                    message = it,
+                    actionLabel = if (chromeState.messageOpensUnscheduled) "View" else null,
+                )
+            }
             if (result == SnackbarResult.ActionPerformed) {
                 when {
                     chromeState.finishDayUndoAvailable -> actions.undoFinishDay()
@@ -952,8 +966,13 @@ private fun StudyPlansScreen(
                     // ── Plan cards ───────────────────────────────────────────
                     if (state.plans.isNotEmpty()) {
                         items(state.plans, key = { it.id }) { plan ->
+                            val planNumber = state.plans
+                                .sortedWith(compareBy<StudyPlan>({ it.createdAt.orEmpty() }, { it.id }))
+                                .indexOfFirst { it.id == plan.id }
+                                .let { if (it >= 0) it + 1 else 1 }
                             PlannerTargetExamRow(
                                 plan = plan,
+                                planNumber = planNumber,
                                 isActive = plan.id == selectedPlanId,
                                 isLight = !isDark,
                                 onOpen = {
@@ -1044,11 +1063,22 @@ private fun targetExamTone(planId: String, isDark: Boolean): TargetExamTone {
     return TargetExamTone(accent, bg, chipBg)
 }
 
+private fun planCreatedDate(value: String?): String? {
+    if (value.isNullOrBlank()) return null
+    val date = runCatching {
+        Instant.parse(value).atZone(ZoneId.systemDefault()).toLocalDate()
+    }.getOrElse {
+        runCatching { LocalDate.parse(value.take(10)) }.getOrNull()
+    } ?: return null
+    return date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+}
+
 
 
 @Composable
 private fun PlannerTargetExamRow(
     plan: StudyPlan,
+    planNumber: Int,
     isActive: Boolean = false,
     isLight: Boolean = false,
     onOpen: () -> Unit,
@@ -1057,7 +1087,15 @@ private fun PlannerTargetExamRow(
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val tone = targetExamTone(plan.id, isDark)
     val title = plan.title.ifBlank { plan.examType ?: "Study plan" }
-    val subtitle = "Strategy • Practice • Success"
+    val createdDate = remember(plan.createdAt) { planCreatedDate(plan.createdAt) }
+    val subtitle = buildString {
+        append("Plan ")
+        append(planNumber)
+        createdDate?.let {
+            append(" • Created ")
+            append(it)
+        }
+    }
     val days = daysUntil(plan.examDate)
     var menuExpanded by remember { mutableStateOf(false) }
     val menuIconTint = PlannerFlatColors.TextMuted

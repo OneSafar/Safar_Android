@@ -138,6 +138,11 @@ import com.safarparmar.app.ui.studyplanner.logic.readableDate
 import com.safarparmar.app.ui.studyplanner.components.flatCard
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.GlassButton
+import com.safarparmar.app.ui.studyplanner.components.glassSurface
+import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.graphics.SolidColor
 
 
 
@@ -1170,7 +1175,6 @@ fun DailyTodoSetupSheet(
     actions: com.safarparmar.app.ui.studyplanner.PlannerActions,
     onDismiss: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
     var taskName by remember { mutableStateOf("") }
     var pendingTodos by remember(plan.id) { mutableStateOf(plan.dailyTodos.orEmpty()) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -1188,67 +1192,100 @@ fun DailyTodoSetupSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
+        dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft) },
         containerColor = PlannerFlatColors.BgCream,
     ) {
+        val isDark = isPlannerDark
+        val accent = PlannerFlatColors.PrimaryAccent
+        val ink = PlannerFlatColors.TextDark
+        val muted = PlannerFlatColors.TextMuted
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "Add daily topics?",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Black,
-                    color = scheme.onSurface,
-                )
-                Text(
-                    text = "Add topics you want to do every day. You'll see them on Home.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurfaceVariant,
-                )
-            }
+            PlanEyebrow("Daily topics")
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Add daily topics?",
+                fontFamily = LoraFontFamily,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Normal,
+                color = ink,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "Add topics you want to do every day. You'll see them on Home.",
+                fontSize = 13.5.sp,
+                color = muted,
+                lineHeight = 20.sp,
+            )
+
+            Spacer(Modifier.height(16.dp))
+            PlanHairline()
+            Spacer(Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                androidx.compose.material3.OutlinedTextField(
-                    value = taskName,
-                    onValueChange = { taskName = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("e.g. Revise vocabulary") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                )
-                IconButton(
-                    onClick = ::addTask,
-                    enabled = taskName.isNotBlank(),
+                Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .background(
-                            color = if (taskName.isNotBlank()) scheme.primary else scheme.surfaceVariant,
-                            shape = RoundedCornerShape(12.dp),
+                        .weight(1f)
+                        .glassSurface(shape = RoundedCornerShape(16.dp), isDarkTheme = isDark)
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                ) {
+                    if (taskName.isEmpty()) {
+                        Text(
+                            text = "e.g. Revise vocabulary",
+                            fontSize = 14.sp,
+                            color = muted,
+                        )
+                    }
+                    BasicTextField(
+                        value = taskName,
+                        onValueChange = { taskName = it },
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 14.sp,
+                            color = ink,
                         ),
+                        cursorBrush = SolidColor(accent),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                GlassButton(
+                    onClick = ::addTask,
+                    accentColor = if (taskName.isNotBlank()) accent else muted,
+                    enabled = taskName.isNotBlank(),
+                    shape = RoundedCornerShape(16.dp),
+                    isDarkTheme = isDark,
+                    contentPadding = PaddingValues(14.dp),
+                    modifier = Modifier.size(52.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add daily to-do topic",
-                        tint = if (taskName.isNotBlank()) scheme.onPrimary else scheme.onSurfaceVariant,
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp),
                     )
                 }
             }
 
+            Spacer(Modifier.height(14.dp))
+
             if (pendingTodos.isEmpty()) {
                 Text(
                     text = "No topics yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    fontSize = 13.sp,
+                    color = muted,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
                     textAlign = TextAlign.Center,
                 )
             } else {
@@ -1262,51 +1299,94 @@ fun DailyTodoSetupSheet(
                         items = pendingTodos,
                         key = { it.id },
                     ) { todo ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = scheme.surfaceVariant.copy(alpha = 0.45f),
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .glassSurface(shape = RoundedCornerShape(14.dp), isDarkTheme = isDark)
+                                .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            Text(
+                                text = todo.name,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f),
+                                color = ink,
+                            )
+                            GlassButton(
+                                onClick = { pendingTodos = pendingTodos - todo },
+                                accentColor = muted,
+                                shape = RoundedCornerShape(12.dp),
+                                isDarkTheme = isDark,
+                                contentPadding = PaddingValues(8.dp),
+                                tintTopAlpha = if (isDark) 0.28f else 0.22f,
+                                tintBottomAlpha = if (isDark) 0.14f else 0.10f,
+                                greyShadeAlpha = 0.08f,
                             ) {
-                                Text(
-                                    text = todo.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.weight(1f),
-                                    color = scheme.onSurface,
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Remove ${todo.name}",
+                                    tint = ink,
+                                    modifier = Modifier.size(16.dp),
                                 )
-                                IconButton(onClick = { pendingTodos = pendingTodos - todo }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Remove,
-                                        contentDescription = "Remove ${todo.name}",
-                                        tint = scheme.error,
-                                    )
-                                }
                             }
                         }
                     }
                 }
             }
 
+            Spacer(Modifier.height(12.dp))
+            PlanHairline()
+            Spacer(Modifier.height(14.dp))
+
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text("Not now")
+                GlassButton(
+                    onClick = onDismiss,
+                    accentColor = muted,
+                    shape = RoundedCornerShape(16.dp),
+                    isDarkTheme = isDark,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                    tintTopAlpha = if (isDark) 0.22f else 0.16f,
+                    tintBottomAlpha = if (isDark) 0.10f else 0.08f,
+                    greyShadeAlpha = if (isDark) 0.18f else 0.12f,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        text = "Not now",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = ink,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                    )
                 }
-                Button(
+                GlassButton(
                     onClick = {
                         actions.updatePlan(
                             com.safarparmar.app.data.remote.api.UpdatePlanRequest(dailyTodos = pendingTodos),
                         )
                         onDismiss()
                     },
+                    accentColor = accent,
+                    shape = RoundedCornerShape(16.dp),
+                    isDarkTheme = isDark,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(if (pendingTodos.isEmpty()) "Continue" else "Save topics")
+                    Text(
+                        text = if (pendingTodos.isEmpty()) "Continue" else "Save topics",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = Color.White,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                    )
                 }
             }
         }

@@ -19,15 +19,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -65,6 +61,7 @@ import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenu
 import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenuItem
 import com.safarparmar.app.ui.studyplanner.components.TopicEffortBars
+import com.safarparmar.app.ui.studyplanner.components.glassSurface
 import com.safarparmar.app.domain.model.studyplanner.TopicSize
 import com.safarparmar.app.ui.studyplanner.logic.NodeProgress
 import com.safarparmar.app.ui.studyplanner.logic.NodeState
@@ -85,7 +82,7 @@ import com.safarparmar.app.ui.theme.LoraFontFamily
  * header, a full-width "Add Subject" button, then one bordered accordion card
  * per subject — a card-on-card list where every subject was the heaviest
  * possible row. These pieces keep every action but read as one flat, scrollable
- * page: one header, one toolbar line, one list, divided only by hairlines.
+ * page: one header, one list, divided only by hairlines.
  */
 
 /**
@@ -103,6 +100,7 @@ internal fun SyllabusMagazineHeader(
     daysUntilExam: Int?,
     notStartedChapters: Int,
     onExamDateClick: () -> Unit,
+    onPlanTitleClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val accent = PlannerFlatColors.PrimaryAccent
@@ -110,6 +108,7 @@ internal fun SyllabusMagazineHeader(
         targetValue = (completionPercent / 100f).coerceIn(0f, 1f),
         label = "syllabusHeaderProgress",
     )
+    var titleOverflows by remember(planTitle) { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -127,12 +126,13 @@ internal fun SyllabusMagazineHeader(
             color = PlannerFlatColors.TextMuted,
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(modifier.height(14.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom,
         ) {
+            // Hard clip (no "…") — tap opens the full name card above the bottom bar.
             Text(
                 text = planTitle,
                 fontFamily = LoraFontFamily,
@@ -140,8 +140,19 @@ internal fun SyllabusMagazineHeader(
                 fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                onTextLayout = { titleOverflows = it.hasVisualOverflow },
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(2.dp))
+                    .then(
+                        if (titleOverflows) {
+                            Modifier.clickable(onClick = onPlanTitleClick)
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
             Spacer(Modifier.width(10.dp))
             Text(
@@ -299,69 +310,47 @@ private fun NodeProgress.stateLabel(): String = when (state) {
 }
 
 /**
- * Slim borderless search row bounded by hairlines instead of a boxed field.
+ * Full exam/plan name card — sits just above the bottom navigation buttons
+ * when a clipped title is tapped.
  */
 @Composable
-internal fun SyllabusMagazineToolbar(
-    searchQuery: String,
-    onSearchChange: (String) -> Unit,
+internal fun SyllabusFullPlanTitleCard(
+    planTitle: String,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = false,
 ) {
-    val accent = PlannerFlatColors.PrimaryAccent
-    Column(modifier = modifier.fillMaxWidth()) {
-        PlanHairline()
-        Row(
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .glassSurface(shape = RoundedCornerShape(16.dp), isDarkTheme = isDarkTheme)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            text = planTitle,
+            fontFamily = LoraFontFamily,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Normal,
+            color = PlannerFlatColors.TextDark,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 46.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .size(28.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
+                imageVector = Icons.Default.Close,
+                contentDescription = "Close",
                 tint = PlannerFlatColors.TextMuted,
                 modifier = Modifier.size(16.dp),
             )
-            Spacer(Modifier.width(8.dp))
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (searchQuery.isEmpty()) {
-                    Text(
-                        text = "Search",
-                        fontSize = 12.5.sp,
-                        color = PlannerFlatColors.TextMuted,
-                        maxLines = 1,
-                    )
-                }
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchChange,
-                    singleLine = true,
-                    textStyle = LocalTextStyle.current.copy(
-                        fontSize = 12.5.sp,
-                        color = PlannerFlatColors.TextDark,
-                    ),
-                    cursorBrush = SolidColor(accent),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (searchQuery.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .clickable { onSearchChange("") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear search",
-                        tint = PlannerFlatColors.TextMuted,
-                        modifier = Modifier.size(14.dp),
-                    )
-                }
-            }
         }
-        PlanHairline()
     }
 }
 

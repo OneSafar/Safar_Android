@@ -51,8 +51,14 @@ import com.safarparmar.app.ui.studyplanner.create.DeepFocusOutlineSubject
 import com.safarparmar.app.ui.theme.isLightBackground
 
 /**
- * Deep Focus's "finish topics in syllabus order" only makes sense if the user can
- * pick that order — this screen lets them drag subjects, chapters, and topics into
+ * The shared "arrange your syllabus" screen, used by BOTH Deep Focus and Balanced.
+ * The two styles collect the same order and differ only in what they do with it:
+ * Deep Focus finishes each subject before starting the next, while Balanced keeps
+ * every subject running daily and uses the order to decide who leads the mix and
+ * which chapters come first. Mixed Bag has its own subject picker instead.
+ *
+ * The order only makes sense if the user can pick it — this screen lets them drag
+ * subjects, chapters, and topics into
  * the sequence they want to study in, drilling down one subject at a time exactly
  * like the live Syllabus screen (subject list → tap → that subject's chapter list →
  * tap a chapter → its topics in a bottom sheet). The drag mechanics on every level

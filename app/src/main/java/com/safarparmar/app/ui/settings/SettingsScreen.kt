@@ -54,7 +54,6 @@ import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.SafarSemanticColors
-import com.safarparmar.app.ui.theme.SafarTheme
 
 private const val URL_PRIVACY_POLICY = "https://safarapp.in/privacy"
 private const val URL_TERMS = "https://safarapp.in/terms"
@@ -137,215 +136,213 @@ fun SettingsScreen(
 
     LaunchedEffect(Unit) { refreshPermissions() }
 
-    SafarTheme(darkTheme = isDarkTheme) {
-        CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
-            SafarDrawerScaffold(
-                title = "Settings",
-                subtitle = null,
-                currentRoute = currentRoute,
-                isDarkTheme = isDarkTheme,
-                onNavigate = onNavigate,
-                onToggleDarkTheme = onToggleDarkTheme,
-                containerColor = SafarSemanticColors.plannerBackground(),
-            ) { paddingValues ->
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp),
-                    ) {
-                        // Main Screen Title Banner
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = "App Settings",
-                                fontFamily = LoraFontFamily,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Normal,
-                                color = PlannerFlatColors.TextDark,
-                            )
-                            Text(
-                                text = "Customize theme, notifications, and permissions",
-                                fontSize = 13.sp,
-                                color = PlannerFlatColors.TextMuted,
-                            )
-                        }
-
-                        // Section Card 1: Account & Subscription
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp),
-                            ) {
-                                SettingsSectionHeader(icon = Icons.Default.WorkspacePremium, title = "Account & Subscription")
-                                PlanHairline(alpha = 0.5f)
-                                PremiumStatusSection(
-                                    isPremiumActive = premiumStatus.hasAnyPaidAccess,
-                                    onExplorePremium = onPremium,
-                                    onRestoreStatus = { premiumViewModel.refreshPremiumStatus() },
-                                )
-                            }
-                        }
-
-                        // Section Card 2: Admin Tools (Conditional)
-                        if (canAccessAdminComposer) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(20.dp),
-                                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                                ) {
-                                    SettingsSectionHeader(icon = Icons.Default.AdminPanelSettings, title = "Admin Tools")
-                                    PlanHairline(alpha = 0.5f)
-                                    SettingsNavigationRow(
-                                        title = "Notification Composer",
-                                        subtitle = "Broadcast push alerts to all enrolled students",
-                                        icon = Icons.Default.AdminPanelSettings,
-                                        onClick = onOpenAdminNotificationComposer,
-                                    )
-                                }
-                            }
-                        }
-
-                        // Section Card 3: Preferences & Theme
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp),
-                            ) {
-                                SettingsSectionHeader(
-                                    icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
-                                    title = "Preferences & Appearance"
-                                )
-                                PlanHairline(alpha = 0.5f)
-                                SettingsSwitchRow(
-                                    title = "Dark Theme",
-                                    subtitle = "Switch between dark and light theme",
-                                    checked = isDarkTheme,
-                                    onCheckedChange = { onToggleDarkTheme() },
-                                    icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
-                                )
-                            }
-                        }
-
-                        // Section Card 4: Study Notifications
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp),
-                            ) {
-                                SettingsSectionHeader(icon = Icons.Default.Notifications, title = "Study Notifications")
-                                PlanHairline(alpha = 0.5f)
-                                NotificationsSection(
-                                    uiState = uiState,
-                                    onEvent = viewModel::onEvent,
-                                    onShowTimePicker = { showTimePickerDialog = true },
-                                )
-                            }
-                        }
-
-                        // Section Card 5: Kavach Permissions
-                        val grantedCount = listOf(hasUsagePermission, hasOverlayPermission, hasNotificationPermission).count { it }
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp),
-                            ) {
-                                SettingsSectionHeader(
-                                    icon = Icons.Default.Security,
-                                    title = "App Permissions ($grantedCount/3)"
-                                )
-                                PlanHairline(alpha = 0.5f)
-                                PermissionsSection(
-                                    hasUsagePermission = hasUsagePermission,
-                                    hasOverlayPermission = hasOverlayPermission,
-                                    hasNotificationPermission = hasNotificationPermission,
-                                    context = context,
-                                )
-                            }
-                        }
-
-                        // Section Card 6: Legal & Info
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp),
-                            ) {
-                                SettingsSectionHeader(icon = Icons.Default.Info, title = "Legal & Information")
-                                PlanHairline(alpha = 0.5f)
-                                LegalSection(
-                                    context = context,
-                                    onShowPermissionInfo = { showPermissionInfoDialog = true },
-                                )
-                            }
-                        }
-
-                        FooterSection()
-
-                        Spacer(Modifier.height(16.dp))
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
+        SafarDrawerScaffold(
+            title = "Settings",
+            subtitle = null,
+            currentRoute = currentRoute,
+            isDarkTheme = isDarkTheme,
+            onNavigate = onNavigate,
+            onToggleDarkTheme = onToggleDarkTheme,
+            containerColor = SafarSemanticColors.plannerBackground(),
+        ) { paddingValues ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    // Main Screen Title Banner
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "App Settings",
+                            fontFamily = LoraFontFamily,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = PlannerFlatColors.TextDark,
+                        )
+                        Text(
+                            text = "Customize theme, notifications, and permissions",
+                            fontSize = 13.sp,
+                            color = PlannerFlatColors.TextMuted,
+                        )
                     }
-                }
 
-                if (showTimePickerDialog) {
-                    val (h, m) = parseReminderTime(uiState.dailyReminderTime)
-                    TimePickerDialog(
-                        initialHour = h,
-                        initialMinute = m,
-                        onDismiss = { showTimePickerDialog = false },
-                        onConfirm = { hour, minute ->
-                            val formatted = String.format("%02d:%02d", hour, minute)
-                            viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(formatted))
-                            showTimePickerDialog = false
-                        },
-                    )
-                }
+                    // Section Card 1: Account & Subscription
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            SettingsSectionHeader(icon = Icons.Default.WorkspacePremium, title = "Account & Subscription")
+                            PlanHairline(alpha = 0.5f)
+                            PremiumStatusSection(
+                                isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                                onExplorePremium = onPremium,
+                                onRestoreStatus = { premiumViewModel.refreshPremiumStatus() },
+                            )
+                        }
+                    }
 
-                if (showPermissionInfoDialog) {
-                    PermissionExplanationDialog(onDismiss = { showPermissionInfoDialog = false })
+                    // Section Card 2: Admin Tools (Conditional)
+                    if (canAccessAdminComposer) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                SettingsSectionHeader(icon = Icons.Default.AdminPanelSettings, title = "Admin Tools")
+                                PlanHairline(alpha = 0.5f)
+                                SettingsNavigationRow(
+                                    title = "Notification Composer",
+                                    subtitle = "Broadcast push alerts to all enrolled students",
+                                    icon = Icons.Default.AdminPanelSettings,
+                                    onClick = onOpenAdminNotificationComposer,
+                                )
+                            }
+                        }
+                    }
+
+                    // Section Card 3: Preferences & Theme
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            SettingsSectionHeader(
+                                icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
+                                title = "Preferences & Appearance"
+                            )
+                            PlanHairline(alpha = 0.5f)
+                            SettingsSwitchRow(
+                                title = "Dark Theme",
+                                subtitle = "Switch between dark and light theme",
+                                checked = isDarkTheme,
+                                onCheckedChange = { onToggleDarkTheme() },
+                                icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
+                            )
+                        }
+                    }
+
+                    // Section Card 4: Study Notifications
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            SettingsSectionHeader(icon = Icons.Default.Notifications, title = "Study Notifications")
+                            PlanHairline(alpha = 0.5f)
+                            NotificationsSection(
+                                uiState = uiState,
+                                onEvent = viewModel::onEvent,
+                                onShowTimePicker = { showTimePickerDialog = true },
+                            )
+                        }
+                    }
+
+                    // Section Card 5: Kavach Permissions
+                    val grantedCount = listOf(hasUsagePermission, hasOverlayPermission, hasNotificationPermission).count { it }
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            SettingsSectionHeader(
+                                icon = Icons.Default.Security,
+                                title = "App Permissions ($grantedCount/3)"
+                            )
+                            PlanHairline(alpha = 0.5f)
+                            PermissionsSection(
+                                hasUsagePermission = hasUsagePermission,
+                                hasOverlayPermission = hasOverlayPermission,
+                                hasNotificationPermission = hasNotificationPermission,
+                                context = context,
+                            )
+                        }
+                    }
+
+                    // Section Card 6: Legal & Info
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            SettingsSectionHeader(icon = Icons.Default.Info, title = "Legal & Information")
+                            PlanHairline(alpha = 0.5f)
+                            LegalSection(
+                                context = context,
+                                onShowPermissionInfo = { showPermissionInfoDialog = true },
+                            )
+                        }
+                    }
+
+                    FooterSection()
+
+                    Spacer(Modifier.height(16.dp))
                 }
+            }
+
+            if (showTimePickerDialog) {
+                val (h, m) = parseReminderTime(uiState.dailyReminderTime)
+                TimePickerDialog(
+                    initialHour = h,
+                    initialMinute = m,
+                    onDismiss = { showTimePickerDialog = false },
+                    onConfirm = { hour, minute ->
+                        val formatted = String.format("%02d:%02d", hour, minute)
+                        viewModel.onEvent(SettingsEvent.UpdateDailyReminderTime(formatted))
+                        showTimePickerDialog = false
+                    },
+                )
+            }
+
+            if (showPermissionInfoDialog) {
+                PermissionExplanationDialog(onDismiss = { showPermissionInfoDialog = false })
             }
         }
     }

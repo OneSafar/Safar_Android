@@ -17,6 +17,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -1103,26 +1104,51 @@ internal fun InsightsFinishLineCard(
                 )
 
                 timeline.daysAfterExam?.let { lateDays ->
-                    Box(
+                    var showLateDetails by remember(lateDays, basedOnRecentPace) { mutableStateOf(false) }
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
                             .background(
                                 FinishLineRed.copy(alpha = if (isLight) 0.10f else 0.16f),
                             )
+                            .clickable { showLateDetails = !showLateDetails }
+                            .animateContentSize()
                             .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = if (basedOnRecentPace) {
-                                "You may finish $lateDays day${if (lateDays == 1) "" else "s"} after the exam"
-                            } else {
-                                "Even at your daily goal, you finish $lateDays day${if (lateDays == 1) "" else "s"} after the exam"
-                            },
+                            text = "You may not finish the whole syllabus before the exam",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = FinishLineRed,
                             lineHeight = 18.sp,
                         )
+                        if (!showLateDetails) {
+                            Text(
+                                text = "Tap to know more",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = FinishLineRed.copy(alpha = 0.78f),
+                            )
+                        }
+                        AnimatedVisibility(
+                            visible = showLateDetails,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically(),
+                        ) {
+                            Text(
+                                text = if (basedOnRecentPace) {
+                                    "At your current study speed, you may finish about $lateDays day${if (lateDays == 1) "" else "s"} after the exam."
+                                } else {
+                                    "Even if you hit your daily goal, you may finish about $lateDays day${if (lateDays == 1) "" else "s"} after the exam."
+                                },
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = FinishLineRed,
+                                lineHeight = 18.sp,
+                            )
+                        }
                     }
                 } ?: run {
                     val aheadDays = if (

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Play-Protect-safe QA manifest. Used ONLY when the build is run with
+    -PstripKavach=true; the normal qa manifest is AndroidManifest.xml.
+
+    Sideloading a debug-signed APK that declares PACKAGE_USAGE_STATS +
+    SYSTEM_ALERT_WINDOW + BIND_NOTIFICATION_LISTENER_SERVICE together makes
+    Play Protect classify it as stalkerware and refuse the install with
+    "App blocked". Removing that trio lets the build install so the rest of
+    the app can be tested.
+
+    KAVACH cannot work in a build made this way — it has no way to see which
+    app is in the foreground and no way to draw over it. It degrades safely
+    (the permission checks simply report "not granted"), it does not crash.
+    Use a normal build to test KAVACH itself.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- The stalkerware-signature permission trio. -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.SYSTEM_ALERT_WINDOW"
+        tools:node="remove" />
+
+    <!-- Special-use foreground service exists only for always-on blocking. -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
+        tools:node="remove" />
+
+    <application>
+        <!-- Reads every notification on the device — the single most flagged
+             component. -->
+        <service
+            android:name=".ui.ekagra.focusshield.FocusShieldNotificationListenerService"
+            tools:node="remove" />
+
+        <!-- Depends on the removed specialUse permission, so it must go too or
+             the merged manifest declares a service it cannot legally start. -->
+        <service
+            android:name=".ui.ekagra.focusshield.KavachAlwaysOnService"
+            tools:node="remove" />
+    </application>
+
+</manifest>

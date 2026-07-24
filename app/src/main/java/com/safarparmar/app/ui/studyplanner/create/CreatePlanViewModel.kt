@@ -620,9 +620,21 @@ class CreatePlanViewModel @Inject constructor(
      */
     fun setStudyStyle(style: String) = _uiState.update {
         when (style) {
-            "deep_focus" -> it.copy(studyStyle = "deep_focus", strategy = "sequential")
+            // Leaving Mixed Bag must drop its chosen subjects. buildPreview
+            // upgrades "interleaved" to "priority_split" whenever they are
+            // non-empty, so a user who tried Mixed Bag and then switched to
+            // Balanced was silently still getting Mixed Bag scheduling.
+            "deep_focus" -> it.copy(
+                studyStyle = "deep_focus",
+                strategy = "sequential",
+                mixedBagPrioritySubjects = null,
+            )
             "mixed_bag" -> it.copy(studyStyle = "mixed_bag", strategy = "interleaved")
-            else -> it.copy(studyStyle = "balanced", strategy = "interleaved")
+            else -> it.copy(
+                studyStyle = "balanced",
+                strategy = "interleaved",
+                mixedBagPrioritySubjects = null,
+            )
         }
     }
     fun setDailyGoal(dailyGoal: String) = _uiState.update { it.copy(dailyGoal = dailyGoal.filter(Char::isDigit).take(2)) }
@@ -717,6 +729,11 @@ class CreatePlanViewModel @Inject constructor(
      *  whatever subjects/chapters/topics are currently active, and resetting the
      *  drill-down position back to the subject list. */
     fun openDeepFocusOrder() {
+        // Nothing to arrange yet (e.g. a template whose detail is still loading).
+        // Opening anyway would store an EMPTY order, and deepFocusOutline() would
+        // then keep returning empty even after the syllabus arrived — a blank
+        // reorder screen the user could not recover from without backing out.
+        if (currentOutline().isEmpty()) return
         _uiState.update { state ->
             val merged = mergeOutlineOrder(
                 currentOutline(),

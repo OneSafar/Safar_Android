@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
@@ -102,7 +101,6 @@ fun SyllabusSubjectsScreen(
     val actions: PlannerActions = viewModel
 
     var dialogState by remember { mutableStateOf<SyllabusDialogState>(SyllabusDialogState.Closed) }
-    var searchQuery by rememberSaveable { mutableStateOf("") }
     var activeSubjectId by rememberSaveable { mutableStateOf<String?>(null) }
     // Hoisted here (rather than owned by the chapter row itself) so the sheet always
     // reads its topic list fresh from the same reactive `localSubjects`/`state` this
@@ -116,9 +114,14 @@ fun SyllabusSubjectsScreen(
     var showNewDatesConfirm by rememberSaveable { mutableStateOf(false) }
     var showChangeHelp by rememberSaveable { mutableStateOf(false) }
     var showPlanSettings by rememberSaveable { mutableStateOf(false) }
+    var showFullPlanTitle by rememberSaveable { mutableStateOf(false) }
 
     BackHandler {
-        if (activeSubjectId != null) activeSubjectId = null else onBack()
+        when {
+            showFullPlanTitle -> showFullPlanTitle = false
+            activeSubjectId != null -> activeSubjectId = null
+            else -> onBack()
+        }
     }
 
     LaunchedEffect(planId) {
@@ -128,18 +131,12 @@ fun SyllabusSubjectsScreen(
     }
 
     val selectedPlan = state.selectedPlan
-    val rawSubjects = selectedPlan?.subjects.orEmpty()
-    var localSubjects by remember(rawSubjects) { mutableStateOf(rawSubjects) }
-
-    fun subjectMatchesQuery(subject: StudySubject, query: String): Boolean {
-        val q = query.lowercase()
-        if (subject.name.lowercase().contains(q)) return true
-        return subject.chapters.any { chapter ->
-            chapter.name.lowercase().contains(q) || chapter.topics.any { it.name.lowercase().contains(q) }
-        }
+    LaunchedEffect(selectedPlan?.title) {
+        showFullPlanTitle = false
     }
 
-
+    val rawSubjects = selectedPlan?.subjects.orEmpty()
+    var localSubjects by remember(rawSubjects) { mutableStateOf(rawSubjects) }
 
     // A comma in the typed name is treated as a bulk add, same as chapters and topics —
     // "Physics, Chemistry, Maths" adds all three subjects in one go. Duplicate-name
@@ -254,11 +251,8 @@ fun SyllabusSubjectsScreen(
     val isTemplatePlan = !selectedPlan?.templateId.isNullOrBlank()
     val shouldShowFullImport = localSubjects.isEmpty() && !isTemplatePlan
 
-    val filteredSubjects = remember(localSubjects, searchQuery) {
-        if (searchQuery.isBlank()) localSubjects
-        else localSubjects.filter { subjectMatchesQuery(it, searchQuery) }
-    }
-    val canReorderSyllabus = searchQuery.isBlank() && !state.mutating
+    val filteredSubjects = localSubjects
+    val canReorderSyllabus = !state.mutating
 
     val buildSchedule: () -> Unit = {
         val pending = state.pendingRebuild
@@ -485,11 +479,20 @@ fun SyllabusSubjectsScreen(
             containerColor = com.safarparmar.app.ui.theme.SafarSemanticColors.plannerBackground(),
             contentWindowInsets = syllabusWindowInsets,
             bottomBar = {
-                if (showBottomBar) {
-                    PlannerBottomBar(
-                        selected = PlannerSection.SYLLABUS,
-                        onSelect = onPlannerSectionSelect,
-                    )
+                Column {
+                    if (showFullPlanTitle) {
+                        SyllabusFullPlanTitleCard(
+                            planTitle = selectedPlan?.title.orEmpty().ifBlank { "Study Plan" },
+                            onDismiss = { showFullPlanTitle = false },
+                            isDarkTheme = isDarkTheme,
+                        )
+                    }
+                    if (showBottomBar) {
+                        PlannerBottomBar(
+                            selected = PlannerSection.SYLLABUS,
+                            onSelect = onPlannerSectionSelect,
+                        )
+                    }
                 }
             },
         ) { padding ->
@@ -535,6 +538,7 @@ fun SyllabusSubjectsScreen(
                                     daysUntilExam = examDays,
                                     notStartedChapters = notStartedChapters,
                                     onExamDateClick = { showPlanSettings = true },
+                                    onPlanTitleClick = { showFullPlanTitle = !showFullPlanTitle },
                                 )
                                 Spacer(Modifier.height(14.dp))
                                 SyllabusChangePlanBand(
@@ -570,10 +574,7 @@ fun SyllabusSubjectsScreen(
                                         },
                                     )
                                 }
-                                SyllabusMagazineToolbar(
-                                    searchQuery = searchQuery,
-                                    onSearchChange = { searchQuery = it },
-                                )
+                                PlanHairline(alpha = 0.6f)
                                 SyllabusMagazineListHeader(
                                     title = "Your subjects",
                                     onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
@@ -588,10 +589,6 @@ fun SyllabusSubjectsScreen(
                                         actionLabel = "+ Add subject",
                                         onAction = { dialogState = SyllabusDialogState.AddSubject },
                                     )
-                                }
-                            } else if (filteredSubjects.isEmpty()) {
-                                item {
-                                    SyllabusMagazineEmptyNote(text = "No matches for \'$searchQuery\'")
                                 }
                             } else {
                                 items(filteredSubjects, key = { it.id }) { subject ->

@@ -79,7 +79,8 @@ fun SafarNavGraph(
     // Sub-screens push normally on top of their feature's own graph.
 
     fun navigate(route: String) {
-        val routeBase = route.substringBefore("?")
+        val resolvedRoute = Routes.normalizeFeatureRoute(route)
+        val routeBase = resolvedRoute.substringBefore("?")
         val currentRouteBase = currentRoute.substringBefore("?")
 
         // Feature root routes that live in the drawer — they each have their own
@@ -153,13 +154,13 @@ fun SafarNavGraph(
                 // A planner/goal launch carries new work chosen by the student.
                 // Restoring Ekagra's old destination here also restores its old
                 // arguments, which can show the previous topic in the End sheet.
-                val isNewEkagraWork = Routes.isContextualEkagraLaunch(route)
-                openFeatureRoot(route, restorePreviousState = !isNewEkagraWork)
+                val isNewEkagraWork = Routes.isContextualEkagraLaunch(resolvedRoute)
+                openFeatureRoot(resolvedRoute, restorePreviousState = !isNewEkagraWork)
             }
 
             // All other sub-screens push on top of the current feature's stack.
             else ->
-                navController.navigate(route) { launchSingleTop = true }
+                navController.navigate(resolvedRoute) { launchSingleTop = true }
         }
         } catch (e: IllegalArgumentException) {
             // Unknown/unregistered route (usually a stale deep link). Ignore rather than crash.
@@ -316,6 +317,17 @@ fun SafarNavGraph(
         // Sub-tabs are managed by FeatureTabBackStack inside NishthaScreen.
         // They are NOT separate nav destinations — this is intentional to avoid
         // the back-stack pollution that previously occurred.
+
+        composable(Routes.NISHTHA) {
+            NishthaScreen(
+                currentRoute = Routes.NISHTHA,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+                initialTab = 0,
+                analyticsInitialSection = "overview",
+            )
+        }
 
         composable(
             route = Routes.NISHTHA_ROUTE,

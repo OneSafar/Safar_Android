@@ -21,4 +21,13 @@ class EkagraContextLaunchTest {
         assertFalse(Routes.isContextualEkagraLaunch(Routes.EKAGRA))
         assertFalse(Routes.isContextualEkagraLaunch("nishtha?tab=4&section=ekagra"))
     }
+
+    @Test
+    fun `plain Nishtha route normalizes to tabbed destination`() {
+        val normalized = Routes.normalizeFeatureRoute(Routes.NISHTHA)
+
+        assertTrue(normalized.startsWith("nishtha?tab=0"))
+        assertTrue(normalized.contains("section=overview"))
+        assertNotEquals(Routes.PROFILE, normalized)
+    }
 }
