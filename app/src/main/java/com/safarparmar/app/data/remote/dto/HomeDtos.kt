@@ -37,6 +37,9 @@ data class GoalDto(
     val importedFromGoal: Boolean? = null,
     @SerializedName("imported_from_goal") val importedFromGoalSnake: Boolean? = null,
     val completedViaFocus: Boolean? = null,
+    /** Only sent by POST /goals/:id/repeat — true when the server returned an
+     *  existing goal instead of creating a duplicate. */
+    val alreadyExisted: Boolean? = null,
     @SerializedName("completed_via_focus") val completedViaFocusSnake: Boolean? = null,
     val goalKind: String? = null,
     @SerializedName("goal_kind") val goalKindSnake: String? = null,
@@ -237,7 +240,12 @@ data class BasicMessageResponse(
     val completedAt: String? = null
 )
 
-data class RepeatPlanResponse(val message: String? = null, val goals: List<GoalDto>? = null)
+data class RepeatPlanResponse(
+    val message: String? = null,
+    val goals: List<GoalDto>? = null,
+    val createdCount: Int? = null,
+    val skippedCount: Int? = null,
+)
 data class RolloverActionResponse(val message: String? = null, val goal: GoalDto? = null)
 data class GoalFocusSummaryResponse(
     val allTime: Map<String, GoalFocusSummaryItemDto>? = null,

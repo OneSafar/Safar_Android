@@ -384,14 +384,26 @@ internal fun OrganizeFreeFocusSheet(
                                             modifier = Modifier.size(15.dp)
                                         )
                                     }
-                                    Text(
-                                        text = goal.title,
-                                        fontSize = 14.sp,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (selected) goalAccent else PlannerFlatColors.TextDark,
-                                        maxLines = 1,
-                                        modifier = Modifier.weight(1f),
-                                    )
+                                    // Nothing stops a student naming two goals the
+                                    // same thing, and linking is irreversible — so
+                                    // never show a bare title they cannot tell apart.
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = goal.title,
+                                            fontSize = 14.sp,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (selected) goalAccent else PlannerFlatColors.TextDark,
+                                            maxLines = 1,
+                                        )
+                                        goalRowSubtitle(goal)?.let { subtitle ->
+                                            Text(
+                                                text = subtitle,
+                                                fontSize = 11.5.sp,
+                                                color = PlannerFlatColors.TextMuted,
+                                                maxLines = 1,
+                                            )
+                                        }
+                                    }
                                 }
                                 if (index < goals.size - 1) {
                                     PlanHairline(alpha = 0.6f)
@@ -527,6 +539,27 @@ private fun ActionPill(
             fontWeight = FontWeight.Bold,
             color = accentColor
         )
+    }
+}
+
+/**
+ * A short line under a goal's title so two goals sharing a name are still
+ * distinguishable — its kind plus, for dated goals, the day it belongs to.
+ * Returns null when there is genuinely nothing extra worth saying.
+ */
+private fun goalRowSubtitle(goal: com.safarparmar.app.domain.model.Goal): String? {
+    val kind = when (goal.goalKind) {
+        "repeat" -> "Repeat"
+        "scheduled" -> "Scheduled"
+        "one_time" -> "One-time"
+        else -> null
+    }
+    val day = goal.scheduledDate?.takeIf { it.isNotBlank() }?.take(10)
+    return when {
+        kind != null && day != null -> "$kind \u00B7 $day"
+        kind != null -> kind
+        day != null -> day
+        else -> null
     }
 }
 

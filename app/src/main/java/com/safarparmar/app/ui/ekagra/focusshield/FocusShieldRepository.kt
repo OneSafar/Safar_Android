@@ -186,6 +186,7 @@ class FocusShieldRepository @Inject constructor(
             if (!enabled) {
                 dataStore.setFocusShieldAlwaysOnMode(false)
                 dataStore.setFocusShieldStrictMode(false)
+                NotificationShieldPrefs.clear(appContext)
                 KavachAlwaysOnPrefs.clear(appContext)
                 appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
             }
@@ -381,4 +382,35 @@ class FocusShieldRepository @Inject constructor(
         @Volatile var packages: Set<String> = emptySet()
         @Volatile var strict: Boolean = false
     }
+}
+
+/**
+ * Notification Shield has a longer lifetime than app blocking in Normal Mode: it remains
+ * active through timer pauses and breaks until that timer session is completed or ended.
+ */
+internal object NotificationShieldPrefs {
+    private const val PREFS_NAME = "kavach_notification_shield"
+    private const val KEY_ACTIVE = "active"
+    private const val KEY_PACKAGES = "packages"
+
+    private fun prefs(context: Context): SharedPreferences =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    fun write(context: Context, packages: Set<String>) {
+        prefs(context).edit()
+            .putBoolean(KEY_ACTIVE, true)
+            .putStringSet(KEY_PACKAGES, packages)
+            .apply()
+    }
+
+    fun clear(context: Context) {
+        prefs(context).edit()
+            .putBoolean(KEY_ACTIVE, false)
+            .putStringSet(KEY_PACKAGES, emptySet())
+            .apply()
+    }
+
+    fun isActive(context: Context): Boolean = prefs(context).getBoolean(KEY_ACTIVE, false)
+    fun packages(context: Context): Set<String> =
+        prefs(context).getStringSet(KEY_PACKAGES, emptySet()) ?: emptySet()
 }

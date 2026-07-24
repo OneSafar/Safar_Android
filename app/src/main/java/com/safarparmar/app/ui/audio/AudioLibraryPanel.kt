@@ -62,25 +62,44 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.isLightBackground
 
-/** Flat-hairline ink for the shared audio library sheet. */
-private object AudioLibraryFlat {
-    val Bg: Color @Composable get() {
-        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
-        return if (dark) Color(0xFF131316) else Color(0xFFFFF9F0)
+/** Visual theme for the shared audio library bottom sheet. */
+enum class AudioLibraryPanelTheme {
+    Default,
+    Dhyan,
+}
+
+private data class AudioLibraryColors(
+    val bg: Color,
+    val text: Color,
+    val muted: Color,
+    val hairline: Color,
+    val accent: Color,
+)
+
+@Composable
+private fun rememberAudioLibraryColors(
+    theme: AudioLibraryPanelTheme,
+    isDarkTheme: Boolean,
+): AudioLibraryColors {
+    return when (theme) {
+        AudioLibraryPanelTheme.Dhyan -> AudioLibraryColors(
+            bg = if (isDarkTheme) Color(0xFF2A1520) else Color(0xFFFFF0F5),
+            text = if (isDarkTheme) Color(0xFFF8FAFC) else Color(0xFF1E1B4B),
+            muted = if (isDarkTheme) Color(0xFFCBD5E1) else Color(0xFF475569),
+            hairline = if (isDarkTheme) Color(0xFF5C3040) else Color(0xFFF5C4D8),
+            accent = if (isDarkTheme) Color(0xFFE86B96) else Color(0xFFF04880),
+        )
+        AudioLibraryPanelTheme.Default -> {
+            val dark = !MaterialTheme.colorScheme.background.isLightBackground()
+            AudioLibraryColors(
+                bg = if (dark) Color(0xFF131316) else Color(0xFFFFF9F0),
+                text = if (dark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B),
+                muted = if (dark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                hairline = if (dark) Color(0xFF3F3F46) else Color(0xFFE2DDF0),
+                accent = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
-    val Text: Color @Composable get() {
-        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
-        return if (dark) Color(0xFFF8FAFC) else Color(0xFF1E1B4B)
-    }
-    val Muted: Color @Composable get() {
-        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
-        return if (dark) Color(0xFFCBD5E1) else Color(0xFF475569)
-    }
-    val Hairline: Color @Composable get() {
-        val dark = !MaterialTheme.colorScheme.background.isLightBackground()
-        return if (dark) Color(0xFF3F3F46) else Color(0xFFE2DDF0)
-    }
-    val Accent @Composable get() = MaterialTheme.colorScheme.primary
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,8 +108,11 @@ fun AudioLibraryPanel(
     selectedTrackId: String,
     onTrackSelect: (AudioTrack) -> Unit,
     onDismiss: () -> Unit,
+    theme: AudioLibraryPanelTheme = AudioLibraryPanelTheme.Default,
+    isDarkTheme: Boolean = false,
 ) {
     val context = LocalContext.current
+    val colors = rememberAudioLibraryColors(theme = theme, isDarkTheme = isDarkTheme)
 
     var selectedCategory by remember { mutableStateOf<AudioCategory?>(null) }
     var previewingTrackId by remember { mutableStateOf<String?>(null) }
@@ -169,10 +191,10 @@ fun AudioLibraryPanel(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = AudioLibraryFlat.Bg,
+        containerColor = colors.bg,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = { BottomSheetDefaults.DragHandle(color = AudioLibraryFlat.Hairline) },
+        dragHandle = { BottomSheetDefaults.DragHandle(color = colors.hairline) },
     ) {
         Column(
             modifier = Modifier
@@ -188,7 +210,7 @@ fun AudioLibraryPanel(
                 fontFamily = LoraFontFamily,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Normal,
-                color = AudioLibraryFlat.Text,
+                color = colors.text,
             )
             Spacer(Modifier.height(16.dp))
 
@@ -206,9 +228,9 @@ fun AudioLibraryPanel(
                             .clip(RoundedCornerShape(10.dp))
                             .then(
                                 if (selected) {
-                                    Modifier.background(AudioLibraryFlat.Accent)
+                                    Modifier.background(colors.accent)
                                 } else {
-                                    Modifier.border(1.dp, AudioLibraryFlat.Hairline, RoundedCornerShape(10.dp))
+                                    Modifier.border(1.dp, colors.hairline, RoundedCornerShape(10.dp))
                                 },
                             )
                             .clickable { selectedCategory = category }
@@ -218,7 +240,7 @@ fun AudioLibraryPanel(
                             label,
                             fontSize = 12.sp,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selected) Color.White else AudioLibraryFlat.Muted,
+                            color = if (selected) Color.White else colors.muted,
                         )
                     }
                 }
@@ -257,21 +279,21 @@ fun AudioLibraryPanel(
                                     .clip(CircleShape)
                                     .background(
                                         if (isSelected) {
-                                            AudioLibraryFlat.Accent.copy(alpha = 0.15f)
+                                            colors.accent.copy(alpha = 0.15f)
                                         } else {
-                                            AudioLibraryFlat.Hairline.copy(alpha = 0.45f)
+                                            colors.hairline.copy(alpha = 0.45f)
                                         },
                                     )
                                     .clickable { playPreview(track) },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 if (isPreviewing) {
-                                    EqualizerAnimation(color = AudioLibraryFlat.Accent)
+                                    EqualizerAnimation(color = colors.accent)
                                 } else {
                                     Icon(
                                         imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayArrow,
                                         contentDescription = "Preview",
-                                        tint = if (isSelected) AudioLibraryFlat.Accent else AudioLibraryFlat.Muted,
+                                        tint = if (isSelected) colors.accent else colors.muted,
                                         modifier = Modifier.size(18.dp),
                                     )
                                 }
@@ -282,13 +304,13 @@ fun AudioLibraryPanel(
                                     text = track.name,
                                     fontSize = 14.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = AudioLibraryFlat.Text,
+                                    color = colors.text,
                                 )
                                 if (track.description != null) {
                                     Text(
                                         text = track.description,
                                         fontSize = 12.sp,
-                                        color = AudioLibraryFlat.Muted,
+                                        color = colors.muted,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.padding(top = 2.dp),
@@ -300,7 +322,7 @@ fun AudioLibraryPanel(
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
-                                    tint = AudioLibraryFlat.Accent,
+                                    tint = colors.accent,
                                     modifier = Modifier.size(18.dp),
                                 )
                             }

@@ -1,6 +1,7 @@
 package com.safarparmar.app.ui.nishtha.journal
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,11 +38,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -118,7 +119,6 @@ private fun JournalScreenContent(
     var promptContext by remember { mutableStateOf<String?>(null) }
     var showJournals by remember { mutableStateOf(false) }
     var selectedJournal by remember { mutableStateOf<JournalEntry?>(null) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val pagerState = rememberPagerState { journalPrompts.size }
     val accent = PlannerFlatColors.PrimaryAccent
     val journalAccent = if (isLight) Color(0xFF0284C7) else Color(0xFF38BDF8)
@@ -138,38 +138,6 @@ private fun JournalScreenContent(
         if (uiState.journalError != null) {
             Toast.makeText(context, uiState.journalError, Toast.LENGTH_SHORT).show()
         }
-    }
-
-    if (showWriteSheet) {
-        JournalWriteSheet(
-            sheetState = sheetState,
-            titleInput = titleInput,
-            onTitleChange = { titleInput = it },
-            bodyInput = bodyInput,
-            onBodyChange = { bodyInput = it },
-            promptContext = promptContext,
-            isSaving = uiState.isSavingJournal,
-            error = uiState.journalError,
-            accent = accent,
-            onDismiss = { showWriteSheet = false },
-            onSave = {
-                val html = buildString {
-                    if (titleInput.isNotBlank()) {
-                        append("<h2>${android.text.TextUtils.htmlEncode(titleInput.trim())}</h2>")
-                    }
-                    append("<p>${android.text.TextUtils.htmlEncode(bodyInput.trim())}</p>")
-                }
-                viewModel.onEvent(NishthaEvent.SaveJournal(html, titleInput.ifBlank { null }, null))
-            },
-        )
-    }
-
-    if (selectedJournal != null) {
-        JournalDetailSheet(
-            entry = selectedJournal!!,
-            accent = accent,
-            onDismiss = { selectedJournal = null },
-        )
     }
 
     Box(
@@ -324,6 +292,37 @@ private fun JournalScreenContent(
                 contentDescription = "New entry",
                 tint = Color.White,
                 modifier = Modifier.size(26.dp),
+            )
+        }
+
+        if (showWriteSheet) {
+            JournalWriteSheet(
+                titleInput = titleInput,
+                onTitleChange = { titleInput = it },
+                bodyInput = bodyInput,
+                onBodyChange = { bodyInput = it },
+                promptContext = promptContext,
+                isSaving = uiState.isSavingJournal,
+                error = uiState.journalError,
+                accent = accent,
+                onDismiss = { showWriteSheet = false },
+                onSave = {
+                    val html = buildString {
+                        if (titleInput.isNotBlank()) {
+                            append("<h2>${android.text.TextUtils.htmlEncode(titleInput.trim())}</h2>")
+                        }
+                        append("<p>${android.text.TextUtils.htmlEncode(bodyInput.trim())}</p>")
+                    }
+                    viewModel.onEvent(NishthaEvent.SaveJournal(html, titleInput.ifBlank { null }, null))
+                },
+            )
+        }
+
+        if (selectedJournal != null) {
+            JournalDetailSheet(
+                entry = selectedJournal!!,
+                accent = accent,
+                onDismiss = { selectedJournal = null },
             )
         }
     }
@@ -569,10 +568,60 @@ private fun JournalGlassCard(
 
 // ─── Flat hairline sheets ────────────────────────────────────────────────────
 
+/**
+ * In-tab bottom sheet so Nishtha's floating bottom nav stays visible.
+ * [ModalBottomSheet] renders in its own window and covers the tab bar.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun JournalInlineSheetScaffold(
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    BackHandler(onBack = onDismiss)
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.38f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismiss,
+                ),
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(0.92f)
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(PlannerFlatColors.BgCream)
+                .imePadding(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp, bottom = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft)
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 24.dp),
+                content = content,
+            )
+        }
+    }
+}
+
+@Composable
 private fun JournalWriteSheet(
-    sheetState: androidx.compose.material3.SheetState,
     titleInput: String,
     onTitleChange: (String) -> Unit,
     bodyInput: String,
@@ -584,131 +633,113 @@ private fun JournalWriteSheet(
     onDismiss: () -> Unit,
     onSave: () -> Unit,
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = PlannerFlatColors.BgCream,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft)
-        },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 40.dp)
-                .imePadding(),
-        ) {
-            PlanEyebrow("Journal")
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = "New Entry",
-                fontFamily = LoraFontFamily,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark,
-            )
-            Spacer(Modifier.height(14.dp))
-            PlanHairline()
-            Spacer(Modifier.height(16.dp))
+    JournalInlineSheetScaffold(onDismiss = onDismiss) {
+        PlanEyebrow("Journal")
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = "New Entry",
+            fontFamily = LoraFontFamily,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Normal,
+            color = PlannerFlatColors.TextDark,
+        )
+        Spacer(Modifier.height(14.dp))
+        PlanHairline()
+        Spacer(Modifier.height(16.dp))
 
-            if (promptContext != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_sparkle),
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = accent,
-                    )
-                    Text(
-                        promptContext,
-                        fontSize = 13.sp,
-                        color = accent,
-                        fontStyle = FontStyle.Italic,
-                        lineHeight = 19.sp,
-                    )
-                }
-                Spacer(Modifier.height(16.dp))
-                PlanHairline(alpha = 0.5f)
-                Spacer(Modifier.height(16.dp))
+        if (promptContext != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_sparkle),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = accent,
+                )
+                Text(
+                    promptContext,
+                    fontSize = 13.sp,
+                    color = accent,
+                    fontStyle = FontStyle.Italic,
+                    lineHeight = 19.sp,
+                )
             }
-
-            Text(
-                "Title",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = PlannerFlatColors.TextDark,
-            )
-            Spacer(Modifier.height(8.dp))
-            FlatJournalField(
-                value = titleInput,
-                onValueChange = onTitleChange,
-                placeholder = "Give your entry a title...",
-                accent = accent,
-                singleLine = true,
-            )
-
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
             PlanHairline(alpha = 0.5f)
             Spacer(Modifier.height(16.dp))
+        }
 
-            Text(
-                "What's on your mind?",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = PlannerFlatColors.TextDark,
+        Text(
+            "Title",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = PlannerFlatColors.TextDark,
+        )
+        Spacer(Modifier.height(8.dp))
+        FlatJournalField(
+            value = titleInput,
+            onValueChange = onTitleChange,
+            placeholder = "Give your entry a title...",
+            accent = accent,
+            singleLine = true,
+        )
+
+        Spacer(Modifier.height(18.dp))
+        PlanHairline(alpha = 0.5f)
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            "What's on your mind?",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = PlannerFlatColors.TextDark,
+        )
+        Spacer(Modifier.height(8.dp))
+        FlatJournalField(
+            value = bodyInput,
+            onValueChange = onBodyChange,
+            placeholder = "Start writing...",
+            accent = accent,
+            singleLine = false,
+            minHeight = 160.dp,
+            minLines = 5,
+        )
+
+        if (error != null) {
+            Spacer(Modifier.height(10.dp))
+            Text(error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+        }
+
+        Spacer(Modifier.height(22.dp))
+        PlanHairline()
+        Spacer(Modifier.height(16.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            FlatSecondaryButton(
+                label = "Cancel",
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.height(8.dp))
-            FlatJournalField(
-                value = bodyInput,
-                onValueChange = onBodyChange,
-                placeholder = "Start writing...",
+            FlatPrimaryButton(
+                label = "Save Entry",
+                enabled = bodyInput.isNotBlank() && !isSaving,
+                loading = isSaving,
                 accent = accent,
-                singleLine = false,
-                minHeight = 160.dp,
-                minLines = 5,
+                onClick = onSave,
+                modifier = Modifier.weight(1f),
             )
-
-            if (error != null) {
-                Spacer(Modifier.height(10.dp))
-                Text(error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-            }
-
-            Spacer(Modifier.height(22.dp))
-            PlanHairline()
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                FlatSecondaryButton(
-                    label = "Cancel",
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                )
-                FlatPrimaryButton(
-                    label = "Save Entry",
-                    enabled = bodyInput.isNotBlank() && !isSaving,
-                    loading = isSaving,
-                    accent = accent,
-                    onClick = onSave,
-                    modifier = Modifier.weight(1f),
-                )
-            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun JournalDetailSheet(
     entry: JournalEntry,
@@ -721,61 +752,45 @@ private fun JournalDetailSheet(
         journalPlainText(entry.content.replace(Regex("<h[23]>.*?</h[23]>"), ""))
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = PlannerFlatColors.BgCream,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft)
-        },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 40.dp, top = 4.dp),
-        ) {
-            PlanEyebrow("Entry")
-            Spacer(Modifier.height(10.dp))
+    JournalInlineSheetScaffold(onDismiss = onDismiss) {
+        PlanEyebrow("Entry")
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = dateStr,
+            fontSize = 13.sp,
+            color = accent,
+            fontWeight = FontWeight.Medium,
+        )
+        if (title != null) {
+            Spacer(Modifier.height(8.dp))
             Text(
-                text = dateStr,
-                fontSize = 13.sp,
-                color = accent,
-                fontWeight = FontWeight.Medium,
-            )
-            if (title != null) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = title,
-                    fontFamily = LoraFontFamily,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = PlannerFlatColors.TextDark,
-                )
-            }
-            Spacer(Modifier.height(14.dp))
-            PlanHairline()
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = body,
-                fontSize = 15.sp,
+                text = title,
+                fontFamily = LoraFontFamily,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Normal,
                 color = PlannerFlatColors.TextDark,
-                lineHeight = 24.sp,
-            )
-            Spacer(Modifier.height(24.dp))
-            PlanHairline()
-            Spacer(Modifier.height(16.dp))
-            FlatPrimaryButton(
-                label = "Close",
-                enabled = true,
-                loading = false,
-                accent = accent,
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
             )
         }
+        Spacer(Modifier.height(14.dp))
+        PlanHairline()
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = body,
+            fontSize = 15.sp,
+            color = PlannerFlatColors.TextDark,
+            lineHeight = 24.sp,
+        )
+        Spacer(Modifier.height(24.dp))
+        PlanHairline()
+        Spacer(Modifier.height(16.dp))
+        FlatPrimaryButton(
+            label = "Close",
+            enabled = true,
+            loading = false,
+            accent = accent,
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -141,7 +142,7 @@ private val DhyanContentHorizontal = 20.dp
 /** Opaque macOS Control Center panel for tappable content tiles. */
 private fun Modifier.dhyanMacOSPanel(
     isLight: Boolean,
-    shape: RoundedCornerShape = DhyanGlassShape,
+    shape: Shape = DhyanGlassShape,
 ): Modifier {
     val body = DhyanFlatColors.glassBody(isLight)
     val borderBrush = if (isLight) {
@@ -410,6 +411,10 @@ private fun DhyanControlButton(
 ) {
     val isLight = !isDarkTheme
     val pink = DhyanColors.actionPink(isDarkTheme)
+    val controlShape: Shape = when (style) {
+        DhyanControlStyle.Play -> DhyanControlShape
+        DhyanControlStyle.Reset, DhyanControlStyle.Volume -> CircleShape
+    }
     val playBorder = if (isLight) {
         Brush.verticalGradient(listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6)))
     } else {
@@ -425,14 +430,14 @@ private fun DhyanControlButton(
                     DhyanControlStyle.Play -> Modifier
                         .shadow(
                             elevation = if (isLight) 4.dp else 12.dp,
-                            shape = DhyanControlShape,
+                            shape = controlShape,
                             spotColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f),
                             ambientColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f),
                         )
-                        .clip(DhyanControlShape)
+                        .clip(controlShape)
                         .background(pink)
-                        .border(width = 0.5.dp, brush = playBorder, shape = DhyanControlShape)
-                    else -> Modifier.dhyanMacOSPanel(isLight = isLight, shape = DhyanControlShape)
+                        .border(width = 0.5.dp, brush = playBorder, shape = controlShape)
+                    else -> Modifier.dhyanMacOSPanel(isLight = isLight, shape = controlShape)
                 },
             )
             .clickable(onClick = onClick),
@@ -593,7 +598,9 @@ fun DhyanScreen(
                     activeAudioSource = DhyanAudioSource.MUSIC
                     com.safarparmar.app.ui.audio.AudioLibrary.persistTrackId(context, it.id)
                 },
-                onDismiss = { showAudioLibraryPanel = false }
+                onDismiss = { showAudioLibraryPanel = false },
+                theme = com.safarparmar.app.ui.audio.AudioLibraryPanelTheme.Dhyan,
+                isDarkTheme = isDarkTheme,
             )
         }
 

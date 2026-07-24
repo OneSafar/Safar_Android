@@ -607,8 +607,16 @@ fun EkagraScreen(
                 val scheduled = goal.scheduledDate?.takeIf { it.isNotBlank() }
                     ?: return@run true  // no date = timeless goal, always include
                 if (goal.status == "in_progress") return@run true // carry-forward, always include
+                val day = scheduled.take(10)
+                // A goal scheduled for a FUTURE day is dormant — the Goals screen
+                // files it under "Upcoming", not "Pending". The old check had no
+                // upper bound (`>= sevenDaysAgo` is true for every future date), so
+                // upcoming goals leaked in here and the link list showed MORE goals
+                // than the Goals screen listed as pending. With several goals sharing
+                // a title that read as duplicates.
+                if (day > todayKey) return@run false
                 // scheduled >= 7 days ago means it is still recent enough to be relevant
-                scheduled.take(10) >= sevenDaysAgoKey
+                day >= sevenDaysAgoKey
             }
         }
     }

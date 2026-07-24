@@ -303,6 +303,7 @@ fun CreatePlanScreen(
                             viewModel.discardDraft()
                             viewModel.goToStep(CreatePlanStep.PlanSettings)
                         },
+                        onRenameTopic = viewModel::renameDraftTopic,
                         modifier = Modifier.padding(padding),
                     )
                 }

@@ -75,6 +75,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.draw.rotate
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.core.animateFloatAsState
 
 private val dayFormatter = DateTimeFormatter.ofPattern("MMM d")
 
@@ -118,6 +126,7 @@ fun PlanPreviewStep(
     onConfirm: () -> Unit,
     onAdjust: () -> Unit,
     onScheduleAnyway: (() -> Unit)?,
+    onRenameTopic: (topicId: String, newName: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val weeks = remember(preview) { buildWeeks(preview) }
@@ -130,6 +139,14 @@ fun PlanPreviewStep(
     val accent = PlannerFlatColors.PrimaryAccent
 
     var weekIndex by remember(weeks) { mutableIntStateOf(0) }
+
+    // Days start collapsed so a whole week fits without scrolling. A SET, not a
+    // single index, so opening one day never closes another — the student can line
+    // two days up side by side.
+    val expandedDays = remember(weeks) { mutableStateListOf<String>() }
+    // Long-press target for the rename dialog. The pen icon was dropped for space,
+    // so press-and-hold on the row is the entry point now.
+    var renameTarget by remember { mutableStateOf<CalendarTopicItem?>(null) }
     val week = weeks.getOrNull(weekIndex)
 
     Column(
@@ -275,12 +292,20 @@ fun PlanPreviewStep(
                 // Maths / Tuesday: rest / Wednesday: …" in one scroll — the way a
                 // real timetable reads — instead of tapping through seven days.
                 week.days.forEach { (date, dayTopics) ->
+                    val dateKey = date.toString()
                     item(key = "dayhead_$date") {
                         DayHeader(
                             date = date,
                             topicCount = dayTopics.size,
                             load = dayLoadOf(dayTopics, goal),
                             scheme = scheme,
+                            expanded = dateKey in expandedDays,
+                            onToggle = if (dayTopics.isEmpty()) null else {
+                                {
+                                    if (dateKey in expandedDays) expandedDays.remove(dateKey)
+                                    else expandedDays.add(dateKey)
+                                }
+                            },
                         )
                     }
                     if (dayTopics.isEmpty()) {
@@ -292,9 +317,13 @@ fun PlanPreviewStep(
                                 modifier = Modifier.padding(start = 16.dp, top = 2.dp, bottom = 2.dp),
                             )
                         }
-                    } else {
+                    } else if (dateKey in expandedDays) {
                         items(dayTopics, key = { "${date}_${it.topicId}" }) { topic ->
-                            TopicPill(topic = topic, scheme = scheme)
+                            TopicPill(
+                                topic = topic,
+                                scheme = scheme,
+                                onLongPress = { renameTarget = topic },
+                            )
                         }
                     }
                 }
@@ -357,6 +386,35 @@ fun PlanPreviewStep(
                 modifier = Modifier.weight(1.2f),
             )
         }
+    }
+
+    renameTarget?.let { target ->
+        var draft by remember(target.topicId) { mutableStateOf(target.topicName) }
+        AlertDialog(
+            onDismissRequest = { renameTarget = null },
+            title = { Text("Rename topic") },
+            text = {
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    singleLine = true,
+                    label = { Text("Topic name") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = draft.isNotBlank() && draft.trim() != target.topicName,
+                    onClick = {
+                        onRenameTopic(target.topicId, draft.trim())
+                        renameTarget = null
+                    },
+                ) { Text("Save", color = accent) }
+            },
+            dismissButton = {
+                TextButton(onClick = { renameTarget = null }) { Text("Cancel") }
+            },
+        )
     }
 }
 
@@ -425,6 +483,9 @@ private fun DayHeader(
     topicCount: Int,
     load: DayLoad,
     scheme: androidx.compose.material3.ColorScheme,
+    expanded: Boolean = false,
+    /** Null on rest days — there is nothing to open. */
+    onToggle: (() -> Unit)? = null,
 ) {
     val loadColor = when (load) {
         DayLoad.REST -> scheme.onSurfaceVariant
@@ -440,7 +501,10 @@ private fun DayHeader(
         PlanHairline(alpha = 0.6f)
         Spacer(Modifier.height(8.dp))
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (onToggle != null) Modifier.clickable { onToggle() } else Modifier)
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -472,21 +536,51 @@ private fun DayHeader(
                     fontWeight = FontWeight.SemiBold,
                     color = loadColor,
                 )
+                if (onToggle != null) {
+                    val rotation by animateFloatAsState(
+                        targetValue = if (expanded) 180f else 0f,
+                        label = "dayChevron",
+                    )
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (expanded) "Hide topics" else "Show topics",
+                        tint = scheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp).rotate(rotation),
+                    )
+                }
             }
         }
         Spacer(Modifier.height(4.dp))
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TopicPill(
     topic: CalendarTopicItem,
     scheme: androidx.compose.material3.ColorScheme,
+    /** Press-and-hold to rename. Replaces the old pen icon, which no longer fits
+     *  the row now that subject, chapter and effort all share it. */
+    onLongPress: (() -> Unit)? = null,
 ) {
 
+    val haptics = LocalHapticFeedback.current
     Column {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (onLongPress != null) {
+                        Modifier.combinedClickable(
+                            onClick = {},
+                            onLongClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onLongPress()
+                            },
+                        )
+                    } else Modifier,
+                )
+                .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // The dot carries the SUBJECT, not the size. Subject is the thing a

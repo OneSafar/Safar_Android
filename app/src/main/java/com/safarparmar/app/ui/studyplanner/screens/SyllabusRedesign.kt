@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
@@ -62,6 +63,7 @@ import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenu
 import com.safarparmar.app.ui.studyplanner.components.PlannerOverflowMenuItem
 import com.safarparmar.app.ui.studyplanner.components.TopicEffortBars
 import com.safarparmar.app.ui.studyplanner.components.glassSurface
+import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
 import com.safarparmar.app.domain.model.studyplanner.TopicSize
 import com.safarparmar.app.ui.studyplanner.logic.NodeProgress
 import com.safarparmar.app.ui.studyplanner.logic.NodeState
@@ -500,20 +502,44 @@ internal fun SyllabusCourseMapNudge(
     }
 }
 
-/** "Your subjects" on the left, with a full-height Add Subject touch target. */
+/** macOS translucent circled "+" — shared Add control for subjects / chapters / topics. */
+@Composable
+internal fun SyllabusGlassAddButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "Add",
+) {
+    val isDark = isPlannerDark
+    Box(
+        modifier = modifier
+            .size(36.dp)
+            .glassSurface(shape = CircleShape, isDarkTheme = isDark)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = contentDescription,
+            tint = PlannerFlatColors.PrimaryAccent,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+/** "Your subjects" on the left, with a glass circled "+" add control. */
 @Composable
 internal fun SyllabusMagazineListHeader(
     title: String,
     onAddSubject: () -> Unit,
     modifier: Modifier = Modifier,
-    addLabel: String = "Add Subject",
+    addContentDescription: String = "Add",
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         PlanHairline(alpha = 0.55f)
         Spacer(Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = title,
@@ -525,22 +551,10 @@ internal fun SyllabusMagazineListHeader(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Box(
-                modifier = Modifier
-                    .heightIn(min = 40.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .border(0.5.dp, PlannerFlatColors.PrimaryAccent.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                    .clickable(onClick = onAddSubject)
-                    .padding(horizontal = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = addLabel,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.PrimaryAccent,
-                )
-            }
+            SyllabusGlassAddButton(
+                onClick = onAddSubject,
+                contentDescription = addContentDescription,
+            )
         }
     }
 }
@@ -775,7 +789,7 @@ internal fun SyllabusMagazineChapterHeader(
         SyllabusMagazineListHeader(
             title = "Chapters",
             onAddSubject = onAddChapter,
-            addLabel = "+ Add chapter",
+            addContentDescription = "Add chapter",
         )
         Spacer(Modifier.height(6.dp))
     }
@@ -1178,14 +1192,11 @@ internal fun SyllabusMagazineEmptyNote(
             fontSize = 13.sp,
             color = PlannerFlatColors.TextMuted,
         )
-        if (actionLabel != null && onAction != null) {
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = actionLabel,
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = PlannerFlatColors.PrimaryAccent,
-                modifier = Modifier.clickable(onClick = onAction),
+        if (onAction != null) {
+            Spacer(Modifier.height(14.dp))
+            SyllabusGlassAddButton(
+                onClick = onAction,
+                contentDescription = actionLabel ?: "Add",
             )
         }
     }

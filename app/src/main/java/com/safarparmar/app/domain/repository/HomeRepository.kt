@@ -44,6 +44,10 @@ interface HomeRepository {
     suspend fun completeGoal(id: String, studiedMinutes: Int): Resource<Unit>
     suspend fun deleteGoal(id: String): Resource<Unit>
     suspend fun repeatGoal(id: String, scheduledDate: String): Resource<Goal>
+
+    /** Copies several goals onto today in one write. The server skips any that are
+     *  already present, so this is safe to call twice. */
+    suspend fun repeatGoals(goalIds: List<String>): Resource<RepeatPlanResult>
     suspend fun getRolloverPrompts(): Resource<List<Goal>>
     suspend fun respondToRollover(id: String, action: String): Resource<GoalRolloverResult>
     suspend fun getGoalFocusSummary(goalIds: List<String>, dayKey: String?): Resource<GoalFocusSummary>

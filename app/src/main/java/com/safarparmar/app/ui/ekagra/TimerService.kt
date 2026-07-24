@@ -34,6 +34,7 @@ import com.safarparmar.app.notifications.SafarNotificationManager
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
+import com.safarparmar.app.ui.ekagra.focusshield.NotificationShieldPrefs
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -109,13 +110,40 @@ class TimerService : Service() {
             if (!prefs.getBoolean(KEY_HAS_STATE, false)) return false
             if (!prefs.getBoolean(KEY_IS_RUNNING, false)) return false
             val modeStr = prefs.getString(KEY_MODE, TimerMode.FOCUS.name)
-            if (modeStr != TimerMode.FOCUS.name && modeStr != TimerMode.STOPWATCH.name) return false
+            if (
+                modeStr != TimerMode.FOCUS.name &&
+                modeStr != TimerMode.STOPWATCH.name &&
+                modeStr != TimerMode.POMODORO.name
+            ) return false
+
+            if (modeStr == TimerMode.STOPWATCH.name) return true
 
             val total = prefs.getInt(KEY_TOTAL_SECONDS, 25 * 60).coerceAtLeast(1)
             val savedRemaining = prefs.getInt(KEY_REMAINING_SECONDS, total).coerceIn(0, total)
             val savedAtMs = prefs.getLong(KEY_SAVED_AT_MS, System.currentTimeMillis())
             val elapsed = ((System.currentTimeMillis() - savedAtMs) / 1000L).toInt().coerceAtLeast(0)
             return savedRemaining - elapsed > 0
+        }
+
+        /** Notification Shield remains active through every focus, break, and paused period. */
+        fun isKavachNotificationSuppressionActive(context: Context): Boolean {
+            val prefs = context.getSharedPreferences(TIMER_STATE_PREFS, Context.MODE_PRIVATE)
+            if (!prefs.getBoolean(KEY_HAS_STATE, false)) return false
+
+            val modeStr = prefs.getString(KEY_MODE, TimerMode.FOCUS.name)
+            val isBreak = modeStr == TimerMode.BREAK.name
+            val isFocusPeriod = modeStr == TimerMode.FOCUS.name ||
+                modeStr == TimerMode.STOPWATCH.name ||
+                modeStr == TimerMode.POMODORO.name
+            if (!isFocusPeriod && !isBreak) return false
+            if (prefs.getBoolean(KEY_IS_RUNNING, false) && modeStr != TimerMode.STOPWATCH.name) {
+                val total = prefs.getInt(KEY_TOTAL_SECONDS, 25 * 60).coerceAtLeast(1)
+                val savedRemaining = prefs.getInt(KEY_REMAINING_SECONDS, total).coerceIn(0, total)
+                val savedAtMs = prefs.getLong(KEY_SAVED_AT_MS, System.currentTimeMillis())
+                val elapsed = ((System.currentTimeMillis() - savedAtMs) / 1000L).toInt().coerceAtLeast(0)
+                if (savedRemaining - elapsed <= 0) return false
+            }
+            return true
         }
     }
 
@@ -273,18 +301,18 @@ class TimerService : Service() {
     }
 
     private fun activateFocusShieldFromSettingsIfNeeded() {
-        if (_timerMode.value != TimerMode.FOCUS && _timerMode.value != TimerMode.STOPWATCH) {
-            disableFocusShieldForSession()
-            return
-        }
-
         shieldActivationJob?.cancel()
         shieldActivationJob = scope.launch {
             val enabled = safarDataStore.focusShieldEnabled.first()
             val packages = safarDataStore.focusShieldBlockedPackages.first()
             val strict = safarDataStore.focusShieldStrictMode.first()
+            val isFocusPeriod = _timerMode.value == TimerMode.FOCUS ||
+                _timerMode.value == TimerMode.STOPWATCH ||
+                _timerMode.value == TimerMode.POMODORO
+            // Beast Mode intentionally continues through breaks; Normal Mode does not.
+            val shouldBlockInCurrentPeriod = isFocusPeriod || strict
 
-            if (enabled && packages.isNotEmpty()) {
+            if (timerSessionActive && enabled && packages.isNotEmpty() && shouldBlockInCurrentPeriod) {
                 debugFocusShield("TimerService.start() activating from persisted settings: ${packages.size} packages")
                 setFocusShieldConfig(packages = packages, strict = strict)
                 enableFocusShieldForSession()
@@ -440,7 +468,7 @@ class TimerService : Service() {
             packageName == "com.android.settings"
 
     private suspend fun syncFocusShieldState() {
-        if ((_timerMode.value != TimerMode.FOCUS && _timerMode.value != TimerMode.STOPWATCH) || !timerSessionActive) {
+        if (!timerSessionActive) {
             disableFocusShieldForSession()
             return
         }
@@ -448,10 +476,16 @@ class TimerService : Service() {
         val enabled = safarDataStore.focusShieldEnabled.first()
         val packages = safarDataStore.focusShieldBlockedPackages.first()
         val strict = safarDataStore.focusShieldStrictMode.first()
+        val isFocusPeriod = _timerMode.value == TimerMode.FOCUS ||
+            _timerMode.value == TimerMode.STOPWATCH ||
+            _timerMode.value == TimerMode.POMODORO
+        // Normal Mode releases selected apps during a break. Beast Mode keeps them blocked.
+        val shouldBlockInCurrentPeriod = isFocusPeriod || strict
 
         if (
             !enabled ||
             packages.isEmpty() ||
+            !shouldBlockInCurrentPeriod ||
             !FocusShieldPermissionHelper.hasUsageStatsPermission(this) ||
             !FocusShieldPermissionHelper.hasOverlayPermission(this)
         ) {
@@ -998,6 +1032,7 @@ class TimerService : Service() {
         }
 
         activateFocusShieldFromSettingsIfNeeded()
+        syncNotificationShieldForTimerSession()
         startFocusShieldMonitor()
         startMusic(currentMusicUrl)
         lastTickElapsedMs = SystemClock.elapsedRealtime()
@@ -1047,6 +1082,10 @@ class TimerService : Service() {
                     _isRunning.value = false
                     persistTimerState()
                     releaseMusic()
+                    // A manually started break has ended. Do not leave Beast Mode's
+                    // break protection marked active while the restored focus timer is paused.
+                    disableFocusShieldForSession()
+                    stopFocusShieldMonitor()
                     updateNotification()
                     return@launch
                 }
@@ -1080,6 +1119,9 @@ class TimerService : Service() {
                             _totalSeconds.value = pomodoroFocusSeconds
                             _secondsLeft.value = pomodoroFocusSeconds
                             persistTimerState()
+                            // The visible timer is reset for the next session, but this
+                            // Pomodoro set is complete so Notification Shield must end here.
+                            NotificationShieldPrefs.clear(this@TimerService)
                             return@launch
                         }
 
@@ -1210,6 +1252,18 @@ class TimerService : Service() {
         stopForegroundCompat()
         getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
         stopSelf()
+    }
+
+    private fun syncNotificationShieldForTimerSession() {
+        scope.launch {
+            val enabled = safarDataStore.focusShieldEnabled.first()
+            val packages = safarDataStore.focusShieldBlockedPackages.first()
+            if (enabled && packages.isNotEmpty()) {
+                NotificationShieldPrefs.write(this@TimerService, packages)
+            } else {
+                NotificationShieldPrefs.clear(this@TimerService)
+            }
+        }
     }
 
     private fun timerStatePrefs(): SharedPreferences =

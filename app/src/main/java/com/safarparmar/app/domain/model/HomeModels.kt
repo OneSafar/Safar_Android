@@ -29,6 +29,9 @@ data class Goal(
     val source: String = "manual",
     val importedFromGoal: Boolean = false,
     val completedViaFocus: Boolean = false,
+    /** True when a repeat request was deduped to an existing goal. Transient —
+     *  only meaningful on the response to POST /goals/:id/repeat. */
+    val alreadyExisted: Boolean = false,
     val goalKind: String = "today",
     val unitType: String = "binary",
     val executionMode: String = "manual",
@@ -83,7 +86,11 @@ data class GoalRolloverResult(
 @Immutable
 data class RepeatPlanResult(
     val message: String = "",
-    val goals: List<Goal> = emptyList()
+    val goals: List<Goal> = emptyList(),
+    /** How many copies were actually made, and how many were skipped because the
+     *  goal was already on today's list. */
+    val createdCount: Int = 0,
+    val skippedCount: Int = 0,
 )
 
 @Immutable

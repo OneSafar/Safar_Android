@@ -87,14 +87,26 @@ internal fun GoalsTab(
                 !it.isDormant(todayKey)
         }
         .sortedBy { it.startedAt ?: it.createdAt ?: it.scheduledDate ?: "" }
-    val scheduled = goals
-        .filter { !it.completed && it.isDormant(todayKey) }
+    // Mirror the Pending exclusions. This read from the raw `goals` list, so the
+    // Upcoming tab was the one place that still showed Ekagra-internal tasks
+    // (source == "ekagra") and abandoned / rolled-over goals.
+    val scheduled = standardGoals
+        .filter {
+            !it.completed && it.isDormant(todayKey) &&
+                it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
+                !(it.lifecycleStatus == "missed" && it.nextInstanceCreated)
+        }
         .sortedBy { it.scheduledDate ?: "" }
     val completed = standardGoals.filter { it.completed }.sortedByDescending { it.completedAt ?: it.createdAt ?: "" }
     val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
     val todayManualGoals = standardGoals.filter { !it.completedViaFocus && it.anchorDateKey() == todayKey }
-    val doneToday = manualCompletedGoals.count { it.completedDateKey() == todayKey }
-    val completionRate = if (standardGoals.isNotEmpty()) (manualCompletedGoals.size * 100 / standardGoals.size) else 0
+    // Count every completion, however it happened — a goal finished through a
+    // linked Ekagra session is still a goal the student completed. Only the
+    // MINUTES below stay manual-only, because focus minutes are summed
+    // separately from ekagraAnalytics and would otherwise be double counted.
+    val allCompletedGoals = standardGoals.filter { it.isCompletedForStats() }
+    val doneToday = allCompletedGoals.count { it.completedDateKey() == todayKey }
+    val completionRate = if (standardGoals.isNotEmpty()) (allCompletedGoals.size * 100 / standardGoals.size) else 0
     val dailyProgress = if (todayManualGoals.isNotEmpty()) {
         (todayManualGoals.count { it.isCompletedForStats() } * 100 / todayManualGoals.size)
     } else {
@@ -171,7 +183,7 @@ internal fun GoalsTab(
                 if (scheduled.isNotEmpty()) {
                     item { FlatSectionEyebrow("Scheduled · ${scheduled.size} tasks") }
                     itemsIndexed(scheduled, key = { _, g -> "scheduled-${g.id}" }) { index, goal ->
-                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) }, onRepeat = { onRepeat(goal) })
+                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) }, onRepeat = { onRepeat(goal) }, canRepeat = false)
                         if (index < scheduled.lastIndex) PlanHairline(alpha = 0.5f)
                     }
                 } else {
@@ -358,6 +370,9 @@ internal fun GoalItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onRepeat: () -> Unit,
+    /** Repeating a goal that has not happened yet is meaningless — it would just
+     *  clone a future goal onto today and leave both. Hidden in Upcoming. */
+    canRepeat: Boolean = true,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val progress = goal.progressPercent()
@@ -484,11 +499,13 @@ internal fun GoalItem(
                         onClick = { showMenu = false; onEdit() },
                     )
                 }
-                DropdownMenuItem(
-                    text = { Text("Repeat Task") },
-                    leadingIcon = { Icon(Icons.Default.Repeat, null) },
-                    onClick = { showMenu = false; onRepeat() },
-                )
+                if (canRepeat) {
+                    DropdownMenuItem(
+                        text = { Text("Repeat Task") },
+                        leadingIcon = { Icon(Icons.Default.Repeat, null) },
+                        onClick = { showMenu = false; onRepeat() },
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text("Delete", color = GoalsFlatColors.Danger) },
                     leadingIcon = { Icon(Icons.Default.Delete, null, tint = GoalsFlatColors.Danger) },

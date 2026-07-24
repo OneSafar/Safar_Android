@@ -119,6 +119,17 @@ class HomeRepositoryImpl @Inject constructor(
     override suspend fun repeatGoal(id: String, scheduledDate: String): Resource<Goal> =
         safeApiCall { homeApi.repeatGoal(id, RepeatGoalRequest(scheduledDate)) }.map { it.toDomain() }
 
+    override suspend fun repeatGoals(goalIds: List<String>): Resource<RepeatPlanResult> =
+        safeApiCall { homeApi.repeatPlan(RepeatPlanRequest(goalIds)) }.map { dto ->
+            val goals = dto.goals.orEmpty().map { it.toDomain() }
+            RepeatPlanResult(
+                message = dto.message ?: "Goals repeated",
+                goals = goals,
+                createdCount = dto.createdCount ?: goals.size,
+                skippedCount = dto.skippedCount ?: 0,
+            )
+        }
+
     override suspend fun getRolloverPrompts(): Resource<List<Goal>> =
         safeApiCall { homeApi.getRolloverPrompts() }.map { list -> list.map { it.toDomain() } }
 
@@ -220,6 +231,7 @@ class HomeRepositoryImpl @Inject constructor(
         source          = source ?: "manual",
         importedFromGoal = importedFromGoal ?: importedFromGoalSnake ?: false,
         completedViaFocus = completedViaFocus ?: completedViaFocusSnake ?: false,
+        alreadyExisted = alreadyExisted ?: false,
         goalKind        = goalKind ?: goalKindSnake ?: "today",
         unitType        = unitType ?: unitTypeSnake ?: "binary",
         executionMode   = executionMode ?: executionModeSnake ?: "manual",

@@ -20,6 +20,8 @@ data class NishthaUiState(
     val isSavingGoal: Boolean = false,
     val goalSaveSuccess: Boolean = false,
     val goalError: String? = null,
+    /** One-shot toast text for goal actions. Cleared via clearGoalMessage(). */
+    val goalMessage: String? = null,
     val isLoadingStreaks: Boolean = false,
     val streaks: Streaks = Streaks(),
     val isLoadingReport: Boolean = false,

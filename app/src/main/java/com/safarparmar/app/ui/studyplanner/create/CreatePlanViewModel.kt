@@ -16,6 +16,7 @@ import com.safarparmar.app.data.remote.api.TemplateExtraTopicRequest
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
 import com.safarparmar.app.domain.model.studyplanner.DailyTodo
+import com.safarparmar.app.data.remote.api.TopicPatchRequest
 import com.safarparmar.app.data.remote.api.UpdatePlanRequest
 import com.safarparmar.app.domain.repository.StudyPlannerRepository
 import com.safarparmar.app.util.Resource
@@ -1140,6 +1141,53 @@ class CreatePlanViewModel @Inject constructor(
     /** Discards the draft plan created by [buildPreview] without confirming it —
      *  called when the user backs out of Preview/BuildingPreview, so drafts don't
      *  accumulate silently. */
+    /**
+     * Renames a topic on the draft plan straight from the review screen.
+     *
+     * The old pen icon was dropped because the row had no room for it; the entry
+     * point is now a long-press on the topic. The draft is a real server-side plan,
+     * so this PATCHes it and patches the local preview in place — rebuilding the
+     * preview would mint a whole new draft and throw away the schedule under review.
+     */
+    fun renameDraftTopic(topicId: String, newName: String) {
+        val cleaned = newName.trim()
+        if (cleaned.isBlank()) return
+        val state = _uiState.value
+        val draftId = state.previewResult?.draftId ?: return
+        val current = state.previewResult
+        // Optimistic: the calendar the review screen renders is local, so patch it
+        // now and let the request settle behind the UI.
+        _uiState.update { st ->
+            val preview = st.previewResult ?: return@update st
+            val patched = preview.calendarPreview.mapValues { (_, items) ->
+                items.map { if (it.topicId == topicId) it.copy(topicName = cleaned) else it }
+            }
+            st.copy(previewResult = preview.copy(calendarPreview = patched))
+        }
+        viewModelScope.launch {
+            val result = repo.updateTopic(draftId, topicId, TopicPatchRequest(name = cleaned))
+            if (result is Resource.Error) {
+                // Put the old name back rather than showing a rename that never saved.
+                _uiState.update { st ->
+                    val preview = st.previewResult ?: return@update st
+                    val reverted = preview.calendarPreview.mapValues { (_, items) ->
+                        items.map { item ->
+                            if (item.topicId == topicId) {
+                                val old = current.calendarPreview.values.flatten()
+                                    .firstOrNull { it.topicId == topicId }?.topicName ?: item.topicName
+                                item.copy(topicName = old)
+                            } else item
+                        }
+                    }
+                    st.copy(
+                        previewResult = preview.copy(calendarPreview = reverted),
+                        error = result.message,
+                    )
+                }
+            }
+        }
+    }
+
     fun discardDraft() {
         val draftId = _uiState.value.previewResult?.draftId ?: return
         _uiState.update { it.copy(previewResult = null, isConfirming = false) }

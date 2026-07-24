@@ -577,6 +577,7 @@ fun SyllabusSubjectsScreen(
                                 SyllabusMagazineListHeader(
                                     title = "Your subjects",
                                     onAddSubject = { dialogState = SyllabusDialogState.AddSubject },
+                                    addContentDescription = "Add subject",
                                     modifier = Modifier.padding(top = 14.dp, bottom = 6.dp),
                                 )
                             }

@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import android.widget.Toast
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -111,6 +112,10 @@ internal fun DurationTab(
             presets       = listOf(15, 25, 45, 60),
             ink           = ink,
             onValueChange = onFocusChange,
+            // 20 hours. Long enough for any real study block; past that the
+            // student is more likely mistyping than planning.
+            customMaxMinutes = 1200,
+            overLimitMessage = "Please Take a Break Buddy",
         )
         DurationSection(
             label         = "Break",
@@ -249,8 +254,11 @@ internal fun DurationSection(
     // (e.g. a 5-hour study block). The typed value is only bound by this cap and
     // the digit-count limit below — it is NOT clamped to the slider's max.
     customMaxMinutes: Int = 600,
+    /** Shown when the typed value exceeds [customMaxMinutes]. */
+    overLimitMessage: String = "That is too long. Please choose a smaller number.",
 ) {
     val scheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
     var showCustomInput by remember { mutableStateOf(false) }
     var customText      by remember { mutableStateOf("") }
     val alpha = if (enabled) 1f else 0.5f
@@ -301,7 +309,9 @@ internal fun DurationSection(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value         = customText,
-                    onValueChange = { customText = it.filter { c -> c.isDigit() }.take(3) },
+                    // 4 digits: a 3-digit cap made values like 1200 impossible to
+                    // even type, which read as "the limit is 999".
+                    onValueChange = { customText = it.filter { c -> c.isDigit() }.take(4) },
                     placeholder   = { Text("Minutes") },
                     singleLine    = true,
                     modifier      = Modifier.weight(1f),
@@ -318,8 +328,19 @@ internal fun DurationSection(
                         // e.g. 300 / 400 min are honoured even though the slider
                         // only goes to range.endInclusive.
                         val v = customText.toIntOrNull()
-                        if (v != null && v >= range.start.toInt() && v <= customMaxMinutes) {
-                            onValueChange(v); showCustomInput = false
+                        val minMinutes = range.start.toInt()
+                        when {
+                            v == null -> Unit
+                            v > customMaxMinutes ->
+                                Toast.makeText(context, overLimitMessage, Toast.LENGTH_SHORT).show()
+                            // Previously any out-of-range value just did nothing at
+                            // all, so the Set button looked broken.
+                            v < minMinutes -> Toast.makeText(
+                                context,
+                                "Please choose at least $minMinutes minute${if (minMinutes == 1) "" else "s"}.",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            else -> { onValueChange(v); showCustomInput = false }
                         }
                     },
                 )

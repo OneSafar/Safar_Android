@@ -260,11 +260,46 @@ class NishthaViewModel @Inject constructor(
     fun repeatGoal(id: String, scheduledDate: String) {
         viewModelScope.launch {
             when (val r = homeRepository.repeatGoal(id, scheduledDate)) {
-                is Resource.Success -> _uiState.update { it.copy(goals = listOf(r.data) + it.goals) }
+                is Resource.Success -> _uiState.update { state ->
+                    // The server dedupes: repeating something already on that day
+                    // returns the existing goal rather than making a copy. Don't
+                    // add it twice, and tell the truth about what happened.
+                    if (r.data.alreadyExisted) {
+                        state.copy(goalMessage = "Already on today's list")
+                    } else {
+                        state.copy(
+                            goals = listOf(r.data) + state.goals,
+                            goalMessage = "Goal repeated for today!",
+                        )
+                    }
+                }
                 is Resource.Error -> _uiState.update { it.copy(goalError = r.message) }
                 is Resource.Loading -> Unit
             }
         }
+    }
+
+    /** Brings the chosen goals onto today in one write. The server skips any that
+     *  are already there, so double-tapping cannot duplicate the list. */
+    fun repeatGoals(goalIds: List<String>) {
+        if (goalIds.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingGoal = true, goalError = null) }
+            when (val r = homeRepository.repeatGoals(goalIds)) {
+                is Resource.Success -> {
+                    _uiState.update { it.copy(isSavingGoal = false, goalMessage = r.data.message) }
+                    // Reload rather than prepending: the response contains only the
+                    // newly created copies, and skipped ones must not appear twice.
+                    loadGoals()
+                }
+                is Resource.Error -> _uiState.update { it.copy(isSavingGoal = false, goalError = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun clearGoalMessage() {
+        _uiState.update { it.copy(goalMessage = null) }
     }
 
     fun respondToRollover(id: String, action: String) {

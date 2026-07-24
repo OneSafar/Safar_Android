@@ -17,6 +17,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -140,6 +145,10 @@ private fun GoalsScreenContent(
 
     // Complete / study time dialog
     var completeGoal by remember { mutableStateOf<Goal?>(null) }
+    // Deleting a goal is permanent and has no undo, and the menu item sits right
+    // under "Repeat Task" — one stray tap used to destroy a goal outright.
+    var deleteGoal by remember { mutableStateOf<Goal?>(null) }
+    var showRepeatPicker by remember { mutableStateOf(false) }
     var studyHours by remember { mutableIntStateOf(0) }
     var studyMinutes by remember { mutableIntStateOf(0) }
 
@@ -222,6 +231,137 @@ private fun GoalsScreenContent(
     }
 
     // Study time completion dialog
+    if (showRepeatPicker) {
+        // Yesterday's list, most recent first. Completed ones are included — a
+        // finished daily habit is exactly what a student wants to bring forward —
+        // but everything is opt-out, so nothing returns unless they leave it ticked.
+        val yesterdayKey = remember {
+            runCatching {
+                LocalDate.parse(IstDateUtils.todayKey()).minusDays(1).toString()
+            }.getOrDefault(IstDateUtils.todayKey())
+        }
+        val candidates = remember(uiState.goals, yesterdayKey) {
+            uiState.goals.filter {
+                it.source != "ekagra" &&
+                    it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
+                    IstDateUtils.getDateKey(it.scheduledDate ?: it.createdAt) == yesterdayKey
+            }
+        }
+        val selectedIds = remember(candidates) {
+            mutableStateListOf<String>().apply { addAll(candidates.map { it.id }) }
+        }
+
+        ModalBottomSheet(
+            onDismissRequest = { showRepeatPicker = false },
+            containerColor = GoalsFlatColors.Bg,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                PlanEyebrow("Goals")
+                Text(
+                    "Bring yesterday forward",
+                    fontFamily = LoraFontFamily,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = GoalsFlatColors.Text,
+                )
+                Text(
+                    if (candidates.isEmpty()) {
+                        "You had no goals yesterday."
+                    } else {
+                        "Untick anything you are done with."
+                    },
+                    fontSize = 13.sp,
+                    color = GoalsFlatColors.Muted,
+                )
+                PlanHairline()
+
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 360.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    candidates.forEach { goal ->
+                        val checked = goal.id in selectedIds
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (checked) selectedIds.remove(goal.id) else selectedIds.add(goal.id)
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                if (checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                contentDescription = null,
+                                tint = if (checked) GoalsFlatColors.Primary else GoalsFlatColors.Muted,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    goal.title,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = GoalsFlatColors.Text,
+                                    maxLines = 1,
+                                )
+                                Text(
+                                    if (goal.completed) "Done yesterday" else goal.goalKindLabel(),
+                                    fontSize = 11.5.sp,
+                                    color = GoalsFlatColors.Muted,
+                                )
+                            }
+                        }
+                        PlanHairline(alpha = 0.5f)
+                    }
+                }
+
+                TextButton(
+                    onClick = {
+                        viewModel.repeatGoals(selectedIds.toList())
+                        showRepeatPicker = false
+                    },
+                    enabled = selectedIds.isNotEmpty() && !uiState.isSavingGoal,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        if (selectedIds.isEmpty()) "Choose at least one"
+                        else "Repeat ${selectedIds.size} goal${if (selectedIds.size == 1) "" else "s"} today",
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedIds.isEmpty()) GoalsFlatColors.Muted else GoalsFlatColors.Primary,
+                    )
+                }
+            }
+        }
+    }
+
+    deleteGoal?.let { goal ->
+        AlertDialog(
+            onDismissRequest = { deleteGoal = null },
+            title = { Text("Delete this goal?") },
+            text = { Text("\"${goal.title}\" will be removed for good. This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteGoal(goal.id)
+                    deleteGoal = null
+                    Toast.makeText(context, "Goal deleted", Toast.LENGTH_SHORT).show()
+                }) {
+                    Text("Delete", color = GoalsFlatColors.Danger)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteGoal = null }) { Text("Keep it") }
+            },
+        )
+    }
+
     completeGoal?.let { goal ->
         AlertDialog(
             onDismissRequest = { completeGoal = null; studyHours = 0; studyMinutes = 0 },
@@ -648,10 +788,24 @@ private fun GoalsScreenContent(
         )
     }
 
+    LaunchedEffect(uiState.goalMessage) {
+        uiState.goalMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearGoalMessage()
+        }
+    }
+
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = uiState.goals.filter { it.source != "ekagra" }
-    val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
-    val doneToday = manualCompletedGoals.count { it.completedDateKey() == todayKey }
+    // "Done today" counts EVERY completed goal, however it was finished. Counting
+    // only manual completions meant a goal finished through a linked Ekagra
+    // session was excluded here AND from pendingToday (it is completed), so it
+    // vanished from the counter entirely: "0 of 2" became "0 of 1" instead of
+    // "1 of 2". The manual-only split still matters for the minutes breakdown,
+    // where Ekagra minutes are counted separately from focus sessions.
+    val doneToday = standardGoals.count {
+        it.isCompletedForStats() && it.completedDateKey() == todayKey
+    }
     val pendingToday = standardGoals.count {
         !it.completed &&
             it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
@@ -681,7 +835,7 @@ private fun GoalsScreenContent(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "${uiState.goals.size} goals · $doneToday of $totalToday done today",
+                "${standardGoals.size} goals · $doneToday of $totalToday done today",
                 fontSize = 13.sp,
                 color = GoalsFlatColors.Muted,
             )
@@ -706,6 +860,19 @@ private fun GoalsScreenContent(
                     },
                     filled = false,
                     onClick = { showStatusSheet = true },
+                )
+                FlatActionChip(
+                    label = "Repeat",
+                    icon = {
+                        Icon(
+                            Icons.Default.Repeat,
+                            null,
+                            modifier = Modifier.size(16.dp),
+                            tint = GoalsFlatColors.Muted,
+                        )
+                    },
+                    filled = false,
+                    onClick = { showRepeatPicker = true },
                 )
                 FlatActionChip(
                     label = "Insights",
@@ -791,11 +958,13 @@ private fun GoalsScreenContent(
                         ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
                         ?: LocalDate.now(IstDateUtils.zone).plusDays(1)
                 },
-                onDelete = { goal -> viewModel.deleteGoal(goal.id); Toast.makeText(context, "Goal deleted", Toast.LENGTH_SHORT).show() },
+                onDelete = { goal -> deleteGoal = goal },
                 onRepeat = { goal ->
                     val today = IstDateUtils.todayKey()
+                    // The toast used to fire here, before the request returned, so it
+                    // claimed success even when the server deduped (or failed).
+                    // It is now driven by goalMessage once the result is known.
                     viewModel.repeatGoal(goal.id, IstDateUtils.dateKeyToUtcIso(today))
-                    Toast.makeText(context, "Goal repeated for today!", Toast.LENGTH_SHORT).show()
                 },
                 onRolloverRetry = { goal -> viewModel.respondToRollover(goal.id, "retry") },
                 onRolloverArchive = { goal -> viewModel.respondToRollover(goal.id, "archive") },

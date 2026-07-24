@@ -164,15 +164,25 @@ internal fun ChapterTopicsSheet(
                     }
                 }
             } else {
-                Text(
-                    text = "+ Add topic",
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.PrimaryAccent,
+                Row(
                     modifier = Modifier
-                        .padding(horizontal = 24.dp)
-                        .clickable { showAddRow = true },
-                )
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Topics",
+                        fontFamily = LoraFontFamily,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = PlannerFlatColors.TextDark,
+                        modifier = Modifier.weight(1f),
+                    )
+                    SyllabusGlassAddButton(
+                        onClick = { showAddRow = true },
+                        contentDescription = "Add topic",
+                    )
+                }
             }
             Spacer(Modifier.height(14.dp))
 
