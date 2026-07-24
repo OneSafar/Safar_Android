@@ -13,6 +13,7 @@ import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructuredSyllabusPreview
 import com.safarparmar.app.data.remote.api.TemplateExtraChapterRequest
 import com.safarparmar.app.data.remote.api.TemplateExtraTopicRequest
+import com.safarparmar.app.domain.model.studyplanner.ChapterDifficulty
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplate
 import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
 import com.safarparmar.app.domain.model.studyplanner.DailyTodo
