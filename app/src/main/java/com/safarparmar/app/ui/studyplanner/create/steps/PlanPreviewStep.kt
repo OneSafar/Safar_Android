@@ -249,11 +249,26 @@ fun PlanPreviewStep(
                 }
             } else {
                 item {
+                    // Derive the "no day is over your goal" claim from the actual
+                    // schedule instead of asserting it. Strict scheduling now
+                    // guarantees it, but flex deliberately overshoots, and the
+                    // banner previously promised it either way — sitting directly
+                    // above days visibly labelled "Busy".
+                    val busyDays = remember(preview, goal) {
+                        preview.calendarPreview.values.count { items ->
+                            dayLoadOf(items, goal) == DayLoad.HEAVY
+                        }
+                    }
                     PreviewVerdictCard(
                         accent = PlannerAccent.Teal,
                         icon = Icons.Default.CheckCircle,
                         title = "Your plan fits before your exam",
-                        body = "All ${preview.summary.totalTopics} topics have a date, and no day goes over your goal.",
+                        body = if (busyDays == 0) {
+                            "All ${preview.summary.totalTopics} topics have a date, and no day goes over your goal."
+                        } else {
+                            "All ${preview.summary.totalTopics} topics have a date. " +
+                                "$busyDays ${if (busyDays == 1) "day is" else "days are"} a little over your goal."
+                        },
                     )
                 }
             }
@@ -284,6 +299,18 @@ fun PlanPreviewStep(
                         hasNext = weekIndex < weeks.lastIndex,
                         accent = accent,
                         scheme = scheme,
+                    )
+                }
+
+                // Long-press is invisible on its own, and these students are the
+                // least likely to discover it by accident. One quiet line for the
+                // whole screen beats a pen icon on every row.
+                item {
+                    Text(
+                        "Tap a day to see its topics · press and hold a topic to rename it",
+                        fontSize = 11.sp,
+                        color = scheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
                     )
                 }
 

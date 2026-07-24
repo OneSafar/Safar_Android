@@ -431,6 +431,7 @@ fun SyllabusSubjectsScreen(
                                     onDelete = { dialogState = SyllabusDialogState.DeleteChapter(subject.id, chapter) },
                                     onMarkDone = { actions.batchMarkTopicsDone(chapter.topics.map { it.id }) },
                                     onRate = { difficulty -> actions.rateChapter(subject.id, chapter.id, difficulty) },
+                                    showDifficultyChips = state.selectedPlan?.weightedPlanning != false,
                                     canReorder = canReorderSyllabus,
                                     onMoveUp = { moveChapter(subject.id, chapter.id, -1) },
                                     onMoveDown = { moveChapter(subject.id, chapter.id, 1) },

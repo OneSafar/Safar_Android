@@ -1,9 +1,12 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,13 +18,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,20 +34,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.domain.model.studyplanner.DailyTodo
-import com.safarparmar.app.ui.studyplanner.components.GlassButton
+import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
-import com.safarparmar.app.ui.studyplanner.components.glassSurface
-import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.theme.isLightBackground
 import java.util.UUID
 
 /** Full-screen step between calendar review and plan confirmation. */
@@ -54,7 +57,8 @@ fun DailyTopicsStep(
     onContinue: (List<DailyTodo>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = isPlannerDark
+    val scheme = MaterialTheme.colorScheme
+    val isLight = scheme.background.isLightBackground()
     val accent = PlannerFlatColors.PrimaryAccent
     val ink = PlannerFlatColors.TextDark
     val muted = PlannerFlatColors.TextMuted
@@ -101,40 +105,37 @@ fun DailyTopicsStep(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            OutlinedTextField(
+                value = taskName,
+                onValueChange = { taskName = it },
+                placeholder = { Text("e.g. Revise vocabulary", color = muted) },
+                singleLine = true,
+                enabled = !isSaving,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = accent,
+                    unfocusedBorderColor = PlannerFlatColors.BorderSoft,
+                    focusedTextColor = ink,
+                    unfocusedTextColor = ink,
+                    cursorColor = accent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                ),
+            )
+            val canAdd = taskName.isNotBlank() && !isSaving
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .glassSurface(shape = RoundedCornerShape(16.dp), isDarkTheme = isDark)
-                    .padding(horizontal = 14.dp, vertical = 14.dp),
-            ) {
-                if (taskName.isEmpty()) {
-                    Text(
-                        text = "e.g. Revise vocabulary",
-                        fontSize = 14.sp,
-                        color = muted,
-                    )
-                }
-                BasicTextField(
-                    value = taskName,
-                    onValueChange = { taskName = it },
-                    singleLine = true,
-                    textStyle = LocalTextStyle.current.copy(
-                        fontSize = 14.sp,
-                        color = ink,
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (canAdd) accent else scheme.outlineVariant.copy(alpha = 0.45f))
+                    .clickable(
+                        enabled = canAdd,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = ::addTopic,
                     ),
-                    cursorBrush = SolidColor(accent),
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
-            }
-            GlassButton(
-                onClick = ::addTopic,
-                accentColor = if (taskName.isNotBlank()) accent else muted,
-                enabled = taskName.isNotBlank() && !isSaving,
-                shape = RoundedCornerShape(16.dp),
-                isDarkTheme = isDark,
-                contentPadding = PaddingValues(14.dp),
-                modifier = Modifier.size(52.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -169,8 +170,9 @@ fun DailyTopicsStep(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .glassSurface(shape = RoundedCornerShape(14.dp), isDarkTheme = isDark)
-                            .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(14.dp))
+                            .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -180,22 +182,15 @@ fun DailyTopicsStep(
                             fontWeight = FontWeight.Medium,
                             color = ink,
                         )
-                        GlassButton(
+                        IconButton(
                             onClick = { topics = topics - topic },
-                            accentColor = muted,
                             enabled = !isSaving,
-                            shape = RoundedCornerShape(12.dp),
-                            isDarkTheme = isDark,
-                            contentPadding = PaddingValues(8.dp),
-                            tintTopAlpha = if (isDark) 0.28f else 0.22f,
-                            tintBottomAlpha = if (isDark) 0.14f else 0.10f,
-                            greyShadeAlpha = 0.08f,
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Remove ${topic.name}",
-                                tint = ink,
-                                modifier = Modifier.size(16.dp),
+                                tint = muted,
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
@@ -205,7 +200,7 @@ fun DailyTopicsStep(
 
         error?.let {
             Spacer(Modifier.height(8.dp))
-            Text(it, color = Color(0xFFDC2626), fontSize = 13.sp)
+            Text(it, color = scheme.error, fontSize = 13.sp)
         }
 
         Spacer(Modifier.height(12.dp))
@@ -215,54 +210,34 @@ fun DailyTopicsStep(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            GlassButton(
-                onClick = { onContinue(emptyList()) },
-                accentColor = muted,
-                enabled = !isSaving,
-                shape = RoundedCornerShape(16.dp),
-                isDarkTheme = isDark,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-                tintTopAlpha = if (isDark) 0.22f else 0.16f,
-                tintBottomAlpha = if (isDark) 0.10f else 0.08f,
-                greyShadeAlpha = if (isDark) 0.18f else 0.12f,
-                modifier = Modifier.weight(1f),
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(20.dp))
+                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+                    .clickable(enabled = !isSaving) { onContinue(emptyList()) }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "Not now",
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp,
-                    color = ink,
-                    modifier = Modifier.fillMaxWidth(),
+                    color = scheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
             }
-            GlassButton(
+            MacOSPrimaryActionButton(
+                text = if (topics.isEmpty()) "Continue" else "Save topics",
                 onClick = { onContinue(topics) },
-                accentColor = accent,
                 enabled = !isSaving,
-                shape = RoundedCornerShape(16.dp),
-                isDarkTheme = isDark,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                isLoading = isSaving,
+                isLight = isLight,
+                customAccent = accent,
                 modifier = Modifier.weight(1f),
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = Color.White,
-                    )
-                } else {
-                    Text(
-                        text = if (topics.isEmpty()) "Continue" else "Save topics",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
-                        color = Color.White,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
+            )
         }
     }
 }

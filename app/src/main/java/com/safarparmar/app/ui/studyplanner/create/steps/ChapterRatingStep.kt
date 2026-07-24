@@ -37,6 +37,11 @@ import com.safarparmar.app.ui.studyplanner.create.DeepFocusOutlineSubject
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 /**
  * Optional, skippable "Rate your chapters" step shown after Plan Settings for
@@ -49,21 +54,77 @@ internal fun ChapterRatingStep(
     onRate: (subjectName: String, chapterName: String, difficulty: String?) -> Unit,
     onSkip: () -> Unit,
     onContinue: () -> Unit,
+    /** "Same number every day" — every chapter Normal, so each day holds exactly
+     *  the student's number. */
+    onBuildEven: () -> Unit = {},
+    dailyGoal: Int = 0,
     modifier: Modifier = Modifier,
     studyStyle: String = "balanced",
 ) {
     val scheme = MaterialTheme.colorScheme
     val accent = scheme.primary
 
+    // Null until the student picks how their days should be built. The effort-point
+    // maths behind all this is deliberately never named on screen — they choose
+    // between "every day the same" and "go by how hard it is", nothing more.
+    var goByDifficulty by remember { mutableStateOf<Boolean?>(null) }
+
     Column(modifier = modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text(
-            text = "Rate your chapters",
+            text = if (goByDifficulty == true) "Rate your chapters" else "How should we plan your days?",
             fontFamily = LoraFontFamily,
             fontSize = 26.sp,
             fontWeight = FontWeight.Normal,
             color = scheme.onSurface,
         )
         Spacer(Modifier.height(14.dp))
+
+        if (goByDifficulty == null) {
+            val n = if (dailyGoal > 0) dailyGoal else 3
+            // The two options ARE the screen: one fills the top half, one the
+            // bottom, so each is a full tap target and neither reads as secondary.
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                PlanChoiceCard(
+                    title = "Same every day",
+                    lines = listOf(
+                        "Every day has exactly $n topics." to null,
+                        "Hard or easy, the number never changes." to null,
+                        "Choose this if you want a fixed routine." to null,
+                    ),
+                    onClick = onBuildEven,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    // Every row identical — that IS the promise.
+                    repeat(3) { day ->
+                        DayBar("Day ${day + 1}", n, PlannerAccent.Teal)
+                    }
+                }
+                PlanChoiceCard(
+                    title = "Go by how hard it is",
+                    lines = listOf(
+                        "Hard topics" to ChapterDifficulty.TOUGH,
+                        "  fewer in a day, so you get time for them." to null,
+                        "Easy topics" to ChapterDifficulty.EASY,
+                        "  more in a day, because they go fast." to null,
+                        "Every day feels the same amount of work." to null,
+                    ),
+                    onClick = { goByDifficulty = true },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    // Same total width on every row: the bar is always "one day of
+                    // work". Only the number of pieces changes with difficulty, so
+                    // "same effort, different counts" is visible without a word
+                    // about points.
+                    DayBar("Day 1", (n / 2).coerceAtLeast(1), difficultyColor(ChapterDifficulty.TOUGH))
+                    DayBar("Day 2", n, difficultyColor(ChapterDifficulty.NORMAL))
+                    DayBar("Day 3", n * 2, difficultyColor(ChapterDifficulty.EASY))
+                }
+            }
+            return@Column
+        }
 
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -77,9 +138,17 @@ internal fun ChapterRatingStep(
                     modifier = Modifier.padding(bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    // A template arrives already weighted, so most chips are
+                    // pre-selected. Saying "only rate the hard ones" implied a
+                    // blank slate and hid the fact that ratings are already set.
                     Text(
-                        text = "Only rate the hard ones. " +
-                            "${(chapterCount - ratedCount).coerceAtLeast(0)} stay Normal.",
+                        text = if (ratedCount > 0) {
+                            "We rated these for you. Change any you disagree with. " +
+                                "${(chapterCount - ratedCount).coerceAtLeast(0)} are Normal."
+                        } else {
+                            "Only rate the hard ones. " +
+                                "${(chapterCount - ratedCount).coerceAtLeast(0)} stay Normal."
+                        },
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = accent,
@@ -206,7 +275,12 @@ internal fun ChapterRatingStep(
                 customAccent = styleAccent,
             )
             Text(
-                text = "Skip — keep everything normal",
+                // NOT "keep everything normal": skipping leaves the template's own
+                // hand-weighted topic sizes in place (RPF-SI ships 19 easy / 72
+                // normal / 23 tough topics). Students read the old wording as
+                // "make every topic equal" and then could not understand why a
+                // 2-a-day goal produced 3-topic days.
+                text = "Skip — keep the ratings shown above",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = scheme.onSurfaceVariant,
@@ -218,3 +292,89 @@ internal fun ChapterRatingStep(
     }
 }
 
+/** Difficulty colours, shared with the rating chips so the same idea always
+ *  wears the same colour: tough = coral, easy = teal, normal = amber. */
+@Composable
+private fun difficultyColor(difficulty: ChapterDifficulty): Color = when (difficulty) {
+    ChapterDifficulty.TOUGH -> PlannerAccent.Coral
+    ChapterDifficulty.NORMAL -> PlannerAccent.Amber
+    ChapterDifficulty.EASY -> PlannerAccent.Teal
+}
+
+/**
+ * One of the two ways to build the days. Deliberately wordless about effort
+ * points — the student sees a picture of their days plus short plain sentences,
+ * with the words "Hard" and "Easy" carrying the same colour as the rating chips.
+ */
+@Composable
+private fun PlanChoiceCard(
+    title: String,
+    lines: List<Pair<String, ChapterDifficulty?>>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    demo: @Composable () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(18.dp),
+        // Centred as a group: the card is now half the screen, so top-aligned
+        // content would leave a large dead gap underneath.
+        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+    ) {
+        Text(
+            text = title,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = scheme.onSurface,
+        )
+        lines.forEach { (text, difficulty) ->
+            Text(
+                text = text,
+                fontSize = 13.sp,
+                fontWeight = if (difficulty != null) FontWeight.Bold else FontWeight.Normal,
+                color = difficulty?.let { difficultyColor(it) } ?: scheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { demo() }
+    }
+}
+
+/**
+ * One day drawn as a fixed-width bar cut into [chips] pieces. The bar is always
+ * the same length — it represents one day of work — so more pieces simply means
+ * smaller topics. That is the whole weighting idea, shown rather than explained.
+ */
+@Composable
+private fun DayBar(dayLabel: String, chips: Int, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = dayLabel,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(42.dp),
+        )
+        Row(
+            // Fixed width + weighted children: the row always spans the same
+            // distance, and the pieces divide it evenly however many there are.
+            modifier = Modifier.width(168.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            // Past ~10 pieces the chips stop being legible and the point is made.
+            repeat(chips.coerceIn(1, 10)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(11.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(color),
+                )
+            }
+        }
+    }
+}

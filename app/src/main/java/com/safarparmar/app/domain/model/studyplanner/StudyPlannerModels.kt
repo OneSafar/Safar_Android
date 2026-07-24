@@ -1,6 +1,7 @@
 package com.safarparmar.app.domain.model.studyplanner
 
 import androidx.compose.runtime.Immutable
+import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
 
 typealias CalendarMap = Map<String, List<CalendarTopicItem>>
@@ -195,6 +196,12 @@ data class StudyPlan(
     val examType: String? = null,
     val examDate: String? = null,
     val description: String? = null,
+    /** Null on plans made before this existed — treated as weighted so nothing
+     *  disappears for existing users. False = "Same every day", where rating a
+     *  chapter would silently break the equal-days promise. */
+    val weightedPlanning: Boolean? = null,
+    // Tolerates a decimal from the server; see LenientIntDeserializer.
+    @JsonAdapter(com.safarparmar.app.data.remote.LenientIntDeserializer::class)
     val dailyGoal: Int? = null,
     val offDays: List<Int> = emptyList(),
     val offDates: List<String> = emptyList(),

@@ -355,6 +355,9 @@ data class PlanPreviewRequest(
     /** Create-time chapter difficulty ratings (manual/paste sources), applied
      *  server-side before scheduling so the first schedule is already weighted. */
     val chapterRatings: List<ChapterRatingRequest>? = null,
+    /** false = "Same every day": server strips all weights so each day holds
+     *  exactly [dailyGoal] topics. Omitted/true = weighted planning. */
+    val weightedPlanning: Boolean? = null,
 )
 
 data class ChapterRatingRequest(

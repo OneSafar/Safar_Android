@@ -835,7 +835,14 @@ private fun GoalsScreenContent(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "${standardGoals.size} goals · $doneToday of $totalToday done today",
+                // "8 goals · 0 of 0 done today" put two different scopes side by
+                // side — every goal ever, next to today's — and read as broken.
+                // Say plainly when today is simply empty.
+                if (totalToday == 0) {
+                    "${standardGoals.size} goals · nothing planned for today"
+                } else {
+                    "${standardGoals.size} goals · $doneToday of $totalToday done today"
+                },
                 fontSize = 13.sp,
                 color = GoalsFlatColors.Muted,
             )
@@ -911,14 +918,14 @@ private fun GoalsScreenContent(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    "$doneToday of $totalToday",
+                    if (totalToday == 0) "Nothing today" else "$doneToday of $totalToday",
                     fontFamily = LoraFontFamily,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Normal,
                     color = GoalsFlatColors.Done,
                 )
                 Text(
-                    "goals done today",
+                    if (totalToday == 0) "add a goal to get started" else "goals done today",
                     fontSize = 13.sp,
                     color = GoalsFlatColors.Muted,
                 )

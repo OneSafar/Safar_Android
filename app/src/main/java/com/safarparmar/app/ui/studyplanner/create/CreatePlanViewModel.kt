@@ -109,6 +109,9 @@ data class CreatePlanUiState(
      * honest strict schedule is always what a fresh build produces.
      */
     val allowOverload: Boolean = false,
+    /** False once the student picks "Same every day" — sent to the server, which
+     *  then strips every weight so each day holds exactly [dailyGoal] topics. */
+    val weightedPlanning: Boolean = true,
     val dailyGoal: String = "3",
 
     // Template path
@@ -974,6 +977,23 @@ class CreatePlanViewModel @Inject constructor(
     }
 
     /** Skipping keeps every unrated chapter at the normal (medium) default. */
+    /**
+     * "Same number every day": every chapter is marked Normal, which makes the
+     * server drop the template's per-topic sizes, so every topic costs the same.
+     * The day budget is goal x 2 and a normal topic is 2, so each day lands on
+     * EXACTLY the student's number — no heavier days, nothing to interpret.
+     *
+     * This is the honest counterpart to the weighted plan: the points system is
+     * never shown either way, the student just picks predictable or smart.
+     */
+    fun buildEvenPlan() {
+        // Ratings are dropped entirely rather than all set to "normal": the plan
+        // must end up with NO difficulty and NO topic size, so the Syllabus screen
+        // can tell it is an equal-days plan and hide the rating chips.
+        _uiState.update { it.copy(weightedPlanning = false, chapterRatings = emptyMap()) }
+        buildPreview()
+    }
+
     fun skipChapterRating() {
         _uiState.update { it.copy(chapterRatings = emptyMap()) }
         buildPreview()
@@ -1043,6 +1063,7 @@ class CreatePlanViewModel @Inject constructor(
                         }
                     },
                     chapterRatings = chapterRatings,
+                    weightedPlanning = state.weightedPlanning,
                     subjectOrder = subjectOrder,
                     chapterOrder = chapterOrder,
                     topicOrder = topicOrder,
@@ -1060,6 +1081,7 @@ class CreatePlanViewModel @Inject constructor(
                 title = state.title.ifBlank { null },
                 subjects = state.manualSubjects.toImportRequest(),
                 chapterRatings = chapterRatings,
+                weightedPlanning = state.weightedPlanning,
                 subjectOrder = subjectOrder,
                 chapterOrder = chapterOrder,
                 topicOrder = topicOrder,
@@ -1088,6 +1110,7 @@ class CreatePlanViewModel @Inject constructor(
                         )
                     },
                     chapterRatings = chapterRatings,
+                    weightedPlanning = state.weightedPlanning,
                     subjectOrder = subjectOrder,
                     chapterOrder = chapterOrder,
                     topicOrder = topicOrder,

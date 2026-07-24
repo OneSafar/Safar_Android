@@ -145,18 +145,14 @@ fun GlassButton(
     greyShadeAlpha: Float = if (isDarkTheme) 0.20f else 0.14f,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val bodyColor = if (isDarkTheme) Color(0xFF2C2C2E).copy(alpha = 0.65f) else Color(0xFFF9F9FB)
-    // Colored wash over the glass base — brighter at the top (light hits the
-    // glass), fading down — so the button reads as coloured translucent glass.
-    val tintBrush = Brush.verticalGradient(
+    // Single fill layer — stacking an opaque glass body under a translucent tint
+    // reads as a nested rectangle inside the rounded button on warm backgrounds.
+    val fillBrush = Brush.verticalGradient(
         colors = listOf(
             accentColor.copy(alpha = tintTopAlpha),
             accentColor.copy(alpha = tintBottomAlpha),
         ),
     )
-    // Neutral grey scrim on top of the colour — the frosted-glass diffusion that
-    // macOS control tiles have. Dark mode uses systemGray5-ish, light mode
-    // systemGray, so the mute reads correctly against each background.
     val greyScrim = if (isDarkTheme) Color(0xFF3A3A3C) else Color(0xFF8E8E93)
     Row(
         modifier = modifier
@@ -167,9 +163,14 @@ fun GlassButton(
                 ambientColor = glassShadowColor(isDarkTheme),
             )
             .clip(shape)
-            .background(bodyColor)
-            .background(tintBrush)
-            .background(greyScrim.copy(alpha = greyShadeAlpha))
+            .background(fillBrush)
+            .then(
+                if (greyShadeAlpha > 0f) {
+                    Modifier.background(greyScrim.copy(alpha = greyShadeAlpha))
+                } else {
+                    Modifier
+                },
+            )
             .border(width = 0.5.dp, brush = glassBorderBrush(isDarkTheme), shape = shape)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(contentPadding),

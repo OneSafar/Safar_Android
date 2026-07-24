@@ -865,6 +865,9 @@ internal fun SyllabusMagazineChapterRow(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onDragEnd: () -> Unit,
+    /** False on a "Same every day" plan, where rating a chapter would break the
+     *  exact-count promise. Defaults true so older plans are unaffected. */
+    showDifficultyChips: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val progress = chapter.progressState()
@@ -981,11 +984,17 @@ internal fun SyllabusMagazineChapterRow(
             )
         }
 
-        Spacer(Modifier.height(12.dp))
-        SyllabusMagazineDifficultyChips(
-            selected = chapter.difficulty,
-            onSelect = onRate,
-        )
+        // Only an effort-planned plan gets rating chips. On a "Same every day"
+        // plan a rating would silently make one day heavier than another, breaking
+        // the exact-count promise the student chose — so the control is absent
+        // rather than present-but-broken.
+        if (showDifficultyChips) {
+            Spacer(Modifier.height(12.dp))
+            SyllabusMagazineDifficultyChips(
+                selected = chapter.difficulty,
+                onSelect = onRate,
+            )
+        }
     }
 }
 
