@@ -62,6 +62,33 @@ class DashboardStudyPlanStateTest {
         assertEquals(2, state.totalCount)
     }
 
+    @Test
+    fun `resolveDashboardStudyPlan prefers persisted active plan id`() {
+        val plans = listOf(
+            StudyPlan(id = "large", title = "Large"),
+            StudyPlan(id = "small", title = "Small"),
+        )
+
+        assertEquals("small", resolveDashboardStudyPlan(plans, "small")?.id)
+    }
+
+    @Test
+    fun `resolveDashboardStudyPlan falls back to first plan when active id missing`() {
+        val plans = listOf(
+            StudyPlan(id = "first", title = "First"),
+            StudyPlan(id = "second", title = "Second"),
+        )
+
+        assertEquals("first", resolveDashboardStudyPlan(plans, null)?.id)
+    }
+
+    @Test
+    fun `resolveDashboardStudyPlan falls back when active id not in list`() {
+        val plans = listOf(StudyPlan(id = "only", title = "Only"))
+
+        assertEquals("only", resolveDashboardStudyPlan(plans, "deleted")?.id)
+    }
+
     private fun topic(id: String, name: String, status: TopicStatus) = CalendarTopicItem(
         topicId = id,
         topicName = name,

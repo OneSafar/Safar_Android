@@ -1,10 +1,9 @@
 package com.safarparmar.app.ui.mehfil
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
-import com.safarparmar.app.ui.theme.isLightBackground
+import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
 
 /**
  * Mehfil flat-hairline + accent palette.
@@ -17,7 +16,7 @@ object MehfilFlatColors {
     val Hairline @Composable get() = PlannerFlatColors.BorderSoft
 
     private val isDark: Boolean
-        @Composable get() = !MaterialTheme.colorScheme.background.isLightBackground()
+        @Composable get() = isPlannerDark
 
     /** Primary Mehfil accent — violet */
     val Primary @Composable get() = if (isDark) Color(0xFFC084FC) else Color(0xFF6D28D9)

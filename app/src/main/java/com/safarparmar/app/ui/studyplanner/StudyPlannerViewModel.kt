@@ -211,6 +211,9 @@ class StudyPlannerViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(StudyPlannerUiState())
     val uiState = _uiState.asStateFlow()
+    /** Persisted "active" plan anchor — same red-dot marker the Dashboard uses. */
+    val plannerActivePlanId = dataStore.plannerActivePlanId()
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), null)
     private val firedDailyMilestones = mutableSetOf<String>()
     /** Prevents a deliberate return to the plan picker from being auto-opened again. */
     private var initialLandingResolved = false
@@ -493,6 +496,7 @@ class StudyPlannerViewModel @Inject constructor(
             }
             when (val r = repo.getPlan(planId)) {
                 is Resource.Success -> {
+                    dataStore.setPlannerActivePlanId(planId)
                     val digest = r.data.rolloverDigest
                     val rolloverMessage = digest
                         ?.takeIf { it.movedCount > 0 && it.undoToken.isNotBlank() }
@@ -603,6 +607,9 @@ class StudyPlannerViewModel @Inject constructor(
             _uiState.update { it.copy(mutating = true) }
             when (val r = repo.deletePlan(planId)) {
                 is Resource.Success -> {
+                    if (dataStore.plannerActivePlanId().first() == planId) {
+                        dataStore.clearPlannerActivePlanId()
+                    }
                     if (_uiState.value.selectedPlan?.id == planId) {
                         savedStateHandle[SELECTED_PLAN_ID_KEY] = null
                     }

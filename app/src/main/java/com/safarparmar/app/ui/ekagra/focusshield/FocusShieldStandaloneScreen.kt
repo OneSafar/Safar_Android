@@ -69,7 +69,6 @@ fun FocusShieldStandaloneScreen(
             state = state,
             accent = accent,
             onToggleEnabled = viewModel::setEnabled,
-            onToggleAlwaysOn = viewModel::setAlwaysOnMode,
             onToggleProfile = viewModel::setKavachProfile,
             onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },
             onGoToEkagra = { onNavigate(Routes.EKAGRA) },

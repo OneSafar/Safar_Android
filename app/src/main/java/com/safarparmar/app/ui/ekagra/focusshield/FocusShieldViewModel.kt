@@ -157,7 +157,6 @@ class FocusShieldViewModel @Inject constructor(
 
     fun setEnabled(enabled: Boolean) = repo.setEnabled(enabled)
     fun setStrictMode(enabled: Boolean) = repo.setStrictMode(enabled)
-    fun setAlwaysOnMode(enabled: Boolean) = repo.setAlwaysOnMode(enabled)
     fun setKavachProfile(mode: String) = repo.setKavachProfile(mode)
 
     fun refreshPermissions() {

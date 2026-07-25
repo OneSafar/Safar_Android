@@ -167,13 +167,6 @@ fun ProfileScreen(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "My Profile",
-                            fontFamily = LoraFontFamily,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = PlannerFlatColors.TextDark,
-                        )
-                        Text(
                             text = "Update your personal and exam details",
                             fontSize = 13.sp,
                             color = PlannerFlatColors.TextMuted,
@@ -346,30 +339,6 @@ private fun ProfileHeaderSection(
                     modifier = Modifier.size(16.dp),
                 )
             }
-        }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = uiState.userName.ifEmpty { "User" },
-                fontFamily = LoraFontFamily,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Normal,
-                color = PlannerFlatColors.TextDark,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = uiState.userEmail,
-                fontSize = 14.sp,
-                color = PlannerFlatColors.TextMuted,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }

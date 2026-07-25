@@ -53,7 +53,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -75,9 +74,8 @@ import androidx.compose.ui.unit.sp
 import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
-import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
+import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
 import com.safarparmar.app.ui.theme.SafarSemanticColors
-import com.safarparmar.app.ui.theme.isLightBackground
 import kotlinx.coroutines.delay
 
 internal enum class MehfilTab(val label: String, val icon: ImageVector) {
@@ -120,18 +118,17 @@ internal fun MehfilContent(
     dataStore: com.safarparmar.app.data.local.SafarDataStore? = null,
 ) {
     val searchFocusRequester = remember { FocusRequester() }
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+    val isLight = !isDarkTheme
 
-    CompositionLocalProvider(LocalPlannerIsDarkTheme provides !isLight) {
-        SafarDrawerScaffold(
-            title = "Mehfil",
-            subtitle = "SAFAR",
-            currentRoute = currentRoute,
-            isDarkTheme = isDarkTheme,
-            onNavigate = onNavigate,
-            onToggleDarkTheme = onToggleDarkTheme,
-            containerColor = SafarSemanticColors.plannerBackground(),
-            topBarActions = {
+    SafarDrawerScaffold(
+        title = "Mehfil",
+        subtitle = "SAFAR",
+        currentRoute = currentRoute,
+        isDarkTheme = isDarkTheme,
+        onNavigate = onNavigate,
+        onToggleDarkTheme = onToggleDarkTheme,
+        containerColor = SafarSemanticColors.plannerBackground(),
+        topBarActions = {
                 FlatTopIconChip(
                     onClick = { onSearchActiveChange(!searchActive) },
                 ) {
@@ -282,7 +279,6 @@ internal fun MehfilContent(
                 }
             }
         }
-    }
 }
 
 @Composable
@@ -381,8 +377,8 @@ private fun MehfilBottomBar(
 ) {
     val tabs = MehfilTab.entries
     val scheme = MaterialTheme.colorScheme
-    val isLight = scheme.background.isLightBackground()
-    val isDark = !isLight
+    val isDark = isPlannerDark
+    val isLight = !isDark
 
     val selectedIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)
     val animatedIndex by animateFloatAsState(

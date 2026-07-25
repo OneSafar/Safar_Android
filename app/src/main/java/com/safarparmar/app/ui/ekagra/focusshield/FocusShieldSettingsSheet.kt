@@ -72,7 +72,6 @@ fun FocusShieldSettingsContent(
     state: FocusShieldUiState,
     accent: Color,
     onToggleEnabled: (Boolean) -> Unit,
-    onToggleAlwaysOn: (Boolean) -> Unit,
     onOpenAppPicker: () -> Unit,
     onGoToEkagra: () -> Unit,
     onOpenOverlaySettings: () -> Unit,

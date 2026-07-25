@@ -274,21 +274,12 @@ fun PremiumPaywallScreen(
                         .padding(horizontal = 20.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    // Main Title Banner
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "Safar Premium",
-                            fontFamily = LoraFontFamily,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = PlannerFlatColors.TextDark,
-                        )
-                        Text(
-                            text = "Unlock AI study planning, Ekagra focus reports, and live sessions",
-                            fontSize = 13.sp,
-                            color = PlannerFlatColors.TextMuted,
-                        )
-                    }
+                    // Intro copy — title lives in the top app bar.
+                    Text(
+                        text = "Unlock AI study planning, Ekagra focus reports, and live sessions",
+                        fontSize = 13.sp,
+                        color = PlannerFlatColors.TextMuted,
+                    )
 
                     if (isPremiumActive) {
                         // Card 1: Active Subscription Summary
@@ -542,8 +533,8 @@ private fun PremiumUnlockedDialog(
 private fun PremiumBenefitsCard() {
     val benefits = remember {
         listOf(
-            "Track exam readiness with real-time indicators",
-            "Automatic AI schedule adjustments for missed topics",
+            "Track Exam Readiness with Real-time Progress Analytics",
+            "Automatic schedule adjustment for missed topics",
             "Detailed Ekagra study reports & analytics",
             "Private Mehfil Connect student community",
             "Dhyan audio & guided focus sessions",

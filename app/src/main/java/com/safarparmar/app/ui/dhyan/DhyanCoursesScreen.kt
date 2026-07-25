@@ -114,7 +114,7 @@ fun DhyanCoursesScreen(
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
             SafarDrawerScaffold(
                 title = "Courses",
-                subtitle = "SAFAR",
+                subtitle = null,
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = onNavigate,
@@ -211,7 +211,6 @@ private fun CoursesTabContent(isDarkTheme: Boolean) {
             .padding(horizontal = 16.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        PlanEyebrow("Dhyan")
         Text(
             "Learn & practice",
             fontFamily = LoraFontFamily,

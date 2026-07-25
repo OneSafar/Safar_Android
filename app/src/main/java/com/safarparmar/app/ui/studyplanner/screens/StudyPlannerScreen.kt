@@ -866,7 +866,7 @@ private fun StudyPlansScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onAdvanceTour: () -> Unit = {},
-    selectedPlanId: String? = null,
+    activePlanAnchorId: String? = null,
 ) {
     var pendingDelete by remember { mutableStateOf<StudyPlan?>(null) }
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
@@ -971,7 +971,7 @@ private fun StudyPlansScreen(
                             PlannerTargetExamRow(
                                 plan = plan,
                                 planNumber = planNumber,
-                                isActive = plan.id == selectedPlanId,
+                                isActive = plan.id == activePlanAnchorId,
                                 isLight = !isDark,
                                 onOpen = {
                                     actions.openPlan(plan.id)
@@ -1205,6 +1205,8 @@ private fun PlannerHome(
     viewModel: StudyPlannerViewModel,
 ) {
     val plan = chromeState.selectedPlan
+    val persistedActivePlanId by viewModel.plannerActivePlanId.collectAsStateWithLifecycle()
+    val activePlanAnchorId = plan?.id ?: persistedActivePlanId
     val activePlanState = remember(chromeState, plansState, detailState) {
         StudyPlannerUiState(
             plans = plansState.plans,
@@ -1253,7 +1255,7 @@ private fun PlannerHome(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                         onAdvanceTour = onAdvanceTour,
-                        selectedPlanId = chromeState.selectedPlan?.id,
+                        activePlanAnchorId = activePlanAnchorId,
                     )
                 } else {
                     // Keep first-time users in the planner flow: the Plan tab exposes
@@ -1272,7 +1274,7 @@ private fun PlannerHome(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                         onAdvanceTour = onAdvanceTour,
-                        selectedPlanId = chromeState.selectedPlan?.id,
+                        activePlanAnchorId = activePlanAnchorId,
                     )
                     PlannerSection.PLAN -> {
                     PlanTabScreen(

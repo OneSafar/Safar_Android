@@ -52,6 +52,13 @@ private val ADMIN_NOTIFICATION_ALLOWED_EMAILS = setOf(
     "thatkindchic@gmail.com",
 )
 
+private fun androidx.navigation.NavController.studyPlannerBackStackEntry() =
+    runCatching { getBackStackEntry(Routes.STUDY_PLANNER) }.getOrNull()
+        ?: runCatching { getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }.getOrNull()
+
+private fun androidx.navigation.NavController.popToStudyPlanner(): Boolean =
+    popBackStack(Routes.STUDY_PLANNER, false) || popBackStack(Routes.STUDY_PLANNER_ROUTE, false)
+
 @Composable
 fun SafarNavGraph(
     dataStore: SafarDataStore,
@@ -395,6 +402,19 @@ fun SafarNavGraph(
 
         // ── Study Planner ─────────────────────────────────────────────────────
 
+        composable(Routes.STUDY_PLANNER) {
+            StudyPlannerScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                planId = null,
+                showDailyTodoSetup = false,
+                openTab = null,
+                onNavigate = ::navigate,
+                onBack = ::safeBack,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
         composable(
             route = Routes.STUDY_PLANNER_ROUTE,
             arguments = listOf(
@@ -442,7 +462,7 @@ fun SafarNavGraph(
                 LaunchedEffect(Unit) { navigate(Routes.PREMIUM) }
             } else {
                 val parentEntry = remember(entry) {
-                    runCatching { navController.getBackStackEntry(Routes.STUDY_PLANNER_ROUTE) }.getOrNull()
+                    navController.studyPlannerBackStackEntry()
                 } ?: return@composable
                 val viewModel = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.studyplanner.StudyPlannerViewModel>(parentEntry)
                 val planId = entry.arguments?.getString("planId") ?: ""
@@ -459,7 +479,7 @@ fun SafarNavGraph(
                     onPlannerSectionSelect = { section ->
                         viewModel.setSection(section)
                         if (section != com.safarparmar.app.domain.model.studyplanner.PlannerSection.SYLLABUS) {
-                            navController.popBackStack(Routes.STUDY_PLANNER_ROUTE, false)
+                            navController.popToStudyPlanner()
                         }
                     },
                 )

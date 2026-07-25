@@ -147,6 +147,7 @@ class SafarDataStore @Inject constructor(
         val NOTIFICATION_BELL_DISMISSED_IDS = stringSetPreferencesKey("notification_bell_dismissed_ids")
         val OVERLAY_PERMISSION_ASKED = booleanPreferencesKey("overlay_permission_asked")
         val VIDEO_GUIDE_TOOLTIP_DISMISSED = booleanPreferencesKey("video_guide_tooltip_dismissed")
+        val PLANNER_ACTIVE_PLAN_ID = stringPreferencesKey("planner_active_plan_id")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -465,6 +466,18 @@ class SafarDataStore @Inject constructor(
 
     suspend fun setPlannerPreferredStrategy(planId: String?, strategy: String) =
         context.dataStore.edit { it[plannerPreferredStrategyKey(planId)] = strategy }
+
+    /** Last plan the user opened in Exam Planner (red-dot "active" anchor). */
+    fun plannerActivePlanId(): Flow<String?> =
+        context.dataStore.data
+            .catch { emit(emptyPreferences()) }
+            .map { it[Keys.PLANNER_ACTIVE_PLAN_ID] }
+
+    suspend fun setPlannerActivePlanId(planId: String) =
+        context.dataStore.edit { it[Keys.PLANNER_ACTIVE_PLAN_ID] = planId }
+
+    suspend fun clearPlannerActivePlanId() =
+        context.dataStore.edit { it.remove(Keys.PLANNER_ACTIVE_PLAN_ID) }
 
     suspend fun setStudyPlannerOnboardingStepDone(planId: String, step: String, done: Boolean) =
         context.dataStore.edit { prefs ->

@@ -39,6 +39,12 @@ data class DashboardStudyPlanState(
     val overallTotalTopics: Int = 0,
 )
 
+fun resolveDashboardStudyPlan(plans: List<com.safarparmar.app.domain.model.studyplanner.StudyPlan>, activePlanId: String?): com.safarparmar.app.domain.model.studyplanner.StudyPlan? {
+    if (plans.isEmpty()) return null
+    activePlanId?.let { id -> plans.firstOrNull { it.id == id }?.let { return it } }
+    return plans.firstOrNull()
+}
+
 fun buildDashboardStudyPlanState(
     plan: StudyPlan?,
     calendar: CalendarMap,

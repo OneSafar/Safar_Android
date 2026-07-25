@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.mehfil
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,6 +16,7 @@ import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.ui.butterfly.ButterflyTourState
 import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.navigation.Routes
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
 import com.safarparmar.app.ui.tour.TourManager
 import com.safarparmar.app.ui.tour.mehfilTourSteps
 
@@ -94,6 +96,7 @@ fun MehfilScreen(
         }
     }
 
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
     if (showSandeshSheet && uiState.sandeshes.isNotEmpty()) {
         SandeshBottomSheet(
             sandesh = uiState.latestSandesh ?: uiState.sandeshes.first(),
@@ -225,4 +228,5 @@ fun MehfilScreen(
         askOnFirstVisit = false,
         onTourStateReady = { tourState = it },
     )
+    }
 }

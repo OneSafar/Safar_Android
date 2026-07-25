@@ -17,7 +17,7 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onListenerDisconnected() {
-        if (NotificationShieldPrefs.isActive(this) || KavachAlwaysOnPrefs.isActive(this)) {
+        if (NotificationShieldPrefs.isActive(this)) {
             FocusShieldPermissionHelper.requestNotificationListenerRebind(this)
         }
     }
@@ -38,12 +38,10 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
     }
 
     private fun suppressActiveBlockedNotifications(reason: String) {
-        val alwaysOn = KavachAlwaysOnPrefs.isActive(this)
-        if (!NotificationShieldPrefs.isActive(this) && !alwaysOn) return
-        if (!TimerService.isKavachNotificationSuppressionActive(this) && !alwaysOn) return
+        if (!NotificationShieldPrefs.isActive(this)) return
+        if (!TimerService.isKavachNotificationSuppressionActive(this)) return
 
-        val blockedPackages = if (alwaysOn) KavachAlwaysOnPrefs.packages(this)
-        else NotificationShieldPrefs.packages(this)
+        val blockedPackages = NotificationShieldPrefs.packages(this)
         if (blockedPackages.isEmpty()) return
 
         runCatching {
@@ -57,17 +55,12 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
 
     private fun shouldSuppressPackage(
         packageName: String?,
-        blockedPackages: Set<String> = if (KavachAlwaysOnPrefs.isActive(this)) {
-            KavachAlwaysOnPrefs.packages(this)
-        } else {
-            NotificationShieldPrefs.packages(this)
-        },
+        blockedPackages: Set<String> = NotificationShieldPrefs.packages(this),
     ): Boolean {
         val normalizedPackage = packageName?.takeIf { it.isNotBlank() } ?: return false
         if (normalizedPackage == this.packageName) return false
-        val alwaysOn = KavachAlwaysOnPrefs.isActive(this)
-        if (!NotificationShieldPrefs.isActive(this) && !alwaysOn) return false
-        if (!TimerService.isKavachNotificationSuppressionActive(this) && !alwaysOn) return false
+        if (!NotificationShieldPrefs.isActive(this)) return false
+        if (!TimerService.isKavachNotificationSuppressionActive(this)) return false
         return normalizedPackage in blockedPackages
     }
 

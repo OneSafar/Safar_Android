@@ -44,13 +44,17 @@ object Routes {
     /** Canonical entry route for drawer / HomeScreen launches. */
     fun nishthaRoot(): String = "nishtha?tab=0&section=${android.net.Uri.encode("overview")}"
 
+    /** Canonical entry route for drawer / HomeScreen launches. */
+    fun studyPlannerRoot(): String = "study_planner?showDailyTodoSetup=false"
+
     /** Normalize legacy/plain feature routes to their registered destination patterns. */
-    fun normalizeFeatureRoute(route: String): String =
-        if (route == NISHTHA || route.substringBefore("?") == NISHTHA && !route.contains("tab=")) {
+    fun normalizeFeatureRoute(route: String): String = when {
+        route == NISHTHA || (route.substringBefore("?") == NISHTHA && !route.contains("tab=")) ->
             nishthaRoot()
-        } else {
-            route
-        }
+        route == STUDY_PLANNER || (route.substringBefore("?") == STUDY_PLANNER && !route.contains("showDailyTodoSetup=")) ->
+            studyPlannerRoot()
+        else -> route
+    }
 
     /** Deep-link target that opens a specific plan straight on its Revision tab. */
     fun studyPlannerRevision(planId: String): String =

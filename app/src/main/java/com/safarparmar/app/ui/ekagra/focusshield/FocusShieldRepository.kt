@@ -53,8 +53,10 @@ class FocusShieldRepository @Inject constructor(
     val isStrictMode: StateFlow<Boolean> = dataStore.focusShieldStrictMode
         .stateIn(scope, SharingStarted.Eagerly, false)
 
-    val isAlwaysOnMode: StateFlow<Boolean> = dataStore.focusShieldAlwaysOnMode
-        .stateIn(scope, SharingStarted.Eagerly, false)
+    // Always On is retired. Kept as a constant-false flow so the settings/standalone
+    // UIs that still read it compile and simply never show an always-on state,
+    // rather than churning every one of those files in this change.
+    val isAlwaysOnMode: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
 
     val blockedPackages: StateFlow<Set<String>> = dataStore.focusShieldBlockedPackages
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
@@ -147,33 +149,21 @@ class FocusShieldRepository @Inject constructor(
         scope.launch {
             dataStore.setAppUsageMode(mode)
             when (mode) {
-                com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON -> {
-                    dataStore.setFocusShieldEnabled(true)
-                    dataStore.setFocusShieldStrictMode(false)
-                    dataStore.setFocusShieldAlwaysOnMode(true)
-                    startAlwaysOnService()
-                }
+                // Always On is retired. Any legacy ALWAYS_ON value now behaves as
+                // Normal (timer-only blocking) rather than being an unknown mode.
                 com.safarparmar.app.ui.launch.AppUsageMode.BEAST -> {
                     dataStore.setFocusShieldEnabled(true)
                     dataStore.setFocusShieldStrictMode(true)
-                    dataStore.setFocusShieldAlwaysOnMode(false)
-                    KavachAlwaysOnPrefs.clear(appContext)
-                    appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
                 }
                 com.safarparmar.app.ui.launch.AppUsageMode.FOCUSED,
-                com.safarparmar.app.ui.launch.AppUsageMode.STANDARD -> {
+                com.safarparmar.app.ui.launch.AppUsageMode.STANDARD,
+                com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON -> {
                     dataStore.setFocusShieldEnabled(true)
                     dataStore.setFocusShieldStrictMode(false)
-                    dataStore.setFocusShieldAlwaysOnMode(false)
-                    KavachAlwaysOnPrefs.clear(appContext)
-                    appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
                 }
                 else -> {
                     dataStore.setFocusShieldEnabled(false)
                     dataStore.setFocusShieldStrictMode(false)
-                    dataStore.setFocusShieldAlwaysOnMode(false)
-                    KavachAlwaysOnPrefs.clear(appContext)
-                    appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
                     deactivateSession()
                 }
             }
@@ -184,11 +174,8 @@ class FocusShieldRepository @Inject constructor(
         scope.launch {
             dataStore.setFocusShieldEnabled(enabled)
             if (!enabled) {
-                dataStore.setFocusShieldAlwaysOnMode(false)
                 dataStore.setFocusShieldStrictMode(false)
                 NotificationShieldPrefs.clear(appContext)
-                KavachAlwaysOnPrefs.clear(appContext)
-                appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
             }
             val settings = currentSettings().copy(enabled = enabled)
             if (!enabled) {
@@ -206,32 +193,9 @@ class FocusShieldRepository @Inject constructor(
         }
     }
 
-    fun setAlwaysOnMode(enabled: Boolean) {
-        scope.launch {
-            dataStore.setFocusShieldAlwaysOnMode(enabled)
-            if (enabled) {
-                dataStore.setFocusShieldEnabled(true)
-                startAlwaysOnService()
-            } else {
-                KavachAlwaysOnPrefs.clear(appContext)
-                appContext.stopService(Intent(appContext, KavachAlwaysOnService::class.java))
-            }
-        }
-    }
-
-    private fun startAlwaysOnService(packages: Set<String> = blockedPackages.value) {
-        if (!hasRequiredPermissions() || packages.isEmpty()) return
-        runCatching {
-            KavachAlwaysOnService.start(appContext)
-        }.onFailure { debugLog("Unable to start Always On service: ${it.javaClass.simpleName}") }
-    }
-
     fun setBlockedPackages(packages: Set<String>) {
         scope.launch {
             dataStore.setFocusShieldBlockedPackages(packages)
-            if (isAlwaysOnMode.value && packages.isNotEmpty()) {
-                startAlwaysOnService(packages)
-            }
             if (isEnabled.value && packages.isNotEmpty()) {
                 homeRepository.trackKavachEvent("configured", packages.size)
             }

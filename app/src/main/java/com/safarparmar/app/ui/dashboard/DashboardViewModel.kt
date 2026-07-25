@@ -173,9 +173,10 @@ class DashboardViewModel @Inject constructor(
 
     private suspend fun loadStudyPlanCard(): DashboardStudyPlanState {
         return try {
+            val activePlanId = dataStore.plannerActivePlanId().first()
             when (val plansResult = studyPlannerRepository.listPlans()) {
                 is Resource.Success -> {
-                    val summaryPlan = plansResult.data.firstOrNull()
+                    val summaryPlan = resolveDashboardStudyPlan(plansResult.data, activePlanId)
                     if (summaryPlan == null) {
                         DashboardStudyPlanState()
                     } else {

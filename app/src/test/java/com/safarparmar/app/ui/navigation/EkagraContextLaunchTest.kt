@@ -30,4 +30,13 @@ class EkagraContextLaunchTest {
         assertTrue(normalized.contains("section=overview"))
         assertNotEquals(Routes.PROFILE, normalized)
     }
+
+    @Test
+    fun `plain Study Planner route normalizes to registered destination`() {
+        val normalized = Routes.normalizeFeatureRoute(Routes.STUDY_PLANNER)
+
+        assertTrue(normalized.startsWith("study_planner?"))
+        assertTrue(normalized.contains("showDailyTodoSetup=false"))
+        assertNotEquals(Routes.HOME, normalized)
+    }
 }

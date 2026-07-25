@@ -1,7 +1,6 @@
 package com.safarparmar.app
 
 import android.app.Application
-import android.content.Intent
 import android.os.StrictMode
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
@@ -17,8 +16,6 @@ import com.safarparmar.app.notifications.NotificationTokenRegistrar
 import com.safarparmar.app.notifications.StudyReminderWorker
 import com.safarparmar.app.ui.ekagra.EkagraPendingSessionSaveStore
 import com.safarparmar.app.ui.ekagra.EkagraSessionSaveWorker
-import com.safarparmar.app.ui.ekagra.focusshield.KavachAlwaysOnPrefs
-import com.safarparmar.app.ui.ekagra.focusshield.KavachAlwaysOnService
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -52,14 +49,11 @@ class SafarApplication : Application() {
             EkagraSessionSaveWorker.enqueue(this)
         }
         appScope.launch {
-            // "Always On" is hidden for this release. A user who enabled it in a
-            // previous build would otherwise keep an all-day shield running with
-            // no UI left to switch it off, so retire the flag and stop the
-            // service once. Restoring the mode means restoring the start call.
+            // "Always On" is removed. A legacy user may still carry the flag, but
+            // the service no longer exists to start, so there is nothing to stop —
+            // the stale flag is inert and harmless.
             if (dataStore.focusShieldAlwaysOnMode.first()) {
                 dataStore.setFocusShieldAlwaysOnMode(false)
-                KavachAlwaysOnPrefs.clear(this@SafarApplication)
-                stopService(Intent(this@SafarApplication, KavachAlwaysOnService::class.java))
             }
             notificationTokenRegistrar.registerStoredTokenIfNeeded()
             if (dataStore.notificationsEnabled.first() && dataStore.dailyStudyReminderEnabled.first()) {
