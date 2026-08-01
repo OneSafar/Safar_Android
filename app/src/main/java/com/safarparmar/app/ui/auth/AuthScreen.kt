@@ -66,6 +66,7 @@ import androidx.credentials.exceptions.GetCredentialException
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.launch
+import com.safarparmar.app.ui.theme.SafarSemanticColors
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.theme.PoppinsFontFamily
 import com.safarparmar.app.ui.theme.LoraFontFamily
@@ -78,9 +79,9 @@ private val TextDark: Color @Composable get() = if (LocalIsDarkTheme.current) Co
 private val TextMuted: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF94A3B8) else Color(0xFF64748B)
 private val BorderSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFF33333D) else Color(0xFFE2DDF0)
 private val ShadowSoft: Color @Composable get() = if (LocalIsDarkTheme.current) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
-private val PrimaryAccent: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFA78BFA) else Color(0xFF7845E5) // Purple for Auth
-private val AccentShadow: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFA78BFA).copy(alpha = 0.3f) else Color(0xFF7845E5).copy(alpha = 0.3f)
-private val AccentTint: Color @Composable get() = if (LocalIsDarkTheme.current) Color(0xFFA78BFA).copy(alpha = 0.15f) else Color(0xFF7845E5).copy(alpha = 0.1f)
+private val PrimaryAccent: Color @Composable get() = SafarSemanticColors.brandPurple(LocalIsDarkTheme.current)
+private val AccentShadow: Color @Composable get() = PrimaryAccent.copy(alpha = 0.3f)
+private val AccentTint: Color @Composable get() = PrimaryAccent.copy(alpha = if (LocalIsDarkTheme.current) 0.15f else 0.12f)
 
 private data class AuthPalette(
     val heading: Color,
@@ -554,6 +555,7 @@ fun LoginContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .verticalScroll(scroll),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -737,6 +739,7 @@ fun SignupContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .verticalScroll(scroll),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -984,6 +987,7 @@ fun ForgotPasswordContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .verticalScroll(scroll),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

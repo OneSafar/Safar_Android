@@ -40,8 +40,8 @@ object SafarGlassPalette {
     val TextPrimary   = Color(0xFFF5F7FA)
     val TextSecondary = Color(0xFFA9B1C6)
 
-    // ── Light mode ──
-    val LightViolet   = Color(0xFF9575CD)  // medium purple
+    // ── Light mode decorative lavender (titles/links — not primary button fill) ──
+    val LightViolet   = Color(0xFFA78BFA)
     val LightPink     = Color(0xFFEC407A)  // medium rose
     val LightCoral    = Color(0xFFE07AAE)  // dusty rose
     val LightLavender = Color(0xFFBA9FE4)  // soft purple

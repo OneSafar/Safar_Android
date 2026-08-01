@@ -318,7 +318,7 @@ private fun MonthlyReviewSection(
                             color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
                             textAlign = TextAlign.Center
                         )
-                        val btnAccent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+                        val btnAccent = SafarSemanticColors.brandPurple(isDarkTheme = !isLight)
                         SafarGlassButton(
                             text = stringResource(R.string.analytics_generate),
                             icon = Icons.Default.Refresh,

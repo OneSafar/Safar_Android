@@ -4,11 +4,27 @@ import android.os.Build
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
+import com.safarparmar.app.ui.theme.isLightBackground
+
+/** Strong compositor blur for macOS glass dialogs and overlays (API 31+). */
+const val SafarBackdropBlurRadiusPx = 96
+
+/** Moderate blur for small popup menus — heavy blur under a tiny panel reads muddy. */
+const val SafarMenuBackdropBlurRadiusPx = 48
 
 /**
  * Real backdrop blur for the planner's floating glass surfaces.
@@ -39,8 +55,46 @@ import androidx.compose.ui.window.DialogWindowProvider
  * a blurred backdrop needs far less dimming to keep the panel legible, and
  * double-darkening it would hide the very blur we just enabled.
  */
+fun safarGlassDialogScrimColor(isDarkTheme: Boolean, blurred: Boolean): Color = when {
+    blurred && isDarkTheme -> Color.Black.copy(alpha = 0.28f)
+    blurred -> Color(0xFF1C1C1E).copy(alpha = 0.12f)
+    isDarkTheme -> Color.Black.copy(alpha = 0.55f)
+    else -> Color(0xFF1C1C1E).copy(alpha = 0.28f)
+}
+
+/**
+ * Full-screen host for floating macOS glass dialogs: enables cross-window backdrop
+ * blur on the dialog window and paints a theme-aware scrim underneath the panel.
+ */
 @Composable
-fun rememberPlannerBackdropBlur(radiusPx: Int = 48): Boolean {
+fun SafarGlassDialogHost(
+    modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = !MaterialTheme.colorScheme.background.isLightBackground(),
+    blurRadiusPx: Int = SafarBackdropBlurRadiusPx,
+    contentAlignment: Alignment = Alignment.Center,
+    applyImePadding: Boolean = true,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val blurred = rememberPlannerBackdropBlur(radiusPx = blurRadiusPx)
+    val scrimColor = safarGlassDialogScrimColor(isDarkTheme, blurred)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .then(if (applyImePadding) Modifier.imePadding() else Modifier)
+            .background(scrimColor),
+        contentAlignment = contentAlignment,
+        content = content,
+    )
+}
+
+/** Call at the top of [androidx.compose.material3.ModalBottomSheet] content to blur the page behind the sheet. */
+@Composable
+fun SafarEnableSheetBackdropBlur(radiusPx: Int = SafarBackdropBlurRadiusPx) {
+    rememberPlannerBackdropBlur(radiusPx = radiusPx)
+}
+
+@Composable
+fun rememberPlannerBackdropBlur(radiusPx: Int = SafarBackdropBlurRadiusPx): Boolean {
     val view = LocalView.current
     val supported = remember(view) { isCrossWindowBlurSupported(view) }
 

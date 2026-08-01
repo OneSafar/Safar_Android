@@ -36,6 +36,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -53,6 +54,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.ui.theme.SafarSemanticColors
+import com.safarparmar.app.ui.theme.isLightBackground
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SAFAR GLASS (Dhyan recipe) — Dashboard / Ekagra / Profile
@@ -129,33 +132,27 @@ fun SafarGlassButton(
     icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isLight: Boolean = false,
+    isLight: Boolean = MaterialTheme.colorScheme.background.isLightBackground(),
     customTint: Color? = null,
     customTextColor: Color? = null,
 ) {
     val isDarkTheme = !isLight
     val cardShape = RoundedCornerShape(28.dp)
-    val accent = customTint ?: if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+    val accent = customTint ?: SafarSemanticColors.brandPurple(isDarkTheme = !isLight)
 
     val textColor = customTextColor ?: if (isDarkTheme) Color.White else accent
     val iconOnDisc = Color.White
 
     // Colored glass body — frost + brand pigment (not grey-only)
-    val baseGradient = if (isDarkTheme) {
-        listOf(
-            accent.copy(alpha = 0.42f),
-            accent.copy(alpha = 0.22f),
-        )
-    } else {
-        listOf(
-            accent.copy(alpha = 0.28f),
-            accent.copy(alpha = 0.14f),
-        )
-    }
+    // Light uses the same pigment strength as dark so purple isn't washed out.
+    val baseGradient = listOf(
+        accent.copy(alpha = 0.42f),
+        accent.copy(alpha = 0.22f),
+    )
     val highlightGradient = if (isDarkTheme) {
         listOf(Color.White.copy(alpha = 0.45f), Color.Transparent)
     } else {
-        listOf(Color.White.copy(alpha = 0.75f), Color.Transparent)
+        listOf(Color.White.copy(alpha = 0.55f), Color.Transparent)
     }
     val borderGradient = if (isDarkTheme) {
         listOf(
@@ -282,14 +279,12 @@ fun MacOSPrimaryActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isLoading: Boolean = false,
-    isLight: Boolean = false,
+    isLight: Boolean = MaterialTheme.colorScheme.background.isLightBackground(),
     customAccent: Color? = null,
     icon: ImageVector? = null,
 ) {
     val shape = RoundedCornerShape(20.dp)
-    val purpleLight = Color(0xFF7845E5)
-    val purpleDark = Color(0xFFA78BFA)
-    val accent = customAccent ?: if (isLight) purpleLight else purpleDark
+    val accent = customAccent ?: SafarSemanticColors.brandPurple(isDarkTheme = !isLight)
 
     val bodyColor = if (!enabled) {
         if (customAccent != null) {
@@ -584,7 +579,7 @@ fun MacOSControlActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isLight: Boolean = false,
-    accentColor: Color = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+    accentColor: Color = SafarSemanticColors.brandPurple(isDarkTheme = !isLight),
     subtitle: String? = null,
 ) {
     Row(
@@ -644,7 +639,7 @@ fun MacOSControlEmptyState(
     onAction: () -> Unit,
     modifier: Modifier = Modifier,
     isLight: Boolean = false,
-    accentColor: Color = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+    accentColor: Color = SafarSemanticColors.brandPurple(isDarkTheme = !isLight),
 ) {
     Column(
         modifier = modifier
@@ -836,9 +831,9 @@ fun ExamPlannerGlassButton(
     customTextColor: Color? = null,
 ) {
     // Transparent glass button: subtle tinted background.
-    val tint      = customTint ?: (if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet)
+    val tint      = customTint ?: SafarSemanticColors.brandPurple(isDarkTheme = !isLight)
     val tintAlpha = if (isLight) 0.12f else 0.16f
-    val textColor = customTextColor ?: (if (isLight) SafarGlassPalette.LightViolet else Color.White)
+    val textColor = customTextColor ?: (if (isLight) SafarSemanticColors.brandPurple(isDarkTheme = false) else Color.White)
     val iconCircleBg = if (isLight) tint.copy(alpha = 0.12f)
                        else         Color.White.copy(alpha = 0.16f)
 

@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -200,6 +201,9 @@ fun KavachOnboardingScreen(
         modifier = Modifier.fillMaxSize(),
         color = colors.screen,
     ) {
+        CompositionLocalProvider(
+            com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme provides !isLightMode,
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -396,6 +400,7 @@ fun KavachOnboardingScreen(
                 },
             )
         }
+        } // CompositionLocalProvider LocalPlannerIsDarkTheme
     }
 }
 
@@ -510,6 +515,9 @@ private fun KavachRegainExplanationSheet(
         )
     }
 
+    CompositionLocalProvider(
+        com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme provides isDark,
+    ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -649,4 +657,5 @@ private fun KavachRegainExplanationSheet(
             }
         }
     }
+    } // CompositionLocalProvider
 }

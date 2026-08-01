@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -138,6 +139,7 @@ import com.safarparmar.app.ui.studyplanner.logic.readableDate
 import com.safarparmar.app.ui.studyplanner.components.flatCard
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.GlassButton
+import com.safarparmar.app.ui.studyplanner.components.SafarEnableSheetBackdropBlur
 import com.safarparmar.app.ui.studyplanner.components.glassSurface
 import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
 import androidx.compose.foundation.text.BasicTextField
@@ -301,7 +303,8 @@ fun PlanSettingsSheet(
             state = listState,
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                .imePadding(),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
@@ -1195,6 +1198,7 @@ fun DailyTodoSetupSheet(
         dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft) },
         containerColor = PlannerFlatColors.BgCream,
     ) {
+        SafarEnableSheetBackdropBlur()
         val isDark = isPlannerDark
         val accent = PlannerFlatColors.PrimaryAccent
         val ink = PlannerFlatColors.TextDark
@@ -1204,6 +1208,7 @@ fun DailyTodoSetupSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                .imePadding()
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {

@@ -4,7 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import com.safarparmar.app.ui.glass.SafarGlassPalette
+import com.safarparmar.app.ui.theme.SafarSemanticColors
 
 /**
  * Kavach palette. Accent is locked to Safar purple (same violet used by glass /
@@ -16,9 +16,9 @@ object KavachDesign {
         @Composable
         get() = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    /** Safar purple — dark: Violet, light: LightViolet. */
+    /** Safar purple for primary buttons — rich fill, macOS glass chrome unchanged elsewhere. */
     val Primary: Color
-        @Composable get() = if (isDark) SafarGlassPalette.Violet else SafarGlassPalette.LightViolet
+        @Composable get() = com.safarparmar.app.ui.theme.SafarSemanticColors.brandPurple(isDark)
 
     val PrimaryDark: Color @Composable get() = Primary
     val Background: Color @Composable get() = MaterialTheme.colorScheme.background

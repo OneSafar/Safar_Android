@@ -62,7 +62,7 @@ fun PlannerOverflowMenu(
         // sitting on a translucent panel. A smaller radius than the dialogs use:
         // a menu covers little of the screen, and a heavy blur under a small
         // panel reads as a smudge rather than glass.
-        rememberPlannerBackdropBlur(radiusPx = 32)
+        rememberPlannerBackdropBlur(radiusPx = SafarMenuBackdropBlurRadiusPx)
         Column(
             modifier = Modifier
                 .widthIn(min = 180.dp)

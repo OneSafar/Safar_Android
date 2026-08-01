@@ -9,7 +9,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -52,6 +51,7 @@ import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.components.GlassButton
 import com.safarparmar.app.ui.studyplanner.components.TextInputDialog
 import com.safarparmar.app.ui.studyplanner.PlannerActions
@@ -88,7 +88,7 @@ internal sealed interface SyllabusDialogState {
 fun SyllabusSubjectsScreen(
     viewModel: StudyPlannerViewModel,
     planId: String,
-    isDarkTheme: Boolean = isSystemInDarkTheme(),
+    isDarkTheme: Boolean = !MaterialTheme.colorScheme.background.isLightBackground(),
     onNavigate: (String) -> Unit,
     onBack: () -> Unit,
     onPlannerSectionSelect: (PlannerSection) -> Unit,
@@ -355,7 +355,10 @@ fun SyllabusSubjectsScreen(
         WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
     }
 
-    CompositionLocalProvider(LocalDensity provides clampedDensity) {
+    CompositionLocalProvider(
+        LocalDensity provides clampedDensity,
+        com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme provides isDarkTheme,
+    ) {
         androidx.compose.animation.AnimatedContent(
             targetState = activeSubjectId,
             label = "drill_down",

@@ -52,7 +52,7 @@ import com.safarparmar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
 import com.safarparmar.app.ui.studyplanner.components.GlassButton
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
 import com.safarparmar.app.ui.studyplanner.components.glassSurface
-import com.safarparmar.app.ui.studyplanner.components.rememberPlannerBackdropBlur
+import com.safarparmar.app.ui.studyplanner.components.SafarGlassDialogHost
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.studyplanner.screens.InsightsOverallProgressRedesign
@@ -1131,19 +1131,7 @@ private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        val blurred = rememberPlannerBackdropBlur()
-        val scrimColor = when {
-            blurred && isDark -> Color.Black.copy(alpha = 0.28f)
-            blurred -> Color(0xFF1C1C1E).copy(alpha = 0.12f)
-            isDark -> Color.Black.copy(alpha = 0.55f)
-            else -> Color(0xFF1C1C1E).copy(alpha = 0.28f)
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(scrimColor),
-            contentAlignment = Alignment.Center,
-        ) {
+        SafarGlassDialogHost(isDarkTheme = isDark) {
             Column(
                 modifier = Modifier
                     .padding(horizontal = 28.dp)
@@ -1311,19 +1299,7 @@ private fun CelebrationDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        val blurred = rememberPlannerBackdropBlur()
-        val scrimColor = when {
-            blurred && isDark -> Color.Black.copy(alpha = 0.28f)
-            blurred -> Color(0xFF1C1C1E).copy(alpha = 0.12f)
-            isDark -> Color.Black.copy(alpha = 0.55f)
-            else -> Color(0xFF1C1C1E).copy(alpha = 0.28f)
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(scrimColor),
-            contentAlignment = Alignment.Center,
-        ) {
+        SafarGlassDialogHost(isDarkTheme = isDark) {
             Box(
                 modifier = Modifier
                     .padding(horizontal = 28.dp)

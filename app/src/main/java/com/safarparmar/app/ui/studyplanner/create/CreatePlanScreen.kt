@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
 import com.safarparmar.app.ui.studyplanner.create.steps.BuildingPreviewStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ChapterRatingStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ChoosePathStep
@@ -55,6 +57,7 @@ import com.safarparmar.app.ui.studyplanner.create.steps.PlanPreviewStep
 import com.safarparmar.app.ui.studyplanner.create.steps.PlanSettingsStep
 import com.safarparmar.app.ui.studyplanner.create.steps.TemplatePickerStep
 import com.safarparmar.app.ui.theme.SafarSemanticColors
+import com.safarparmar.app.ui.theme.isLightBackground
 import kotlinx.coroutines.delay
 
 private fun stepTitle(step: CreatePlanStep): String = when (step) {
@@ -131,6 +134,10 @@ fun CreatePlanScreen(
 
     BackHandler(enabled = !showCelebration) { handleBack() }
 
+    // Align PlannerFlatColors with Material theme (not system dark) so cream sheets
+    // don't flip black while topic cards stay light Material surfaces.
+    val plannerIsDark = !MaterialTheme.colorScheme.background.isLightBackground()
+    CompositionLocalProvider(LocalPlannerIsDarkTheme provides plannerIsDark) {
     Scaffold(
         containerColor = SafarSemanticColors.plannerBackground(),
         topBar = {
@@ -317,6 +324,7 @@ fun CreatePlanScreen(
             }
         }
     }
+    } // CompositionLocalProvider LocalPlannerIsDarkTheme
 }
 
 /** Brief celebration beat between "Looks good" and landing on Home — a scale-in

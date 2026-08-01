@@ -12,13 +12,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.unit.dp
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import com.safarparmar.app.ui.theme.isLightBackground
 
 val LocalPlannerIsDarkTheme = staticCompositionLocalOf<Boolean?> { null }
 
+/**
+ * Planner flat palette dark flag. Prefer [LocalPlannerIsDarkTheme] (set by SafarTheme /
+ * feature screens). Fallback uses **Material** background luminance — never system dark —
+ * so system-dark + app-light no longer yields black cream sheets on light cards.
+ */
 val isPlannerDark: Boolean
     @Composable
-    get() = LocalPlannerIsDarkTheme.current ?: isSystemInDarkTheme()
+    get() = LocalPlannerIsDarkTheme.current
+        ?: !MaterialTheme.colorScheme.background.isLightBackground()
 
 object PlannerFlatColors {
     val BgCream @Composable get() = if (isPlannerDark) Color(0xFF131316) else Color(0xFFFFF9F0)

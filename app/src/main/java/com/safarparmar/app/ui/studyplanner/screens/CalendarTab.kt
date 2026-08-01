@@ -212,6 +212,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.studyplanner.components.SafarEnableSheetBackdropBlur
 import com.safarparmar.app.ui.studyplanner.components.glassSurface
 import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.PlannerCalendarStatus
@@ -675,6 +676,7 @@ internal fun SelectedDayLogSheet(
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = PlannerFlatColors.BgCream,
     ) {
+        SafarEnableSheetBackdropBlur()
         // Everything — header, badges, AND the topic rows — lives in one single
         // LazyColumn. Nesting a scrollable LazyColumn inside a Modifier.verticalScroll
         // Column (the old layout) creates two competing vertical-scroll containers;

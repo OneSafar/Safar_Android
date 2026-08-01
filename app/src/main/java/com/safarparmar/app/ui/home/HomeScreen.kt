@@ -55,6 +55,8 @@ import com.safarparmar.app.util.YoutubeUrls
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.glass.safarFrostedPanel
+import com.safarparmar.app.ui.studyplanner.components.SafarBackdropBlurRadiusPx
+import com.safarparmar.app.ui.studyplanner.components.SafarGlassDialogHost
 import com.safarparmar.app.ui.studyplanner.components.rememberPlannerBackdropBlur
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -499,15 +501,16 @@ private fun SafarWelcomeDialog(
         onDismissRequest = {},
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Column(
-            modifier = Modifier
-                .width(320.dp)
-                .height(360.dp)
-                .safarFrostedPanel(isLight = isLight, shape = shape, elevation = if (isLight) 18.dp else 10.dp)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
+        SafarGlassDialogHost(isDarkTheme = isDarkTheme) {
+            Column(
+                modifier = Modifier
+                    .width(320.dp)
+                    .height(360.dp)
+                    .safarFrostedPanel(isLight = isLight, shape = shape, elevation = if (isLight) 18.dp else 10.dp)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
             Text(
                 text = "Hello${if (userName.isNotBlank()) ", $userName" else ""}.",
                 fontSize = 24.sp,
@@ -555,6 +558,7 @@ private fun SafarWelcomeDialog(
                 onClick = onDismiss,
                 isLight = isLight,
             )
+            }
         }
     }
 }
@@ -603,7 +607,7 @@ fun VideoPlaylistEntryPoint(
         ) {
             // Popup is its own window — enable strong compositor blur so the
             // busy home hero text doesn't bleed through the tooltip.
-            val blurred = rememberPlannerBackdropBlur(radiusPx = 80)
+            val blurred = rememberPlannerBackdropBlur(radiusPx = SafarBackdropBlurRadiusPx)
 
             Row(
                 modifier = Modifier

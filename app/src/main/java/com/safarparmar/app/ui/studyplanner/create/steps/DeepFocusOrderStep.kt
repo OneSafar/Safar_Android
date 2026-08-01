@@ -1,6 +1,5 @@
 package com.safarparmar.app.ui.studyplanner.create.steps
 
-import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -25,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.create.DeepFocusOutlineSubject
 import com.safarparmar.app.ui.theme.isLightBackground
 
@@ -196,7 +197,7 @@ private fun DeepFocusTopicsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
+        dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft) },
         containerColor = PlannerFlatColors.BgCream,
     ) {
         Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
@@ -204,6 +205,7 @@ private fun DeepFocusTopicsSheet(
                 text = chapterName,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
+                color = PlannerFlatColors.TextDark,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
@@ -211,14 +213,14 @@ private fun DeepFocusTopicsSheet(
             Text(
                 "Press and hold a topic, then drag, to reorder it.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = PlannerFlatColors.TextMuted,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
             )
             if (topicNames.isEmpty()) {
                 Text(
                     "No topics in this chapter.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = PlannerFlatColors.TextMuted,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                 )
             } else {
@@ -236,10 +238,11 @@ private fun DeepFocusTopicsSheet(
                             onMoveUp = { onMoveTopic(index, index - 1) },
                             onMoveDown = { onMoveTopic(index, index + 1) },
                             useCardSurface = false,
+                            usePlannerFlatColors = true,
                             modifier = Modifier.animateItem(),
                         )
                         if (index < topicNames.lastIndex) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            HorizontalDivider(color = PlannerFlatColors.BorderSoft.copy(alpha = 0.7f))
                         }
                     }
                 }
@@ -267,11 +270,30 @@ private fun DeepFocusRow(
     onMoveDown: () -> Unit,
     useCardSurface: Boolean,
     modifier: Modifier = Modifier,
+    usePlannerFlatColors: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
     var itemHeightPx by remember { mutableIntStateOf(0) }
+
+    val titleColor = if (usePlannerFlatColors) PlannerFlatColors.TextDark else scheme.onSurface
+    val subtitleColor = if (usePlannerFlatColors) PlannerFlatColors.TextMuted else scheme.onSurfaceVariant
+    val badgeBg = if (usePlannerFlatColors) PlannerFlatColors.AccentTint else scheme.primaryContainer
+    val badgeFg = if (usePlannerFlatColors) PlannerFlatColors.PrimaryAccent else scheme.onPrimaryContainer
+    val rowBg = when {
+        usePlannerFlatColors && isDragging -> PlannerFlatColors.BorderSoft.copy(alpha = 0.35f)
+        usePlannerFlatColors -> PlannerFlatColors.CardWhite
+        useCardSurface && isDragging -> scheme.surfaceContainerLow
+        useCardSurface -> scheme.surfaceContainerLowest
+        isDragging -> scheme.surfaceContainerHighest
+        else -> scheme.surfaceContainerLow
+    }
+    val rowBorder = when {
+        usePlannerFlatColors -> BorderStroke(0.5.dp, PlannerFlatColors.BorderSoft)
+        useCardSurface -> BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
+        else -> null
+    }
 
     val animatedScale by animateFloatAsState(targetValue = if (isDragging) scale else 1f, label = "rowScale")
     val animatedElevation by animateFloatAsState(targetValue = if (isDragging) elevation else 0f, label = "rowElevation")
@@ -313,11 +335,6 @@ private fun DeepFocusRow(
                 onDrag = { change, dragAmount ->
                     change.consume()
                     dragOffsetY += dragAmount.y
-                    // Swap at the midpoint (50%) rather than waiting for 75% of the
-                    // row to pass. `while` (not `if`) lets a single continuous drag
-                    // carry the card past EVERY other card — each time the finger
-                    // clears the next sibling's midpoint another swap fires —
-                    // instead of stopping after one neighbour on a fast/long drag.
                     val threshold = itemHeightPx * 0.5f
                     if (threshold > 0) {
                         while (dragOffsetY >= threshold) {
@@ -335,7 +352,12 @@ private fun DeepFocusRow(
             )
         }
 
-    val content: @Composable () -> Unit = {
+    Surface(
+        modifier = shared,
+        shape = RoundedCornerShape(cornerRadius),
+        color = rowBg,
+        border = rowBorder,
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -345,7 +367,7 @@ private fun DeepFocusRow(
         ) {
             Surface(
                 shape = androidx.compose.foundation.shape.CircleShape,
-                color = scheme.primaryContainer,
+                color = badgeBg,
                 modifier = Modifier.size(26.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -353,17 +375,17 @@ private fun DeepFocusRow(
                         text = order.toString(),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Black,
-                        color = scheme.onPrimaryContainer,
+                        color = badgeFg,
                     )
                 }
             }
             Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = scheme.onSurface,
+                    color = titleColor,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -371,25 +393,10 @@ private fun DeepFocusRow(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onSurfaceVariant,
+                        color = subtitleColor,
                     )
                 }
             }
         }
-    }
-
-    if (useCardSurface) {
-        Surface(
-            modifier = shared,
-            shape = RoundedCornerShape(cornerRadius),
-            color = if (isDragging) scheme.surfaceContainerLow else scheme.surfaceContainerLowest,
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
-        ) { content() }
-    } else {
-        Surface(
-            modifier = shared,
-            shape = RoundedCornerShape(cornerRadius),
-            color = if (isDragging) scheme.surfaceContainerHighest else scheme.surfaceContainerLow,
-        ) { content() }
     }
 }

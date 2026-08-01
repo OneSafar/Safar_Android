@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -56,7 +57,7 @@ fun ManualTopicTreeStep(
     val totalTopics = subjects.sumOf { s -> s.chapters.sumOf { it.topics.size } }
 
     Column(
-        modifier = modifier.fillMaxWidth().padding(20.dp),
+        modifier = modifier.fillMaxWidth().imePadding().padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(

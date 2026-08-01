@@ -130,9 +130,12 @@ internal fun parseAnnouncementLinks(body: String, deepLink: String?): Announceme
         YoutubeUrls.extractVideoId(url)?.let { id -> id to YoutubeUrls.watchUrl(id) }
     }
     val webUrl = candidates.firstOrNull { YoutubeUrls.extractVideoId(it) == null }
+    // Preserve author line breaks. Only collapse leftover horizontal spaces
+    // after URL stripping (e.g. "  " left where a link was removed).
     val displayBody = body
         .replace(URL_IN_TEXT) { "" }
-        .replace(Regex("""\s{2,}"""), " ")
+        .replace(Regex("""[^\S\r\n]{2,}"""), " ")
+        .replace(Regex("""\r\n?"""), "\n")
         .trim()
 
     return AnnouncementLinkInfo(

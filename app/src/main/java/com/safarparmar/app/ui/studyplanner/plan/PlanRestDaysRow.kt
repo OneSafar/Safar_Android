@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.safarparmar.app.ui.theme.SafarSemanticColors
 import com.safarparmar.app.ui.theme.isLightBackground
 
 private val dayIndices = 0..6
@@ -41,9 +42,8 @@ fun PlanRestDaysRow(
     val scheme = MaterialTheme.colorScheme
     val isLight = scheme.background.isLightBackground()
 
-    val purpleLight = Color(0xFF7845E5)
-    val purpleDark = Color(0xFFA78BFA)
-    val activeAccent = if (isLight) purpleLight else purpleDark
+    val purpleRich = com.safarparmar.app.ui.theme.SafarSemanticColors.brandPurple(isDarkTheme = !isLight)
+    val activeAccent = purpleRich
 
     val borderBrush = if (!isLight) {
         Brush.verticalGradient(

@@ -65,7 +65,7 @@ gradle.taskGraph.whenReady {
 
 android {
     namespace = "com.safarparmar.app"
-    compileSdk = 35
+    compileSdk = 36
     val defaultApiRoot = "https://safar.parmarssc.in/"
     val apiBaseUrl = normalizeBaseUrl(defaultApiRoot)
     val qaBaseUrl = normalizeBaseUrl(
@@ -89,9 +89,9 @@ android {
     defaultConfig {
         applicationId = "com.safarparmar.app"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 25
-        versionName = "1.6.13"
+        targetSdk = 36
+        versionCode = 26
+        versionName = "1.6.14"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // KAVACH (FocusShield) accessibility service is a digital wellbeing feature.
         // It MUST remain in the prod manifest so Google can review & whitelist it.

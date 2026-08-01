@@ -1,14 +1,11 @@
 package com.safarparmar.app.ui.studyplanner.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,13 +15,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import android.view.WindowManager
 import com.safarparmar.app.ui.theme.isLightBackground
 
 /**
@@ -60,23 +61,13 @@ fun PlannerDialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        // True backdrop blur where the platform supports it (API 31+, and not
-        // disabled by battery saver / reduced transparency). When it's live the
-        // scrim is pulled back — a blurred backdrop already separates the panel
-        // from the page, and dimming it as hard as before would bury the blur.
-        val blurred = rememberPlannerBackdropBlur()
-        val scrimColor = when {
-            blurred && isDark -> Color.Black.copy(alpha = 0.28f)
-            blurred -> Color(0xFF1C1C1E).copy(alpha = 0.12f)
-            isDark -> Color.Black.copy(alpha = 0.55f)
-            else -> Color(0xFF1C1C1E).copy(alpha = 0.28f)
+        val view = LocalView.current
+        SideEffect {
+            (view.parent as? DialogWindowProvider)?.window?.setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
+            )
         }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(scrimColor),
-            contentAlignment = Alignment.Center,
-        ) {
+        SafarGlassDialogHost(isDarkTheme = isDark) {
             Column(
                 modifier = modifier
                     .padding(horizontal = 28.dp)

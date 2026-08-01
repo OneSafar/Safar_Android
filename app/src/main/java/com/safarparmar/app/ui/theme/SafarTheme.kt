@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -154,7 +153,12 @@ fun SafarTheme(
         )
     }
 
-    CompositionLocalProvider(LocalDensity provides customDensity) {
+    // Align planner flat colors with the active Material scheme app-wide so nested
+    // sheets never fall back to system dark while the app UI is light (or reverse).
+    CompositionLocalProvider(
+        LocalDensity provides customDensity,
+        com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme provides darkTheme,
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             shapes = SafarShapes,

@@ -140,9 +140,10 @@ fun GlassButton(
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Center,
     isDarkTheme: Boolean = plannerIsDark(MaterialTheme.colorScheme),
-    tintTopAlpha: Float = if (isDarkTheme) 0.72f else 0.68f,
-    tintBottomAlpha: Float = if (isDarkTheme) 0.52f else 0.50f,
-    greyShadeAlpha: Float = if (isDarkTheme) 0.20f else 0.14f,
+    // Match dark-mode saturation in light — lower light alphas + grey scrim washed purple.
+    tintTopAlpha: Float = 0.72f,
+    tintBottomAlpha: Float = 0.52f,
+    greyShadeAlpha: Float = if (isDarkTheme) 0.20f else 0.08f,
     content: @Composable RowScope.() -> Unit,
 ) {
     // Single fill layer — stacking an opaque glass body under a translucent tint
