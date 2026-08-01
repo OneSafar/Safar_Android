@@ -60,6 +60,7 @@ import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.util.bounceClick
 import kotlinx.coroutines.delay
+import com.safarparmar.app.ui.audio.MediaFileCache
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -665,17 +666,17 @@ private fun BreathingTab(
             try {
                 val audioUri = if (shouldPlayBreathingSound) {
                     if (!technique.audioUrl.isNullOrBlank()) {
-                        Uri.parse(technique.audioUrl)
+                        MediaFileCache.uriFor(context, technique.audioUrl)
                     } else {
                         selectedBreathingSound.localResId?.let {
                             Uri.parse("android.resource://${context.packageName}/$it")
-                        } ?: Uri.parse(selectedBreathingSound.url)
+                        } ?: MediaFileCache.uriFor(context, selectedBreathingSound.url)
                     }
                 } else {
                     if (selectedMusicTrack.isLocal && selectedMusicTrack.localResId != null) {
                         Uri.parse("android.resource://${context.packageName}/${selectedMusicTrack.localResId}")
                     } else {
-                        Uri.parse(selectedMusicTrack.url)
+                        MediaFileCache.uriFor(context, selectedMusicTrack.url)
                     }
                 }
                 val mp = MediaPlayer().apply {

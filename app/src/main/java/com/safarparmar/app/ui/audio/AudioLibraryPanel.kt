@@ -155,7 +155,7 @@ fun AudioLibraryPanel(
                     if (track.isLocal && track.localResId != null) {
                         setDataSource(context, Uri.parse("android.resource://${context.packageName}/${track.localResId}"))
                     } else {
-                        setDataSource(track.url)
+                        setDataSource(context, MediaFileCache.uriFor(context, track.url))
                     }
                     prepareAsync()
                     setOnPreparedListener { start() }

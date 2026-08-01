@@ -65,6 +65,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import kotlin.math.roundToInt
+import com.safarparmar.app.ui.audio.MediaFileCache
 
 
 
@@ -91,7 +92,7 @@ internal fun EkagraVideoBackground(videoUrl: String, modifier: Modifier = Modifi
                         try {
                             val mp = MediaPlayer().apply {
                                 setSurface(android.view.Surface(p0))
-                                setDataSource(ctx, Uri.parse(videoUrl))
+                                setDataSource(ctx, MediaFileCache.uriFor(ctx, videoUrl))
                                 isLooping = true; setVolume(0f, 0f)
                                 setOnPreparedListener { player ->
                                     Handler(Looper.getMainLooper()).post {
@@ -162,7 +163,7 @@ internal fun EkagraVideoBackground(videoUrl: String, modifier: Modifier = Modifi
                 try {
                     val newPlayer = MediaPlayer().apply {
                         setSurface(android.view.Surface(st))
-                        setDataSource(ctx, Uri.parse(videoUrl))
+                        setDataSource(ctx, MediaFileCache.uriFor(ctx, videoUrl))
                         isLooping = true; setVolume(0f, 0f)
                         setOnPreparedListener { mp ->
                             Handler(Looper.getMainLooper()).post {

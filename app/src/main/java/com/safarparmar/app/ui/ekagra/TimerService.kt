@@ -50,6 +50,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
 import kotlin.math.roundToInt
+import com.safarparmar.app.ui.audio.MediaFileCache
 
 class TimerService : Service() {
 
@@ -701,7 +702,7 @@ class TimerService : Service() {
         if (url.isBlank() || url == "silence") return
         try {
             musicPlayer = MediaPlayer().apply {
-                setDataSource(this@TimerService, Uri.parse(url))
+                setDataSource(this@TimerService, MediaFileCache.uriFor(this@TimerService, url))
                 isLooping = true
                 val volume = if (_isMuted.value) 0f else 0.7f
                 setVolume(volume, volume)
