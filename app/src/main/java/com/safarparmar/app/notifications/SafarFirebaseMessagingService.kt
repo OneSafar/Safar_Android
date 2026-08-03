@@ -35,6 +35,7 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
         val body = data["body"] ?: message.notification?.body ?: ""
         val channel = SafarNotificationChannels.normalize(data["channel"])
         val deepLink = data["deepLink"]
+        val imageUrl = data["imageUrl"] ?: message.notification?.imageUrl?.toString()
         val priority = when (data["priority"]) {
             "high" -> NotificationCompat.PRIORITY_HIGH
             "low" -> NotificationCompat.PRIORITY_LOW
@@ -49,6 +50,7 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
                 body = body,
                 channelId = channel,
                 deepLink = deepLink,
+                imageUrl = imageUrl,
                 priority = priority,
                 onlyAlertOnce = true,
                 personalize = false,

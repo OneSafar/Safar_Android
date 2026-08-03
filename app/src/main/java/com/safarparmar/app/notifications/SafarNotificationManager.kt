@@ -11,9 +11,15 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import coil.ImageLoader
+import coil.request.ImageRequest
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.time.LocalTime
 
 enum class NotificationAvailabilityReason {
@@ -61,6 +67,23 @@ class SafarNotificationManager(
         return NotificationAvailability(true, NotificationAvailabilityReason.allowed)
     }
 
+    private suspend fun fetchBitmap(imageUrl: String?): Bitmap? {
+        if (imageUrl.isNullOrBlank()) return null
+        return withContext(Dispatchers.IO) {
+            try {
+                val loader = ImageLoader(context)
+                val request = ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .allowHardware(false)
+                    .build()
+                val result = loader.execute(request)
+                (result.drawable as? BitmapDrawable)?.bitmap
+            } catch (_: Throwable) {
+                null
+            }
+        }
+    }
+
     fun buildNotification(
         title: String,
         body: String,
@@ -71,6 +94,7 @@ class SafarNotificationManager(
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
         // P2 fix: accept optional action buttons (used by study reminder "Start Now")
         actions: List<NotificationCompat.Action> = emptyList(),
+        imageBitmap: Bitmap? = null,
     ): Notification {
         val normalizedChannel = SafarNotificationChannels.normalize(channelId)
         // P2 fix: tag every notification with its channel-scoped group key so that
@@ -83,18 +107,31 @@ class SafarNotificationManager(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val style = if (imageBitmap != null) {
+            NotificationCompat.BigPictureStyle()
+                .bigPicture(imageBitmap)
+                .bigLargeIcon(null as Bitmap?)
+                .setSummaryText(body)
+        } else {
+            NotificationCompat.BigTextStyle().bigText(body)
+        }
+
         val builder = NotificationCompat.Builder(context, normalizedChannel)
             .setSmallIcon(SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationStyle.brandColor(context))
             .setContentTitle(title)
             .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setStyle(style)
             .setContentIntent(contentIntent)
             .setAutoCancel(!ongoing)
             .setOngoing(ongoing)
             .setOnlyAlertOnce(onlyAlertOnce)
             .setPriority(priority)
             .setGroup(groupKey)
+
+        if (imageBitmap != null) {
+            builder.setLargeIcon(imageBitmap)
+        }
 
         actions.forEach { builder.addAction(it) }
 
@@ -185,6 +222,8 @@ class SafarNotificationManager(
         /** Optional dedup type — ensures FCM and local notifications for the same
          *  logical event produce the same [stableNotificationId]. */
         dedupeType: String? = null,
+        /** Optional HTTPS image URL / YouTube thumbnail for Rich Notifications */
+        imageUrl: String? = null,
     ) {
         val resolvedId = notificationId ?: stableNotificationId(type = dedupeType, deepLink = deepLink, title = title)
         val normalizedChannel = SafarNotificationChannels.normalize(channelId)
@@ -192,6 +231,7 @@ class SafarNotificationManager(
             return
         }
         val personalizedBody = if (personalize) personalizeBody(body) else body
+        val imageBitmap = fetchBitmap(imageUrl)
         // if (shouldSuppressByQuietHours(normalizedChannel)) return
         notificationManager.notify(
             resolvedId,
@@ -203,6 +243,7 @@ class SafarNotificationManager(
                 priority = priority,
                 onlyAlertOnce = onlyAlertOnce,
                 actions = actions,
+                imageBitmap = imageBitmap,
             ),
         )
         // P2 fix: post group summary so Android collapses stacked channel notifications
