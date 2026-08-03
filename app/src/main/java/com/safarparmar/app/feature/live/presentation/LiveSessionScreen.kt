@@ -296,6 +296,18 @@ private fun LiveClassPlayerChat(
                                 .fillMaxSize()
                                 .background(Color.Black.copy(alpha = 0.5f))
                         )
+                    } else {
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.res.painterResource(com.safarparmar.app.R.drawable.dhyan_session_placeholder),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.5f))
+                        )
                     }
 
                     // Center Play Button Overlay
