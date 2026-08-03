@@ -239,21 +239,11 @@ private fun LiveClassPlayerChat(
     onSend: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var draft by remember { mutableStateOf("") }
-    val listState = rememberLazyListState()
-
-    // Auto-scroll to newest message
-    LaunchedEffect(chatState.messages.size) {
-        if (chatState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(chatState.messages.size - 1)
-        }
-    }
-
-    Column(
+    // Chat is hidden — show only the video player filling the screen
+    Box(
         modifier = modifier.background(MaterialTheme.colorScheme.surface),
     ) {
-
-        // ── Video Player ─────────────────────────────────────────────────────────
+        // ── Video Player ──────────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -306,112 +296,6 @@ private fun LiveClassPlayerChat(
                         style = MaterialTheme.typography.labelMedium,
                     )
                 }
-            }
-        }
-
-        // ── Chat Header ──────────────────────────────────────────────────────────
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Live Chat",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                AnimatedVisibility(visible = chatState.isConnecting) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "Connecting…",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
-
-        // ── Messages List ────────────────────────────────────────────────────────
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                Text(
-                    text = "Welcome to the live session! Chat is public — be respectful.",
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            }
-            items(chatState.messages) { message ->
-                ChatBubble(message = message)
-            }
-            if (chatState.messages.isEmpty() && !chatState.isConnecting) {
-                item {
-                    Text(
-                        text = "No messages yet. Be the first to say something!",
-                        modifier = Modifier.padding(8.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-        }
-
-        // ── Message Input ────────────────────────────────────────────────────────
-        val isChatDisabled = session.status == "ended" || session.status == "cancelled" || !session.isChatEnabled
-        val placeholderText = when {
-            session.status == "ended" || session.status == "cancelled" -> "Chat disabled for completed classes"
-            !session.isChatEnabled -> "Chat disabled"
-            else -> "Say something…"
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = draft,
-                onValueChange = { draft = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text(placeholderText) },
-                singleLine = true,
-                shape = CircleShape,
-                enabled = !isChatDisabled,
-            )
-            Spacer(Modifier.width(8.dp))
-            FilledIconButton(
-                onClick = {
-                    val text = draft.trim()
-                    if (text.isNotEmpty()) {
-                        onSend(text)
-                        draft = ""
-                    }
-                },
-                modifier = Modifier.size(52.dp),
-                enabled = !isChatDisabled,
-            ) {
-                Icon(Icons.Default.Send, contentDescription = "Send message")
             }
         }
     }
