@@ -66,13 +66,7 @@ fun YouTubePlayerWebView(
         },
     ) {
         AndroidView(
-            modifier = if (isFullscreen) {
-                Modifier.fillMaxSize()
-            } else {
-                Modifier
-                    .fillMaxWidth()
-                    .height(playerHeight)
-            },
+            modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
                 val cookieManager = CookieManager.getInstance()
                 cookieManager.setAcceptCookie(true)

@@ -239,61 +239,172 @@ private fun LiveClassPlayerChat(
     onSend: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Chat is hidden — show only the video player filling the screen
-    Box(
-        modifier = modifier.background(MaterialTheme.colorScheme.surface),
-    ) {
-        // ── Video Player ──────────────────────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.Black)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(12.dp)
-                )
-        ) {
-            resolveEmbedUrl(session)?.let { embedUrl ->
-                YouTubePlayerWebView(embedUrl = embedUrl, modifier = Modifier.fillMaxWidth())
-            } ?: YouTubePlaceholder(session.status)
+    val context = LocalContext.current
+    val activity = context as? Activity
+    var isPlaying by remember { mutableStateOf(false) }
+    val embedUrl = remember(session.id) { resolveEmbedUrl(session) }
 
-            // LIVE badge
-            if (session.status == "live") {
-                Row(
+    DisposableEffect(isPlaying) {
+        if (isPlaying) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
+    Box(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
+        ) {
+            // ── Video Preview Cover (16:9 Black Screen / Thumbnail with Play Button) ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Black)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+            ) {
+                val videoId = extractVideoId(session)
+                val thumbnailUrl = videoId?.let { "https://img.youtube.com/vi/$it/hqdefault.jpg" }
+
+                Box(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)),
-                            ),
-                        )
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .aspectRatio(16f / 9f)
+                        .clickable { if (embedUrl != null) isPlaying = true },
+                    contentAlignment = Alignment.Center
                 ) {
+                    if (thumbnailUrl != null) {
+                        AsyncImage(
+                            model = thumbnailUrl,
+                            contentDescription = "Video Thumbnail",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.5f))
+                        )
+                    }
+
+                    // Center Play Button Overlay
                     Box(
                         modifier = Modifier
-                            .size(8.dp)
+                            .size(64.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.error),
-                    )
-                    Spacer(Modifier.width(8.dp))
+                            .background(Color.Black.copy(alpha = 0.7f))
+                            .border(2.dp, Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play Video in Landscape Fullscreen",
+                            tint = Color.White,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    // LIVE badge
+                    if (session.status == "live") {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+                                    ),
+                                )
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.error),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "LIVE",
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = session.title,
+                                color = Color.White.copy(alpha = 0.9f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Session Details below video card
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = session.title.ifBlank { "Live Session" },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (!session.description.isNullOrBlank()) {
                     Text(
-                        text = "LIVE",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
+                        text = session.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text = session.title,
-                        color = Color.White.copy(alpha = 0.88f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.labelMedium,
+                }
+            }
+        }
+
+        // ── Full-screen Video Player Overlay (Landscape Mode) ────────────────
+        if (isPlaying && embedUrl != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                YouTubePlayerWebView(
+                    embedUrl = embedUrl,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // Floating back button — exits full-screen landscape back to portrait
+                IconButton(
+                    onClick = {
+                        isPlaying = false
+                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .size(48.dp)
+                        .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Exit Fullscreen",
+                        tint = Color.White
                     )
                 }
             }
