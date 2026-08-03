@@ -281,7 +281,22 @@ private fun LiveClassPlayerChat(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
-                        .clickable { if (embedUrl != null) isPlaying = true },
+                        // Straight to the dedicated fullscreen player. Setting
+                        // isPlaying swapped in an INLINE 16:9 WebView, which
+                        // rendered a blank white box in portrait and forced the
+                        // student to find YouTube's own fullscreen button before
+                        // they could see anything. Same behaviour as the sessions
+                        // list, which already launches this activity directly.
+                        .clickable {
+                            val url = embedUrl
+                            if (url != null) {
+                                VideoPlayerActivity.start(
+                                    context = context,
+                                    embedUrl = url,
+                                    videoTitle = session.title.orEmpty(),
+                                )
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     if (thumbnailUrl != null) {
@@ -504,7 +519,22 @@ private fun CompletedSessionPlayback(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
-                        .clickable { if (embedUrl != null) isPlaying = true },
+                        // Straight to the dedicated fullscreen player. Setting
+                        // isPlaying swapped in an INLINE 16:9 WebView, which
+                        // rendered a blank white box in portrait and forced the
+                        // student to find YouTube's own fullscreen button before
+                        // they could see anything. Same behaviour as the sessions
+                        // list, which already launches this activity directly.
+                        .clickable {
+                            val url = embedUrl
+                            if (url != null) {
+                                VideoPlayerActivity.start(
+                                    context = context,
+                                    embedUrl = url,
+                                    videoTitle = session.title.orEmpty(),
+                                )
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     if (thumbnailUrl != null) {

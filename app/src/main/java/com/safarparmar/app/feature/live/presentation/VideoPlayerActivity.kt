@@ -67,12 +67,22 @@ class VideoPlayerActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         hideSystemBars()
 
-        // Sensor orientation for tablets, lock to portrait for phones
+        // A live session is a 16:9 landscape video, and this screen exists only to
+        // play it. Locking a phone to PORTRAIT letterboxed that video into a thin
+        // strip with black above and below — so "fullscreen" still meant the
+        // student had to rotate or hunt for YouTube's own fullscreen button.
+        // Opening in landscape makes the video fill the screen immediately, which
+        // is the whole point of this activity.
+        //
+        // SENSOR_LANDSCAPE (not plain LANDSCAPE) so both landscape orientations
+        // work and the phone is not forced to one physical direction. Tablets keep
+        // full sensor freedom — their screen is large enough that portrait is still
+        // a perfectly good viewing position.
         val isTablet = resources.configuration.smallestScreenWidthDp >= 600
         requestedOrientation = if (isTablet) {
             ActivityInfo.SCREEN_ORIENTATION_SENSOR
         } else {
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         }
 
         val embedUrl = intent.getStringExtra(EXTRA_EMBED_URL) ?: run { finish(); return }

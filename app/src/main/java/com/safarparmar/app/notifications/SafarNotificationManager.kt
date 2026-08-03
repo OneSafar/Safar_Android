@@ -77,8 +77,20 @@ class SafarNotificationManager(
                     .allowHardware(false)
                     .build()
                 val result = loader.execute(request)
-                (result.drawable as? BitmapDrawable)?.bitmap
-            } catch (_: Throwable) {
+                val drawable = result.drawable ?: return@withContext null
+                if (drawable is BitmapDrawable) {
+                    drawable.bitmap
+                } else {
+                    val w = drawable.intrinsicWidth.takeIf { it > 0 } ?: 512
+                    val h = drawable.intrinsicHeight.takeIf { it > 0 } ?: 288
+                    val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                    val canvas = android.graphics.Canvas(bitmap)
+                    drawable.setBounds(0, 0, canvas.width, canvas.height)
+                    drawable.draw(canvas)
+                    bitmap
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
                 null
             }
         }
