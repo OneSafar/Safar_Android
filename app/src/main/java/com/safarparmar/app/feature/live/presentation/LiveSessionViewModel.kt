@@ -9,9 +9,12 @@ import com.safarparmar.app.feature.live.model.LiveSession
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -65,6 +68,8 @@ class LiveSessionViewModel @Inject constructor(
     /** The session currently being watched for live chat (used to join/leave socket rooms). */
     private var activeSocketSessionId: String? = null
     private var currentUserName: String = "Student"
+    private var pollingJob: Job? = null
+    private var socketWatchJob: Job? = null
 
     fun loadSessions(courseId: String, status: String?) {
         viewModelScope.launch {
@@ -102,17 +107,31 @@ class LiveSessionViewModel @Inject constructor(
         viewModelScope.launch {
             currentUserName = dataStore.userName.first() ?: "Student"
 
-            if (!socketManager.isConnected()) {
-                // Socket not connected yet – show a gentle error; user can retry via Refresh
-                _liveChatState.update { it.copy(
-                    isConnecting = false,
-                    socketError = "Live chat is temporarily unavailable. Pull down to retry.",
-                ) }
-                return@launch
+            if (socketManager.isConnected()) {
+                // Already connected — join immediately
+                socketManager.emitLiveJoin(sessionId)
+                _liveChatState.update { it.copy(isConnecting = false) }
+            } else {
+                // Not connected yet — show connecting state and wait
+                _liveChatState.update { it.copy(isConnecting = true, socketError = null) }
             }
+        }
 
-            socketManager.emitLiveJoin(sessionId)
-            _liveChatState.update { it.copy(isConnecting = false) }
+        // Watch the connected state — join the room as soon as socket connects
+        socketWatchJob?.cancel()
+        socketWatchJob = viewModelScope.launch {
+            socketManager.connected
+                .distinctUntilChanged()
+                .collect { isConnected ->
+                    val sid = activeSocketSessionId ?: return@collect
+                    if (isConnected) {
+                        android.util.Log.d("LiveVM", "Socket connected — joining live room $sid")
+                        socketManager.emitLiveJoin(sid)
+                        _liveChatState.update { it.copy(isConnecting = false, socketError = null) }
+                    } else {
+                        _liveChatState.update { it.copy(isConnecting = true) }
+                    }
+                }
         }
 
         // Collect incoming chat messages from the server
@@ -149,6 +168,22 @@ class LiveSessionViewModel @Inject constructor(
                 _liveChatState.update { it.copy(socketError = errorMsg) }
             }
         }
+
+        // Poll every 10 seconds when session is scheduled, so the player
+        // updates even if the socket misses the status_changed event.
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
+            while (true) {
+                delay(10_000L)
+                val sid = activeSocketSessionId ?: break
+                val status = _liveSessionState.value.session?.status
+                if (status == "scheduled" || status == "live") {
+                    loadSession(sid)
+                } else {
+                    break // stop polling once ended/cancelled
+                }
+            }
+        }
     }
 
     /** Sends a chat message to the active live session. */
@@ -173,6 +208,10 @@ class LiveSessionViewModel @Inject constructor(
 
     /** Called when the Live Session screen becomes invisible / user navigates away. */
     fun leaveLiveSession() {
+        pollingJob?.cancel()
+        pollingJob = null
+        socketWatchJob?.cancel()
+        socketWatchJob = null
         val sessionId = activeSocketSessionId ?: return
         socketManager.emitLiveLeave(sessionId)
         activeSocketSessionId = null
