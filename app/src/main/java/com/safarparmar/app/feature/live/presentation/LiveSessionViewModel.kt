@@ -14,7 +14,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -121,7 +120,6 @@ class LiveSessionViewModel @Inject constructor(
         socketWatchJob?.cancel()
         socketWatchJob = viewModelScope.launch {
             socketManager.connected
-                .distinctUntilChanged()
                 .collect { isConnected ->
                     val sid = activeSocketSessionId ?: return@collect
                     if (isConnected) {
