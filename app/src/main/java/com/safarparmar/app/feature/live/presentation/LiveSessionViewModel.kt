@@ -169,19 +169,27 @@ class LiveSessionViewModel @Inject constructor(
             }
         }
 
-        // Poll every 10 seconds when session is scheduled, so the player
-        // updates even if the socket misses the status_changed event.
+        // Fallback polling — ONLY fires when the socket is offline.
+        // When socket is healthy, students get the status_changed push event
+        // and never poll at all (zero extra load on the VPS).
+        // 30s base + random jitter spreads 90k students' requests across
+        // ~30 seconds instead of all hitting simultaneously.
         pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
             while (true) {
-                delay(10_000L)
+                // Randomised interval: 25–55 seconds
+                val jitter = (0..30_000L.toInt()).random().toLong()
+                delay(25_000L + jitter)
                 val sid = activeSocketSessionId ?: break
                 val status = _liveSessionState.value.session?.status
-                if (status == "scheduled" || status == "live") {
+                // Only poll if socket is NOT connected — if socket works, skip
+                if (!socketManager.isConnected() && (status == "scheduled" || status == "live")) {
+                    android.util.Log.d("LiveVM", "Socket offline — polling session status for $sid")
                     loadSession(sid)
-                } else {
-                    break // stop polling once ended/cancelled
+                } else if (status != "scheduled" && status != "live") {
+                    break // stop polling once session ended/cancelled
                 }
+                // If socket IS connected, skip this poll cycle — socket handles it
             }
         }
     }
