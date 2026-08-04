@@ -57,4 +57,7 @@ class LiveSocketConnector @Inject constructor(
     }
 
     suspend fun currentUserName(): String = dataStore.userName.first() ?: "Student"
+
+    /** Used to tell a student their own comments apart without matching on display name. */
+    suspend fun currentUserId(): String = dataStore.userId.first().orEmpty()
 }

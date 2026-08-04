@@ -38,7 +38,13 @@ data class LiveChatUiMessage(
     val author: String,
     val text: String,
     val sentAt: String,
+    /**
+     * Live chat is one shared lane, so this never changes a message's position —
+     * it only lets a student pick their own name out of the stream.
+     */
     val isMine: Boolean,
+    /** The person presenting. Shown with an owner badge, as on a live stream. */
+    val isHost: Boolean = false,
 )
 
 data class LiveChatUiState(
@@ -76,6 +82,12 @@ const val DEFAULT_LIVE_CHAT_COOLDOWN_SECONDS = 7
 const val MAX_LIVE_MESSAGE_LENGTH = 500
 
 /**
+ * Live chat is not persisted, so the transcript only ever grows within a session.
+ * A busy class would otherwise keep every message in memory for hours.
+ */
+private const val MAX_RETAINED_MESSAGES = 300
+
+/**
  * Live chat exists only for the duration of a broadcast: a scheduled, ended or
  * cancelled session has none, and the host can switch it off mid-session.
  */
@@ -102,6 +114,7 @@ class LiveSessionViewModel @Inject constructor(
     /** The session currently being watched for live chat (used to join/leave socket rooms). */
     private var activeSocketSessionId: String? = null
     private var currentUserName: String = "Student"
+    private var currentUserId: String = ""
     private var pollingJob: Job? = null
     private var socketWatchJob: Job? = null
     private var cooldownJob: Job? = null
@@ -150,6 +163,7 @@ class LiveSessionViewModel @Inject constructor(
 
         viewModelScope.launch {
             currentUserName = dataStore.userName.first() ?: "Student"
+            currentUserId = dataStore.userId.first().orEmpty()
 
             if (socketManager.isConnected()) {
                 // Already connected — join immediately
@@ -185,15 +199,20 @@ class LiveSessionViewModel @Inject constructor(
         viewModelScope.launch {
             socketManager.liveMessage.collect { msg ->
                 if (activeSocketSessionId == null) return@collect
-                val isMine = msg.name == currentUserName
+                // Matched on user id, not display name: two students called
+                // "Safar" used to have each other's comments marked as their own.
+                val isMine = msg.userId.isNotBlank() && msg.userId == currentUserId
                 _liveChatState.update { state ->
                     state.copy(
-                        messages = state.messages + LiveChatUiMessage(
-                            author = msg.name,
-                            text = msg.text,
-                            sentAt = msg.sentAt,
-                            isMine = isMine,
-                        ),
+                        messages = (
+                            state.messages + LiveChatUiMessage(
+                                author = msg.name,
+                                text = msg.text,
+                                sentAt = msg.sentAt,
+                                isMine = isMine,
+                                isHost = msg.isHost,
+                            )
+                            ).takeLast(MAX_RETAINED_MESSAGES),
                     )
                 }
             }

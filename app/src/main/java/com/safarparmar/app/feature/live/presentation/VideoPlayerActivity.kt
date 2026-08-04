@@ -64,6 +64,7 @@ class VideoPlayerActivity : ComponentActivity() {
     private var sessionId: String = ""
     private var sessionStatus: String = ""
     private var currentUserName: String = "Student"
+    private var currentUserId: String = ""
     private var cooldownSeconds: Int = DEFAULT_LIVE_CHAT_COOLDOWN_SECONDS
     private var cooldownJob: Job? = null
 
@@ -319,6 +320,7 @@ class VideoPlayerActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             currentUserName = socketConnector.currentUserName()
+            currentUserId = socketConnector.currentUserId()
             when (val result = socketConnector.ensureConnected()) {
                 is LiveSocketConnector.Result.SignInRequired ->
                     pane.setChatOpen(false, result.message)
@@ -337,7 +339,12 @@ class VideoPlayerActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             socketManager.liveMessage.collect { msg ->
-                pane.addMessage(msg.name, msg.text, isMine = msg.name == currentUserName)
+                pane.addMessage(
+                    author = msg.name,
+                    text = msg.text,
+                    isMine = msg.userId.isNotBlank() && msg.userId == currentUserId,
+                    isHost = msg.isHost,
+                )
             }
         }
 

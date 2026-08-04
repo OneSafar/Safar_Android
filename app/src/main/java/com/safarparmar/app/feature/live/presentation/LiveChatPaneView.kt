@@ -3,9 +3,14 @@ package com.safarparmar.app.feature.live.presentation
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
+import android.text.Spannable
+import android.text.SpannableStringBuilder
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
+import android.text.style.BackgroundColorSpan
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -165,9 +170,14 @@ class LiveChatPaneView(context: Context) : LinearLayout(context) {
         renderState()
     }
 
-    fun addMessage(author: String, text: String, isMine: Boolean) {
+    fun addMessage(author: String, text: String, isMine: Boolean, isHost: Boolean) {
         if (!isChatOpen) return
-        messagesColumn.addView(buildBubble(author, text, isMine))
+        messagesColumn.addView(buildRow(author, text, isMine, isHost))
+        // Live chat isn't persisted, so the transcript only grows. Drop the oldest
+        // rows rather than holding an entire class in memory.
+        while (messagesColumn.childCount > MAX_RETAINED_MESSAGES) {
+            messagesColumn.removeViewAt(0)
+        }
         emptyLabel.visibility = View.GONE
         messagesScroll.visibility = View.VISIBLE
         messagesScroll.post { messagesScroll.fullScroll(View.FOCUS_DOWN) }
@@ -193,27 +203,59 @@ class LiveChatPaneView(context: Context) : LinearLayout(context) {
         updateSendEnabled()
     }
 
-    private fun buildBubble(author: String, text: String, isMine: Boolean): View =
-        LinearLayout(context).apply {
-            orientation = VERTICAL
-            val vertical = dp(6)
-            setPadding(0, vertical, 0, vertical)
+    /**
+     * One line of live chat: name and message flowing inline in a single shared
+     * lane, exactly as a live stream's chat reads. Never side-alternating bubbles
+     * — that is a two-person messaging convention and misrepresents a class of a
+     * hundred students as a private conversation.
+     */
+    private fun buildRow(author: String, text: String, isMine: Boolean, isHost: Boolean): View =
+        TextView(context).apply {
+            val nameColor = when {
+                isHost -> HOST_TEXT
+                isMine -> ACCENT
+                else -> TEXT_SECONDARY
+            }
+            val spanned = SpannableStringBuilder()
+            val nameStart = spanned.length
+            spanned.append(if (isHost) " $author " else author)
+            spanned.setSpan(
+                StyleSpan(Typeface.BOLD),
+                nameStart,
+                spanned.length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+            spanned.setSpan(
+                ForegroundColorSpan(nameColor),
+                nameStart,
+                spanned.length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+            if (isHost) {
+                // The presenter's name is highlighted rather than labelled with a
+                // word, so it stays readable at chat density.
+                spanned.setSpan(
+                    BackgroundColorSpan(HOST_BACKGROUND),
+                    nameStart,
+                    spanned.length,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                )
+            }
+            spanned.append("  ")
+            val bodyStart = spanned.length
+            spanned.append(text)
+            spanned.setSpan(
+                ForegroundColorSpan(TEXT_PRIMARY),
+                bodyStart,
+                spanned.length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
 
-            addView(
-                TextView(context).apply {
-                    this.text = if (isMine) "You" else author
-                    setTextColor(if (isMine) ACCENT else TEXT_SECONDARY)
-                    setTypeface(null, Typeface.BOLD)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-                },
-            )
-            addView(
-                TextView(context).apply {
-                    this.text = text
-                    setTextColor(TEXT_PRIMARY)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                },
-            )
+            setText(spanned)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setLineSpacing(dp(2).toFloat(), 1f)
+            val vertical = dp(5)
+            setPadding(0, vertical, 0, vertical)
         }
 
     private fun divider(): View = View(context).apply {
@@ -235,6 +277,9 @@ class LiveChatPaneView(context: Context) : LinearLayout(context) {
         const val TEXT_SECONDARY = 0xFF9E9E9E.toInt()
         const val DIVIDER = 0x33FFFFFF
         const val ACCENT = 0xFFFF6B9D.toInt()
+        const val HOST_BACKGROUND = 0xFF7C5AD9.toInt()
+        const val HOST_TEXT = 0xFFFFFFFF.toInt()
         const val MAX_MESSAGE_LENGTH = 500
+        const val MAX_RETAINED_MESSAGES = 300
     }
 }

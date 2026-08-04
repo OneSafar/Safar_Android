@@ -119,9 +119,12 @@ class MehfilSocketManager @Inject constructor(
 
     // Live session events
     data class LiveChatMessage(
+        val userId: String,
         val name: String,
         val text: String,
         val sentAt: String,
+        /** True for the person presenting — the live-chat equivalent of a channel owner. */
+        val isHost: Boolean,
     )
     data class LiveStatusChange(
         val sessionId: String,
@@ -404,7 +407,15 @@ class MehfilSocketManager @Inject constructor(
                         val text = obj.optString("text")
                         val sentAt = obj.optString("sentAt")
                         android.util.Log.d("MehfilSocket", "live:message ← $name: $text")
-                        _liveMessage.tryEmit(LiveChatMessage(name = name, text = text, sentAt = sentAt))
+                        _liveMessage.tryEmit(
+                            LiveChatMessage(
+                                userId = obj.optString("userId"),
+                                name = name,
+                                text = text,
+                                sentAt = sentAt,
+                                isHost = obj.optBoolean("isHost", false),
+                            ),
+                        )
                     } catch (_: Exception) {}
                 }
 

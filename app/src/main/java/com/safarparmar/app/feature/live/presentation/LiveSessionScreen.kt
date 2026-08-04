@@ -71,6 +71,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -79,6 +82,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.feature.live.model.LiveSession
@@ -989,61 +993,84 @@ private fun YouTubePlaceholder(status: String = "") {
     }
 }
 
+/**
+ * One line of live chat, laid out the way a live stream's chat is: a single
+ * shared lane, avatar then name then message, all flowing inline.
+ *
+ * Explicitly not a messaging bubble. Alternating sides is a two-person
+ * convention — in a room of a hundred students, "mine on the right, everyone
+ * else's on the left" tells a reader nothing and makes a class discussion look
+ * like a private conversation.
+ */
 @Composable
 private fun ChatBubble(
     message: LiveChatUiMessage,
 ) {
-    val accent = if (message.isMine) MaterialTheme.colorScheme.primaryContainer
-                 else MaterialTheme.colorScheme.secondaryContainer
-    val initials = message.author.take(2).uppercase()
+    val hostColor = MaterialTheme.colorScheme.primary
+    val nameColor = when {
+        message.isHost -> MaterialTheme.colorScheme.onPrimary
+        message.isMine -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (message.isMine) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Top,
     ) {
-        if (!message.isMine) {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(accent),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = initials,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            Spacer(Modifier.width(10.dp))
-        }
-        Column(
+        Box(
             modifier = Modifier
-                .weight(1f, fill = false)
-                .clip(RoundedCornerShape(topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 18.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
-                    shape = RoundedCornerShape(topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 18.dp),
-                )
-                .padding(12.dp),
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(
+                    if (message.isHost) hostColor
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (message.isMine) "You" else message.author,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.height(4.dp))
             Text(
-                text = message.text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                text = message.author.take(1).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (message.isHost) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
             )
         }
+
+        Spacer(Modifier.width(8.dp))
+
+        // Name and message share one flowing paragraph so long comments wrap
+        // under the name instead of being pushed into a narrow column.
+        Text(
+            text = buildAnnotatedString {
+                if (message.isHost) {
+                    // The presenter's name is highlighted rather than badged with
+                    // a word, so it stays readable at chat density.
+                    withStyle(
+                        SpanStyle(
+                            background = hostColor,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    ) {
+                        append(" ${message.author} ")
+                    }
+                } else {
+                    withStyle(SpanStyle(color = nameColor, fontWeight = FontWeight.Bold)) {
+                        append(message.author)
+                    }
+                }
+                append("  ")
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurface)) {
+                    append(message.text)
+                }
+            },
+            style = MaterialTheme.typography.bodySmall,
+            lineHeight = 18.sp,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
