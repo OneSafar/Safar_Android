@@ -97,21 +97,44 @@ data class VisualTheme(
     val videoUrl: String = "",
     val musicUrl: String = "",
     val gradientColors: List<Color>? = null,
+    /**
+     * Hidden from the picker but kept in [visualThemes] so list indices stay
+     * stable — the selected theme is persisted as an index, so dropping entries
+     * would silently move existing users onto a different theme.
+     */
+    val hidden: Boolean = false,
 )
 
+/**
+ * The video-backed themes are parked for now: the looping clips were a large
+ * share of our object-storage egress, and the source videos need replacing with
+ * something better before they come back. Kept here (with their URLs) so
+ * restoring them is a matter of flipping [hidden] and re-uploading the assets.
+ *
+ * They render as gradients meanwhile, so anyone who had one selected before the
+ * update sees a working backdrop rather than a black screen.
+ */
 val visualThemes = listOf(
     VisualTheme("Serene",    "🌊", EkagraThemeColor.Cerulean,
         videoUrl = "https://del1.vultrobjects.com/qms-images/Safar/theme_2_mobile.mp4",
-        musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/music_1.mp3"),
+        musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/music_1.mp3",
+        gradientColors = listOf(EkagraThemeColor.Periwinkle, EkagraThemeColor.Cerulean),
+        hidden = true),
     VisualTheme("Nostalgia", "🌿", EkagraThemeColor.KellyGreen,
         videoUrl = "https://del1.vultrobjects.com/qms-images/Safar/theme_3_mobile.mp4",
-        musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/relaxingtime-sleep-music-vol16-195422.mp3"),
+        musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/relaxingtime-sleep-music-vol16-195422.mp3",
+        gradientColors = listOf(EkagraThemeColor.SageGreen, EkagraThemeColor.KellyGreen),
+        hidden = true),
     VisualTheme("Amber",     "🍂", EkagraThemeColor.ForestGreen,
         videoUrl = "https://del1.vultrobjects.com/qms-images/Safar/theme_4_mobile.mp4",
-        musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/WhatsApp_Audio_2026-02-18_at_10.05.04_AM.mpeg"),
+        musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/WhatsApp_Audio_2026-02-18_at_10.05.04_AM.mpeg",
+        gradientColors = listOf(EkagraThemeColor.Peach, EkagraThemeColor.ForestGreen),
+        hidden = true),
     VisualTheme("Solitude",  "🌙", EkagraThemeColor.Violet,
         videoUrl = "https://del1.vultrobjects.com/qms-images/Safar/theme_1_mobile.mp4",
-        musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3"),
+        musicUrl = "https://del1.vultrobjects.com/qms-images/Safar/music_3.mp3",
+        gradientColors = listOf(EkagraThemeColor.Thistle, EkagraThemeColor.Violet),
+        hidden = true),
     VisualTheme("Focus", "🚀", EkagraThemeColor.Navy,
         gradientColors = listOf(EkagraThemeColor.Periwinkle, EkagraThemeColor.Navy)),
     VisualTheme("Habits", "🌿", EkagraThemeColor.HunterGreen,
@@ -121,6 +144,9 @@ val visualThemes = listOf(
     VisualTheme("Peace", "🧘", EkagraThemeColor.Eggplant,
         gradientColors = listOf(EkagraThemeColor.Thistle, EkagraThemeColor.Eggplant)),
 )
+
+/** The themes actually offered in the picker. */
+val selectableVisualThemes = visualThemes.filter { !it.hidden }
 
 // Removed focusMusicTracks in favor of shared AudioLibrary
 

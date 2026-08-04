@@ -65,7 +65,9 @@ internal fun TopicStudySaveSheet(
     onDiscard: () -> Unit,
 ) {
     val timeText = formatTopicStudyTime(topicStudyActualSeconds(pending))
-    val isVideoTheme = selectedTheme.videoUrl.isNotBlank()
+    // Mirrors the backdrop branch in EkagraScreen: a gradient always wins over
+    // the video, so a theme only reads as "video" when it has no gradient.
+    val isVideoTheme = selectedTheme.gradientColors == null && selectedTheme.videoUrl.isNotBlank()
     val ink = rememberEkagraInk(
         onCanvas = isVideoTheme,
         theme = selectedTheme,

@@ -179,7 +179,10 @@ fun EkagraScreen(
 
     var selectedTheme by remember {
         val prefs = context.getSharedPreferences("ekagra_theme_prefs", android.content.Context.MODE_PRIVATE)
-        mutableStateOf(visualThemes.getOrElse(prefs.getInt("theme_index", -1)) { visualThemes[0] })
+        val persisted = visualThemes.getOrNull(prefs.getInt("theme_index", -1))
+        // A hidden theme can still be persisted from before it was retired.
+        // Fall back so those users land on a theme they can also re-pick.
+        mutableStateOf(persisted?.takeIf { !it.hidden } ?: selectableVisualThemes.first())
     }
     var selectedMusicTrack by remember {
         mutableStateOf(com.safarparmar.app.ui.audio.AudioLibrary.getPersistedTrack(context))
@@ -1393,9 +1396,11 @@ fun EkagraScreen(
                                     }
                                     Box(modifier = Modifier.fillMaxSize().background(dynamicGradient))
                                 } else {
-                                    // The first four themes use moving video. Blur only
-                                    // that moving backdrop so the timer stays readable;
-                                    // gradient themes remain sharp.
+                                    // Unreachable while the video themes are hidden — every
+                                    // selectable theme now has a gradient. Kept so restoring
+                                    // them is just a matter of clearing their gradientColors.
+                                    // Blur only the moving backdrop so the timer stays
+                                    // readable; gradient themes remain sharp.
                                     EkagraVideoBackground(
                                         videoUrl = selectedTheme.videoUrl,
                                         modifier = Modifier

@@ -103,7 +103,7 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
                 )
                 EkagraHairline(ink.hairline)
 
-                val chunks = visualThemes.chunked(2)
+                val chunks = selectableVisualThemes.chunked(2)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
