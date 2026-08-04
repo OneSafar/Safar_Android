@@ -75,6 +75,8 @@ class PlannerAlertsWorker(
                             body = "You missed ${overdueTopics.size} ${if (overdueTopics.size == 1) "topic" else "topics"}. Tap to fit them back in.",
                             deepLink = "safar://studyplanner",
                             dedupeType = SafarNotificationManager.DedupeType.PLANNER_ALERT,
+                            // Falling behind stings — the name softens it.
+                            personalize = true,
                         )
                         dataStore.addPlannerAlertDedupeKey(dedupeKey)
                         notified = true
@@ -154,6 +156,9 @@ class PlannerAlertsWorker(
                             // generic planner home with no path to the revision list).
                             deepLink = "safar://studyplanner?planId=${plan.id}&tab=revision",
                             dedupeType = SafarNotificationManager.DedupeType.PLANNER_REVISION_REMINDER,
+                            // Matches the server's planner_revision_reminder, so the
+                            // same event reads the same however it was delivered.
+                            personalize = true,
                         )
                         dataStore.addPlannerAlertDedupeKey(dedupeKey)
                     }

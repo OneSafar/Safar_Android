@@ -133,7 +133,9 @@ class DashboardViewModel @Inject constructor(
                             title = "Achievement Unlocked! 🏆",
                             body = "You unlocked: ${achievement.name}",
                             channelId = SafarNotificationChannels.ACHIEVEMENTS,
-                            deepLink = "safar://achievements"
+                            deepLink = "safar://achievements",
+                            // Congratulations should be addressed to someone.
+                            personalize = true,
                         )
                     }
                 }

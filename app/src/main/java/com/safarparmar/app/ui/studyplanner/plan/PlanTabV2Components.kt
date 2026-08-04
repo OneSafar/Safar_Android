@@ -358,7 +358,7 @@ fun PlanSettingsSheet(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             if (focusDailyGoal) {
-                                "Increase Topics per day below. Then tap Save and return. After that, tap Give dates again."
+                                "Increase Topics per day below. Then tap Save and return — we'll fit the topics in for you."
                             } else {
                                 "Choose a new exam date below. Then tap Save and return."
                             },

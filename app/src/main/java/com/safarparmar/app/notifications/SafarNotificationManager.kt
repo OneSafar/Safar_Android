@@ -229,8 +229,13 @@ class SafarNotificationManager(
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
         onlyAlertOnce: Boolean = false,
         actions: List<NotificationCompat.Action> = emptyList(),
-        /** FCM bodies are already personalized by the server. */
-        personalize: Boolean = true,
+        /**
+         * Prefixes the body with "Hi <name>,". Opt-in: greeting every local
+         * notification made them all read the same way, and on a functional
+         * message ("You unlocked: ...") the greeting only delays the payload.
+         * Server-sent FCM bodies are personalized server-side and pass false too.
+         */
+        personalize: Boolean = false,
         /** Optional dedup type — ensures FCM and local notifications for the same
          *  logical event produce the same [stableNotificationId]. */
         dedupeType: String? = null,
@@ -290,6 +295,8 @@ class SafarNotificationManager(
         notificationId: Int? = null,
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
         dedupeType: String = DedupeType.STUDY_REMINDER,
+        /** See [show] — opt-in, and off unless this reminder earns the name. */
+        personalize: Boolean = false,
     ) {
         val startNowIntent = PendingIntent.getActivity(
             context,
@@ -312,6 +319,7 @@ class SafarNotificationManager(
             priority = priority,
             actions = listOf(startNowAction),
             dedupeType = dedupeType,
+            personalize = personalize,
         )
     }
 

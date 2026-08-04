@@ -2,6 +2,8 @@ package com.safarparmar.app.ui.audio
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
+import com.safarparmar.app.BuildConfig
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -30,8 +32,15 @@ object MediaFileCache {
     private const val CONNECT_TIMEOUT_MS = 15_000
     private const val READ_TIMEOUT_MS = 30_000
 
+    private const val TAG = "MediaCache"
+
     /** URLs currently downloading, so concurrent players don't fetch the same file twice. */
     private val inFlight = ConcurrentHashMap.newKeySet<String>()
+
+    /** Debug-only: this is the whole point of the cache, so it must be observable in QA. */
+    private fun log(message: String) {
+        if (BuildConfig.DEBUG) Log.d(TAG, message)
+    }
 
     /**
      * Local copy if we have it, otherwise the remote URL — and in that case a
@@ -44,8 +53,12 @@ object MediaFileCache {
         if (!isRemote(url)) return Uri.parse(url)
 
         val cached = cachedFileOrNull(context, url)
-        if (cached != null) return Uri.fromFile(cached)
+        if (cached != null) {
+            log("HIT  ${cached.length() / 1024} KB  ${url.substringAfterLast('/')}")
+            return Uri.fromFile(cached)
+        }
 
+        log("MISS streaming remote, prefetching  ${url.substringAfterLast('/')}")
         prefetch(context, url)
         return Uri.parse(url)
     }
@@ -59,9 +72,17 @@ object MediaFileCache {
         val appContext = context.applicationContext
         Thread {
             try {
+                val startedAt = System.currentTimeMillis()
                 download(appContext, url)
+                val file = fileFor(appContext, url)
+                if (file.exists()) {
+                    log("SAVED ${file.length() / 1024} KB in ${System.currentTimeMillis() - startedAt} ms  ${url.substringAfterLast('/')}")
+                } else {
+                    log("FAILED (no file written)  ${url.substringAfterLast('/')}")
+                }
                 trimToMaxSize(appContext)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                log("FAILED ${e.javaClass.simpleName}: ${e.message}  ${url.substringAfterLast('/')}")
                 // A failed prefetch is not worth surfacing — playback already
                 // fell back to streaming the remote URL, so nothing is broken.
                 // The next play tries again.

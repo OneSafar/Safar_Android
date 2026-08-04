@@ -188,6 +188,10 @@ fun PlanTabScreen(
     var returnToUnscheduledAfterSettings by remember(plan.id) { mutableStateOf(false) }
     var focusDailyGoalInSettings by remember(plan.id) { mutableStateOf(false) }
     var focusExamDateInSettings by remember(plan.id) { mutableStateOf(false) }
+    // The student raised Topics per day specifically to make room for the
+    // unscheduled list, so re-run the fit for them on the way back. Making them
+    // tap "Give dates" a second time reads as the app having ignored the change.
+    var autoScheduleAfterSettings by remember(plan.id) { mutableStateOf(false) }
     var showReschedule by remember(plan.id) { mutableStateOf(false) }
     var resetConfirm by remember { mutableStateOf(false) }
     var completionPromptTopic by remember { mutableStateOf<TopicRef?>(null) }
@@ -241,11 +245,15 @@ fun PlanTabScreen(
                 if (returnToUnscheduledAfterSettings) {
                     returnToUnscheduledAfterSettings = false
                     showUnscheduledTopicsScreen = true
+                    // Only the "Study more each day" route changes capacity; the
+                    // exam-date route hands off to the full rebuild flow instead.
+                    if (focusDailyGoalInSettings) autoScheduleAfterSettings = true
                 }
                 focusDailyGoalInSettings = false
                 focusExamDateInSettings = false
             },
             onExamDateChanged = {
+                autoScheduleAfterSettings = false
                 if (returnToUnscheduledAfterSettings) {
                     returnToUnscheduledAfterSettings = false
                     showUnscheduledTopicsScreen = false
@@ -797,6 +805,8 @@ fun PlanTabScreen(
                 unscheduledTopics = unscheduledTopics,
                 actions = actions,
                 isWorking = mutating,
+                autoRunBulkAction = autoScheduleAfterSettings,
+                onAutoRunConsumed = { autoScheduleAfterSettings = false },
                 onStudyMore = {
                     showUnscheduledTopicsScreen = false
                     returnToUnscheduledAfterSettings = true
@@ -1057,6 +1067,8 @@ internal fun UnscheduledTopicsScreen(
     unscheduledTopics: List<TopicRef>,
     actions: PlannerActions,
     isWorking: Boolean = false,
+    autoRunBulkAction: Boolean = false,
+    onAutoRunConsumed: () -> Unit = {},
     onStudyMore: () -> Unit = {},
     onChangeExamDate: () -> Unit = {},
     onDismiss: () -> Unit,
@@ -1066,6 +1078,8 @@ internal fun UnscheduledTopicsScreen(
         unscheduledTopics = unscheduledTopics,
         actions = actions,
         onDismiss = onDismiss,
+        autoRunBulkAction = autoRunBulkAction,
+        onAutoRunConsumed = onAutoRunConsumed,
         screenTitle = "Topics without a date",
         searchPlaceholder = "Search topics...",
         subtitle = if (unscheduledTopics.size == 1) {
@@ -1220,6 +1234,10 @@ private fun TopicSchedulingScreen(
     bulkActionLabel: String,
     bulkActionHint: String,
     isWorking: Boolean = false,
+    // Set when the student has just changed something (e.g. Topics per day) in
+    // order to make room. Fires the same bulk action their tap would have.
+    autoRunBulkAction: Boolean = false,
+    onAutoRunConsumed: () -> Unit = {},
     onStudyMore: (((TopicSchedulingResult) -> Unit) -> Unit)? = null,
     onChangeExamDate: (() -> Unit)? = null,
     onBulkAction: ((TopicSchedulingResult) -> Unit) -> Unit,
@@ -1228,6 +1246,21 @@ private fun TopicSchedulingScreen(
     var selectedTopicForDatePicker by remember { mutableStateOf<TopicRef?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var moreTimeResult by remember { mutableStateOf<TopicSchedulingResult?>(null) }
+
+    // Waits for the plan save to land before re-fitting, otherwise the server
+    // would still be working from the old daily goal.
+    androidx.compose.runtime.LaunchedEffect(autoRunBulkAction, isWorking, unscheduledTopics) {
+        if (autoRunBulkAction && !isWorking) {
+            onAutoRunConsumed()
+            if (unscheduledTopics.isNotEmpty()) {
+                onBulkAction { result ->
+                    if (!result.failed && result.notAdded > 0) {
+                        moreTimeResult = result
+                    }
+                }
+            }
+        }
+    }
 
     val noSpace = moreTimeResult
     if (noSpace != null) {
