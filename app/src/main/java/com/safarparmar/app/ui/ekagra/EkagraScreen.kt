@@ -587,10 +587,7 @@ fun EkagraScreen(
         else         -> "READY TO FOCUS?"
     }
     val todayKey = remember { IstDateUtils.todayKey() }
-    val openGoals = remember(allGoals) {
-        val sevenDaysAgoKey = runCatching {
-            java.time.LocalDate.parse(todayKey).minusDays(7).toString()
-        }.getOrDefault(todayKey)
+    val linkableGoals = remember(allGoals, todayKey) {
         allGoals.filter { goal ->
             // Basic validity
             goal.id.isNotBlank() && goal.title.isNotBlank()
@@ -601,26 +598,25 @@ fun EkagraScreen(
             // Status-based exclusions
             && goal.status !in listOf("completed", "done")
             && goal.lifecycleStatus !in listOf("abandoned", "rolled_over", "completed")
-            // Staleness guard — mirrors the Goals screen "Pending" section.
-            // Old repeat/today goal instances that the user skipped (completed=false,
-            // no lifecycleStatus) accumulate over time and pollute the link list.
-            // Exclude any goal whose scheduledDate is older than 7 days UNLESS it
-            // is actively in_progress (e.g. a carry-forward repeat like g1).
-            && run {
-                val scheduled = goal.scheduledDate?.takeIf { it.isNotBlank() }
-                    ?: return@run true  // no date = timeless goal, always include
-                if (goal.status == "in_progress") return@run true // carry-forward, always include
-                val day = scheduled.take(10)
-                // A goal scheduled for a FUTURE day is dormant — the Goals screen
-                // files it under "Upcoming", not "Pending". The old check had no
-                // upper bound (`>= sevenDaysAgo` is true for every future date), so
-                // upcoming goals leaked in here and the link list showed MORE goals
-                // than the Goals screen listed as pending. With several goals sharing
-                // a title that read as duplicates.
-                if (day > todayKey) return@run false
-                // scheduled >= 7 days ago means it is still recent enough to be relevant
-                day >= sevenDaysAgoKey
-            }
+            && !goal.nextInstanceCreated
+        }
+    }
+    val todayGoals = remember(linkableGoals, todayKey) {
+        linkableGoals.filter { goal ->
+            val day = IstDateUtils.getDateKey(goal.scheduledDate)
+                ?: IstDateUtils.getDateKey(goal.createdAt)
+                ?: IstDateUtils.getDateKey(goal.startedAt)
+            day == todayKey && goal.status !in listOf("missed", "expired") && goal.lifecycleStatus != "missed"
+        }
+    }
+    val missedGoals = remember(linkableGoals, todayKey) {
+        linkableGoals.filter { goal ->
+            val day = IstDateUtils.getDateKey(goal.scheduledDate)
+                ?: IstDateUtils.getDateKey(goal.createdAt)
+                ?: IstDateUtils.getDateKey(goal.startedAt)
+            goal.status in listOf("missed", "expired") ||
+                goal.lifecycleStatus == "missed" ||
+                (day != null && day < todayKey)
         }
     }
 
@@ -1055,7 +1051,8 @@ fun EkagraScreen(
                         OrganizeFreeFocusSheet(
                             sheetState    = organizeSheetState,
                             pending       = pending,
-                            goals         = openGoals,
+                            todayGoals    = todayGoals,
+                            missedGoals   = missedGoals,
                             titleInput    = titleInput,
                             onTitleChange = { titleInput = it },
                             // Swiping the sheet away files the session under its safest

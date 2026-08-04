@@ -199,7 +199,8 @@ internal fun VisualThemeDialog(current: VisualTheme, onSelect: (VisualTheme) -> 
 internal fun OrganizeFreeFocusSheet(
     sheetState: SheetState,
     pending: PendingEndedEkagraSession?,
-    goals: List<com.safarparmar.app.domain.model.Goal>,
+    todayGoals: List<com.safarparmar.app.domain.model.Goal>,
+    missedGoals: List<com.safarparmar.app.domain.model.Goal>,
     titleInput: String,
     onTitleChange: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -224,6 +225,8 @@ internal fun OrganizeFreeFocusSheet(
     val quickAccent = PlannerAccent.Amber    // Quick Save
     val topicAccent = PlannerAccent.Coral    // Exam planner topic
     var selectedGoal by remember { mutableStateOf<com.safarparmar.app.domain.model.Goal?>(null) }
+    var selectedGoalTab by remember { mutableIntStateOf(0) }
+    val shownGoals = if (selectedGoalTab == 0) todayGoals else missedGoals
     var markTopicDone by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
@@ -345,15 +348,44 @@ internal fun OrganizeFreeFocusSheet(
                             accent = goalAccent,
                             icon = Icons.Default.Link,
                         )
-                        if (goals.isEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            GoalListTab(
+                                text = "Today (${todayGoals.size})",
+                                selected = selectedGoalTab == 0,
+                                accent = goalAccent,
+                                onClick = {
+                                    selectedGoalTab = 0
+                                    selectedGoal = null
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                            GoalListTab(
+                                text = "Missed (${missedGoals.size})",
+                                selected = selectedGoalTab == 1,
+                                accent = goalAccent,
+                                onClick = {
+                                    selectedGoalTab = 1
+                                    selectedGoal = null
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+
+                        if (shownGoals.isEmpty()) {
                             Text(
-                                "No active goals available",
+                                if (selectedGoalTab == 0) "No goals for today" else "No missed goals",
                                 fontSize = 14.sp,
                                 color = PlannerFlatColors.TextMuted,
-                                modifier = Modifier.padding(vertical = 4.dp)
+                                modifier = Modifier.padding(vertical = 12.dp),
                             )
                         } else {
-                            goals.take(4).forEachIndexed { index, goal ->
+
+                            shownGoals.forEachIndexed { index, goal ->
                                 val selected = selectedGoal?.id == goal.id
                                 Row(
                                     modifier = Modifier
@@ -403,7 +435,7 @@ internal fun OrganizeFreeFocusSheet(
                                         }
                                     }
                                 }
-                                if (index < goals.size - 1) {
+                                if (index < shownGoals.size - 1) {
                                     PlanHairline(alpha = 0.6f)
                                 }
                             }
@@ -480,6 +512,31 @@ internal fun OrganizeFreeFocusSheet(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GoalListTab(
+    text: String,
+    selected: Boolean,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        color = if (selected) accent else accent.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, accent.copy(alpha = if (selected) 1f else 0.25f)),
+    ) {
+        Text(
+            text = text,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (selected) Color.White else accent,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+        )
     }
 }
 
