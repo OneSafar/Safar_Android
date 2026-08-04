@@ -303,6 +303,11 @@ private fun LiveClassPlayerChat(
                                     context = context,
                                     embedUrl = url,
                                     videoTitle = session.title.orEmpty(),
+                                    // Passing the session in gives the player its own
+                                    // comments pane, so a student no longer has to leave
+                                    // the video to say anything.
+                                    sessionId = session.id,
+                                    sessionStatus = session.status,
                                 )
                             }
                         },
@@ -462,6 +467,32 @@ private fun LiveClassPlayerChat(
 }
 
 /**
+ * How many people are watching right now, counted per person rather than per
+ * connection. Shown to the host and to students alike.
+ */
+@Composable
+private fun LiveViewerBadge(count: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.error),
+        )
+        Text(
+            text = if (count == 1) "1 watching" else "$count watching",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
  * The live comments panel: transcript plus composer.
  *
  * Chat is a property of the broadcast, not of the session record — it appears when
@@ -519,12 +550,14 @@ private fun LiveChatPanel(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            if (chatState.isConnecting && chatState.isChatOpen) {
+            if (chatState.isConnecting) {
                 Text(
                     text = "Connecting…",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            } else if (sessionStatus == "live") {
+                LiveViewerBadge(count = chatState.viewerCount)
             }
         }
 

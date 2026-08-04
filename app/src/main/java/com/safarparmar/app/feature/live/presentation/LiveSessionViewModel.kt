@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.data.remote.socket.MehfilSocketManager
 import com.safarparmar.app.feature.live.data.LiveSessionRepositoryContract
+import com.safarparmar.app.feature.live.data.LiveSocketConnector
 import com.safarparmar.app.feature.live.model.LiveSession
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -56,6 +57,11 @@ data class LiveChatUiState(
     val cooldownRemainingSeconds: Int = 0,
     /** The gap the server enforces between one student's comments. */
     val cooldownSeconds: Int = DEFAULT_LIVE_CHAT_COOLDOWN_SECONDS,
+    /**
+     * How many distinct people are watching right now. Counted per person, not per
+     * connection, so one student on phone and laptop is one viewer.
+     */
+    val viewerCount: Int = 0,
 ) {
     val canSend: Boolean get() = isChatOpen && cooldownRemainingSeconds == 0
 }
@@ -81,6 +87,7 @@ class LiveSessionViewModel @Inject constructor(
     private val repository: LiveSessionRepositoryContract,
     private val socketManager: MehfilSocketManager,
     private val dataStore: SafarDataStore,
+    private val socketConnector: LiveSocketConnector,
 ) : ViewModel() {
     private val _liveSessionsState = MutableStateFlow(LiveSessionsUiState(isLoading = true))
     val liveSessionsState: StateFlow<LiveSessionsUiState> = _liveSessionsState.asStateFlow()
@@ -149,8 +156,12 @@ class LiveSessionViewModel @Inject constructor(
                 socketManager.emitLiveJoin(sessionId)
                 _liveChatState.update { it.copy(isConnecting = false) }
             } else {
-                // Not connected yet — show connecting state and wait
+                // Nothing else opens the socket for this screen. It used to be
+                // connected only by MehfilViewModel, so a student who came
+                // straight to a live session sat on "Connecting…" forever and
+                // every send failed with "chat is temporarily unavailable".
                 _liveChatState.update { it.copy(isConnecting = true, socketError = null) }
+                connectSocket()
             }
         }
 
@@ -223,6 +234,14 @@ class LiveSessionViewModel @Inject constructor(
             }
         }
 
+        // Collect live:viewers — how many people are watching right now
+        viewModelScope.launch {
+            socketManager.liveViewerCount.collect { viewers ->
+                if (viewers.sessionId != activeSocketSessionId) return@collect
+                _liveChatState.update { it.copy(viewerCount = viewers.count) }
+            }
+        }
+
         // Collect live:error and surface as a dismissible UI message
         viewModelScope.launch {
             socketManager.liveError.collect { error ->
@@ -289,9 +308,13 @@ class LiveSessionViewModel @Inject constructor(
         if (chat.cooldownRemainingSeconds > 0) return
 
         if (!socketManager.isConnected()) {
+            // Try to recover rather than only complaining: the socket may have
+            // dropped while the screen was backgrounded.
             _liveChatState.update { it.copy(
-                socketError = "Live chat is temporarily unavailable. Please check your connection.",
+                isConnecting = true,
+                socketError = "Reconnecting to live chat — try again in a moment.",
             ) }
+            viewModelScope.launch { connectSocket() }
             return
         }
 
@@ -309,6 +332,15 @@ class LiveSessionViewModel @Inject constructor(
         // expires slightly early — without the padding the next send would race the
         // server and come back rejected, bouncing the countdown back up.
         startCooldown(chat.cooldownSeconds + 1)
+    }
+
+    private suspend fun connectSocket() {
+        when (val result = socketConnector.ensureConnected()) {
+            is LiveSocketConnector.Result.Connecting -> Unit
+            is LiveSocketConnector.Result.SignInRequired -> _liveChatState.update {
+                it.copy(isConnecting = false, socketError = result.message)
+            }
+        }
     }
 
     /** Runs the visible countdown that gates the composer. */

@@ -26,6 +26,7 @@ class LiveSessionViewModelTest {
             repository = FakeRepo(Resource.Success(listOf(sampleSession()))),
             socketManager = mockk(relaxed = true),
             dataStore = mockk(relaxed = true),
+            socketConnector = mockk(relaxed = true),
         )
         vm.liveSessionsState.test {
             assertTrue(awaitItem().isLoading)
@@ -42,6 +43,7 @@ class LiveSessionViewModelTest {
             repository = FakeRepo(Resource.Error("forbidden", 403)),
             socketManager = mockk(relaxed = true),
             dataStore = mockk(relaxed = true),
+            socketConnector = mockk(relaxed = true),
         )
         vm.liveSessionsState.test {
             awaitItem()

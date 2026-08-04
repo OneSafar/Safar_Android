@@ -143,6 +143,12 @@ class MehfilSocketManager @Inject constructor(
         val cooldownSeconds: Int,
     )
 
+    /** How many distinct people are watching a live session right now. */
+    data class LiveViewerCount(
+        val sessionId: String,
+        val count: Int,
+    )
+
     /** A live:error carrying the server's code, so the UI can react to it rather than only show it. */
     data class LiveError(
         val message: String,
@@ -155,6 +161,11 @@ class MehfilSocketManager @Inject constructor(
     // closed until the next status change, so the latest verdict is kept.
     private val _liveChatState = MutableSharedFlow<LiveChatState>(replay = 1, extraBufferCapacity = 8)
     val liveChatState = _liveChatState.asSharedFlow()
+
+    // replay = 1 for the same reason as chat state: the count is broadcast the
+    // instant we join, usually before the ViewModel is collecting.
+    private val _liveViewerCount = MutableSharedFlow<LiveViewerCount>(replay = 1, extraBufferCapacity = 8)
+    val liveViewerCount = _liveViewerCount.asSharedFlow()
 
     private val _liveError = MutableSharedFlow<LiveError>(extraBufferCapacity = 8)
     val liveError = _liveError.asSharedFlow()
@@ -431,6 +442,17 @@ class MehfilSocketManager @Inject constructor(
                                 cooldownSeconds = obj.optInt("cooldownSeconds", 0),
                             ),
                         )
+                    } catch (_: Exception) {}
+                }
+
+                on("live:viewers") { args ->
+                    try {
+                        val raw = args.firstOrNull()?.toString() ?: return@on
+                        val obj = JSONObject(raw)
+                        val sessionId = obj.optString("sessionId")
+                        val count = obj.optInt("count", 0).coerceAtLeast(0)
+                        android.util.Log.d("MehfilSocket", "live:viewers ← $sessionId count=$count")
+                        _liveViewerCount.tryEmit(LiveViewerCount(sessionId = sessionId, count = count))
                     } catch (_: Exception) {}
                 }
 
