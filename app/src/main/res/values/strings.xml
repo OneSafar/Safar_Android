@@ -2,7 +2,8 @@
 <resources>
     <!-- App -->
     <string name="app_name">SAFAR</string>
-    <string name="google_web_client_id">your_web_oauth_client_id.apps.googleusercontent.com</string>
+    <!-- Technical Google sign-in ID. It must stay exactly the same in every language. -->
+    <string name="google_web_client_id" translatable="false">your_web_oauth_client_id.apps.googleusercontent.com</string>
     <string name="material3_outlined_button_label">Material 3 Outlined Button</string>
     <string name="app_tagline">Your mindful journey begins here.</string>
 

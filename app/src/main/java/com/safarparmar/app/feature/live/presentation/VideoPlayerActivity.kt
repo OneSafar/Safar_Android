@@ -15,6 +15,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -66,6 +67,22 @@ class VideoPlayerActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         hideSystemBars()
+
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    when {
+                        customView != null -> {
+                            // First Back exits YouTube's own full-screen view.
+                            customViewCallback?.onCustomViewHidden()
+                        }
+                        webView?.canGoBack() == true -> webView?.goBack()
+                        else -> finishAfterTransition()
+                    }
+                }
+            },
+        )
 
         // A live session is a 16:9 landscape video, and this screen exists only to
         // play it. Locking a phone to PORTRAIT letterboxed that video into a thin
@@ -216,18 +233,6 @@ class VideoPlayerActivity : ComponentActivity() {
         }
         webView = null
         super.onDestroy()
-    }
-
-    @Suppress("DEPRECATION")
-    override fun onBackPressed() {
-        when {
-            customView != null -> {
-                // Exit YouTube's own fullscreen first
-                customViewCallback?.onCustomViewHidden()
-            }
-            webView?.canGoBack() == true -> webView?.goBack()
-            else -> super.onBackPressed()
-        }
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────

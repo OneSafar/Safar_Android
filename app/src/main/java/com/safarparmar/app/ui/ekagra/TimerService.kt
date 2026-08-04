@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.ServiceInfo
 import android.media.MediaPlayer
 import android.media.AudioAttributes
 import android.net.Uri
@@ -23,6 +24,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
@@ -679,6 +681,7 @@ class TimerService : Service() {
             val volume = if (mute) 0f else 0.7f
             musicPlayer?.setVolume(volume, volume)
         }
+        if (timerSessionActive) runCatching { refreshForegroundServiceType() }
     }
 
     fun startPomodoroSession(loops: Int, focusMinutes: Int, breakMinutes: Int) {
@@ -695,6 +698,7 @@ class TimerService : Service() {
         if (url == currentMusicUrl) return
         currentMusicUrl = url
         if (_isRunning.value) startMusic(url) else releaseMusic()
+        if (timerSessionActive) runCatching { refreshForegroundServiceType() }
     }
 
     private fun startMusic(url: String) {
@@ -1024,7 +1028,7 @@ class TimerService : Service() {
         persistTimerState()
 
         try {
-            startForeground(NOTIFICATION_ID, buildNotification())
+            refreshForegroundServiceType()
         } catch (e: Exception) {
             // Android 12+ prevents starting foreground services from the background.
             // If this happens (e.g., system recreates service), gracefully pause the timer instead of crashing.
@@ -1036,6 +1040,9 @@ class TimerService : Service() {
         syncNotificationShieldForTimerSession()
         startFocusShieldMonitor()
         startMusic(currentMusicUrl)
+        // Music is prepared after the timer has safely entered the foreground;
+        // update the declared type now that a real player exists.
+        runCatching { refreshForegroundServiceType() }
         lastTickElapsedMs = SystemClock.elapsedRealtime()
         // A session is now live. The pill shows only while SAFAR is backgrounded (syncBubble).
         syncBubble()
@@ -1196,11 +1203,43 @@ class TimerService : Service() {
         }
     }
 
+    /**
+     * Android 14+ requires the service to state what it is doing right now.
+     * The focus timer/Kavach is special-use work; real audible background music
+     * additionally uses media playback. Older Android versions keep the same
+     * media-playback declaration they used before this stricter classification.
+     */
+    private fun refreshForegroundServiceType() {
+        val musicIsAudible = musicPlayer != null &&
+            !_isMuted.value
+
+        val serviceTypes = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
+                    if (musicIsAudible) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                // specialUse did not exist before Android 14. Preserve the
+                // service behaviour already used by released SAFAR versions.
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            }
+            else -> 0
+        }
+
+        ServiceCompat.startForeground(
+            this,
+            NOTIFICATION_ID,
+            buildNotification(),
+            serviceTypes,
+        )
+    }
+
     fun pause() {
         _isRunning.value = false
         tickJob?.cancel()
         persistTimerState()
         releaseMusic()
+        runCatching { refreshForegroundServiceType() }
         // KAVACH intentionally stays active through a pause — the session hasn't
         // ended, the user could just be checking something and forget to resume.
         // startFocusShieldMonitor()'s loop and syncFocusShieldState() are both

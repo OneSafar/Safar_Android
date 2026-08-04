@@ -58,6 +58,7 @@
     <string name="nav_previous">पिछला</string>
     <string name="nav_next">अगला</string>
     <string name="nav_focus_shield">कवच</string>
+    <string name="focus_shield_notification_listener_label">नोटिफिकेशन कवच</string>
     <string name="nav_live_classes">लाइव क्लासेस</string>
     <string name="nav_admin_notifications">एडमिन सूचनाएं</string>
 

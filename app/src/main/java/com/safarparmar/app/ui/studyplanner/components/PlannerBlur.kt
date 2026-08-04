@@ -4,6 +4,7 @@ import android.os.Build
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -148,6 +149,7 @@ private fun applyBlurBehind(view: View, radiusPx: Int): Boolean {
     return true
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 private fun applyToDialogWindow(window: Window, radiusPx: Int) {
     if (radiusPx > 0) {
         window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
