@@ -311,7 +311,7 @@ fun LiveHeroSessionCard(
     session: LiveSession,
     onPlay: () -> Unit,
     onJoinChat: () -> Unit,
-    onShare: () -> Unit,
+    onShare: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     ElevatedCard(
@@ -436,27 +436,14 @@ fun LiveHeroSessionCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Row(
+                Button(
+                    onClick = onJoinChat,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    shape = RoundedCornerShape(50),
                 ) {
-                    Button(
-                        onClick = onJoinChat,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(50),
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Join", fontWeight = FontWeight.SemiBold)
-                    }
-                    OutlinedButton(
-                        onClick = onShare,
-                        shape = RoundedCornerShape(50),
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Share")
-                    }
+                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Join", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
