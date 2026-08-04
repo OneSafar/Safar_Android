@@ -218,36 +218,7 @@ private fun StreaksScreenContent(
                 },
             )
 
-            Spacer(Modifier.height(12.dp))
 
-            StreakGlassCard(
-                label = stringResource(R.string.streaks_login_label),
-                value = streaks.loginStreak,
-                accent = StreaksPalette.Login,
-                isLight = isLight,
-                iconRes = R.drawable.ic_zap,
-                bgIconRes = R.drawable.ic_flame,
-                bgIconRotation = -12f,
-                bgIconOffsetX = 20.dp,
-                bgIconOffsetY = 20.dp,
-                bottomContent = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painterResource(R.drawable.ic_sparkle),
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = StreaksPalette.Login,
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            stringResource(R.string.streaks_amazing),
-                            color = StreaksPalette.Login,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                        )
-                    }
-                },
-            )
 
             Spacer(Modifier.height(22.dp))
             PlanHairline()
