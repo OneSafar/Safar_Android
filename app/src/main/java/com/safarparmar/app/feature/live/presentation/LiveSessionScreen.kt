@@ -30,7 +30,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -40,6 +44,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,13 +63,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
@@ -401,6 +410,19 @@ private fun LiveClassPlayerChat(
                     )
                 }
             }
+
+            // ── Live comments ─────────────────────────────────────────────────
+            // Only present while the session is actually broadcasting. Nothing is
+            // stored server-side, so once the host ends the session the transcript
+            // is gone for everyone — the UI must not imply otherwise.
+            LiveChatPanel(
+                chatState = chatState,
+                sessionStatus = session.status,
+                onSend = onSend,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+            )
         }
 
         // ── Full-screen Video Player Overlay (Landscape Mode) ────────────────
@@ -432,6 +454,205 @@ private fun LiveClassPlayerChat(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Exit Fullscreen",
                         tint = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The live comments panel: transcript plus composer.
+ *
+ * Chat is a property of the broadcast, not of the session record — it appears when
+ * the host goes live and disappears when they end it. Because nothing is persisted,
+ * a student joining late sees only what arrives from now on, which is why the empty
+ * state says so rather than pretending history is still loading.
+ */
+@Composable
+private fun LiveChatPanel(
+    chatState: LiveChatUiState,
+    sessionStatus: String,
+    onSend: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
+    var draft by rememberSaveable { mutableStateOf("") }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Follow the conversation as it arrives.
+    LaunchedEffect(chatState.messages.size) {
+        if (chatState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(chatState.messages.lastIndex)
+        }
+    }
+
+    // The composer is cleared when chat closes so a half-typed comment doesn't
+    // linger and get sent into a session that already ended.
+    LaunchedEffect(chatState.isChatOpen) {
+        if (!chatState.isChatOpen) draft = ""
+    }
+
+    Column(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+    ) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Chat,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "Live comments",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            if (chatState.isConnecting && chatState.isChatOpen) {
+                Text(
+                    text = "Connecting…",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        if (!chatState.isChatOpen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = when (sessionStatus) {
+                        "scheduled" -> "Comments open when the session goes live."
+                        "ended" -> "This session has ended, so live comments are closed."
+                        "cancelled" -> "This session was cancelled."
+                        else -> "Comments are turned off for this session."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            return@Column
+        }
+
+        if (chatState.messages.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "No comments yet. Say hello!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(chatState.messages) { message ->
+                    ChatBubble(message = message)
+                }
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+
+        val waiting = chatState.cooldownRemainingSeconds > 0
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = draft,
+                onValueChange = { if (it.length <= MAX_LIVE_MESSAGE_LENGTH) draft = it },
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        // The wait is stated plainly, so a disabled Send button never
+                        // reads as the app being broken.
+                        text = if (waiting) {
+                            "Wait ${chatState.cooldownRemainingSeconds}s before commenting again"
+                        } else {
+                            "Add a comment…"
+                        },
+                    )
+                },
+                enabled = !waiting,
+                maxLines = 3,
+                shape = RoundedCornerShape(24.dp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(
+                    onSend = {
+                        if (draft.isNotBlank() && chatState.canSend) {
+                            onSend(draft)
+                            draft = ""
+                            keyboardController?.hide()
+                        }
+                    },
+                ),
+            )
+            Spacer(Modifier.width(8.dp))
+            IconButton(
+                onClick = {
+                    if (draft.isNotBlank() && chatState.canSend) {
+                        onSend(draft)
+                        draft = ""
+                        keyboardController?.hide()
+                    }
+                },
+                enabled = draft.isNotBlank() && chatState.canSend,
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (draft.isNotBlank() && chatState.canSend) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                    ),
+            ) {
+                if (waiting) {
+                    Text(
+                        text = "${chatState.cooldownRemainingSeconds}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send comment",
+                        tint = if (draft.isNotBlank()) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                 }
             }

@@ -46,7 +46,35 @@ data class LiveChatUiState(
     val socketError: String? = null,
     // true while we are connecting to the socket room
     val isConnecting: Boolean = false,
-)
+    /**
+     * Whether comments are accepted right now. Open only while the session is
+     * actually broadcasting and the host hasn't switched chat off; the server
+     * enforces the same rule, this just keeps the UI honest.
+     */
+    val isChatOpen: Boolean = false,
+    /** Seconds left before this student may comment again; 0 means they can send now. */
+    val cooldownRemainingSeconds: Int = 0,
+    /** The gap the server enforces between one student's comments. */
+    val cooldownSeconds: Int = DEFAULT_LIVE_CHAT_COOLDOWN_SECONDS,
+) {
+    val canSend: Boolean get() = isChatOpen && cooldownRemainingSeconds == 0
+}
+
+/**
+ * Matches the server's `LIVE_CHAT_COOLDOWN_MS`. Used until the server tells us its
+ * own value on join, so the very first send is never wrongly allowed.
+ */
+const val DEFAULT_LIVE_CHAT_COOLDOWN_SECONDS = 7
+
+/** Matches the server's own truncation of `live:message` text. */
+const val MAX_LIVE_MESSAGE_LENGTH = 500
+
+/**
+ * Live chat exists only for the duration of a broadcast: a scheduled, ended or
+ * cancelled session has none, and the host can switch it off mid-session.
+ */
+fun isChatOpen(session: LiveSession?): Boolean =
+    session != null && session.status.equals("live", ignoreCase = true) && session.isChatEnabled
 
 @HiltViewModel
 class LiveSessionViewModel @Inject constructor(
@@ -69,6 +97,7 @@ class LiveSessionViewModel @Inject constructor(
     private var currentUserName: String = "Student"
     private var pollingJob: Job? = null
     private var socketWatchJob: Job? = null
+    private var cooldownJob: Job? = null
 
     fun loadSessions(courseId: String, status: String?) {
         viewModelScope.launch {
@@ -85,7 +114,10 @@ class LiveSessionViewModel @Inject constructor(
         viewModelScope.launch {
             _liveSessionState.value = _liveSessionState.value.copy(isLoading = true, errorMessage = null)
             when (val result = repository.getById(id)) {
-                is Resource.Success -> _liveSessionState.value = LiveSessionUiState(session = result.data)
+                is Resource.Success -> {
+                    _liveSessionState.value = LiveSessionUiState(session = result.data)
+                    applyChatOpen(isChatOpen(result.data))
+                }
                 is Resource.Error -> _liveSessionState.value = LiveSessionUiState(errorMessage = result.message, errorCode = result.code)
                 is Resource.Loading -> Unit
             }
@@ -101,7 +133,13 @@ class LiveSessionViewModel @Inject constructor(
         leaveLiveSession() // leave any previous room
 
         activeSocketSessionId = sessionId
-        _liveChatState.value = LiveChatUiState(isConnecting = true)
+        cooldownJob?.cancel()
+        _liveChatState.value = LiveChatUiState(
+            isConnecting = true,
+            // Seeded from the session we already loaded; the server confirms or
+            // corrects this with live:chat_state the moment we join the room.
+            isChatOpen = isChatOpen(_liveSessionState.value.session),
+        )
 
         viewModelScope.launch {
             currentUserName = dataStore.userName.first() ?: "Student"
@@ -154,16 +192,54 @@ class LiveSessionViewModel @Inject constructor(
         viewModelScope.launch {
             socketManager.liveStatusChanged.collect { change ->
                 if (change.sessionId != activeSocketSessionId) return@collect
+                // Ending the broadcast ends the conversation: nothing is persisted
+                // server-side, so leaving the transcript on screen would show a
+                // chat the student can no longer take part in or ever get back.
+                if (!change.status.equals("live", ignoreCase = true)) {
+                    _liveChatState.update {
+                        it.copy(messages = emptyList(), isChatOpen = false, cooldownRemainingSeconds = 0)
+                    }
+                    cooldownJob?.cancel()
+                }
                 // Refresh session from API so the updated youtubeEmbedUrl is picked up by the player
                 loadSession(change.sessionId)
             }
         }
 
+        // Collect live:chat_state — the server's authoritative open/closed verdict
+        viewModelScope.launch {
+            socketManager.liveChatState.collect { state ->
+                if (state.sessionId != activeSocketSessionId) return@collect
+                if (!state.isChatOpen) cooldownJob?.cancel()
+                _liveChatState.update {
+                    it.copy(
+                        isChatOpen = state.isChatOpen,
+                        messages = if (state.isChatOpen) it.messages else emptyList(),
+                        cooldownRemainingSeconds = if (state.isChatOpen) it.cooldownRemainingSeconds else 0,
+                        cooldownSeconds = state.cooldownSeconds.takeIf { seconds -> seconds > 0 }
+                            ?: it.cooldownSeconds,
+                    )
+                }
+            }
+        }
+
         // Collect live:error and surface as a dismissible UI message
         viewModelScope.launch {
-            socketManager.liveError.collect { errorMsg ->
+            socketManager.liveError.collect { error ->
                 if (activeSocketSessionId == null) return@collect
-                _liveChatState.update { it.copy(socketError = errorMsg) }
+                when (error.code) {
+                    // The server refused because this student is still in their gap.
+                    // Re-arm the local countdown from the server's number so the two
+                    // never drift apart.
+                    "RATE_LIMITED" -> startCooldown(
+                        ((error.retryAfterMs + 999L) / 1000L).toInt()
+                            .coerceAtLeast(1),
+                    )
+                    "CHAT_CLOSED" -> _liveChatState.update {
+                        it.copy(isChatOpen = false, socketError = error.message)
+                    }
+                    else -> _liveChatState.update { it.copy(socketError = error.message) }
+                }
             }
         }
 
@@ -192,11 +268,25 @@ class LiveSessionViewModel @Inject constructor(
         }
     }
 
-    /** Sends a chat message to the active live session. */
+    /**
+     * Sends a chat message to the active live session.
+     *
+     * Refuses locally when chat is closed or the student is still inside their gap,
+     * so the common case never costs a round-trip that the server would only reject.
+     */
     fun sendLiveMessage(text: String) {
         val sessionId = activeSocketSessionId ?: return
-        val trimmed = text.trim()
+        val trimmed = text.trim().take(MAX_LIVE_MESSAGE_LENGTH)
         if (trimmed.isBlank()) return
+
+        val chat = _liveChatState.value
+        if (!chat.isChatOpen) {
+            _liveChatState.update {
+                it.copy(socketError = "Live chat is open only while the session is live.")
+            }
+            return
+        }
+        if (chat.cooldownRemainingSeconds > 0) return
 
         if (!socketManager.isConnected()) {
             _liveChatState.update { it.copy(
@@ -210,6 +300,41 @@ class LiveSessionViewModel @Inject constructor(
             name = currentUserName,
             text = trimmed,
         )
+        // Start the gap on send rather than on the echo coming back: the student
+        // should see the wait begin the instant they tap, and a dropped echo must
+        // not leave the composer free to spam.
+        //
+        // The extra second covers network latency. The server's window opens from
+        // when it *received* the message, so a local timer started at tap always
+        // expires slightly early — without the padding the next send would race the
+        // server and come back rejected, bouncing the countdown back up.
+        startCooldown(chat.cooldownSeconds + 1)
+    }
+
+    /** Runs the visible countdown that gates the composer. */
+    private fun startCooldown(seconds: Int) {
+        val total = seconds.coerceAtLeast(1)
+        cooldownJob?.cancel()
+        _liveChatState.update { it.copy(cooldownRemainingSeconds = total) }
+        cooldownJob = viewModelScope.launch {
+            var remaining = total
+            while (remaining > 0) {
+                delay(1_000L)
+                remaining -= 1
+                _liveChatState.update { it.copy(cooldownRemainingSeconds = remaining.coerceAtLeast(0)) }
+            }
+        }
+    }
+
+    private fun applyChatOpen(open: Boolean) {
+        if (!open) cooldownJob?.cancel()
+        _liveChatState.update {
+            it.copy(
+                isChatOpen = open,
+                messages = if (open) it.messages else emptyList(),
+                cooldownRemainingSeconds = if (open) it.cooldownRemainingSeconds else 0,
+            )
+        }
     }
 
     /** Called when the Live Session screen becomes invisible / user navigates away. */
@@ -218,6 +343,8 @@ class LiveSessionViewModel @Inject constructor(
         pollingJob = null
         socketWatchJob?.cancel()
         socketWatchJob = null
+        cooldownJob?.cancel()
+        cooldownJob = null
         val sessionId = activeSocketSessionId ?: return
         socketManager.emitLiveLeave(sessionId)
         activeSocketSessionId = null

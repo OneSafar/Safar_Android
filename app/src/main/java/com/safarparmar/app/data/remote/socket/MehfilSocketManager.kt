@@ -136,7 +136,27 @@ class MehfilSocketManager @Inject constructor(
     private val _liveStatusChanged = MutableSharedFlow<LiveStatusChange>(extraBufferCapacity = 8)
     val liveStatusChanged = _liveStatusChanged.asSharedFlow()
 
-    private val _liveError = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    /** Server's verdict on whether the composer should be usable right now. */
+    data class LiveChatState(
+        val sessionId: String,
+        val isChatOpen: Boolean,
+        val cooldownSeconds: Int,
+    )
+
+    /** A live:error carrying the server's code, so the UI can react to it rather than only show it. */
+    data class LiveError(
+        val message: String,
+        val code: String?,
+        val retryAfterMs: Long,
+    )
+
+    // replay = 1: the server answers live:join almost immediately, often before the
+    // ViewModel's collector is running. Without a replay the composer would sit
+    // closed until the next status change, so the latest verdict is kept.
+    private val _liveChatState = MutableSharedFlow<LiveChatState>(replay = 1, extraBufferCapacity = 8)
+    val liveChatState = _liveChatState.asSharedFlow()
+
+    private val _liveError = MutableSharedFlow<LiveError>(extraBufferCapacity = 8)
     val liveError = _liveError.asSharedFlow()
 
     private val _connected = MutableStateFlow(false)
@@ -397,12 +417,37 @@ class MehfilSocketManager @Inject constructor(
                     } catch (_: Exception) {}
                 }
 
+                on("live:chat_state") { args ->
+                    try {
+                        val raw = args.firstOrNull()?.toString() ?: return@on
+                        val obj = JSONObject(raw)
+                        val sessionId = obj.optString("sessionId")
+                        val isChatOpen = obj.optBoolean("isChatOpen", false)
+                        android.util.Log.d("MehfilSocket", "live:chat_state ← $sessionId open=$isChatOpen")
+                        _liveChatState.tryEmit(
+                            LiveChatState(
+                                sessionId = sessionId,
+                                isChatOpen = isChatOpen,
+                                cooldownSeconds = obj.optInt("cooldownSeconds", 0),
+                            ),
+                        )
+                    } catch (_: Exception) {}
+                }
+
                 on("live:error") { args ->
                     try {
                         val raw = args.firstOrNull()?.toString() ?: return@on
-                        val msg = JSONObject(raw).optString("message")
-                        android.util.Log.w("MehfilSocket", "live:error ← $msg")
-                        _liveError.tryEmit(msg)
+                        val obj = JSONObject(raw)
+                        val msg = obj.optString("message")
+                        val code = obj.optString("code").takeIf { it.isNotBlank() }
+                        android.util.Log.w("MehfilSocket", "live:error ← [$code] $msg")
+                        _liveError.tryEmit(
+                            LiveError(
+                                message = msg,
+                                code = code,
+                                retryAfterMs = obj.optLong("retryAfterMs", 0L),
+                            ),
+                        )
                     } catch (_: Exception) {}
                 }
 
