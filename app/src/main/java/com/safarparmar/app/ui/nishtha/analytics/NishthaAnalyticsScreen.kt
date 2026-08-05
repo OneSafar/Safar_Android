@@ -136,36 +136,13 @@ fun NishthaAnalyticsScreen(
         LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
 
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.BarChart,
-                    contentDescription = null,
-                    tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Column {
-                    Text(
-                        "Analytics",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-                    )
-                    Text(
-                        "One home for progress patterns and monthly reflection.",
-                        fontSize = 13.sp,
-                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
-                    )
-                }
-            }
+
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AnalyticsSectionChip("Overview", selectedSection == "overview", Color(0xFF1E3A8A), isLight) { selectedSection = "overview" }
