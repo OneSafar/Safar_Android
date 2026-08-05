@@ -1,19 +1,24 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,10 +32,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.feature.kavachanalytics.domain.AppCategory
@@ -115,36 +123,73 @@ fun AppCategoryEditorScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(apps, key = { it.packageName }) { app ->
-                    GlassCard(isLight) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val context = LocalContext.current
+                    val iconDrawable = remember(app.packageName) {
+                        runCatching { context.packageManager.getApplicationIcon(app.packageName) }.getOrNull()
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(34.dp), contentAlignment = Alignment.Center) {
+                                if (iconDrawable != null) {
+                                    AsyncImage(
+                                        model = iconDrawable,
+                                        contentDescription = app.label,
+                                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(secondaryText(isLight).copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Apps,
+                                            contentDescription = null,
+                                            tint = secondaryText(isLight),
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.width(10.dp))
                             Text(
                                 app.label,
-                                fontSize = 14.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = primaryText(isLight),
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf(
-                                    AppCategory.PRODUCTIVE to "Productive",
-                                    AppCategory.DISTRACTING to "Distracting",
-                                    AppCategory.NEUTRAL to "Neutral",
-                                ).forEach { (category, label) ->
-                                    CategoryPill(
-                                        label = label,
-                                        color = KavachCategoryColors.of(category, isLight),
-                                        selected = app.category == category,
-                                        isLight = isLight,
-                                    ) { viewModel.setCategory(app.packageName, category, app.label) }
-                                }
-                            }
-                            if (app.category == AppCategory.UNCLASSIFIED) {
-                                Text(
-                                    "Not categorised yet — its time is reported separately, never as a distraction.",
-                                    fontSize = 11.sp,
-                                    color = KavachCategoryColors.unclassified(isLight),
-                                )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                AppCategory.PRODUCTIVE to "Productive",
+                                AppCategory.DISTRACTING to "Distracting",
+                                AppCategory.NEUTRAL to "Neutral",
+                            ).forEach { (category, label) ->
+                                OutlineChip(
+                                    label = label,
+                                    accent = KavachCategoryColors.of(category, isLight),
+                                    isLight = isLight,
+                                    selected = app.category == category,
+                                ) { viewModel.setCategory(app.packageName, category, app.label) }
                             }
                         }
+                        if (app.category == AppCategory.UNCLASSIFIED) {
+                            Text(
+                                "Not categorised yet — its time is reported separately, never as a distraction.",
+                                fontSize = 11.sp,
+                                color = KavachCategoryColors.unclassified(isLight),
+                            )
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(secondaryText(isLight).copy(alpha = 0.10f)),
+                        )
                     }
                 }
             }
