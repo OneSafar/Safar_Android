@@ -241,7 +241,21 @@ class KavachAnalyticsRepository @Inject constructor(
             val byPackage = mutableMapOf<String, AppUsageRow>()
             val byDate = mutableMapOf<String, DailyTrendPoint>()
 
+            val pm = context.packageManager
+            val ownPackage = context.packageName
+            val launchableCache = mutableMapOf<String, Boolean>()
+
             aggregates.forEach { row ->
+                val pkg = row.packageName
+                val isSystemOrExcluded = if (UsageIntervalReconstructor.isExcluded(pkg, ownPackage, emptySet())) {
+                    true
+                } else {
+                    launchableCache.getOrPut(pkg) {
+                        pm.getLaunchIntentForPackage(pkg) == null
+                    }
+                }
+                if (isSystemOrExcluded) return@forEach
+
                 val category = AppCategory.fromWire(row.category)
                 allDay = allDay.add(category, row.allDaySeconds)
                 duringKavach = duringKavach.add(category, row.kavachSeconds)

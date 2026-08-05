@@ -91,12 +91,21 @@ class KavachUsageCollector @Inject constructor(
             }
 
         val ownPackage = context.packageName
+        val pm = context.packageManager
+        val launchableCache = mutableMapOf<String, Boolean>()
+
         val intervals = UsageIntervalReconstructor.reconstruct(
             transitions = transitions,
             windowStartMs = windowStart,
             windowEndMs = nowMs,
             isExcluded = { pkg ->
-                UsageIntervalReconstructor.isExcluded(pkg, ownPackage, homePackages)
+                if (UsageIntervalReconstructor.isExcluded(pkg, ownPackage, homePackages)) {
+                    true
+                } else {
+                    launchableCache.getOrPut(pkg) {
+                        pm.getLaunchIntentForPackage(pkg) == null
+                    }
+                }
             },
         )
 

@@ -42,18 +42,34 @@ object UsageIntervalReconstructor {
 
     /**
      * Packages whose foreground time is never counted: SAFAR itself, the launcher,
-     * system UI, and the permission/settings surfaces the user only visits because
-     * Kavach sent them there.
+     * system UI, system services, background framework utilities, and permission surfaces.
      */
     val ALWAYS_EXCLUDED_PACKAGES = setOf(
+        "android",
         "com.android.systemui",
         "com.android.settings",
         "com.android.permissioncontroller",
         "com.google.android.permissioncontroller",
         "com.android.packageinstaller",
         "com.google.android.packageinstaller",
+        "com.google.android.gms",
+        "com.google.android.gsf",
+        "com.google.android.overlay",
+        "com.google.android.webview",
         "com.miui.securitycenter",
         "com.samsung.android.permissioncontroller",
+        "com.oplus.screenshot",
+        "com.oplus.wirelesssettings",
+        "com.oppo.quicksearchbox",
+    )
+
+    private val SYSTEM_PREFIXES = listOf(
+        "com.android.providers.",
+        "com.android.server.",
+        "com.google.android.overlay",
+        "com.oplus.wirelesssettings",
+        "com.oplus.engineermode",
+        "com.coloros.screen",
     )
 
     private val LAUNCHER_HINTS = listOf("launcher", "home")
@@ -67,6 +83,7 @@ object UsageIntervalReconstructor {
         if (packageName == ownPackageName) return true
         if (packageName in ALWAYS_EXCLUDED_PACKAGES) return true
         if (packageName in homePackages) return true
+        if (SYSTEM_PREFIXES.any { packageName.startsWith(it) }) return true
         return LAUNCHER_HINTS.any { packageName.contains(it, ignoreCase = true) }
     }
 
