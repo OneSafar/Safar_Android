@@ -1,6 +1,7 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,49 +21,57 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.feature.kavachanalytics.domain.AppCategory
+import com.safarparmar.app.feature.kavachanalytics.domain.AppUsageRow
 import com.safarparmar.app.feature.kavachanalytics.domain.CategoryTotals
 import com.safarparmar.app.feature.kavachanalytics.domain.DataCoverage
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachAnalyticsReport
-import com.safarparmar.app.ui.glass.GlassDivider
+import com.safarparmar.app.feature.kavachanalytics.domain.KavachCategoryFilter
+import com.safarparmar.app.feature.kavachanalytics.domain.KavachGranularity
+import com.safarparmar.app.feature.kavachanalytics.domain.secondsFor
+import com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionOutcome
 import com.safarparmar.app.ui.glass.SafarGlassPalette
-import com.safarparmar.app.ui.glass.macOSControlPanel
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.theme.isLightBackground
-import java.time.LocalDate
-import java.time.YearMonth
 
-/** Category colours, shared by the summary bar, the trend and the per-app table. */
+/**
+ * Category colours. Only ever used as meaning — a dot, a bar, a number — never as
+ * a selection highlight, so a colour on this screen always says "distracting" or
+ * "productive" rather than "you tapped this".
+ */
 internal object KavachCategoryColors {
-    fun productive(isLight: Boolean) = if (isLight) Color(0xFF047857) else Color(0xFF6EE7B7)
-    fun distracting(isLight: Boolean) = if (isLight) Color(0xFFB91C1C) else Color(0xFFFCA5A5)
-    fun neutral(isLight: Boolean) = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8)
-    fun unclassified(isLight: Boolean) = if (isLight) Color(0xFF92400E) else Color(0xFFFCD34D)
+    fun productive(isLight: Boolean) = if (isLight) Color(0xFF047857) else Color(0xFF4ADE80)
+    fun distracting(isLight: Boolean) = if (isLight) Color(0xFFB91C1C) else Color(0xFFF87171)
+    fun neutral(isLight: Boolean) = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+    fun unclassified(isLight: Boolean) = if (isLight) Color(0xFFB45309) else Color(0xFFFBBF24)
 
     fun of(category: AppCategory, isLight: Boolean) = when (category) {
         AppCategory.PRODUCTIVE -> productive(isLight)
@@ -69,12 +79,23 @@ internal object KavachCategoryColors {
         AppCategory.NEUTRAL -> neutral(isLight)
         AppCategory.UNCLASSIFIED -> unclassified(isLight)
     }
+
+    fun of(filter: KavachCategoryFilter, isLight: Boolean) = when (filter) {
+        KavachCategoryFilter.ALL -> if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
+        KavachCategoryFilter.DISTRACTING -> distracting(isLight)
+        KavachCategoryFilter.PRODUCTIVE -> productive(isLight)
+        KavachCategoryFilter.OTHERS -> neutral(isLight)
+    }
 }
 
 /**
- * The Kavach tab of Nishtha Analytics. Free for every signed-in student — this
- * section is deliberately outside the Nishtha premium entitlement.
+ * The Kavach tab of Nishtha Analytics. Free for every signed-in student.
+ *
+ * Laid out flat rather than as a stack of cards: the numbers are the content, and
+ * a border around each one only adds edges to count. One control row is a tab
+ * strip, one is chips, and everything below is data.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KavachAnalyticsSection(
     modifier: Modifier = Modifier,
@@ -83,600 +104,392 @@ fun KavachAnalyticsSection(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-    var showMonthPicker by remember { mutableStateOf(false) }
-    var showCustomStartPicker by remember { mutableStateOf(false) }
-
-    if (showMonthPicker) {
-        MonthPickerDialog(
-            initial = runCatching { YearMonth.parse(state.selectedMonth) }
-                .getOrDefault(YearMonth.now()),
-            earliest = YearMonth.from(state.earliestDate),
-            onPicked = { viewModel.selectMonth(it.toString()); showMonthPicker = false },
-            onDismiss = { showMonthPicker = false },
-        )
-    }
-
-    if (showCustomStartPicker) {
-        CustomRangeDialog(
-            earliest = state.earliestDate,
-            onPicked = { start, end -> viewModel.selectCustomRange(start, end); showCustomStartPicker = false },
-            onDismiss = { showCustomStartPicker = false },
-        )
-    }
 
     DisposableEffect(Unit) {
         viewModel.refresh()
         onDispose { }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        RangeChips(
-            selected = state.range,
-            isLight = isLight,
-            onSelect = { range ->
-                when (range) {
-                    KavachRange.MONTH -> showMonthPicker = true
-                    KavachRange.CUSTOM -> showCustomStartPicker = true
-                    else -> viewModel.selectRange(range)
-                }
-            },
-        )
-
-        Text(
-            "${KavachAnalyticsFormat.dayLabel(state.startDate)} – ${KavachAnalyticsFormat.dayLabel(state.endDate)}",
-            fontSize = 12.sp,
-            color = secondaryText(isLight),
-        )
-
-        if (!state.hasUsageAccess) {
-            NoticeCard(
-                icon = Icons.Default.Info,
-                title = "Usage access is off",
-                body = "Kavach can't measure app time without Usage access, so days without it are shown as " +
-                    "\"no data\" rather than zero. Turn it back on from Kavach settings.",
-                accent = KavachCategoryColors.unclassified(isLight),
+    state.appDetail?.let { detail ->
+        ModalBottomSheet(
+            onDismissRequest = viewModel::closeAppDetail,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            AppDetailSheet(
+                detail = detail,
+                scopeLabel = state.scope.label,
+                seconds = state.secondsOf(detail.row),
                 isLight = isLight,
+                onSetCategory = { viewModel.setCategory(detail.row.packageName, it, detail.row.appLabel) },
+                onToggleBlocked = { viewModel.toggleBlocked(detail.row.packageName) },
             )
         }
+    }
+
+    Column(
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+    ) {
+        GranularityTabs(state.granularity, isLight, viewModel::selectGranularity)
 
         val report = state.report
         when {
-            state.isLoading && report == null -> LoadingCard(isLight)
-            report == null -> NoticeCard(
-                icon = Icons.Default.Info,
-                title = "No Kavach data yet",
-                body = state.error ?: "Start a Kavach session and your app time will show up here.",
-                accent = SafarGlassPalette.LightViolet,
+            state.isLoading && report == null -> LoadingRow(isLight)
+
+            !state.hasUsageAccess && report == null -> EmptyMessage(
+                title = "Usage access is off",
+                body = "Kavach can't measure app time without it. Turn it on in Kavach settings and " +
+                    "your usage will start showing here.",
                 isLight = isLight,
             )
+
+            report == null -> EmptyMessage(
+                title = "No Kavach data yet",
+                body = state.error ?: "Start a Kavach session and your app time will show up here.",
+                isLight = isLight,
+            )
+
             else -> {
-                if (report.coverage != DataCoverage.COMPLETE) {
-                    NoticeCard(
-                        icon = Icons.Default.Info,
-                        title = if (report.coverage == DataCoverage.UNAVAILABLE) {
-                            "No measurements for this range"
-                        } else {
-                            "Some days are incomplete"
-                        },
-                        body = "SAFAR couldn't measure ${report.daysMissingCoverage.size} day(s) in this " +
-                            "range. Those days are left blank instead of counted as zero.",
-                        accent = KavachCategoryColors.unclassified(isLight),
-                        isLight = isLight,
-                    )
-                }
+                Spacer(Modifier.height(20.dp))
+                PeriodHeader(state, isLight, viewModel::page)
+                Spacer(Modifier.height(14.dp))
+                ScopeSwitch(state.scope, isLight, viewModel::selectScope)
+                Spacer(Modifier.height(18.dp))
+                CategoryChips(state.categoryFilter, isLight, viewModel::selectCategory)
+                Spacer(Modifier.height(22.dp))
+                TrendChart(state, isLight)
+                Spacer(Modifier.height(18.dp))
+                Legend(state, isLight)
 
-                ScopeToggle(
-                    selected = state.scope,
-                    isLight = isLight,
-                    onSelect = viewModel::selectScope,
-                )
+                CoverageLine(report, isLight)
 
-                val totals = if (state.scope == KavachScope.ALL_DAY) report.allDay else report.duringKavach
-                FocusSplitCard(totals = totals, isLight = isLight)
-                DailyTrendCard(report = report, scope = state.scope, isLight = isLight)
-                ShieldCountersRow(report = report, isLight = isLight)
-                SessionOutcomeCard(report = report, isLight = isLight)
-                MostAttemptedCard(report = report, isLight = isLight)
+                Spacer(Modifier.height(20.dp))
+                HeadlineCounters(report, isLight)
 
                 if (state.unclassifiedPrompts.isNotEmpty()) {
-                    UnclassifiedPromptCard(
-                        rows = state.unclassifiedPrompts,
-                        isLight = isLight,
-                        onClassify = { pkg, category, label ->
-                            viewModel.setCategory(pkg, category, label)
-                        },
-                    )
-                }
-
-                PerAppTableCard(report = report, scope = state.scope, isLight = isLight)
-                SessionHistoryCard(report = report, isLight = isLight)
-
-                GlassCard(isLight) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigate(Routes.KAVACH_APP_CATEGORIES) },
-                    ) {
-                        Icon(
-                            Icons.Default.Tune,
-                            contentDescription = null,
-                            tint = SafarGlassPalette.LightViolet,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                "Edit app categories",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = primaryText(isLight),
-                            )
-                            Text(
-                                "Decide which apps count as productive, distracting or neutral.",
-                                fontSize = 12.sp,
-                                color = secondaryText(isLight),
-                            )
-                        }
+                    Spacer(Modifier.height(24.dp))
+                    UncategorisedSection(state.unclassifiedPrompts, isLight) { pkg, category, label ->
+                        viewModel.setCategory(pkg, category, label)
                     }
                 }
 
-                PrivacyNote(isLight)
+                Spacer(Modifier.height(24.dp))
+                AppList(state, isLight, viewModel::setSearchQuery, viewModel::openAppDetail)
+
+                Spacer(Modifier.height(24.dp))
+                SessionHistory(report, isLight)
+
+                Spacer(Modifier.height(24.dp))
+                FooterLinks(isLight, onNavigate)
+                Spacer(Modifier.height(32.dp))
             }
         }
     }
 }
 
-// ── Cards ────────────────────────────────────────────────────────────────────
+// ── Controls ─────────────────────────────────────────────────────────────────
 
+/** Text tabs with an underline. A filled pill per period read as three buttons competing. */
 @Composable
-private fun FocusSplitCard(totals: CategoryTotals, isLight: Boolean) {
-    GlassCard(isLight) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                "Productive vs distracting",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = primaryText(isLight),
-            )
-            if (totals.totalSeconds == 0) {
-                Text("Nothing measured in this range yet.", fontSize = 13.sp, color = secondaryText(isLight))
-                return@Column
-            }
-            StackedBar(totals = totals, isLight = isLight)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LegendStat("Productive", totals.productiveSeconds, totals.totalSeconds, KavachCategoryColors.productive(isLight), isLight, Modifier.weight(1f))
-                LegendStat("Distracting", totals.distractingSeconds, totals.totalSeconds, KavachCategoryColors.distracting(isLight), isLight, Modifier.weight(1f))
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LegendStat("Neutral", totals.neutralSeconds, totals.totalSeconds, KavachCategoryColors.neutral(isLight), isLight, Modifier.weight(1f))
-                LegendStat("Unclassified", totals.unclassifiedSeconds, totals.totalSeconds, KavachCategoryColors.unclassified(isLight), isLight, Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun StackedBar(totals: CategoryTotals, isLight: Boolean, height: Int = 14) {
-    val total = totals.totalSeconds.coerceAtLeast(1)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(height.dp)
-            .clip(RoundedCornerShape(height.dp)),
-    ) {
-        listOf(
-            totals.productiveSeconds to KavachCategoryColors.productive(isLight),
-            totals.distractingSeconds to KavachCategoryColors.distracting(isLight),
-            totals.neutralSeconds to KavachCategoryColors.neutral(isLight),
-            totals.unclassifiedSeconds to KavachCategoryColors.unclassified(isLight),
-        ).forEach { (seconds, color) ->
-            if (seconds > 0) {
+private fun GranularityTabs(
+    selected: KavachGranularity,
+    isLight: Boolean,
+    onSelect: (KavachGranularity) -> Unit,
+) {
+    Row(Modifier.fillMaxWidth()) {
+        KavachGranularity.entries.forEach { granularity ->
+            val active = granularity == selected
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onSelect(granularity) }
+                    .padding(vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    granularity.label,
+                    fontSize = 14.sp,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                    color = if (active) primaryText(isLight) else secondaryText(isLight),
+                )
+                Spacer(Modifier.height(8.dp))
                 Box(
                     Modifier
-                        .weight(seconds.toFloat() / total)
-                        .fillMaxSize()
-                        .background(color),
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(
+                            if (active) primaryText(isLight)
+                            else secondaryText(isLight).copy(alpha = 0.12f),
+                        ),
                 )
             }
         }
     }
 }
 
+/** The hero number, on the background rather than boxed in a card. */
 @Composable
-private fun DailyTrendCard(report: KavachAnalyticsReport, scope: KavachScope, isLight: Boolean) {
-    val points = report.trend
-    if (points.isEmpty()) return
-    val maxSeconds = points.maxOf {
-        (if (scope == KavachScope.ALL_DAY) it.allDay else it.duringKavach).totalSeconds
-    }.coerceAtLeast(1)
-
-    GlassCard(isLight) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+private fun PeriodHeader(
+    state: KavachAnalyticsUiState,
+    isLight: Boolean,
+    onPage: (Int) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = { onPage(-1) }, enabled = state.canPageBack) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Previous period",
+                tint = if (state.canPageBack) secondaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
+            )
+        }
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "Daily breakdown",
-                fontSize = 15.sp,
+                KavachAnalyticsFormat.duration(state.filteredSeconds),
+                fontSize = 34.sp,
                 fontWeight = FontWeight.Bold,
                 color = primaryText(isLight),
             )
-            points.takeLast(31).forEach { point ->
-                val totals = if (scope == KavachScope.ALL_DAY) point.allDay else point.duringKavach
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        KavachAnalyticsFormat.dayLabel(point.localDate),
-                        fontSize = 11.sp,
-                        color = secondaryText(isLight),
-                        modifier = Modifier.width(52.dp),
+            Spacer(Modifier.height(2.dp))
+            Text(
+                KavachAnalyticsFormat.periodLabel(state.granularity, state.startDate, state.endDate),
+                fontSize = 13.sp,
+                color = secondaryText(isLight),
+            )
+            state.deltaPercent?.let { delta ->
+                Spacer(Modifier.height(6.dp))
+                val down = delta < 0
+                Text(
+                    "${if (down) "↓" else "↑"} ${kotlin.math.abs(delta)}% vs previous",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    // Less distracting time is good news; less productive time is not.
+                    color = when (state.categoryFilter) {
+                        KavachCategoryFilter.DISTRACTING ->
+                            if (down) KavachCategoryColors.productive(isLight)
+                            else KavachCategoryColors.distracting(isLight)
+                        KavachCategoryFilter.PRODUCTIVE ->
+                            if (down) KavachCategoryColors.distracting(isLight)
+                            else KavachCategoryColors.productive(isLight)
+                        else -> secondaryText(isLight)
+                    },
+                )
+            }
+        }
+        IconButton(onClick = { onPage(1) }, enabled = state.canPageForward) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Next period",
+                tint = if (state.canPageForward) secondaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
+            )
+        }
+    }
+}
+
+/**
+ * All day / During Kavach as one quiet line rather than a third row of buttons.
+ * It is a lens on the same number, not a separate destination.
+ */
+@Composable
+private fun ScopeSwitch(selected: KavachScope, isLight: Boolean, onSelect: (KavachScope) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        KavachScope.entries.forEachIndexed { index, scope ->
+            if (index > 0) {
+                Text(
+                    "·",
+                    fontSize = 13.sp,
+                    color = secondaryText(isLight).copy(alpha = 0.5f),
+                    modifier = Modifier.padding(horizontal = 10.dp),
+                )
+            }
+            val active = scope == selected
+            Text(
+                scope.label,
+                fontSize = 13.sp,
+                fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                color = if (active) primaryText(isLight) else secondaryText(isLight),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onSelect(scope) }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+    }
+}
+
+/** Outline chips. The selected one fills with its own category colour, so the chip says what it means. */
+@Composable
+private fun CategoryChips(
+    selected: KavachCategoryFilter,
+    isLight: Boolean,
+    onSelect: (KavachCategoryFilter) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        KavachCategoryFilter.entries.forEach { filter ->
+            val active = filter == selected
+            val accent = KavachCategoryColors.of(filter, isLight)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(
+                        if (active) Modifier.background(accent.copy(alpha = if (isLight) 0.14f else 0.20f))
+                        else Modifier,
                     )
-                    Box(Modifier.weight(1f)) {
-                        if (point.coverage == DataCoverage.UNAVAILABLE) {
-                            Text(
-                                "No data",
-                                fontSize = 11.sp,
-                                color = secondaryText(isLight),
+                    .border(
+                        width = 1.dp,
+                        color = if (active) accent.copy(alpha = 0.7f)
+                        else secondaryText(isLight).copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(20.dp),
+                    )
+                    .clickable { onSelect(filter) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    filter.label,
+                    fontSize = 13.sp,
+                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (active) accent else secondaryText(isLight),
+                )
+            }
+        }
+    }
+}
+
+// ── Chart ────────────────────────────────────────────────────────────────────
+
+/**
+ * Flat bars against a rounded value axis.
+ *
+ * When "All apps" is selected each bar is stacked by category rather than drawn in
+ * one colour — there is no honest single colour for "all", and the split is the
+ * interesting part anyway. A specific chip draws that category alone.
+ */
+@Composable
+private fun TrendChart(state: KavachAnalyticsUiState, isLight: Boolean) {
+    val bars = state.chartBars.takeLast(31)
+    if (bars.isEmpty()) return
+
+    val filter = state.categoryFilter
+    val dataMax = bars.maxOf { it.totals.secondsFor(filter) }
+    // Snap the top of the axis to a round duration so the ticks read as numbers a
+    // person already thinks in, and a 41-minute day stops filling the frame.
+    val axisMax = KavachAnalyticsFormat.niceAxisMax(dataMax, state.granularity)
+    val gridColor = secondaryText(isLight).copy(alpha = 0.15f)
+
+    val segments = if (filter == KavachCategoryFilter.ALL) {
+        listOf(
+            KavachCategoryColors.distracting(isLight) to { t: CategoryTotals -> t.distractingSeconds },
+            KavachCategoryColors.productive(isLight) to { t: CategoryTotals -> t.productiveSeconds },
+            KavachCategoryColors.neutral(isLight) to { t: CategoryTotals -> t.neutralSeconds + t.unclassifiedSeconds },
+        )
+    } else {
+        listOf(KavachCategoryColors.of(filter, isLight) to { t: CategoryTotals -> t.secondsFor(filter) })
+    }
+
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Column(
+            Modifier.height(136.dp).width(34.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.End,
+        ) {
+            listOf(axisMax, axisMax / 2, 0).forEach { seconds ->
+                Text(
+                    KavachAnalyticsFormat.axisValue(seconds),
+                    fontSize = 9.sp,
+                    color = secondaryText(isLight),
+                )
+            }
+        }
+        Spacer(Modifier.width(6.dp))
+
+        Box(Modifier.weight(1f)) {
+            Column(
+                Modifier.fillMaxWidth().height(136.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                repeat(3) { Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor)) }
+            }
+
+            Row(
+                Modifier.fillMaxWidth().height(136.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (bars.size > 12) 2.dp else 6.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                bars.forEach { bar ->
+                    val unmeasured = bar.coverage == DataCoverage.UNAVAILABLE
+                    Column(
+                        Modifier.weight(1f).fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom,
+                    ) {
+                        if (unmeasured) {
+                            // A day we could not measure gets a hairline stub, never a
+                            // zero-height bar that would read as real idle time.
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                                    .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                                    .background(gridColor),
                             )
                         } else {
-                            Box(
-                                Modifier.fillMaxWidth(
-                                    (totals.totalSeconds.toFloat() / maxSeconds).coerceIn(0.02f, 1f),
-                                ),
-                            ) {
-                                StackedBar(totals = totals, isLight = isLight, height = 10)
+                            // Context days in the Daily view are dimmed so the day the
+                            // headline actually describes is obvious.
+                            val alpha = if (bar.isFocused) 1f else 0.35f
+                            segments.forEach { (color, extract) ->
+                                val seconds = extract(bar.totals)
+                                if (seconds <= 0) return@forEach
+                                val fraction = (seconds.toFloat() / axisMax).coerceIn(0f, 1f)
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height((120 * fraction).dp.coerceAtLeast(2.dp))
+                                        .background(color.copy(alpha = alpha)),
+                                )
                             }
                         }
                     }
-                    Text(
-                        if (point.coverage == DataCoverage.UNAVAILABLE) "—"
-                        else KavachAnalyticsFormat.duration(totals.totalSeconds),
-                        fontSize = 11.sp,
-                        color = primaryText(isLight),
-                        modifier = Modifier.width(52.dp),
-                    )
                 }
             }
         }
     }
-}
 
-@Composable
-private fun ShieldCountersRow(report: KavachAnalyticsReport, isLight: Boolean) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatCard(
-            icon = Icons.Default.Block,
-            label = "Blocked opens",
-            value = report.blockedAttempts.toString(),
-            hint = "Times a blocked app was opened",
-            accent = KavachCategoryColors.distracting(isLight),
-            isLight = isLight,
-            modifier = Modifier.weight(1f),
-        )
-        StatCard(
-            icon = Icons.Default.LockOpen,
-            label = "Quick unlocks",
-            value = report.quickUnlockCount.toString(),
-            hint = KavachAnalyticsFormat.duration(report.quickUnlockSeconds) + " unlocked",
-            accent = KavachCategoryColors.unclassified(isLight),
-            isLight = isLight,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun SessionOutcomeCard(report: KavachAnalyticsReport, isLight: Boolean) {
-    val total = report.completedSessions + report.endedEarlySessions + report.interruptedSessions
-    GlassCard(isLight) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = KavachCategoryColors.productive(isLight),
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    "Kavach sessions",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryText(isLight),
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    "${KavachAnalyticsFormat.percent(report.completedSessions, total)}% completed",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = KavachCategoryColors.productive(isLight),
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MiniStat("Completed", report.completedSessions, KavachCategoryColors.productive(isLight), isLight, Modifier.weight(1f))
-                MiniStat("Ended early", report.endedEarlySessions, KavachCategoryColors.unclassified(isLight), isLight, Modifier.weight(1f))
-                MiniStat("Interrupted", report.interruptedSessions, KavachCategoryColors.neutral(isLight), isLight, Modifier.weight(1f))
-            }
-            Text(
-                "Interrupted means the app or phone stopped the session — not you.",
-                fontSize = 11.sp,
-                color = secondaryText(isLight),
-            )
-        }
-    }
-}
-
-@Composable
-private fun MostAttemptedCard(report: KavachAnalyticsReport, isLight: Boolean) {
-    val rows = report.apps
-        .filter { it.blockedAttempts > 0 }
-        .sortedByDescending { it.blockedAttempts }
-        .take(5)
-    if (rows.isEmpty()) return
-
-    GlassCard(isLight) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                "Most attempted while blocked",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = primaryText(isLight),
-            )
-            rows.forEach { row ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(KavachCategoryColors.of(row.category, isLight)),
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(row.appLabel, fontSize = 13.sp, color = primaryText(isLight), modifier = Modifier.weight(1f))
-                    Text(
-                        "${row.blockedAttempts}",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = KavachCategoryColors.distracting(isLight),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UnclassifiedPromptCard(
-    rows: List<com.safarparmar.app.feature.kavachanalytics.domain.AppUsageRow>,
-    isLight: Boolean,
-    onClassify: (String, AppCategory, String?) -> Unit,
-) {
-    GlassCard(isLight) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                "Uncategorised time",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = KavachCategoryColors.unclassified(isLight),
-            )
-            Text(
-                "SAFAR doesn't guess. Tell it what these are and this time joins your split — " +
-                    "including for the days already shown above.",
-                fontSize = 12.sp,
-                color = secondaryText(isLight),
-            )
-            rows.forEach { row ->
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(row.appLabel, fontSize = 13.sp, color = primaryText(isLight), modifier = Modifier.weight(1f))
-                        Text(
-                            KavachAnalyticsFormat.duration(row.allDaySeconds),
-                            fontSize = 12.sp,
-                            color = secondaryText(isLight),
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(
-                            AppCategory.PRODUCTIVE to "Productive",
-                            AppCategory.DISTRACTING to "Distracting",
-                            AppCategory.NEUTRAL to "Neutral",
-                        ).forEach { (category, label) ->
-                            CategoryPill(
-                                label = label,
-                                color = KavachCategoryColors.of(category, isLight),
-                                selected = false,
-                                isLight = isLight,
-                            ) { onClassify(row.packageName, category, row.appLabel) }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PerAppTableCard(report: KavachAnalyticsReport, scope: KavachScope, isLight: Boolean) {
-    val rows = report.apps.filter { it.allDaySeconds > 0 || it.kavachSeconds > 0 }.take(25)
-    if (rows.isEmpty()) return
-
-    GlassCard(isLight) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                "App breakdown",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = primaryText(isLight),
-            )
-            GlassDivider()
-            rows.forEach { row ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(KavachCategoryColors.of(row.category, isLight)),
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(row.appLabel, fontSize = 13.sp, color = primaryText(isLight))
-                        Text(
-                            row.category.name.lowercase().replaceFirstChar { it.uppercase() },
-                            fontSize = 10.sp,
-                            color = secondaryText(isLight),
-                        )
-                    }
-                    Text(
-                        KavachAnalyticsFormat.duration(
-                            if (scope == KavachScope.ALL_DAY) row.allDaySeconds else row.kavachSeconds,
-                        ),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = primaryText(isLight),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SessionHistoryCard(report: KavachAnalyticsReport, isLight: Boolean) {
-    val sessions = report.sessions.take(15)
-    if (sessions.isEmpty()) return
-
-    GlassCard(isLight) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                "Recent sessions",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = primaryText(isLight),
-            )
-            sessions.forEach { session ->
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            KavachAnalyticsFormat.sessionLabel(session.startedAtMs),
-                            fontSize = 13.sp,
-                            color = primaryText(isLight),
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            KavachAnalyticsFormat.outcomeLabel(session.outcome),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = when (session.outcome) {
-                                com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionOutcome.COMPLETED ->
-                                    KavachCategoryColors.productive(isLight)
-                                else -> KavachCategoryColors.neutral(isLight)
-                            },
-                        )
-                    }
-                    Text(
-                        "${KavachAnalyticsFormat.duration(session.actualSeconds)} focus · " +
-                            "${session.blockedAttempts} blocked · ${session.quickUnlockCount} unlocks",
-                        fontSize = 11.sp,
-                        color = secondaryText(isLight),
-                    )
-                    if (session.permissionLost || session.dataGap) {
-                        Text(
-                            if (session.permissionLost) {
-                                "A Kavach permission was off during this session."
-                            } else {
-                                "Some app time in this session couldn't be measured."
-                            },
-                            fontSize = 10.sp,
-                            color = KavachCategoryColors.unclassified(isLight),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PrivacyNote(isLight: Boolean) {
-    GlassCard(isLight) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                "How this is measured",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = primaryText(isLight),
-            )
-            Text(
-                "The detailed record of which app you opened and when stays on this phone. Only daily " +
-                    "per-app totals and Kavach session summaries sync to your SAFAR account.",
-                fontSize = 11.sp,
-                color = secondaryText(isLight),
-            )
-        }
-    }
-}
-
-// ── Small pieces ─────────────────────────────────────────────────────────────
-
-@Composable
-private fun RangeChips(selected: KavachRange, isLight: Boolean, onSelect: (KavachRange) -> Unit) {
+    Spacer(Modifier.height(6.dp))
     Row(
-        Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxWidth().padding(start = 56.dp, end = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (bars.size > 12) 2.dp else 6.dp),
     ) {
-        KavachRange.entries.forEach { range ->
-            CategoryPill(
-                label = range.label,
-                color = SafarGlassPalette.LightViolet,
-                selected = selected == range,
-                isLight = isLight,
-            ) { onSelect(range) }
-        }
-    }
-}
-
-@Composable
-private fun ScopeToggle(selected: KavachScope, isLight: Boolean, onSelect: (KavachScope) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        KavachScope.entries.forEach { scope ->
-            CategoryPill(
-                label = scope.label,
-                color = SafarGlassPalette.LightViolet,
-                selected = selected == scope,
-                isLight = isLight,
-            ) { onSelect(scope) }
-        }
-    }
-}
-
-@Composable
-internal fun CategoryPill(
-    label: String,
-    color: Color,
-    selected: Boolean,
-    isLight: Boolean,
-    onClick: () -> Unit,
-) {
-    val shape = RoundedCornerShape(12.dp)
-    Box(
-        modifier = Modifier
-            .then(
-                if (selected) Modifier.clip(shape).background(color)
-                else Modifier.macOSControlPanel(isLight = isLight, shape = shape),
+        bars.forEachIndexed { index, bar ->
+            // A month of day numbers is unreadable at this width; label every fifth.
+            val showLabel = bars.size <= 12 || index % 5 == 0 || index == bars.lastIndex
+            Text(
+                if (showLabel) KavachAnalyticsFormat.axisLabel(bar.localDate, state.granularity) else "",
+                fontSize = 9.sp,
+                fontWeight = if (bar.isFocused && bars.size <= 12) FontWeight.Bold else FontWeight.Normal,
+                color = if (bar.isFocused) primaryText(isLight) else secondaryText(isLight),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f),
             )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (selected) Color.White else secondaryText(isLight),
-        )
+        }
+    }
+}
+
+@Composable
+private fun Legend(state: KavachAnalyticsUiState, isLight: Boolean) {
+    val totals = (if (state.scope == KavachScope.ALL_DAY) state.report?.allDay else state.report?.duringKavach)
+        ?: CategoryTotals()
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        LegendStat("Distracting", totals.distractingSeconds, KavachCategoryColors.distracting(isLight), isLight, Modifier.weight(1f))
+        LegendStat("Productive", totals.productiveSeconds, KavachCategoryColors.productive(isLight), isLight, Modifier.weight(1f))
+        LegendStat("Others", totals.neutralSeconds + totals.unclassifiedSeconds, KavachCategoryColors.neutral(isLight), isLight, Modifier.weight(1f))
     }
 }
 
@@ -684,95 +497,376 @@ internal fun CategoryPill(
 private fun LegendStat(
     label: String,
     seconds: Int,
-    total: Int,
     color: Color,
     isLight: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+            Box(Modifier.size(7.dp).clip(CircleShape).background(color))
             Text(label, fontSize = 11.sp, color = secondaryText(isLight))
         }
         Text(
             KavachAnalyticsFormat.duration(seconds),
             fontSize = 16.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = color,
+            fontWeight = FontWeight.Bold,
+            color = primaryText(isLight),
         )
-        Text("${KavachAnalyticsFormat.percent(seconds, total)}%", fontSize = 10.sp, color = secondaryText(isLight))
+    }
+}
+
+/**
+ * Missing days are stated in one line. It still has to be said — a blank day is
+ * not a day of no phone use — but it is a footnote, not an alarm.
+ */
+@Composable
+private fun CoverageLine(report: KavachAnalyticsReport, isLight: Boolean) {
+    if (report.coverage == DataCoverage.COMPLETE) return
+    Spacer(Modifier.height(12.dp))
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Default.Info,
+            contentDescription = null,
+            tint = secondaryText(isLight),
+            modifier = Modifier.size(13.dp),
+        )
+        Text(
+            if (report.coverage == DataCoverage.UNAVAILABLE) {
+                "No days in this range could be measured."
+            } else {
+                "${report.daysMissingCoverage.size} day(s) couldn't be measured — shown blank, not zero."
+            },
+            fontSize = 11.sp,
+            color = secondaryText(isLight),
+        )
+    }
+}
+
+/** Three numbers on one line instead of three bordered tiles. */
+@Composable
+private fun HeadlineCounters(report: KavachAnalyticsReport, isLight: Boolean) {
+    val sessions = report.completedSessions + report.endedEarlySessions + report.interruptedSessions
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        CounterStat("Blocked opens", report.blockedAttempts.toString(), isLight, Modifier.weight(1f))
+        CounterStat("Quick unlocks", report.quickUnlockCount.toString(), isLight, Modifier.weight(1f))
+        CounterStat(
+            "Sessions done",
+            if (sessions == 0) "—" else "${KavachAnalyticsFormat.percent(report.completedSessions, sessions)}%",
+            isLight,
+            Modifier.weight(1f),
+        )
     }
 }
 
 @Composable
-private fun MiniStat(label: String, value: Int, color: Color, isLight: Boolean, modifier: Modifier = Modifier) {
+private fun CounterStat(label: String, value: String, isLight: Boolean, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value.toString(), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = color)
-        Text(label, fontSize = 10.sp, color = secondaryText(isLight))
+        Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+        Text(label, fontSize = 11.sp, color = secondaryText(isLight))
     }
 }
 
+// ── Lists ────────────────────────────────────────────────────────────────────
+
 @Composable
-private fun StatCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String,
-    hint: String,
-    accent: Color,
+private fun AppList(
+    state: KavachAnalyticsUiState,
     isLight: Boolean,
-    modifier: Modifier = Modifier,
+    onSearch: (String) -> Unit,
+    onOpen: (AppUsageRow) -> Unit,
 ) {
-    Box(modifier.macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(16.dp)).padding(14.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-            Text(value, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = accent)
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = primaryText(isLight))
-            Text(hint, fontSize = 10.sp, color = secondaryText(isLight))
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        OutlinedTextField(
+            value = state.searchQuery,
+            onValueChange = onSearch,
+            singleLine = true,
+            placeholder = { Text("Search apps", fontSize = 14.sp) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        val rows = state.filteredApps.take(40)
+        if (rows.isEmpty()) {
+            Text(
+                "No apps in this category for this period.",
+                fontSize = 13.sp,
+                color = secondaryText(isLight),
+                modifier = Modifier.padding(vertical = 20.dp),
+            )
+            return@Column
+        }
+
+        rows.forEach { row ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpen(row) }
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(KavachCategoryColors.of(row.category, isLight)))
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(row.appLabel, fontSize = 14.sp, color = primaryText(isLight))
+                    Text(
+                        row.category.name.lowercase().replaceFirstChar { it.uppercase() },
+                        fontSize = 11.sp,
+                        color = KavachCategoryColors.of(row.category, isLight),
+                    )
+                }
+                Text(
+                    KavachAnalyticsFormat.duration(state.secondsOf(row)),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = primaryText(isLight),
+                )
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = secondaryText(isLight).copy(alpha = 0.6f),
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(secondaryText(isLight).copy(alpha = 0.10f)))
         }
     }
 }
 
 @Composable
-private fun NoticeCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    body: String,
-    accent: Color,
+private fun UncategorisedSection(
+    rows: List<AppUsageRow>,
     isLight: Boolean,
+    onClassify: (String, AppCategory, String?) -> Unit,
 ) {
-    GlassCard(isLight) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
-                Text(body, fontSize = 12.sp, color = secondaryText(isLight))
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Uncategorised time", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+        Text(
+            "SAFAR doesn't guess. Tell it what these are and this time joins your split — " +
+                "including the days already shown above.",
+            fontSize = 12.sp,
+            color = secondaryText(isLight),
+        )
+        rows.forEach { row ->
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(row.appLabel, fontSize = 13.sp, color = primaryText(isLight), modifier = Modifier.weight(1f))
+                    Text(
+                        KavachAnalyticsFormat.duration(row.allDaySeconds),
+                        fontSize = 12.sp,
+                        color = secondaryText(isLight),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        AppCategory.PRODUCTIVE to "Productive",
+                        AppCategory.DISTRACTING to "Distracting",
+                        AppCategory.NEUTRAL to "Neutral",
+                    ).forEach { (category, label) ->
+                        OutlineChip(label, KavachCategoryColors.of(category, isLight), isLight) {
+                            onClassify(row.packageName, category, row.appLabel)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun LoadingCard(isLight: Boolean) {
-    GlassCard(isLight) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            Text("Reading your app time…", fontSize = 13.sp, color = secondaryText(isLight))
+private fun SessionHistory(report: KavachAnalyticsReport, isLight: Boolean) {
+    val sessions = report.sessions.take(10)
+    if (sessions.isEmpty()) return
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Recent sessions", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+        sessions.forEach { session ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        KavachAnalyticsFormat.sessionLabel(session.startedAtMs),
+                        fontSize = 13.sp,
+                        color = primaryText(isLight),
+                    )
+                    Text(
+                        "${KavachAnalyticsFormat.duration(session.actualSeconds)} · " +
+                            "${session.blockedAttempts} blocked · ${session.quickUnlockCount} unlocks",
+                        fontSize = 11.sp,
+                        color = secondaryText(isLight),
+                    )
+                }
+                Text(
+                    KavachAnalyticsFormat.outcomeLabel(session.outcome),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (session.outcome == KavachSessionOutcome.COMPLETED) {
+                        KavachCategoryColors.productive(isLight)
+                    } else {
+                        secondaryText(isLight)
+                    },
+                )
+            }
         }
     }
 }
 
 @Composable
-internal fun GlassCard(isLight: Boolean, content: @Composable () -> Unit) {
+private fun FooterLinks(isLight: Boolean, onNavigate: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth().clickable { onNavigate(Routes.KAVACH_APP_CATEGORIES) },
+        ) {
+            Icon(Icons.Default.Tune, contentDescription = null, tint = secondaryText(isLight), modifier = Modifier.size(18.dp))
+            Text(
+                "Edit app categories",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = primaryText(isLight),
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = secondaryText(isLight),
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Text(
+            "The record of which app you opened and when stays on this phone. Only daily totals " +
+                "and session summaries sync to your account.",
+            fontSize = 11.sp,
+            color = secondaryText(isLight).copy(alpha = 0.8f),
+        )
+    }
+}
+
+// ── App detail ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun AppDetailSheet(
+    detail: KavachAppDetail,
+    scopeLabel: String,
+    seconds: Int,
+    isLight: Boolean,
+    onSetCategory: (AppCategory) -> Unit,
+    onToggleBlocked: () -> Unit,
+) {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Text(detail.row.appLabel, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+            Spacer(Modifier.height(6.dp))
+            Text(
+                KavachAnalyticsFormat.duration(seconds),
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                color = primaryText(isLight),
+            )
+            Text(scopeLabel, fontSize = 11.sp, color = secondaryText(isLight))
+        }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            CounterStat("Blocked opens", detail.row.blockedAttempts.toString(), isLight, Modifier.weight(1f))
+            CounterStat("Quick unlocks", detail.row.quickUnlockCount.toString(), isLight, Modifier.weight(1f))
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Usage category", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(
+                    AppCategory.PRODUCTIVE to "Productive",
+                    AppCategory.DISTRACTING to "Distracting",
+                    AppCategory.NEUTRAL to "Neutral",
+                ).forEach { (category, label) ->
+                    OutlineChip(
+                        label = label,
+                        accent = KavachCategoryColors.of(category, isLight),
+                        isLight = isLight,
+                        selected = detail.row.category == category,
+                    ) { onSetCategory(category) }
+                }
+            }
+        }
+
+        // The reference app can only offer "add a limit" here. Kavach already blocks
+        // apps, so the analytics row and the block list are one decision.
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Block during Kavach", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryText(isLight))
+                Text(
+                    "Hides this app while a Kavach session is running.",
+                    fontSize = 11.sp,
+                    color = secondaryText(isLight),
+                )
+            }
+            Switch(checked = detail.isBlockedInKavach, onCheckedChange = { onToggleBlocked() })
+        }
+    }
+}
+
+// ── Shared bits ──────────────────────────────────────────────────────────────
+
+@Composable
+internal fun OutlineChip(
+    label: String,
+    accent: Color,
+    isLight: Boolean,
+    selected: Boolean = false,
+    onClick: () -> Unit,
+) {
     Box(
-        Modifier
-            .fillMaxWidth()
-            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(18.dp))
-            .padding(16.dp),
-    ) { content() }
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .then(if (selected) Modifier.background(accent.copy(alpha = if (isLight) 0.14f else 0.20f)) else Modifier)
+            .border(
+                1.dp,
+                if (selected) accent.copy(alpha = 0.7f) else secondaryText(isLight).copy(alpha = 0.25f),
+                RoundedCornerShape(20.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+    ) {
+        Text(
+            label,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) accent else secondaryText(isLight),
+        )
+    }
+}
+
+@Composable
+private fun LoadingRow(isLight: Boolean) {
+    Row(
+        Modifier.fillMaxWidth().padding(32.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        Text("Reading your app time…", fontSize = 13.sp, color = secondaryText(isLight))
+    }
+}
+
+@Composable
+private fun EmptyMessage(title: String, body: String, isLight: Boolean) {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+        Text(body, fontSize = 13.sp, color = secondaryText(isLight), textAlign = TextAlign.Center)
+    }
 }
 
 internal fun primaryText(isLight: Boolean) =
@@ -780,86 +874,3 @@ internal fun primaryText(isLight: Boolean) =
 
 internal fun secondaryText(isLight: Boolean) =
     if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
-
-// ── Date pickers ─────────────────────────────────────────────────────────────
-
-@Composable
-private fun MonthPickerDialog(
-    initial: YearMonth,
-    earliest: YearMonth,
-    onPicked: (YearMonth) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    DisposableEffect(initial) {
-        val calendar = java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.YEAR, initial.year)
-            set(java.util.Calendar.MONTH, initial.monthValue - 1)
-            set(java.util.Calendar.DAY_OF_MONTH, 1)
-        }
-        val dialog = android.app.DatePickerDialog(
-            context,
-            { _, year, month, _ -> onPicked(YearMonth.of(year, month + 1)) },
-            calendar.get(java.util.Calendar.YEAR),
-            calendar.get(java.util.Calendar.MONTH),
-            1,
-        )
-        dialog.datePicker.maxDate = System.currentTimeMillis()
-        dialog.datePicker.minDate = earliest.atDay(1)
-            .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-        dialog.setOnDismissListener { onDismiss() }
-        dialog.show()
-        onDispose { dialog.dismiss() }
-    }
-}
-
-/** Two chained native pickers: start date, then end date. */
-@Composable
-private fun CustomRangeDialog(
-    earliest: LocalDate,
-    onPicked: (LocalDate, LocalDate) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    DisposableEffect(Unit) {
-        val today = LocalDate.now()
-        val minMs = earliest.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-        var startDialog: android.app.DatePickerDialog? = null
-        var endDialog: android.app.DatePickerDialog? = null
-
-        startDialog = android.app.DatePickerDialog(
-            context,
-            { _, year, month, day ->
-                val start = LocalDate.of(year, month + 1, day)
-                endDialog = android.app.DatePickerDialog(
-                    context,
-                    { _, endYear, endMonth, endDay ->
-                        val end = LocalDate.of(endYear, endMonth + 1, endDay)
-                        onPicked(minOf(start, end), maxOf(start, end))
-                    },
-                    today.year,
-                    today.monthValue - 1,
-                    today.dayOfMonth,
-                ).apply {
-                    datePicker.maxDate = System.currentTimeMillis()
-                    datePicker.minDate = minMs
-                    setOnCancelListener { onDismiss() }
-                    show()
-                }
-            },
-            today.year,
-            today.monthValue - 1,
-            today.dayOfMonth,
-        ).apply {
-            datePicker.maxDate = System.currentTimeMillis()
-            datePicker.minDate = minMs
-            setOnCancelListener { onDismiss() }
-            show()
-        }
-
-        onDispose {
-            startDialog?.dismiss()
-            endDialog?.dismiss()
-        }
-    }
-}
