@@ -47,10 +47,49 @@ class NotificationRescheduleReceiver : BroadcastReceiver() {
                 rescheduleWorkers(context)
             } catch (e: Exception) {
                 Log.e(TAG, "Worker reschedule failed after $action", e)
+            }
+            try {
+                restoreKavachAlwaysOn(context)
+            } catch (e: Exception) {
+                // Kept separate from the worker reschedule above so one failing
+                // cannot silently take the other down with it.
+                Log.e(TAG, "Kavach Always On restore failed after $action", e)
             } finally {
                 pendingResult.finish()
             }
         }
+    }
+
+    /**
+     * Brings KAVACH Always On back after a reboot or app update.
+     *
+     * A blocker the student has to remember to switch on again after every restart
+     * is not a blocker — the one evening they forget is the evening it mattered.
+     * Starting a foreground service from the background is normally refused on
+     * Android 12+, but receiving BOOT_COMPLETED is one of the documented
+     * exemptions; the start is still guarded in case an OEM disagrees.
+     */
+    private suspend fun restoreKavachAlwaysOn(context: Context) {
+        val dataStore = SafarDataStore(context)
+        val alwaysOn = dataStore.focusShieldAlwaysOnMode.first()
+        val enabled = dataStore.focusShieldEnabled.first()
+        val packages = dataStore.focusShieldBlockedPackages.first()
+
+        val permitted =
+            com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
+                .hasUsageStatsPermission(context) &&
+                com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
+                    .hasOverlayPermission(context)
+
+        if (!alwaysOn || !enabled || packages.isEmpty() || !permitted) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Always On not restored (on=$alwaysOn enabled=$enabled apps=${packages.size} permitted=$permitted)")
+            }
+            return
+        }
+
+        com.safarparmar.app.ui.ekagra.focusshield.KavachAlwaysOnService.start(context)
+        if (BuildConfig.DEBUG) Log.d(TAG, "Kavach Always On restored")
     }
 
     private suspend fun rescheduleWorkers(context: Context) {

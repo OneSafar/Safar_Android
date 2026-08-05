@@ -73,6 +73,43 @@ enum class DataCoverage {
     }
 }
 
+/**
+ * The buckets a student actually sees.
+ *
+ * Neutral and unclassified are one "Others" bucket on screen: the distinction is
+ * SAFAR's bookkeeping, not something a student asked for. They stay separate in
+ * the data so uncategorised time can still be surfaced and prompted about — see
+ * [AppCategory.UNCLASSIFIED] — but the chips stay down to four.
+ */
+enum class KavachCategoryFilter(val label: String) {
+    ALL("All apps"),
+    DISTRACTING("Distracting"),
+    PRODUCTIVE("Productive"),
+    OTHERS("Others");
+
+    fun matches(category: AppCategory): Boolean = when (this) {
+        ALL -> true
+        DISTRACTING -> category == AppCategory.DISTRACTING
+        PRODUCTIVE -> category == AppCategory.PRODUCTIVE
+        OTHERS -> category == AppCategory.NEUTRAL || category == AppCategory.UNCLASSIFIED
+    }
+}
+
+/** Seconds in [totals] belonging to [filter]. */
+fun CategoryTotals.secondsFor(filter: KavachCategoryFilter): Int = when (filter) {
+    KavachCategoryFilter.ALL -> totalSeconds
+    KavachCategoryFilter.DISTRACTING -> distractingSeconds
+    KavachCategoryFilter.PRODUCTIVE -> productiveSeconds
+    KavachCategoryFilter.OTHERS -> neutralSeconds + unclassifiedSeconds
+}
+
+/** How the date range is stepped through. */
+enum class KavachGranularity(val label: String) {
+    DAILY("Daily"),
+    WEEKLY("Weekly"),
+    MONTHLY("Monthly"),
+}
+
 /** Kavach event types persisted immediately and rolled up at aggregation time. */
 object KavachEventType {
     const val SESSION_STARTED = "session_started"

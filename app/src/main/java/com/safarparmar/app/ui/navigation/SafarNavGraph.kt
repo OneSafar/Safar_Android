@@ -174,7 +174,13 @@ fun SafarNavGraph(
                 // Restoring Ekagra's old destination here also restores its old
                 // arguments, which can show the previous topic in the End sheet.
                 val isNewEkagraWork = Routes.isContextualEkagraLaunch(resolvedRoute)
-                openFeatureRoot(resolvedRoute, restorePreviousState = !isNewEkagraWork)
+                // Same reasoning for Nishtha: a link that names a tab or analytics
+                // section must land there, not on the tab the student left open.
+                val isTargetedNishtha = Routes.isContextualNishthaLaunch(resolvedRoute)
+                openFeatureRoot(
+                    resolvedRoute,
+                    restorePreviousState = !isNewEkagraWork && !isTargetedNishtha,
+                )
             }
 
             // All other sub-screens push on top of the current feature's stack.

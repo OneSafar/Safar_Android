@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -55,10 +56,13 @@ class FocusShieldRepository @Inject constructor(
     val isStrictMode: StateFlow<Boolean> = dataStore.focusShieldStrictMode
         .stateIn(scope, SharingStarted.Eagerly, false)
 
-    // Always On is retired. Kept as a constant-false flow so the settings/standalone
-    // UIs that still read it compile and simply never show an always-on state,
-    // rather than churning every one of those files in this change.
-    val isAlwaysOnMode: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+    /**
+     * All-day blocking, independent of the Ekagra timer. While this is on, the
+     * chosen apps stay blocked and [KavachAlwaysOnService] keeps an ongoing
+     * notification up so the student always knows blocking is running.
+     */
+    val isAlwaysOnMode: StateFlow<Boolean> = dataStore.focusShieldAlwaysOnMode
+        .stateIn(scope, SharingStarted.Eagerly, false)
 
     val blockedPackages: StateFlow<Set<String>> = dataStore.focusShieldBlockedPackages
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
@@ -183,21 +187,30 @@ class FocusShieldRepository @Inject constructor(
         scope.launch {
             dataStore.setAppUsageMode(mode)
             when (mode) {
-                // Always On is retired. Any legacy ALWAYS_ON value now behaves as
-                // Normal (timer-only blocking) rather than being an unknown mode.
-                com.safarparmar.app.ui.launch.AppUsageMode.BEAST -> {
-                    dataStore.setFocusShieldEnabled(true)
-                    dataStore.setFocusShieldStrictMode(true)
-                }
-                com.safarparmar.app.ui.launch.AppUsageMode.FOCUSED,
-                com.safarparmar.app.ui.launch.AppUsageMode.STANDARD,
                 com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON -> {
                     dataStore.setFocusShieldEnabled(true)
                     dataStore.setFocusShieldStrictMode(false)
+                    dataStore.setFocusShieldAlwaysOnMode(true)
+                    startAlwaysOnService()
+                }
+                com.safarparmar.app.ui.launch.AppUsageMode.BEAST -> {
+                    dataStore.setFocusShieldEnabled(true)
+                    dataStore.setFocusShieldStrictMode(true)
+                    dataStore.setFocusShieldAlwaysOnMode(false)
+                    KavachAlwaysOnService.stop(appContext)
+                }
+                com.safarparmar.app.ui.launch.AppUsageMode.FOCUSED,
+                com.safarparmar.app.ui.launch.AppUsageMode.STANDARD -> {
+                    dataStore.setFocusShieldEnabled(true)
+                    dataStore.setFocusShieldStrictMode(false)
+                    dataStore.setFocusShieldAlwaysOnMode(false)
+                    KavachAlwaysOnService.stop(appContext)
                 }
                 else -> {
                     dataStore.setFocusShieldEnabled(false)
                     dataStore.setFocusShieldStrictMode(false)
+                    dataStore.setFocusShieldAlwaysOnMode(false)
+                    KavachAlwaysOnService.stop(appContext)
                     deactivateSession()
                 }
             }
@@ -208,8 +221,12 @@ class FocusShieldRepository @Inject constructor(
         scope.launch {
             dataStore.setFocusShieldEnabled(enabled)
             if (!enabled) {
+                // Turning Kavach off has to take Always On with it, or blocking would
+                // carry on from a screen that says it is switched off.
+                dataStore.setFocusShieldAlwaysOnMode(false)
                 dataStore.setFocusShieldStrictMode(false)
                 NotificationShieldPrefs.clear(appContext)
+                KavachAlwaysOnService.stop(appContext)
             }
             val settings = currentSettings().copy(enabled = enabled)
             if (!enabled) {
@@ -227,9 +244,56 @@ class FocusShieldRepository @Inject constructor(
         }
     }
 
+    /**
+     * Turns all-day blocking on or off.
+     *
+     * Enabling implies Kavach itself is on — a student who asks for Always On has
+     * unambiguously asked for blocking.
+     */
+    fun setAlwaysOnMode(enabled: Boolean) {
+        scope.launch {
+            dataStore.setFocusShieldAlwaysOnMode(enabled)
+            if (enabled) {
+                dataStore.setFocusShieldEnabled(true)
+                startAlwaysOnService()
+            } else {
+                KavachAlwaysOnService.stop(appContext)
+            }
+        }
+    }
+
+    private fun startAlwaysOnService(packages: Set<String> = blockedPackages.value) {
+        if (packages.isEmpty()) {
+            debugLog("Always On not started: no blocked apps chosen")
+            return
+        }
+        if (!hasRequiredPermissions()) {
+            _activationBlockedReason.value =
+                "A permission KAVACH needs was turned off, so Always On isn't blocking."
+            return
+        }
+        KavachAlwaysOnService.start(appContext)
+    }
+
+    /** Restarts Always On after a reboot or app update, if the student left it on. */
+    fun restoreAlwaysOnIfEnabled() {
+        scope.launch {
+            if (dataStore.focusShieldAlwaysOnMode.first() &&
+                dataStore.focusShieldEnabled.first()
+            ) {
+                startAlwaysOnService(dataStore.focusShieldBlockedPackages.first())
+            }
+        }
+    }
+
     fun setBlockedPackages(packages: Set<String>) {
         scope.launch {
             dataStore.setFocusShieldBlockedPackages(packages)
+            // A newly chosen app must start being blocked without waiting for the
+            // next time the student opens Ekagra.
+            if (isAlwaysOnMode.value && packages.isNotEmpty()) {
+                startAlwaysOnService(packages)
+            }
             if (isEnabled.value && packages.isNotEmpty()) {
                 homeRepository.trackKavachEvent("configured", packages.size)
             }

@@ -76,6 +76,23 @@ object Routes {
         route.substringBefore("?") == EKAGRA &&
             (route.contains("topicId=") || route.contains("goalId="))
 
+    /**
+     * True when a Nishtha route asks for a specific tab or analytics section.
+     *
+     * Nishtha is a single destination whose back-stack state is saved and restored,
+     * so a deep link to "tab=4&section=kavach" would otherwise be answered with
+     * whatever tab the student last had open — landing them on Check-In instead of
+     * the analytics they tapped through to.
+     */
+    fun isContextualNishthaLaunch(route: String): Boolean {
+        if (route.substringBefore("?") != NISHTHA) return false
+        val wantsTab = Regex("tab=(\\d+)").find(route)?.groupValues?.get(1)?.toIntOrNull()
+        val wantsSection = Regex("section=([^&]+)").find(route)?.groupValues?.get(1)
+            ?.let { android.net.Uri.decode(it) }
+        return (wantsTab != null && wantsTab != 0) ||
+            (wantsSection != null && wantsSection != "overview")
+    }
+
     // Analytics is Nishtha tab index 4; resolves to the single NISHTHA_ROUTE.
     fun nishthaAnalytics(section: String = "overview"): String =
         "nishtha?tab=4&section=${android.net.Uri.encode(section)}"

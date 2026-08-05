@@ -485,8 +485,21 @@ private fun KavachProfileSelector(
             onClick = { onSelectProfile(AppUsageMode.BEAST) },
         )
 
-        // "Always On" was a third option here. It is HIDDEN for this release —
-        // only Normal and Beast Mode are offered. See AppUsageMode.ALWAYS_ON.
+        EkagraHairline(ink.hairline)
+
+        // 3. Always On — the only profile that keeps blocking with no timer running.
+        // Its subtitle names the ongoing notification explicitly: a mode that blocks
+        // apps all day has to be obvious that it is running, and obvious how to stop.
+        val isAlwaysOnSelected = isEnabled && activeMode == AppUsageMode.ALWAYS_ON
+        ProfileOptionRow(
+            title = "Always On",
+            subtitle = "Blocks your chosen apps all day, even with no timer running. " +
+                "A notification stays up while it's on — tap it any time to turn it off.",
+            icon = Icons.Default.Shield,
+            isSelected = isAlwaysOnSelected,
+            ink = ink,
+            onClick = { onSelectProfile(AppUsageMode.ALWAYS_ON) },
+        )
 
         EkagraHairline(ink.hairline)
     }

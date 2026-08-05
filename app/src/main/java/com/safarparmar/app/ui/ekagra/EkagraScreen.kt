@@ -1558,6 +1558,9 @@ fun EkagraScreen(
                                         onNavigate = onNavigate,
                                         isBeastMode = isBeastMode,
                                         selectedTheme = selectedTheme,
+                                        onOpenAnalytics = {
+                                            onNavigate(Routes.nishthaAnalytics("kavach"))
+                                        },
                                     )
 
                                     EkagraNavTab.DURATION -> DurationTab(

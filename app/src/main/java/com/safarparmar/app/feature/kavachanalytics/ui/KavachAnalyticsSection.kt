@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,13 +40,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -66,6 +71,9 @@ import com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionOutcome
 import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.theme.isLightBackground
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * Category colours. Only ever used as meaning — a dot, a bar, a number — never as
@@ -93,6 +101,12 @@ internal object KavachCategoryColors {
     }
 }
 
+private enum class KavachActivityDetail {
+    ATTEMPTS,
+    UNLOCKS,
+    SESSIONS,
+}
+
 /**
  * The Kavach tab of Nishtha Analytics. Free for every signed-in student.
  *
@@ -109,6 +123,7 @@ fun KavachAnalyticsSection(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+    var activityDetail by remember { mutableStateOf<KavachActivityDetail?>(null) }
 
     DisposableEffect(Unit) {
         viewModel.refresh()
@@ -128,6 +143,17 @@ fun KavachAnalyticsSection(
                 onSetCategory = { viewModel.setCategory(detail.row.packageName, it, detail.row.appLabel) },
                 onToggleBlocked = { viewModel.toggleBlocked(detail.row.packageName) },
             )
+        }
+    }
+
+    activityDetail?.let { detail ->
+        state.report?.let { report ->
+            ModalBottomSheet(
+                onDismissRequest = { activityDetail = null },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            ) {
+                KavachActivityDetailSheet(detail, report, isLight)
+            }
         }
     }
 
@@ -155,6 +181,12 @@ fun KavachAnalyticsSection(
 
             else -> {
                 Spacer(Modifier.height(20.dp))
+                SectionHeading(
+                    title = "App usage",
+                    subtitle = "How did I use my phone?",
+                    isLight = isLight,
+                )
+                Spacer(Modifier.height(14.dp))
                 PeriodHeader(state, isLight, viewModel::page)
                 Spacer(Modifier.height(14.dp))
                 ScopeSwitch(state.scope, isLight, viewModel::selectScope)
@@ -167,9 +199,6 @@ fun KavachAnalyticsSection(
 
                 CoverageLine(report, isLight)
 
-                Spacer(Modifier.height(20.dp))
-                HeadlineCounters(report, isLight)
-
                 if (state.unclassifiedPrompts.isNotEmpty()) {
                     Spacer(Modifier.height(24.dp))
                     UncategorisedSection(state.unclassifiedPrompts, isLight) { pkg, category, label ->
@@ -180,7 +209,16 @@ fun KavachAnalyticsSection(
                 Spacer(Modifier.height(24.dp))
                 AppList(state, isLight, viewModel::setSearchQuery, viewModel::openAppDetail)
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(30.dp))
+                SectionHeading(
+                    title = "Kavach activity",
+                    subtitle = "How did Kavach help me across all sessions in this period?",
+                    isLight = isLight,
+                )
+                Spacer(Modifier.height(14.dp))
+                HeadlineCounters(report, isLight) { activityDetail = it }
+
+                Spacer(Modifier.height(26.dp))
                 SessionHistory(report, isLight)
 
                 Spacer(Modifier.height(24.dp))
@@ -258,10 +296,25 @@ private fun PeriodHeader(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                KavachAnalyticsFormat.periodLabel(state.granularity, state.startDate, state.endDate),
+                KavachAnalyticsFormat.periodLabel(
+                    state.granularity,
+                    state.displayStartDate?.toString() ?: state.startDate,
+                    state.displayEndDate?.toString() ?: state.endDate,
+                ),
                 fontSize = 13.sp,
                 color = secondaryText(isLight),
             )
+            if (state.hasFuturePlaceholders && state.granularity != KavachGranularity.DAILY) {
+                Spacer(Modifier.height(4.dp))
+                val measuredThrough = runCatching { LocalDate.parse(state.endDate) }.getOrNull()
+                Text(
+                    measuredThrough?.let {
+                        "Data through ${it.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))}"
+                    } ?: "Data through today",
+                    fontSize = 11.sp,
+                    color = secondaryText(isLight),
+                )
+            }
             state.deltaPercent?.let { delta ->
                 Spacer(Modifier.height(6.dp))
                 val down = delta < 0
@@ -293,36 +346,45 @@ private fun PeriodHeader(
 }
 
 /**
- * All day / During Kavach as one quiet line rather than a third row of buttons.
- * It is a lens on the same number, not a separate destination.
+ * A visibly switchable segmented control for the two app-usage scopes.
  */
 @Composable
 private fun ScopeSwitch(selected: KavachScope, isLight: Boolean, onSelect: (KavachScope) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        KavachScope.entries.forEachIndexed { index, scope ->
-            if (index > 0) {
-                Text(
-                    "·",
-                    fontSize = 13.sp,
-                    color = secondaryText(isLight).copy(alpha = 0.5f),
-                    modifier = Modifier.padding(horizontal = 10.dp),
-                )
+        Text("View app usage", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = secondaryText(isLight))
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(secondaryText(isLight).copy(alpha = 0.10f))
+                .padding(3.dp),
+        ) {
+            KavachScope.entries.forEach { scope ->
+                val active = scope == selected
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(11.dp))
+                        .then(
+                            if (active) Modifier.background(
+                                if (isLight) Color.White else MaterialTheme.colorScheme.surfaceVariant,
+                            ) else Modifier,
+                        )
+                        .clickable { onSelect(scope) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        scope.label,
+                        fontSize = 13.sp,
+                        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                        color = if (active) primaryText(isLight) else secondaryText(isLight),
+                    )
+                }
             }
-            val active = scope == selected
-            Text(
-                scope.label,
-                fontSize = 13.sp,
-                fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-                color = if (active) primaryText(isLight) else secondaryText(isLight),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onSelect(scope) }
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            )
         }
     }
 }
@@ -399,6 +461,20 @@ private fun TrendChart(state: KavachAnalyticsUiState, isLight: Boolean) {
         listOf(KavachCategoryColors.of(filter, isLight) to { t: CategoryTotals -> t.secondsFor(filter) })
     }
 
+    val chartScroll = rememberScrollState()
+    val density = LocalDensity.current
+    LaunchedEffect(state.granularity, state.startDate, bars.size) {
+        if (state.granularity == KavachGranularity.MONTHLY) {
+            val measuredDay = runCatching { LocalDate.parse(state.endDate).dayOfMonth }.getOrDefault(1)
+            val targetPx = with(density) {
+                (30.dp * (measuredDay - 5).coerceAtLeast(0).toFloat()).roundToPx()
+            }
+            androidx.compose.runtime.withFrameNanos { }
+            androidx.compose.runtime.withFrameNanos { }
+            chartScroll.scrollTo(targetPx.coerceAtMost(chartScroll.maxValue))
+        }
+    }
+
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Column(
             Modifier.height(136.dp).width(34.dp),
@@ -415,74 +491,91 @@ private fun TrendChart(state: KavachAnalyticsUiState, isLight: Boolean) {
         }
         Spacer(Modifier.width(6.dp))
 
-        Box(Modifier.weight(1f)) {
-            Column(
-                Modifier.fillMaxWidth().height(136.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
-                repeat(3) { Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor)) }
+        BoxWithConstraints(Modifier.weight(1f)) {
+            val plotWidth = if (state.granularity == KavachGranularity.MONTHLY) {
+                maxOf(maxWidth, 30.dp * bars.size.toFloat())
+            } else {
+                maxWidth
             }
-
-            Row(
-                Modifier.fillMaxWidth().height(136.dp),
-                horizontalArrangement = Arrangement.spacedBy(if (bars.size > 12) 2.dp else 6.dp),
-                verticalAlignment = Alignment.Bottom,
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(chartScroll),
             ) {
-                bars.forEach { bar ->
-                    val unmeasured = bar.coverage == DataCoverage.UNAVAILABLE
+                Box(Modifier.width(plotWidth).height(136.dp)) {
                     Column(
-                        Modifier.weight(1f).fillMaxHeight(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom,
+                        Modifier.fillMaxWidth().height(136.dp),
+                        verticalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        if (unmeasured) {
-                            // A day we could not measure gets a hairline stub, never a
-                            // zero-height bar that would read as real idle time.
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(2.dp)
-                                    .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                                    .background(gridColor),
-                            )
-                        } else {
-                            // Context days in the Daily view are dimmed so the day the
-                            // headline actually describes is obvious.
-                            val alpha = if (bar.isFocused) 1f else 0.35f
-                            segments.forEach { (color, extract) ->
-                                val seconds = extract(bar.totals)
-                                if (seconds <= 0) return@forEach
-                                val fraction = (seconds.toFloat() / axisMax).coerceIn(0f, 1f)
-                                Box(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height((120 * fraction).dp.coerceAtLeast(2.dp))
-                                        .background(color.copy(alpha = alpha)),
-                                )
+                        repeat(3) { Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor)) }
+                    }
+
+                    Row(
+                        Modifier.fillMaxWidth().height(136.dp),
+                        horizontalArrangement = Arrangement.spacedBy(if (bars.size > 12) 3.dp else 6.dp),
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        bars.forEach { bar ->
+                            val unmeasured = bar.coverage == DataCoverage.UNAVAILABLE
+                            Column(
+                                Modifier.weight(1f).fillMaxHeight(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Bottom,
+                            ) {
+                                when {
+                                    bar.isFuture -> Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(2.dp)
+                                            .background(gridColor.copy(alpha = 0.45f)),
+                                    )
+                                    unmeasured -> Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(2.dp)
+                                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                                            .background(gridColor),
+                                    )
+                                    else -> {
+                                        val alpha = if (bar.isFocused) 1f else 0.35f
+                                        segments.forEach { (color, extract) ->
+                                            val seconds = extract(bar.totals)
+                                            if (seconds <= 0) return@forEach
+                                            val fraction = (seconds.toFloat() / axisMax).coerceIn(0f, 1f)
+                                            Box(
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .height((120 * fraction).dp.coerceAtLeast(2.dp))
+                                                    .background(color.copy(alpha = alpha)),
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    Modifier.width(plotWidth),
+                    horizontalArrangement = Arrangement.spacedBy(if (bars.size > 12) 3.dp else 6.dp),
+                ) {
+                    bars.forEach { bar ->
+                        Text(
+                            KavachAnalyticsFormat.axisLabel(bar.localDate, state.granularity),
+                            fontSize = 9.sp,
+                            fontWeight = if (bar.isFocused && bars.size <= 12) FontWeight.Bold else FontWeight.Normal,
+                            color = when {
+                                bar.isFuture -> secondaryText(isLight).copy(alpha = 0.35f)
+                                bar.isFocused -> primaryText(isLight)
+                                else -> secondaryText(isLight)
+                            },
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
             }
-        }
-    }
-
-    Spacer(Modifier.height(6.dp))
-    Row(
-        Modifier.fillMaxWidth().padding(start = 56.dp, end = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(if (bars.size > 12) 2.dp else 6.dp),
-    ) {
-        bars.forEachIndexed { index, bar ->
-            // A month of day numbers is unreadable at this width; label every fifth.
-            val showLabel = bars.size <= 12 || index % 5 == 0 || index == bars.lastIndex
-            Text(
-                if (showLabel) KavachAnalyticsFormat.axisLabel(bar.localDate, state.granularity) else "",
-                fontSize = 9.sp,
-                fontWeight = if (bar.isFocused && bars.size <= 12) FontWeight.Bold else FontWeight.Normal,
-                color = if (bar.isFocused) primaryText(isLight) else secondaryText(isLight),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f),
-            )
         }
     }
 }
@@ -551,19 +644,70 @@ private fun CoverageLine(report: KavachAnalyticsReport, isLight: Boolean) {
     }
 }
 
-/** Three numbers on one line instead of three bordered tiles. */
+/** One mental model: how Kavach helped across every session in the selected period. */
 @Composable
-private fun HeadlineCounters(report: KavachAnalyticsReport, isLight: Boolean) {
+private fun HeadlineCounters(
+    report: KavachAnalyticsReport,
+    isLight: Boolean,
+    onOpen: (KavachActivityDetail) -> Unit,
+) {
     val sessions = report.completedSessions + report.endedEarlySessions + report.interruptedSessions
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        CounterStat("Blocked opens", report.blockedAttempts.toString(), isLight, Modifier.weight(1f))
-        CounterStat("Quick unlocks", report.quickUnlockCount.toString(), isLight, Modifier.weight(1f))
-        CounterStat(
-            "Sessions done",
-            if (sessions == 0) "—" else "${KavachAnalyticsFormat.percent(report.completedSessions, sessions)}%",
-            isLight,
-            Modifier.weight(1f),
-        )
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ActivityMetric(
+            value = report.blockedAttempts.toString(),
+            label = "Attempts blocked",
+            helper = "App opens stopped",
+            isLight = isLight,
+            modifier = Modifier.weight(1f),
+        ) { onOpen(KavachActivityDetail.ATTEMPTS) }
+        ActivityMetric(
+            value = report.quickUnlockCount.toString(),
+            label = "Temporary unlocks",
+            helper = "Used this period",
+            isLight = isLight,
+            modifier = Modifier.weight(1f),
+        ) { onOpen(KavachActivityDetail.UNLOCKS) }
+        ActivityMetric(
+            value = if (sessions == 0) "—" else "${report.completedSessions} of $sessions",
+            label = "Sessions completed",
+            helper = "Finished fully",
+            isLight = isLight,
+            modifier = Modifier.weight(1f),
+        ) { onOpen(KavachActivityDetail.SESSIONS) }
+    }
+}
+
+@Composable
+private fun ActivityMetric(
+    value: String,
+    label: String,
+    helper: String,
+    isLight: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.07f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = primaryText(isLight))
+        Text(helper, fontSize = 9.sp, color = secondaryText(isLight), maxLines = 2)
+    }
+}
+
+@Composable
+private fun SectionHeading(title: String, subtitle: String, isLight: Boolean) {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+        Text(subtitle, fontSize = 11.sp, color = secondaryText(isLight))
     }
 }
 
@@ -573,6 +717,104 @@ private fun CounterStat(label: String, value: String, isLight: Boolean, modifier
         Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
         Text(label, fontSize = 11.sp, color = secondaryText(isLight))
     }
+}
+
+@Composable
+private fun KavachActivityDetailSheet(
+    detail: KavachActivityDetail,
+    report: KavachAnalyticsReport,
+    isLight: Boolean,
+) {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        when (detail) {
+            KavachActivityDetail.ATTEMPTS -> {
+                Text("Attempts blocked", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+                Text(
+                    "Kavach stopped ${report.blockedAttempts} blocked app open${if (report.blockedAttempts == 1) "" else "s"} in this period.",
+                    fontSize = 12.sp,
+                    color = secondaryText(isLight),
+                )
+                val rows = report.apps.filter { it.blockedAttempts > 0 }.sortedByDescending { it.blockedAttempts }
+                if (rows.isEmpty()) DetailEmpty("No blocked app attempts in this period.", isLight)
+                rows.forEach { row ->
+                    ActivityAppRow(
+                        row,
+                        "${row.blockedAttempts} attempt${if (row.blockedAttempts == 1) "" else "s"}",
+                        isLight,
+                    )
+                }
+            }
+
+            KavachActivityDetail.UNLOCKS -> {
+                Text("Temporary unlocks", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+                Text(
+                    "You used ${report.quickUnlockCount} temporary unlock${if (report.quickUnlockCount == 1) "" else "s"} in this period.",
+                    fontSize = 12.sp,
+                    color = secondaryText(isLight),
+                )
+                val rows = report.apps.filter { it.quickUnlockCount > 0 }.sortedByDescending { it.quickUnlockCount }
+                if (rows.isEmpty()) DetailEmpty("No temporary unlocks in this period.", isLight)
+                rows.forEach { row -> ActivityAppRow(row, "${row.quickUnlockCount} used", isLight) }
+            }
+
+            KavachActivityDetail.SESSIONS -> {
+                val total = report.completedSessions + report.endedEarlySessions + report.interruptedSessions
+                Text("Sessions completed", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+                Text(
+                    if (total == 0) "No Kavach sessions in this period."
+                    else "You fully completed ${report.completedSessions} of $total Kavach sessions.",
+                    fontSize = 12.sp,
+                    color = secondaryText(isLight),
+                )
+                if (report.sessions.isEmpty()) DetailEmpty("No session details available.", isLight)
+                report.sessions.forEach { session ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(KavachAnalyticsFormat.sessionLabel(session.startedAtMs), fontSize = 13.sp, color = primaryText(isLight))
+                            Text(KavachAnalyticsFormat.duration(session.actualSeconds), fontSize = 11.sp, color = secondaryText(isLight))
+                        }
+                        Text(
+                            KavachAnalyticsFormat.outcomeLabel(session.outcome),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (session.outcome == KavachSessionOutcome.COMPLETED) {
+                                KavachCategoryColors.productive(isLight)
+                            } else secondaryText(isLight),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActivityAppRow(row: AppUsageRow, trailing: String, isLight: Boolean) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        AppIcon(row.packageName, row.appLabel, row.category, isLight, size = 34.dp)
+        Spacer(Modifier.width(10.dp))
+        Text(
+            row.appLabel,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = primaryText(isLight),
+            modifier = Modifier.weight(1f),
+        )
+        Text(trailing, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = primaryText(isLight))
+    }
+}
+
+@Composable
+private fun DetailEmpty(message: String, isLight: Boolean) {
+    Text(
+        message,
+        fontSize = 13.sp,
+        color = secondaryText(isLight),
+        modifier = Modifier.padding(vertical = 12.dp),
+    )
 }
 
 // ── Lists ────────────────────────────────────────────────────────────────────
@@ -767,7 +1009,7 @@ private fun SessionHistory(report: KavachAnalyticsReport, isLight: Boolean) {
                     )
                     Text(
                         "${KavachAnalyticsFormat.duration(session.actualSeconds)} · " +
-                            "${session.blockedAttempts} blocked · ${session.quickUnlockCount} unlocks",
+                            "${session.blockedAttempts} attempts stopped · ${session.quickUnlockCount} temporary unlocks",
                         fontSize = 11.sp,
                         color = secondaryText(isLight),
                     )
@@ -855,8 +1097,8 @@ private fun AppDetailSheet(
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            CounterStat("Blocked opens", detail.row.blockedAttempts.toString(), isLight, Modifier.weight(1f))
-            CounterStat("Quick unlocks", detail.row.quickUnlockCount.toString(), isLight, Modifier.weight(1f))
+            CounterStat("Attempts blocked", detail.row.blockedAttempts.toString(), isLight, Modifier.weight(1f))
+            CounterStat("Temporary unlocks", detail.row.quickUnlockCount.toString(), isLight, Modifier.weight(1f))
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

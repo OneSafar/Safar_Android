@@ -198,6 +198,7 @@ internal fun TimerFocusTab(
     onNavigate: (String) -> Unit,
     isBeastMode: Boolean = false,
     selectedTheme: VisualTheme? = null,
+    onOpenAnalytics: () -> Unit = {},
 ) {
     val scheme  = MaterialTheme.colorScheme
     val configuration   = LocalConfiguration.current
@@ -211,6 +212,23 @@ internal fun TimerFocusTab(
     )
 
     Box(modifier = modifier) {
+      Column(Modifier.fillMaxSize()) {
+        // Pinned above the scrolling, vertically-centred timer column so the
+        // summary sits just under the top bar. Inside controlsVisible on purpose:
+        // once a session is running the chrome hides, and a usage counter is the
+        // last thing a student should be reading mid-focus.
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)),
+            exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)),
+        ) {
+            com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
+                ink = ink,
+                onClick = onOpenAnalytics,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 4.dp),
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -227,7 +245,7 @@ internal fun TimerFocusTab(
                        shrinkVertically(animationSpec = tween(500, easing = FastOutSlowInEasing))
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.height(if (isCompactHeight) 16.dp else 40.dp))
+                    Spacer(Modifier.height(if (isCompactHeight) 8.dp else 12.dp))
 
                     ModeTabs(
                         selected = timerMode,
@@ -427,6 +445,7 @@ internal fun TimerFocusTab(
             }
         }
     }
+}
 }
 
 // ─── Bottom navigation ─────────────────────────────────────────────────────────

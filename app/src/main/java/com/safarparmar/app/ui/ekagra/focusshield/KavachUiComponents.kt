@@ -954,10 +954,28 @@ fun KavachControlCenterContainer(
 
                 HorizontalDivider(color = KavachDesign.HubBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
 
-                // An "Always On" toggle row lived here. It is HIDDEN for this
-                // release — only Normal and Beast Mode ship. The [alwaysOn] and
-                // [onAlwaysOnChange] parameters are kept so restoring it is a
-                // matter of putting this row back.
+                // All-day blocking, independent of the Ekagra timer. Presented as a
+                // plain switch rather than a mode, because the student needs to be
+                // able to turn it off in one tap from the same place they turned it
+                // on — a blocker that is hard to stop is a trap, not a tool.
+                KavachControlRow(
+                    iconRes = R.drawable.ic_shield_check,
+                    title = "Always On",
+                    subtitle = "Keep blocking even when no timer is running. A notification stays up while it's on.",
+                    onClick = { onAlwaysOnChange(!alwaysOn) },
+                    isDark = isDark,
+                ) {
+                    Switch(
+                        checked = alwaysOn,
+                        onCheckedChange = onAlwaysOnChange,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = accent,
+                        ),
+                    )
+                }
+
+                HorizontalDivider(color = KavachDesign.HubBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
 
                 KavachControlRow(
                     iconRes = R.drawable.ic_shield_check,

@@ -7,7 +7,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <!-- The Always On mode's foreground service and its permission were removed. -->
+    <!-- Required by KAVACH Always On (see the service declaration below). No other
+         foregroundServiceType describes user-initiated app blocking: the service
+         plays no media, syncs no data and tracks no location. This permission needs
+         a matching declaration in the Play Console before a release using it can
+         be published. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -87,8 +92,18 @@
             android:foregroundServiceType="mediaPlayback"
             android:exported="false" />
 
-        <!-- The Always On all-day blocking mode was retired. Normal and Beast
-             blocking run entirely inside TimerService (above) and are unaffected. -->
+        <!-- KAVACH Always On. Started only after the student turns the mode on
+             themselves, and stopped the moment they turn it off. It shows an
+             ongoing notification for as long as it runs, so blocking is never
+             happening invisibly. Normal and Beast blocking still run inside
+             TimerService (above) and are unaffected by this service. -->
+        <service
+            android:name=".ui.ekagra.focusshield.KavachAlwaysOnService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Digital wellbeing: the student turns on KAVACH Always On to block distracting apps they chose themselves, for as long as they leave it on. Blocking must continue while SAFAR is in the background, so the check cannot be deferred to a job. No other foregroundServiceType applies." /></service>
 
         <!-- Supporting locale sync and persist for pre-Android 13 devices using AppCompat -->
         <service

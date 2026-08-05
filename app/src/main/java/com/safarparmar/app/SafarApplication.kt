@@ -35,6 +35,7 @@ class SafarApplication : Application() {
     @Inject lateinit var notificationTokenRegistrar: NotificationTokenRegistrar
     @Inject lateinit var kavachAnalyticsRepository: KavachAnalyticsRepository
     @Inject lateinit var kavachAnalyticsRecorder: KavachAnalyticsRecorder
+    @Inject lateinit var focusShieldRepository: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
     @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
     private val appExceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -62,13 +63,12 @@ class SafarApplication : Application() {
             runCatching { kavachAnalyticsRecorder.recoverStaleSessions() }
             runCatching { kavachAnalyticsRepository.refresh() }
         }
+        // Always On is meant to survive a reboot, an app update and a process
+        // death — a blocker the student has to remember to re-arm is not a blocker.
+        // The repository re-checks permissions and the app list before starting.
+        focusShieldRepository.restoreAlwaysOnIfEnabled()
+
         appScope.launch {
-            // "Always On" is removed. A legacy user may still carry the flag, but
-            // the service no longer exists to start, so there is nothing to stop —
-            // the stale flag is inert and harmless.
-            if (dataStore.focusShieldAlwaysOnMode.first()) {
-                dataStore.setFocusShieldAlwaysOnMode(false)
-            }
             notificationTokenRegistrar.registerStoredTokenIfNeeded()
             if (dataStore.notificationsEnabled.first() && dataStore.dailyStudyReminderEnabled.first()) {
                 val keep = ExistingPeriodicWorkPolicy.KEEP
