@@ -115,12 +115,14 @@ fun FocusShieldSettingsContent(
         else -> "Change apps"
     }
 
-    // Identify active mode
-    // Always On is hidden, so a legacy user still carrying that flag resolves to
-    // Normal rather than leaving every card unselected. (The flag is also cleared
-    // at startup — see SafarApplication.)
+    // Identify active mode.
+    // Always On is checked first: it is its own mode rather than a variant of the
+    // timer-bound ones, and leaving it out here is what made its row impossible to
+    // select — the tap saved correctly, then this recomputed to Normal and the
+    // radio snapped straight back.
     val activeMode = when {
         !state.isEnabled -> null
+        state.isAlwaysOnMode -> AppUsageMode.ALWAYS_ON
         state.isStrictMode -> AppUsageMode.BEAST
         else -> AppUsageMode.FOCUSED
     }

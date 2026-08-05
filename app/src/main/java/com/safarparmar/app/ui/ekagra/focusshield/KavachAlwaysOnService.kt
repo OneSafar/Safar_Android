@@ -35,10 +35,12 @@ import kotlinx.coroutines.launch
  * state: as long as this service is running and its notification is showing, the
  * chosen apps stay blocked whether or not a study session is in progress.
  *
- * It deliberately yields to [com.safarparmar.app.ui.ekagra.TimerService] whenever
- * a session is driving blocking, so the two never fight over the block screen —
- * and it stands down entirely during a scheduled break, because a break the
- * student earned should not be spent looking at a block screen.
+ * Fully independent of Ekagra: a timer running, paused, or on a break changes
+ * nothing about whether the chosen apps are blocked. The only coordination with
+ * [com.safarparmar.app.ui.ekagra.TimerService] is that this service stays quiet
+ * while that one is already driving blocking, so the two never launch the block
+ * screen over each other. The app is blocked either way, so that hand-off is
+ * invisible to the student.
  */
 class KavachAlwaysOnService : Service() {
 
@@ -47,7 +49,6 @@ class KavachAlwaysOnService : Service() {
         private const val SETTINGS_SYNC_MS = 2_000L
         private const val FOREGROUND_LOOKBACK_MS = 2_000L
         private const val BLOCK_DEBOUNCE_MS = 750L
-        private const val TIMER_STATE_PREFS = "ekagra_timer_state_prefs"
 
         private val KNOWN_HOME_PACKAGES = setOf(
             "com.miui.home", "com.mi.android.globallauncher", "com.android.launcher",
@@ -149,20 +150,19 @@ class KavachAlwaysOnService : Service() {
 
     /** @return how long to wait before the next poll. */
     private fun monitorForegroundApp(): Long {
-        val timerPrefs = getSharedPreferences(TIMER_STATE_PREFS, Context.MODE_PRIVATE)
-        if (timerPrefs.getBoolean("has_state", false)) {
-            // A break is time the student earned. Always On stands down for it.
-            if (timerPrefs.getString("mode", "FOCUS") == "BREAK") {
-                lastBlockedPackage = null
-                countedAttemptPackage = null
-                return poller.onSample(null, isBlockedApp = false)
-            }
-            // A session is already driving blocking — yield rather than double-block.
-            if (FocusShieldRepository.ShieldPrefs.isActive(this)) {
-                lastBlockedPackage = null
-                countedAttemptPackage = null
-                return poller.onSample(null, isBlockedApp = false)
-            }
+        // Always On is independent of Ekagra by definition: it does not care whether
+        // a timer is running, paused, or on a break. The only thing checked here is
+        // whether TimerService is *already* driving blocking, and that is purely so
+        // the two don't both launch the block screen over each other — the app stays
+        // blocked either way, so yielding is invisible to the student.
+        //
+        // Note this deliberately does not stand down for a BREAK. An earlier version
+        // did, which meant a student on Always On could open a blocked app simply by
+        // starting a break — exactly the loophole the mode exists to close.
+        if (FocusShieldRepository.ShieldPrefs.isActive(this)) {
+            lastBlockedPackage = null
+            countedAttemptPackage = null
+            return poller.onSample(null, isBlockedApp = false)
         }
 
         // Honour the quick-unlock window the block screen grants.
