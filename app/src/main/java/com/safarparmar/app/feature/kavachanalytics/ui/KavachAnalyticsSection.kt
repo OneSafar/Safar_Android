@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
@@ -39,14 +40,18 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.feature.kavachanalytics.domain.AppCategory
@@ -573,6 +578,57 @@ private fun CounterStat(label: String, value: String, isLight: Boolean, modifier
 // ── Lists ────────────────────────────────────────────────────────────────────
 
 @Composable
+private fun AppIcon(
+    packageName: String,
+    appLabel: String,
+    category: AppCategory,
+    isLight: Boolean,
+    size: Dp = 38.dp,
+    showCategoryDot: Boolean = true,
+) {
+    val context = LocalContext.current
+    val iconDrawable = remember(packageName) {
+        runCatching { context.packageManager.getApplicationIcon(packageName) }.getOrNull()
+    }
+
+    Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
+        if (iconDrawable != null) {
+            AsyncImage(
+                model = iconDrawable,
+                contentDescription = appLabel,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(secondaryText(isLight).copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.Apps,
+                    contentDescription = null,
+                    tint = secondaryText(isLight),
+                    modifier = Modifier.size(size * 0.55f),
+                )
+            }
+        }
+
+        if (showCategoryDot) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(size * 0.28f)
+                    .clip(CircleShape)
+                    .background(KavachCategoryColors.of(category, isLight))
+                    .border(1.5.dp, if (isLight) Color.White else Color.Black, CircleShape),
+            )
+        }
+    }
+}
+
+@Composable
 private fun AppList(
     state: KavachAnalyticsUiState,
     isLight: Boolean,
@@ -608,13 +664,19 @@ private fun AppList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onOpen(row) }
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(KavachCategoryColors.of(row.category, isLight)))
+                AppIcon(
+                    packageName = row.packageName,
+                    appLabel = row.appLabel,
+                    category = row.category,
+                    isLight = isLight,
+                    size = 38.dp,
+                )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Text(row.appLabel, fontSize = 14.sp, color = primaryText(isLight))
+                    Text(row.appLabel, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = primaryText(isLight))
                     Text(
                         row.category.name.lowercase().replaceFirstChar { it.uppercase() },
                         fontSize = 11.sp,
@@ -627,6 +689,7 @@ private fun AppList(
                     fontWeight = FontWeight.SemiBold,
                     color = primaryText(isLight),
                 )
+                Spacer(Modifier.width(4.dp))
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
@@ -656,7 +719,15 @@ private fun UncategorisedSection(
         rows.forEach { row ->
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(row.appLabel, fontSize = 13.sp, color = primaryText(isLight), modifier = Modifier.weight(1f))
+                    AppIcon(
+                        packageName = row.packageName,
+                        appLabel = row.appLabel,
+                        category = row.category,
+                        isLight = isLight,
+                        size = 30.dp,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(row.appLabel, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = primaryText(isLight), modifier = Modifier.weight(1f))
                     Text(
                         KavachAnalyticsFormat.duration(row.allDaySeconds),
                         fontSize = 12.sp,
@@ -764,6 +835,14 @@ private fun AppDetailSheet(
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            AppIcon(
+                packageName = detail.row.packageName,
+                appLabel = detail.row.appLabel,
+                category = detail.row.category,
+                isLight = isLight,
+                size = 52.dp,
+            )
+            Spacer(Modifier.height(10.dp))
             Text(detail.row.appLabel, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
             Spacer(Modifier.height(6.dp))
             Text(
