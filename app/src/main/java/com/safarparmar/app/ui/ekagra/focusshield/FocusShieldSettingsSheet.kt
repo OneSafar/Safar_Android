@@ -75,6 +75,8 @@ fun FocusShieldSettingsContent(
     onOpenAppPicker: () -> Unit,
     onGoToEkagra: () -> Unit,
     onOpenOverlaySettings: () -> Unit,
+    /** Opens the app-category editor that feeds Kavach analytics. */
+    onOpenAppCategories: (() -> Unit)? = null,
     onToggleProfile: (String) -> Unit = {},
     onRefreshPermissions: () -> Unit = {},
     onMaybeLater: () -> Unit = {},
@@ -314,6 +316,38 @@ fun FocusShieldSettingsContent(
                             fontWeight = FontWeight.Bold,
                             color = KavachDesign.Primary,
                         )
+                    }
+
+                    if (onOpenAppCategories != null) {
+                        EkagraHairline(ink.hairline)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = onOpenAppCategories)
+                                .padding(vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = "App categories",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ink.primaryText,
+                                )
+                                Text(
+                                    text = "Set what counts as productive or distracting in your analytics",
+                                    fontSize = 13.sp,
+                                    color = ink.secondaryText,
+                                )
+                            }
+                            Text(
+                                text = "Edit >",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = KavachDesign.Primary,
+                            )
+                        }
                     }
 
                     EkagraHairline(ink.hairline)

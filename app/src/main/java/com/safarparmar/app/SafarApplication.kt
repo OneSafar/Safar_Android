@@ -14,6 +14,9 @@ import com.safarparmar.app.notifications.PlannerAlertsWorker
 import com.safarparmar.app.notifications.MorningNudgeWorker
 import com.safarparmar.app.notifications.NotificationTokenRegistrar
 import com.safarparmar.app.notifications.StudyReminderWorker
+import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
+import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRepository
+import com.safarparmar.app.feature.kavachanalytics.work.KavachUsageCollectionWorker
 import com.safarparmar.app.ui.ekagra.EkagraPendingSessionSaveStore
 import com.safarparmar.app.ui.ekagra.EkagraSessionSaveWorker
 import dagger.hilt.android.HiltAndroidApp
@@ -30,6 +33,8 @@ class SafarApplication : Application() {
 
     @Inject lateinit var dataStore: SafarDataStore
     @Inject lateinit var notificationTokenRegistrar: NotificationTokenRegistrar
+    @Inject lateinit var kavachAnalyticsRepository: KavachAnalyticsRepository
+    @Inject lateinit var kavachAnalyticsRecorder: KavachAnalyticsRecorder
     @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
     private val appExceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -47,6 +52,15 @@ class SafarApplication : Application() {
         fetchAndStoreFcmToken()
         if (EkagraPendingSessionSaveStore.getAll(this).isNotEmpty()) {
             EkagraSessionSaveWorker.enqueue(this)
+        }
+        KavachUsageCollectionWorker.schedule(this)
+        appScope.launch {
+            // A Kavach session still marked active at launch never reached a normal
+            // end — the process or the device died under it. Finalise it as
+            // interrupted, then reconcile any usage the OS collected while SAFAR
+            // wasn't running.
+            runCatching { kavachAnalyticsRecorder.recoverStaleSessions() }
+            runCatching { kavachAnalyticsRepository.refresh() }
         }
         appScope.launch {
             // "Always On" is removed. A legacy user may still carry the flag, but

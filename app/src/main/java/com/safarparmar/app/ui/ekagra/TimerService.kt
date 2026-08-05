@@ -35,6 +35,8 @@ import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
 import com.safarparmar.app.ui.ekagra.focusshield.NotificationShieldPrefs
+import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
+import com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionOutcome
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -269,7 +271,12 @@ class TimerService : Service() {
 
         debugFocusShield("TimerService.enableFocusShieldForSession()")
         val repo = focusShieldRepo()
-        repo.activateForSession()
+        repo.activateForSession(
+            plannedSeconds = _totalSeconds.value.coerceAtLeast(0),
+            isFocusPeriod = _timerMode.value == TimerMode.FOCUS ||
+                _timerMode.value == TimerMode.STOPWATCH ||
+                _timerMode.value == TimerMode.POMODORO,
+        )
         val activated = repo.sessionActive.value
         _focusShieldActive.value = activated
         if (activated) {
@@ -362,6 +369,8 @@ class TimerService : Service() {
     private var lastBlockedAt: Long = 0L
     /** Package for which we already counted one distraction this foreground visit. */
     private var countedDistractionPackage: String? = null
+    /** True while a quick unlock is in its grace window, so its end can be detected. */
+    private var quickUnlockWasActive: Boolean = false
 
     /**
      * Detects the current foreground app via UsageStats and, if it is a user-selected blocked app
@@ -377,7 +386,17 @@ class TimerService : Service() {
 
         // Honour the return-to-focus grace and the emergency-unlock grace window.
         if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) return
-        if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) return
+        val unlockActive = FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)
+        if (unlockActive) {
+            quickUnlockWasActive = true
+            return
+        }
+        if (quickUnlockWasActive) {
+            // The unlock window just lapsed — close it with the time actually used
+            // rather than the duration the student picked.
+            quickUnlockWasActive = false
+            runCatching { focusShieldRepo().settleExpiredQuickUnlocks() }
+        }
 
         val foregroundPackage = currentForegroundPackage() ?: return
         if (foregroundPackage == packageName) {
@@ -664,6 +683,25 @@ class TimerService : Service() {
         EntryPointAccessors.fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
             .focusShieldRepository()
 
+    /**
+     * Closes the Kavach analytics session with an explicit outcome.
+     *
+     * Only the three real endings are reported: the timer finished, the student
+     * ended it, or the process/device died. A pause, a break, or a lost permission
+     * is never any of these — those keep the session open or flag it, so nothing a
+     * student didn't choose is ever presented back to them as giving up.
+     */
+    private fun endKavachAnalyticsSession(outcome: KavachSessionOutcome) {
+        val actualSeconds = runCatching { focusProgressSnapshot().actualSeconds }.getOrDefault(0)
+        val recorder = runCatching { KavachAnalyticsRecorder.from(applicationContext) }.getOrNull()
+            ?: return
+        when (outcome) {
+            KavachSessionOutcome.COMPLETED -> recorder.sessionCompleted(actualSeconds)
+            KavachSessionOutcome.ENDED_EARLY -> recorder.sessionEndedEarly(actualSeconds)
+            KavachSessionOutcome.INTERRUPTED -> recorder.sessionInterrupted(actualSeconds)
+        }
+    }
+
     private fun clearTheme() {
         themePrefs().edit().clear().commit()
     }
@@ -885,6 +923,8 @@ class TimerService : Service() {
     }
 
     fun setDuration(mode: TimerMode, seconds: Int, breakSeconds: Int = 5 * 60) {
+        // Reconfiguring the timer abandons whatever was running — an explicit choice.
+        endKavachAnalyticsSession(KavachSessionOutcome.ENDED_EARLY)
         _timerMode.value    = mode
         val initialSeconds  = if (mode == TimerMode.STOPWATCH) 0 else seconds
         _secondsLeft.value  = initialSeconds
@@ -1113,6 +1153,9 @@ class TimerService : Service() {
                                 actualSeconds = completedProgress.actualSeconds,
                                 mode = TimerMode.POMODORO,
                             )
+                            // The whole Pomodoro series finished — this is the one
+                            // point where the Kavach session is genuinely complete.
+                            endKavachAnalyticsSession(KavachSessionOutcome.COMPLETED)
                             clearPersistedTimerState()
                             _targetPomodoroLoops.value = 0
                             _pomodorosCompleted.value = 0
@@ -1139,6 +1182,7 @@ class TimerService : Service() {
                             actualSeconds = completedProgress.actualSeconds,
                             mode = completedMode,
                         )
+                        endKavachAnalyticsSession(KavachSessionOutcome.COMPLETED)
                         clearPersistedTimerState()
                         // Standard: respect user's auto-start break preference
                         _timerMode.value = TimerMode.BREAK
@@ -1212,6 +1256,8 @@ class TimerService : Service() {
     }
 
     fun reset() {
+        // The student pressed Reset/End: an explicit early finish, counted once.
+        endKavachAnalyticsSession(KavachSessionOutcome.ENDED_EARLY)
         _isRunning.value   = false
         _secondsLeft.value = if (_timerMode.value == TimerMode.STOPWATCH) 0 else _totalSeconds.value
         _targetPomodoroLoops.value = 0
@@ -1242,6 +1288,9 @@ class TimerService : Service() {
                 mode = if (isPomodoroSeries) TimerMode.POMODORO else _timerMode.value,
             )
         }
+        // The task was swiped away, not ended from the timer. That is a failure of
+        // the process, not of the student, so it is reported as interrupted.
+        endKavachAnalyticsSession(KavachSessionOutcome.INTERRUPTED)
         _isRunning.value = false
         tickJob?.cancel()
         suspendedFocusState = null

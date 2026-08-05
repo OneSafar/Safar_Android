@@ -7,6 +7,7 @@ import android.os.SystemClock
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.domain.repository.HomeRepository
+import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,6 +30,7 @@ import kotlinx.coroutines.launch
 class FocusShieldRepository @Inject constructor(
     private val dataStore: SafarDataStore,
     private val homeRepository: HomeRepository,
+    private val analyticsRecorder: KavachAnalyticsRecorder,
     @ApplicationContext private val appContext: Context,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -95,7 +97,13 @@ class FocusShieldRepository @Inject constructor(
         }
     }
 
-    fun activateForSession() {
+    /**
+     * @param isFocusPeriod false while a break is running. Beast Mode keeps blocking
+     *   through breaks, but a break is not a Kavach session of its own — opening one
+     *   there would split a single study session into several, and the break's own
+     *   "session" would then be reported as ended early when the timer is reset.
+     */
+    fun activateForSession(plannedSeconds: Int = 0, isFocusPeriod: Boolean = true) {
         val settings = currentSettings()
         if (!settings.enabled) {
             debugLog("activateForSession skipped: shield not enabled")
@@ -111,11 +119,19 @@ class FocusShieldRepository @Inject constructor(
         if (!hasRequiredPermissions()) {
             debugLog("activateForSession skipped: required permission missing")
             _activationBlockedReason.value = "A permission KAVACH needs was turned off, so blocking isn't active this session."
+            // Keep the flag on the summary rather than quietly reporting a clean
+            // session in which nothing was ever actually blocked.
+            analyticsRecorder.permissionLost()
             return
         }
         activateBlocking(settings, resetUnlocks = true)
         QuickUnlockNotification.cancel(appContext)
         _activationBlockedReason.value = null
+        // Idempotent: a Normal-Mode break deactivates and re-activates blocking, but
+        // that is still one Kavach session from the student's point of view.
+        if (isFocusPeriod) {
+            analyticsRecorder.sessionStarted(strictMode = settings.strict, plannedSeconds = plannedSeconds)
+        }
         debugLog("activateForSession enabled for ${settings.packages.size} packages")
     }
 
@@ -138,7 +154,25 @@ class FocusShieldRepository @Inject constructor(
         _blockedHitsByPackage.value = _blockedHitsByPackage.value.toMutableMap().apply {
             this[packageName] = (this[packageName] ?: 0) + 1
         }
+        // Called once per foreground visit by TimerService's debounce, which is
+        // exactly the counting rule Kavach analytics reports.
+        analyticsRecorder.blockedAttempt(packageName)
     }
+
+    /**
+     * Records a quick unlock for analytics. The selected window is a ceiling — the
+     * recorder closes the unlock with the duration actually elapsed, whether that is
+     * the window expiring or the Kavach session ending first.
+     */
+    fun recordQuickUnlock(packageName: String, selectedMinutes: Int) {
+        analyticsRecorder.quickUnlockStarted(
+            packageName = packageName,
+            selectedSeconds = selectedMinutes.coerceAtLeast(0) * 60,
+        )
+    }
+
+    /** Settles any quick unlock whose window has expired. Cheap; safe to call often. */
+    fun settleExpiredQuickUnlocks() = analyticsRecorder.settleExpiredUnlocks()
 
     fun clearSessionStats() {
         _blockedHitCount.value = 0

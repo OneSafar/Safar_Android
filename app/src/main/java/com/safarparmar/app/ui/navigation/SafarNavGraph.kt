@@ -146,7 +146,19 @@ fun SafarNavGraph(
                 ensureParentThenPush(route, Routes.STUDY_PLANNER,
                     parentAlreadyPresent = currentRouteBase == Routes.STUDY_PLANNER || currentRouteBase.startsWith("syllabus/"))
 
-            // App Picker / Kavach About sit on top of Focus Shield (or Ekagra).
+            // App Picker / Kavach About / app categories sit on top of Focus Shield
+            // (or Ekagra) — but the category editor is also reachable from Nishtha
+            // Analytics, so it keeps whatever parent the user actually came from.
+            route == Routes.KAVACH_APP_CATEGORIES -> ensureParentThenPush(
+                route,
+                Routes.FOCUS_SHIELD,
+                parentAlreadyPresent = currentRouteBase in setOf(
+                    Routes.FOCUS_SHIELD,
+                    Routes.EKAGRA,
+                    Routes.NISHTHA,
+                ),
+            )
+
             route == Routes.APP_PICKER || route == Routes.KAVACH_ABOUT ->
                 ensureParentThenPush(route, Routes.FOCUS_SHIELD,
                     parentAlreadyPresent = currentRouteBase in setOf(Routes.FOCUS_SHIELD, Routes.EKAGRA))
@@ -398,6 +410,10 @@ fun SafarNavGraph(
 
         composable(Routes.KAVACH_ABOUT) {
             KavachAboutScreen(onBack = ::safeBack)
+        }
+
+        composable(Routes.KAVACH_APP_CATEGORIES) {
+            com.safarparmar.app.feature.kavachanalytics.ui.AppCategoryEditorScreen(onBack = ::safeBack)
         }
 
         // ── Study Planner ─────────────────────────────────────────────────────

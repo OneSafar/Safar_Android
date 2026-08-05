@@ -28,6 +28,8 @@ object Routes {
     const val APP_PICKER = "ekagra/app_picker"
     const val KAVACH_ABOUT = "kavach/about"
     const val KAVACH_SESSION_SUMMARY = "kavach/session_summary"
+    /** App-category editor behind Kavach analytics and Kavach setup. */
+    const val KAVACH_APP_CATEGORIES = "kavach/app_categories"
     const val LAUNCH_USAGE_QUESTIONNAIRE = "launch_usage_questionnaire"
     const val FOCUS_SHIELD = "focus_shield"
     const val LIVE_SESSIONS_ROOT = "live/sessions"

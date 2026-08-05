@@ -79,6 +79,7 @@ fun NishthaAnalyticsScreen(
                 "ekagra" -> "ekagra"
                 "sessions" -> "ekagra"
                 "monthly" -> "monthly"
+                "kavach" -> "kavach"
                 else -> "overview"
             }
         )
@@ -170,6 +171,8 @@ fun NishthaAnalyticsScreen(
                 AnalyticsSectionChip("Overview", selectedSection == "overview", Color(0xFF1E3A8A), isLight) { selectedSection = "overview" }
                 AnalyticsSectionChip("Goals", selectedSection == "goals", Color(0xFF065F46), isLight) { selectedSection = "goals" }
                 AnalyticsSectionChip("Ekagra", selectedSection == "ekagra", Color(0xFF9A3412), isLight) { selectedSection = "ekagra" }
+                // Kavach analytics is free for every signed-in student — no premium gate.
+                AnalyticsSectionChip("Kavach", selectedSection == "kavach", Color(0xFF0F766E), isLight) { selectedSection = "kavach" }
                 AnalyticsSectionChip("Monthly Review", selectedSection == "monthly", Color(0xFF5B21B6), isLight) { selectedSection = "monthly" }
             }
 
@@ -177,6 +180,9 @@ fun NishthaAnalyticsScreen(
                 when (selectedSection) {
                     "goals" -> GoalInsightsSection(uiState.goals)
                     "ekagra" -> FocusInsightsSection(uiState.ekagraAnalytics)
+                    "kavach" -> com.safarparmar.app.feature.kavachanalytics.ui.KavachAnalyticsSection(
+                        onNavigate = onNavigate,
+                    )
                     "monthly" -> MonthlyReviewSection(
                         selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.second ?: "",
                         onMonthClick = { showMonthPicker = true },

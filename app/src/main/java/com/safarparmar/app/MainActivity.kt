@@ -34,7 +34,9 @@ import com.safarparmar.app.ui.ekagra.LocalTimerService
 import com.safarparmar.app.ui.ekagra.TimerService
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldBlockPrompt
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldBlockedBottomSheet
+import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
+import dagger.hilt.android.EntryPointAccessors
 import com.safarparmar.app.ui.navigation.SafarNavGraph
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.analytics.StudyPlannerAnalytics
@@ -235,6 +237,12 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
         val unlockMinutes = minutes.coerceIn(1, 60)
         val graceUntilMs = System.currentTimeMillis() + unlockMinutes * 60_000L
         FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(this, graceUntilMs)
+        runCatching {
+            EntryPointAccessors
+                .fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
+                .focusShieldRepository()
+                .recordQuickUnlock(prompt.packageName, unlockMinutes)
+        }
         dismissFocusShieldBlockPrompt()
         packageManager.getLaunchIntentForPackage(prompt.packageName)
             ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
