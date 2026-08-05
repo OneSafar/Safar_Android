@@ -267,11 +267,7 @@ class SafarNotificationManager(
         postGroupSummary(normalizedChannel)
     }
 
-    private suspend fun personalizeBody(body: String): String {
-        val name = SafarDataStore(context).userName.first()?.trim().orEmpty()
-        if (name.isBlank() || startsWithPersonalGreeting(body)) return body
-        return "Hi $name, $body"
-    }
+    private suspend fun personalizeBody(body: String): String = body
 
     private fun startsWithPersonalGreeting(body: String): Boolean {
         return Regex(

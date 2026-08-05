@@ -1602,11 +1602,7 @@ class TimerService : Service() {
             .build()
     }
 
-    private fun personalizeNotificationBody(body: String): String {
-        val name = cachedUserName
-        if (name.isBlank() || startsWithPersonalGreeting(body)) return body
-        return "Hi $name, $body"
-    }
+    private fun personalizeNotificationBody(body: String): String = body
 
     private fun startsWithPersonalGreeting(body: String): Boolean {
         return Regex(

@@ -64,9 +64,5 @@ object QuickUnlockNotification {
             .cancel(NOTIFICATION_ID)
     }
 
-    private fun personalizeBody(body: String, userName: String?): String {
-        val name = userName?.trim().orEmpty()
-        if (name.isBlank()) return body
-        return "Hi $name, $body"
-    }
+    private fun personalizeBody(body: String, _userName: String?): String = body
 }

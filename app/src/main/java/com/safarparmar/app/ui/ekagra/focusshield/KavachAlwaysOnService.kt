@@ -1,7 +1,6 @@
 package com.safarparmar.app.ui.ekagra.focusshield
 
 import android.app.Notification
-import android.app.PendingIntent
 import android.app.Service
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
@@ -11,6 +10,7 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
+import android.app.PendingIntent
 import androidx.core.app.NotificationCompat
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.data.local.SafarDataStore
@@ -49,6 +49,8 @@ class KavachAlwaysOnService : Service() {
         private const val SETTINGS_SYNC_MS = 2_000L
         private const val FOREGROUND_LOOKBACK_MS = 2_000L
         private const val BLOCK_DEBOUNCE_MS = 750L
+        /** Tighter poll while the overlay is up so it dismisses almost instantly. */
+        private const val OVERLAY_DISMISS_POLL_MS = 150L
 
         private val KNOWN_HOME_PACKAGES = setOf(
             "com.miui.home", "com.mi.android.globallauncher", "com.android.launcher",
@@ -77,6 +79,7 @@ class KavachAlwaysOnService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val dataStore by lazy { SafarDataStore(applicationContext) }
     private val poller = AdaptivePollScheduler()
+    private val blockOverlay by lazy { KavachBlockOverlay(this) }
 
     private var monitorJob: Job? = null
     private var blockedPackages: Set<String> = emptySet()
@@ -95,6 +98,7 @@ class KavachAlwaysOnService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        blockOverlay.dismiss()
         KavachAlwaysOnPrefs.clear(this)
         monitorJob?.cancel()
         scope.cancel()
@@ -110,8 +114,11 @@ class KavachAlwaysOnService : Service() {
                     untilSync = SETTINGS_SYNC_MS
                 }
                 val waitMs = monitorForegroundApp()
-                delay(waitMs)
-                untilSync -= waitMs
+                // Poll faster while the overlay is visible so it dismisses
+                // almost instantly when the student leaves the blocked app.
+                val actualWait = if (blockOverlay.isShowing) OVERLAY_DISMISS_POLL_MS.coerceAtMost(waitMs) else waitMs
+                delay(actualWait)
+                untilSync -= actualWait
             }
         }
     }
@@ -140,7 +147,7 @@ class KavachAlwaysOnService : Service() {
         KavachAlwaysOnPrefs.write(this, packages)
 
         // Don't clobber a live session's snapshot; TimerService owns it then.
-        if (!FocusShieldRepository.ShieldPrefs.isActive(this)) {
+        if (!com.safarparmar.app.ui.ekagra.TimerService.isFocusTimerRunning(this)) {
             FocusShieldRepository.Snapshot.active = true
             FocusShieldRepository.Snapshot.packages = packages
             FocusShieldRepository.Snapshot.strict = false
@@ -152,14 +159,10 @@ class KavachAlwaysOnService : Service() {
     private fun monitorForegroundApp(): Long {
         // Always On is independent of Ekagra by definition: it does not care whether
         // a timer is running, paused, or on a break. The only thing checked here is
-        // whether TimerService is *already* driving blocking, and that is purely so
-        // the two don't both launch the block screen over each other — the app stays
-        // blocked either way, so yielding is invisible to the student.
-        //
-        // Note this deliberately does not stand down for a BREAK. An earlier version
-        // did, which meant a student on Always On could open a blocked app simply by
-        // starting a break — exactly the loophole the mode exists to close.
-        if (FocusShieldRepository.ShieldPrefs.isActive(this)) {
+        // whether TimerService is *actively running* a focus session, so the two don't
+        // both launch the block screen over each other.
+        if (com.safarparmar.app.ui.ekagra.TimerService.isFocusTimerRunning(this)) {
+            blockOverlay.dismiss()
             lastBlockedPackage = null
             countedAttemptPackage = null
             return poller.onSample(null, isBlockedApp = false)
@@ -167,6 +170,7 @@ class KavachAlwaysOnService : Service() {
 
         // Honour the quick-unlock window the block screen grants.
         if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
+            blockOverlay.dismiss()
             return poller.onSample(null, isBlockedApp = false)
         }
 
@@ -177,6 +181,7 @@ class KavachAlwaysOnService : Service() {
             foregroundPackage == "com.android.settings" ||
             isHomePackage(foregroundPackage)
         ) {
+            blockOverlay.dismiss()
             lastBlockedPackage = null
             countedAttemptPackage = null
             return poller.onSample(foregroundPackage, isBlockedApp = false)
@@ -186,6 +191,7 @@ class KavachAlwaysOnService : Service() {
         if (isBlocked) {
             launchBlockScreen(foregroundPackage)
         } else {
+            blockOverlay.dismiss()
             countedAttemptPackage = null
         }
         return poller.onSample(foregroundPackage, isBlockedApp = isBlocked)
@@ -210,18 +216,12 @@ class KavachAlwaysOnService : Service() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(blockedPackage, 0)).toString()
         }.getOrDefault("This app")
 
-        val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
-            )
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE, blockedPackage)
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME, appName)
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_STRICT, false)
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_ALWAYS_ON, true)
-        }
-        runCatching { startActivity(intent) }
+        // Primary blocking: draw an overlay directly over the blocked app.
+        // This bypasses Android's Background Activity Launch (BAL) restrictions
+        // entirely — no need to bring MainActivity to the foreground.
+        // The persistent foreground service notification ("KAVACH Always On")
+        // is sufficient; no extra per-block notification is needed.
+        blockOverlay.show(appName)
     }
 
     private fun currentForegroundPackage(): String? {
