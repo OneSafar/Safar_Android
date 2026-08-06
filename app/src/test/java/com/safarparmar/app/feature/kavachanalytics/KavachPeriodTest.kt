@@ -159,3 +159,61 @@ class KavachAxisTest {
         assertEquals("10h", KavachAnalyticsFormat.axisValue(mins(600)))
     }
 }
+
+/**
+ * "During Kavach" must count every stretch Kavach was actually guarding the
+ * student — a timed session *or* Always On. Counting only sessions is what made
+ * an all-day Always On user see zero protected time.
+ */
+class ProtectionWindowTest {
+
+    private val start = 1_800_000_000_000L
+    private fun mins(n: Long) = n * 60_000L
+
+    /** Mirrors how the repository turns stored windows into overlap ranges. */
+    private fun range(startMs: Long, endMs: Long, isOpen: Boolean, nowMs: Long): LongRange =
+        startMs..(if (isOpen) maxOf(endMs, nowMs) else endMs)
+
+    @Test
+    fun `a closed window ends exactly where it was closed`() {
+        val r = range(start, start + mins(30), isOpen = false, nowMs = start + mins(90))
+        assertEquals(start + mins(30), r.last)
+    }
+
+    @Test
+    fun `an open window runs to now, so live protection is counted`() {
+        val now = start + mins(45)
+        val r = range(start, start + mins(44), isOpen = true, nowMs = now)
+        assertEquals(now, r.last)
+    }
+
+    @Test
+    fun `a window killed mid-heartbeat ends at its last heartbeat, not forever`() {
+        // Service died 30 minutes ago; startup closed the window at its last beat.
+        val r = range(start, start + mins(10), isOpen = false, nowMs = start + mins(40))
+        assertEquals(mins(10), r.last - r.first)
+    }
+
+    @Test
+    fun `an Always On window and a session inside it are merged, not double counted`() {
+        val alwaysOn = range(start, start + mins(60), isOpen = false, nowMs = start + mins(60))
+        val session = range(start + mins(10), start + mins(30), isOpen = false, nowMs = start + mins(60))
+
+        val merged = com.safarparmar.app.feature.kavachanalytics.data
+            .UsageIntervalReconstructor.mergeWindows(listOf(alwaysOn, session))
+
+        assertEquals(1, merged.size)
+        assertEquals(mins(60), merged.first().last - merged.first().first)
+    }
+
+    @Test
+    fun `two separate protected stretches stay separate`() {
+        val morning = range(start, start + mins(30), isOpen = false, nowMs = start + mins(200))
+        val evening = range(start + mins(120), start + mins(150), isOpen = false, nowMs = start + mins(200))
+
+        val merged = com.safarparmar.app.feature.kavachanalytics.data
+            .UsageIntervalReconstructor.mergeWindows(listOf(morning, evening))
+
+        assertEquals(2, merged.size)
+    }
+}

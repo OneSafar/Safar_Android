@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
+import com.safarparmar.app.feature.kavachanalytics.data.local.ProtectionSource
 import com.safarparmar.app.notifications.SafarNotificationChannels
 import com.safarparmar.app.notifications.SafarNotificationManager
 import com.safarparmar.app.ui.navigation.Routes
@@ -35,12 +36,14 @@ import kotlinx.coroutines.launch
  * state: as long as this service is running and its notification is showing, the
  * chosen apps stay blocked whether or not a study session is in progress.
  *
- * Fully independent of Ekagra: a timer running, paused, or on a break changes
- * nothing about whether the chosen apps are blocked. The only coordination with
- * [com.safarparmar.app.ui.ekagra.TimerService] is that this service stays quiet
- * while that one is already driving blocking, so the two never launch the block
- * screen over each other. The app is blocked either way, so that hand-off is
- * invisible to the student.
+ * Fully independent of Ekagra, and the *sole* blocker while it runs. A timer
+ * running, paused, or on a break changes nothing, and no quick unlock is honoured:
+ * the student chose this mode precisely because it has no way out.
+ *
+ * [com.safarparmar.app.ui.ekagra.TimerService] therefore does not activate its own
+ * shield while Always On is enabled — it only records the study session. Letting it
+ * take over was the bug: the student would be blocked by the timer's Normal-Mode
+ * sheet, quick-unlock button and all, in the middle of an Always On session.
  */
 class KavachAlwaysOnService : Service() {
 
@@ -89,6 +92,11 @@ class KavachAlwaysOnService : Service() {
     /** Package already counted once for this foreground visit. */
     private var countedAttemptPackage: String? = null
 
+    private fun focusShieldRepository(): FocusShieldRepository =
+        dagger.hilt.android.EntryPointAccessors
+            .fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
+            .focusShieldRepository()
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildStatusNotification())
         if (monitorJob == null) startMonitoring()
@@ -99,6 +107,10 @@ class KavachAlwaysOnService : Service() {
 
     override fun onDestroy() {
         blockOverlay.dismiss()
+        runCatching {
+            KavachAnalyticsRecorder.from(applicationContext)
+                .endProtection(ProtectionSource.ALWAYS_ON)
+        }
         KavachAlwaysOnPrefs.clear(this)
         monitorJob?.cancel()
         scope.cancel()
@@ -146,33 +158,35 @@ class KavachAlwaysOnService : Service() {
         blockedPackages = packages
         KavachAlwaysOnPrefs.write(this, packages)
 
-        // Don't clobber a live session's snapshot; TimerService owns it then.
-        if (!com.safarparmar.app.ui.ekagra.TimerService.isFocusTimerRunning(this)) {
-            FocusShieldRepository.Snapshot.active = true
-            FocusShieldRepository.Snapshot.packages = packages
-            FocusShieldRepository.Snapshot.strict = false
+        // Keep the protection window alive. This is what makes "During Kavach" count
+        // Always On time: without it, a student guarded all day would see zero
+        // protected time because only timed sessions were ever counted.
+        runCatching {
+            KavachAnalyticsRecorder.from(applicationContext)
+                .heartbeatProtection(ProtectionSource.ALWAYS_ON)
         }
+
+        // Always On owns the snapshot for as long as it runs, timer or no timer.
+        // Deferring to a running session here would let the timer's Normal-Mode
+        // state take over mid-session, which is exactly what put a quick-unlock
+        // button in front of a student who had chosen the mode without one.
+        FocusShieldRepository.Snapshot.active = true
+        FocusShieldRepository.Snapshot.packages = packages
+        FocusShieldRepository.Snapshot.strict = false
         return true
     }
 
     /** @return how long to wait before the next poll. */
     private fun monitorForegroundApp(): Long {
-        // Always On is independent of Ekagra by definition: it does not care whether
-        // a timer is running, paused, or on a break. The only thing checked here is
-        // whether TimerService is *actively running* a focus session, so the two don't
-        // both launch the block screen over each other.
-        if (com.safarparmar.app.ui.ekagra.TimerService.isFocusTimerRunning(this)) {
-            blockOverlay.dismiss()
-            lastBlockedPackage = null
-            countedAttemptPackage = null
-            return poller.onSample(null, isBlockedApp = false)
-        }
-
-        // Honour the quick-unlock window the block screen grants.
-        if (FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
-            blockOverlay.dismiss()
-            return poller.onSample(null, isBlockedApp = false)
-        }
+        // Always On blocks unconditionally. It does not stand down for a running
+        // timer, a pause, or a break, and it does not honour a quick-unlock window —
+        // its overlay never offers one, and an unlock granted earlier under Normal
+        // Mode must not survive into a mode the student chose precisely because it
+        // has no way out.
+        //
+        // Standing down for a running timer is what produced the reported bug: the
+        // timer took over, blocked in Normal Mode, and the student got the bottom
+        // sheet with a quick-unlock button in the middle of an Always On session.
 
         val foregroundPackage = currentForegroundPackage()
             ?: return poller.onSample(null, isBlockedApp = false)
@@ -207,9 +221,11 @@ class KavachAlwaysOnService : Service() {
         // so Always On days and session days are directly comparable in analytics.
         if (countedAttemptPackage != blockedPackage) {
             countedAttemptPackage = blockedPackage
-            runCatching {
-                KavachAnalyticsRecorder.from(applicationContext).blockedAttempt(blockedPackage)
-            }
+            // Routed through the repository rather than straight to the recorder, so
+            // the live in-session counters move too. Calling the recorder directly
+            // recorded the attempt for analytics but left the Kavach summary screen's
+            // counts blind to anything Always On blocked.
+            runCatching { focusShieldRepository().recordBlockedHit(blockedPackage) }
         }
 
         val appName = runCatching {

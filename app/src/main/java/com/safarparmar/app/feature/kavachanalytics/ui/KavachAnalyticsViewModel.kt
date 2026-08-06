@@ -26,7 +26,7 @@ import javax.inject.Inject
 /** Which measurement the summary and trend show. */
 enum class KavachScope(val label: String) {
     ALL_DAY("Entire day"),
-    DURING_KAVACH("Protected time"),
+    DURING_KAVACH("During Kavach"),
 }
 
 /** One period, resolved from a granularity and how many steps back the student has paged. */

@@ -120,6 +120,21 @@ class FocusShieldRepository @Inject constructor(
             _activationBlockedReason.value = null
             return
         }
+        // Always On owns blocking outright, and must keep owning it for the whole
+        // session. Handing over to timer-bound blocking here is what downgraded the
+        // student to Normal Mode mid-session: they got the bottom sheet with a quick
+        // unlock button, in the one mode whose entire point is that there is no way
+        // out. The timed session is still recorded, so study time is still measured —
+        // only the blocking stays where the student put it.
+        if (isAlwaysOnMode.value) {
+            debugLog("activateForSession deferred: Always On owns blocking")
+            _activationBlockedReason.value = null
+            if (isFocusPeriod) {
+                analyticsRecorder.sessionStarted(strictMode = settings.strict, plannedSeconds = plannedSeconds)
+            }
+            return
+        }
+
         if (!hasRequiredPermissions()) {
             debugLog("activateForSession skipped: required permission missing")
             _activationBlockedReason.value = "A permission KAVACH needs was turned off, so blocking isn't active this session."
@@ -267,6 +282,11 @@ class FocusShieldRepository @Inject constructor(
             debugLog("Always On not started: no blocked apps chosen")
             return
         }
+        // Drop any quick-unlock window still running from a previous Normal-Mode
+        // session. Carrying one into Always On would leave an app openable for
+        // minutes after the student switched to the mode that exists to prevent it.
+        ShieldPrefs.applyEmergencyUnlock(appContext, graceUntilMs = 0L)
+        QuickUnlockNotification.cancel(appContext)
         if (!hasRequiredPermissions()) {
             _activationBlockedReason.value =
                 "A permission KAVACH needs was turned off, so Always On isn't blocking."

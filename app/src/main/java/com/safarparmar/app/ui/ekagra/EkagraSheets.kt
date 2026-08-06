@@ -442,18 +442,45 @@ internal fun OrganizeFreeFocusSheet(
                         }
 
                         if (selectedGoal != null) {
-                            // There used to be a "Mark goal as completed" checkbox
-                            // here, defaulting to OFF. Linking a finished study
-                            // session to a goal and NOT finishing the goal made no
-                            // sense to students: they linked the session, saw the
-                            // goal still open, and had to go to the Goals screen and
-                            // tick it a second time. Linking now always completes it.
                             Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "Your study time will be added to this goal.",
+                                fontSize = 13.sp,
+                                color = PlannerFlatColors.TextMuted,
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
                             ActionPill(
-                                text = "Link & Complete Goal",
+                                text = "Keep Goal Open",
                                 accentColor = goalAccent,
-                                onClick = { selectedGoal?.let { onLinkGoal(it, true) } },
+                                onClick = {
+                                    selectedGoal?.let {
+                                        onLinkGoal(it, GoalSessionSaveChoice.KEEP_GOAL_OPEN.marksGoalDone)
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                text = "Use this if you will study it again.",
+                                fontSize = 12.sp,
+                                color = PlannerFlatColors.TextMuted,
+                                modifier = Modifier.padding(top = 5.dp),
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            ActionPill(
+                                text = "Mark Goal Done",
+                                accentColor = goalAccent,
+                                onClick = {
+                                    selectedGoal?.let {
+                                        onLinkGoal(it, GoalSessionSaveChoice.MARK_GOAL_DONE.marksGoalDone)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                text = "Use this only when all the work is finished.",
+                                fontSize = 12.sp,
+                                color = PlannerFlatColors.TextMuted,
+                                modifier = Modifier.padding(top = 5.dp),
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                         }
@@ -624,9 +651,8 @@ private fun SaveSectionHeader(
 }
 
 /**
- * Last stop before a session is filed. Saving is irreversible — a session can
- * never be renamed, nor moved between Quick Save and a goal, once saved — so an
- * accidental tap should not be able to commit it.
+ * Last stop before a session is saved. It says clearly whether the selected
+ * goal stays open or is marked done.
  */
 @Composable
 internal fun EkagraConfirmSaveDialog(
@@ -636,6 +662,8 @@ internal fun EkagraConfirmSaveDialog(
     /** True when confirming will also mark the linked goal/topic finished, so the
      *  dialog can say so instead of springing it on the student. */
     completesTarget: Boolean = false,
+    /** True when this is a goal link that deliberately leaves the goal open. */
+    keepsGoalOpen: Boolean = false,
 ) {
     val accent = PlannerAccent.Teal
     androidx.compose.ui.window.Dialog(onDismissRequest = onCancel) {
@@ -656,10 +684,10 @@ internal fun EkagraConfirmSaveDialog(
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = if (completesTarget) {
-                    "This also marks \"$label\" as done. You cannot change it later."
-                } else {
-                    "You cannot change this later. Your session will stay here."
+                text = when {
+                    completesTarget -> "Your study time will be saved and this goal will be marked done."
+                    keepsGoalOpen -> "Your study time will be saved. This goal will stay open for your next session."
+                    else -> "Your study time will be saved."
                 },
                 fontSize = 13.5.sp,
                 color = PlannerFlatColors.TextMuted,

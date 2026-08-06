@@ -297,7 +297,7 @@ class EkagraViewModel @Inject constructor(
         }
     }
 
-    fun linkGoalAndCompleteSession(
+    fun linkGoalAndSaveSession(
         sessionId: String,
         goal: Goal,
         totalSeconds: Int,

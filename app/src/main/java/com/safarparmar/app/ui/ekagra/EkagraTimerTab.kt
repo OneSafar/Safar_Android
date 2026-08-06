@@ -261,13 +261,25 @@ internal fun TimerFocusTab(
                     if (hasAllPermissions && !isBeastMode) {
                         // Status chip — a hairline outline and a single accent dot
                         // instead of a frosted panel with a full switch.
+                        // Under Always On the chip is read-only: tapping it used to
+                        // run setEnabled(false), which clears the Always On flag and
+                        // silently drops the user back to Normal mode.
+                        val alwaysOn = shieldState.isAlwaysOnMode
+                        val dotColor = when {
+                            alwaysOn -> ink.mutedText
+                            shieldState.isEnabled -> themeAccent
+                            else -> null
+                        }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
                                 .clip(CircleShape)
                                 .border(EkagraChrome.stroke(1f), ink.hairline, CircleShape)
-                                .clickable { onToggleKavach(!shieldState.isEnabled) }
+                                .then(
+                                    if (alwaysOn) Modifier
+                                    else Modifier.clickable { onToggleKavach(!shieldState.isEnabled) }
+                                )
                                 .padding(horizontal = EkagraChrome.size(14f), vertical = EkagraChrome.size(7f)),
                         ) {
                             Box(
@@ -275,15 +287,19 @@ internal fun TimerFocusTab(
                                     .size(EkagraChrome.size(6f))
                                     .clip(CircleShape)
                                     .then(
-                                        if (shieldState.isEnabled) Modifier.background(themeAccent)
+                                        if (dotColor != null) Modifier.background(dotColor)
                                         else Modifier.border(EkagraChrome.stroke(1f), ink.mutedText, CircleShape)
                                     ),
                             )
                             Text(
-                                text = if (shieldState.isEnabled) "Kavach on" else "Kavach off",
+                                text = when {
+                                    alwaysOn -> "Kavach always on"
+                                    shieldState.isEnabled -> "Kavach on"
+                                    else -> "Kavach off"
+                                },
                                 fontSize = EkagraChrome.text(12f),
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (shieldState.isEnabled) ink.primaryText else ink.mutedText,
+                                color = if (shieldState.isEnabled && !alwaysOn) ink.primaryText else ink.mutedText,
                             )
                         }
                         Spacer(Modifier.height(24.dp))

@@ -90,11 +90,19 @@ interface KavachAnalyticsDao {
     @Query("SELECT * FROM kavach_event WHERE localDate = :localDate ORDER BY atMs")
     suspend fun eventsForDate(localDate: String): List<KavachEventEntity>
 
-    @Query(
-        "SELECT * FROM kavach_event WHERE clientSessionId = :sessionId " +
-            "AND type = :type AND consumed = 0 ORDER BY atMs DESC LIMIT 1",
-    )
-    suspend fun lastOpenEvent(sessionId: String, type: String): KavachEventEntity?
+    /**
+     * The newest unconsumed event of [type], regardless of session.
+     *
+     * A quick unlock is a device-wide grace window — there is only ever one open at
+     * a time — and it can be granted with no session running at all under Always On.
+     * Looking it up by session is what left those unlocks permanently open and their
+     * duration unrecorded.
+     */
+    @Query("SELECT * FROM kavach_event WHERE type = :type AND consumed = 0 ORDER BY atMs DESC LIMIT 1")
+    suspend fun lastOpenEventOfType(type: String): KavachEventEntity?
+
+    @Query("SELECT * FROM kavach_event WHERE localDate BETWEEN :startDate AND :endDate ORDER BY atMs")
+    suspend fun eventsBetween(startDate: String, endDate: String): List<KavachEventEntity>
 
     @Query("UPDATE kavach_event SET consumed = 1 WHERE id = :id")
     suspend fun markEventConsumed(id: String)
@@ -137,6 +145,33 @@ interface KavachAnalyticsDao {
 
     @Query("DELETE FROM kavach_daily_app_aggregate WHERE localDate < :cutoffDate")
     suspend fun deleteAggregatesBefore(cutoffDate: String)
+
+    // ── Protection windows ───────────────────────────────────────────────────
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertProtectionWindow(window: ProtectionWindowEntity)
+
+    @Query("SELECT * FROM kavach_protection_window WHERE isOpen = 1 AND source = :source ORDER BY startMs DESC LIMIT 1")
+    suspend fun openProtectionWindow(source: String): ProtectionWindowEntity?
+
+    @Query("SELECT * FROM kavach_protection_window WHERE isOpen = 1")
+    suspend fun allOpenProtectionWindows(): List<ProtectionWindowEntity>
+
+    /** Windows that touch [fromMs]..[toMs] at all — used to compute protected time. */
+    @Query("SELECT * FROM kavach_protection_window WHERE endMs >= :fromMs AND startMs <= :toMs")
+    suspend fun protectionWindowsOverlapping(fromMs: Long, toMs: Long): List<ProtectionWindowEntity>
+
+    @Query("UPDATE kavach_protection_window SET endMs = :endMs WHERE id = :id")
+    suspend fun touchProtectionWindow(id: String, endMs: Long)
+
+    @Query("UPDATE kavach_protection_window SET endMs = :endMs, isOpen = 0 WHERE id = :id")
+    suspend fun closeProtectionWindow(id: String, endMs: Long)
+
+    @Query("UPDATE kavach_protection_window SET isOpen = 0 WHERE source = :source AND isOpen = 1")
+    suspend fun closeOpenProtectionWindows(source: String)
+
+    @Query("DELETE FROM kavach_protection_window WHERE endMs < :cutoffMs")
+    suspend fun deleteProtectionWindowsBefore(cutoffMs: Long)
 
     // ── Coverage ─────────────────────────────────────────────────────────────
 

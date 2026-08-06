@@ -52,6 +52,7 @@ class KavachAnalyticsRepository @Inject constructor(
     private val dao: KavachAnalyticsDao,
     private val api: KavachAnalyticsApi,
     private val collector: KavachUsageCollector,
+    private val recorder: KavachAnalyticsRecorder,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val aggregateMutex = Mutex()
@@ -133,6 +134,10 @@ class KavachAnalyticsRepository @Inject constructor(
      */
     suspend fun refresh(sync: Boolean = true) = withContext(ioDispatcher) {
         runCatching { seedDefaultClassifications() }
+        // Backstop for a quick unlock whose window lapsed while nothing was watching
+        // — the service was killed, or the phone was idle. Without this the event
+        // would sit open forever and its duration would never be counted.
+        runCatching { recorder.settleExpiredUnlocks() }
         val touched = runCatching { collector.collect() }.getOrDefault(emptySet())
         val today = LocalDate.now(zone).toString()
         (touched + today + dao.datesWithIntervals()).forEach { date ->
@@ -154,6 +159,16 @@ class KavachAnalyticsRepository @Inject constructor(
             val events = dao.eventsForDate(localDate)
             if (intervals.isEmpty() && events.isEmpty()) return@withLock
 
+            // A finished day's raw intervals are deleted once aggregated, but its
+            // events live on for 12 months. Re-aggregating such a day would rebuild
+            // it from events alone and overwrite real measured usage with zeros —
+            // silently destroying that day's history. No current caller does this,
+            // but the method is public and the failure would be invisible.
+            if (intervals.isEmpty() && dao.aggregatesBetween(localDate, localDate).isNotEmpty()) {
+                debugLog("aggregateDate($localDate) skipped: intervals pruned, keeping stored totals")
+                return@withLock
+            }
+
             val dayStartMs = LocalDate.parse(localDate).atStartOfDay(zone).toInstant().toEpochMilli()
             val dayEndMs = LocalDate.parse(localDate).plusDays(1)
                 .atStartOfDay(zone).toInstant().toEpochMilli()
@@ -163,8 +178,12 @@ class KavachAnalyticsRepository @Inject constructor(
                 localDate,
             ).filter { it.startedAtMs < dayEndMs && (it.endedAtMs ?: System.currentTimeMillis()) > dayStartMs }
 
-            val windows = sessions.map {
-                it.startedAtMs..(it.endedAtMs ?: System.currentTimeMillis())
+            // "During Kavach" means every stretch Kavach was actually guarding the
+            // student — a timed session or Always On. Deriving it from sessions alone
+            // is what made an Always On day report zero protected time while Kavach
+            // had been blocking all day.
+            val windows = dao.protectionWindowsOverlapping(dayStartMs, dayEndMs).map {
+                it.startMs..(if (it.isOpen) maxOf(it.endMs, System.currentTimeMillis()) else it.endMs)
             }
 
             val categories = categoryMap()
@@ -232,6 +251,9 @@ class KavachAnalyticsRepository @Inject constructor(
         withContext(ioDispatcher) {
             val aggregates = dao.aggregatesBetween(startDate, endDate)
             val sessions = dao.sessionsBetween(startDate, endDate)
+            val unlockSeconds = dao.eventsBetween(startDate, endDate)
+                .filter { it.type == KavachEventType.QUICK_UNLOCK_ENDED }
+                .sumOf { it.durationSeconds }
             val coverage = dao.coverageBetween(startDate, endDate)
                 .associate { it.localDate to DataCoverage.fromWire(it.status) }
             val labels = dao.allClassifications().associate { it.packageName to it.appLabel }
@@ -323,13 +345,24 @@ class KavachAnalyticsRepository @Inject constructor(
                     .filter { it.blockedAttempts > 0 }
                     .associate { it.packageName to it.blockedAttempts },
                 quickUnlockCount = aggregates.sumOf { it.quickUnlockCount },
-                quickUnlockSeconds = sessions.sumOf { it.quickUnlockSeconds },
+                // Summed from the unlock-ended events rather than from session rows.
+                // A session's own quickUnlockSeconds is rolled up from these same
+                // events, so this is not a double count — but unlocks granted under
+                // Always On belong to no session, and reading only sessions is what
+                // made their duration permanently report as 0m.
+                quickUnlockSeconds = unlockSeconds,
                 completedSessions = sessions.count { it.outcome == KavachSessionOutcome.COMPLETED.wire },
                 endedEarlySessions = sessions.count { it.outcome == KavachSessionOutcome.ENDED_EARLY.wire },
                 interruptedSessions = sessions.count { it.outcome == KavachSessionOutcome.INTERRUPTED.wire },
                 coverage = when {
                     missing.isEmpty() -> DataCoverage.COMPLETE
-                    missing.size == byDate.size -> DataCoverage.UNAVAILABLE
+                    // Only "nothing could be measured" when every day genuinely had
+                    // nothing. Previously any non-complete day counted here, so a
+                    // single partially-measured day — which is what the first day
+                    // after install always is — reported as unavailable, directly
+                    // contradicting the usage listed underneath it.
+                    byDate.values.all { it.coverage == DataCoverage.UNAVAILABLE } ->
+                        DataCoverage.UNAVAILABLE
                     else -> DataCoverage.PARTIAL
                 },
                 daysMissingCoverage = missing,
@@ -490,6 +523,7 @@ class KavachAnalyticsRepository @Inject constructor(
         dao.deleteCoverageBefore(cutoffKey)
         dao.deleteSessionsBefore(cutoffMs)
         dao.deleteEventsBefore(cutoffMs)
+        dao.deleteProtectionWindowsBefore(cutoffMs)
         // Raw intervals are far shorter-lived than the 12-month window: anything
         // older than a couple of days has already been aggregated.
         dao.deleteIntervalsBefore(nowMs - RAW_INTERVAL_RETENTION_MS)

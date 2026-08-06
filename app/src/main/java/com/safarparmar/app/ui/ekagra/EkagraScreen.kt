@@ -88,6 +88,13 @@ private fun blendColors(color1: Color, color2: Color, ratio: Float): Color {
     return Color(r.coerceIn(0f, 1f), g.coerceIn(0f, 1f), b.coerceIn(0f, 1f))
 }
 
+private data class PendingSaveConfirmation(
+    val label: String,
+    val completesTarget: Boolean,
+    val keepsGoalOpen: Boolean = false,
+    val commit: () -> Unit,
+)
+
 // ─── Video background (unchanged) ──────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -946,12 +953,10 @@ fun EkagraScreen(
                         val pending = pendingEndedSession
                         val organizeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
                         val organizeSheetScope = rememberCoroutineScope()
-                        // Filing a session is FINAL — it can never be renamed, nor moved
-                        // between Quick Save and a goal, afterwards. Holds the label to
-                        // confirm plus the action to run if the student says yes.
-                        // label, "confirming also completes it", commit action
+                        // Hold the exact save choice until the student confirms it.
+                        // Linking study time and finishing a goal must stay separate.
                         var pendingSaveConfirmation by remember {
-                            mutableStateOf<Triple<String, Boolean, () -> Unit>?>(null)
+                            mutableStateOf<PendingSaveConfirmation?>(null)
                         }
 
                         // ModalBottomSheet must finish its hide animation before we tear the
@@ -1032,7 +1037,7 @@ fun EkagraScreen(
                             if (pending != null) {
                                 closeOrganizeSheet {
                                     if (pending.sessionId.startsWith("local-")) {
-                                        viewModel.linkGoalAndCompleteSession(pending.sessionId, goal,
+                                        viewModel.linkGoalAndSaveSession(pending.sessionId, goal,
                                             pending.totalSeconds, pending.secondsLeft, pending.mode, pending.startedAt,
                                             shouldMarkComplete, pending.endedAt)
                                     } else {
@@ -1060,20 +1065,26 @@ fun EkagraScreen(
                             // through a confirmation because they are final.
                             onDismiss     = { if (pending?.topicId != null) saveTopicLinkedSession(false) else savePendingAsFree() },
                             onSaveFree    = {
-                                pendingSaveConfirmation = Triple("Quick Save", false) { savePendingAsFree() }
+                                pendingSaveConfirmation = PendingSaveConfirmation(
+                                    label = "Quick Save",
+                                    completesTarget = false,
+                                    commit = { savePendingAsFree() },
+                                )
                             },
                             onSaveTopic   = { markDone ->
-                                pendingSaveConfirmation = Triple(
-                                    pending?.topicTitle ?: "this topic",
-                                    markDone,
-                                ) { saveTopicLinkedSession(markDone) }
+                                pendingSaveConfirmation = PendingSaveConfirmation(
+                                    label = pending?.topicTitle ?: "this topic",
+                                    completesTarget = markDone,
+                                    commit = { saveTopicLinkedSession(markDone) },
+                                )
                             },
                             onLinkGoal = { goal, shouldMarkComplete ->
-                                // Linking always completes the goal now, so the
-                                // dialog says so up front.
-                                pendingSaveConfirmation = Triple(goal.title, shouldMarkComplete) {
-                                    linkGoalNow(goal, shouldMarkComplete)
-                                }
+                                pendingSaveConfirmation = PendingSaveConfirmation(
+                                    label = goal.title,
+                                    completesTarget = shouldMarkComplete,
+                                    keepsGoalOpen = !shouldMarkComplete,
+                                    commit = { linkGoalNow(goal, shouldMarkComplete) },
+                                )
                             },
                             onDiscard = {
                                 if (pending != null) {
@@ -1085,13 +1096,14 @@ fun EkagraScreen(
                             },
                         )
 
-                        pendingSaveConfirmation?.let { (label, completesTarget, commit) ->
+                        pendingSaveConfirmation?.let { confirmation ->
                             EkagraConfirmSaveDialog(
-                                label = label,
-                                completesTarget = completesTarget,
+                                label = confirmation.label,
+                                completesTarget = confirmation.completesTarget,
+                                keepsGoalOpen = confirmation.keepsGoalOpen,
                                 onConfirm = {
                                     pendingSaveConfirmation = null
-                                    commit()
+                                    confirmation.commit()
                                 },
                                 onCancel = { pendingSaveConfirmation = null },
                             )

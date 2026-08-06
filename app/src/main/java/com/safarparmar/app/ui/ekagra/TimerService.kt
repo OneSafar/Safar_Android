@@ -246,6 +246,23 @@ class TimerService : Service() {
             disableFocusShieldForSession()
             return
         }
+        // Always On is already blocking, with an overlay that offers no escape.
+        // Taking over here would replace it with the Normal-Mode block sheet and its
+        // quick-unlock button — so the timer records the session and otherwise keeps
+        // its hands off. Deliberately does not write ShieldPrefs or the snapshot,
+        // because the Always On service treats those as "the timer is blocking now"
+        // and would stand down.
+        if (focusShieldRepo().isAlwaysOnMode.value) {
+            debugFocusShield("TimerService: Always On owns blocking; not activating session shield")
+            focusShieldRepo().activateForSession(
+                plannedSeconds = _totalSeconds.value.coerceAtLeast(0),
+                isFocusPeriod = _timerMode.value == TimerMode.FOCUS ||
+                    _timerMode.value == TimerMode.STOPWATCH ||
+                    _timerMode.value == TimerMode.POMODORO,
+            )
+            _focusShieldActive.value = true
+            return
+        }
         if (!FocusShieldPermissionHelper.hasUsageStatsPermission(this)) {
             debugFocusShield("Ekagra Shield not enabled: Usage access missing")
             disableFocusShieldForSession()
@@ -490,6 +507,14 @@ class TimerService : Service() {
     private suspend fun syncFocusShieldState() {
         if (!timerSessionActive) {
             disableFocusShieldForSession()
+            return
+        }
+
+        // Always On blocks continuously and is not the timer's business. Reconciling
+        // here would call disableFocusShieldForSession() on every break tick, which
+        // clears the shared snapshot the Always On service reads.
+        if (safarDataStore.focusShieldAlwaysOnMode.first()) {
+            _focusShieldActive.value = true
             return
         }
 

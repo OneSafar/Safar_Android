@@ -6,6 +6,8 @@ import com.safarparmar.app.di.IoDispatcher
 import com.safarparmar.app.feature.kavachanalytics.data.local.KavachAnalyticsDao
 import com.safarparmar.app.feature.kavachanalytics.data.local.KavachEventEntity
 import com.safarparmar.app.feature.kavachanalytics.data.local.KavachSessionEntity
+import com.safarparmar.app.feature.kavachanalytics.data.local.ProtectionSource
+import com.safarparmar.app.feature.kavachanalytics.data.local.ProtectionWindowEntity
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachEventType
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionMode
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionOutcome
@@ -86,6 +88,8 @@ class KavachAnalyticsRecorder @Inject constructor(
                 ),
             )
             insertEvent(KavachEventType.SESSION_STARTED, id, null, nowMs)
+            // A timed session is also a stretch of protection.
+            heartbeatProtection(ProtectionSource.SESSION)
             debugLog("session started $id")
             id
         }
@@ -111,9 +115,10 @@ class KavachAnalyticsRecorder @Inject constructor(
     ): String? = withContext(ioDispatcher) {
         mutex.withLock {
             val open = dao.openSessions().firstOrNull() ?: return@withLock null
-            closeOpenUnlocks(open.clientSessionId, nowMs)
+            closeOpenUnlocks(nowMs)
             val finalised = rollUp(open, outcome, actualSeconds, nowMs)
             dao.upsertSession(finalised)
+            endProtection(ProtectionSource.SESSION)
             insertEvent(outcome.toEventType(), open.clientSessionId, null, nowMs)
             debugLog("session ${open.clientSessionId} -> ${outcome.wire}")
             open.clientSessionId
@@ -129,7 +134,7 @@ class KavachAnalyticsRecorder @Inject constructor(
             mutex.withLock {
                 val stale = dao.openSessions()
                 stale.forEach { session ->
-                    closeOpenUnlocks(session.clientSessionId, nowMs)
+                    closeOpenUnlocks(nowMs)
                     val elapsed = ((nowMs - session.startedAtMs) / 1000L).toInt().coerceAtLeast(0)
                     val actual = if (session.plannedSeconds > 0) {
                         elapsed.coerceAtMost(session.plannedSeconds)
@@ -155,6 +160,64 @@ class KavachAnalyticsRecorder @Inject constructor(
         }
     }
 
+    // ── Protection windows ───────────────────────────────────────────────────
+
+    /**
+     * Marks Kavach as actively guarding the student from now on, and keeps that
+     * mark alive.
+     *
+     * Called repeatedly — on every Always On settings sync — rather than once at
+     * the start. Each call pushes the window's end forward, so if the process is
+     * killed the window ends at the last moment Kavach was demonstrably running
+     * instead of appearing to run forever.
+     */
+    fun heartbeatProtection(source: String) = record {
+        val nowMs = System.currentTimeMillis()
+        val open = dao.openProtectionWindow(source)
+        if (open == null) {
+            dao.upsertProtectionWindow(
+                ProtectionWindowEntity(
+                    id = UUID.randomUUID().toString(),
+                    startMs = nowMs,
+                    endMs = nowMs,
+                    source = source,
+                    localDate = localDate(nowMs),
+                    isOpen = true,
+                ),
+            )
+            return@record
+        }
+        // A gap far larger than the heartbeat interval means the previous window
+        // really ended — the phone rebooted or the service was killed. Close it
+        // where it actually stopped rather than bridging dead time.
+        if (nowMs - open.endMs > PROTECTION_GAP_TOLERANCE_MS) {
+            dao.closeProtectionWindow(open.id, open.endMs)
+            dao.upsertProtectionWindow(
+                ProtectionWindowEntity(
+                    id = UUID.randomUUID().toString(),
+                    startMs = nowMs,
+                    endMs = nowMs,
+                    source = source,
+                    localDate = localDate(nowMs),
+                    isOpen = true,
+                ),
+            )
+        } else {
+            dao.touchProtectionWindow(open.id, nowMs)
+        }
+    }
+
+    fun endProtection(source: String) = record {
+        val nowMs = System.currentTimeMillis()
+        val open = dao.openProtectionWindow(source) ?: return@record
+        dao.closeProtectionWindow(open.id, maxOf(open.endMs, nowMs))
+    }
+
+    /** Closes any window left open by a process death, at its last heartbeat. */
+    suspend fun closeStaleProtectionWindows(source: String) = withContext(ioDispatcher) {
+        dao.closeOpenProtectionWindows(source)
+    }
+
     // ── In-session events ────────────────────────────────────────────────────
 
     /**
@@ -171,7 +234,9 @@ class KavachAnalyticsRecorder @Inject constructor(
     fun quickUnlockStarted(packageName: String, selectedSeconds: Int) = record {
         val nowMs = System.currentTimeMillis()
         val sessionId = dao.openSessions().firstOrNull()?.clientSessionId
-        if (sessionId != null) closeOpenUnlocks(sessionId, nowMs)
+        // Close any unlock still open, session or not — a second unlock must never
+        // leave the first one hanging.
+        closeOpenUnlocks(nowMs)
         insertEvent(
             type = KavachEventType.QUICK_UNLOCK_STARTED,
             sessionId = sessionId,
@@ -181,13 +246,19 @@ class KavachAnalyticsRecorder @Inject constructor(
         )
     }
 
-    /** Ends any unlock whose window has expired. Safe to call often. */
+    /**
+     * Ends any unlock whose window has expired. Safe to call often, and cheap when
+     * nothing is open.
+     *
+     * Deliberately does not require a session: under Always On a student can be
+     * granted a quick unlock with no timer running at all, and requiring one here is
+     * what left those unlocks open forever and their duration reported as 0m.
+     */
     fun settleExpiredUnlocks() = record {
         val nowMs = System.currentTimeMillis()
-        val sessionId = dao.openSessions().firstOrNull()?.clientSessionId ?: return@record
-        val open = dao.lastOpenEvent(sessionId, KavachEventType.QUICK_UNLOCK_STARTED) ?: return@record
+        val open = dao.lastOpenEventOfType(KavachEventType.QUICK_UNLOCK_STARTED) ?: return@record
         if (nowMs >= open.atMs + open.durationSeconds * 1000L) {
-            closeOpenUnlocks(sessionId, nowMs)
+            closeOpenUnlocks(nowMs)
         }
     }
 
@@ -195,15 +266,17 @@ class KavachAnalyticsRecorder @Inject constructor(
      * Closes an in-flight quick unlock with the duration actually elapsed — the
      * selected window is a ceiling, not what the student really spent.
      */
-    private suspend fun closeOpenUnlocks(sessionId: String, nowMs: Long) {
-        val open = dao.lastOpenEvent(sessionId, KavachEventType.QUICK_UNLOCK_STARTED) ?: return
+    private suspend fun closeOpenUnlocks(nowMs: Long) {
+        val open = dao.lastOpenEventOfType(KavachEventType.QUICK_UNLOCK_STARTED) ?: return
         val cap = open.atMs + open.durationSeconds * 1000L
         val endedAt = minOf(nowMs, cap)
         val actualSeconds = ((endedAt - open.atMs) / 1000L).toInt().coerceAtLeast(0)
         dao.markEventConsumed(open.id)
         insertEvent(
             type = KavachEventType.QUICK_UNLOCK_ENDED,
-            sessionId = sessionId,
+            // Carry the start event's session across — null under Always On — so the
+            // pair stays attributable without the close depending on one existing.
+            sessionId = open.clientSessionId,
             packageName = open.packageName,
             atMs = endedAt,
             durationSeconds = actualSeconds,
@@ -268,6 +341,13 @@ class KavachAnalyticsRecorder @Inject constructor(
     }
 
     companion object {
+        /**
+         * How long a protection window may go un-heartbeaten before it is treated as
+         * having ended. Comfortably above the Always On sync interval, so ordinary
+         * scheduling jitter never splits one stretch into two.
+         */
+        private const val PROTECTION_GAP_TOLERANCE_MS = 30_000L
+
         /** For TimerService and other non-Hilt call sites. */
         fun from(context: Context): KavachAnalyticsRecorder =
             EntryPointAccessors

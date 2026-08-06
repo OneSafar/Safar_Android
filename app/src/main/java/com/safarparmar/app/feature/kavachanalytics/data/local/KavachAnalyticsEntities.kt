@@ -102,6 +102,39 @@ data class DailyAppAggregateEntity(
     val synced: Boolean = false,
 )
 
+/**
+ * A stretch of time during which Kavach was actually guarding the student.
+ *
+ * Separate from [KavachSessionEntity] on purpose. A session is a *timed study
+ * sitting* and carries an outcome; protection is simply "was Kavach blocking".
+ * Always On produces protection with no session at all, and folding it into
+ * sessions would pollute the completed/ended-early split with all-day stretches
+ * that have no notion of completing.
+ *
+ * [endMs] is heart-beaten forward while a window is live, so a process death
+ * leaves a window that ends at the last moment we know Kavach was really running
+ * rather than one that appears to run forever.
+ */
+@Entity(
+    tableName = "kavach_protection_window",
+    indices = [Index("startMs"), Index("localDate"), Index("source")],
+)
+data class ProtectionWindowEntity(
+    @PrimaryKey val id: String,
+    val startMs: Long,
+    val endMs: Long,
+    val source: String,
+    val localDate: String,
+    /** False once the window has been deliberately ended. */
+    val isOpen: Boolean,
+)
+
+/** Where a protection window came from. */
+object ProtectionSource {
+    const val SESSION = "session"
+    const val ALWAYS_ON = "always_on"
+}
+
 /** Whether a given day's numbers are trustworthy. */
 @Entity(tableName = "kavach_day_coverage")
 data class DayCoverageEntity(

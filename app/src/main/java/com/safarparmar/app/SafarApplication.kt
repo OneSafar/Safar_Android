@@ -61,6 +61,16 @@ class SafarApplication : Application() {
             // interrupted, then reconcile any usage the OS collected while SAFAR
             // wasn't running.
             runCatching { kavachAnalyticsRecorder.recoverStaleSessions() }
+            // A protection window left open by a killed Always On service would
+            // otherwise keep counting toward "During Kavach" forever. Closing it
+            // here leaves it ending at its last heartbeat, which is the last moment
+            // Kavach was demonstrably running. The service reopens one if it is
+            // genuinely still on.
+            runCatching {
+                kavachAnalyticsRecorder.closeStaleProtectionWindows(
+                    com.safarparmar.app.feature.kavachanalytics.data.local.ProtectionSource.ALWAYS_ON,
+                )
+            }
             runCatching { kavachAnalyticsRepository.refresh() }
         }
         // Always On is meant to survive a reboot, an app update and a process

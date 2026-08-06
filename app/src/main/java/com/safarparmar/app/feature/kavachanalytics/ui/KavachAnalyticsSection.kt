@@ -633,10 +633,17 @@ private fun CoverageLine(report: KavachAnalyticsReport, isLight: Boolean) {
             modifier = Modifier.size(13.dp),
         )
         Text(
-            if (report.coverage == DataCoverage.UNAVAILABLE) {
-                "No days in this range could be measured."
-            } else {
-                "${report.daysMissingCoverage.size} day(s) couldn't be measured — shown blank, not zero."
+            // Worded from what actually happened. A partly-measured day used to read
+            // "no days could be measured" while real usage was listed right below it,
+            // which makes every other number on the screen look untrustworthy.
+            when {
+                report.coverage == DataCoverage.UNAVAILABLE ->
+                    "No usage could be measured here — check that Usage access is on."
+                report.daysMissingCoverage.size == 1 ->
+                    "Part of this day wasn't measured, so the real total may be a little higher."
+                else ->
+                    "${report.daysMissingCoverage.size} days were only partly measured, " +
+                        "so totals may be a little low."
             },
             fontSize = 11.sp,
             color = secondaryText(isLight),
