@@ -682,7 +682,7 @@ fun PlanTabScreen(
                         }
 
                         items(
-                            items = todayTopics.take(10),
+                            items = todayTopics,
                             key = { ref -> "today_${ref.topic.id}" },
                             contentType = { "todayTopic" }
                         ) { ref ->

@@ -116,7 +116,7 @@ fun TemplatePickerStep(
             if (loadingTemplates) {
                 CircularProgressIndicator()
             } else {
-                val categoryOrder = listOf("SSC", "Railway", "Engineering", "UPSC", "Defence", "Medical", "Banking")
+                val categoryOrder = listOf("SSC Exams", "Railways", "Defense & Police", "UPSC & State PSC", "Engineering & Medical", "Management & Banking", "Teaching & Research")
                 val sortedGroups = remember(templates) { 
                     templates.groupBy { it.category.takeIf { c -> c.isNotBlank() } ?: "Other" }.entries.sortedBy { 
                         val index = categoryOrder.indexOf(it.key)

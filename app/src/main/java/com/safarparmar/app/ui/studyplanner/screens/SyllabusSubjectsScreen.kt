@@ -68,6 +68,7 @@ import com.safarparmar.app.ui.studyplanner.logic.progressState
 import com.safarparmar.app.ui.studyplanner.logic.rollup
 import com.safarparmar.app.ui.studyplanner.logic.todayKey
 import com.safarparmar.app.ui.studyplanner.plan.PlanSettingsSheet
+import com.safarparmar.app.ui.studyplanner.plan.RescheduleFlowSheet
 
 internal sealed interface SyllabusDialogState {
     object Closed : SyllabusDialogState
@@ -926,12 +927,19 @@ private fun SyllabusChangePlanSheet(
                 onClick = onChangeOrderOrSize,
             )
             PlanHairline()
-            SyllabusChangePlanRow(
-                title = "Make new study dates",
-                description = "Give new dates using your latest changes.",
-                enabled = canMakeDates,
-                onClick = onMakeNewDates,
-            )
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = if (canMakeDates) PlannerFlatColors.PrimaryAccent.copy(alpha = 0.12f) else Color.Transparent,
+                border = if (canMakeDates) BorderStroke(1.5.dp, PlannerFlatColors.PrimaryAccent) else null,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            ) {
+                SyllabusChangePlanRow(
+                    title = "Make new study dates",
+                    description = "Give new dates using your latest changes.",
+                    enabled = canMakeDates,
+                    onClick = onMakeNewDates,
+                )
+            }
             PlanHairline()
             TextButton(
                 onClick = onDismiss,

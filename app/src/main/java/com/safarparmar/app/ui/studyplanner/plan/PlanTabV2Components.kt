@@ -280,6 +280,21 @@ fun PlanSettingsSheet(
         }
     }
 
+    fun performSave() {
+        val newExamDate = examDate.ifBlank { null }
+        val newGoal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3
+        actions.updatePlan(
+            UpdatePlanRequest(
+                title = title.trim().ifBlank { plan.title },
+                examType = examType.trim().ifBlank { null },
+                examDate = newExamDate,
+                dailyGoal = newGoal,
+                offDays = offDays.toList(),
+            ),
+        )
+        onDismiss()
+    }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()
     val hasFieldFocus = focusDailyGoal || focusExamDate
@@ -440,33 +455,13 @@ fun PlanSettingsSheet(
             }
             item {
                 Button(
-                    onClick = {
-                        val newExamDate = examDate.ifBlank { null }
-                        val examDateChanged =
-                            newExamDate?.take(10) != plan.examDate?.take(10)
-                        actions.updatePlan(
-                            UpdatePlanRequest(
-                                title = title.trim().ifBlank { plan.title },
-                                examType = examType.trim().ifBlank { null },
-                                examDate = newExamDate,
-                                dailyGoal = dailyGoal.toIntOrNull()?.coerceAtLeast(1) ?: 3,
-                                offDays = offDays.toList(),
-                            ),
-                        )
-                        onDismiss()
-                        // A changed exam date invalidates the current schedule, so
-                        // launch the guided re-plan (pick order + rebuild) flow.
-                        if (examDateChanged && newExamDate != null) {
-                            onExamDateChanged(newExamDate)
-                        }
-                    },
+                    onClick = { performSave() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 52.dp)
-                        .background(PlannerFlatColors.PrimaryAccent, shape = RoundedCornerShape(16.dp)),
+                        .heightIn(min = 52.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
+                        containerColor = PlannerFlatColors.PrimaryAccent,
                         contentColor = Color.White,
                     ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
@@ -475,6 +470,28 @@ fun PlanSettingsSheet(
                         if (hasFieldFocus) "Save and return" else "Save details",
                         fontWeight = FontWeight.Bold,
                     )
+                }
+            }
+            if (isPlanScheduled) {
+                item {
+                    OutlinedButton(
+                        onClick = {
+                            performSave()
+                            actions.autoDistribute(lockExisting = false, strategy = "interleaved")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.5.dp, PlannerFlatColors.PrimaryAccent),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = PlannerFlatColors.PrimaryAccent,
+                        ),
+                    ) {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Make new study dates", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
             if (isPlanScheduled && onExport != null) {

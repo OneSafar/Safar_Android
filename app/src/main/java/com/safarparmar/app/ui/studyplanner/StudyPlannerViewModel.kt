@@ -1855,7 +1855,12 @@ class StudyPlannerViewModel @Inject constructor(
             // fresh read no longer conflicts with anything.
             var result = call(planId)
             if (result is Resource.Error && result.code == 409) {
-                delay(300)
+                delay(350)
+                // Re-fetch fresh plan to update version before retrying
+                val freshPlan = repo.getPlan(planId)
+                if (freshPlan is Resource.Success) {
+                    _uiState.update { it.copy(selectedPlan = freshPlan.data) }
+                }
                 result = call(planId)
             }
             when (val r = result) {
