@@ -97,11 +97,6 @@ val drawerSections = listOf(
                 Routes.FOCUS_SHIELD,
                 rainbowShimmer = true,
             ),
-            DrawerItem(
-                R.string.nav_youtube_study_mode,
-                Icons.Default.SmartDisplay,
-                Routes.YOUTUBE_STUDY_MODE,
-            ),
         ),
     ),
     DrawerSection(

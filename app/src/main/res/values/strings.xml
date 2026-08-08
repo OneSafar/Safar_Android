@@ -60,7 +60,6 @@
     <string name="nav_previous">Previous</string>
     <string name="nav_next">Next</string>
     <string name="nav_focus_shield">KAVACH</string>
-    <string name="nav_youtube_study_mode">YouTube Study Mode</string>
     <string name="nav_live_classes">Live Classes</string>
     <string name="nav_live_sessions">Live Sessions</string>
     <string name="nav_admin_notifications">Admin Notifications</string>
@@ -433,8 +432,6 @@
     <string name="focus_shield_emergency_unlock">Quick unlock</string>
     <string name="focus_shield_return_to_timer">Back to timer</string>
     <string name="focus_shield_accessibility_label">SAFAR KAVACH Alert</string>
-    <string name="youtube_insights_accessibility_label">SAFAR YouTube Study Mode</string>
-    <string name="youtube_insights_accessibility_description">Optional YouTube Study Mode reads the visible YouTube screen to identify Shorts and channel names, measure productive and distracting viewing time, and block content according to your settings. Raw screen information and channel names stay on this device; only daily category totals are synced.</string>
     <string name="focus_shield_accessibility_description">KAVACH is optional. It uses Accessibility Service only to detect apps you selected to block during active Ekagra focus timer sessions and show the SAFAR KAVACH block screen so you can return to your focus session. SAFAR does not read your private content, perform gestures, change settings, or share Accessibility data.</string>
     <string name="focus_shield_notification_listener_label">Notification shield</string>
 

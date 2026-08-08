@@ -97,7 +97,6 @@ fun SafarNavGraph(
             Routes.DASHBOARD,
             Routes.STUDY_PLANNER,
             Routes.FOCUS_SHIELD,
-            Routes.YOUTUBE_STUDY_MODE,
             Routes.NISHTHA,
             Routes.EKAGRA,
             Routes.MEHFIL,
@@ -164,10 +163,6 @@ fun SafarNavGraph(
             route == Routes.APP_PICKER || route == Routes.KAVACH_ABOUT ->
                 ensureParentThenPush(route, Routes.FOCUS_SHIELD,
                     parentAlreadyPresent = currentRouteBase in setOf(Routes.FOCUS_SHIELD, Routes.EKAGRA))
-
-            route == Routes.YOUTUBE_STUDY_ANALYTICS ->
-                ensureParentThenPush(route, Routes.YOUTUBE_STUDY_MODE,
-                    parentAlreadyPresent = currentRouteBase == Routes.YOUTUBE_STUDY_MODE)
 
             // Achievements sits on top of Dashboard.
             route == Routes.ACHIEVEMENTS ->
