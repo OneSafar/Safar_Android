@@ -26,7 +26,7 @@ object KavachAnalyticsModule {
         // Analytics is a derived, re-collectable view of on-device usage, never the
         // source of truth for a student's study record. Rebuilding it beats failing
         // to open the app on a schema change.
-        .addMigrations(KavachAnalyticsDatabase.MIGRATION_1_2)
+        .addMigrations(KavachAnalyticsDatabase.MIGRATION_1_2, KavachAnalyticsDatabase.MIGRATION_2_3)
         // Only reached if a future version ships without a migration; the explicit
         // migration above is what protects existing history.
         .fallbackToDestructiveMigration()

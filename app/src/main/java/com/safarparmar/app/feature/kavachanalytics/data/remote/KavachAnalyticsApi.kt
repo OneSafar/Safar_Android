@@ -18,6 +18,11 @@ interface KavachAnalyticsApi {
         @Body body: DailyAggregateBatchRequest,
     ): Response<BatchAckResponse>
 
+    @POST("kavach-analytics/v1/youtube-daily-aggregates")
+    suspend fun uploadYoutubeDailyAggregates(
+        @Body body: YoutubeDailyAggregateBatchRequest,
+    ): Response<BatchAckResponse>
+
     @POST("kavach-analytics/v1/sessions")
     suspend fun uploadSessions(
         @Body body: SessionBatchRequest,

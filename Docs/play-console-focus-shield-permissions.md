@@ -1,44 +1,47 @@
-# Play Console Notes: Focus Shield Accessibility
+# Play Console Notes: YouTube Insights Accessibility
 
-Use this content when submitting a build that includes Focus Shield.
+Use this material when submitting a build that contains YouTube Insights. Legal and Play Console copy must be reviewed before release.
 
-## Store Listing Disclosure
+## Prominent in-app disclosure
 
-SAFAR includes KAVACH Focus Shield, an optional app-blocking feature for Ekagra focus timer sessions. Users choose distracting apps to block, then start an Ekagra focus timer. While that timer session is active, SAFAR uses Android AccessibilityService to detect the package name of the app the user opens. SAFAR compares that package name with the user's selected blocked app list. If a selected app opens during the active timer session, SAFAR shows its own block screen and notification so the user can return to the focus session.
+> YouTube Insights uses Android Accessibility access only while the feature is enabled. It reads visible information inside the YouTube app—such as whether a video or Short is playing and the displayed channel name—to measure productive, distracting, Shorts and unidentified time. When content matching your blocking choices opens, SAFAR pauses it and leaves that YouTube screen automatically. Channel names, your productive-channel choices, video titles and screen content stay on this device. SAFAR syncs only daily category totals. You can disable YouTube Insights or revoke Accessibility access at any time.
 
-SAFAR does not use Display over other apps. It does not read messages, passwords, typed text, contacts, photos, or screen content. It does not click buttons, change settings, prevent uninstall, or control the device. Blocked app choices stay on the user's device.
+The disclosure appears in the dedicated YouTube Study Mode onboarding before Android Accessibility Settings opens. Consent version and time are recorded locally. The feature is off by default and is separate from Kavach app blocking.
 
-## Accessibility Declaration
+## Accessibility declaration
 
-API: `AccessibilityService`
+- API: `AccessibilityService`
+- Accessibility tool: `false`
+- Restricted package: `com.google.android.youtube`
+- Purpose: optional YouTube content measurement and user-configured blocking
+- Information accessed: visible YouTube UI semantics needed to identify player state, Shorts and channel name
+- Actions: no gesture injection. For blocked content only, SAFAR invokes the visible player's Pause accessibility action when available, sends an idempotent media-pause command, and invokes Android Back to leave the blocked YouTube surface. These actions are disclosed before permission is requested.
+- Local data: channel names, allowlist, viewing intervals and parser input
+- Synced data: channel-free daily totals for productive, distracting, Shorts and unidentified seconds, split into entire-day and Protected-time totals
+- Never retained or uploaded: Accessibility node snapshots, arbitrary screen text, video titles, typed text, messages or passwords
 
-Accessibility tool flag: `isAccessibilityTool=false`
+## Store listing and privacy policy
 
-Purpose: App blocking / focus protection during user-started Ekagra focus timer sessions.
+State that YouTube Study Mode is optional, uses Accessibility, is not a disability-support tool, measures YouTube whenever enabled, and can separately block Shorts or distracting channels during Kavach time or always. Explain that starter choices and newly detected channels default to distracting until the student marks them productive. Channel-block notifications may offer local-only **Mark Productive** and **Manage channels** actions.
 
-Why it is required: KAVACH Focus Shield needs AccessibilityService events to detect opened app package names immediately while an Ekagra focus timer session is active. The app compares the opened package name with the user's selected blocked app list. Without this service, the timer still works, but reliable blocked-app detection cannot work.
+Data Safety should declare the derived usage totals according to the production backend's retention and account-deletion behavior. Do not declare channel names or raw Accessibility content as collected because the implementation keeps them on-device. Revalidate this statement whenever telemetry or crash logging changes.
 
-Data accessed: Opened app package names from Android Accessibility window events.
+## Reviewer video checklist
 
-Data use: Local comparison against the user's selected blocked apps. Used only while an Ekagra focus timer session is active and KAVACH Focus Shield is enabled.
+1. Open the separate YouTube Study Mode drawer destination and show it off by default.
+2. Complete onboarding, starter-channel choices and the complete prominent disclosure.
+3. Open Android Accessibility Settings and grant SAFAR access.
+4. Show separate Shorts and distracting-channel scope controls.
+5. Play a normal video, a Short and a channel later marked productive.
+6. Show that blocked playback pauses and SAFAR automatically leaves the blocked YouTube surface.
+7. Open YouTube Study Mode analytics and show category totals and local channel controls.
+8. Block a newly detected channel and demonstrate both notification actions.
+9. Disable the feature, then revoke permission, demonstrating that measurement stops.
 
-Data sharing: Not sold. Not shared for ads or analytics. Blocked app choices stay on device.
+## Release checks
 
-User controls: KAVACH Focus Shield is off by default. Users must enable it from Ekagra > KAVACH, accept a separate in-app AccessibilityService disclosure, choose apps to block, and grant the SAFAR KAVACH Accessibility service in Android settings. Blocking only runs during active Ekagra focus timer sessions. Users can disable KAVACH in SAFAR or revoke the Accessibility service at any time.
-
-## Demo Video Checklist
-
-1. Open SAFAR and navigate to Ekagra > Focus Shield.
-2. Show that Focus Shield is off by default.
-3. Turn Focus Shield on and show the in-app Accessibility disclosure.
-4. Accept the disclosure.
-5. Open Android Accessibility settings from SAFAR and enable SAFAR Focus Shield.
-6. Return to SAFAR and select one app to block.
-7. Start a focus timer.
-8. Close or dismiss PiP if it appears.
-9. Open the selected app and show SAFAR's block screen.
-10. Return to SAFAR and disable Focus Shield.
-
-## Important
-
-Do not set `isAccessibilityTool=true` unless SAFAR's primary purpose changes to disability support. Do not add `SYSTEM_ALERT_WINDOW` or draw-over-other-apps behavior for Focus Shield. Do not use Accessibility to click controls, change settings, prevent uninstall, read screen text, or automate user actions.
+- Keep `isAccessibilityTool=false`.
+- Do not add gesture capability.
+- Confirm the service XML remains restricted to YouTube.
+- Verify the disclosure, privacy policy, store listing, Data Safety form and reviewer video all describe the shipped behavior identically.
+- Play approval cannot be guaranteed; submit the actual implementation and an honest, narrow justification.

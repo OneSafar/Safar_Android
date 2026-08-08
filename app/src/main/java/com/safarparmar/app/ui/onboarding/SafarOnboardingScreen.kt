@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -73,7 +74,7 @@ fun SafarOnboardingScreen(
         modifier = modifier.fillMaxSize(),
         color = scheme.background,
     ) {
-        Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize()) {
                 HeroVisualSection(
                     modifier = Modifier
@@ -200,6 +201,7 @@ private fun BottomContentPanel(
             )
             .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
             .background(bg)
+            .navigationBarsPadding()
             .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween,

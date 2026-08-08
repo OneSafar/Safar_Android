@@ -38,6 +38,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.safarparmar.app.R
@@ -1212,8 +1214,7 @@ private fun ConfettiCelebration(
     LaunchedEffect(isActive) {
         if (isActive) {
             while (true) {
-                ticks++
-                kotlinx.coroutines.delay(16)
+                withFrameMillis { ticks++ }
             }
         }
     }

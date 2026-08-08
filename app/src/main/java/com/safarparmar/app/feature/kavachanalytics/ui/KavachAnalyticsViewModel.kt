@@ -246,6 +246,9 @@ class KavachAnalyticsViewModel @Inject constructor(
     // ── App detail ───────────────────────────────────────────────────────────
 
     fun openAppDetail(row: AppUsageRow) {
+        if (row.packageName == "com.google.android.youtube") {
+            return
+        }
         val state = _uiState.value
         val perDay = state.report?.trend.orEmpty().map { it.localDate to 0 }
         viewModelScope.launch {

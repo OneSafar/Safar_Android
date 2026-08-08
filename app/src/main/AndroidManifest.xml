@@ -105,6 +105,7 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Digital wellbeing: the student turns on KAVACH Always On to block distracting apps they chose themselves, for as long as they leave it on. Blocking must continue while SAFAR is in the background, so the check cannot be deferred to a job. No other foregroundServiceType applies." /></service>
 
+
         <!-- Supporting locale sync and persist for pre-Android 13 devices using AppCompat -->
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

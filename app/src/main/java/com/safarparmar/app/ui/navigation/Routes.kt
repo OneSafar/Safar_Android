@@ -32,6 +32,8 @@ object Routes {
     const val KAVACH_APP_CATEGORIES = "kavach/app_categories"
     const val LAUNCH_USAGE_QUESTIONNAIRE = "launch_usage_questionnaire"
     const val FOCUS_SHIELD = "focus_shield"
+    const val YOUTUBE_STUDY_MODE = "youtube_study_mode"
+    const val YOUTUBE_STUDY_ANALYTICS = "youtube_study_mode/analytics"
     const val LIVE_SESSIONS_ROOT = "live/sessions"
     const val LIVE_SESSIONS = "live/sessions?courseId={courseId}"
     const val LIVE_SESSION = "live/session/{sessionId}"

@@ -2,13 +2,10 @@ package com.safarparmar.app.ui.dhyan
 
 import android.content.Intent
 import android.net.Uri
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,57 +15,38 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.R
-import com.safarparmar.app.feature.live.presentation.LiveSessionsScreen
-import com.safarparmar.app.ui.components.rememberFeatureTabBackStack
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
-import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.util.YoutubeUrls
-
-enum class CoursesHubTab(val label: String) {
-    COURSES("Courses"),
-    LIVE_CLASSES("Live Classes"),
-}
 
 private fun Modifier.coursesGlassPanel(isLight: Boolean): Modifier {
     val body = DhyanFlatColors.glassBody(isLight)
@@ -95,23 +73,9 @@ fun DhyanCoursesScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
-    initialTab: CoursesHubTab = CoursesHubTab.COURSES,
-    liveCourseId: String = "",
-    premiumViewModel: com.safarparmar.app.ui.premium.PremiumViewModel = hiltViewModel(),
 ) {
-    val tabBackStack = rememberFeatureTabBackStack(
-        initialTab = initialTab,
-        rootTab = CoursesHubTab.COURSES,
-    )
-    val selectedTab = tabBackStack.currentTab
-    val premiumStatus by premiumViewModel.premiumStatus.collectAsStateWithLifecycle()
-
-    BackHandler(enabled = tabBackStack.hasHistory) {
-        tabBackStack.goBack()
-    }
-
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
-        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
+        Box(Modifier.fillMaxSize()) {
             SafarDrawerScaffold(
                 title = "Courses",
                 subtitle = null,
@@ -122,76 +86,8 @@ fun DhyanCoursesScreen(
                 containerColor = DhyanFlatColors.Bg,
             ) { padding ->
                 Box(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
-                    Column(Modifier.fillMaxSize()) {
-                        CoursesUnderlineTabs(
-                            selected = selectedTab,
-                            onSelect = { tabBackStack.select(it) },
-                        )
-                        PlanHairline()
-
-                        Box(Modifier.weight(1f).fillMaxWidth()) {
-                            when (selectedTab) {
-                                CoursesHubTab.COURSES -> CoursesTabContent(isDarkTheme = isDarkTheme)
-                                CoursesHubTab.LIVE_CLASSES -> {
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        LiveSessionsScreen(
-                                            courseId = liveCourseId,
-                                            onBack = { tabBackStack.goBack() },
-                                            onOpenSession = { sessionId -> onNavigate(Routes.liveSession(sessionId)) },
-                                            showTopBar = false,
-                                        )
-                                        if (!premiumStatus.isPremium) {
-                                            LiveClassesPremiumLockOverlay(
-                                                modifier = Modifier.fillMaxSize(),
-                                                onUpgradeClick = { onNavigate(Routes.PREMIUM) },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    CoursesTabContent(isDarkTheme = isDarkTheme)
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CoursesUnderlineTabs(
-    selected: CoursesHubTab,
-    onSelect: (CoursesHubTab) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(26.dp),
-    ) {
-        CoursesHubTab.entries.forEach { tab ->
-            val isSelected = selected == tab
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onSelect(tab) },
-                    ),
-            ) {
-                Text(
-                    text = tab.label,
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (isSelected) DhyanFlatColors.Text else DhyanFlatColors.Muted,
-                )
-                Spacer(Modifier.height(10.dp))
-                Box(
-                    Modifier
-                        .height(2.dp)
-                        .width(if (isSelected) 48.dp else 0.dp)
-                        .background(if (isSelected) DhyanFlatColors.Primary else Color.Transparent),
-                )
             }
         }
     }
@@ -328,83 +224,6 @@ private fun CoursesTabContent(isDarkTheme: Boolean) {
                     color = DhyanFlatColors.Primary,
                     fontWeight = FontWeight.Bold,
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LiveClassesPremiumLockOverlay(
-    modifier: Modifier = Modifier,
-    onUpgradeClick: () -> Unit = {},
-) {
-    Box(
-        modifier = modifier
-            .background(DhyanFlatColors.Bg.copy(alpha = 0.94f))
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, _ -> }
-            }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onUpgradeClick,
-            ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.Center)
-                .padding(horizontal = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(DhyanFlatColors.PrimarySoft)
-                    .border(1.dp, DhyanFlatColors.Primary.copy(alpha = 0.45f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Safar Premium feature",
-                    tint = DhyanFlatColors.Primary,
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-            PlanEyebrow("Dhyan")
-            Text(
-                text = "Safar Premium Feature",
-                fontFamily = LoraFontFamily,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Normal,
-                color = DhyanFlatColors.Text,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = "Upgrade to unlock Live Classes, interactive meditation sessions, and real-time guidance.",
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-                color = DhyanFlatColors.Muted,
-                lineHeight = 20.sp,
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .heightIn(min = 52.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(DhyanFlatColors.Primary)
-                    .clickable(onClick = onUpgradeClick),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    Text("Upgrade to Safar Premium", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
-                }
             }
         }
     }

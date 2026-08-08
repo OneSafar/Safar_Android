@@ -149,3 +149,52 @@ data class KavachMetaEntity(
     @PrimaryKey val key: String,
     val value: String,
 )
+
+/** A channel observed in YouTube. Channel names and choices never leave this device. */
+@Entity(tableName = "youtube_channel", indices = [Index("lastSeenAtMs")])
+data class YoutubeChannelEntity(
+    @PrimaryKey val channelKey: String,
+    val displayName: String,
+    val isProductive: Boolean,
+    val lastSeenAtMs: Long,
+)
+
+/** Device-only classified YouTube viewing interval. Video titles are never persisted. */
+@Entity(tableName = "youtube_viewing_interval", indices = [Index("localDate"), Index("startMs")])
+data class YoutubeViewingIntervalEntity(
+    @PrimaryKey val id: String,
+    val startMs: Long,
+    val endMs: Long,
+    val localDate: String,
+    val channelKey: String?,
+    val category: String,
+    val isShorts: Boolean,
+)
+
+/** Recoverable checkpoint for the interval currently being observed by Accessibility. */
+@Entity(tableName = "youtube_open_interval")
+data class YoutubeOpenIntervalEntity(
+    @PrimaryKey val id: Int = 1,
+    val startedAtMs: Long,
+    val heartbeatAtMs: Long,
+    val channelKey: String?,
+    val category: String,
+    val isShorts: Boolean,
+)
+
+/** Only this derived, channel-free row is eligible for backend synchronization. */
+@Entity(tableName = "youtube_daily_aggregate")
+data class YoutubeDailyAggregateEntity(
+    @PrimaryKey val localDate: String,
+    val productiveSeconds: Int,
+    val distractingSeconds: Int,
+    val shortsSeconds: Int,
+    val unidentifiedSeconds: Int,
+    val protectedProductiveSeconds: Int,
+    val protectedDistractingSeconds: Int,
+    val protectedShortsSeconds: Int,
+    val protectedUnidentifiedSeconds: Int,
+    val coverage: String,
+    val updatedAtMs: Long,
+    val synced: Boolean = false,
+)

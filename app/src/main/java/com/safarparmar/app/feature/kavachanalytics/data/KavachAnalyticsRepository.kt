@@ -15,6 +15,8 @@ import com.safarparmar.app.feature.kavachanalytics.data.remote.DailyAggregateUpl
 import com.safarparmar.app.feature.kavachanalytics.data.remote.KavachAnalyticsApi
 import com.safarparmar.app.feature.kavachanalytics.data.remote.SessionBatchRequest
 import com.safarparmar.app.feature.kavachanalytics.data.remote.SessionUploadDto
+import com.safarparmar.app.feature.kavachanalytics.data.remote.YoutubeDailyAggregateBatchRequest
+import com.safarparmar.app.feature.kavachanalytics.data.remote.YoutubeDailyAggregateUploadDto
 import com.safarparmar.app.feature.kavachanalytics.domain.AppCategory
 import com.safarparmar.app.feature.kavachanalytics.domain.AppUsageRow
 import com.safarparmar.app.feature.kavachanalytics.domain.CategoryTotals
@@ -449,6 +451,35 @@ class KavachAnalyticsRepository @Inject constructor(
                 }
             }
 
+            val youtubeRows = dao.unsyncedYoutubeAggregates(UPLOAD_BATCH_SIZE)
+            if (youtubeRows.isNotEmpty()) {
+                val result = safeApiCall {
+                    api.uploadYoutubeDailyAggregates(
+                        YoutubeDailyAggregateBatchRequest(
+                            timezone = timezone,
+                            aggregates = youtubeRows.map {
+                                YoutubeDailyAggregateUploadDto(
+                                    localDate = it.localDate,
+                                    productiveSeconds = it.productiveSeconds,
+                                    distractingSeconds = it.distractingSeconds,
+                                    shortsSeconds = it.shortsSeconds,
+                                    unidentifiedSeconds = it.unidentifiedSeconds,
+                                    protectedProductiveSeconds = it.protectedProductiveSeconds,
+                                    protectedDistractingSeconds = it.protectedDistractingSeconds,
+                                    protectedShortsSeconds = it.protectedShortsSeconds,
+                                    protectedUnidentifiedSeconds = it.protectedUnidentifiedSeconds,
+                                    coverage = it.coverage,
+                                    updatedAt = Instant.ofEpochMilli(it.updatedAtMs).toString(),
+                                )
+                            },
+                        ),
+                    )
+                }
+                if (result is Resource.Success) {
+                    youtubeRows.forEach { dao.markYoutubeAggregateSynced(it.localDate, it.updatedAtMs) }
+                } else allOk = false
+            }
+
             runCatching { pullClassifications() }
             dao.putMeta(KavachMetaEntity(META_LAST_SYNC_MS, System.currentTimeMillis().toString()))
             debugLog("syncNow ok=$allOk")
@@ -495,7 +526,7 @@ class KavachAnalyticsRepository @Inject constructor(
      * headline numbers into lifetime counters, so all-time totals never go down.
      */
     suspend fun prune(nowMs: Long = System.currentTimeMillis()) = withContext(ioDispatcher) {
-        val today = LocalDate.ofInstant(Instant.ofEpochMilli(nowMs), zone)
+        val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
         val cutoffDate = today.minusMonths(RETENTION_MONTHS)
         val cutoffKey = cutoffDate.toString()
         val lastPruned = dao.meta(META_LAST_PRUNE_DATE)

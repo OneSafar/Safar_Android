@@ -21,6 +21,25 @@ data class DailyAggregateBatchRequest(
     @SerializedName("aggregates") val aggregates: List<DailyAggregateUploadDto>,
 )
 
+data class YoutubeDailyAggregateUploadDto(
+    @SerializedName("localDate") val localDate: String,
+    @SerializedName("productiveSeconds") val productiveSeconds: Int,
+    @SerializedName("distractingSeconds") val distractingSeconds: Int,
+    @SerializedName("shortsSeconds") val shortsSeconds: Int,
+    @SerializedName("unidentifiedSeconds") val unidentifiedSeconds: Int,
+    @SerializedName("protectedProductiveSeconds") val protectedProductiveSeconds: Int,
+    @SerializedName("protectedDistractingSeconds") val protectedDistractingSeconds: Int,
+    @SerializedName("protectedShortsSeconds") val protectedShortsSeconds: Int,
+    @SerializedName("protectedUnidentifiedSeconds") val protectedUnidentifiedSeconds: Int,
+    @SerializedName("coverage") val coverage: String,
+    @SerializedName("updatedAt") val updatedAt: String,
+)
+
+data class YoutubeDailyAggregateBatchRequest(
+    @SerializedName("timezone") val timezone: String,
+    @SerializedName("aggregates") val aggregates: List<YoutubeDailyAggregateUploadDto>,
+)
+
 data class SessionUploadDto(
     @SerializedName("clientSessionId") val clientSessionId: String,
     @SerializedName("startedAt") val startedAt: String,
@@ -129,4 +148,16 @@ data class KavachReportResponse(
     @SerializedName("interruptedSessions") val interruptedSessions: Int? = null,
     @SerializedName("coverage") val coverage: String? = null,
     @SerializedName("daysMissingCoverage") val daysMissingCoverage: List<String>? = null,
+    @SerializedName("youtube") val youtube: YoutubeReportDto? = null,
+)
+
+data class YoutubeReportDto(
+    @SerializedName("productiveSeconds") val productiveSeconds: Int? = null,
+    @SerializedName("distractingSeconds") val distractingSeconds: Int? = null,
+    @SerializedName("shortsSeconds") val shortsSeconds: Int? = null,
+    @SerializedName("unidentifiedSeconds") val unidentifiedSeconds: Int? = null,
+    @SerializedName("protectedProductiveSeconds") val protectedProductiveSeconds: Int? = null,
+    @SerializedName("protectedDistractingSeconds") val protectedDistractingSeconds: Int? = null,
+    @SerializedName("protectedShortsSeconds") val protectedShortsSeconds: Int? = null,
+    @SerializedName("protectedUnidentifiedSeconds") val protectedUnidentifiedSeconds: Int? = null,
 )

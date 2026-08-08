@@ -334,7 +334,7 @@ class KavachAnalyticsRecorder @Inject constructor(
     }
 
     private fun localDate(atMs: Long): String =
-        LocalDate.ofInstant(Instant.ofEpochMilli(atMs), ZoneId.systemDefault()).toString()
+        Instant.ofEpochMilli(atMs).atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
     private fun debugLog(message: String) {
         if (BuildConfig.DEBUG) android.util.Log.d("KavachAnalytics", message)

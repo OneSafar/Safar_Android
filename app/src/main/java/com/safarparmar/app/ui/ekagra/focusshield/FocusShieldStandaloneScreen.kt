@@ -31,18 +31,6 @@ fun FocusShieldStandaloneScreen(
     val state by viewModel.shieldState.collectAsStateWithLifecycle()
     val accent = KavachDesign.Primary
     val scheme = MaterialTheme.colorScheme
-    val needsRequiredPermissions =
-        !state.hasUsageStats || !state.hasOverlayPermission || !state.hasNotificationSuppressionAccess
-
-    if (needsRequiredPermissions) {
-        KavachOnboardingScreen(
-            onFinished = {},
-            onBack = onBack,
-            viewModel = viewModel,
-        )
-        return
-    }
-
     SafarDrawerScaffold(
         title = stringResource(R.string.nav_focus_shield),
         subtitle = stringResource(R.string.app_name),

@@ -195,6 +195,68 @@ interface KavachAnalyticsDao {
     @Query("SELECT value FROM kavach_meta WHERE key = :key")
     suspend fun meta(key: String): String?
 
+    // ── YouTube Insights (raw/channel data stays on-device) ─────────────────
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertYoutubeChannel(channel: YoutubeChannelEntity)
+
+    @Query("SELECT * FROM youtube_channel ORDER BY lastSeenAtMs DESC")
+    suspend fun youtubeChannels(): List<YoutubeChannelEntity>
+
+    @Query("SELECT * FROM youtube_channel WHERE channelKey = :key LIMIT 1")
+    suspend fun youtubeChannel(key: String): YoutubeChannelEntity?
+
+    @Query("UPDATE youtube_channel SET isProductive = :productive WHERE channelKey = :key")
+    suspend fun setYoutubeChannelProductive(key: String, productive: Boolean)
+
+    @Query("DELETE FROM youtube_channel WHERE channelKey = :key")
+    suspend fun deleteYoutubeChannel(key: String)
+
+    @Query("UPDATE youtube_viewing_interval SET channelKey = :newKey WHERE channelKey = :oldKey")
+    suspend fun reassignYoutubeIntervals(oldKey: String, newKey: String)
+
+    @Query("UPDATE youtube_open_interval SET channelKey = :newKey WHERE channelKey = :oldKey")
+    suspend fun reassignYoutubeOpenInterval(oldKey: String, newKey: String)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertYoutubeInterval(interval: YoutubeViewingIntervalEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertYoutubeOpenInterval(interval: YoutubeOpenIntervalEntity)
+
+    @Query("SELECT * FROM youtube_open_interval WHERE id = 1")
+    suspend fun youtubeOpenInterval(): YoutubeOpenIntervalEntity?
+
+    @Query("DELETE FROM youtube_open_interval")
+    suspend fun deleteYoutubeOpenInterval()
+
+    @Query("SELECT * FROM youtube_viewing_interval WHERE localDate BETWEEN :startDate AND :endDate ORDER BY startMs")
+    suspend fun youtubeIntervalsBetween(startDate: String, endDate: String): List<YoutubeViewingIntervalEntity>
+
+    @Query("SELECT DISTINCT localDate FROM youtube_viewing_interval")
+    suspend fun youtubeIntervalDates(): List<String>
+
+    @Query("UPDATE youtube_viewing_interval SET category = :category WHERE channelKey = :key AND isShorts = 0")
+    suspend fun reclassifyYoutubeIntervals(key: String, category: String)
+
+    @Query("DELETE FROM youtube_viewing_interval WHERE endMs < :cutoffMs")
+    suspend fun deleteYoutubeIntervalsBefore(cutoffMs: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertYoutubeDailyAggregate(row: YoutubeDailyAggregateEntity)
+
+    @Query("SELECT * FROM youtube_daily_aggregate WHERE localDate BETWEEN :startDate AND :endDate ORDER BY localDate")
+    suspend fun youtubeAggregatesBetween(startDate: String, endDate: String): List<YoutubeDailyAggregateEntity>
+
+    @Query("SELECT * FROM youtube_daily_aggregate WHERE synced = 0 ORDER BY localDate LIMIT :limit")
+    suspend fun unsyncedYoutubeAggregates(limit: Int): List<YoutubeDailyAggregateEntity>
+
+    @Query("UPDATE youtube_daily_aggregate SET synced = 1 WHERE localDate = :date AND updatedAtMs <= :updatedAtMs")
+    suspend fun markYoutubeAggregateSynced(date: String, updatedAtMs: Long)
+
+    @Query("DELETE FROM youtube_daily_aggregate WHERE localDate < :cutoffDate")
+    suspend fun deleteYoutubeAggregatesBefore(cutoffDate: String)
+
     @Transaction
     suspend fun replaceAggregatesForDate(localDate: String, rows: List<DailyAppAggregateEntity>) {
         deleteAggregatesForDate(localDate)

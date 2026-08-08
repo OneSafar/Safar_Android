@@ -146,6 +146,8 @@ fun KavachAnalyticsSection(
         }
     }
 
+
+
     activityDetail?.let { detail ->
         state.report?.let { report ->
             ModalBottomSheet(
@@ -228,6 +230,8 @@ fun KavachAnalyticsSection(
         }
     }
 }
+
+
 
 // ── Controls ─────────────────────────────────────────────────────────────────
 

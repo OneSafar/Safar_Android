@@ -57,7 +57,7 @@ class KavachUsageCollector @Inject constructor(
 
     private suspend fun collectLocked(nowMs: Long): Set<String> {
         val zone = ZoneId.systemDefault()
-        val today = LocalDate.ofInstant(Instant.ofEpochMilli(nowMs), zone)
+        val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
 
         if (!FocusShieldPermissionHelper.hasUsageStatsPermission(context)) {
             // Never write zeros for a day we simply could not measure.
@@ -141,7 +141,7 @@ class KavachUsageCollector @Inject constructor(
     /** Marks the current day as un-measurable, e.g. Usage Access was just revoked. */
     suspend fun markUnavailableNow(nowMs: Long = System.currentTimeMillis()) =
         withContext(ioDispatcher) {
-            val date = LocalDate.ofInstant(Instant.ofEpochMilli(nowMs), ZoneId.systemDefault())
+            val date = Instant.ofEpochMilli(nowMs).atZone(ZoneId.systemDefault()).toLocalDate()
             markCoverage(date.toString(), DataCoverage.UNAVAILABLE, nowMs)
         }
 
@@ -201,8 +201,8 @@ class KavachUsageCollector @Inject constructor(
     }
 
     private fun datesSpanned(fromMs: Long, toMs: Long, zone: ZoneId): List<String> {
-        val start = LocalDate.ofInstant(Instant.ofEpochMilli(fromMs), zone)
-        val end = LocalDate.ofInstant(Instant.ofEpochMilli(toMs), zone)
+        val start = Instant.ofEpochMilli(fromMs).atZone(zone).toLocalDate()
+        val end = Instant.ofEpochMilli(toMs).atZone(zone).toLocalDate()
         val dates = mutableListOf<String>()
         var cursor = start
         var guard = 0

@@ -48,6 +48,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
@@ -67,7 +68,7 @@ class TimerService : Service() {
         const val ACTION_RESET      = "com.safar.ekagra.ACTION_RESET"
         const val ACTION_FOCUS_SHIELD_BLOCKED = "com.safar.ekagra.ACTION_FOCUS_SHIELD_BLOCKED"
         // KAVACH foreground-app polling (replaces the former Accessibility event stream).
-        private const val FOREGROUND_POLL_MS = 300L
+        private const val FOREGROUND_POLL_MS = 500L
         private const val SHIELD_SYNC_INTERVAL_MS = 1_500L
         private const val FOREGROUND_LOOKBACK_MS = 2_000L
         private const val BLOCK_DEBOUNCE_MS = 750L
@@ -166,6 +167,7 @@ class TimerService : Service() {
     private var cachedUserName: String = ""
     private var autoSaveMetadata: AutoSaveMetadata? = null
     private var sessionSaveQueuedThisRun: Boolean = false
+    @Volatile private var youtubeContentOwnsBlocking: Boolean = false
 
     private data class SuspendedFocusState(
         val totalSeconds: Int,
@@ -428,7 +430,8 @@ class TimerService : Service() {
         }
 
         val blockedPackages = FocusShieldRepository.ShieldPrefs.getPackages(this)
-        if (foregroundPackage in blockedPackages) {
+        val youtubeContentOwned = foregroundPackage == "com.google.android.youtube" && youtubeContentOwnsBlocking
+        if (foregroundPackage in blockedPackages && !youtubeContentOwned) {
             if (FocusShieldRepository.ShieldPrefs.isOneTimeUnlockedPackage(this, foregroundPackage)) return
             launchBlockScreen(foregroundPackage)
         } else if (shouldHideForPackage(foregroundPackage)) {

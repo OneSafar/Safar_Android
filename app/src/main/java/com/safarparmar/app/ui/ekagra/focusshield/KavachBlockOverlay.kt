@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.ekagra.focusshield
 
 import android.content.Context
 import android.content.Intent
+import android.content.ComponentName
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Typeface
@@ -39,7 +40,11 @@ import android.widget.TextView
  * [show] and [dismiss] may be called from any thread. All
  * [WindowManager] mutations are posted to the main-thread [Handler].
  */
-class KavachBlockOverlay(private val context: Context) {
+class KavachBlockOverlay(
+    private val context: Context,
+    /** Accessibility services can use their own overlay type without Draw Over Apps. */
+    private val accessibilityOverlay: Boolean = false,
+) {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val windowManager =
@@ -51,33 +56,51 @@ class KavachBlockOverlay(private val context: Context) {
         private set
 
     private var overlayView: View? = null
+    private val stateLock = Any()
+    private var content = OverlayContent("This app is blocked", "KAVACH is protecting your focus.", "I'll Control Myself.") { goHome() }
 
     // ── Public API ─────────────────────────────────────────────────────
 
     /** Show the block bottom-sheet for [appName]. No-op if already showing. */
     fun show(appName: String) {
-        if (isShowing) return
-        if (!FocusShieldPermissionHelper.hasOverlayPermission(context)) return
-        isShowing = true
-        mainHandler.post { showInternal(appName) }
+        showContent(
+            title = "$appName is blocked",
+            subtitle = "Always On is working. Open KAVACH and turn it off when you want to use this app.",
+            buttonText = "I'll Control Myself.",
+            onAction = ::goHome,
+        )
+    }
+
+    fun showContent(title: String, subtitle: String, buttonText: String, onAction: () -> Unit) {
+        synchronized(stateLock) {
+            if (isShowing) return
+            if (!accessibilityOverlay && !FocusShieldPermissionHelper.hasOverlayPermission(context)) return
+            content = OverlayContent(title, subtitle, buttonText, onAction)
+            isShowing = true
+        }
+        mainHandler.post { showInternal() }
     }
 
     /** Remove the overlay. Safe to call even if not showing. */
     fun dismiss() {
-        if (!isShowing) return
-        isShowing = false
+        synchronized(stateLock) {
+            if (!isShowing) return
+            isShowing = false
+        }
         mainHandler.post { dismissInternal() }
     }
 
     // ── Internals (main thread only) ───────────────────────────────────
 
-    private fun showInternal(appName: String) {
+    private fun showInternal() {
         if (overlayView != null) return          // guard against race
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            if (accessibilityOverlay)
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else
                 @Suppress("DEPRECATION")
@@ -91,7 +114,7 @@ class KavachBlockOverlay(private val context: Context) {
         )
         params.gravity = Gravity.CENTER
 
-        val view = buildBottomSheetView(appName)
+        val view = buildBottomSheetView()
         runCatching { windowManager.addView(view, params) }
             .onSuccess { overlayView = view }
             .onFailure { isShowing = false }
@@ -106,7 +129,7 @@ class KavachBlockOverlay(private val context: Context) {
 
     // ── View builder (bottom-sheet style) ──────────────────────────────
 
-    private fun buildBottomSheetView(appName: String): View {
+    private fun buildBottomSheetView(): View {
 
         val density = context.resources.displayMetrics.density
         val dp = { value: Int -> (value * density + 0.5f).toInt() }
@@ -179,7 +202,7 @@ class KavachBlockOverlay(private val context: Context) {
 
         // ── Title ──
         val title = TextView(context).apply {
-            text = "$appName is blocked"
+            text = content.title
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
@@ -190,7 +213,7 @@ class KavachBlockOverlay(private val context: Context) {
 
         // ── Subtitle ──
         val subtitle = TextView(context).apply {
-            text = "Always On is working. Open KAVACH and turn it off when you want to use this app."
+            text = content.subtitle
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setTextColor(Color.argb(209, 255, 255, 255))  // ~82 % white
             gravity = Gravity.CENTER
@@ -200,7 +223,7 @@ class KavachBlockOverlay(private val context: Context) {
 
         // ── "I'll Control Myself." button ──
         val button = TextView(context).apply {
-            text = "I'll Control Myself."
+            text = content.buttonText
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
@@ -213,7 +236,11 @@ class KavachBlockOverlay(private val context: Context) {
             }
             isClickable = true
             isFocusable = true
-            setOnClickListener { onDismissClicked() }
+            setOnClickListener {
+                val action = content.onAction
+                dismiss()
+                action()
+            }
         }
         sheet.addView(
             button,
@@ -236,12 +263,13 @@ class KavachBlockOverlay(private val context: Context) {
         return root
     }
 
-    private fun onDismissClicked() {
-        dismiss()
-        // Navigate the student to the home screen so they leave the blocked app.
+    private fun goHome() {
         val homeIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.packageManager.resolveActivity(homeIntent, 0)?.activityInfo?.let { info ->
+            homeIntent.component = ComponentName(info.packageName, info.name)
         }
         runCatching { context.startActivity(homeIntent) }
     }
@@ -250,4 +278,11 @@ class KavachBlockOverlay(private val context: Context) {
         /** Matches the blue (#0A56D9) used by [FocusShieldBlockedBottomSheet]. */
         private val BRAND_BLUE = Color.parseColor("#0A56D9")
     }
+
+    private data class OverlayContent(
+        val title: String,
+        val subtitle: String,
+        val buttonText: String,
+        val onAction: () -> Unit,
+    )
 }

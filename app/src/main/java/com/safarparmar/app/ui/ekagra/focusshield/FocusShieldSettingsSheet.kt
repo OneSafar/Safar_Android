@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -36,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,14 +46,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.safarparmar.app.R
 import com.safarparmar.app.notifications.rememberNotificationPermissionRequester
 import com.safarparmar.app.ui.ekagra.EkagraDisplayTitle
 import com.safarparmar.app.ui.ekagra.EkagraEyebrow
@@ -59,6 +60,10 @@ import com.safarparmar.app.ui.ekagra.EkagraInk
 import com.safarparmar.app.ui.ekagra.rememberEkagraInk
 import com.safarparmar.app.ui.launch.AppUsageMode
 import kotlinx.coroutines.delay
+
+private enum class KavachSettingsTab(val label: String) {
+    APP_SHIELD("App Shield"),
+}
 
 /**
  * Focus Shield (Kavach) settings — Flat Hairline Design System:
@@ -97,6 +102,7 @@ fun FocusShieldSettingsContent(
     var guideTarget by remember { mutableStateOf<PermissionTarget?>(null) }
     var awaitingPermission by remember { mutableStateOf<PermissionTarget?>(null) }
     var grantedBannerText by remember { mutableStateOf<String?>(null) }
+    val activeTab = KavachSettingsTab.APP_SHIELD
     val requestNotificationPermission = rememberNotificationPermissionRequester {
         hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(context)
     }
@@ -194,208 +200,214 @@ fun FocusShieldSettingsContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(top = 16.dp, bottom = 140.dp),
+                .padding(
+                    top = 16.dp,
+                    bottom = if (activeTab == KavachSettingsTab.APP_SHIELD) 140.dp else 32.dp,
+                ),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            // Flat Hairline Header
             EkagraEyebrow("KAVACH", ink.secondaryText)
             Spacer(Modifier.height(4.dp))
-            EkagraDisplayTitle("Block apps while you study", ink.primaryText)
+            EkagraDisplayTitle(
+                text = "Block apps while you study",
+                color = ink.primaryText,
+            )
             Spacer(Modifier.height(16.dp))
-            EkagraHairline(ink.hairline)
 
-            Spacer(Modifier.height(20.dp))
-
-            // Master Enable Toggle Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "Turn on Kavach",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ink.primaryText,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = if (state.isEnabled) "Kavach is on" else "Kavach is off",
-                        fontSize = 13.sp,
-                        color = ink.secondaryText,
-                    )
-                }
-                Switch(
-                    checked = state.isEnabled,
-                    onCheckedChange = { enabled ->
-                        if (enabled) {
-                            handleProfileSelect(AppUsageMode.FOCUSED)
-                        } else {
-                            onToggleEnabled(false)
-                        }
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = KavachDesign.Primary,
-                    ),
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-            EkagraHairline(ink.hairline)
-            Spacer(Modifier.height(24.dp))
-
-            // 3-Way Mutually Exclusive Profiles Selector
-            AnimatedVisibility(
-                visible = state.isEnabled,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Column {
-                    KavachProfileSelector(
-                        activeMode = activeMode,
-                        isEnabled = state.isEnabled,
-                        ink = ink,
-                        onSelectProfile = ::handleProfileSelect,
-                    )
-
-                    Spacer(Modifier.height(28.dp))
-
-                    // Blocked Apps Row
-                    EkagraEyebrow("YOUR APPS", ink.secondaryText)
-                    Spacer(Modifier.height(12.dp))
-
+            when (activeTab) {
+                KavachSettingsTab.APP_SHIELD -> {
+                    // Master Enable Toggle Row
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(onClick = onOpenAppPicker)
-                            .padding(vertical = 14.dp),
+                            .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(KavachDesign.Primary.copy(alpha = 0.14f)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    Icons.Default.Apps,
-                                    contentDescription = null,
-                                    tint = KavachDesign.Primary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = "Apps to block",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = ink.primaryText,
-                                )
-                                Text(
-                                    text = if (state.blockedPackages.isEmpty()) {
-                                        "No apps chosen yet"
-                                    } else {
-                                        "${state.blockedPackages.size} apps chosen"
-                                    },
-                                    fontSize = 13.sp,
-                                    color = ink.secondaryText,
-                                )
-                            }
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = "Turn on Kavach",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ink.primaryText,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = if (state.isEnabled) "Kavach is on" else "Kavach is off",
+                                fontSize = 13.sp,
+                                color = ink.secondaryText,
+                            )
                         }
-                        Text(
-                            text = "Choose >",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = KavachDesign.Primary,
+                        Switch(
+                            checked = state.isEnabled,
+                            onCheckedChange = { enabled ->
+                                if (enabled) {
+                                    handleProfileSelect(AppUsageMode.FOCUSED)
+                                } else {
+                                    onToggleEnabled(false)
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = KavachDesign.Primary,
+                            ),
                         )
                     }
 
-                    if (onOpenAppCategories != null) {
-                        EkagraHairline(ink.hairline)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onOpenAppCategories)
-                                .padding(vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Column(Modifier.weight(1f)) {
+                    Spacer(Modifier.height(12.dp))
+                    EkagraHairline(ink.hairline)
+                    Spacer(Modifier.height(24.dp))
+
+                    AnimatedVisibility(
+                        visible = state.isEnabled,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                    ) {
+                        Column {
+                            KavachProfileSelector(
+                                activeMode = activeMode,
+                                isEnabled = state.isEnabled,
+                                ink = ink,
+                                onSelectProfile = ::handleProfileSelect,
+                            )
+
+                            Spacer(Modifier.height(28.dp))
+
+                            EkagraEyebrow("YOUR APPS", ink.secondaryText)
+                            Spacer(Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onOpenAppPicker)
+                                    .padding(vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(KavachDesign.Primary.copy(alpha = 0.14f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Apps,
+                                            contentDescription = null,
+                                            tint = KavachDesign.Primary,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "Apps to block",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ink.primaryText,
+                                        )
+                                        Text(
+                                            text = if (state.blockedPackages.isEmpty()) {
+                                                "No apps chosen yet"
+                                            } else {
+                                                "${state.blockedPackages.size} apps chosen"
+                                            },
+                                            fontSize = 13.sp,
+                                            color = ink.secondaryText,
+                                        )
+                                    }
+                                }
                                 Text(
-                                    text = "App categories",
-                                    fontSize = 16.sp,
+                                    text = "Choose >",
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = ink.primaryText,
-                                )
-                                Text(
-                                    text = "Set what counts as productive or distracting in your analytics",
-                                    fontSize = 13.sp,
-                                    color = ink.secondaryText,
+                                    color = KavachDesign.Primary,
                                 )
                             }
-                            Text(
-                                text = "Edit >",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = KavachDesign.Primary,
-                            )
+
+                            if (onOpenAppCategories != null) {
+                                EkagraHairline(ink.hairline)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable(onClick = onOpenAppCategories)
+                                        .padding(vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(
+                                            text = "App categories",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ink.primaryText,
+                                        )
+                                        Text(
+                                            text = "Set what counts as productive or distracting in your analytics",
+                                            fontSize = 13.sp,
+                                            color = ink.secondaryText,
+                                        )
+                                    }
+                                    Text(
+                                        text = "Edit >",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = KavachDesign.Primary,
+                                    )
+                                }
+                            }
+
+                            EkagraHairline(ink.hairline)
+                            Spacer(Modifier.height(24.dp))
                         }
                     }
 
-                    EkagraHairline(ink.hairline)
-                    Spacer(Modifier.height(24.dp))
-                }
-            }
+                    AnimatedVisibility(
+                        visible = !requiredPermissionsGranted,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                    ) {
+                        Column {
+                            EkagraEyebrow("PERMISSIONS NEEDED", ink.secondaryText)
+                            Spacer(Modifier.height(12.dp))
 
-            // Permission Disclosure checklist
-            AnimatedVisibility(
-                visible = !requiredPermissionsGranted,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Column {
-                    EkagraEyebrow("PERMISSIONS NEEDED", ink.secondaryText)
-                    Spacer(Modifier.height(12.dp))
-
-                    KavachPermissionDisclosureCard(
-                        hasUsageStats = hasUsageStats,
-                        hasOverlay = hasOverlay,
-                        hasNotifications = hasNotifications,
-                        hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
-                        onOpenUsageAccess = { guideTarget = PermissionTarget.USAGE_STATS },
-                        onOpenOverlay = { guideTarget = PermissionTarget.OVERLAY },
-                        onOpenNotifications = { guideTarget = PermissionTarget.NOTIFICATIONS },
-                        onOpenNotificationAccess = { guideTarget = PermissionTarget.NOTIFICATION_ACCESS },
-                    )
-                    Spacer(Modifier.height(20.dp))
+                            KavachPermissionDisclosureCard(
+                                hasUsageStats = hasUsageStats,
+                                hasOverlay = hasOverlay,
+                                hasNotifications = hasNotifications,
+                                hasNotificationSuppressionAccess = hasNotificationSuppressionAccess,
+                                onOpenUsageAccess = { guideTarget = PermissionTarget.USAGE_STATS },
+                                onOpenOverlay = { guideTarget = PermissionTarget.OVERLAY },
+                                onOpenNotifications = { guideTarget = PermissionTarget.NOTIFICATIONS },
+                                onOpenNotificationAccess = { guideTarget = PermissionTarget.NOTIFICATION_ACCESS },
+                            )
+                            Spacer(Modifier.height(20.dp))
+                        }
+                    }
                 }
+
             }
         }
 
-        KavachBottomActions(
-            primaryLabel = primaryCtaLabel,
-            onPrimaryClick = {
-                when {
-                    !state.isEnabled -> handleProfileSelect(AppUsageMode.FOCUSED)
-                    !hasUsageStats -> guideTarget = PermissionTarget.USAGE_STATS
-                    !hasOverlay -> guideTarget = PermissionTarget.OVERLAY
-                    else -> onOpenAppPicker()
-                }
-            },
-            onSecondaryClick = onMaybeLater,
-            secondaryLabel = "Not now",
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+        if (activeTab == KavachSettingsTab.APP_SHIELD) {
+            KavachBottomActions(
+                primaryLabel = primaryCtaLabel,
+                onPrimaryClick = {
+                    when {
+                        !state.isEnabled -> handleProfileSelect(AppUsageMode.FOCUSED)
+                        !hasUsageStats -> guideTarget = PermissionTarget.USAGE_STATS
+                        !hasOverlay -> guideTarget = PermissionTarget.OVERLAY
+                        else -> onOpenAppPicker()
+                    }
+                },
+                onSecondaryClick = onMaybeLater,
+                secondaryLabel = "Not now",
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
 
     if (showLearnMore) {
@@ -411,6 +423,7 @@ fun FocusShieldSettingsContent(
             onDismiss = { showLearnMore = false },
         )
     }
+
 
     guideTarget?.let { target ->
         PermissionGuideSheet(
@@ -442,6 +455,82 @@ fun FocusShieldSettingsContent(
             },
         )
     }
+}
+
+@Composable
+private fun KavachSettingsTabSwitch(
+    selected: KavachSettingsTab,
+    ink: EkagraInk,
+    onSelect: (KavachSettingsTab) -> Unit,
+) {
+    Column(
+        Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            "Choose what to set up",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = ink.secondaryText,
+        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(ink.secondaryText.copy(alpha = 0.10f))
+                .padding(3.dp),
+        ) {
+            KavachSettingsTab.entries.forEach { tab ->
+                val active = tab == selected
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(11.dp))
+                        .then(
+                            if (active) {
+                                Modifier.background(MaterialTheme.colorScheme.surface)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .clickable { onSelect(tab) }
+                        .padding(vertical = 10.dp, horizontal = 6.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        tab.label,
+                        fontSize = 12.sp,
+                        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                        color = if (active) ink.primaryText else ink.secondaryText,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun YoutubeScopeRow(label: String, scope: String, ink: EkagraInk, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, fontSize = 14.sp, color = ink.primaryText)
+        Text(
+            when (scope) { "protected" -> "Protected time"; "always" -> "Always"; else -> "Off" },
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = KavachDesign.Primary,
+        )
+    }
+}
+
+private fun nextYoutubeScope(current: String): String = when (current) {
+    "off" -> "protected"
+    "protected" -> "always"
+    else -> "off"
 }
 
 /**
@@ -578,4 +667,3 @@ private fun ProfileOptionRow(
         }
     }
 }
-

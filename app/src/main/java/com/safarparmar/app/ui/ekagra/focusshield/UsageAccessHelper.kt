@@ -57,9 +57,13 @@ object FocusShieldPermissionHelper {
      * Usage access (foreground-app detection) plus "Display over other apps" (the block screen).
      * These stubs remain only so legacy callers keep compiling; they always report "not required".
      */
-    fun isAccessibilityFeatureEnabled(): Boolean = false
+    fun isAccessibilityFeatureEnabled(): Boolean = true
 
     fun hasAccessibilityService(context: Context): Boolean = false
+
+    fun openAccessibilitySettings(context: Context) {
+        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
 
     /** Display over other apps ("draw overlay") — required to show the KAVACH block screen. */
     fun hasOverlayPermission(context: Context): Boolean =

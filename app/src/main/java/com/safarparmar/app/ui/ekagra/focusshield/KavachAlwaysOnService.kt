@@ -53,7 +53,7 @@ class KavachAlwaysOnService : Service() {
         private const val FOREGROUND_LOOKBACK_MS = 2_000L
         private const val BLOCK_DEBOUNCE_MS = 750L
         /** Tighter poll while the overlay is up so it dismisses almost instantly. */
-        private const val OVERLAY_DISMISS_POLL_MS = 150L
+        private const val OVERLAY_DISMISS_POLL_MS = 250L
 
         private val KNOWN_HOME_PACKAGES = setOf(
             "com.miui.home", "com.mi.android.globallauncher", "com.android.launcher",
@@ -88,6 +88,7 @@ class KavachAlwaysOnService : Service() {
     private var blockedPackages: Set<String> = emptySet()
     private var lastBlockedPackage: String? = null
     private var lastBlockedAt = 0L
+    private var youtubeContentOwnsBlocking = false
 
     /** Package already counted once for this foreground visit. */
     private var countedAttemptPackage: String? = null
@@ -156,6 +157,7 @@ class KavachAlwaysOnService : Service() {
             countedAttemptPackage = null
         }
         blockedPackages = packages
+        youtubeContentOwnsBlocking = false
         KavachAlwaysOnPrefs.write(this, packages)
 
         // Keep the protection window alive. This is what makes "During Kavach" count
@@ -201,7 +203,12 @@ class KavachAlwaysOnService : Service() {
             return poller.onSample(foregroundPackage, isBlockedApp = false)
         }
 
-        val isBlocked = foregroundPackage in blockedPackages
+        // When YouTube content rules are active they must be the sole owner of
+        // YouTube. Showing the generic app overlay at the same time creates two
+        // competing WindowManager views and makes productive channels impossible.
+        val isYoutubeContentOwned = foregroundPackage == "com.google.android.youtube" &&
+            youtubeContentOwnsBlocking
+        val isBlocked = foregroundPackage in blockedPackages && !isYoutubeContentOwned
         if (isBlocked) {
             launchBlockScreen(foregroundPackage)
         } else {

@@ -22,7 +22,6 @@ import com.safarparmar.app.ui.auth.AuthScreen
 import com.safarparmar.app.ui.components.ExitConfirmationHandler
 import com.safarparmar.app.ui.dashboard.DashboardScreen
 import com.safarparmar.app.ui.dhyan.DhyanCoursesScreen
-import com.safarparmar.app.ui.dhyan.CoursesHubTab
 import com.safarparmar.app.ui.dhyan.DhyanScreen
 import com.safarparmar.app.ui.ekagra.EkagraScreen
 import com.safarparmar.app.ui.home.HomeScreen
@@ -39,6 +38,7 @@ import com.safarparmar.app.ui.studyplanner.screens.SyllabusSubjectsScreen
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
 import com.safarparmar.app.ui.ekagra.focusshield.KavachAboutScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionScreen
+import com.safarparmar.app.feature.live.presentation.LiveSessionsHubScreen
 import com.safarparmar.app.ui.premium.PremiumPaywallScreen
 import com.safarparmar.app.ui.premium.PremiumViewModel
 import kotlinx.coroutines.Dispatchers
@@ -97,6 +97,7 @@ fun SafarNavGraph(
             Routes.DASHBOARD,
             Routes.STUDY_PLANNER,
             Routes.FOCUS_SHIELD,
+            Routes.YOUTUBE_STUDY_MODE,
             Routes.NISHTHA,
             Routes.EKAGRA,
             Routes.MEHFIL,
@@ -136,10 +137,11 @@ fun SafarNavGraph(
                 ensureParentThenPush(route, Routes.MEHFIL,
                     parentAlreadyPresent = currentRouteBase == Routes.MEHFIL)
 
-            // Live session detail sits on top of Courses.
+            // Live session detail sits on top of Live Sessions.
             route.startsWith("live/session/") ->
-                ensureParentThenPush(route, Routes.COURSES,
-                    parentAlreadyPresent = currentRouteBase in setOf(Routes.COURSES, Routes.LIVE_SESSIONS_ROOT))
+                ensureParentThenPush(route, Routes.LIVE_SESSIONS_ROOT,
+                    parentAlreadyPresent = currentRouteBase in setOf(Routes.LIVE_SESSIONS_ROOT, "live/sessions") ||
+                        currentRouteBase.startsWith("live/session/"))
 
             // Syllabus detail sits on top of Study Planner.
             route.startsWith("syllabus/") ->
@@ -162,6 +164,10 @@ fun SafarNavGraph(
             route == Routes.APP_PICKER || route == Routes.KAVACH_ABOUT ->
                 ensureParentThenPush(route, Routes.FOCUS_SHIELD,
                     parentAlreadyPresent = currentRouteBase in setOf(Routes.FOCUS_SHIELD, Routes.EKAGRA))
+
+            route == Routes.YOUTUBE_STUDY_ANALYTICS ->
+                ensureParentThenPush(route, Routes.YOUTUBE_STUDY_MODE,
+                    parentAlreadyPresent = currentRouteBase == Routes.YOUTUBE_STUDY_MODE)
 
             // Achievements sits on top of Dashboard.
             route == Routes.ACHIEVEMENTS ->
@@ -561,13 +567,12 @@ fun SafarNavGraph(
             )
         ) { entry ->
             val courseId = entry.arguments?.getString("courseId").orEmpty()
-            DhyanCoursesScreen(
-                currentRoute = Routes.COURSES,
+            LiveSessionsHubScreen(
+                courseId = courseId,
+                currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
                 onToggleDarkTheme = onToggleDarkTheme,
-                initialTab = CoursesHubTab.LIVE_CLASSES,
-                liveCourseId = courseId,
             )
         }
 

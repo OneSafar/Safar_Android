@@ -1,5 +1,12 @@
 package com.safarparmar.app.ui.drawer
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,7 +21,11 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +34,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,31 +57,89 @@ data class DrawerItem(
     val requiresPremium: Boolean = false,
 )
 
-val drawerItems = listOf(
+enum class DrawerSectionId {
+    STUDY_FOCUS,
+    WELLNESS,
+    LEARN_CONNECT,
+}
+
+data class DrawerSection(
+    val id: DrawerSectionId,
+    val labelRes: Int,
+    val icon: ImageVector,
+    val items: List<DrawerItem>,
+    val defaultExpanded: Boolean = false,
+)
+
+val drawerPinnedTop = listOf(
     DrawerItem(R.string.nav_home, Icons.Default.Home, Routes.HOME),
     DrawerItem(R.string.nav_dashboard, Icons.Default.Dashboard, Routes.DASHBOARD),
-    DrawerItem(
-        R.string.nav_study_planner,
-        Icons.AutoMirrored.Filled.EventNote,
-        Routes.STUDY_PLANNER,
-        rainbowShimmer = true,
-        requiresPremium = true,
+)
+
+val drawerSections = listOf(
+    DrawerSection(
+        id = DrawerSectionId.STUDY_FOCUS,
+        labelRes = R.string.drawer_section_study_focus,
+        icon = Icons.Default.School,
+        defaultExpanded = true,
+        items = listOf(
+            DrawerItem(
+                R.string.nav_study_planner,
+                Icons.AutoMirrored.Filled.EventNote,
+                Routes.STUDY_PLANNER,
+                rainbowShimmer = true,
+                requiresPremium = true,
+            ),
+            DrawerItem(R.string.module_ekagra, Icons.Default.Timer, Routes.EKAGRA),
+            DrawerItem(
+                R.string.nav_focus_shield,
+                Icons.Default.Shield,
+                Routes.FOCUS_SHIELD,
+                rainbowShimmer = true,
+            ),
+            DrawerItem(
+                R.string.nav_youtube_study_mode,
+                Icons.Default.SmartDisplay,
+                Routes.YOUTUBE_STUDY_MODE,
+            ),
+        ),
     ),
-    DrawerItem(
-        R.string.nav_focus_shield,
-        Icons.Default.Shield,
-        Routes.FOCUS_SHIELD,
-        rainbowShimmer = true,
+    DrawerSection(
+        id = DrawerSectionId.WELLNESS,
+        labelRes = R.string.drawer_section_wellness,
+        icon = Icons.Default.SelfImprovement,
+        items = listOf(
+            DrawerItem(R.string.module_nishtha, Icons.Default.SelfImprovement, Routes.NISHTHA),
+            DrawerItem(R.string.module_dhyan, Icons.Default.Spa, Routes.DHYAN),
+        ),
     ),
-    DrawerItem(R.string.module_nishtha, Icons.Default.SelfImprovement, Routes.NISHTHA),
-    DrawerItem(R.string.module_ekagra, Icons.Default.Timer, Routes.EKAGRA),
-    DrawerItem(R.string.module_mehfil, Icons.Default.Groups, Routes.MEHFIL),
-    DrawerItem(R.string.module_dhyan, Icons.Default.Spa, Routes.DHYAN),
-    DrawerItem(R.string.module_courses, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
-    DrawerItem(R.string.nav_admin_notifications, Icons.Default.Campaign, Routes.ADMIN_NOTIFICATIONS, requiresAdmin = true),
+    DrawerSection(
+        id = DrawerSectionId.LEARN_CONNECT,
+        labelRes = R.string.drawer_section_learn_connect,
+        icon = Icons.Default.Hub,
+        items = listOf(
+            DrawerItem(R.string.module_courses, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
+            DrawerItem(R.string.nav_live_sessions, Icons.Default.LiveTv, Routes.LIVE_SESSIONS_ROOT),
+            DrawerItem(R.string.module_mehfil, Icons.Default.Groups, Routes.MEHFIL),
+        ),
+    ),
+)
+
+val drawerPinnedBottom = listOf(
     DrawerItem(R.string.nav_profile, Icons.Default.Person, Routes.PROFILE),
     DrawerItem(R.string.profile_section_settings, Icons.Default.Settings, Routes.SETTINGS),
+    DrawerItem(
+        R.string.nav_admin_notifications,
+        Icons.Default.Campaign,
+        Routes.ADMIN_NOTIFICATIONS,
+        requiresAdmin = true,
+    ),
 )
+
+/** Flat list retained for any callers that still expect every leaf item. */
+val drawerItems: List<DrawerItem> =
+    drawerPinnedTop + drawerSections.flatMap { it.items } + drawerPinnedBottom
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LIQUID-GLASS DRAWER THEME TOKENS
@@ -175,6 +245,35 @@ fun SafarDrawer(
     val isLight = !isDarkTheme
     val dk = DarkGlass
     val lt = LightGlass
+    val currentBase = currentRoute.substringBefore("?")
+
+    val expandedSections = rememberSaveable(
+        saver = listSaver(
+            save = { map -> map.map { "${it.key.name}=${it.value}" } },
+            restore = { saved ->
+                val parsed = saved.mapNotNull { entry ->
+                    val parts = entry.split('=', limit = 2)
+                    if (parts.size != 2) return@mapNotNull null
+                    val id = runCatching { DrawerSectionId.valueOf(parts[0]) }.getOrNull()
+                        ?: return@mapNotNull null
+                    id to (parts[1].toBooleanStrictOrNull() ?: false)
+                }.toMap()
+                mutableStateMapOf<DrawerSectionId, Boolean>().apply {
+                    DrawerSectionId.entries.forEach { id ->
+                        put(
+                            id,
+                            parsed[id]
+                                ?: (drawerSections.firstOrNull { it.id == id }?.defaultExpanded == true),
+                        )
+                    }
+                }
+            },
+        ),
+    ) {
+        mutableStateMapOf<DrawerSectionId, Boolean>().apply {
+            drawerSections.forEach { put(it.id, it.defaultExpanded) }
+        }
+    }
 
     val drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)
 
@@ -262,7 +361,74 @@ fun SafarDrawer(
                     contentPadding = PaddingValues(top = 10.dp, bottom = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    items(drawerItems.filter { !it.requiresAdmin || isAdmin }) { item ->
+                    items(drawerPinnedTop) { item ->
+                        DrawerNavRow(
+                            item            = item,
+                            currentRoute    = currentRoute,
+                            isPremiumActive = isPremiumActive,
+                            isLight         = isLight,
+                            dk              = dk,
+                            lt              = lt,
+                            onNavigate      = onNavigate,
+                            onCloseDrawer   = onCloseDrawer,
+                        )
+                    }
+
+                    drawerSections.forEach { section ->
+                        val expanded = expandedSections[section.id] == true
+                        val sectionHasSelection = section.items.any { item ->
+                            val itemBase = item.route.substringBefore("?")
+                            when {
+                                itemBase == Routes.LIVE_SESSIONS_ROOT ->
+                                    currentBase == Routes.LIVE_SESSIONS_ROOT ||
+                                        currentBase.startsWith("live/")
+                                else ->
+                                    currentBase == itemBase || currentBase.startsWith("$itemBase/")
+                            }
+                        }
+                        item(key = "section-${section.id}") {
+                            DrawerSectionHeader(
+                                label = stringResource(section.labelRes),
+                                icon = section.icon,
+                                expanded = expanded,
+                                hasSelectedChild = sectionHasSelection && !expanded,
+                                isLight = isLight,
+                                dk = dk,
+                                lt = lt,
+                                onToggle = {
+                                    expandedSections[section.id] = !expanded
+                                },
+                            )
+                        }
+                        item(key = "section-content-${section.id}") {
+                            AnimatedVisibility(
+                                visible = expanded,
+                                enter = expandVertically(animationSpec = tween(durationMillis = 300)) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                                exit = shrinkVertically(animationSpec = tween(durationMillis = 300)) + fadeOut(animationSpec = tween(durationMillis = 300)),
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    section.items.forEach { item ->
+                                        DrawerNavRow(
+                                            item            = item,
+                                            currentRoute    = currentRoute,
+                                            isPremiumActive = isPremiumActive,
+                                            isLight         = isLight,
+                                            dk              = dk,
+                                            lt              = lt,
+                                            onNavigate      = onNavigate,
+                                            onCloseDrawer   = onCloseDrawer,
+                                            indented        = true,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    items(
+                        items = drawerPinnedBottom.filter { !it.requiresAdmin || isAdmin },
+                        key = { it.route },
+                    ) { item ->
                         DrawerNavRow(
                             item            = item,
                             currentRoute    = currentRoute,
@@ -357,6 +523,88 @@ private fun DrawerHeader(
     }
 }
 
+@Composable
+private fun DrawerSectionHeader(
+    label: String,
+    icon: ImageVector,
+    expanded: Boolean,
+    hasSelectedChild: Boolean,
+    isLight: Boolean,
+    dk: DarkGlass,
+    lt: LightGlass,
+    onToggle: () -> Unit,
+) {
+    val textColor = when {
+        hasSelectedChild && isLight -> lt.selText
+        hasSelectedChild -> dk.selText
+        isLight -> lt.textSecondary
+        else -> dk.textSecondary
+    }
+    val iconColor = when {
+        hasSelectedChild && isLight -> lt.selIcon
+        hasSelectedChild -> dk.selIcon
+        isLight -> lt.iconTint
+        else -> dk.iconTint
+    }
+    val rotationDegrees by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "arrowRotation",
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onToggle,
+            )
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = textColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (hasSelectedChild) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(if (isLight) lt.selIcon else dk.selIcon),
+                )
+            }
+        }
+        Icon(
+            imageVector = Icons.Default.ExpandMore,
+            contentDescription = if (expanded) "Collapse" else "Expand",
+            tint = if (isLight) lt.iconTint else dk.iconTint,
+            modifier = Modifier
+                .size(20.dp)
+                .graphicsLayer { rotationZ = rotationDegrees },
+        )
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // NAV ROW
 // ─────────────────────────────────────────────────────────────────────────────
@@ -371,11 +619,17 @@ private fun DrawerNavRow(
     lt: LightGlass,
     onNavigate: (String) -> Unit,
     onCloseDrawer: () -> Unit,
+    indented: Boolean = false,
 ) {
     val label       = stringResource(item.labelRes)
     val currentBase = currentRoute.substringBefore("?")
     val itemBase    = item.route.substringBefore("?")
-    val selected    = currentBase == itemBase || currentBase.startsWith("$itemBase/")
+    // Live sessions list and individual session share the live/ prefix.
+    val selected = when {
+        itemBase == Routes.LIVE_SESSIONS_ROOT ->
+            currentBase == Routes.LIVE_SESSIONS_ROOT || currentBase.startsWith("live/")
+        else -> currentBase == itemBase || currentBase.startsWith("$itemBase/")
+    }
     val fontWeight  = if (selected) FontWeight.Bold else FontWeight.Normal
     val showLock    = item.requiresPremium && !isPremiumActive
 
@@ -403,7 +657,12 @@ private fun DrawerNavRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 1.dp)
+            .padding(
+                start = if (indented) 18.dp else 10.dp,
+                end = 10.dp,
+                top = 1.dp,
+                bottom = 1.dp,
+            )
             // For selected, add a soft raised-glass shadow before clipping
             .then(
                 if (selected) Modifier.shadow(

@@ -534,7 +534,7 @@ fun DhyanScreen(
     val dhyanVm: DhyanViewModel = hiltViewModel()
 
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
-    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
+    Box(Modifier.fillMaxSize()) {
         SafarDrawerScaffold(
             title    = "Dhyan",
             subtitle = null,

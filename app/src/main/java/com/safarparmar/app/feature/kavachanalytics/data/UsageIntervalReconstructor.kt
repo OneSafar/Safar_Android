@@ -144,7 +144,7 @@ object UsageIntervalReconstructor {
         var cursor = interval.startMs
         var guard = 0
         while (cursor < interval.endMs && guard++ < 400) {
-            val date = LocalDate.ofInstant(Instant.ofEpochMilli(cursor), zone)
+            val date = Instant.ofEpochMilli(cursor).atZone(zone).toLocalDate()
             val nextMidnightMs = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
             val segmentEnd = minOf(nextMidnightMs, interval.endMs)
             if (segmentEnd > cursor) {

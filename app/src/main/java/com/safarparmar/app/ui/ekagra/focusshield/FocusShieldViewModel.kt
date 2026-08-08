@@ -63,8 +63,7 @@ class FocusShieldViewModel @Inject constructor(
     }
 
     val shieldState: StateFlow<FocusShieldUiState> = combine(
-        shieldSettings,
-        _permissionRefreshTick,
+        shieldSettings, _permissionRefreshTick,
     ) { settings, _ ->
         FocusShieldUiState(
             isEnabled = settings.enabled,
@@ -158,7 +157,6 @@ class FocusShieldViewModel @Inject constructor(
     fun setEnabled(enabled: Boolean) = repo.setEnabled(enabled)
     fun setStrictMode(enabled: Boolean) = repo.setStrictMode(enabled)
     fun setKavachProfile(mode: String) = repo.setKavachProfile(mode)
-
     fun refreshPermissions() {
         // Force a re-emission by triggering one of the combine inputs
         // Since we already read permissions inside combine, we just need

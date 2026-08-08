@@ -26,6 +26,18 @@ class NotificationDeepLinkHandlerTest {
     }
 
     @Test
+    fun `youtube study links open management and analytics destinations`() {
+        assertEquals(
+            Routes.YOUTUBE_STUDY_MODE,
+            NotificationDeepLinkHandler.routeFor("safar://youtube_study_mode?section=channels"),
+        )
+        assertEquals(
+            Routes.YOUTUBE_STUDY_ANALYTICS,
+            NotificationDeepLinkHandler.routeFor("safar://youtube_study_mode/analytics"),
+        )
+    }
+
+    @Test
     fun `https links are opened externally while unsupported schemes are rejected`() {
         assertTrue(NotificationDeepLinkHandler.isExternalWebLink(Uri.parse("https://safar.parmarssc.in/updates")))
         assertFalse(NotificationDeepLinkHandler.isExternalWebLink(Uri.parse("http://safar.parmarssc.in/updates")))

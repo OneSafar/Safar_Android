@@ -169,33 +169,24 @@ fun AuthScreen(
 
     CompositionLocalProvider(LocalIsDarkTheme provides isDark) {
         Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing,
-        snackbarHost = {
-            SnackbarHost(snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = MaterialTheme.colorScheme.inverseSurface,
-                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-                    actionColor = MaterialTheme.colorScheme.inversePrimary,
-                    shape = MaterialTheme.shapes.medium,
-                )
-            }
-        },
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(BgCream)
-                .padding(padding)
-        ) {
-
-            // Content Container
-            Column(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            snackbarHost = {
+                SnackbarHost(snackbarHostState) { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = MaterialTheme.colorScheme.inverseSurface,
+                        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                        actionColor = MaterialTheme.colorScheme.inversePrimary,
+                        shape = MaterialTheme.shapes.medium,
+                    )
+                }
+            },
+        ) { padding ->
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 24.dp, bottom = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .background(BgCream)
+                    .padding(padding)
             ) {
                 AnimatedContent(
                     targetState = when {
@@ -234,7 +225,6 @@ fun AuthScreen(
                     }
                 }
             }
-        }
         }
     }
 }
@@ -555,36 +545,36 @@ fun LoginContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
-            .verticalScroll(scroll),
+            .verticalScroll(scroll)
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
         val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
         AsyncImage(
             model = logoRes,
             contentDescription = "SAFAR Logo",
             modifier = Modifier
-                .size(120.dp)
+                .size(96.dp)
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Welcome Text
         Text(
             text = "Welcome back",
             fontFamily = LoraFontFamily,
-            fontSize = 36.sp,
+            fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = palette.heading,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 6.dp)
         )
         Text(
             text = "Glad to see you again.",
             color = palette.supportingText,
-            fontSize = 16.sp,
-            modifier = Modifier.padding(bottom = 32.dp)
+            fontSize = 15.sp,
+            modifier = Modifier.padding(bottom = 24.dp)
         )
 
         // Email Input
@@ -652,43 +642,9 @@ fun LoginContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Google Sign-In temporarily hidden — rolling it out on the website first,
-        // then here. Re-enable both the divider and button together once ready.
-        // // OR Divider
-        // Row(
-        //     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        //     verticalAlignment = Alignment.CenterVertically,
-        //     horizontalArrangement = Arrangement.Center
-        // ) {
-        //     HorizontalDivider(
-        //         modifier = Modifier.weight(1f),
-        //         color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
-        //     )
-        //     Text(
-        //         text = "OR",
-        //         modifier = Modifier.padding(horizontal = 16.dp),
-        //         color = palette.supportingText,
-        //         fontSize = 12.sp,
-        //         fontWeight = FontWeight.Medium
-        //     )
-        //     HorizontalDivider(
-        //         modifier = Modifier.weight(1f),
-        //         color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
-        //     )
-        // }
-        //
-        // Spacer(modifier = Modifier.height(16.dp))
-        //
-        // GoogleSignInButton(
-        //     onClick = onGoogleClick,
-        //     modifier = Modifier.padding(bottom = 8.dp)
-        // )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
         // Footer Links
         Row(
-            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+            modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -716,7 +672,7 @@ fun LoginContent(
             }
         }
         
-        Spacer(modifier = Modifier.height(100.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -739,36 +695,36 @@ fun SignupContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
-            .verticalScroll(scroll),
+            .verticalScroll(scroll)
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
         val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
         AsyncImage(
             model = logoRes,
             contentDescription = "SAFAR Logo",
             modifier = Modifier
-                .size(120.dp)
+                .size(96.dp)
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Welcome Text
         Text(
             text = "Create account",
             fontFamily = LoraFontFamily,
-            fontSize = 36.sp,
+            fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = palette.heading,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 6.dp)
         )
         Text(
             text = "Start your study journey with SAFAR",
             color = palette.supportingText,
-            fontSize = 16.sp,
-            modifier = Modifier.padding(bottom = 32.dp)
+            fontSize = 15.sp,
+            modifier = Modifier.padding(bottom = 24.dp)
         )
 
         // Form Fields
@@ -905,43 +861,9 @@ fun SignupContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Google Sign-In temporarily hidden — rolling it out on the website first,
-        // then here. Re-enable both the divider and button together once ready.
-        // // OR Divider
-        // Row(
-        //     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        //     verticalAlignment = Alignment.CenterVertically,
-        //     horizontalArrangement = Arrangement.Center
-        // ) {
-        //     HorizontalDivider(
-        //         modifier = Modifier.weight(1f),
-        //         color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
-        //     )
-        //     Text(
-        //         text = "OR",
-        //         modifier = Modifier.padding(horizontal = 16.dp),
-        //         color = palette.supportingText,
-        //         fontSize = 12.sp,
-        //         fontWeight = FontWeight.Medium
-        //     )
-        //     HorizontalDivider(
-        //         modifier = Modifier.weight(1f),
-        //         color = if (!MaterialTheme.colorScheme.background.isLightBackground()) Color(0xFF334155) else Color(0xFFE2E8F0)
-        //     )
-        // }
-        //
-        // Spacer(modifier = Modifier.height(16.dp))
-        //
-        // GoogleSignInButton(
-        //     onClick = onGoogleClick,
-        //     modifier = Modifier.padding(bottom = 8.dp)
-        // )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
         // Footer Links
         Row(
-            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+            modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -969,7 +891,7 @@ fun SignupContent(
             }
         }
         
-        Spacer(modifier = Modifier.height(100.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -987,29 +909,29 @@ fun ForgotPasswordContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
-            .verticalScroll(scroll),
+            .verticalScroll(scroll)
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
         val logoRes = if (isDark) R.drawable.ic_safar_logo_brand_dark else R.drawable.ic_safar_logo_brand_light
         AsyncImage(
             model = logoRes,
             contentDescription = "SAFAR Logo",
-            modifier = Modifier.size(120.dp)
+            modifier = Modifier.size(96.dp)
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Title
         Text(
             text = "Reset password",
             fontFamily = LoraFontFamily,
-            fontSize = 36.sp,
+            fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = palette.heading,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 6.dp)
         )
         Text(
             text = if (uiState.forgotPasswordStep == ForgotPasswordStep.EMAIL) {
@@ -1018,8 +940,8 @@ fun ForgotPasswordContent(
                 "Create a new password below."
             },
             color = palette.supportingText,
-            fontSize = 16.sp,
-            modifier = Modifier.padding(bottom = 32.dp)
+            fontSize = 15.sp,
+            modifier = Modifier.padding(bottom = 24.dp)
         )
 
         if (uiState.forgotPasswordStep == ForgotPasswordStep.EMAIL) {
@@ -1147,6 +1069,6 @@ fun ForgotPasswordContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(100.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
