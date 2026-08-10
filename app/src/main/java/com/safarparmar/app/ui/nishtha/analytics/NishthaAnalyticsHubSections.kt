@@ -52,8 +52,14 @@ internal fun AnalyticsOverviewSection(
     report: MonthlyReport?,
 ) {
     val todayKey = IstDateUtils.todayKey()
+    // Fix: use anchor date only so the denominator stays fixed at the number of
+    // goals the user planned for today. The previous "|| completedDateKey() == todayKey"
+    // clause caused the list to shrink to only the completed goal(s), making the
+    // card show "1/1" instead of "1/5" when only some goals were done.
+    // Ekagra-sourced goals are excluded (auto-created from focus sessions) to
+    // match the same filter used everywhere else in the analytics screen.
     val todayGoals = goals.filter { goal ->
-        goal.anchorDateKey() == todayKey || goal.completedDateKey() == todayKey
+        goal.source != "ekagra" && goal.anchorDateKey() == todayKey
     }
     val completedToday = todayGoals.count { it.isCompletedForStats() }
     val focusToday = ekagraAnalytics.focusSessions
