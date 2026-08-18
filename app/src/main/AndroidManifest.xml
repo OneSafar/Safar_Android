@@ -102,6 +102,19 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Digital wellbeing: the student turns on KAVACH to block distracting apps they chose themselves, for as long as they leave it on. Blocking must continue while SAFAR is in the background, so the check cannot be deferred to a job. No other foregroundServiceType applies." /></service>
 
+        <service
+            android:name=".feature.youtubeinsights.YoutubeInsightsAccessibilityService"
+            android:exported="true"
+            android:label="@string/youtube_insights_accessibility_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/youtube_insights_accessibility_service" />
+        </service>
+
         <receiver
             android:name=".feature.youtubeinsights.YoutubeChannelActionReceiver"
             android:exported="false" />

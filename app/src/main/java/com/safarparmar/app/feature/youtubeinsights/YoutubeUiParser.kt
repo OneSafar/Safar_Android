@@ -6,9 +6,9 @@ object YoutubeUiParser {
     // present on normal videos and was the reason every YouTube screen could be
     // mistaken for a playing Short.
     private val shortsIds = listOf("reel_watch", "shorts_player", "shorts_video")
-    private val playerIds = listOf(
-        "watch_player", "player_view", "video_player", "movie_player", "miniplayer",
-        "player_control", "player_overlays", "time_bar",
+    private val watchPlayerIds = listOf(
+        "watch_player", "movie_player", "watch_panel", "watch_sheet",
+        "watch_layout", "watch_view", "single_loop_watch_panel", "fullscreen_player",
     )
     private val channelIds = listOf(
         "channel_name", "channel_title", "owner_name", "video_owner", "metadata_channel", "uploader",
@@ -34,26 +34,29 @@ object YoutubeUiParser {
             shortsIds.any(id::contains) ||
                 (node.selected && tokens(node).any { it in shortsWords })
         }
-        val hasPlayer = isShorts || nodes.any { node ->
+        val hasWatchPlayer = isShorts || nodes.any { node ->
             val id = node.viewId.orEmpty().lowercase()
-            playerIds.any(id::contains)
+            watchPlayerIds.any(id::contains)
         }
-        if (!hasPlayer) return YoutubeDetection(YoutubeContentKind.NON_PLAYBACK)
+        if (!hasWatchPlayer) return YoutubeDetection(YoutubeContentKind.NON_PLAYBACK)
 
-        val channel = nodes.firstNotNullOfOrNull { node ->
+        // Ignore feed cards, search results and up-next thumbnails when extracting the active video's channel.
+        // A node that offers the "play video" action is a clickable thumbnail card,
+        // not the owner header of the currently active watch screen.
+        val channel = nodes.filterNot(::isPlayVideoCard).firstNotNullOfOrNull { node ->
             val id = node.viewId.orEmpty().lowercase()
             if (channelIds.any(id::contains)) cleanChannel(node.text ?: node.contentDescription) else null
-        } ?: nodes.firstNotNullOfOrNull { node ->
+        } ?: nodes.filterNot(::isPlayVideoCard).firstNotNullOfOrNull { node ->
             semanticChannel(node.contentDescription ?: node.text)
         }
 
-        val controls = nodes.flatMap(::tokens).toSet()
-        // A visible Pause control means playback is currently running; a visible Play
-        // control means it is paused. Shorts often hide controls, so foreground Shorts
-        // are treated as playing unless an explicit Play control is visible.
-        // Hidden player controls are the normal playing state. An explicit Play
-        // control is the reliable signal that playback is paused.
-        val playing = controls.none { it in playWords } || controls.any { it in pauseWords }
+        val controlNodes = nodes.filterNot(::isPlayVideoCard)
+        val hasExplicitPause = controlNodes.any { isPauseControl(it) }
+        val hasExplicitPlay = controlNodes.any { isPlayControl(it) }
+        val playing = when {
+            hasExplicitPlay && !hasExplicitPause -> false
+            else -> true
+        }
         return YoutubeDetection(
             kind = if (isShorts) YoutubeContentKind.SHORTS else YoutubeContentKind.VIDEO,
             channelName = channel,
@@ -61,29 +64,55 @@ object YoutubeUiParser {
         )
     }
 
+    private fun isPauseControl(node: YoutubeUiNode): Boolean {
+        val desc = (node.contentDescription ?: node.text)?.trim()?.lowercase().orEmpty()
+        return desc in pauseWords || desc == "pause" || desc == "रोकें" || desc == "रोकना"
+    }
+
+    private fun isPlayControl(node: YoutubeUiNode): Boolean {
+        val desc = (node.contentDescription ?: node.text)?.trim()?.lowercase().orEmpty()
+        return desc in playWords || desc == "play" || desc == "चलाएं" || desc == "चलाएँ"
+    }
+
+    private fun isPlayVideoCard(node: YoutubeUiNode): Boolean {
+        val text = (node.contentDescription ?: node.text).orEmpty().lowercase()
+        return text.contains("play video") || text.contains("वीडियो चलाएं") || text.contains("वीडियो चलाएँ")
+    }
+
     fun normalizeChannel(value: String): String = value.trim().lowercase()
         .removePrefix("@").replace(Regex("\\s+"), " ")
 
     /**
      * YouTube feed cards expose the owner before the player opens, for example:
-     * `Title – 12 minutes – Go to channel Khan Academy – ... – play video`.
+     * `Title – 12 minutes – Go to channel Khan Academy – ... – play video` or
+     * `Title – PARMAR SSC – 31K views – play video`.
      * Capturing it from TYPE_VIEW_CLICKED lets the service classify the first player
      * frame even when the player hierarchy initially omits its owner controls.
      */
     fun channelFromClickedVideo(value: CharSequence?): String? {
         val description = value?.toString()?.trim().orEmpty()
-        if (!description.contains("play video", ignoreCase = true)) return null
-        return semanticChannel(description)
+        if (!isPlayVideoCard(description)) return null
+        return CLICKED_CHANNEL_ACTION.find(description)?.groupValues?.getOrNull(1)?.let(::cleanChannel)
+            ?: semanticChannel(description)
+    }
+
+    private fun isPlayVideoCard(text: String): Boolean {
+        val lower = text.lowercase()
+        return lower.contains("play video") || lower.contains("वीडियो चलाएं") || lower.contains("वीडियो चलाएँ")
     }
 
     private fun semanticChannel(value: CharSequence?): String? {
         val description = value?.toString()?.trim().orEmpty()
         if (description.isBlank()) return null
-        val directPrefixes = listOf("Channel ", "चैनल ")
+        // Do not match plural headers like "Channels that you watch" or "Channels from your search"
+        if (description.startsWith("Channels", ignoreCase = true) || description.startsWith("चैनलें", ignoreCase = true)) {
+            return null
+        }
+        val directPrefixes = listOf("Channel: ", "Channel - ", "चैनल: ", "चैनल - ")
         directPrefixes.firstOrNull { description.startsWith(it, true) }?.let { prefix ->
             return cleanChannel(description.substring(prefix.length))
         }
-        CHANNEL_ACTION.find(description)?.groupValues?.getOrNull(1)?.let(::cleanChannel)?.let { return it }
+        WATCH_CHANNEL_ACTION.find(description)?.groupValues?.getOrNull(1)?.let(::cleanChannel)?.let { return it }
         if (description.contains(", Official Artist Channel", true)) {
             return cleanChannel(description.substringBefore(", Official Artist Channel", ""))
         }
@@ -93,9 +122,9 @@ object YoutubeUiParser {
     }
 
     private fun cleanChannel(value: String?): String? = value?.trim()
-        ?.trimEnd('.', ',', '–', '—', '-')
+        ?.trimEnd('.', ',', '–', '—', '-', '•', '|')
         ?.trim()
-        ?.takeIf { it.length in 1..120 }
+        ?.takeIf { it.length in 1..120 && !it.equals("Channels", ignoreCase = true) }
 
     private fun tokens(node: YoutubeUiNode): List<String> = sequenceOf(node.text, node.contentDescription)
         .filterNotNull().flatMap { it.lowercase().split(Regex("[^\\p{L}\\p{N}_@]+" )).asSequence() }
@@ -103,8 +132,12 @@ object YoutubeUiParser {
 
     const val YOUTUBE_PACKAGE = "com.google.android.youtube"
 
-    private val CHANNEL_ACTION = Regex(
-        "(?:^|[\\s–—-])(?:go to channel|subscribe to|subscribed to)\\s+(.+?)(?=\\s+[–—]\\s+|[.]?$)",
+    private val CLICKED_CHANNEL_ACTION = Regex(
+        "(?:go to channel|by|चैनल)\\s+([^-–—•|]+?)(?=\\s+[–—•|-]|\\s+\\d+[kKmMbB]?\\s+views|\\s+play video|$)",
+        setOf(RegexOption.IGNORE_CASE),
+    )
+    private val WATCH_CHANNEL_ACTION = Regex(
+        "^(?:Subscribe to|Subscribed to|Go to channel|सदस्यता लें|सदस्यता ली गई|चैनल पर जाएं)\\s+(.+?)(?:\\.|\\s*[–—•].*)?$",
         setOf(RegexOption.IGNORE_CASE),
     )
     private val HANDLE_WITH_SUBSCRIBERS = Regex(

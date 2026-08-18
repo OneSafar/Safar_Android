@@ -436,5 +436,8 @@
     <!-- Notification action buttons -->
     <string name="notification_action_start_now">अभी शुरू करें</string>
 
+    <string name="youtube_insights_accessibility_label">SAFAR YouTube स्टडी मोड</string>
+    <string name="youtube_insights_accessibility_description">वैकल्पिक YouTube स्टडी मोड Shorts और चैनल पहचानने, उपयोग का समय मापने और आपकी सेटिंग के अनुसार सामग्री रोकने के लिए दिखाई देने वाली YouTube स्क्रीन पढ़ता है। स्क्रीन की मूल जानकारी और चैनल नाम इसी डिवाइस पर रहते हैं; केवल दैनिक श्रेणी का कुल समय सिंक होता है।</string>
+
     <string name="module_courses">कोर्सेस</string>
 </resources>

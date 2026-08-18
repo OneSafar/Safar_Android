@@ -52,14 +52,14 @@ object FocusShieldPermissionHelper {
         }
     }
 
-    /**
-     * KAVACH no longer uses Android Accessibility Service. Blocking is driven entirely by
-     * Usage access (foreground-app detection) plus "Display over other apps" (the block screen).
-     * These stubs remain only so legacy callers keep compiling; they always report "not required".
-     */
-    fun isAccessibilityFeatureEnabled(): Boolean = false
+    fun isAccessibilityFeatureEnabled(): Boolean = true
 
-    fun hasAccessibilityService(context: Context): Boolean = false
+    fun hasAccessibilityService(context: Context): Boolean {
+        val component = ComponentName(context, com.safarparmar.app.feature.youtubeinsights.YoutubeInsightsAccessibilityService::class.java)
+            .flattenToString()
+        return Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+            .orEmpty().split(':').any { it.equals(component, ignoreCase = true) }
+    }
 
     fun openAccessibilitySettings(context: Context) {
         context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

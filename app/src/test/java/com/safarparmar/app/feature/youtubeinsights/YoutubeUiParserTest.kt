@@ -131,6 +131,65 @@ class YoutubeUiParserTest {
         assertEquals("khan academy", YoutubeUiParser.normalizeChannel("  @Khan   Academy "))
     }
 
+    @Test fun `home feed with thumbnail cards is non playback and extracts no channel`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/pivot_home", text = "Home", selected = true),
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/results_list"),
+            YoutubeUiNode(contentDescription = "Amazing Video 1 – 15 minutes – Go to channel DistractingChannel1 – 2M views – play video"),
+            YoutubeUiNode(contentDescription = "Amazing Video 2 – 8 minutes – Go to channel DistractingChannel2 – 500K views – play video"),
+        ))
+        assertEquals(YoutubeContentKind.NON_PLAYBACK, result.kind)
+        assertNull(result.channelName)
+    }
+
+    @Test fun `search results with inline preview does not misidentify feed as active watch screen`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/search_results"),
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/player_view"),
+            YoutubeUiNode(contentDescription = "Search Result – Go to channel SomeChannel – play video"),
+        ))
+        assertEquals(YoutubeContentKind.NON_PLAYBACK, result.kind)
+        assertNull(result.channelName)
+    }
+
+    @Test fun `watch screen ignores related video cards and extracts active channel`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/watch_player"),
+            YoutubeUiNode(contentDescription = "Subscribe to PhysicsWallah."),
+            // Related / Up next recommendations in the list below:
+            YoutubeUiNode(contentDescription = "Distracting gaming video – 10 minutes – Go to channel GamingChannel – play video"),
+        ))
+        assertEquals(YoutubeContentKind.VIDEO, result.kind)
+        assertEquals("PhysicsWallah", result.channelName)
+        assertTrue(result.isPlaying)
+    }
+
+    @Test fun `clicked search result card for PARMAR SSC extracts owner accurately`() {
+        val description = "SSC STENO 2026 | LAST DAYS GK STRATEGY – 11 minutes, 50 seconds – " +
+            "Go to channel PARMAR SSC – 31K views – 7 hours ago – play video"
+        assertEquals("PARMAR SSC", YoutubeUiParser.channelFromClickedVideo(description))
+    }
+
+    @Test fun `section headers like Channels that you watch are never extracted as channels`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(contentDescription = "Channels that you watch"),
+            YoutubeUiNode(contentDescription = "Channels from your search"),
+        ))
+        assertEquals(YoutubeContentKind.NON_PLAYBACK, result.kind)
+        assertNull(result.channelName)
+    }
+
+    @Test fun `watch screen with PARMAR SSC subscribed button extracts active channel`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/watch_player"),
+            YoutubeUiNode(contentDescription = "Subscribed to PARMAR SSC."),
+            YoutubeUiNode(contentDescription = "Go to channel PARMAR CLIPS – play video"),
+        ))
+        assertEquals(YoutubeContentKind.VIDEO, result.kind)
+        assertEquals("PARMAR SSC", result.channelName)
+        assertTrue(result.isPlaying)
+    }
+
     private fun snapshot(vararg nodes: YoutubeUiNode) = YoutubeUiSnapshot(
         nodes = nodes.toList(),
         packageName = YoutubeUiParser.YOUTUBE_PACKAGE,

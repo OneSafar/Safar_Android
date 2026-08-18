@@ -439,5 +439,8 @@
     <!-- Notification action buttons -->
     <string name="notification_action_start_now">Start Now</string>
 
+    <string name="youtube_insights_accessibility_label">SAFAR YouTube Study Mode</string>
+    <string name="youtube_insights_accessibility_description">Optional YouTube Study Mode reads the visible YouTube screen to identify Shorts and channel names, measure productive and distracting viewing time, and block content according to your settings. Raw screen information and channel names stay on this device; only daily category totals are synced.</string>
+
     <string name="module_courses">Courses</string>
 </resources>
