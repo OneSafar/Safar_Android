@@ -7,6 +7,7 @@ import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.data.remote.api.NotificationApi
 import com.safarparmar.app.data.remote.dto.NotificationPreferencesRequest
 import com.safarparmar.app.domain.repository.AuthRepository
+import com.safarparmar.app.util.Resource
 import androidx.work.ExistingPeriodicWorkPolicy
 import com.safarparmar.app.notifications.MorningNudgeWorker
 import com.safarparmar.app.notifications.PlannerAlertsWorker
@@ -48,8 +49,15 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val isLoggedIn = dataStore.isLoggedIn.first()
             val authToken = dataStore.authToken.first()
+            val email = dataStore.userEmail.first() ?: ""
+            _uiState.update { it.copy(userEmail = email) }
             if (!isLoggedIn || authToken.isNullOrBlank()) return@launch
-            runCatching { authRepository.getMe() }
+            when (val r = authRepository.getMe()) {
+                is Resource.Success -> {
+                    _uiState.update { it.copy(userEmail = r.data.email) }
+                }
+                else -> Unit
+            }
         }
     }
 
@@ -65,6 +73,24 @@ class SettingsViewModel @Inject constructor(
             is SettingsEvent.ToggleAnnouncements -> updatePreference { dataStore.setAnnouncementsEnabled(event.enabled) }
             is SettingsEvent.ToggleWeeklySummary -> updatePreference { dataStore.setWeeklySummaryEnabled(event.enabled) }
             is SettingsEvent.UpdateDailyReminderTime -> updateDailyReminderTime(event.time)
+            is SettingsEvent.ShowDeleteAccountDialog -> _uiState.update { it.copy(showDeleteAccountDialog = true, deleteAccountError = null) }
+            is SettingsEvent.DismissDeleteAccountDialog -> _uiState.update { it.copy(showDeleteAccountDialog = false, deleteAccountError = null) }
+            is SettingsEvent.DeleteAccount -> handleDeleteAccount(event.password)
+        }
+    }
+
+    private fun handleDeleteAccount(password: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeletingAccount = true, deleteAccountError = null) }
+            when (val r = authRepository.deleteAccount(password)) {
+                is Resource.Success -> {
+                    _uiState.update { it.copy(isDeletingAccount = false, showDeleteAccountDialog = false) }
+                }
+                is Resource.Error -> {
+                    _uiState.update { it.copy(isDeletingAccount = false, deleteAccountError = r.message) }
+                }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
@@ -84,23 +110,27 @@ class SettingsViewModel @Inject constructor(
                     dataStore.dailyReminderTime.map { it as Any },
                     dataStore.quietHoursStart.map { it as Any },
                     dataStore.quietHoursEnd.map { it as Any },
+                    dataStore.userEmail.map { it as Any },
                 ),
             ) { values ->
-                SettingsUiState(
-                    notificationsEnabled = values[0] as Boolean,
-                    focusTimerNotificationsEnabled = values[1] as Boolean,
-                    dailyStudyReminderEnabled = values[2] as Boolean,
-                    streakReminderEnabled = values[3] as Boolean,
-                    courseUpdatesEnabled = values[4] as Boolean,
-                    achievementsEnabled = values[5] as Boolean,
-                    communityRepliesEnabled = values[6] as Boolean,
-                    announcementsEnabled = values[7] as Boolean,
-                    weeklySummaryEnabled = values[8] as Boolean,
-                    dailyReminderTime = values[9] as String,
-                    quietHoursStart = values[10] as String,
-                    quietHoursEnd = values[11] as String,
-                )
-            }.collect { state -> _uiState.value = state }
+                _uiState.update { current ->
+                    current.copy(
+                        notificationsEnabled = values[0] as Boolean,
+                        focusTimerNotificationsEnabled = values[1] as Boolean,
+                        dailyStudyReminderEnabled = values[2] as Boolean,
+                        streakReminderEnabled = values[3] as Boolean,
+                        courseUpdatesEnabled = values[4] as Boolean,
+                        achievementsEnabled = values[5] as Boolean,
+                        communityRepliesEnabled = values[6] as Boolean,
+                        announcementsEnabled = values[7] as Boolean,
+                        weeklySummaryEnabled = values[8] as Boolean,
+                        dailyReminderTime = values[9] as String,
+                        quietHoursStart = values[10] as String,
+                        quietHoursEnd = values[11] as String,
+                        userEmail = (values[12] as? String) ?: current.userEmail,
+                    )
+                }
+            }.collect()
         }
     }
 

@@ -10,9 +10,23 @@ object YoutubeUiParser {
         "watch_player", "movie_player", "watch_panel", "watch_sheet",
         "watch_layout", "watch_view", "single_loop_watch_panel", "fullscreen_player",
     )
-    private val channelIds = listOf(
-        "channel_name", "channel_title", "owner_name", "video_owner", "metadata_channel", "uploader",
+    // These IDs can coexist with YouTube's collapsed mini-player. In that state the
+    // user is browsing, not viewing the mini-player's channel, so content blocking
+    // must not react to whatever metadata remains in the accessibility tree.
+    private val browseSurfaceIds = listOf(
+        "search_results", "results_list", "browse_fragment", "browse_content",
     )
+    private val selectedBrowseDestinationIds = listOf(
+        "pivot_home", "pivot_subscriptions", "pivot_library", "pivot_you",
+    )
+    private val definitiveWatchPlayerIds = listOf(
+        "watch_player", "movie_player", "single_loop_watch_panel", "fullscreen_player",
+    )
+    private val miniPlayerIds = listOf("modern_miniplayer", "miniplayer_container")
+    // Only IDs that explicitly describe the owner. `channel_title` and
+    // `metadata_channel` are not stable across YouTube versions and have exposed
+    // the video title on some builds, which made title words look like a channel.
+    private val channelIds = listOf("channel_name", "owner_name", "video_owner", "uploader")
     private val adIds = listOf("player_ad", "ad_progress", "skip_ad", "ad_badge")
     private val shortsWords = setOf("shorts", "short")
     private val pauseWords = setOf("pause", "रोकें", "रोकना")
@@ -21,6 +35,18 @@ object YoutubeUiParser {
     fun parse(snapshot: YoutubeUiSnapshot): YoutubeDetection {
         if (snapshot.packageName != YOUTUBE_PACKAGE) return YoutubeDetection(YoutubeContentKind.NON_PLAYBACK)
         val nodes = snapshot.nodes
+        // Scheduled premieres/upcoming streams create a full watch hierarchy but
+        // have no active media. Never count or block their player shell.
+        // `playerless_thumbnail` remains in the hierarchy (hidden) during normal
+        // playback on current YouTube builds, so resource ID alone is not proof.
+        val isPlayerless = nodes.any { node ->
+            sequenceOf(node.contentDescription, node.text).filterNotNull().any { value ->
+                value.equals("Notify me", ignoreCase = true) ||
+                    value.equals("Upcoming", ignoreCase = true) ||
+                    value.startsWith("Live in ", ignoreCase = true)
+            }
+        }
+        if (isPlayerless) return YoutubeDetection(YoutubeContentKind.NON_PLAYBACK)
         val isAd = nodes.any { node ->
             val id = node.viewId.orEmpty().lowercase()
             adIds.any(id::contains) || node.contentDescription.orEmpty().trim().lowercase().let {
@@ -40,13 +66,38 @@ object YoutubeUiParser {
         }
         if (!hasWatchPlayer) return YoutubeDetection(YoutubeContentKind.NON_PLAYBACK)
 
-        // Ignore feed cards, search results and up-next thumbnails when extracting the active video's channel.
-        // A node that offers the "play video" action is a clickable thumbnail card,
-        // not the owner header of the currently active watch screen.
-        val channel = nodes.filterNot(::isPlayVideoCard).firstNotNullOfOrNull { node ->
+        val hasDefinitiveWatchPlayer = nodes.any { node ->
+            val id = node.viewId.orEmpty().lowercase()
+            definitiveWatchPlayerIds.any(id::contains)
+        }
+        val hasMiniPlayer = nodes.any { node ->
+            val id = node.viewId.orEmpty().lowercase()
+            miniPlayerIds.any(id::contains)
+        }
+        val isBrowsing = nodes.any { node ->
+            val id = node.viewId.orEmpty().lowercase()
+            browseSurfaceIds.any(id::contains) ||
+                (node.selected && selectedBrowseDestinationIds.any(id::contains))
+        }
+        // The collapsed mini-player retains a complete watch_player subtree, so it
+        // must override even "definitive" player IDs. It is still a browse screen.
+        if (!isShorts && (hasMiniPlayer || (isBrowsing && !hasDefinitiveWatchPlayer))) {
+            return YoutubeDetection(YoutubeContentKind.NON_PLAYBACK)
+        }
+
+        // Scope channel extraction strictly to the active watch header.
+        // Everything at or below the Comments section (e.g. 'Comments 75', related videos,
+        // Up Next recommendations, suggestions) belongs to other videos and must NEVER be
+        // inspected for the currently playing video's owner.
+        val relevantNodes = if (isShorts) nodes else activeWatchHeaderNodes(nodes)
+
+        val channel = relevantNodes.filterNot(::isPlayVideoCard).firstNotNullOfOrNull { node ->
+            // First check for handle in metadata line (e.g. "@parmarssc 250 likes 4,437 views...")
+            extractHandle(node.text) ?: extractHandle(node.contentDescription)
+        } ?: relevantNodes.filterNot(::isPlayVideoCard).firstNotNullOfOrNull { node ->
             val id = node.viewId.orEmpty().lowercase()
             if (channelIds.any(id::contains)) cleanChannel(node.text ?: node.contentDescription) else null
-        } ?: nodes.filterNot(::isPlayVideoCard).firstNotNullOfOrNull { node ->
+        } ?: relevantNodes.filterNot(::isPlayVideoCard).firstNotNullOfOrNull { node ->
             semanticChannel(node.contentDescription ?: node.text)
         }
 
@@ -62,6 +113,42 @@ object YoutubeUiParser {
             channelName = channel,
             isPlaying = playing,
         )
+    }
+
+    /**
+     * Isolates the active video's header (player, title, owner/subscribe row, metadata)
+     * and stops scanning as soon as the Comments section or related/recommended video list begins.
+     */
+    private fun activeWatchHeaderNodes(nodes: List<YoutubeUiNode>): List<YoutubeUiNode> {
+        val result = mutableListOf<YoutubeUiNode>()
+        for (node in nodes) {
+            val id = node.viewId.orEmpty().lowercase()
+            val text = (node.contentDescription ?: node.text).orEmpty().trim().lowercase()
+            if (isCommentsOrRelatedBoundary(id, text)) {
+                break
+            }
+            result.add(node)
+        }
+        return result
+    }
+
+    private fun isCommentsOrRelatedBoundary(id: String, text: String): Boolean {
+        return id.contains("comment") ||
+            id.contains("related") ||
+            id.contains("results_list") ||
+            id.contains("item_list") ||
+            id.contains("watch_list") ||
+            id.contains("suggested") ||
+            text.startsWith("comments") ||
+            text.startsWith("comment ") ||
+            text.startsWith("टिप्पणियां") ||
+            text.startsWith("कमेंट")
+    }
+
+    private fun extractHandle(value: CharSequence?): String? {
+        val str = value?.toString()?.trim().orEmpty()
+        if (str.isBlank()) return null
+        return HANDLE_IN_LINE.find(str)?.groupValues?.getOrNull(1)?.let(::cleanChannel)
     }
 
     private fun isPauseControl(node: YoutubeUiNode): Boolean {
@@ -91,10 +178,15 @@ object YoutubeUiParser {
      */
     fun channelFromClickedVideo(value: CharSequence?): String? {
         val description = value?.toString()?.trim().orEmpty()
-        if (!isPlayVideoCard(description)) return null
+        if (!isClickedVideoCard(description)) return null
         return CLICKED_CHANNEL_ACTION.find(description)?.groupValues?.getOrNull(1)?.let(::cleanChannel)
+            ?: CLICKED_CHANNEL_BEFORE_METADATA.find(description)?.groupValues?.getOrNull(1)?.let(::cleanChannel)
             ?: semanticChannel(description)
     }
+
+    /** True only for an accessibility label belonging to a tappable video card. */
+    fun isClickedVideoCard(value: CharSequence?): Boolean =
+        isPlayVideoCard(value?.toString().orEmpty())
 
     private fun isPlayVideoCard(text: String): Boolean {
         val lower = text.lowercase()
@@ -118,6 +210,7 @@ object YoutubeUiParser {
         }
         // Some subscribed channel headers expose only "@handle, 1.2M subscribers".
         HANDLE_WITH_SUBSCRIBERS.find(description)?.groupValues?.getOrNull(1)?.let(::cleanChannel)?.let { return it }
+        HANDLE_WITH_ENGAGEMENT.find(description)?.groupValues?.getOrNull(1)?.let(::cleanChannel)?.let { return it }
         return null
     }
 
@@ -133,7 +226,16 @@ object YoutubeUiParser {
     const val YOUTUBE_PACKAGE = "com.google.android.youtube"
 
     private val CLICKED_CHANNEL_ACTION = Regex(
-        "(?:go to channel|by|चैनल)\\s+([^-–—•|]+?)(?=\\s+[–—•|-]|\\s+\\d+[kKmMbB]?\\s+views|\\s+play video|$)",
+        "(?:go to channel|चैनल पर जाएं)\\s+([^-–—•|]+?)(?=\\s+[–—•|-]|\\s+\\d+[kKmMbB]?\\s+views|\\s+play video|$)",
+        setOf(RegexOption.IGNORE_CASE),
+    )
+    // Current YouTube cards often omit "Go to channel" and expose metadata as:
+    // `Title – duration – – NBA - 30K views - ... – play video` or
+    // `Title – – – PARMAR SSC - Scheduled for ... - Upcoming – play video`.
+    // Anchoring the capture immediately before views/scheduling metadata prevents
+    // words in the title (including "SSC" or "by") from becoming a channel.
+    private val CLICKED_CHANNEL_BEFORE_METADATA = Regex(
+        "[–—]\\s*([^-–—]+?)\\s+-\\s+(?=(?:[\\d.,]+\\s*(?:[kKmMbB]|lakh|crore)?\\s+views\\b|Scheduled for\\b))",
         setOf(RegexOption.IGNORE_CASE),
     )
     private val WATCH_CHANNEL_ACTION = Regex(
@@ -142,6 +244,14 @@ object YoutubeUiParser {
     )
     private val HANDLE_WITH_SUBSCRIBERS = Regex(
         "^(@[\\p{L}\\p{N}_.-]+)\\s*,?\\s+.+\\bsubscribers?\\b",
+        setOf(RegexOption.IGNORE_CASE),
+    )
+    private val HANDLE_WITH_ENGAGEMENT = Regex(
+        "^(@[\\p{L}\\p{N}_.-]+)\\s+(?:[\\d.,]+\\s*(?:[kKmMbB]|lakh|crore)?\\s+)?(?:likes?|views?)\\b",
+        setOf(RegexOption.IGNORE_CASE),
+    )
+    private val HANDLE_IN_LINE = Regex(
+        "(@[\\p{L}\\p{N}_.-]{3,})",
         setOf(RegexOption.IGNORE_CASE),
     )
 }

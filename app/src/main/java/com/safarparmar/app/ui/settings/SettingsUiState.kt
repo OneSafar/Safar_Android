@@ -13,6 +13,10 @@ data class SettingsUiState(
     val dailyReminderTime: String = "19:00",
     val quietHoursStart: String = "22:00",
     val quietHoursEnd: String = "07:00",
+    val userEmail: String = "",
+    val showDeleteAccountDialog: Boolean = false,
+    val isDeletingAccount: Boolean = false,
+    val deleteAccountError: String? = null,
 )
 
 sealed class SettingsEvent {
@@ -26,4 +30,7 @@ sealed class SettingsEvent {
     data class ToggleAnnouncements(val enabled: Boolean) : SettingsEvent()
     data class ToggleWeeklySummary(val enabled: Boolean) : SettingsEvent()
     data class UpdateDailyReminderTime(val time: String) : SettingsEvent()
+    object ShowDeleteAccountDialog : SettingsEvent()
+    object DismissDeleteAccountDialog : SettingsEvent()
+    data class DeleteAccount(val password: String) : SettingsEvent()
 }

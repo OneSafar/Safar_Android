@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -49,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import com.safarparmar.app.ui.components.DeleteAccountDialog
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.navigation.Routes
@@ -233,6 +235,7 @@ fun ProfileScreen(
                         ActionsRow(
                             isSaving = uiState.isSaving,
                             onLogoutClick = { viewModel.onEvent(ProfileEvent.ShowLogoutDialog) },
+                            onDeleteAccountClick = { viewModel.onEvent(ProfileEvent.ShowDeleteAccountDialog) },
                             onSaveClick = { viewModel.onEvent(ProfileEvent.SaveProfile) },
                         )
                     }
@@ -241,6 +244,18 @@ fun ProfileScreen(
 
                     Spacer(Modifier.height(16.dp))
                 }
+            }
+
+            if (uiState.showDeleteAccountDialog) {
+                DeleteAccountDialog(
+                    userEmail = uiState.userEmail,
+                    isDeleting = uiState.isDeletingAccount,
+                    errorMessage = uiState.deleteAccountError,
+                    onDismiss = { viewModel.onEvent(ProfileEvent.DismissDeleteAccountDialog) },
+                    onConfirmDelete = { password ->
+                        viewModel.onEvent(ProfileEvent.DeleteAccount(password))
+                    },
+                )
             }
 
             if (uiState.showLogoutDialog) {
@@ -560,6 +575,7 @@ private fun AccountStatusRow(
 private fun ActionsRow(
     isSaving: Boolean,
     onLogoutClick: () -> Unit,
+    onDeleteAccountClick: () -> Unit,
     onSaveClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -578,32 +594,67 @@ private fun ActionsRow(
             icon = Icons.Default.Check,
         )
 
-        // Logout Button (Bare Outlined Action Pill)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, scheme.error.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                .clickable(onClick = onLogoutClick)
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Logout Button
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(1.dp, scheme.error.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    .clickable(onClick = onLogoutClick)
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Logout,
-                    contentDescription = null,
-                    tint = scheme.error,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Logout",
-                    fontSize = 14.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.error
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = null,
+                        tint = scheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Logout",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.error
+                    )
+                }
+            }
+
+            // Delete Account Button
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFE11D48).copy(alpha = 0.08f))
+                    .border(1.dp, Color(0xFFE11D48).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                    .clickable(onClick = onDeleteAccountClick)
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteForever,
+                        contentDescription = null,
+                        tint = Color(0xFFE11D48),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Delete Account",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE11D48)
+                    )
+                }
             }
         }
     }

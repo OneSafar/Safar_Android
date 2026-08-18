@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Nightlight
@@ -49,6 +50,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.ui.components.DeleteAccountDialog
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.premium.PremiumViewModel
@@ -234,10 +236,35 @@ fun SettingsScreen(
                         }
                     }
 
+                    PlanHairline(alpha = 0.5f)
+
+                    StaggeredSettingsEntranceBox(index = 6, isVisible = settingsVisible) {
+                        SettingsSheetSection(title = "Account & Data Management") {
+                            SettingsNavigationRow(
+                                title = "Delete Account & Data",
+                                subtitle = "Permanently wipe your account, study history, and private data",
+                                icon = Icons.Default.DeleteForever,
+                                onClick = { viewModel.onEvent(SettingsEvent.ShowDeleteAccountDialog) },
+                            )
+                        }
+                    }
+
                     FooterSection()
 
                     Spacer(Modifier.height(16.dp))
                 }
+            }
+
+            if (uiState.showDeleteAccountDialog) {
+                DeleteAccountDialog(
+                    userEmail = uiState.userEmail,
+                    isDeleting = uiState.isDeletingAccount,
+                    errorMessage = uiState.deleteAccountError,
+                    onDismiss = { viewModel.onEvent(SettingsEvent.DismissDeleteAccountDialog) },
+                    onConfirmDelete = { password ->
+                        viewModel.onEvent(SettingsEvent.DeleteAccount(password))
+                    },
+                )
             }
 
             if (showTimePickerDialog) {

@@ -11,6 +11,8 @@ import android.app.usage.UsageStatsManager
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.util.Log
+import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import android.widget.Toast
@@ -40,6 +42,9 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
     private var usageEventWatermarkMs = 0L
     private var pendingClickedChannel: String? = null
     private var pendingClickedChannelAt = 0L
+    private var pendingVideoTapAt = 0L
+    private var userOpenedVideo = false
+    private var wasBrowsingYoutube = false
     /** Monotonic token prevents an older IO decision from restoring a stale overlay. */
     @Volatile private var decisionGeneration = 0L
 
@@ -59,15 +64,15 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
         if (event?.packageName?.toString() != YoutubeUiParser.YOUTUBE_PACKAGE) return
         val now = SystemClock.elapsedRealtime()
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
-            val description = event.contentDescription
-                ?: event.source?.contentDescription
-                ?: event.text.takeIf { it.isNotEmpty() }?.joinToString(" ")
-            val clickedChannel = YoutubeUiParser.channelFromClickedVideo(description)
+            val cardDescription = clickedNodeDescriptions(event).firstOrNull(YoutubeUiParser::isClickedVideoCard)
+            val clickedChannel = YoutubeUiParser.channelFromClickedVideo(cardDescription)
+            debugLog("click card=${cardDescription != null} channel=${clickedChannel ?: "unknown"}")
             clickedChannel?.let {
                 pendingClickedChannel = it
                 pendingClickedChannelAt = now
             }
-            if (clickedChannel != null) {
+            if (cardDescription != null) {
+                pendingVideoTapAt = now
                 // The click is reported while the old feed hierarchy can still be
                 // active. Do not mistake its autoplay preview for the opened video
                 // and press Back out of YouTube; inspect after navigation starts.
@@ -110,7 +115,7 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
             return
         }
         if (currentForegroundPackage() != YoutubeUiParser.YOUTUBE_PACKAGE) {
-            clearPendingChannel()
+            clearPlaybackSession()
             clearBlockState()
             scope.launch {
                 decisionMutex.withLock {
@@ -130,16 +135,41 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
             return
         }
         var detection = YoutubeUiParser.parse(YoutubeUiSnapshot(readNodes(root), YoutubeUiParser.YOUTUBE_PACKAGE))
-        val pending = pendingClickedChannel?.takeIf {
-            SystemClock.elapsedRealtime() - pendingClickedChannelAt <= PENDING_CHANNEL_MAX_AGE_MS
+        val now = SystemClock.elapsedRealtime()
+        val recentVideoTap = pendingVideoTapAt > 0L && now - pendingVideoTapAt <= PENDING_VIDEO_TAP_MAX_AGE_MS
+        val pendingChannel = pendingClickedChannel?.takeIf {
+            now - pendingClickedChannelAt <= PENDING_CHANNEL_MAX_AGE_MS
         }
+        debugLog(
+            "raw kind=${detection.kind} channel=${detection.channelName ?: "unknown"} " +
+                "playing=${detection.isPlaying} recentTap=$recentVideoTap browsed=$wasBrowsingYoutube " +
+                "opened=$userOpenedVideo",
+        )
         if (detection.kind == YoutubeContentKind.VIDEO) {
-            if (detection.channelName == null && pending != null) {
-                detection = detection.copy(channelName = pending)
+            // Some YouTube/OEM combinations emit TYPE_VIEW_CLICKED with a null or
+            // leaf-only source. A browse -> full-watch transition is equivalent
+            // evidence of an intentional open. Inline autoplay never leaves the
+            // browse snapshot, so it cannot arm blocking through this path.
+            if (recentVideoTap || wasBrowsingYoutube) {
+                userOpenedVideo = true
+                pendingVideoTapAt = 0L
             }
-            if (detection.channelName != null) {
-                clearPendingChannel()
+            wasBrowsingYoutube = false
+            // Player-like nodes also exist for silent Home/search thumbnail previews
+            // and the collapsed mini-player. A normal video is eligible for analytics
+            // and blocking only after a real video-card click was observed.
+            if (!userOpenedVideo) {
+                detection = YoutubeDetection(YoutubeContentKind.NON_PLAYBACK)
+            } else {
+                if (detection.channelName == null && pendingChannel != null) {
+                    detection = detection.copy(channelName = pendingChannel)
+                }
+                if (detection.channelName != null) clearPendingChannel()
             }
+        } else if (detection.kind == YoutubeContentKind.NON_PLAYBACK && !recentVideoTap) {
+            userOpenedVideo = false
+            clearPendingChannel()
+            wasBrowsingYoutube = true
         }
         scope.launch {
             decisionMutex.withLock {
@@ -147,6 +177,10 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
                 repository.observe(detection)
                 val protectedNow = FocusShieldRepository.Snapshot.active
                 val shouldBlock = repository.shouldBlock(detection, protectedNow)
+                debugLog(
+                    "decision kind=${detection.kind} channel=${detection.channelName ?: "unknown"} " +
+                        "scope=${repository.channelScope.value} protected=$protectedNow block=$shouldBlock",
+                )
                 if (generation != decisionGeneration) return@withLock
                 if (shouldBlock) {
                     val shorts = detection.kind == YoutubeContentKind.SHORTS
@@ -188,6 +222,32 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
     private fun clearPendingChannel() {
         pendingClickedChannel = null
         pendingClickedChannelAt = 0L
+    }
+
+    private fun clearPlaybackSession() {
+        clearPendingChannel()
+        pendingVideoTapAt = 0L
+        userOpenedVideo = false
+        wasBrowsingYoutube = false
+    }
+
+    /** Includes parent labels because YouTube often reports the clicked child icon. */
+    private fun clickedNodeDescriptions(event: AccessibilityEvent): List<CharSequence> {
+        val descriptions = mutableListOf<CharSequence>()
+        event.contentDescription?.let(descriptions::add)
+        if (event.text.isNotEmpty()) descriptions += event.text.joinToString(" ")
+        var node = event.source
+        var depth = 0
+        while (node != null && depth++ < CLICKED_NODE_PARENT_DEPTH) {
+            node.contentDescription?.let(descriptions::add)
+            node.text?.let(descriptions::add)
+            node = node.parent
+        }
+        return descriptions
+    }
+
+    private fun debugLog(message: String) {
+        if (BuildConfig.DEBUG) Log.d(DEBUG_TAG, message)
     }
 
     /**
@@ -313,6 +373,9 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
         // can take several seconds to appear.  Keep the clicked channel alive long
         // enough to be applied when the player finally renders.
         private const val PENDING_CHANNEL_MAX_AGE_MS = 7_000L
+        private const val PENDING_VIDEO_TAP_MAX_AGE_MS = 7_000L
+        private const val CLICKED_NODE_PARENT_DEPTH = 4
+        private const val DEBUG_TAG = "SafarYoutubeStudy"
         private const val MAX_NODES = 700
         private const val MEDIA_PAUSE_REPEAT_MS = 1_500L
         private const val ESCAPE_RETRY_MS = 900L

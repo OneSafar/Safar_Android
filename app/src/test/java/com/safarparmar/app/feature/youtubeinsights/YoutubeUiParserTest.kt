@@ -119,12 +119,68 @@ class YoutubeUiParserTest {
         assertNull(YoutubeUiParser.channelFromClickedVideo("Go to channel Khan Academy"))
     }
 
+    @Test fun `by inside a video title is never parsed as the channel`() {
+        val description = "GK strategy by SSC for 2026 – 12 minutes – 20K views – play video"
+        assertTrue(YoutubeUiParser.isClickedVideoCard(description))
+        assertNull(YoutubeUiParser.channelFromClickedVideo(description))
+    }
+
+    @Test fun `current youtube card extracts channel immediately before view metadata`() {
+        val description = "SLAM SUMMER CLASSIC VOL 8 – 1 hour, 33 minutes –  – " +
+            "NBA - 30K views - Streamed 15 hours ago – play video"
+        assertEquals("NBA", YoutubeUiParser.channelFromClickedVideo(description))
+    }
+
+    @Test fun `scheduled card extracts channel without confusing its title`() {
+        val description = "SSC EXAMS 2026 NITTO SERIES –  –  – " +
+            "PARMAR SSC - Scheduled for 19/08/26, 9:30 - Upcoming – play video"
+        assertEquals("PARMAR SSC", YoutubeUiParser.channelFromClickedVideo(description))
+    }
+
+    @Test fun `video title stored in ambiguous channel title id is ignored`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "watch_player"),
+            YoutubeUiNode(viewId = "channel_title", text = "GK strategy SSC 2026"),
+        ))
+        assertEquals(YoutubeContentKind.VIDEO, result.kind)
+        assertNull(result.channelName)
+    }
+
     @Test fun `subscribed handle with subscriber count identifies owner`() {
         val result = YoutubeUiParser.parse(snapshot(
             YoutubeUiNode(viewId = "watch_player"),
             YoutubeUiNode(contentDescription = "@studywithme, 1.2M subscribers"),
         ))
         assertEquals("@studywithme", result.channelName)
+    }
+
+    @Test fun `watch metadata handle with likes identifies owner`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "watch_player"),
+            YoutubeUiNode(contentDescription = "@NBA 560 likes 30K views 17 hr ago"),
+        ))
+        assertEquals("@NBA", result.channelName)
+    }
+
+    @Test fun `scheduled player shell is non playback`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "watch_player"),
+            YoutubeUiNode(viewId = "playerless_thumbnail"),
+            YoutubeUiNode(contentDescription = "Notify me"),
+        ))
+        assertEquals(YoutubeContentKind.NON_PLAYBACK, result.kind)
+        assertFalse(result.isPlaying)
+    }
+
+    @Test fun `hidden playerless thumbnail does not suppress normal playback`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "watch_player"),
+            YoutubeUiNode(viewId = "playerless_thumbnail"),
+            YoutubeUiNode(contentDescription = "@NBA 560 likes 30K views 17 hr ago"),
+        ))
+        assertEquals(YoutubeContentKind.VIDEO, result.kind)
+        assertEquals("@NBA", result.channelName)
+        assertTrue(result.isPlaying)
     }
 
     @Test fun `normalizes handles and whitespace`() {
@@ -147,6 +203,40 @@ class YoutubeUiParserTest {
             YoutubeUiNode(viewId = "com.google.android.youtube:id/search_results"),
             YoutubeUiNode(viewId = "com.google.android.youtube:id/player_view"),
             YoutubeUiNode(contentDescription = "Search Result – Go to channel SomeChannel – play video"),
+        ))
+        assertEquals(YoutubeContentKind.NON_PLAYBACK, result.kind)
+        assertNull(result.channelName)
+    }
+
+    @Test fun `search results with collapsed watch panel are still browsing`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/search_results"),
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/watch_panel"),
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/channel_name", text = "Distracting Channel"),
+            YoutubeUiNode(contentDescription = "Pause"),
+        ))
+        assertEquals(YoutubeContentKind.NON_PLAYBACK, result.kind)
+        assertNull(result.channelName)
+        assertFalse(result.isPlaying)
+    }
+
+    @Test fun `selected home with collapsed watch layout is still browsing`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/pivot_home", text = "Home", selected = true),
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/watch_layout"),
+            YoutubeUiNode(contentDescription = "Subscribe to Distracting Channel."),
+        ))
+        assertEquals(YoutubeContentKind.NON_PLAYBACK, result.kind)
+        assertNull(result.channelName)
+    }
+
+    @Test fun `modern miniplayer overrides retained definitive watch player`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "browse_fragment_layout_coordinator_layout"),
+            YoutubeUiNode(viewId = "results"),
+            YoutubeUiNode(viewId = "modern_miniplayer_subtitle_text", text = "NBA"),
+            YoutubeUiNode(viewId = "watch_player"),
+            YoutubeUiNode(contentDescription = "@NBA 560 likes 30K views"),
         ))
         assertEquals(YoutubeContentKind.NON_PLAYBACK, result.kind)
         assertNull(result.channelName)
@@ -187,6 +277,35 @@ class YoutubeUiParserTest {
         ))
         assertEquals(YoutubeContentKind.VIDEO, result.kind)
         assertEquals("PARMAR SSC", result.channelName)
+        assertTrue(result.isPlaying)
+    }
+
+    @Test fun `watch screen extracts handle and strictly ignores recommended video channels below comments`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/watch_player"),
+            YoutubeUiNode(text = "SSC CGL 2026 | BLITZ SERIES REAS..."),
+            YoutubeUiNode(text = "@parmarssc 250 likes 4,437 views 7 hr ago 1 pro... ...more"),
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/subscribe_button", text = "Subscribe"),
+            YoutubeUiNode(text = "Comments 75"),
+            // Recommended video below comments:
+            YoutubeUiNode(text = "50x Icon Picks/Packs Decides My Team!"),
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/channel_name", text = "BorasLegend • 85 watching"),
+        ))
+        assertEquals(YoutubeContentKind.VIDEO, result.kind)
+        assertEquals("@parmarssc", result.channelName)
+        assertTrue(result.isPlaying)
+    }
+
+    @Test fun `watch screen with no active channel in header does not fallback to recommended videos below comments`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/watch_player"),
+            YoutubeUiNode(text = "Some Video Title"),
+            YoutubeUiNode(text = "Comments 120"),
+            // Recommended video below comments:
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/channel_name", text = "DistractingChannel"),
+        ))
+        assertEquals(YoutubeContentKind.VIDEO, result.kind)
+        assertNull(result.channelName) // Must be null, NOT DistractingChannel!
         assertTrue(result.isPlaying)
     }
 

@@ -147,6 +147,7 @@ class AuthViewModelTest {
             Resource.Success(Unit)
 
         override suspend fun logout(): Resource<Unit> = Resource.Success(Unit)
+        override suspend fun deleteAccount(password: String): Resource<Unit> = Resource.Success(Unit)
 
         override suspend fun refreshToken(): Resource<Unit> = Resource.Success(Unit)
 

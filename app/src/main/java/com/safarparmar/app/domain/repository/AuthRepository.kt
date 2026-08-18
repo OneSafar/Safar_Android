@@ -15,6 +15,7 @@ interface AuthRepository {
     suspend fun forgotPassword(email: String): Resource<ForgotPasswordResult>
     suspend fun resetPasswordConfirm(token: String, newPassword: String): Resource<Unit>
     suspend fun logout(): Resource<Unit>
+    suspend fun deleteAccount(password: String): Resource<Unit>
 
     suspend fun refreshToken(): Resource<Unit>
     suspend fun getMe(): Resource<UserProfile>

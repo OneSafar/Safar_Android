@@ -65,6 +65,9 @@ class ProfileViewModel @Inject constructor(
         when (event) {
             is ProfileEvent.ShowLogoutDialog  -> _uiState.update { it.copy(showLogoutDialog = true) }
             is ProfileEvent.DismissLogoutDialog -> _uiState.update { it.copy(showLogoutDialog = false) }
+            is ProfileEvent.ShowDeleteAccountDialog -> _uiState.update { it.copy(showDeleteAccountDialog = true, deleteAccountError = null) }
+            is ProfileEvent.DismissDeleteAccountDialog -> _uiState.update { it.copy(showDeleteAccountDialog = false, deleteAccountError = null) }
+            is ProfileEvent.DeleteAccount -> handleDeleteAccount(event.password)
             is ProfileEvent.ClearError        -> _uiState.update { it.copy(error = null) }
             is ProfileEvent.Logout            -> handleLogout()
             is ProfileEvent.SaveProfile       -> saveProfile()
@@ -196,6 +199,21 @@ class ProfileViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, showLogoutDialog = false) }
             authRepository.logout()
             _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    private fun handleDeleteAccount(password: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeletingAccount = true, deleteAccountError = null) }
+            when (val r = authRepository.deleteAccount(password)) {
+                is Resource.Success -> {
+                    _uiState.update { it.copy(isDeletingAccount = false, showDeleteAccountDialog = false) }
+                }
+                is Resource.Error -> {
+                    _uiState.update { it.copy(isDeletingAccount = false, deleteAccountError = r.message) }
+                }
+                is Resource.Loading -> Unit
+            }
         }
     }
 

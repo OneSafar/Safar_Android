@@ -19,6 +19,9 @@ data class ProfileUiState(
     val saveSuccess: Boolean = false,
     val avatarUploadSuccess: Boolean = false,
     val showLogoutDialog: Boolean = false,
+    val showDeleteAccountDialog: Boolean = false,
+    val isDeletingAccount: Boolean = false,
+    val deleteAccountError: String? = null,
     val error: String? = null,
     val nameError: String? = null,
 )
@@ -26,6 +29,9 @@ data class ProfileUiState(
 sealed class ProfileEvent {
     object ShowLogoutDialog : ProfileEvent()
     object DismissLogoutDialog : ProfileEvent()
+    object ShowDeleteAccountDialog : ProfileEvent()
+    object DismissDeleteAccountDialog : ProfileEvent()
+    data class DeleteAccount(val password: String) : ProfileEvent()
     object Logout : ProfileEvent()
     object ClearError : ProfileEvent()
     object SaveProfile : ProfileEvent()

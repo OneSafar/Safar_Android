@@ -152,6 +152,28 @@ class AuthRepositoryImpl @Inject constructor(
         return Resource.Success(Unit)
     }
 
+    override suspend fun deleteAccount(password: String): Resource<Unit> {
+        val email = dataStore.userEmail.first()
+        if (email.isNullOrBlank()) {
+            return Resource.Error("User email not found. Please log in again.")
+        }
+        val r = safeApiCall { authApi.deleteAccount(DeleteAccountRequest(email = email.trim().lowercase(), password = password)) }
+        return when (r) {
+            is Resource.Success -> {
+                val token = dataStore.fcmToken.first()
+                if (!token.isNullOrBlank()) {
+                    runCatching { safeApiCall { notificationApi.revokeDeviceToken(DeviceTokenRevokeRequest(token)) } }
+                }
+                dataStore.setLoggedIn(false)
+                dataStore.clearSession()
+                cookieStore.removeAll()
+                Resource.Success(Unit)
+            }
+            is Resource.Error   -> Resource.Error(r.message)
+            is Resource.Loading -> Resource.Loading()
+        }
+    }
+
     override suspend fun refreshToken(): Resource<Unit> = Resource.Success(Unit)
 
     override suspend fun getMe(): Resource<UserProfile> {

@@ -150,21 +150,37 @@ class SafarNotificationManager(
         return builder.build()
     }
 
-    /**
-     * Posts an invisible group-summary notification for the given channel.
-     * This is required by Android to actually collapse multiple child notifications
-     * into a single grouped bundle in the notification shade.
-     *
-     * Must be called AFTER posting the individual child notification.
-     */
+    /** Posts a labelled group summary after the individual child notification. */
     private fun postGroupSummary(channelId: String) {
         val normalizedChannel = SafarNotificationChannels.normalize(channelId)
         val groupKey = groupKeyForChannel(normalizedChannel)
         val summaryId = groupSummaryIdForChannel(normalizedChannel)
+        val childCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            notificationManager.activeNotifications.count { notification ->
+                notification.id != summaryId && notification.notification.group == groupKey
+            }
+        } else {
+            2 // Group summaries are only relevant once Android groups multiple children.
+        }
+
+        // A summary for a single child creates a second, empty-looking notification
+        // on several OEM skins. Let Android display the child normally instead.
+        if (childCount < 2) {
+            notificationManager.cancel(summaryId)
+            return
+        }
+        val channelName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notificationManager.getNotificationChannel(normalizedChannel)?.name?.toString()
+        } else null
+        val title = channelName?.takeIf { it.isNotBlank() } ?: "SAFAR"
+        val body = "$childCount notifications"
 
         val summaryNotification = NotificationCompat.Builder(context, normalizedChannel)
             .setSmallIcon(SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationStyle.brandColor(context))
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.InboxStyle().setSummaryText(body))
             .setGroup(groupKey)
             .setGroupSummary(true)
             .setAutoCancel(true)
