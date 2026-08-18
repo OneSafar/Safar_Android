@@ -45,7 +45,8 @@ object Routes {
     // Syllabus route — single unified accordion-tree screen (subjects/chapters/topics expand in place)
     const val ROUTE_SYLLABUS_SUBJECTS = "syllabus/subjects/{planId}"
 
-    fun nishthaTab(tab: Int): String = "nishtha?tab=$tab"
+    fun nishthaTab(tab: Int, section: String = "overview"): String =
+        "nishtha?tab=$tab&section=${encodeParam(section)}"
 
     /** Canonical entry route for drawer / HomeScreen launches. */
     fun nishthaRoot(): String = "nishtha?tab=0&section=overview"
@@ -57,6 +58,10 @@ object Routes {
     fun normalizeFeatureRoute(route: String): String = when {
         route == NISHTHA || (route.substringBefore("?") == NISHTHA && !route.contains("tab=")) ->
             nishthaRoot()
+        route.startsWith("nishtha?") && !route.contains("section=") -> {
+            val tab = Regex("tab=(\\d+)").find(route)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            nishthaTab(tab, "overview")
+        }
         route == STUDY_PLANNER || (route.substringBefore("?") == STUDY_PLANNER && !route.contains("showDailyTodoSetup=")) ->
             studyPlannerRoot()
         else -> route
@@ -64,6 +69,9 @@ object Routes {
 
     private fun encodeParam(value: String): String =
         runCatching { java.net.URLEncoder.encode(value, "UTF-8") }.getOrDefault(value)
+
+    private fun decodeParam(value: String): String =
+        runCatching { java.net.URLDecoder.decode(value, "UTF-8") }.getOrDefault(value)
 
     /** Deep-link target that opens a specific plan straight on its Revision tab. */
     fun studyPlannerRevision(planId: String): String =
@@ -95,24 +103,24 @@ object Routes {
         if (route.substringBefore("?") != NISHTHA) return false
         val wantsTab = Regex("tab=(\\d+)").find(route)?.groupValues?.get(1)?.toIntOrNull()
         val wantsSection = Regex("section=([^&]+)").find(route)?.groupValues?.get(1)
-            ?.let { android.net.Uri.decode(it) }
+            ?.let { decodeParam(it) }
         return (wantsTab != null && wantsTab != 0) ||
             (wantsSection != null && wantsSection != "overview")
     }
 
     // Analytics is Nishtha tab index 4; resolves to the single NISHTHA_ROUTE.
     fun nishthaAnalytics(section: String = "overview"): String =
-        "nishtha?tab=4&section=${android.net.Uri.encode(section)}"
+        "nishtha?tab=4&section=${encodeParam(section)}"
 
     fun ekagraAnalytics(): String = nishthaAnalytics("ekagra")
 
     fun liveSessions(courseId: String? = null): String =
         if (courseId.isNullOrBlank()) LIVE_SESSIONS_ROOT
-        else "live/sessions?courseId=${android.net.Uri.encode(courseId)}"
+        else "live/sessions?courseId=${encodeParam(courseId)}"
 
     fun liveSession(sessionId: String): String =
-        "live/session/${android.net.Uri.encode(sessionId)}"
+        "live/session/${encodeParam(sessionId)}"
 
     fun studyCircleDetail(circleId: String): String =
-        "study_circles/${android.net.Uri.encode(circleId)}"
+        "study_circles/${encodeParam(circleId)}"
 }

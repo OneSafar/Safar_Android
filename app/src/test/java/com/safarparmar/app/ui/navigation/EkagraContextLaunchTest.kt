@@ -39,4 +39,13 @@ class EkagraContextLaunchTest {
         assertTrue(normalized.contains("showDailyTodoSetup=false"))
         assertNotEquals(Routes.HOME, normalized)
     }
+
+    @Test
+    fun `manage goals route contains tab 2 and overview section`() {
+        val goalsRoute = Routes.nishthaTab(2)
+        val normalized = Routes.normalizeFeatureRoute(goalsRoute)
+
+        assertTrue(normalized.contains("tab=2"))
+        assertTrue(normalized.contains("section=overview"))
+    }
 }

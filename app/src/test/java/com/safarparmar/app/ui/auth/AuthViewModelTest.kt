@@ -91,7 +91,7 @@ class AuthViewModelTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `submit forgot password email success transitions to reset step`() = runTest {
+    fun `submit forgot password email success transitions to email sent step`() = runTest {
         val viewModel = AuthViewModel(FakeAuthRepository())
 
         viewModel.onEvent(AuthEvent.ForgotPassword)
@@ -99,8 +99,7 @@ class AuthViewModelTest {
         viewModel.onEvent(AuthEvent.SubmitForgotPasswordRequest)
         advanceUntilIdle()
 
-        assertEquals(ForgotPasswordStep.RESET, viewModel.uiState.value.forgotPasswordStep)
-        assertEquals("fake_token", viewModel.uiState.value.forgotPasswordToken)
+        assertEquals(ForgotPasswordStep.EMAIL_SENT, viewModel.uiState.value.forgotPasswordStep)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

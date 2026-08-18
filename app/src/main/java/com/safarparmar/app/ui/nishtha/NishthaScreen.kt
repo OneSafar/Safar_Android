@@ -114,6 +114,17 @@ fun NishthaScreen(
     var tourState by remember { mutableStateOf<ButterflyTourState?>(null) }
     var analyticsSection by remember { mutableStateOf(analyticsInitialSection) }
 
+    LaunchedEffect(initialTab) {
+        val target = NishthaTab.entries.getOrElse(initialTab) { NishthaTab.CHECK_IN }
+        tabBackStack.select(target)
+    }
+
+    LaunchedEffect(analyticsInitialSection) {
+        if (analyticsInitialSection.isNotBlank()) {
+            analyticsSection = analyticsInitialSection
+        }
+    }
+
     val nishthaNavigate: (String) -> Unit = { route ->
         val routeBase = route.substringBefore("?")
         val tabArg = if (route.contains("tab=")) route.substringAfter("tab=").substringBefore("&").toIntOrNull() else null

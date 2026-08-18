@@ -96,8 +96,16 @@ class KavachAlwaysOnService : Service() {
             .fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
             .focusShieldRepository()
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onCreate() {
+        super.onCreate()
+        // startForegroundService() gives the service only a short deadline to
+        // promote itself. Do this at the earliest lifecycle callback rather than
+        // waiting for onStartCommand(), which can be delayed on some OEM builds.
+        SafarNotificationChannels.createAll(this)
         startForeground(NOTIFICATION_ID, buildStatusNotification())
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (monitorJob == null) startMonitoring()
         return START_STICKY
     }

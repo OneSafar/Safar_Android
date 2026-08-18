@@ -62,7 +62,7 @@ object NotificationDeepLinkHandler {
                 "app_picker" -> Routes.APP_PICKER
                 else -> Routes.EKAGRA
             }
-            "dashboard" -> Routes.DASHBOARD
+            "dashboard", "home" -> Routes.DASHBOARD
             "nishtha" -> when (firstSegment) {
                 "checkin"   -> Routes.nishthaTab(0)
                 "journal"   -> Routes.nishthaTab(1)
@@ -81,16 +81,22 @@ object NotificationDeepLinkHandler {
             "settings" -> Routes.SETTINGS
             "achievements" -> Routes.ACHIEVEMENTS
             "dhyan" -> Routes.DHYAN
+            "dhyan_courses", "courses" -> Routes.COURSES
             "focus_shield" -> Routes.FOCUS_SHIELD
+            "kavach" -> when (firstSegment) {
+                "about" -> Routes.KAVACH_ABOUT
+                "app_categories" -> Routes.KAVACH_APP_CATEGORIES
+                else -> Routes.FOCUS_SHIELD
+            }
             "youtube_study_mode" -> if (firstSegment == "analytics") Routes.YOUTUBE_STUDY_ANALYTICS else Routes.YOUTUBE_STUDY_MODE
-            "course" -> Routes.nishthaRoot()
+            "course" -> Routes.COURSES
             "studyplanner", "study_planner" -> {
                 val planId = queryUri?.getQueryParameter("planId").orEmpty()
                 val tab = queryUri?.getQueryParameter("tab").orEmpty()
-                if (tab.equals("revision", ignoreCase = true) && planId.isNotBlank()) {
-                    Routes.studyPlannerRevision(planId)
-                } else {
-                    Routes.STUDY_PLANNER
+                when {
+                    firstSegment == "create" -> Routes.CREATE_PLAN
+                    tab.equals("revision", ignoreCase = true) && planId.isNotBlank() -> Routes.studyPlannerRevision(planId)
+                    else -> Routes.STUDY_PLANNER
                 }
             }
             "admin" -> when (firstSegment) {
@@ -98,6 +104,7 @@ object NotificationDeepLinkHandler {
                 else -> Routes.HOME
             }
             "premium" -> Routes.PREMIUM
+            "leaderboard" -> Routes.LEADERBOARD
             "live" -> when (firstSegment) {
                 "session" -> segments.getOrNull(1)?.let { sessionId ->
                     "live/session/${decodePathSegment(sessionId)}"

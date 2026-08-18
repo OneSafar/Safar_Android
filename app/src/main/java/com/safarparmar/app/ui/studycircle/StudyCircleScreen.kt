@@ -52,6 +52,8 @@ import com.safarparmar.app.ui.theme.isLightBackground
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+private const val MAX_CIRCLE_NAME_LENGTH = 40
+
 private val CircleIndigo: Color
     @Composable get() = if (!MaterialTheme.colorScheme.background.isLightBackground()) {
         Color(0xFFC084FC)
@@ -303,7 +305,8 @@ fun StudyCircleScreen(
                                 circle = circle,
                                 enabled = !atLimit,
                                 busy = state.busyId == circle.id,
-                                onClick = { viewModel.joinPublic(circle) { onNavigate(Routes.studyCircleDetail(it)) } },
+                                onJoin = { viewModel.joinPublic(circle) { onNavigate(Routes.studyCircleDetail(it)) } },
+                                onOpen = { onNavigate(Routes.studyCircleDetail(circle.id)) },
                             )
                         }
                     }
@@ -484,19 +487,33 @@ private fun MyCircleCard(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
                 } else {
                     "${circle.memberCount} of ${circle.maxMembers ?: 100} members, private"
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(memberText, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = memberText,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
                     if (circle.focusingCount > 0) {
                         Text(" · ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             LivePulseDot(size = 6)
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                "${circle.focusingCount} live",
+                                text = "${circle.focusingCount} live",
                                 color = if (isLight) RoyalPurpleDark else RoyalPurpleLight,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
                             )
                         }
                     }
@@ -518,9 +535,19 @@ private fun MyCircleCard(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PublicCircleCard(circle: PublicStudyCircleDto, enabled: Boolean, busy: Boolean, onClick: () -> Unit) {
+private fun PublicCircleCard(
+    circle: PublicStudyCircleDto,
+    enabled: Boolean,
+    busy: Boolean,
+    onJoin: () -> Unit,
+    onOpen: (() -> Unit)? = null,
+) {
     FlatCircleCard(
-        modifier = Modifier.clickable(enabled = enabled && !busy, onClick = onClick),
+        modifier = if (circle.joined && onOpen != null) {
+            Modifier.clickable(onClick = onOpen)
+        } else {
+            Modifier
+        },
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 13.dp),
     ) {
         Row(
@@ -543,19 +570,33 @@ private fun PublicCircleCard(circle: PublicStudyCircleDto, enabled: Boolean, bus
                 } else {
                     "Created by ${circle.ownerName}, ${circle.memberCount} ${if (circle.memberCount == 1) "member" else "members"}"
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(subText, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = subText,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
                     if (circle.focusingCount > 0) {
                         Text(" · ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             LivePulseDot(size = 6)
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                "${circle.focusingCount} live",
+                                text = "${circle.focusingCount} live",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isLight) RoyalPurpleDark else RoyalPurpleLight,
+                                maxLines = 1,
+                                softWrap = false,
                             )
                         }
                     }
@@ -563,15 +604,20 @@ private fun PublicCircleCard(circle: PublicStudyCircleDto, enabled: Boolean, bus
             }
             Spacer(Modifier.width(8.dp))
             if (circle.joined) {
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = "Open circle",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(18.dp),
-                )
+                IconButton(
+                    onClick = { onOpen?.invoke() },
+                    modifier = Modifier.size(34.dp),
+                ) {
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Open circle",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             } else {
                 OutlinedButton(
-                    onClick = onClick,
+                    onClick = onJoin,
                     enabled = enabled && !busy,
                     modifier = Modifier.height(34.dp),
                     shape = RoundedCornerShape(8.dp),
@@ -665,11 +711,18 @@ private fun StudyCircleInputDialog(mode: CircleDialog, busy: Boolean, onDismiss:
                 OutlinedTextField(
                     value = value,
                     onValueChange = {
-                        value = if (isCreate) it.take(50) else it.uppercase().filter(Char::isLetterOrDigit).take(6)
+                        value = if (isCreate) it.take(MAX_CIRCLE_NAME_LENGTH) else it.uppercase().filter(Char::isLetterOrDigit).take(6)
                     },
                     modifier = Modifier.fillMaxWidth(), singleLine = true,
                     label = { Text(if (isCreate) "Circle name" else "Join code") },
                     placeholder = { Text(if (isCreate) "JEE Morning Group" else "ABC234") },
+                    supportingText = if (isCreate) {
+                        {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                Text("${value.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp)
+                            }
+                        }
+                    } else null,
                     keyboardOptions = KeyboardOptions(capitalization = if (isCreate) KeyboardCapitalization.Sentences else KeyboardCapitalization.Characters),
                     shape = RoundedCornerShape(14.dp),
                 )
@@ -852,7 +905,7 @@ fun StudyCircleDetailScreen(
     if (renameDialogOpen && state.circle != null) {
         val originalName = state.circle!!.name
         var newName by rememberSaveable(originalName) { mutableStateOf(originalName) }
-        val canSave = newName.trim().length in 3..50 && newName.trim() != originalName
+        val canSave = newName.trim().length in 3..MAX_CIRCLE_NAME_LENGTH && newName.trim() != originalName
         val canUndo = newName != originalName
 
         AlertDialog(
@@ -879,13 +932,13 @@ fun StudyCircleDetailScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Enter a new name for your study group (3–50 characters).",
+                        "Enter a new name for your study group (3–$MAX_CIRCLE_NAME_LENGTH characters).",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     OutlinedTextField(
                         value = newName,
-                        onValueChange = { if (it.length <= 50) newName = it },
+                        onValueChange = { if (it.length <= MAX_CIRCLE_NAME_LENGTH) newName = it },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         placeholder = { Text("e.g. UPSC Champions 2026") },
@@ -898,7 +951,7 @@ fun StudyCircleDetailScreen(
                         },
                         supportingText = {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                Text("${newName.trim().length}/50", fontSize = 11.sp)
+                                Text("${newName.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp)
                             }
                         },
                     )

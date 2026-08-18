@@ -626,47 +626,96 @@ private fun GoalsScreenContent(
                 }
             },
             containerColor = GoalsFlatColors.Bg,
-            title = { Text("This goal is from an earlier day") },
+            title = {
+                Text(
+                    "This goal is from an earlier day",
+                    fontFamily = LoraFontFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 20.sp,
+                    color = GoalsFlatColors.Text,
+                )
+            },
             text = {
-                Text("This goal was planned for $originalDate. Where should we count it?")
+                Text(
+                    "This goal was planned for $originalDate. Where should we count it?",
+                    fontSize = 14.sp,
+                    color = GoalsFlatColors.Muted,
+                    lineHeight = 20.sp,
+                )
             },
             confirmButton = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    TextButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isSavingGoal,
-                        onClick = {
-                            viewModel.completeGoal(
-                                id = goal.id,
-                                studiedMinutes = totalMins,
-                                scheduledDate = IstDateUtils.todayKey(),
-                            )
-                        },
+                    // Primary: Move to today and complete
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(GoalsFlatColors.Primary)
+                            .clickable(enabled = !uiState.isSavingGoal) {
+                                viewModel.completeGoal(
+                                    id = goal.id,
+                                    studiedMinutes = totalMins,
+                                    scheduledDate = IstDateUtils.todayKey(),
+                                )
+                            }
+                            .padding(vertical = 14.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(if (uiState.isSavingGoal) "Saving…" else "Move to today and complete")
+                        Text(
+                            if (uiState.isSavingGoal) "Saving…" else "Move to today and complete",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                        )
                     }
-                    TextButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isSavingGoal,
-                        onClick = { viewModel.completeGoal(goal.id, totalMins) },
+
+                    // Secondary: Complete for original date
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(14.dp))
+                            .clickable(enabled = !uiState.isSavingGoal) {
+                                viewModel.completeGoal(goal.id, totalMins)
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text("Complete for $originalDate")
+                        Text(
+                            "Complete for $originalDate",
+                            fontWeight = FontWeight.SemiBold,
+                            color = GoalsFlatColors.Primary,
+                            fontSize = 13.sp,
+                        )
+                    }
+
+                    // Cancel
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.dp, GoalsFlatColors.Hairline, RoundedCornerShape(14.dp))
+                            .clickable(enabled = !uiState.isSavingGoal) {
+                                overdueCompletion = null
+                                studyHours = 0
+                                studyMinutes = 0
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "Cancel",
+                            fontWeight = FontWeight.Bold,
+                            color = GoalsFlatColors.Muted,
+                            fontSize = 13.sp,
+                        )
                     }
                 }
             },
-            dismissButton = {
-                TextButton(
-                    enabled = !uiState.isSavingGoal,
-                    onClick = {
-                        overdueCompletion = null
-                        studyHours = 0
-                        studyMinutes = 0
-                    },
-                ) { Text("Cancel") }
-            },
+            dismissButton = null,
             shape = RoundedCornerShape(24.dp),
         )
     }
