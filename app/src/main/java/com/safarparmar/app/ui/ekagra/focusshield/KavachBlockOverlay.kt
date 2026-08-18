@@ -11,12 +11,15 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
+import android.provider.Settings
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 
 /**
  * Draws a **bottom-sheet-style** overlay on top of any blocked app using
@@ -57,25 +60,39 @@ class KavachBlockOverlay(
 
     private var overlayView: View? = null
     private val stateLock = Any()
-    private var content = OverlayContent("This app is blocked", "KAVACH is protecting your focus.", "I'll Control Myself.") { goHome() }
+    private var content = OverlayContent("This app is blocked", "KAVACH is protecting your focus.", "I'll Control Myself.", { goHome() }, emptyList())
+    private var currentBlockedPackage: String? = null
 
     // ── Public API ─────────────────────────────────────────────────────
 
     /** Show the block bottom-sheet for [appName]. No-op if already showing. */
-    fun show(appName: String) {
+    fun show(
+        appName: String,
+        allowQuickUnlock: Boolean = false,
+        blockedPackage: String? = null,
+        expiredMinutes: Int = 0,
+    ) {
+        currentBlockedPackage = blockedPackage
+        val title = if (expiredMinutes > 0) "Quick Unlock Expired" else "$appName is blocked"
+        val subtitle = when {
+            expiredMinutes > 0 -> "You have been distracted for over $expiredMinutes minutes."
+            allowQuickUnlock -> "KAVACH is protecting your focus. Need a quick break?"
+            else -> "Always On protection is active. Open KAVACH to turn it off."
+        }
         showContent(
-            title = "$appName is blocked",
-            subtitle = "Always On is working. Open KAVACH and turn it off when you want to use this app.",
+            title = title,
+            subtitle = subtitle,
             buttonText = "I'll Control Myself.",
             onAction = ::goHome,
+            quickUnlockMinutes = if (allowQuickUnlock) listOf(5, 10, 15, 20) else emptyList(),
         )
     }
 
-    fun showContent(title: String, subtitle: String, buttonText: String, onAction: () -> Unit) {
+    fun showContent(title: String, subtitle: String, buttonText: String, onAction: () -> Unit, quickUnlockMinutes: List<Int> = emptyList()) {
         synchronized(stateLock) {
             if (isShowing) return
             if (!accessibilityOverlay && !FocusShieldPermissionHelper.hasOverlayPermission(context)) return
-            content = OverlayContent(title, subtitle, buttonText, onAction)
+            content = OverlayContent(title, subtitle, buttonText, onAction, quickUnlockMinutes)
             isShowing = true
         }
         mainHandler.post { showInternal() }
@@ -146,7 +163,7 @@ class KavachBlockOverlay(
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             background = GradientDrawable().apply {
-                setColor(BRAND_BLUE)
+                setColor(ROYAL_PURPLE)
                 cornerRadii = floatArrayOf(
                     dp(24).toFloat(), dp(24).toFloat(),   // top-left
                     dp(24).toFloat(), dp(24).toFloat(),   // top-right
@@ -250,7 +267,80 @@ class KavachBlockOverlay(
             ),
         )
 
-        // ── Anchor sheet to bottom ──
+        // ── Quick Unlock ──
+        if (content.quickUnlockMinutes.isNotEmpty()) {
+            val quickUnlockLabel = TextView(context).apply {
+                text = "Quick Unlock"
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                setPadding(0, dp(16), 0, dp(8))
+            }
+            sheet.addView(quickUnlockLabel)
+            
+            val quickUnlockRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            content.quickUnlockMinutes.forEach { minutes ->
+                val minButton = TextView(context).apply {
+                    text = "$minutes min"
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                    setTextColor(Color.WHITE)
+                    gravity = Gravity.CENTER
+                    setPadding(dp(12), dp(8), dp(12), dp(8))
+                    background = GradientDrawable().apply {
+                        setColor(QUICK_UNLOCK_PURPLE)
+                        cornerRadius = dp(999).toFloat()
+                    }
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener {
+                        val graceUntilMs = System.currentTimeMillis() + (minutes * 60 * 1000L)
+                        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(context, graceUntilMs, minutes)
+                        runCatching {
+                            val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                                context.applicationContext, FocusShieldEntryPoint::class.java)
+                            currentBlockedPackage?.let { pkg ->
+                                entryPoint.focusShieldRepository().recordQuickUnlock(pkg, minutes)
+                            }
+                        }
+                        dismiss()
+                        goHome()
+                    }
+                }
+                quickUnlockRow.addView(
+                    minButton,
+                    LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    ).apply {
+                        setMargins(dp(4), 0, dp(4), 0)
+                    }
+                )
+            }
+            sheet.addView(
+                quickUnlockRow,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+
+        // ── Anchor sheet to bottom with dynamic 3-button vs gesture nav padding ──
+        val baseBottomPadding = dp(28)
+        val fallbackNavHeight = if (!isGestureNavigation(context)) getNavigationBarHeight(context) else 0
+        sheet.setPadding(dp(24), dp(10), dp(24), baseBottomPadding + fallbackNavHeight)
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val bottomInset = if (navBars.bottom > 0) navBars.bottom else fallbackNavHeight
+            sheet.setPadding(dp(24), dp(10), dp(24), baseBottomPadding + bottomInset)
+            insets
+        }
+
         root.addView(
             sheet,
             FrameLayout.LayoutParams(
@@ -261,6 +351,15 @@ class KavachBlockOverlay(
         )
 
         return root
+    }
+
+    private fun isGestureNavigation(ctx: Context): Boolean = runCatching {
+        Settings.Secure.getInt(ctx.contentResolver, "navigation_mode", 0) == 2
+    }.getOrDefault(false)
+
+    private fun getNavigationBarHeight(ctx: Context): Int {
+        val resId = ctx.resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        return if (resId > 0) ctx.resources.getDimensionPixelSize(resId) else 0
     }
 
     private fun goHome() {
@@ -275,8 +374,10 @@ class KavachBlockOverlay(
     }
 
     companion object {
-        /** Matches the blue (#0A56D9) used by [FocusShieldBlockedBottomSheet]. */
-        private val BRAND_BLUE = Color.parseColor("#0A56D9")
+        /** Rich Deep Royal Purple (Purple 900) - Hex Code: #581C87 */
+        private val ROYAL_PURPLE = Color.parseColor("#581C87")
+        /** Slightly lighter purple for Quick Unlock buttons (Purple 700: #7E22CE) */
+        private val QUICK_UNLOCK_PURPLE = Color.parseColor("#7E22CE")
     }
 
     private data class OverlayContent(
@@ -284,5 +385,6 @@ class KavachBlockOverlay(
         val subtitle: String,
         val buttonText: String,
         val onAction: () -> Unit,
+        val quickUnlockMinutes: List<Int> = emptyList(),
     )
 }

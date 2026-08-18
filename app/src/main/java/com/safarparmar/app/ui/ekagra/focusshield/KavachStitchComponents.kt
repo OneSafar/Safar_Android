@@ -44,32 +44,86 @@ import com.safarparmar.app.R
 import com.safarparmar.app.ui.studyplanner.components.GlassButton
 import com.safarparmar.app.ui.studyplanner.components.glassSurface
 
+import androidx.compose.foundation.layout.statusBarsPadding
+
+import androidx.compose.foundation.isSystemInDarkTheme
+
+@Composable
+fun StudyPlannerCircularBackButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentDescription: String = stringResource(R.string.nav_previous),
+) {
+    val isDark = isSystemInDarkTheme()
+    val bgColor = if (isDark) Color(0xFFC2410C) else Color(0xFFE0654B)
+
+    Box(
+        modifier = modifier
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(bgColor)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
+fun KavachCircularBackButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentDescription: String = stringResource(R.string.nav_previous),
+) {
+    val isDark = isSystemInDarkTheme()
+    val bgColor = if (isDark) Color(0xFF3B0764) else Color(0xFF581C87)
+
+    Box(
+        modifier = modifier
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(bgColor)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KavachStitchBackHeader(
     onBack: () -> Unit,
     title: String? = null,
     modifier: Modifier = Modifier,
-    backTint: Color = KavachDesign.TextMain,
+    backTint: Color = Color.White,
 ) {
     if (title == null) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .height(56.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.nav_previous),
-                    tint = backTint,
-                )
-            }
+            KavachCircularBackButton(
+                onClick = onBack,
+                modifier = Modifier.padding(start = 12.dp),
+            )
         }
     } else {
         TopAppBar(
-            modifier = modifier.height(56.dp),
+            modifier = modifier.statusBarsPadding(),
             title = {
                 Text(
                     text = title,
@@ -79,13 +133,10 @@ fun KavachStitchBackHeader(
                 )
             },
             navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.nav_previous),
-                        tint = KavachDesign.TextMain,
-                    )
-                }
+                KavachCircularBackButton(
+                    onClick = onBack,
+                    modifier = Modifier.padding(start = 12.dp, end = 4.dp),
+                )
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = KavachDesign.Background),
         )

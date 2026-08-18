@@ -384,8 +384,8 @@ fun SyllabusSubjectsScreen(
                         androidx.compose.material3.TopAppBar(
                             title = { Text(subject.name, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                             navigationIcon = {
-                                IconButton(onClick = { activeSubjectId = null }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                Box(modifier = Modifier.padding(start = 12.dp)) {
+                                    com.safarparmar.app.ui.ekagra.focusshield.StudyPlannerCircularBackButton(onClick = { activeSubjectId = null })
                                 }
                             },
                             colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(

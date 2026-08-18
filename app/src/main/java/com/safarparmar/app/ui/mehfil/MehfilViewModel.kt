@@ -3,6 +3,8 @@ package com.safarparmar.app.ui.mehfil
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.data.local.SafarDataStore
+import com.safarparmar.app.data.remote.api.StudyCircleApi
+import com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto
 import com.safarparmar.app.data.remote.socket.MehfilSocketManager
 import com.safarparmar.app.data.remote.socket.toDomain
 import com.safarparmar.app.domain.model.*
@@ -87,6 +89,8 @@ data class MehfilUiState(
     val mehfilDm: Boolean = false,
     val isLoadingPremiumFeatures: Boolean = true,
     val showPremiumGate: Boolean = false,
+    val studyCircles: List<StudyCircleSummaryDto> = emptyList(),
+    val isLoadingStudyCircles: Boolean = false,
 )
 
 @HiltViewModel
@@ -96,6 +100,7 @@ class MehfilViewModel @Inject constructor(
     val dataStore: SafarDataStore,
     private val authRepo: AuthRepository,
     private val premiumRepository: PremiumRepository,
+    private val studyCircleApi: StudyCircleApi,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MehfilUiState())
@@ -105,7 +110,24 @@ class MehfilViewModel @Inject constructor(
         loadSandesh()
         loadSavedPosts()
         loadPremiumFeatures()
+        loadStudyCircles()
         initSocket()
+    }
+
+    private fun loadStudyCircles() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingStudyCircles = true) }
+            runCatching { studyCircleApi.getMyCircles() }
+                .onSuccess { response ->
+                    _uiState.update {
+                        it.copy(
+                            studyCircles = if (response.isSuccessful) response.body()?.circles.orEmpty() else emptyList(),
+                            isLoadingStudyCircles = false,
+                        )
+                    }
+                }
+                .onFailure { _uiState.update { state -> state.copy(isLoadingStudyCircles = false) } }
+        }
     }
 
     private fun loadPremiumFeatures() {

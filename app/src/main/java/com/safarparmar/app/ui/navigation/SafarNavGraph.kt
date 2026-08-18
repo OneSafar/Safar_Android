@@ -37,10 +37,15 @@ import com.safarparmar.app.ui.launch.LaunchUsageQuestionnaireScreen
 import com.safarparmar.app.ui.studyplanner.screens.SyllabusSubjectsScreen
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
 import com.safarparmar.app.ui.ekagra.focusshield.KavachAboutScreen
+import com.safarparmar.app.feature.youtubeinsights.YoutubeStudyModeScreen
+import com.safarparmar.app.feature.youtubeinsights.YoutubeStudyAnalyticsScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionsHubScreen
 import com.safarparmar.app.ui.premium.PremiumPaywallScreen
 import com.safarparmar.app.ui.premium.PremiumViewModel
+import com.safarparmar.app.ui.leaderboard.LeaderboardScreen
+import com.safarparmar.app.ui.studycircle.StudyCircleDetailScreen
+import com.safarparmar.app.ui.studycircle.StudyCircleScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -81,113 +86,62 @@ fun SafarNavGraph(
 
     // ── Navigation helper ────────────────────────────────────────────────────
     //
-    // All feature roots (drawer items) navigate using saveState = true so their
-    // internal back-stack is preserved when the user returns to them.
-    // Sub-screens push normally on top of their feature's own graph.
+    // All top-level destinations (sidebar drawer & home tiles) pop up to HOME
+    // with single-top semantics. This guarantees:
+    // 1. Tapping any drawer item opens that destination cleanly without jumbling.
+    // 2. Pressing Back on any top-level screen returns straight to Home.
+    // 3. Pressing Back on Home triggers the exit confirmation.
+    // 4. Sub-screens and child flows (e.g. Premium, Circle Detail, DM Chat)
+    //    push directly onto the current stack, so pressing Back returns the student
+    //    directly to the exact screen they came from.
+
+    val topLevelDestinations = setOf(
+        Routes.HOME,
+        Routes.DASHBOARD,
+        Routes.STUDY_PLANNER,
+        Routes.FOCUS_SHIELD,
+        Routes.YOUTUBE_STUDY_MODE,
+        Routes.NISHTHA,
+        Routes.EKAGRA,
+        Routes.MEHFIL,
+        Routes.STUDY_CIRCLES,
+        Routes.DHYAN,
+        Routes.COURSES,
+        Routes.LEADERBOARD,
+        Routes.PROFILE,
+        Routes.SETTINGS,
+        Routes.ADMIN_NOTIFICATIONS,
+    )
 
     fun navigate(route: String) {
         val resolvedRoute = Routes.normalizeFeatureRoute(route)
         val routeBase = resolvedRoute.substringBefore("?")
-        val currentRouteBase = currentRoute.substringBefore("?")
 
-        // Feature root routes that live in the drawer — they each have their own
-        // nested nav graph so they independently save/restore back-stack state.
-        val featureGraphRoots = setOf(
-            Routes.HOME,
-            Routes.DASHBOARD,
-            Routes.STUDY_PLANNER,
-            Routes.FOCUS_SHIELD,
-            Routes.NISHTHA,
-            Routes.EKAGRA,
-            Routes.MEHFIL,
-            Routes.DHYAN,
-            Routes.COURSES,
-        )
-
-        // Navigate to a feature root, saving the current feature's back-stack and
-        // restoring the target's. popUpTo(HOME, inclusive=false) keeps Home pinned at
-        // the base so every feature collapses to [Home, Feature] and Back is one hop.
-        fun openFeatureRoot(featureRoute: String, restorePreviousState: Boolean = true) {
-            navController.navigate(featureRoute) {
-                popUpTo(Routes.HOME) { saveState = true; inclusive = false }
-                launchSingleTop = true
-                restoreState = restorePreviousState
-            }
-        }
-
-        // Push a sub-screen, first ensuring its parent feature root is on the back
-        // stack beneath it. This is what makes the sub-screen's
-        // getBackStackEntry(parent) safe and guarantees Back returns through the
-        // parent → Home. When the parent is already present we skip the hop.
-        fun ensureParentThenPush(childRoute: String, parentRoute: String, parentAlreadyPresent: Boolean) {
-            if (!parentAlreadyPresent) openFeatureRoot(parentRoute)
-            navController.navigate(childRoute) { launchSingleTop = true }
-        }
-
-        // A route can arrive from external input (a push-notification deep link, a
-        // PiP restore, a legacy link) that no longer matches any registered
-        // destination. NavController.navigate() throws IllegalArgumentException for an
-        // unknown route; swallow it so a stale/malformed deep link is a no-op instead
-        // of crashing the app.
         try {
-        when {
-            // DM Chat must sit on top of Mehfil (its ViewModel is scoped there).
-            route == Routes.DM_CHAT ->
-                ensureParentThenPush(route, Routes.MEHFIL,
-                    parentAlreadyPresent = currentRouteBase == Routes.MEHFIL)
+            when {
+                // Top-level drawer or home destination
+                routeBase in topLevelDestinations -> {
+                    if (routeBase == Routes.HOME) {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.HOME) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    } else {
+                        navController.navigate(resolvedRoute) {
+                            popUpTo(Routes.HOME) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    }
+                }
 
-            // Live session detail sits on top of Live Sessions.
-            route.startsWith("live/session/") ->
-                ensureParentThenPush(route, Routes.LIVE_SESSIONS_ROOT,
-                    parentAlreadyPresent = currentRouteBase in setOf(Routes.LIVE_SESSIONS_ROOT, "live/sessions") ||
-                        currentRouteBase.startsWith("live/session/"))
-
-            // Syllabus detail sits on top of Study Planner.
-            route.startsWith("syllabus/") ->
-                ensureParentThenPush(route, Routes.STUDY_PLANNER,
-                    parentAlreadyPresent = currentRouteBase == Routes.STUDY_PLANNER || currentRouteBase.startsWith("syllabus/"))
-
-            // App Picker / Kavach About / app categories sit on top of Focus Shield
-            // (or Ekagra) — but the category editor is also reachable from Nishtha
-            // Analytics, so it keeps whatever parent the user actually came from.
-            route == Routes.KAVACH_APP_CATEGORIES -> ensureParentThenPush(
-                route,
-                Routes.FOCUS_SHIELD,
-                parentAlreadyPresent = currentRouteBase in setOf(
-                    Routes.FOCUS_SHIELD,
-                    Routes.EKAGRA,
-                    Routes.NISHTHA,
-                ),
-            )
-
-            route == Routes.APP_PICKER || route == Routes.KAVACH_ABOUT ->
-                ensureParentThenPush(route, Routes.FOCUS_SHIELD,
-                    parentAlreadyPresent = currentRouteBase in setOf(Routes.FOCUS_SHIELD, Routes.EKAGRA))
-
-            // Achievements sits on top of Dashboard.
-            route == Routes.ACHIEVEMENTS ->
-                ensureParentThenPush(route, Routes.DASHBOARD,
-                    parentAlreadyPresent = currentRouteBase == Routes.DASHBOARD)
-
-            // Feature root (drawer item) — preserve each feature's back-stack independently.
-            routeBase in featureGraphRoots -> {
-                // A planner/goal launch carries new work chosen by the student.
-                // Restoring Ekagra's old destination here also restores its old
-                // arguments, which can show the previous topic in the End sheet.
-                val isNewEkagraWork = Routes.isContextualEkagraLaunch(resolvedRoute)
-                // Same reasoning for Nishtha: a link that names a tab or analytics
-                // section must land there, not on the tab the student left open.
-                val isTargetedNishtha = Routes.isContextualNishthaLaunch(resolvedRoute)
-                openFeatureRoot(
-                    resolvedRoute,
-                    restorePreviousState = !isNewEkagraWork && !isTargetedNishtha,
-                )
+                // Child / detail / sub-screens (e.g. PREMIUM, STUDY_CIRCLE_DETAIL, DM_CHAT, etc.)
+                // Push directly so pressing Back returns straight to the calling parent.
+                else -> {
+                    navController.navigate(resolvedRoute) {
+                        launchSingleTop = true
+                    }
+                }
             }
-
-            // All other sub-screens push on top of the current feature's stack.
-            else ->
-                navController.navigate(resolvedRoute) { launchSingleTop = true }
-        }
         } catch (e: IllegalArgumentException) {
             // Unknown/unregistered route (usually a stale deep link). Ignore rather than crash.
             android.util.Log.w("SafarNavGraph", "Ignoring navigation to unknown route: $route", e)
@@ -409,6 +363,19 @@ fun SafarNavGraph(
             )
         }
 
+        composable(Routes.YOUTUBE_STUDY_MODE) {
+            YoutubeStudyModeScreen(
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(Routes.YOUTUBE_STUDY_ANALYTICS) {
+            YoutubeStudyAnalyticsScreen(onBack = ::safeBack)
+        }
+
         composable(Routes.APP_PICKER) {
             com.safarparmar.app.ui.ekagra.focusshield.AppPickerScreen(
                 onBack = ::safeBack,
@@ -520,11 +487,44 @@ fun SafarNavGraph(
             )
         }
 
+        composable(Routes.LEADERBOARD) {
+            LeaderboardScreen(
+                currentRoute = Routes.LEADERBOARD,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(Routes.STUDY_CIRCLES) {
+            StudyCircleScreen(
+                currentRoute = Routes.STUDY_CIRCLES,
+                isDarkTheme = isDarkTheme,
+                onNavigate = ::navigate,
+                onToggleDarkTheme = onToggleDarkTheme,
+            )
+        }
+
+        composable(
+            route = Routes.STUDY_CIRCLE_DETAIL,
+            arguments = listOf(navArgument("circleId") { type = NavType.StringType }),
+        ) { entry ->
+            StudyCircleDetailScreen(
+                circleId = entry.arguments?.getString("circleId").orEmpty(),
+                onBack = ::safeBack,
+                onNavigate = ::navigate,
+            )
+        }
+
         composable(Routes.DM_CHAT) {
             val parentEntry = remember(it) {
                 runCatching { navController.getBackStackEntry(Routes.MEHFIL) }.getOrNull()
-            } ?: return@composable
-            val mehfilVm = androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>(parentEntry)
+            }
+            val mehfilVm = if (parentEntry != null) {
+                androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>(parentEntry)
+            } else {
+                androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>()
+            }
             DmChatScreen(
                 viewModel = mehfilVm,
                 onBack = ::safeBack,
@@ -642,6 +642,7 @@ fun SafarNavGraph(
                 isDarkTheme = isDarkTheme,
                 onNavigate = ::navigate,
                 onToggleDarkTheme = onToggleDarkTheme,
+                onBack = ::safeBack,
             )
         }
     }

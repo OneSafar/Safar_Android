@@ -62,6 +62,8 @@ import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.glass.SafarGlassChromeRadius
 import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.glass.safarFrostedPanel
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.nishtha.checkin.SlimSlider
 import kotlinx.coroutines.delay
@@ -84,6 +86,7 @@ internal fun EkagraBottomNav(
     val scheme = MaterialTheme.colorScheme
     val accentColor = scheme.primary
     val ink = rememberEkagraInk(onCanvas = isOnVideo, theme = selectedTheme, isDarkTheme = isDarkTheme)
+    val haptic = LocalHapticFeedback.current
 
     // ── A hairline, an icon, a dot ───────────────────────────────────────────
     // The redesign drops the floating frosted panel and the filled icon discs
@@ -123,7 +126,10 @@ internal fun EkagraBottomNav(
                         .clickable(
                             interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                             indication = null,
-                        ) { onSelect(tab) },
+                        ) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onSelect(tab)
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {

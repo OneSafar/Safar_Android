@@ -34,11 +34,11 @@ object LaunchFlatColors {
     val OnGlassMuted @Composable get() = if (isDark) Color(0xFFD1D1D6) else Color(0xFF3A3A3C)
 
     /** Primary Kavach / setup accent — violet */
-    val Primary @Composable get() = if (isDark) Color(0xFFC084FC) else Color(0xFF6D28D9)
+    val Primary @Composable get() = if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
 
-    val Beast @Composable get() = if (isDark) Color(0xFFFF8A65) else Color(0xFFE64A19)
+    val Beast @Composable get() = if (isDark) Color(0xFFFB7185) else Color(0xFF881337)
     val AlwaysOn @Composable get() = Primary
-    val Normal @Composable get() = if (isDark) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+    val Normal @Composable get() = if (isDark) Color(0xFF60A5FA) else Color(0xFF1E3A8A)
 
     val Habit @Composable get() = if (isDark) Color(0xFFF472B6) else Color(0xFFDB2777)
     val Journal @Composable get() = if (isDark) Color(0xFFFB923C) else Color(0xFFEA580C)

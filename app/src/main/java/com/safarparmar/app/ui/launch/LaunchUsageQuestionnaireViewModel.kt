@@ -39,12 +39,14 @@ class LaunchUsageQuestionnaireViewModel @Inject constructor(
         focusShieldRepository.setEnabled(enabled)
     }
 
-    fun markQuestionnaireFinished(mode: String, onDone: () -> Unit) {
+    fun markQuestionnaireFinished(mode: String, strict: Boolean, onDone: () -> Unit) {
         viewModelScope.launch {
             dataStore.setAppUsageMode(mode)
-            // Only Normal and Beast ship. Beast = strict; everything else lenient.
-            focusShieldRepository.setStrictMode(mode == AppUsageMode.BEAST)
+            dataStore.setFocusShieldStrictMode(strict)
             dataStore.setLaunchUsageQuestionnaireCompleted(true)
+            dataStore.setFocusShieldEnabled(false)
+            dataStore.setFocusShieldAlwaysOnMode(mode == AppUsageMode.ALWAYS_ON)
+            focusShieldRepository.setKavachProfile(mode)
             withContext(Dispatchers.Main) { onDone() }
         }
     }

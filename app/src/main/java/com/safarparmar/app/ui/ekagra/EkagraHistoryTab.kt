@@ -65,6 +65,12 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.ui.ekagra.EkagraViewModel
+import com.safarparmar.app.util.IstDateUtils
 
 sealed interface DateFilter {
     object All : DateFilter
@@ -72,15 +78,45 @@ sealed interface DateFilter {
     data class Custom(val date: java.time.LocalDate) : DateFilter
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun FocusHistoryTab(
     modifier: Modifier,
     analytics: EkagraAnalyticsStats,
+    selectedTheme: VisualTheme? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val allSessions = remember(analytics.focusSessions) {
         analytics.focusSessions.sortedByDescending { it.endedAt ?: it.startedAt }
     }
+
+    // ViewModel for goal-linking from history
+    val ekagraViewModel = hiltViewModel<EkagraViewModel>()
+    val allGoals by ekagraViewModel.allGoals.collectAsStateWithLifecycle()
+    val todayKey = remember { IstDateUtils.todayKey() }
+    val linkableGoals = remember(allGoals, todayKey) {
+        allGoals.filter { goal ->
+            goal.id.isNotBlank() && goal.title.isNotBlank()
+                && !goal.completed
+                && goal.source != "ekagra"
+                && goal.status !in listOf("completed", "done")
+                && goal.lifecycleStatus !in listOf("abandoned", "rolled_over", "completed")
+                && !goal.nextInstanceCreated
+        }
+    }
+    val todayGoals = remember(linkableGoals, todayKey) {
+        linkableGoals.filter { goal ->
+            val day = IstDateUtils.getDateKey(goal.scheduledDate)
+                ?: IstDateUtils.getDateKey(goal.createdAt)
+                ?: IstDateUtils.getDateKey(goal.startedAt)
+            day == todayKey && goal.status !in listOf("missed", "expired") && goal.lifecycleStatus != "missed"
+        }
+    }
+
+    // State for long-press goal linking from history
+    var goalLinkingSession by remember { mutableStateOf<com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession?>(null) }
+    // State for session title renaming from history
+    var editingSession by remember { mutableStateOf<com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession?>(null) }
 
     var selectedSubTab by remember { mutableStateOf(0) } // 0 = Ekagra History, 1 = Stopwatch History
 
@@ -258,12 +294,55 @@ internal fun FocusHistoryTab(
 
         val rows = if (selectedSubTab == 0) freeSessions else filteredSessions.filterNot { it.isGoalLinked }
         HistorySection(
-            sessions    = rows,
-            emptyText   = if (selectedSubTab == 0) "No sessions found." else "No stopwatch sessions found.",
-            accentColor = tabAccentColor,
-            ink         = ink,
+            sessions      = rows,
+            emptyText     = if (selectedSubTab == 0) "No sessions found." else "No stopwatch sessions found.",
+            accentColor   = tabAccentColor,
+            ink           = ink,
+            onLongPress   = { session ->
+                if (!session.isGoalLinked) goalLinkingSession = session
+            },
+            onEditSession = { session ->
+                editingSession = session
+            },
         )
         Spacer(Modifier.height(24.dp))
+    }
+
+    // Session title edit dialog
+    val sessionToEdit = editingSession
+    if (sessionToEdit != null) {
+        RenameSessionDialog(
+            initialTitle = sessionToEdit.taskText ?: "",
+            onDismiss = { editingSession = null },
+            onConfirm = { newTitle ->
+                ekagraViewModel.updateExistingSession(
+                    sessionId = sessionToEdit.id,
+                    taskTitle = newTitle,
+                )
+                editingSession = null
+            },
+        )
+    }
+
+    // Long-press "Link to a goal" sheet
+    val sessionForLinking = goalLinkingSession
+    if (sessionForLinking != null) {
+        val actualSecs = exactElapsedSeconds(sessionForLinking).toInt().coerceAtLeast(0)
+        PostSaveGoalLinkingSheet(
+            savedSessionId       = sessionForLinking.id,
+            savedDurationSeconds = actualSecs,
+            todayGoals           = todayGoals,
+            selectedTheme        = selectedTheme,
+            onDismiss = {
+                goalLinkingSession = null
+                ekagraViewModel.loadEkagraAnalytics()
+            },
+            onLinkGoal = { goal, markComplete ->
+                ekagraViewModel.linkSavedSessionToGoal(sessionForLinking.id, goal, markComplete)
+                goalLinkingSession = null
+                ekagraViewModel.loadEkagraAnalytics()
+            },
+        )
     }
 }
 
@@ -279,12 +358,17 @@ private fun EkagraEmptyNote(text: String, ink: EkagraInk) {
  * Sessions as a quiet list grouped by day. No cards — a hairline under each row
  * and a single dot carrying the completed / ended-early signal.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun HistorySection(
     sessions: List<com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession>,
     emptyText: String,
     accentColor: Color,
     ink: EkagraInk,
+    /** Called when the user long-presses a session row. Null = not interactive. */
+    onLongPress: ((com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit)? = null,
+    /** Called when the user taps the edit/rename button on a session row. */
+    onEditSession: ((com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession) -> Unit)? = null,
 ) {
     if (sessions.isEmpty()) {
         EkagraEmptyNote(text = emptyText, ink = ink)
@@ -320,9 +404,13 @@ internal fun HistorySection(
             )
             rows.forEach { session ->
                 FocusSessionRow(
-                    session     = session,
-                    accentColor = accentColor,
-                    ink         = ink,
+                    session       = session,
+                    accentColor   = accentColor,
+                    ink           = ink,
+                    onLongPress   = if (onLongPress != null && !session.isGoalLinked)
+                        { -> onLongPress(session) } else null,
+                    onEditSession = if (onEditSession != null)
+                        { -> onEditSession(session) } else null,
                 )
                 EkagraHairline(ink.hairline.copy(alpha = ink.hairline.alpha * 0.7f))
             }
@@ -330,6 +418,7 @@ internal fun HistorySection(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun FocusSessionRow(
     session: com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession,
@@ -338,6 +427,10 @@ internal fun FocusSessionRow(
     /** Null = not interactive. Saved history is read-only, so a row with no
      *  handler must not show a ripple that implies it can be opened. */
     onClick: (() -> Unit)? = null,
+    /** Long-press opens the "Link to a goal" action for unlinked sessions. */
+    onLongPress: (() -> Unit)? = null,
+    /** Edit icon click triggers rename dialog. */
+    onEditSession: (() -> Unit)? = null,
 ) {
     val isStopwatch = session.timerMode?.equals("stopwatch", ignoreCase = true) == true
     val elapsedSeconds = exactElapsedSeconds(session)
@@ -348,7 +441,15 @@ internal fun FocusSessionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .then(
+                when {
+                    onClick != null || onLongPress != null -> Modifier.combinedClickable(
+                        onClick   = { onClick?.invoke() },
+                        onLongClick = { onLongPress?.invoke() },
+                    )
+                    else -> Modifier
+                }
+            )
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -360,13 +461,29 @@ internal fun FocusSessionRow(
                 .background(if (completed) accentColor else ink.mutedText),
         )
         Column(Modifier.weight(1f)) {
-            Text(
-                session.taskText ?: "Unlabeled session",
-                fontSize   = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color      = ink.primaryText,
-                maxLines   = 1,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    session.taskText ?: "Unlabeled session",
+                    fontSize   = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color      = ink.primaryText,
+                    maxLines   = 1,
+                    modifier   = Modifier.weight(1f, fill = false),
+                )
+                if (onEditSession != null) {
+                    IconButton(
+                        onClick = onEditSession,
+                        modifier = Modifier.size(24.dp).padding(start = 4.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Rename session",
+                            tint = ink.mutedText,
+                            modifier = Modifier.size(13.dp),
+                        )
+                    }
+                }
+            }
             Text(
                 formatDateTime(session.endedAt ?: session.startedAt),
                 fontSize = 11.5.sp,
@@ -393,6 +510,50 @@ internal fun FocusSessionRow(
             )
         }
     }
+}
+
+@Composable
+private fun RenameSessionDialog(
+    initialTitle: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var titleInput by remember {
+        mutableStateOf(
+            if (initialTitle.startsWith("Untitled")) "" else initialTitle
+        )
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename Session", fontWeight = FontWeight.Bold) },
+        text = {
+            OutlinedTextField(
+                value = titleInput,
+                onValueChange = { titleInput = it },
+                label = { Text("Session Name") },
+                placeholder = { Text("Enter session name...") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (titleInput.isNotBlank()) {
+                        onConfirm(titleInput.trim())
+                    }
+                },
+                enabled = titleInput.isNotBlank(),
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 

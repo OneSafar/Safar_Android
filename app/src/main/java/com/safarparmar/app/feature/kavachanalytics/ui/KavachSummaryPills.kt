@@ -1,100 +1,171 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto
 import com.safarparmar.app.feature.kavachanalytics.domain.DataCoverage
+import com.safarparmar.app.ui.navigation.Routes
 import com.safarparmar.app.ui.theme.isLightBackground
 
-/**
- * A compact, same-source snapshot of today's Kavach analytics.
- *
- * All three values come from the daily usage report. Keeping Ekagra timer history
- * out of this row avoids implying that focus time is a subset of phone usage.
- */
+@Composable
+fun TealLivePulseDot(
+    modifier: Modifier = Modifier,
+    size: Int = 18,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "tealLiveDotPulse")
+    val pulseProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "tealPulseProgress"
+    )
+
+    val tealGradient = Brush.linearGradient(
+        colors = listOf(Color(0xFF5EEAD4), Color(0xFF2DD4BF), Color(0xFF14B8A6))
+    )
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val baseRadius = (size.dp.toPx() / 2f)
+            val maxExtra = 6.dp.toPx()
+            val extraRadius = maxExtra * pulseProgress
+            val strokeWidth = (2.dp.toPx() * (1f - pulseProgress)).coerceAtLeast(0f)
+
+            if (strokeWidth > 0.1f) {
+                drawCircle(
+                    brush = tealGradient,
+                    radius = baseRadius + extraRadius,
+                    center = center,
+                    style = Stroke(width = strokeWidth),
+                    alpha = (1f - pulseProgress).coerceIn(0f, 1f),
+                )
+            }
+            drawCircle(
+                brush = tealGradient,
+                radius = baseRadius,
+                center = center,
+            )
+        }
+    }
+}
+
 @Composable
 fun KavachSummaryPills(
     modifier: Modifier = Modifier,
     ink: com.safarparmar.app.ui.ekagra.EkagraInk? = null,
-    onClick: () -> Unit = {},
+    themeAccent: Color = MaterialTheme.colorScheme.primary,
+    onOpenAnalytics: () -> Unit = {},
+    myCircles: List<StudyCircleSummaryDto> = emptyList(),
+    selectedCircle: StudyCircleSummaryDto? = null,
+    onSelectCircle: (StudyCircleSummaryDto) -> Unit = {},
+    onNavigate: (String) -> Unit = {},
     viewModel: KavachAnalyticsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var refreshed by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
 
-    LaunchedEffect(Unit) {
-        if (!refreshed) {
-            refreshed = true
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refresh()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
             viewModel.refresh()
         }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val report = state.report
-    val coverage = report?.coverage ?: DataCoverage.UNAVAILABLE
-    val measured = state.hasUsageAccess && coverage != DataCoverage.UNAVAILABLE
+    val distractingSeconds = report?.allDay?.distractingSeconds ?: 0
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        SummaryPill(
-            label = "Screen time",
-            value = if (measured) {
-                KavachAnalyticsFormat.duration(report?.allDay?.totalSeconds ?: 0)
-            } else {
-                "—"
-            },
-            icon = Icons.Outlined.Schedule,
-            modifier = Modifier.weight(1f),
-            onClick = onClick,
-        )
+        // Left Box: Distracting (Red warning icon, 3x size)
         SummaryPill(
             label = "Distracting",
-            value = if (measured) {
-                KavachAnalyticsFormat.duration(report?.allDay?.distractingSeconds ?: 0)
+            value = if (distractingSeconds > 0) {
+                KavachAnalyticsFormat.duration(distractingSeconds)
             } else {
-                "—"
+                "0m"
             },
             icon = Icons.Outlined.WarningAmber,
+            accent = themeAccent,
+            iconColor = Color(0xFFEF4444),
+            ink = ink,
+            isLight = isLight,
             modifier = Modifier.weight(1f),
-            onClick = onClick,
+            onClick = onOpenAnalytics,
         )
-        SummaryPill(
-            label = "Blocked today",
-            value = if (measured) "${report?.blockedAttempts ?: 0}" else "—",
-            icon = Icons.Outlined.Shield,
+
+        // Right Box: Study Group Live Focus Box (Light Teal pulsating dot, 3x size)
+        StudyGroupLivePill(
+            myCircles = myCircles,
+            selectedCircle = selectedCircle,
+            onSelectCircle = onSelectCircle,
+            onNavigate = onNavigate,
+            accent = themeAccent,
+            ink = ink,
+            isLight = isLight,
             modifier = Modifier.weight(1f),
-            onClick = onClick,
         )
     }
 }
@@ -104,50 +175,344 @@ private fun SummaryPill(
     label: String,
     value: String,
     icon: ImageVector,
+    accent: Color,
+    iconColor: Color,
+    ink: com.safarparmar.app.ui.ekagra.EkagraInk?,
+    isLight: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val cardBg = Color.Black.copy(alpha = 0.22f)
-    val borderStroke = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
-    val titleTextColor = Color.White.copy(alpha = 0.85f)
-    val valueTextColor = Color.White
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val shape = RoundedCornerShape(20.dp)
+    val cardColor by animateColorAsState(
+        targetValue = when {
+            isLight && isPressed -> accent.copy(alpha = 0.96f)
+            isLight -> accent.copy(alpha = 0.88f)
+            isPressed -> Color(0xFF48484F).copy(alpha = 0.92f)
+            else -> Color(0xFF3B3B42).copy(alpha = 0.86f)
+        },
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
+        label = "summaryChipColor",
+    )
+    val elevation by animateDpAsState(
+        targetValue = if (isPressed) 2.dp else if (isLight) 10.dp else 5.dp,
+        animationSpec = spring(dampingRatio = 0.78f, stiffness = 520f),
+        label = "summaryChipElevation",
+    )
+    val textColor = Color.White
+    val secondaryColor = Color.White.copy(alpha = 0.82f)
+    val rim = Brush.verticalGradient(
+        if (isLight) {
+            listOf(Color.White.copy(alpha = 0.90f), Color(0xFFB8C0CC).copy(alpha = 0.46f))
+        } else {
+            listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.035f))
+        },
+    )
 
-    Surface(
-        onClick = onClick,
-        modifier = modifier.clip(RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        color = cardBg,
-        border = borderStroke,
+    Box(
+        modifier = modifier
+            .height(72.dp)
+            .shadow(
+                elevation = elevation,
+                shape = shape,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = if (isLight) 0.25f else 0.30f),
+                spotColor = Color.Black.copy(alpha = if (isLight) 0.34f else 0.42f),
+            )
+            .clip(shape)
+            .background(cardColor)
+            .border(0.5.dp, rim, shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            horizontalAlignment = Alignment.Start,
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            // 3x Larger Icon in Red
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(34.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center,
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.90f),
-                    modifier = Modifier.size(13.dp),
-                )
                 Text(
                     text = label,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = titleTextColor,
+                    color = secondaryColor,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                AnimatedContent(
+                    targetState = value,
+                    transitionSpec = {
+                        (fadeIn() + slideInVertically { it / 3 }) togetherWith
+                            (fadeOut() + slideOutVertically { -it / 3 })
+                    },
+                    label = "summaryChipValue",
+                ) { animatedValue ->
+                    Text(
+                        text = animatedValue,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor,
+                        maxLines = 1,
+                    )
+                }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun StudyGroupLivePill(
+    myCircles: List<StudyCircleSummaryDto>,
+    selectedCircle: StudyCircleSummaryDto?,
+    onSelectCircle: (StudyCircleSummaryDto) -> Unit,
+    onNavigate: (String) -> Unit,
+    accent: Color,
+    ink: com.safarparmar.app.ui.ekagra.EkagraInk?,
+    isLight: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    var showDropdown by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(20.dp)
+
+    val cardColor by animateColorAsState(
+        targetValue = when {
+            isLight && isPressed -> accent.copy(alpha = 0.96f)
+            isLight -> accent.copy(alpha = 0.88f)
+            isPressed -> Color(0xFF48484F).copy(alpha = 0.92f)
+            else -> Color(0xFF3B3B42).copy(alpha = 0.86f)
+        },
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 600f),
+        label = "groupLiveCardColor",
+    )
+    val elevation by animateDpAsState(
+        targetValue = if (isPressed) 2.dp else if (isLight) 10.dp else 5.dp,
+        animationSpec = spring(dampingRatio = 0.78f, stiffness = 520f),
+        label = "groupLiveCardElevation",
+    )
+    val textColor = Color.White
+    val secondaryColor = Color.White.copy(alpha = 0.85f)
+    val rim = Brush.verticalGradient(
+        if (isLight) {
+            listOf(Color.White.copy(alpha = 0.90f), Color(0xFFB8C0CC).copy(alpha = 0.46f))
+        } else {
+            listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.035f))
+        },
+    )
+
+    val activeCircle = selectedCircle ?: myCircles.firstOrNull()
+    val groupName = activeCircle?.name ?: "Study Group"
+    val liveCount = activeCircle?.focusingCount ?: 0
+    val displayValue = if (myCircles.isEmpty()) {
+        "Join Group"
+    } else {
+        if (liveCount == 1) "1 Live" else "$liveCount Live"
+    }
+
+    Box(
+        modifier = modifier
+            .height(72.dp)
+            .shadow(
+                elevation = elevation,
+                shape = shape,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = if (isLight) 0.25f else 0.30f),
+                spotColor = Color.Black.copy(alpha = if (isLight) 0.34f else 0.42f),
+            )
+            .clip(shape)
+            .background(cardColor)
+            .border(0.5.dp, rim, shape)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    if (activeCircle != null) {
+                        onNavigate(Routes.STUDY_CIRCLE_DETAIL.replace("{circleId}", activeCircle.id))
+                    } else {
+                        onNavigate(Routes.STUDY_CIRCLES)
+                    }
+                },
+                onLongClick = {
+                    showDropdown = true
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // 3x Larger Light Teal Pulsating Live Dot
+            TealLivePulseDot(size = 18, modifier = Modifier.size(34.dp))
+            Spacer(Modifier.width(10.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = groupName,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = secondaryColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (myCircles.size > 1) {
+                        Spacer(Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Select Group",
+                            tint = secondaryColor,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+
+                AnimatedContent(
+                    targetState = displayValue,
+                    transitionSpec = {
+                        (fadeIn() + slideInVertically { it / 3 }) togetherWith
+                            (fadeOut() + slideOutVertically { -it / 3 })
+                    },
+                    label = "groupLiveValue",
+                ) { animatedValue ->
+                    Text(
+                        text = animatedValue,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+
+        // Dropdown Menu when tapping & holding or selecting
+        DropdownMenu(
+            expanded = showDropdown,
+            onDismissRequest = { showDropdown = false },
+            modifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
+        ) {
             Text(
-                text = value,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = valueTextColor,
-                maxLines = 1,
+                text = "YOUR STUDY GROUPS (${myCircles.size}/5)",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 0.8.sp,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            )
+            HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
+
+            if (myCircles.isEmpty()) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "No groups joined yet",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.Group, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    onClick = {
+                        showDropdown = false
+                        onNavigate(Routes.STUDY_CIRCLES)
+                    },
+                )
+            } else {
+                myCircles.forEach { circle ->
+                    val isSelected = circle.id == (selectedCircle?.id ?: myCircles.firstOrNull()?.id)
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(
+                                    text = circle.name,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    TealLivePulseDot(size = 8, modifier = Modifier.size(16.dp))
+                                    Text(
+                                        text = "${circle.focusingCount} live · ${circle.memberCount} members",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(
+                                if (circle.visibility == "public") Icons.Default.Public else Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                        trailingIcon = {
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        },
+                        onClick = {
+                            onSelectCircle(circle)
+                            showDropdown = false
+                        },
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        "Explore Study Circles",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                onClick = {
+                    showDropdown = false
+                    onNavigate(Routes.STUDY_CIRCLES)
+                },
             )
         }
     }

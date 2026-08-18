@@ -48,6 +48,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -926,7 +927,11 @@ fun ForgotPasswordContent(
 
         // Title
         Text(
-            text = "Reset password",
+            text = when (uiState.forgotPasswordStep) {
+                ForgotPasswordStep.EMAIL -> "Reset password"
+                ForgotPasswordStep.EMAIL_SENT -> "Check your email"
+                ForgotPasswordStep.RESET -> "New password"
+            },
             fontFamily = LoraFontFamily,
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
@@ -934,118 +939,145 @@ fun ForgotPasswordContent(
             modifier = Modifier.padding(bottom = 6.dp)
         )
         Text(
-            text = if (uiState.forgotPasswordStep == ForgotPasswordStep.EMAIL) {
-                "Enter your email to request a reset link."
-            } else {
-                "Create a new password below."
+            text = when (uiState.forgotPasswordStep) {
+                ForgotPasswordStep.EMAIL -> "Enter your email to request a reset link."
+                ForgotPasswordStep.EMAIL_SENT -> "We've sent a password reset link to your email. Please check your inbox and click the link to set a new password."
+                ForgotPasswordStep.RESET -> "Create a new password below."
             },
             color = palette.supportingText,
             fontSize = 15.sp,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        if (uiState.forgotPasswordStep == ForgotPasswordStep.EMAIL) {
-            // Email Input
-            HtmlTextField(
-                value = uiState.email,
-                onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
-                placeholder = "Email address",
-                leadingIcon = Icons.Default.Email,
-                isError = !uiState.emailError.isNullOrBlank(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(onDone = {
-                    focusManager.clearFocus()
-                    onEvent(AuthEvent.SubmitForgotPasswordRequest)
-                }),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            if (!uiState.emailError.isNullOrBlank()) {
-                Text(
-                    text = uiState.emailError,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp,
-                    modifier = Modifier.align(Alignment.Start).padding(bottom = 8.dp)
+        when (uiState.forgotPasswordStep) {
+            ForgotPasswordStep.EMAIL -> {
+                // Email Input
+                HtmlTextField(
+                    value = uiState.email,
+                    onValueChange = { onEvent(AuthEvent.EmailChanged(it)) },
+                    placeholder = "Email address",
+                    leadingIcon = Icons.Default.Email,
+                    isError = !uiState.emailError.isNullOrBlank(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = {
+                        focusManager.clearFocus()
+                        onEvent(AuthEvent.SubmitForgotPasswordRequest)
+                    }),
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
-            } else {
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Submit Email Button
-            HtmlPrimaryButton(
-                text = if (uiState.isLoading) "Sending request..." else "Send Request",
-                onClick = { onEvent(AuthEvent.SubmitForgotPasswordRequest) },
-                enabled = !uiState.isLoading,
-            )
-        } else {
-            // Reset fields
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // New Password Input
-                Column {
-                    HtmlPasswordField(
-                        value = uiState.resetNewPassword,
-                        onValueChange = { onEvent(AuthEvent.ResetNewPasswordChanged(it)) },
-                        placeholder = "New Password (min 8 chars)",
-                        passwordVisible = passwordVisible,
-                        onToggleVisibility = { passwordVisible = !passwordVisible },
-                        isError = !uiState.resetNewPasswordError.isNullOrBlank(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Next,
-                        ),
-                        keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                if (!uiState.emailError.isNullOrBlank()) {
+                    Text(
+                        text = uiState.emailError,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp,
+                        modifier = Modifier.align(Alignment.Start).padding(bottom = 8.dp)
                     )
-                    if (!uiState.resetNewPasswordError.isNullOrBlank()) {
-                        Text(
-                            text = uiState.resetNewPasswordError,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                        )
-                    }
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Confirm Password Input
-                Column {
-                    HtmlPasswordField(
-                        value = uiState.resetConfirmPassword,
-                        onValueChange = { onEvent(AuthEvent.ResetConfirmPasswordChanged(it)) },
-                        placeholder = "Confirm Password",
-                        passwordVisible = passwordVisible,
-                        onToggleVisibility = { passwordVisible = !passwordVisible },
-                        isError = !uiState.resetConfirmPasswordError.isNullOrBlank(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done,
-                        ),
-                        keyboardActions = KeyboardActions(onDone = {
-                            focusManager.clearFocus()
-                            onEvent(AuthEvent.SubmitResetPasswordConfirm)
-                        }),
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Submit Email Button
+                HtmlPrimaryButton(
+                    text = if (uiState.isLoading) "Sending link..." else "Send Reset Link",
+                    onClick = { onEvent(AuthEvent.SubmitForgotPasswordRequest) },
+                    enabled = !uiState.isLoading,
+                )
+            }
+            ForgotPasswordStep.EMAIL_SENT -> {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    HtmlPrimaryButton(
+                        text = "Back to Sign In",
+                        onClick = onBackToLogin,
+                        enabled = true,
                     )
-                    if (!uiState.resetConfirmPasswordError.isNullOrBlank()) {
+                    TextButton(
+                        onClick = { onEvent(AuthEvent.ForgotPassword) },
+                    ) {
                         Text(
-                            text = uiState.resetConfirmPasswordError,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                            text = "Didn't receive email? Try again",
+                            color = palette.link,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                 }
             }
+            ForgotPasswordStep.RESET -> {
+                // Reset fields
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // New Password Input
+                    Column {
+                        HtmlPasswordField(
+                            value = uiState.resetNewPassword,
+                            onValueChange = { onEvent(AuthEvent.ResetNewPasswordChanged(it)) },
+                            placeholder = "New Password (min 8 chars)",
+                            passwordVisible = passwordVisible,
+                            onToggleVisibility = { passwordVisible = !passwordVisible },
+                            isError = !uiState.resetNewPasswordError.isNullOrBlank(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Next,
+                            ),
+                            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                        )
+                        if (!uiState.resetNewPasswordError.isNullOrBlank()) {
+                            Text(
+                                text = uiState.resetNewPasswordError,
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                            )
+                        }
+                    }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                    // Confirm Password Input
+                    Column {
+                        HtmlPasswordField(
+                            value = uiState.resetConfirmPassword,
+                            onValueChange = { onEvent(AuthEvent.ResetConfirmPasswordChanged(it)) },
+                            placeholder = "Confirm Password",
+                            passwordVisible = passwordVisible,
+                            onToggleVisibility = { passwordVisible = !passwordVisible },
+                            isError = !uiState.resetConfirmPasswordError.isNullOrBlank(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(onDone = {
+                                focusManager.clearFocus()
+                                onEvent(AuthEvent.SubmitResetPasswordConfirm)
+                            }),
+                        )
+                        if (!uiState.resetConfirmPasswordError.isNullOrBlank()) {
+                            Text(
+                                text = uiState.resetConfirmPasswordError,
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                            )
+                        }
+                    }
+                }
 
-            // Save Password Button
-            HtmlPrimaryButton(
-                text = if (uiState.isLoading) "Saving password..." else "Save Password",
-                onClick = { onEvent(AuthEvent.SubmitResetPasswordConfirm) },
-                enabled = !uiState.isLoading,
-            )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Save Password Button
+                HtmlPrimaryButton(
+                    text = if (uiState.isLoading) "Saving password..." else "Save Password",
+                    onClick = { onEvent(AuthEvent.SubmitResetPasswordConfirm) },
+                    enabled = !uiState.isLoading,
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))

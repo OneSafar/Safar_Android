@@ -7,6 +7,7 @@ import com.safarparmar.app.domain.model.*
 import com.safarparmar.app.domain.repository.HomeRepository
 import com.safarparmar.app.domain.repository.StudyPlannerRepository
 import com.safarparmar.app.util.Resource
+import com.safarparmar.app.util.assignedDateKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -106,8 +107,8 @@ class DashboardViewModel @Inject constructor(
             val loginHistory = (historyD.await()      as? Resource.Success)?.data ?: emptyList()
             val studyPlan    = studyPlanD.await()
 
-            val today          = LocalDate.now().toString()          // "2026-03-29"
-            val todayGoals     = goals.filter { it.scheduledDate?.startsWith(today) == true }
+            val today          = com.safarparmar.app.util.IstDateUtils.todayKey()
+            val todayGoals     = goals.filter { it.source != "ekagra" && it.assignedDateKey() == today }
             val completedGoals = goals.filter { it.completed }.takeLast(5)
             val todayMood      = moods.firstOrNull { it.timestamp.startsWith(today) }
             

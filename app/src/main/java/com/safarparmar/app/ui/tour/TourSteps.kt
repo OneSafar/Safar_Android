@@ -93,7 +93,7 @@ val ekagraTourSteps = listOf(
     // Step 5 — Floating pip
     ButterflyTourStep(
         title   = "Floating Timer",
-        message = "you can always enable floating timer as well as Kavach beast mode from this three dots menu. ",
+        message = "You can enable the floating timer and Kavach Always On from this three dots menu.",
         anchorX = 0.91f, anchorY = 0.13f,
         tooltipSide = TooltipSide.BOTTOM,
     ),

@@ -10,8 +10,8 @@ import androidx.compose.ui.graphics.luminance
  */
 object SafarSemanticColors {
 
-    /** Rich purple for primary buttons — matches launch questionnaire Continue (#6D28D9 / #C084FC). */
-    private val BrandPurpleLight = Color(0xFF6D28D9)
+    /** Rich purple for primary buttons — matches launch questionnaire Continue (#581C87 / #C084FC). */
+    private val BrandPurpleLight = Color(0xFF581C87)
     private val BrandPurpleDark = Color(0xFFC084FC)
 
     @Composable
@@ -29,7 +29,7 @@ object SafarSemanticColors {
 
     /**
      * Brand purple for primary action buttons and purple CTA fills.
-     * Light: #6D28D9 · Dark: #C084FC — same as launch questionnaire Continue.
+     * Light: #581C87 · Dark: #C084FC — same as launch questionnaire Continue.
      */
     @Composable
     fun brandPurple(isDarkTheme: Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f): Color =

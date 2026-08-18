@@ -12,6 +12,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -32,8 +37,6 @@ import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.notifications.NotificationDeepLinkHandler
 import com.safarparmar.app.ui.ekagra.LocalTimerService
 import com.safarparmar.app.ui.ekagra.TimerService
-import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldBlockPrompt
-import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldBlockedBottomSheet
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import dagger.hilt.android.EntryPointAccessors
@@ -56,21 +59,17 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     @Inject
     lateinit var dataStore: SafarDataStore
 
+    @Inject
+    lateinit var maintenanceStateManager: com.safarparmar.app.data.remote.maintenance.MaintenanceStateManager
+
     private var timerService by mutableStateOf<TimerService?>(null)
     var navigateToEkagra by mutableStateOf(false)
         private set
     var notificationRoute by mutableStateOf<String?>(null)
         private set
-    var focusShieldBlockPrompt by mutableStateOf<FocusShieldBlockPrompt?>(null)
-        private set
 
     companion object {
         const val EXTRA_NAVIGATE_EKAGRA = "navigate_to_ekagra"
-        const val EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE = "focus_shield_blocked_package"
-        const val EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME = "focus_shield_blocked_app_name"
-        const val EXTRA_FOCUS_SHIELD_STRICT = "focus_shield_strict"
-        const val EXTRA_FOCUS_SHIELD_ALWAYS_ON = "focus_shield_always_on"
-        const val EXTRA_FOCUS_SHIELD_OPEN_EKAGRA = "focus_shield_open_ekagra"
         private const val TABLET_SMALLEST_WIDTH_DP = 600
     }
 
@@ -102,13 +101,15 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             navigateToEkagra = true
         }
         consumeNotificationIntent(intent)
-        consumeFocusShieldBlockIntent(intent)
 
         enableEdgeToEdge()
         setContent {
             val themeViewModel: ThemeViewModel = hiltViewModel()
             val isDarkTheme by themeViewModel.isDarkTheme.collectAsStateWithLifecycle()
             val configuration = LocalConfiguration.current
+
+            val maintenanceInfo by maintenanceStateManager.state.collectAsStateWithLifecycle()
+            val isCheckingMaintenance by maintenanceStateManager.isChecking.collectAsStateWithLifecycle()
 
             // Clamp font scale globally across the app to prevent broken layouts on large display settings
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
@@ -139,21 +140,30 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
                         Surface(
                             modifier = appContentModifier.imePadding(),
                         ) {
-                            CompositionLocalProvider(LocalTimerService provides timerService) {
-                                SafarNavGraph(
-                                    dataStore = dataStore,
-                                    isDarkTheme = isDarkTheme,
-                                    onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
-                                )
+                            androidx.compose.animation.AnimatedContent(
+                                targetState = maintenanceInfo?.takeIf { it.inMaintenance },
+                                transitionSpec = {
+                                    androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300)) togetherWith
+                                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(250))
+                                },
+                                label = "maintenance_switch",
+                            ) { activeMaintenance ->
+                                if (activeMaintenance != null) {
+                                    com.safarparmar.app.ui.maintenance.MaintenanceScreen(
+                                        info = activeMaintenance,
+                                        isChecking = isCheckingMaintenance,
+                                        onCheckStatus = { maintenanceStateManager.checkStatusManually() },
+                                    )
+                                } else {
+                                    CompositionLocalProvider(LocalTimerService provides timerService) {
+                                        SafarNavGraph(
+                                            dataStore = dataStore,
+                                            isDarkTheme = isDarkTheme,
+                                            onToggleDarkTheme = { themeViewModel.toggleDarkTheme() },
+                                        )
+                                    }
+                                }
                             }
-                        }
-                        focusShieldBlockPrompt?.let { prompt ->
-                            FocusShieldBlockedBottomSheet(
-                                prompt = prompt,
-                                isEkagraTimerRunning = TimerService.isFocusTimerRunning(this@MainActivity),
-                                onDismiss = ::dismissFocusShieldBlockPrompt,
-                                onQuickUnlock = { minutes, pauseTimer -> quickUnlockBlockedApp(prompt, minutes, pauseTimer) },
-                            )
                         }
                     }
                 }
@@ -163,7 +173,6 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
 
     fun resetNavigateToEkagra() { navigateToEkagra = false }
     fun resetNotificationRoute() { notificationRoute = null }
-    fun dismissFocusShieldBlockPrompt() { focusShieldBlockPrompt = null }
 
     private fun applyOrientationPolicy() {
         val currentRequest = requestedOrientation
@@ -196,7 +205,6 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             navigateToEkagra = true
         }
         consumeNotificationIntent(intent)
-        consumeFocusShieldBlockIntent(intent)
     }
 
     private fun consumeNotificationIntent(intent: Intent?) {
@@ -207,55 +215,6 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
                 StudyPlannerAnalytics.track(StudyPlannerAnalytics.PLANNER_NOTIFICATION_OPENED)
             }
             notificationRoute = route
-        }
-    }
-
-    private fun consumeFocusShieldBlockIntent(intent: Intent?) {
-        val blockedPackage = intent
-            ?.getStringExtra(EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE)
-            ?.takeIf { it.isNotBlank() }
-            ?: return
-        val appName = intent.getStringExtra(EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME)
-            ?.takeIf { it.isNotBlank() }
-            ?: blockedPackage
-        val openEkagra = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_OPEN_EKAGRA, false)
-
-        focusShieldBlockPrompt = FocusShieldBlockPrompt(
-            packageName = blockedPackage,
-            appName = appName,
-            strict = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_STRICT, false),
-            alwaysOn = intent.getBooleanExtra(EXTRA_FOCUS_SHIELD_ALWAYS_ON, false),
-        )
-
-        if (openEkagra) {
-            navigateToEkagra = true
-        }
-    }
-
-    private fun quickUnlockBlockedApp(prompt: FocusShieldBlockPrompt, minutes: Int, _pauseTimer: Boolean) {
-        pauseEkagraTimerIfRunning()
-        val unlockMinutes = minutes.coerceIn(1, 60)
-        val graceUntilMs = System.currentTimeMillis() + unlockMinutes * 60_000L
-        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(this, graceUntilMs)
-        runCatching {
-            EntryPointAccessors
-                .fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
-                .focusShieldRepository()
-                .recordQuickUnlock(prompt.packageName, unlockMinutes)
-        }
-        dismissFocusShieldBlockPrompt()
-        packageManager.getLaunchIntentForPackage(prompt.packageName)
-            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            ?.let { runCatching { startActivity(it) } }
-    }
-
-    private fun pauseEkagraTimerIfRunning() {
-        timerService?.takeIf { it.isRunning.value }?.pause() ?: run {
-            if (TimerService.isFocusTimerRunning(this)) {
-                startService(Intent(this, TimerService::class.java).apply {
-                    action = TimerService.ACTION_PAUSE
-                })
-            }
         }
     }
 

@@ -29,21 +29,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * Keeps KAVACH blocking apps outside Ekagra, after the student explicitly turns
- * Always On on.
+ * Blocking service used during an Ekagra protection window or continuously under Always On.
  *
- * Same Usage Access + overlay path as timer-bound blocking, but it owns no timer
- * state: as long as this service is running and its notification is showing, the
- * chosen apps stay blocked whether or not a study session is in progress.
+ * It monitors the foreground app using Usage Access and shows an overlay block screen
+ * if a restricted app is launched. In Normal Mode, it honors the quick unlock grace
+ * period, but in Always On Mode it enforces strict continuous blocking without any
+ * unlock windows.
  *
- * Fully independent of Ekagra, and the *sole* blocker while it runs. A timer
- * running, paused, or on a break changes nothing, and no quick unlock is honoured:
- * the student chose this mode precisely because it has no way out.
- *
- * [com.safarparmar.app.ui.ekagra.TimerService] therefore does not activate its own
- * shield while Always On is enabled — it only records the study session. Letting it
- * take over was the bug: the student would be blocked by the timer's Normal-Mode
- * sheet, quick-unlock button and all, in the middle of an Always On session.
+ * App blocking logic has been decoupled from the timer logic.
  */
 class KavachAlwaysOnService : Service() {
 
@@ -88,10 +81,15 @@ class KavachAlwaysOnService : Service() {
     private var blockedPackages: Set<String> = emptySet()
     private var lastBlockedPackage: String? = null
     private var lastBlockedAt = 0L
-    private var youtubeContentOwnsBlocking = false
 
     /** Package already counted once for this foreground visit. */
     private var countedAttemptPackage: String? = null
+    private var isAlwaysOnMode = false
+    private var isStrictMode = false
+    private var protectionSource: String? = null
+    private var scheduleEnabled = false
+    private var scheduleStartMinute = 540
+    private var scheduleEndMinute = 1320
 
     private fun focusShieldRepository(): FocusShieldRepository =
         dagger.hilt.android.EntryPointAccessors
@@ -108,9 +106,8 @@ class KavachAlwaysOnService : Service() {
 
     override fun onDestroy() {
         blockOverlay.dismiss()
-        runCatching {
-            KavachAnalyticsRecorder.from(applicationContext)
-                .endProtection(ProtectionSource.ALWAYS_ON)
+        protectionSource?.let { source ->
+            runCatching { KavachAnalyticsRecorder.from(applicationContext).endProtection(source) }
         }
         KavachAlwaysOnPrefs.clear(this)
         monitorJob?.cancel()
@@ -139,17 +136,26 @@ class KavachAlwaysOnService : Service() {
     /** @return false when Always On should no longer be running, which stops the service. */
     private suspend fun syncSettings(): Boolean {
         val alwaysOn = dataStore.focusShieldAlwaysOnMode.first()
+        val strict = dataStore.focusShieldStrictMode.first()
         val enabled = dataStore.focusShieldEnabled.first()
         val packages = dataStore.focusShieldBlockedPackages.first()
+        // Peak Focus scheduling is intentionally outside the first activation/protection release.
+        scheduleEnabled = false
+        scheduleStartMinute = dataStore.focusShieldScheduleStartMinute.first()
+        scheduleEndMinute = dataStore.focusShieldScheduleEndMinute.first()
         val ready = FocusShieldPermissionHelper.hasUsageStatsPermission(this) &&
             FocusShieldPermissionHelper.hasOverlayPermission(this)
 
-        if (!alwaysOn || !enabled || packages.isEmpty() || !ready) {
+        val timerLinkedActive = FocusShieldRepository.ShieldPrefs.isActive(this)
+        if (!enabled || (!alwaysOn && !timerLinkedActive) || packages.isEmpty() || !ready) {
             KavachAlwaysOnPrefs.clear(this)
             FocusShieldRepository.Snapshot.active = false
             stopSelf()
             return false
         }
+        
+        isAlwaysOnMode = alwaysOn
+        isStrictMode = strict
 
         if (packages != blockedPackages) {
             // The app list changed underneath us — start checking attentively again.
@@ -157,45 +163,63 @@ class KavachAlwaysOnService : Service() {
             countedAttemptPackage = null
         }
         blockedPackages = packages
-        youtubeContentOwnsBlocking = false
         KavachAlwaysOnPrefs.write(this, packages)
 
-        // Keep the protection window alive. This is what makes "During Kavach" count
-        // Always On time: without it, a student guarded all day would see zero
-        // protected time because only timed sessions were ever counted.
+        // Keep exactly one correctly-labelled protection window alive.
+        val nextProtectionSource = if (alwaysOn) ProtectionSource.ALWAYS_ON else ProtectionSource.SESSION
+        if (protectionSource != null && protectionSource != nextProtectionSource) {
+            runCatching {
+                KavachAnalyticsRecorder.from(applicationContext).endProtection(protectionSource!!)
+            }
+        }
+        protectionSource = nextProtectionSource
         runCatching {
             KavachAnalyticsRecorder.from(applicationContext)
-                .heartbeatProtection(ProtectionSource.ALWAYS_ON)
+                .heartbeatProtection(nextProtectionSource)
         }
 
-        // Always On owns the snapshot for as long as it runs, timer or no timer.
-        // Deferring to a running session here would let the timer's Normal-Mode
-        // state take over mid-session, which is exactly what put a quick-unlock
-        // button in front of a student who had chosen the mode without one.
         FocusShieldRepository.Snapshot.active = true
         FocusShieldRepository.Snapshot.packages = packages
-        FocusShieldRepository.Snapshot.strict = false
+        FocusShieldRepository.Snapshot.strict = strict
+        FocusShieldRepository.Snapshot.scheduleEnabled = scheduleEnabled
+        FocusShieldRepository.Snapshot.scheduleStartMinute = scheduleStartMinute
+        FocusShieldRepository.Snapshot.scheduleEndMinute = scheduleEndMinute
         return true
     }
 
     /** @return how long to wait before the next poll. */
     private fun monitorForegroundApp(): Long {
-        // Always On blocks unconditionally. It does not stand down for a running
-        // timer, a pause, or a break, and it does not honour a quick-unlock window —
-        // its overlay never offers one, and an unlock granted earlier under Normal
-        // Mode must not survive into a mode the student chose precisely because it
-        // has no way out.
-        //
-        // Standing down for a running timer is what produced the reported bug: the
-        // timer took over, blocked in Normal Mode, and the student got the bottom
-        // sheet with a quick-unlock button in the middle of an Always On session.
+        if (scheduleEnabled) {
+            val cal = java.util.Calendar.getInstance()
+            val currentMinute = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
+            val withinSchedule = FocusShieldRepository.ShieldPrefs.isWithinSchedule(currentMinute, scheduleStartMinute, scheduleEndMinute)
+            if (!withinSchedule) {
+                blockOverlay.dismiss()
+                lastBlockedPackage = null
+                countedAttemptPackage = null
+                return poller.onSample(null, isBlockedApp = false)
+            }
+        }
+
+        // Check if any blocked app (e.g. YouTube) is actively playing in PiP or background
+        enforceBackgroundBlockedApps()
 
         val foregroundPackage = currentForegroundPackage()
             ?: return poller.onSample(null, isBlockedApp = false)
 
+        if (isStrictMode && FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
+            FocusShieldRepository.ShieldPrefs.clearQuickUnlock(this)
+        }
+
+        // Normal mode honors quick unlock grace periods
+        if (!isStrictMode && FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
+            blockOverlay.dismiss()
+            lastBlockedPackage = null
+            return poller.onSample(null, isBlockedApp = false)
+        }
+
         if (foregroundPackage == packageName ||
-            foregroundPackage == "com.android.settings" ||
-            isHomePackage(foregroundPackage)
+            foregroundPackage == "com.android.settings"
         ) {
             blockOverlay.dismiss()
             lastBlockedPackage = null
@@ -203,12 +227,17 @@ class KavachAlwaysOnService : Service() {
             return poller.onSample(foregroundPackage, isBlockedApp = false)
         }
 
-        // When YouTube content rules are active they must be the sole owner of
-        // YouTube. Showing the generic app overlay at the same time creates two
-        // competing WindowManager views and makes productive channels impossible.
-        val isYoutubeContentOwned = foregroundPackage == "com.google.android.youtube" &&
-            youtubeContentOwnsBlocking
-        val isBlocked = foregroundPackage in blockedPackages && !isYoutubeContentOwned
+        if (isHomePackage(foregroundPackage)) {
+            // Blocking deliberately sends the app Home. Keep the result sheet over the
+            // launcher until the student dismisses it or chooses Quick Unlock. This is
+            // required for both Normal and Beast under either activation option.
+            // Reset visit bookkeeping only, so a later app-open is counted independently.
+            lastBlockedPackage = null
+            countedAttemptPackage = null
+            return poller.onSample(foregroundPackage, isBlockedApp = false)
+        }
+
+        val isBlocked = foregroundPackage in blockedPackages
         if (isBlocked) {
             launchBlockScreen(foregroundPackage)
         } else {
@@ -218,7 +247,28 @@ class KavachAlwaysOnService : Service() {
         return poller.onSample(foregroundPackage, isBlockedApp = isBlocked)
     }
 
+    private fun enforceBackgroundBlockedApps() {
+        if (blockedPackages.isEmpty()) return
+        val am = getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager ?: return
+        val runningProcesses = runCatching { am.runningAppProcesses }.getOrNull() ?: return
+        for (proc in runningProcesses) {
+            val pkgs = proc.pkgList ?: continue
+            for (pkg in pkgs) {
+                if (pkg in blockedPackages && pkg != packageName) {
+                    if (proc.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE ||
+                        proc.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
+                    ) {
+                        BlockedMediaEnforcer.stop(this, pkg)
+                    }
+                }
+            }
+        }
+    }
+
     private fun launchBlockScreen(blockedPackage: String) {
+        // Keep blocked video from escaping into Android's topmost PiP window.
+        BlockedMediaEnforcer.stop(this, blockedPackage)
+
         val now = SystemClock.elapsedRealtime()
         if (blockedPackage == lastBlockedPackage && now - lastBlockedAt < BLOCK_DEBOUNCE_MS) return
         lastBlockedPackage = blockedPackage
@@ -228,10 +278,6 @@ class KavachAlwaysOnService : Service() {
         // so Always On days and session days are directly comparable in analytics.
         if (countedAttemptPackage != blockedPackage) {
             countedAttemptPackage = blockedPackage
-            // Routed through the repository rather than straight to the recorder, so
-            // the live in-session counters move too. Calling the recorder directly
-            // recorded the attempt for analytics but left the Kavach summary screen's
-            // counts blind to anything Always On blocked.
             runCatching { focusShieldRepository().recordBlockedHit(blockedPackage) }
         }
 
@@ -239,12 +285,35 @@ class KavachAlwaysOnService : Service() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(blockedPackage, 0)).toString()
         }.getOrDefault("This app")
 
-        // Primary blocking: draw an overlay directly over the blocked app.
-        // This bypasses Android's Background Activity Launch (BAL) restrictions
-        // entirely — no need to bring MainActivity to the foreground.
-        // The persistent foreground service notification ("KAVACH Always On")
-        // is sufficient; no extra per-block notification is needed.
-        blockOverlay.show(appName)
+        // Force the blocked app to close / navigate to device home screen immediately for both modes.
+        goHome()
+        runCatching {
+            val am = getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+            am?.killBackgroundProcesses(blockedPackage)
+        }
+
+        val expiredMinutes = if (!isStrictMode) {
+            FocusShieldRepository.ShieldPrefs.consumeQuickUnlockJustExpired(this)
+        } else 0
+
+        // Draw the result sheet over Home and leave it there until the student acts.
+        blockOverlay.show(
+            appName = appName,
+            allowQuickUnlock = !isStrictMode,
+            blockedPackage = blockedPackage,
+            expiredMinutes = expiredMinutes,
+        )
+    }
+
+    private fun goHome() {
+        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        packageManager.resolveActivity(homeIntent, 0)?.activityInfo?.let { info ->
+            homeIntent.component = android.content.ComponentName(info.packageName, info.name)
+        }
+        runCatching { startActivity(homeIntent) }
     }
 
     private fun currentForegroundPackage(): String? {
@@ -277,11 +346,22 @@ class KavachAlwaysOnService : Service() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val cal = java.util.Calendar.getInstance()
+        val currentMinute = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
+        val isScheduleActive = !scheduleEnabled || FocusShieldRepository.ShieldPrefs.isWithinSchedule(currentMinute, scheduleStartMinute, scheduleEndMinute)
+
+        val title = if (isAlwaysOnMode) "KAVACH Always On" else "KAVACH Active"
+        val text = when {
+            !isScheduleActive -> "KAVACH Scheduled (Outside active hours)"
+            isAlwaysOnMode -> "Always On protection is active."
+            else -> "KAVACH protection is active."
+        }
+
         return NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
-            .setContentTitle("KAVACH Always On")
-            .setContentText("Your chosen apps stay blocked. Tap to turn Always On off in KAVACH.")
+            .setContentTitle(title)
+            .setContentText(text)
             .setContentIntent(openKavach)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(NotificationCompat.PRIORITY_LOW)

@@ -60,7 +60,7 @@ fun NishthaAnalyticsScreen(
     val report = uiState.monthlyReport
     val achievements = uiState.achievements
 
-    val today = remember { LocalDate.now() }
+    val today = remember { LocalDate.now(com.safarparmar.app.util.IstDateUtils.zone) }
     val months = remember {
         (0..5).map { offset ->
             today.minusMonths(offset.toLong()).let { d ->
@@ -165,6 +165,7 @@ fun NishthaAnalyticsScreen(
                         onMonthClick = { showMonthPicker = true },
                         isLoading = uiState.isLoadingReport,
                         report = report,
+                        reportError = uiState.reportError,
                         achievements = achievements,
                         isLight = isLight,
                         onNavigate = onNavigate,
@@ -185,30 +186,20 @@ private fun AnalyticsSectionChip(
     isLight: Boolean,
     onClick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(20.dp)
     val textColor = if (selected) {
-        Color.White
+        if (isLight) Color.White else Color.Black
     } else {
-        if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+        secondaryText(isLight)
     }
+    val activeBg = if (isLight) SafarGlassPalette.LightTextPrimary else Color.White
 
     Box(
         modifier = Modifier
-            .then(
-                if (selected) {
-                    Modifier
-                        .clip(shape)
-                        .background(selectedColor)
-                        .border(
-                            width = 0.5.dp,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))
-                            ),
-                            shape = shape
-                        )
-                } else {
-                    Modifier.macOSControlPanel(isLight = isLight, shape = shape)
-                }
+            .clip(shape)
+            .background(
+                if (selected) activeBg
+                else secondaryText(isLight).copy(alpha = 0.08f)
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
@@ -218,7 +209,7 @@ private fun AnalyticsSectionChip(
             label,
             color = textColor,
             fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
         )
     }
 }
@@ -229,6 +220,7 @@ private fun MonthlyReviewSection(
     onMonthClick: () -> Unit,
     isLoading: Boolean,
     report: MonthlyReport?,
+    reportError: String? = null,
     achievements: List<com.safarparmar.app.domain.model.Achievement>,
     isLight: Boolean,
     onNavigate: (String) -> Unit,
@@ -241,7 +233,8 @@ private fun MonthlyReviewSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(14.dp))
+                .background(secondaryText(isLight).copy(alpha = 0.08f))
                 .clickable { onMonthClick() }
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
@@ -252,12 +245,12 @@ private fun MonthlyReviewSection(
                 Icon(
                     Icons.Default.CalendarMonth,
                     contentDescription = null,
-                    tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet,
+                    tint = primaryText(isLight),
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
                     selectedMonthLabel,
-                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                    color = primaryText(isLight),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
@@ -265,24 +258,21 @@ private fun MonthlyReviewSection(
                 Icon(
                     Icons.Default.ArrowDropDown,
                     contentDescription = null,
-                    tint = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                    tint = secondaryText(isLight)
                 )
             }
         }
 
         when {
             isLoading -> {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    com.safarparmar.app.ui.components.StatCardSkeleton()
-                    com.safarparmar.app.ui.components.StatCardSkeleton()
-                    com.safarparmar.app.ui.components.StatCardSkeleton()
-                }
+                com.safarparmar.app.ui.components.NishthaAnalyticsSkeleton()
             }
             report == null -> {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(secondaryText(isLight).copy(alpha = 0.06f))
                 ) {
                     Column(
                         Modifier.padding(24.dp).fillMaxWidth(),
@@ -293,17 +283,17 @@ private fun MonthlyReviewSection(
                             selectedMonthLabel,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
-                            color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                            color = primaryText(isLight)
                         )
                         Text(
-                            stringResource(R.string.analytics_no_report_hint),
+                            if (reportError != null) reportError else stringResource(R.string.analytics_no_report_hint),
                             fontSize = 13.sp,
-                            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                            color = if (reportError != null) MaterialTheme.colorScheme.error else secondaryText(isLight),
                             textAlign = TextAlign.Center
                         )
                         val btnAccent = SafarSemanticColors.brandPurple(isDarkTheme = !isLight)
                         SafarGlassButton(
-                            text = stringResource(R.string.analytics_generate),
+                            text = if (reportError != null) "Retry Loading" else stringResource(R.string.analytics_generate),
                             icon = Icons.Default.Refresh,
                             onClick = onGenerate,
                             isLight = isLight,
@@ -324,9 +314,9 @@ private fun ReportContent(
     isLight: Boolean,
     onNavigate: (String) -> Unit = {}
 ) {
-    val scoreAccent = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
-    val completionAccent = if (isLight) Color(0xFF065F46) else Color(0xFF81C784)
-    val focusAccent = if (isLight) Color(0xFF9A3412) else Color(0xFFFF8A65)
+    val scoreAccent = if (isLight) Color(0xFF581C87) else Color(0xFFC084FC)
+    val completionAccent = if (isLight) Color(0xFF047857) else Color(0xFF4ADE80)
+    val focusAccent = if (isLight) Color(0xFFC2410C) else Color(0xFFFF8A65)
 
     ScoreCard(R.drawable.ic_zap, stringResource(R.string.analytics_consistency_score), "${report.consistencyScore.toInt()}%", report.consistencyMessage, scoreAccent, isLight)
     ScoreCard(R.drawable.ic_circle_check, stringResource(R.string.analytics_completion_rate), "${report.completionRate.toInt()}%", report.completionMessage, completionAccent, isLight)
@@ -344,7 +334,8 @@ private fun ReportContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(secondaryText(isLight).copy(alpha = 0.06f))
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -353,14 +344,14 @@ private fun ReportContent(
                         stringResource(R.string.analytics_skill_radar),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                        color = primaryText(isLight),
                         modifier = Modifier.weight(1f)
                     )
                     Text(
                         stringResource(R.string.analytics_multidimensional),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
-                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                        color = secondaryText(isLight)
                     )
                 }
                 report.radar.forEach { item ->
@@ -369,19 +360,19 @@ private fun ReportContent(
                             item.subject,
                             modifier = Modifier.width(88.dp),
                             fontSize = 12.sp,
-                            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                            color = secondaryText(isLight)
                         )
                         LinearProgressIndicator(
                             progress = { (item.score / 100.0).toFloat().coerceIn(0f, 1f) },
-                            modifier = Modifier.weight(1f).height(6.dp).clip(CircleShape),
+                            modifier = Modifier.weight(1f).height(5.dp).clip(CircleShape),
                             color = scoreAccent,
-                            trackColor = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.1f)
+                            trackColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
                         )
                         Text(
                             "${item.score.toInt()}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                            color = primaryText(isLight),
                             modifier = Modifier.width(28.dp)
                         )
                     }
@@ -393,12 +384,13 @@ private fun ReportContent(
     if (report.heatmap.isNotEmpty()) {
         val days = report.heatmap.takeLast(30)
         val dotColor = scoreAccent
-        val emptyColor = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.1f)
+        val emptyColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(secondaryText(isLight).copy(alpha = 0.06f))
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -406,8 +398,8 @@ private fun ReportContent(
                     Text(
                         stringResource(R.string.analytics_activity_heatmap),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                        fontSize = 15.sp,
+                        color = primaryText(isLight),
                         modifier = Modifier.weight(1f)
                     )
                     Text(
@@ -439,13 +431,13 @@ private fun ReportContent(
                     }
                 }
                 Spacer(modifier = Modifier.height(2.dp))
-                GlassDivider()
+                HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         stringResource(R.string.analytics_less_active),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                        color = secondaryText(isLight)
                     )
                     Spacer(Modifier.weight(1f))
                     listOf(emptyColor, dotColor.copy(alpha = 0.30f), dotColor.copy(alpha = 0.65f), dotColor).forEach { c ->
@@ -472,15 +464,16 @@ private fun ReportContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(secondaryText(isLight).copy(alpha = 0.06f))
                 .padding(16.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.padding(4.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
                     stringResource(R.string.analytics_self_discovery),
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                    color = primaryText(isLight)
                 )
                 if (report.powerHourMessage.isNotEmpty()) {
                     InsightRow(R.drawable.ic_zap, stringResource(R.string.analytics_power_hour_title), report.powerHourMessage, isLight)
@@ -510,7 +503,8 @@ private fun AchievementsSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.06f))
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -526,7 +520,7 @@ private fun AchievementsSection(
                     "Achievements",
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                    color = primaryText(isLight),
                     modifier = Modifier.weight(1f)
                 )
                 Text(
@@ -549,21 +543,21 @@ private fun AchievementsSection(
                         painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_lock),
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
-                        tint = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                        tint = secondaryText(isLight)
                     )
                     Text(
                         "No achievements earned yet",
                         fontSize = 13.sp,
-                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                        color = secondaryText(isLight)
                     )
                     Text(
                         "Keep up your streaks to earn badges!",
                         fontSize = 11.sp,
-                        color = (if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary).copy(alpha = 0.7f)
+                        color = secondaryText(isLight).copy(alpha = 0.7f)
                     )
                 }
             } else {
-                GlassDivider()
+                HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
                 // Only show earned achievements
                 earned.forEach { ach ->
                     val imageUrl = com.safarparmar.app.ui.achievements.AchievementImages.urlFor(ach.id)
@@ -575,7 +569,7 @@ private fun AchievementsSection(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(44.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
                                     (if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet).copy(alpha = 0.15f)
@@ -586,13 +580,13 @@ private fun AchievementsSection(
                                 coil.compose.AsyncImage(
                                     model = imageUrl,
                                     contentDescription = ach.name,
-                                    modifier = Modifier.size(38.dp).clip(RoundedCornerShape(8.dp))
+                                    modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp))
                                 )
                             } else {
                                 Icon(
                                     painter = androidx.compose.ui.res.painterResource(id = if (ach.type == "title") R.drawable.ic_crown else R.drawable.ic_medal),
                                     contentDescription = null,
-                                    modifier = Modifier.size(22.dp),
+                                    modifier = Modifier.size(20.dp),
                                     tint = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
                                 )
                             }
@@ -603,7 +597,7 @@ private fun AchievementsSection(
                                     ach.name,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                                    color = primaryText(isLight)
                                 )
                                 Surface(
                                     shape = RoundedCornerShape(20.dp),
@@ -622,7 +616,7 @@ private fun AchievementsSection(
                                 Text(
                                     ach.description,
                                     fontSize = 11.sp,
-                                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                                    color = secondaryText(isLight),
                                     lineHeight = 15.sp
                                 )
                             }
@@ -643,21 +637,20 @@ private fun ScoreCard(
     accentColor: Color,
     isLight: Boolean
 ) {
-    val shape = RoundedCornerShape(20.dp)
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .macOSControlPanel(isLight = isLight, shape = shape)
+            .clip(RoundedCornerShape(16.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.06f))
     ) {
         Row(
-            Modifier.padding(16.dp),
+            Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(accentColor.copy(alpha = if (isLight) 0.12f else 0.2f)),
                 contentAlignment = Alignment.Center
@@ -665,7 +658,7 @@ private fun ScoreCard(
                 Icon(
                     painter = androidx.compose.ui.res.painterResource(id = iconRes),
                     contentDescription = null,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(20.dp),
                     tint = accentColor
                 )
             }
@@ -674,22 +667,22 @@ private fun ScoreCard(
                     label.uppercase(Locale.US),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                    color = secondaryText(isLight),
                     letterSpacing = 0.8.sp
                 )
                 Text(
                     value,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = accentColor
+                    color = primaryText(isLight)
                 )
                 if (message.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         message,
-                        fontSize = 12.sp,
-                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
-                        lineHeight = 16.sp
+                        fontSize = 11.sp,
+                        color = secondaryText(isLight),
+                        lineHeight = 15.sp
                     )
                 }
             }
@@ -707,7 +700,8 @@ private fun GoalsCountCard(
 ) {
     Box(
         modifier = modifier
-            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.06f))
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -715,7 +709,7 @@ private fun GoalsCountCard(
                 label.uppercase(Locale.US),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                color = secondaryText(isLight)
             )
             Text(
                 value,
@@ -735,7 +729,8 @@ private fun StreakReviewCard(report: MonthlyReport, isLight: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.06f))
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -743,7 +738,7 @@ private fun StreakReviewCard(report: MonthlyReport, isLight: Boolean) {
                 "Streak Review",
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp,
-                color = streakThemeColor
+                color = primaryText(isLight)
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GoalsCountCard("Longest Streak", "${report.longestStreakDays}d", streakThemeColor, isLight, Modifier.weight(1f))
@@ -753,24 +748,24 @@ private fun StreakReviewCard(report: MonthlyReport, isLight: Boolean) {
                 Text(
                     report.streakMessage,
                     fontSize = 12.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                    color = secondaryText(isLight)
                 )
             }
             if (report.streakBreakDates.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(2.dp))
-                GlassDivider()
+                HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
                 Text(
                     "Broken on",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                    color = secondaryText(isLight)
                 )
                 Text(
                     report.streakBreakDates.joinToString("  •  ") { dateKey ->
                         runCatching { LocalDate.parse(dateKey).format(breakDayFormatter) }.getOrDefault(dateKey)
                     },
                     fontSize = 13.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                    color = primaryText(isLight),
                     lineHeight = 18.sp,
                 )
             }
@@ -798,13 +793,20 @@ private fun InsightRow(iconRes: Int, title: String, message: String, isLight: Bo
             )
             Text(
                 message,
-                fontSize = 13.sp,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
-                lineHeight = 18.sp
+                fontSize = 12.sp,
+                color = secondaryText(isLight),
+                lineHeight = 16.sp
             )
         }
     }
 }
+
+private fun primaryText(isLight: Boolean) =
+    if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+
+private fun secondaryText(isLight: Boolean) =
+    if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+
 
 @Composable
 private fun LineChart(values: List<Float>, modifier: Modifier = Modifier) {

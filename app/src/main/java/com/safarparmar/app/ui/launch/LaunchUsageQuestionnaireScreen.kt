@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.ShieldMoon
@@ -202,25 +203,40 @@ private fun usageReasons(): List<UsageReasonOption> = listOf(
 )
 
 @Composable
-private fun kavachModes(): List<KavachModeOption> = listOf(
+private fun kavachActivationModes(): List<KavachModeOption> = listOf(
     KavachModeOption(
         mode = AppUsageMode.FOCUSED,
-        title = "Normal",
-        description = "We remind you when you open a blocked app.",
+        title = "With Ekagra",
+        description = "Kavach turns on with an Ekagra session and turns off when it ends.",
         icon = Icons.Rounded.TouchApp,
         accent = LaunchFlatColors.Normal,
         badge = null,
     ),
-    // "Always On" is HIDDEN for this release — only Normal and Beast Mode ship.
-    // The mode, its service and its repository plumbing are all left intact so it
-    // can be restored by putting this option back; nothing else needs changing.
+    KavachModeOption(
+        mode = AppUsageMode.ALWAYS_ON,
+        title = "Always On",
+        description = "Kavach keeps blocking until you manually turn it off.",
+        icon = Icons.Default.Shield,
+        accent = Color(0xFF581C87),
+        badge = "24/7",
+    ),
+)
+
+@Composable
+private fun kavachProtectionModes(): List<KavachModeOption> = listOf(
+    KavachModeOption(
+        mode = AppUsageMode.NORMAL,
+        title = "Normal Mode",
+        description = "Blocks selected apps with Quick Unlock available.",
+        icon = Icons.Rounded.TouchApp,
+        accent = LaunchFlatColors.Normal,
+    ),
     KavachModeOption(
         mode = AppUsageMode.BEAST,
-        title = "Beast Mode",
-        description = "Use this mode for the best SAFAR experience.",
-        icon = Icons.Rounded.Lock,
+        title = "Always On Mode",
+        description = "Blocks selected apps 24/7 in the background.",
+        icon = Icons.Default.Shield,
         accent = LaunchFlatColors.Beast,
-        badge = "Recommended",
     ),
 )
 
@@ -253,16 +269,21 @@ fun LaunchUsageQuestionnaireScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var page by remember { mutableIntStateOf(0) }
     var selectedMode by remember { mutableStateOf<String?>(null) }
+    var selectedProtection by remember { mutableStateOf(AppUsageMode.NORMAL) }
 
     LaunchedEffect(page) {
         if (page == 1 && selectedMode == null) {
-            selectedMode = AppUsageMode.BEAST
+            selectedMode = AppUsageMode.FOCUSED
         }
     }
 
     fun onFinishQuestionnaire() {
-        val mode = selectedMode ?: AppUsageMode.BEAST
-        viewModel.markQuestionnaireFinished(mode, onNavigateKavach)
+        val mode = selectedMode ?: AppUsageMode.FOCUSED
+        viewModel.markQuestionnaireFinished(
+            mode = mode,
+            strict = selectedProtection == AppUsageMode.BEAST,
+            onDone = onNavigateKavach,
+        )
     }
 
     val isLight = MaterialTheme.colorScheme.background.isLightBackground()
@@ -321,6 +342,8 @@ fun LaunchUsageQuestionnaireScreen(
                         else -> KavachModePage(
                             selectedMode = selectedMode,
                             onSelectMode = { selectedMode = it },
+                            selectedProtection = selectedProtection,
+                            onSelectProtection = { selectedProtection = it },
                             isLight = isLight,
                         )
                     }
@@ -348,18 +371,19 @@ private fun QuestionnaireTopBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (page > 0) {
+                val isDarkQuestionnaire = androidx.compose.foundation.isSystemInDarkTheme()
                 Box(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .border(1.dp, LaunchFlatColors.Hairline, CircleShape)
+                        .background(if (isDarkQuestionnaire) Color(0xFF3B0764) else Color(0xFF581C87))
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = LaunchFlatColors.Text,
+                        tint = Color.White,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -473,9 +497,12 @@ private fun WhyHerePage(
 private fun KavachModePage(
     selectedMode: String?,
     onSelectMode: (String) -> Unit,
+    selectedProtection: String,
+    onSelectProtection: (String) -> Unit,
     isLight: Boolean,
 ) {
-    val modes = kavachModes()
+    val activationModes = kavachActivationModes()
+    val protectionModes = kavachProtectionModes()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -488,7 +515,7 @@ private fun KavachModePage(
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "How do you want KAVACH to block apps?",
+                text = "Set up KAVACH",
                 fontFamily = LoraFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 26.sp,
@@ -507,18 +534,29 @@ private fun KavachModePage(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            modes.forEach { option ->
+            Text("WHEN DOES IT WORK?", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LaunchFlatColors.Muted)
+            activationModes.forEach { option ->
                 KavachModeCard(
                     option = option,
                     selected = selectedMode == option.mode,
                     isLight = isLight,
                     onClick = { onSelectMode(option.mode) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Text("PROTECTION LEVEL", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LaunchFlatColors.Muted)
+            protectionModes.forEach { option ->
+                KavachModeCard(
+                    option = option,
+                    selected = selectedProtection == option.mode,
+                    isLight = isLight,
+                    onClick = { onSelectProtection(option.mode) },
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }

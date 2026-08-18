@@ -12,26 +12,26 @@ import androidx.compose.ui.unit.dp
 import com.safarparmar.app.domain.model.Goal
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.util.IstDateUtils
+import com.safarparmar.app.util.isGoalCompleted
+import com.safarparmar.app.util.isMissedGoal
+import com.safarparmar.app.util.isTodayGoal
+import com.safarparmar.app.util.isUpcomingGoal
 
 @Composable
 internal fun StatusGrid(goals: List<Goal>, ekagraAnalytics: com.safarparmar.app.domain.model.EkagraAnalyticsStats) {
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = goals.filter { it.source != "ekagra" }
-    val pending = standardGoals.filter {
-        !it.completed && it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
-            !(it.lifecycleStatus == "missed" && it.nextInstanceCreated) &&
-            !it.isDormant(todayKey)
-    }
-    val scheduled = standardGoals.filter { !it.completed && it.isDormant(todayKey) }
-    val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
-    val doneToday = manualCompletedGoals.count { it.completedDateKey() == todayKey }
+    val pending = standardGoals.filter { it.isTodayGoal(todayKey) }
+    val scheduled = standardGoals.filter { it.isUpcomingGoal(todayKey) }
+    val missed = standardGoals.filter { it.isMissedGoal(todayKey) }
+    val doneToday = standardGoals.count { it.isGoalCompleted() && it.anchorDateKey() == todayKey }
 
     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(0.dp)) {
             StatInfoCard(
                 "Done Today",
                 doneToday.toString(),
-                "Manual goals completed on today's date.",
+                "Goals assigned today that are complete.",
                 Modifier.weight(1f),
                 GoalsFlatColors.Done,
             )
@@ -44,6 +44,14 @@ internal fun StatusGrid(goals: List<Goal>, ekagraAnalytics: com.safarparmar.app.
             )
         }
         Spacer(Modifier.height(0.dp))
+        PlanHairline(alpha = 0.4f)
+        StatInfoCard(
+            "Missed",
+            missed.size.toString(),
+            "Open goals whose assigned day has passed.",
+            Modifier.fillMaxWidth(),
+            GoalsFlatColors.Danger,
+        )
         PlanHairline(alpha = 0.4f)
         StatInfoCard(
             "Scheduled Ahead",

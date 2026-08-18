@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safarparmar.app.data.remote.dto.EkagraSession
 import com.safarparmar.app.data.remote.dto.FocusStatsResponse
+import com.safarparmar.app.domain.model.EkagraAnalyticsFocusSession
+import com.safarparmar.app.domain.model.EkagraAnalyticsRecentSession
 import com.safarparmar.app.domain.model.EkagraAnalyticsStats
 import com.safarparmar.app.domain.model.Goal
 import com.safarparmar.app.domain.model.GoalLinkedSession
@@ -19,11 +21,15 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -41,6 +47,7 @@ class EkagraViewModel @Inject constructor(
     private val plannerRepo: StudyPlannerRepository,
     val dataStore: com.safarparmar.app.data.local.SafarDataStore,
     val focusShieldRepo: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository,
+    private val studyCircleApi: com.safarparmar.app.data.remote.api.StudyCircleApi,
 ) : ViewModel() {
 
     sealed interface StudyTimeSaveResult {
@@ -59,6 +66,15 @@ class EkagraViewModel @Inject constructor(
     // Kept for screen compatibility, but active/open sessions are now local-only drafts.
     private val _openSessions = MutableStateFlow<List<EkagraSession>>(emptyList())
     val openSessions = _openSessions.asStateFlow()
+
+    private val _studyCircleLiveSummary = MutableStateFlow<com.safarparmar.app.data.remote.dto.StudyCircleLiveSummaryDto?>(null)
+    val studyCircleLiveSummary = _studyCircleLiveSummary.asStateFlow()
+
+    private val _myCircles = MutableStateFlow<List<com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto>>(emptyList())
+    val myCircles = _myCircles.asStateFlow()
+
+    private val _selectedStudyCircle = MutableStateFlow<com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto?>(null)
+    val selectedStudyCircle = _selectedStudyCircle.asStateFlow()
 
     private val _activeSession = MutableStateFlow<EkagraSession?>(null)
     val activeSession = _activeSession.asStateFlow()
@@ -123,6 +139,18 @@ class EkagraViewModel @Inject constructor(
         }
     }
 
+    fun setFocusDurationMinutes(minutes: Int) {
+        viewModelScope.launch {
+            dataStore.setFocusDurationMinutes(minutes)
+        }
+    }
+
+    fun setBreakDurationMinutes(minutes: Int) {
+        viewModelScope.launch {
+            dataStore.setBreakDurationMinutes(minutes)
+        }
+    }
+
     init {
         // Initial fetch; periodic refresh is now driven from the screen via
         // repeatOnLifecycle so polling pauses when Ekagra is not on top.
@@ -145,16 +173,139 @@ class EkagraViewModel @Inject constructor(
     fun refreshEkagra() {
         _openSessions.value = emptyList()
         loadEkagraAnalytics()
+        loadStudyCircleLiveSummary()
+    }
+
+    fun loadStudyCircleLiveSummary() {
+        viewModelScope.launch {
+            try {
+                val res = studyCircleApi.getLiveSummary()
+                if (res.isSuccessful && res.body() != null) {
+                    _studyCircleLiveSummary.value = res.body()
+                }
+            } catch (_: Exception) {
+                // Ignore network error gracefully
+            }
+            try {
+                val circlesRes = studyCircleApi.getMyCircles()
+                if (circlesRes.isSuccessful && circlesRes.body() != null) {
+                    val circles = circlesRes.body()!!.circles
+                    _myCircles.value = circles
+                    val savedId = dataStore.selectedStudyCircleId.firstOrNull()
+                    val matching = circles.find { it.id == savedId }
+                    _selectedStudyCircle.value = matching ?: circles.firstOrNull()
+                }
+            } catch (_: Exception) {
+                // Ignore network error gracefully
+            }
+        }
+    }
+
+    fun selectStudyCircle(circle: com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto) {
+        _selectedStudyCircle.value = circle
+        viewModelScope.launch {
+            dataStore.setSelectedStudyCircleId(circle.id)
+        }
     }
 
     fun loadOpenSessions() {
         _openSessions.value = emptyList()
     }
 
+    private val pendingTitleOverrides = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val pendingSessionIds = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    private fun insertOptimisticSession(
+        sessionId: String,
+        startedAt: String?,
+        endedAt: String?,
+        plannedMinutes: Int,
+        actualMinutes: Int,
+        actualSeconds: Int,
+        cleanTitle: String,
+        goalId: String? = null,
+        mode: String = "Timer",
+    ) {
+        val optimisticFocus = EkagraAnalyticsFocusSession(
+            id = sessionId,
+            startedAt = startedAt,
+            endedAt = endedAt,
+            durationMinutes = plannedMinutes,
+            actualMinutes = actualMinutes,
+            actualSeconds = actualSeconds,
+            status = "completed",
+            rawStatus = "completed",
+            taskText = cleanTitle,
+            associatedGoalId = goalId,
+            isGoalLinked = !goalId.isNullOrBlank(),
+            pauseCount = 0,
+            timerMode = mode,
+        )
+        val optimisticRecent = EkagraAnalyticsRecentSession(
+            id = sessionId,
+            startedAt = startedAt,
+            endedAt = endedAt,
+            durationMinutes = plannedMinutes,
+            actualMinutes = actualMinutes,
+            actualSeconds = actualSeconds,
+            completed = true,
+            taskText = cleanTitle,
+            associatedGoalId = goalId,
+            isGoalLinked = !goalId.isNullOrBlank(),
+            pauseCount = 0,
+            sessionType = mode,
+        )
+        val current = _ekagraAnalytics.value
+        val existingIds = current.focusSessions.map { it.id }.toSet()
+        if (!existingIds.contains(sessionId)) {
+            pendingSessionIds.add(sessionId)
+            pendingTitleOverrides[sessionId] = cleanTitle
+            _ekagraAnalytics.value = current.copy(
+                totalFocusMinutes = current.totalFocusMinutes + actualMinutes,
+                totalSessions = current.totalSessions + 1,
+                completedSessions = current.completedSessions + 1,
+                focusSessions = listOf<EkagraAnalyticsFocusSession>(optimisticFocus) + current.focusSessions,
+                recentSessions = listOf<EkagraAnalyticsRecentSession>(optimisticRecent) + current.recentSessions,
+            )
+        }
+    }
+
     fun loadEkagraAnalytics() {
         viewModelScope.launch {
             when (val r = repo.getEkagraAnalytics()) {
-                is Resource.Success -> _ekagraAnalytics.value = r.data
+                is Resource.Success -> {
+                    val raw = r.data
+                    val serverIds = raw.focusSessions.map { it.id }.toSet()
+                    pendingSessionIds.removeIf { serverIds.contains(it) }
+
+                    val pendingOptimisticFocus = _ekagraAnalytics.value.focusSessions.filter {
+                        !serverIds.contains(it.id) && pendingSessionIds.contains(it.id)
+                    }
+                    val pendingOptimisticRecent = _ekagraAnalytics.value.recentSessions.filter {
+                        !serverIds.contains(it.id) && pendingSessionIds.contains(it.id)
+                    }
+
+                    val updatedFocus = (pendingOptimisticFocus + raw.focusSessions).map { session ->
+                        val override = pendingTitleOverrides[session.id]
+                        if (override != null) {
+                            if (session.taskText == override) {
+                                pendingTitleOverrides.remove(session.id)
+                            }
+                            session.copy(taskText = override)
+                        } else session
+                    }
+                    val updatedRecent = (pendingOptimisticRecent + raw.recentSessions).map { session ->
+                        val override = pendingTitleOverrides[session.id]
+                        if (override != null) {
+                            session.copy(taskText = override)
+                        } else session
+                    }
+                    _ekagraAnalytics.value = raw.copy(
+                        totalFocusMinutes = maxOf(raw.totalFocusMinutes, _ekagraAnalytics.value.totalFocusMinutes),
+                        focusSessions = updatedFocus,
+                        recentSessions = updatedRecent,
+                    )
+                }
                 is Resource.Error -> Unit
                 is Resource.Loading -> Unit
             }
@@ -348,12 +499,46 @@ class EkagraViewModel @Inject constructor(
         topicTitle: String? = null,
         markGoalComplete: Boolean = false,
         markTopicDone: Boolean = false,
+        studiedMinutes: Int = 0,
+        studiedSeconds: Int = 0,
     ) {
+        // Optimistic update: instantly reflect the new task title or goal in local UI state
+        if (taskTitle != null || goalId != null) {
+            taskTitle?.let { pendingTitleOverrides[sessionId] = it }
+            val current = _ekagraAnalytics.value
+            val updatedFocus = current.focusSessions.map { session ->
+                if (session.id == sessionId) {
+                    session.copy(
+                        taskText = taskTitle ?: session.taskText,
+                        associatedGoalId = goalId ?: session.associatedGoalId,
+                        isGoalLinked = if (goalId != null) true else session.isGoalLinked,
+                    )
+                } else session
+            }
+            val updatedRecent = current.recentSessions.map { session ->
+                if (session.id == sessionId) {
+                    session.copy(
+                        taskText = taskTitle ?: session.taskText,
+                        associatedGoalId = goalId ?: session.associatedGoalId,
+                        isGoalLinked = if (goalId != null) true else session.isGoalLinked,
+                    )
+                } else session
+            }
+            _ekagraAnalytics.value = current.copy(
+                focusSessions = updatedFocus,
+                recentSessions = updatedRecent,
+            )
+        }
+
         viewModelScope.launch {
             when (repo.updateSession(sessionId, taskTitle, goalId, goalTitle, topicId, planId, topicTitle)) {
                 is Resource.Success -> {
                     if (markGoalComplete && !goalId.isNullOrBlank()) {
-                        homeRepo.completeGoal(goalId, studiedMinutes = 0)
+                        val min = if (studiedMinutes > 0) studiedMinutes else studiedSeconds / 60
+                        homeRepo.completeGoal(goalId, studiedMinutes = min, studiedSeconds = studiedSeconds)
+                        com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goalId)
+                    } else if (!goalId.isNullOrBlank()) {
+                        com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goalId)
                     }
                     if (markTopicDone && !topicId.isNullOrBlank() && !planId.isNullOrBlank()) {
                         plannerRepo.updateTopic(
@@ -363,6 +548,24 @@ class EkagraViewModel @Inject constructor(
                         )
                         com.safarparmar.app.ui.studyplanner.PlannerTopicEventBus.postTopicCompleted(planId)
                     }
+                    loadStats()
+                    loadEkagraAnalytics()
+                    loadTasks()
+                }
+                is Resource.Error, is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun linkSavedSessionToGoal(
+        sessionId: String,
+        goal: Goal,
+        markGoalComplete: Boolean,
+    ) {
+        viewModelScope.launch {
+            when (repo.linkSessionToGoal(sessionId, goal.id, markGoalComplete)) {
+                is Resource.Success -> {
+                    com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goal.id)
                     loadStats()
                     refreshEkagra()
                     loadTasks()
@@ -439,6 +642,18 @@ class EkagraViewModel @Inject constructor(
             ?: "Untitled"
         val shieldWasActive = focusShieldRepo.sessionActive.value || focusShieldRepo.isEnabled.value
 
+        insertOptimisticSession(
+            sessionId = sessionId,
+            startedAt = started,
+            endedAt = endedAt ?: Instant.now().toString(),
+            plannedMinutes = plannedMinutes,
+            actualMinutes = actualMinutes,
+            actualSeconds = actualSeconds,
+            cleanTitle = cleanTitle,
+            goalId = cleanGoalId,
+            mode = mode,
+        )
+
         viewModelScope.launch {
             // Save the new record before touching the old one — if the save fails (no
             // network, process death), we must not have already deleted the original.
@@ -464,6 +679,16 @@ class EkagraViewModel @Inject constructor(
             when (saveResult) {
                 is Resource.Success -> {
                     if (activeSessionId == sessionId || current?.id == sessionId) clearLocalDraft()
+                    val savedId = saveResult.data.id.ifBlank { sessionId }
+                    if (savedId != sessionId) {
+                        pendingSessionIds.remove(sessionId)
+                        pendingSessionIds.add(savedId)
+                        pendingTitleOverrides[savedId] = cleanTitle
+                        val curr = _ekagraAnalytics.value
+                        val updatedFocus = curr.focusSessions.map { if (it.id == sessionId) it.copy(id = savedId) else it }
+                        val updatedRecent = curr.recentSessions.map { if (it.id == sessionId) it.copy(id = savedId) else it }
+                        _ekagraAnalytics.value = curr.copy(focusSessions = updatedFocus, recentSessions = updatedRecent)
+                    }
                     // Tell the Study Planner (if open in another ViewModel) to reload
                     // this plan so the just-completed topic flips to done live, rather
                     // than only on the planner's next cold load.
@@ -471,7 +696,7 @@ class EkagraViewModel @Inject constructor(
                         com.safarparmar.app.ui.studyplanner.PlannerTopicEventBus.postTopicCompleted(planId)
                     }
                     loadStats()
-                    refreshEkagra()
+                    loadEkagraAnalytics()
                     loadTasks()
                 }
                 is Resource.Error, is Resource.Loading -> {
@@ -571,6 +796,119 @@ class EkagraViewModel @Inject constructor(
     fun discardSession(sessionId: String) {
         if (activeSessionId == sessionId || _activeSession.value?.id == sessionId) {
             clearLocalDraft()
+        }
+    }
+
+    /**
+     * Phase-1 of the new two-phase session end flow.
+     *
+     * Saves the completed session to the backend immediately with no goal
+     * association. On success the callback receives the *server-assigned*
+     * session ID (or the client ID if the save only hit the local queue).
+     * The caller can then present the goal-linking sheet using that ID.
+     *
+     * @param isAutoComplete  true when the timer ran out naturally (auto-save
+     *                        as "Untitled • <date/time>"); false when the user
+     *                        pressed "End" and typed a name.
+     */
+    fun saveSessionImmediately(
+        sessionId: String,
+        totalSeconds: Int,
+        secondsLeft: Int,
+        mode: String = "Timer",
+        startedAt: String? = null,
+        endedAt: String? = null,
+        taskTitle: String? = null,
+        isAutoComplete: Boolean = false,
+        onSaved: (savedSessionId: String, actualSeconds: Int) -> Unit,
+    ) {
+        val current = _activeSession.value
+        val actualSeconds = if (mode.equals("stopwatch", ignoreCase = true)) secondsLeft else (totalSeconds - secondsLeft)
+        if (actualSeconds <= 0) return
+
+        val actualMinutes = (actualSeconds / 60.0).roundToInt()
+        val plannedMinutes = if (mode.equals("stopwatch", ignoreCase = true)) 0 else (totalSeconds / 60.0).roundToInt()
+        val started = startedAt ?: current?.sessionStartedAt ?: if (mode.equals("stopwatch", ignoreCase = true)) {
+            Instant.now().minusSeconds(secondsLeft.toLong()).toString()
+        } else {
+            Instant.now().minusSeconds((totalSeconds - secondsLeft).toLong()).toString()
+        }
+        val ended = endedAt ?: Instant.now().toString()
+
+        // Build the title: user-typed name, or auto-generated "Untitled • date/time".
+        val cleanTitle = if (isAutoComplete || taskTitle.isNullOrBlank()) {
+            val formatter = DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.getDefault())
+                .withZone(ZoneId.systemDefault())
+            "Untitled \u2022 ${formatter.format(Instant.now())}"
+        } else {
+            taskTitle.trim()
+        }
+
+        val shieldWasActive = focusShieldRepo.sessionActive.value || focusShieldRepo.isEnabled.value
+
+        insertOptimisticSession(
+            sessionId = sessionId,
+            startedAt = started,
+            endedAt = ended,
+            plannedMinutes = plannedMinutes,
+            actualMinutes = actualMinutes,
+            actualSeconds = actualSeconds,
+            cleanTitle = cleanTitle,
+            goalId = null,
+            mode = mode,
+        )
+
+        viewModelScope.launch {
+            val saveResult = repo.saveSession(
+                clientSessionId = sessionId.takeIf { it.startsWith("local-") },
+                mode = mode,
+                startedAt = started,
+                endedAt = ended,
+                plannedDurationMinutes = plannedMinutes,
+                actualDurationMinutes = actualMinutes,
+                actualDurationSeconds = actualSeconds,
+                goalId = null,          // No goal — phase 1 saves without linking
+                goalTitle = null,
+                topicId = null,
+                planId = null,
+                topicTitle = null,
+                markTopicDone = false,
+                taskTitle = cleanTitle,
+                markGoalComplete = false,
+                shieldEnabled = shieldWasActive,
+            )
+            focusShieldRepo.deactivateSession()
+            when (saveResult) {
+                is Resource.Success -> {
+                    if (activeSessionId == sessionId || current?.id == sessionId) clearLocalDraft()
+                    val savedId = saveResult.data.id.ifBlank { sessionId }
+                    if (savedId != sessionId) {
+                        pendingSessionIds.remove(sessionId)
+                        pendingSessionIds.add(savedId)
+                        pendingTitleOverrides[savedId] = cleanTitle
+                        val curr = _ekagraAnalytics.value
+                        val updatedFocus = curr.focusSessions.map { if (it.id == sessionId) it.copy(id = savedId) else it }
+                        val updatedRecent = curr.recentSessions.map { if (it.id == sessionId) it.copy(id = savedId) else it }
+                        _ekagraAnalytics.value = curr.copy(focusSessions = updatedFocus, recentSessions = updatedRecent)
+                    }
+                    loadStats()
+                    loadEkagraAnalytics()
+                    loadTasks()
+                    // Return the server-persisted session ID (if available) or the client ID.
+                    onSaved(savedId, actualSeconds)
+                }
+                is Resource.Error, is Resource.Loading -> {
+                    // Even if the network save failed, the session is in the pending
+                    // queue and will be retried. Treat it as saved so the user can
+                    // proceed with goal-linking.
+                    if (activeSessionId == sessionId || current?.id == sessionId) clearLocalDraft()
+                    pendingTitleOverrides[sessionId] = cleanTitle
+                    loadStats()
+                    loadEkagraAnalytics()
+                    loadTasks()
+                    onSaved(sessionId, actualSeconds)
+                }
+            }
         }
     }
 

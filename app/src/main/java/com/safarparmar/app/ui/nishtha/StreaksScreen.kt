@@ -60,6 +60,8 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.ui.theme.isLightBackground
+import com.safarparmar.app.util.assignedDateKey
+import com.safarparmar.app.util.isGoalCompleted
 import androidx.compose.material3.MaterialTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -90,7 +92,7 @@ private object StreaksPalette {
     val Trend @Composable get() = if (!MaterialTheme.colorScheme.background.isLightBackground()) {
         Color(0xFFC084FC)
     } else {
-        Color(0xFF6D28D9)
+        Color(0xFF581C87)
     }
 }
 
@@ -114,12 +116,12 @@ private fun StreaksScreenContent(
             runCatching { java.time.ZonedDateTime.parse(entry.timestamp).toLocalDate() }.getOrNull()
         }.toSet()
     }
-    val today = LocalDate.now()
+    val today = LocalDate.now(com.safarparmar.app.util.IstDateUtils.zone)
     val last7Days = remember { (6 downTo 0).map { today.minusDays(it.toLong()) } }
     val weeklyCompletions = remember(uiState.goals) {
         last7Days.map { date ->
             uiState.goals.count { goal ->
-                goal.completed && (goal.completedAt?.take(10) ?: goal.scheduledDate?.take(10)) == date.toString()
+                goal.source != "ekagra" && goal.isGoalCompleted() && goal.assignedDateKey() == date.toString()
             }.toFloat()
         }
     }

@@ -66,7 +66,10 @@ gradle.taskGraph.whenReady {
 android {
     namespace = "com.safarparmar.app"
     compileSdk = 36
-    val defaultApiRoot = "https://safar.parmarssc.in/"
+    val defaultApiRoot = providers.gradleProperty("SAFAR_PROD_BASE_URL").orNull
+        ?: providers.environmentVariable("SAFAR_PROD_BASE_URL").orNull
+        ?: localProps.getProperty("SAFAR_PROD_BASE_URL")
+        ?: "https://safar.parmarssc.in/"
     val apiBaseUrl = normalizeBaseUrl(defaultApiRoot)
     val qaBaseUrl = normalizeBaseUrl(
         providers.gradleProperty("SAFAR_QA_BASE_URL").orNull
@@ -90,15 +93,13 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 32
-        versionName = "1.6.19"
+        versionCode = 37
+        versionName = "1.6.24"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // KAVACH (FocusShield) accessibility service is a digital wellbeing feature.
-        // It MUST remain in the prod manifest so Google can review & whitelist it.
-        // Note: sideloaded installs may trigger Play Protect warnings — this is expected
-        // for accessibility services from unknown sources and resolves after Play Store review.
-        buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "true")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
+        ndk {
+            debugSymbolLevel = "FULL"
+        }
     }
 
     flavorDimensions += "env"
@@ -109,7 +110,6 @@ android {
             applicationIdSuffix = ".qa"
             versionNameSuffix = "-qa"
             buildConfigField("String", "BASE_URL", "\"$qaBaseUrl\"")
-            buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "true")
             buildConfigField("boolean", "AI_SYLLABUS_IMPORT_ENABLED", aiSyllabusImportEnabled)
             manifestPlaceholders["allowBackup"] = "false"
             manifestPlaceholders["usesCleartextTraffic"] = "true"
@@ -118,7 +118,6 @@ android {
         create("prod") {
             dimension = "env"
             buildConfigField("String", "BASE_URL", "\"$prodBaseUrl\"")
-            buildConfigField("boolean", "KAVACH_ACCESSIBILITY_ENABLED", "true")
             buildConfigField("boolean", "AI_SYLLABUS_IMPORT_ENABLED", aiSyllabusImportEnabled)
             manifestPlaceholders["allowBackup"] = "false"
             manifestPlaceholders["usesCleartextTraffic"] = "false"
@@ -205,7 +204,7 @@ dependencies {
     implementation("org.json:json:20231013")
 
     //animation
-    implementation("androidx.compose.animation:animation:1.7.0")
+    implementation("androidx.compose.animation:animation")
 
     //video
     implementation("androidx.media3:media3-exoplayer:1.3.1")
@@ -245,6 +244,7 @@ dependencies {
     //firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.auth)
     implementation(libs.firebase.crashlytics)
 
     //system
@@ -272,9 +272,9 @@ dependencies {
 
 val copyApksToOutputs = tasks.register<Copy>("copyApksToOutputs") {
     group = "build"
-    description = "Copy built APKs into Safar_Android/Outputs/"
-    from(layout.buildDirectory.dir("outputs/apk"))
-    include("**/*.apk")
+    description = "Copy built APKs and AABs into Safar_Android/Outputs/"
+    from(layout.buildDirectory.dir("outputs"))
+    include("**/*.apk", "**/*.aab")
     into(rootProject.file("Outputs"))
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
@@ -284,6 +284,8 @@ listOf(
     "assembleQaRelease",
     "assembleProdDebug",
     "assembleQaDebug",
+    "bundleProdRelease",
+    "bundleQaRelease",
 ).forEach { taskName ->
     tasks.matching { it.name == taskName }.configureEach {
         finalizedBy(copyApksToOutputs)

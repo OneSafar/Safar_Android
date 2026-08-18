@@ -58,6 +58,7 @@ interface PlannerActions {
     /** Clears the one-time "show the subject-order sheet" flag set after a Manual-mode plan creation. */
     fun clearPendingManualSubjectOrder()
     fun deletePlan(planId: String)
+    fun renamePlan(planId: String, title: String)
     fun updatePlan(request: UpdatePlanRequest)
     fun addSubject(name: String)
     /** Adds several subjects at once (e.g. from a comma-separated "Add Subject" entry),

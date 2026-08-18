@@ -17,7 +17,7 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onListenerDisconnected() {
-        if (NotificationShieldPrefs.isActive(this)) {
+        if (NotificationShieldPrefs.isActive(this) || KavachAlwaysOnPrefs.isActive(this)) {
             FocusShieldPermissionHelper.requestNotificationListenerRebind(this)
         }
     }
@@ -26,6 +26,7 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
         val notification = sbn ?: return
         if (!shouldSuppressPackage(notification.packageName)) return
 
+        BlockedMediaEnforcer.stop(this, notification.packageName)
         cancelBlockedNotification(notification, "posted")
         mainHandler.postDelayed(
             { suppressActiveBlockedNotifications("posted sweep") },
@@ -38,16 +39,25 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
     }
 
     private fun suppressActiveBlockedNotifications(reason: String) {
-        if (!NotificationShieldPrefs.isActive(this)) return
-        if (!TimerService.isKavachNotificationSuppressionActive(this)) return
+        val alwaysOn = KavachAlwaysOnPrefs.isActive(this)
+        val timerActive = NotificationShieldPrefs.isActive(this) &&
+            TimerService.isKavachNotificationSuppressionActive(this)
+        if (!alwaysOn && !timerActive) return
 
-        val blockedPackages = NotificationShieldPrefs.packages(this)
+        val blockedPackages = if (alwaysOn) {
+            KavachAlwaysOnPrefs.packages(this)
+        } else {
+            NotificationShieldPrefs.packages(this)
+        }
         if (blockedPackages.isEmpty()) return
 
         runCatching {
             activeNotifications
                 ?.filter { shouldSuppressPackage(it.packageName, blockedPackages) }
-                ?.forEach { cancelBlockedNotification(it, reason) }
+                ?.forEach {
+                    BlockedMediaEnforcer.stop(this, it.packageName)
+                    cancelBlockedNotification(it, reason)
+                }
         }.onFailure {
             debugLog("Notification suppression sweep failed: ${it.javaClass.simpleName}")
         }
@@ -55,12 +65,18 @@ class FocusShieldNotificationListenerService : NotificationListenerService() {
 
     private fun shouldSuppressPackage(
         packageName: String?,
-        blockedPackages: Set<String> = NotificationShieldPrefs.packages(this),
+        blockedPackages: Set<String> = if (KavachAlwaysOnPrefs.isActive(this)) {
+            KavachAlwaysOnPrefs.packages(this)
+        } else {
+            NotificationShieldPrefs.packages(this)
+        },
     ): Boolean {
         val normalizedPackage = packageName?.takeIf { it.isNotBlank() } ?: return false
         if (normalizedPackage == this.packageName) return false
-        if (!NotificationShieldPrefs.isActive(this)) return false
-        if (!TimerService.isKavachNotificationSuppressionActive(this)) return false
+        val alwaysOn = KavachAlwaysOnPrefs.isActive(this)
+        val timerActive = NotificationShieldPrefs.isActive(this) &&
+            TimerService.isKavachNotificationSuppressionActive(this)
+        if (!alwaysOn && !timerActive) return false
         return normalizedPackage in blockedPackages
     }
 

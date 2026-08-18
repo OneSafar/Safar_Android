@@ -64,12 +64,8 @@ internal fun RevisionScreen(
                 .padding(horizontal = 8.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = { actions.navigateBack() }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
+            Box(modifier = Modifier.padding(start = 8.dp, end = 4.dp)) {
+                com.safarparmar.app.ui.ekagra.focusshield.StudyPlannerCircularBackButton(onClick = { actions.navigateBack() })
             }
             Column(Modifier.weight(1f)) {
                 Text(

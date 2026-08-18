@@ -127,6 +127,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -869,6 +871,7 @@ private fun StudyPlansScreen(
     activePlanAnchorId: String? = null,
 ) {
     var pendingDelete by remember { mutableStateOf<StudyPlan?>(null) }
+    var pendingRename by remember { mutableStateOf<StudyPlan?>(null) }
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
 
     pendingDelete?.let { plan ->
@@ -877,6 +880,17 @@ private fun StudyPlansScreen(
             body = "This will delete ${plan.title} and its syllabus.",
             onDismiss = { pendingDelete = null },
             onConfirm = { actions.deletePlan(plan.id); pendingDelete = null },
+        )
+    }
+
+    pendingRename?.let { plan ->
+        RenameExamDialog(
+            currentTitle = plan.title.ifBlank { plan.examType ?: "Study plan" },
+            onDismiss = { pendingRename = null },
+            onRename = { title ->
+                actions.renamePlan(plan.id, title)
+                pendingRename = null
+            },
         )
     }
 
@@ -911,12 +925,6 @@ private fun StudyPlansScreen(
                                 modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                Text(
-                                    text = "My Target Exams",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = PlannerFlatColors.TextDark,
-                                )
                                 Text(
                                     text = "Choose an exam to create a focused study plan.",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -977,6 +985,7 @@ private fun StudyPlansScreen(
                                     actions.openPlan(plan.id)
                                     actions.setSection(PlannerSection.PLAN)
                                 },
+                                onRename = { pendingRename = plan },
                                 onDelete = { pendingDelete = plan },
                             )
                         }
@@ -1080,6 +1089,7 @@ private fun PlannerTargetExamRow(
     isActive: Boolean = false,
     isLight: Boolean = false,
     onOpen: () -> Unit,
+    onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
@@ -1131,6 +1141,11 @@ private fun PlannerTargetExamRow(
                     onDismissRequest = { menuExpanded = false },
                 ) {
                     PlannerOverflowMenuItem(
+                        text = "Rename exam",
+                        icon = Icons.Default.Edit,
+                        onClick = { menuExpanded = false; onRename() },
+                    )
+                    PlannerOverflowMenuItem(
                         text = "Delete plan",
                         icon = Icons.Default.Delete,
                         destructive = true,
@@ -1140,6 +1155,43 @@ private fun PlannerTargetExamRow(
             }
         },
         onOpen = onOpen,
+    )
+}
+
+@Composable
+private fun RenameExamDialog(
+    currentTitle: String,
+    onDismiss: () -> Unit,
+    onRename: (String) -> Unit,
+) {
+    var title by remember(currentTitle) { mutableStateOf(currentTitle) }
+    val cleanTitle = title.trim()
+    PlannerDialog(
+        onDismissRequest = onDismiss,
+        title = "Rename exam",
+        text = {
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Exam name") },
+                supportingText = {
+                    if (cleanTitle.isEmpty()) Text("Enter an exam name")
+                },
+                isError = cleanTitle.isEmpty(),
+            )
+        },
+        dismissButton = {
+            PlannerDialogTextAction("Cancel", onClick = onDismiss)
+        },
+        confirmButton = {
+            PlannerDialogAction(
+                text = "Rename",
+                enabled = cleanTitle.isNotEmpty() && cleanTitle != currentTitle,
+                onClick = { onRename(cleanTitle) },
+            )
+        },
     )
 }
 
@@ -1392,6 +1444,7 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
     )
     val scheme = MaterialTheme.colorScheme
     val isLight = scheme.background.isLightBackground()
+    val haptic = LocalHapticFeedback.current
 
     val selectedIndex = sections.indexOf(selected).coerceAtLeast(0)
     val animatedIndex by animateFloatAsState(
@@ -1505,7 +1558,10 @@ internal fun PlannerBottomBar(selected: PlannerSection, onSelect: (PlannerSectio
                             .weight(1f)
                             .fillMaxHeight()
                             .clip(pillShape)
-                            .clickable { onSelect(section) },
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onSelect(section)
+                            },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {

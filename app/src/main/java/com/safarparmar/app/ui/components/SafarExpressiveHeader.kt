@@ -12,6 +12,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+
 @Composable
 fun SafarExpressiveHeader(
     title: String,
@@ -19,6 +26,9 @@ fun SafarExpressiveHeader(
     subtitle: String? = null,
     onBackClick: (() -> Unit)? = null
 ) {
+    val isDark = isSystemInDarkTheme()
+    val bgColor = if (isDark) Color(0xFF3B0764) else Color(0xFF581C87)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -29,14 +39,19 @@ fun SafarExpressiveHeader(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (onBackClick != null) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.size(40.dp)
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(bgColor)
+                        .clickable(onClick = onBackClick),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onBackground
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }

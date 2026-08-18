@@ -69,6 +69,8 @@ data class GoalDto(
     @SerializedName("completed_at")      val completedAtSnake: String? = null,
     val studiedMinutes: Int? = null,
     @SerializedName("studied_minutes")   val studiedMinutesSnake: Int? = null,
+    val studiedSeconds: Int? = null,
+    @SerializedName("studied_seconds")   val studiedSecondsSnake: Int? = null,
     @SerializedName("started_at")        val startedAt: String? = null,
     @SerializedName("startedAt")         val startedAtCamel: String? = null,
     @SerializedName("expires_at")        val expiresAt: String? = null,
@@ -80,7 +82,9 @@ data class GoalDto(
     @SerializedName("next_instance_created") val nextInstanceCreatedSnake: Boolean? = null,
     val completedAt: String? = null,
     val scheduledDate: String? = null,
-    val lifecycleStatus: String? = null
+    val lifecycleStatus: String? = null,
+    val deletedAt: String? = null,
+    val purgeAt: String? = null,
 )
 
 data class GoalSubtaskDto(
@@ -226,7 +230,10 @@ data class UpdateGoalRequest(
 data class CompleteGoalRequest(
     val completed: Boolean = true,
     val completedAt: String,
-    val studiedMinutes: Int
+    val studiedMinutes: Int,
+    @SerializedName("studied_seconds") val studiedSeconds: Int? = null,
+    @SerializedName("completed_via_focus") val completedViaFocus: Boolean = true,
+    val scheduledDate: String? = null,
 )
 
 data class RepeatGoalRequest(val scheduledDate: String)

@@ -57,7 +57,7 @@ object FocusShieldPermissionHelper {
      * Usage access (foreground-app detection) plus "Display over other apps" (the block screen).
      * These stubs remain only so legacy callers keep compiling; they always report "not required".
      */
-    fun isAccessibilityFeatureEnabled(): Boolean = true
+    fun isAccessibilityFeatureEnabled(): Boolean = false
 
     fun hasAccessibilityService(context: Context): Boolean = false
 

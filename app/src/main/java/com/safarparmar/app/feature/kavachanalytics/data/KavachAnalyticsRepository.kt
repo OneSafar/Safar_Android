@@ -24,6 +24,7 @@ import com.safarparmar.app.feature.kavachanalytics.domain.DailyTrendPoint
 import com.safarparmar.app.feature.kavachanalytics.domain.DataCoverage
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachAnalyticsReport
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachEventType
+import com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionMode
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionOutcome
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionSummary
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
@@ -55,6 +56,7 @@ class KavachAnalyticsRepository @Inject constructor(
     private val api: KavachAnalyticsApi,
     private val collector: KavachUsageCollector,
     private val recorder: KavachAnalyticsRecorder,
+    private val youtubeInsightsRepository: com.safarparmar.app.feature.youtubeinsights.YoutubeInsightsRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val aggregateMutex = Mutex()
@@ -212,6 +214,13 @@ class KavachAnalyticsRepository @Inject constructor(
                 nowMs = System.currentTimeMillis(),
             )
             dao.replaceAggregatesForDate(localDate, rows)
+            rows.firstOrNull { it.packageName == "com.google.android.youtube" }?.let { youtube ->
+                youtubeInsightsRepository.reconcileUsageStats(
+                    localDate = localDate,
+                    allDayYoutubeSeconds = youtube.allDaySeconds,
+                    protectedYoutubeSeconds = youtube.kavachSeconds,
+                )
+            }
 
             // Fill category totals for any session that ended on this day.
             sessions.filter { it.outcome != null }.forEach { session ->
@@ -253,7 +262,10 @@ class KavachAnalyticsRepository @Inject constructor(
         withContext(ioDispatcher) {
             val aggregates = dao.aggregatesBetween(startDate, endDate)
             val sessions = dao.sessionsBetween(startDate, endDate)
-            val unlockSeconds = dao.eventsBetween(startDate, endDate)
+            val events = dao.eventsBetween(startDate, endDate)
+            val blockedEvents = events.filter { it.type == KavachEventType.BLOCKED_ATTEMPT }
+            val unlockStarts = events.filter { it.type == KavachEventType.QUICK_UNLOCK_STARTED }
+            val unlockSeconds = events
                 .filter { it.type == KavachEventType.QUICK_UNLOCK_ENDED }
                 .sumOf { it.durationSeconds }
             val coverage = dao.coverageBetween(startDate, endDate)
@@ -342,11 +354,16 @@ class KavachAnalyticsRepository @Inject constructor(
                 trend = byDate.values.sortedBy { it.localDate },
                 apps = byPackage.values.sortedByDescending { it.allDaySeconds },
                 sessions = sessions.map { it.toSummary() },
-                blockedAttempts = aggregates.sumOf { it.blockedAttempts },
-                blockedAttemptsByPackage = byPackage.values
-                    .filter { it.blockedAttempts > 0 }
-                    .associate { it.packageName to it.blockedAttempts },
-                quickUnlockCount = aggregates.sumOf { it.quickUnlockCount },
+                // Raw events are the immediate source of truth for actions. Daily
+                // aggregates can lag until collection runs and must not under-count today.
+                blockedAttempts = blockedEvents.size,
+                ekagraBlockedAttempts = blockedEvents.count { it.clientSessionId != null },
+                alwaysOnBlockedAttempts = blockedEvents.count { it.clientSessionId == null },
+                blockedAttemptsByPackage = blockedEvents
+                    .mapNotNull { it.packageName }
+                    .groupingBy { it }
+                    .eachCount(),
+                quickUnlockCount = unlockStarts.size,
                 // Summed from the unlock-ended events rather than from session rows.
                 // A session's own quickUnlockSeconds is rolled up from these same
                 // events, so this is not a double count — but unlocks granted under
@@ -593,7 +610,7 @@ class KavachAnalyticsRepository @Inject constructor(
         endedAtMs = endedAtMs,
         plannedSeconds = plannedSeconds,
         actualSeconds = actualSeconds,
-        mode = mode,
+        mode = if (mode == "beast") KavachSessionMode.NORMAL else mode,
         outcome = KavachSessionOutcome.fromWire(outcome),
         blockedAttempts = blockedAttempts,
         quickUnlockCount = quickUnlockCount,
@@ -627,7 +644,7 @@ class KavachAnalyticsRepository @Inject constructor(
         localDate = localDate,
         plannedSeconds = plannedSeconds,
         actualSeconds = actualSeconds,
-        mode = mode,
+        mode = if (mode == "beast") KavachSessionMode.NORMAL else mode,
         outcome = outcome,
         blockedAttempts = blockedAttempts,
         quickUnlockCount = quickUnlockCount,

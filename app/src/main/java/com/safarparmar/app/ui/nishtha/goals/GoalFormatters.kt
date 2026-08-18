@@ -12,6 +12,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.domain.model.Goal
+import com.safarparmar.app.util.assignedDateKey
+import com.safarparmar.app.util.isGoalCompleted
+import com.safarparmar.app.util.isUpcomingGoal
 import com.safarparmar.app.util.IstDateUtils
 
 internal fun formatStudyTime(mins: Int): String {
@@ -22,15 +25,13 @@ internal fun formatStudyTime(mins: Int): String {
 }
 
 internal fun Goal.isCompletedForStats(): Boolean =
-    completed || !completedAt.isNullOrBlank()
+    isGoalCompleted()
 
 internal fun Goal.completedDateKey(): String? =
     IstDateUtils.getDateKey(completedAt)
 
 internal fun Goal.anchorDateKey(): String? =
-    IstDateUtils.getDateKey(scheduledDate)
-        ?: IstDateUtils.getDateKey(createdAt)
-        ?: IstDateUtils.getDateKey(startedAt)
+    assignedDateKey()
 
 internal fun Goal.statusBucket(): String = when {
     status == "cancelled" -> "cancelled"
@@ -53,9 +54,7 @@ internal fun StatCard(label: String, value: String, modifier: Modifier) {
 }
 
 internal fun Goal.isDormant(todayKey: String): Boolean {
-    if (goalKind != "scheduled") return false
-    val key = IstDateUtils.getDateKey(scheduledDate) ?: return false
-    return key > todayKey
+    return isUpcomingGoal(todayKey)
 }
 
 internal fun Goal.goalKindLabel(): String = when (goalKind) {

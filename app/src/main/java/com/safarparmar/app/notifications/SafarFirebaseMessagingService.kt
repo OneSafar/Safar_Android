@@ -73,6 +73,9 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
             SafarNotificationChannels.ACHIEVEMENTS -> dataStore.achievementsEnabled.first()
             SafarNotificationChannels.COMMUNITY -> dataStore.communityRepliesEnabled.first()
             SafarNotificationChannels.ANNOUNCEMENTS -> dataStore.announcementsEnabled.first()
+            // Mehfil Connect requests are always delivered when global notifications are on;
+            // the premium paywall is shown inside the app, not suppressed at the notification layer.
+            SafarNotificationChannels.MEHFIL_CONNECT -> true
             SafarNotificationChannels.ACCOUNT_SYSTEM -> true
             else -> true
         }

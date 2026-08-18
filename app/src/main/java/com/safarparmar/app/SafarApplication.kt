@@ -17,6 +17,7 @@ import com.safarparmar.app.notifications.StudyReminderWorker
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRepository
 import com.safarparmar.app.feature.kavachanalytics.work.KavachUsageCollectionWorker
+import com.safarparmar.app.feature.youtubeinsights.YoutubeInsightsRepository
 import com.safarparmar.app.ui.ekagra.EkagraPendingSessionSaveStore
 import com.safarparmar.app.ui.ekagra.EkagraSessionSaveWorker
 import dagger.hilt.android.HiltAndroidApp
@@ -36,6 +37,7 @@ class SafarApplication : Application() {
     @Inject lateinit var kavachAnalyticsRepository: KavachAnalyticsRepository
     @Inject lateinit var kavachAnalyticsRecorder: KavachAnalyticsRecorder
     @Inject lateinit var focusShieldRepository: com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
+    @Inject lateinit var youtubeInsightsRepository: YoutubeInsightsRepository
     @Inject @IoDispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
     private val appExceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -61,6 +63,7 @@ class SafarApplication : Application() {
             // interrupted, then reconcile any usage the OS collected while SAFAR
             // wasn't running.
             runCatching { kavachAnalyticsRecorder.recoverStaleSessions() }
+            runCatching { youtubeInsightsRepository.recoverStaleInterval() }
             // A protection window left open by a killed Always On service would
             // otherwise keep counting toward "During Kavach" forever. Closing it
             // here leaves it ending at its last heartbeat, which is the last moment
@@ -76,7 +79,7 @@ class SafarApplication : Application() {
         // Always On is meant to survive a reboot, an app update and a process
         // death — a blocker the student has to remember to re-arm is not a blocker.
         // The repository re-checks permissions and the app list before starting.
-        focusShieldRepository.restoreAlwaysOnIfEnabled()
+        focusShieldRepository.restoreKavachIfEnabled()
 
         appScope.launch {
             notificationTokenRegistrar.registerStoredTokenIfNeeded()

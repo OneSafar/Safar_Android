@@ -224,7 +224,9 @@ private fun JournalScreenContent(
             when {
                 uiState.isLoadingJournals && uiState.journals.isEmpty() -> {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                         contentPadding = PaddingValues(20.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -235,7 +237,9 @@ private fun JournalScreenContent(
                     SafarPullRefreshBox(
                         isRefreshing = uiState.isLoadingJournals,
                         onRefresh = { viewModel.onEvent(NishthaEvent.LoadJournals) },
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                     ) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
@@ -257,6 +261,9 @@ private fun JournalScreenContent(
                     JournalEmptyState(
                         hasEntries = uiState.journals.isNotEmpty(),
                         accent = journalAccent,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                     )
                 }
             }
@@ -354,8 +361,12 @@ private fun FlatOutlineChip(label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun JournalEmptyState(hasEntries: Boolean, accent: Color) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+private fun JournalEmptyState(
+    hasEntries: Boolean,
+    accent: Color,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),

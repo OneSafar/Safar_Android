@@ -29,6 +29,7 @@ import java.net.CookiePolicy
 import java.net.URI
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import com.safarparmar.app.data.remote.maintenance.MaintenanceInterceptor
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -67,12 +68,14 @@ object NetworkModule {
     @Provides
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
+        maintenanceInterceptor: MaintenanceInterceptor,
         cookieManager: CookieManager,
         cache: Cache,
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
             .cookieJar(JavaNetCookieJar(cookieManager))
             .cache(cache)
+            .addInterceptor(maintenanceInterceptor)
             .addInterceptor(authInterceptor)
             // Per-call timeout override: any request that sets the X-Timeout-Seconds header
             // (stripped before sending) gets its connect/read/write timeouts bumped to that
@@ -174,6 +177,8 @@ object NetworkModule {
     @Provides @Singleton fun provideLiveSessionApi(r: Retrofit): LiveSessionApi = r.create(LiveSessionApi::class.java)
     @Provides @Singleton fun providePremiumApi(r: Retrofit): PremiumApi = r.create(PremiumApi::class.java)
     @Provides @Singleton fun providePaymentApi(r: Retrofit): PaymentApi = r.create(PaymentApi::class.java)
+    @Provides @Singleton fun provideStudyCircleApi(r: Retrofit): StudyCircleApi = r.create(StudyCircleApi::class.java)
+    @Provides @Singleton fun provideLeaderboardApi(r: Retrofit): com.safarparmar.app.data.remote.api.LeaderboardApi = r.create(com.safarparmar.app.data.remote.api.LeaderboardApi::class.java)
     @Provides @Singleton fun provideGson(): Gson = Gson()
     @Provides @Singleton fun provideMehfilSocketManager(gson: Gson): MehfilSocketManager = MehfilSocketManager(gson)
 }

@@ -58,12 +58,17 @@ fun FocusShieldStandaloneScreen(
             accent = accent,
             onToggleEnabled = viewModel::setEnabled,
             onToggleProfile = viewModel::setKavachProfile,
+            onToggleStrictMode = viewModel::setStrictMode,
+            onToggleSchedule = viewModel::setScheduleEnabled,
+            onSetScheduleRange = viewModel::setScheduleRange,
             onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },
             onOpenAppCategories = { onNavigate(Routes.KAVACH_APP_CATEGORIES) },
+            onOpenAnalytics = { onNavigate(Routes.nishthaAnalytics("kavach")) },
             onGoToEkagra = { onNavigate(Routes.EKAGRA) },
             onOpenOverlaySettings = viewModel::openOverlaySettings,
             onRefreshPermissions = viewModel::refreshPermissions,
             onMaybeLater = onBack,
+            onSave = onBack,
             modifier = Modifier.padding(top = padding.calculateTopPadding()),
         )
     }

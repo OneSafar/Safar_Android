@@ -127,13 +127,11 @@ fun EkagraScreen(
     val fallbackTotalSeconds     = remember { MutableStateFlow(25 * 60) }
     val fallbackTimerRunning     = remember { MutableStateFlow(false) }
     val fallbackTimerMode        = remember { MutableStateFlow(TimerMode.FOCUS) }
-    val fallbackFocusShieldActive = remember { MutableStateFlow(false) }
-
+    
     val secondsLeft       by (timerService?.secondsLeft        ?: fallbackSecondsLeft).collectAsStateWithLifecycle()
     val totalSeconds      by (timerService?.totalSeconds       ?: fallbackTotalSeconds).collectAsStateWithLifecycle()
     val timerRunning      by (timerService?.isRunning          ?: fallbackTimerRunning).collectAsStateWithLifecycle()
     val timerMode         by (timerService?.timerMode          ?: fallbackTimerMode).collectAsStateWithLifecycle()
-    val focusShieldActive by (timerService?.focusShieldActive  ?: fallbackFocusShieldActive).collectAsStateWithLifecycle()
     val isMuted           by (timerService?.isMuted            ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
     val blockedHitCount   by focusShieldViewModel.blockedHitCount.collectAsStateWithLifecycle()
 
@@ -142,9 +140,6 @@ fun EkagraScreen(
     val ekagraScope              = rememberCoroutineScope()
     val selectedTab              = tabBackStack.currentTab
     var showKavachActiveSession  by remember { mutableStateOf(false) }
-    var showKavachSessionSummary by remember { mutableStateOf(false) }
-    var kavachSummaryMinutes     by remember { mutableIntStateOf(0) }
-    var kavachSummaryAttempts    by remember { mutableStateOf<List<com.safarparmar.app.ui.ekagra.focusshield.KavachBlockedAttempt>>(emptyList()) }
     var showThemeDialog          by remember { mutableStateOf(false) }
     var showAudioLibraryPanel    by remember { mutableStateOf(false) }
     var showOrganizeSheet        by remember { mutableStateOf(false) }
@@ -152,7 +147,17 @@ fun EkagraScreen(
     var topicStudySheetState     by remember { mutableStateOf<TopicStudySheetState>(TopicStudySheetState.ReadyToSave) }
     var pendingEndedSession      by remember { mutableStateOf<PendingEndedEkagraSession?>(null) }
     var titleInput               by remember { mutableStateOf("") }
+    // ── Two-phase session-end flow state ──
+    // Phase 1: naming dialog (user pressed "End")
+    var showSessionNameDialog    by remember { mutableStateOf(false) }
+    // Phase 2: post-save goal-linking sheet
+    var showPostSaveGoalLinking  by remember { mutableStateOf(false) }
+    var savedSessionId           by remember { mutableStateOf<String?>(null) }
+    var savedSessionDuration     by remember { mutableIntStateOf(0) }
     val showDurationPrompt          by viewModel.showDurationPrompt.collectAsStateWithLifecycle()
+    val studyCircleLiveSummary      by viewModel.studyCircleLiveSummary.collectAsStateWithLifecycle()
+    val myCircles                   by viewModel.myCircles.collectAsStateWithLifecycle()
+    val selectedStudyCircle         by viewModel.selectedStudyCircle.collectAsStateWithLifecycle()
     var showDurationPromptDialog    by remember { mutableStateOf(false) }
     var dontShowDurationPromptAgain by remember { mutableStateOf(false) }
     // True once the user has responded to the duration prompt in this session.
@@ -162,7 +167,6 @@ fun EkagraScreen(
     var tourState                by remember { mutableStateOf<com.safarparmar.app.ui.butterfly.ButterflyTourState?>(null) }
     val timerImmersiveActive = false
     val appUsageMode by viewModel.dataStore.appUsageMode.collectAsStateWithLifecycle(initialValue = null)
-    val isBeastMode = appUsageMode == AppUsageMode.BEAST
     // Overlay bubble permission
     val overlayGranted = remember { mutableStateOf(TimerBubbleOverlay.canDrawOverlays(context)) }
     var showOverlayPermPrompt by remember { mutableStateOf(false) }
@@ -214,9 +218,11 @@ fun EkagraScreen(
     var taskText            by remember(linkedGoalId, linkedGoalTitle, linkedTopicId, linkedTopicTitle) {
         mutableStateOf(linkedGoalTitle ?: linkedTopicTitle.orEmpty())
     }
-    var focusMinutes        by remember { mutableIntStateOf(25) }
-    var breakMinutes        by remember { mutableIntStateOf(5) }
-    var longBreakMinutes    by remember { mutableIntStateOf(15) }
+    val savedFocusMinutes   by viewModel.dataStore.focusDurationMinutes.collectAsStateWithLifecycle(initialValue = 25)
+    val savedBreakMinutes   by viewModel.dataStore.breakDurationMinutes.collectAsStateWithLifecycle(initialValue = 5)
+    var focusMinutes        by remember(savedFocusMinutes) { mutableIntStateOf(savedFocusMinutes) }
+    var breakMinutes        by remember(savedBreakMinutes) { mutableIntStateOf(savedBreakMinutes) }
+    var longBreakMinutes    by remember(savedBreakMinutes) { mutableIntStateOf(savedBreakMinutes) }
     val autoStartBreak      by viewModel.dataStore.autoStartBreak.collectAsStateWithLifecycle(initialValue = true)
     val timerAlertStyle     by viewModel.dataStore.timerAlertStyle.collectAsStateWithLifecycle(
         initialValue = com.safarparmar.app.data.local.TimerAlertStyle.SOUND,
@@ -301,10 +307,6 @@ fun EkagraScreen(
             goalTitle    = if (mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) associatedGoalTitle else null,
             mode         = mode.toApiMode(),
         )
-        if ((mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH) && shieldState.isEnabled && shieldState.blockedPackages.isNotEmpty()) {
-            timerService?.setFocusShieldConfig(shieldState.blockedPackages, shieldState.isStrictMode)
-            timerService?.enableFocusShieldForSession()
-        }
     }
 
     fun resetTimer() {
@@ -314,15 +316,7 @@ fun EkagraScreen(
         associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
     }
 
-    fun captureKavachSessionSummary() {
-        if (blockedHitCount <= 0) return
-        kavachSummaryMinutes  = ((totalSeconds - secondsLeft).coerceAtLeast(0) / 60).coerceAtLeast(1)
-        kavachSummaryAttempts = focusShieldViewModel.snapshotBlockedAttempts()
-        showKavachSessionSummary = true
-    }
-
     fun endCurrentSession() {
-        captureKavachSessionSummary()
         val service = timerService
         val serviceTopic = service?.plannerTopicMetadata()
         val endingTopicId = associatedTopicId ?: serviceTopic?.topicId
@@ -361,17 +355,11 @@ fun EkagraScreen(
                 secondsLeft  = loggedSecondsLeft,
                 mode         = timerMode.toApiMode(),
                 startedAt    = session.sessionStartedAt,
-                topicId      = endingTopicId,
-                planId       = endingPlanId,
-                topicTitle   = endingTopicTitle,
             )
             titleInput = session.sessionTitle ?: taskText
-            if (endingTopicId != null && endingPlanId != null) {
-                topicStudySheetState = TopicStudySheetState.ReadyToSave
-                showTopicStudySheet = true
-            } else {
-                showOrganizeSheet = true
-            }
+            // A deliberate End tap always lets the student choose how this
+            // session should be filed: normal Ekagra or one of today's goals.
+            showOrganizeSheet = true
             return
         }
         if (
@@ -440,7 +428,11 @@ fun EkagraScreen(
         ekagraLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             overlayGranted.value = TimerBubbleOverlay.canDrawOverlays(context)
             viewModel.refreshEkagra(); viewModel.loadTasks()
-            while (true) { delay(20_000L); viewModel.loadEkagraAnalytics() }
+            while (true) {
+                delay(20_000L)
+                viewModel.loadEkagraAnalytics()
+                viewModel.loadStudyCircleLiveSummary()
+            }
         }
     }
 
@@ -500,77 +492,35 @@ fun EkagraScreen(
                 // completed focus session via enqueueCompletedFocusSessionSave().
                 // Just discard the stale ViewModel draft and refresh analytics —
                 // do NOT call timerService?.reset() or the break will be killed.
-                val completedSession = activeSession
-                val completedTopic = timerService?.plannerTopicMetadata()
-                val completedTopicId = associatedTopicId ?: completedTopic?.topicId
-                val completedPlanId = associatedPlanId ?: completedTopic?.planId
-                val completedTopicTitle = associatedTopicTitle ?: completedTopic?.topicTitle
-                if (
-                    completedSession != null &&
-                    completedTopicId != null &&
-                    completedPlanId != null
-                ) {
-                    pendingEndedSession = PendingEndedEkagraSession(
-                        sessionId = completedSession.id,
-                        totalSeconds = completedSession.totalSeconds.coerceAtLeast(1),
-                        secondsLeft = 0,
-                        mode = completedMode.toApiMode(),
-                        startedAt = completedSession.sessionStartedAt,
-                        endedAt = Instant.now().toString(),
-                        topicId = completedTopicId,
-                        planId = completedPlanId,
-                        topicTitle = completedTopicTitle,
-                    )
-                    topicStudySheetState = TopicStudySheetState.SavedOnPhone
-                    showTopicStudySheet = true
-                }
                 activeSession?.id?.let { viewModel.discardSession(it) }
                 viewModel.loadEkagraAnalytics()
                 associatedGoalId = null
                 associatedGoalTitle = null
-                if (!showTopicStudySheet) {
-                    associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
-                }
+                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
                 return@LaunchedEffect
             }
             // No auto-break started — normal focus-end cleanup.
-            if (blockedHitCount > 0) {
-                kavachSummaryMinutes  = (totalSeconds / 60).coerceAtLeast(1)
-                kavachSummaryAttempts = focusShieldViewModel.snapshotBlockedAttempts()
-                showKavachSessionSummary = true
-            }
             val session = activeSession
             if (session != null) {
-                val completedTopic = timerService?.plannerTopicMetadata()
-                val completedTopicId = associatedTopicId ?: completedTopic?.topicId
-                val completedPlanId = associatedPlanId ?: completedTopic?.planId
-                val completedTopicTitle = associatedTopicTitle ?: completedTopic?.topicTitle
-                if (completedTopicId != null && completedPlanId != null) {
-                    pendingEndedSession = PendingEndedEkagraSession(
-                        sessionId = session.id,
-                        totalSeconds = totalSeconds,
-                        secondsLeft = 0,
-                        mode = completedMode.toApiMode(),
-                        startedAt = session.sessionStartedAt,
-                        endedAt = Instant.now().toString(),
-                        topicId = completedTopicId,
-                        planId = completedPlanId,
-                        topicTitle = completedTopicTitle,
-                    )
-                    // TimerService has already placed this completed session in
-                    // the durable phone queue. Ask about topic completion only
-                    // after the study time is safe.
-                    topicStudySheetState = TopicStudySheetState.SavedOnPhone
-                    showTopicStudySheet = true
+                // Natural completion is saved immediately as an unlinked Untitled
+                // session. The user can long-press it in History to link it later.
+                val endedAt = Instant.now().toString()
+                viewModel.saveSessionImmediately(
+                    sessionId = session.id,
+                    totalSeconds = totalSeconds,
+                    secondsLeft = 0,
+                    mode = completedMode.toApiMode(),
+                    startedAt = session.sessionStartedAt,
+                    endedAt = endedAt,
+                    taskTitle = null,
+                    isAutoComplete = true,
+                ) { _, _ ->
+                    viewModel.loadEkagraAnalytics()
                 }
                 viewModel.discardSession(session.id)
-                viewModel.loadEkagraAnalytics()
                 timerService?.reset()
-                associatedGoalId = null
-                associatedGoalTitle = null
-                if (!showTopicStudySheet) {
-                    associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
-                }
+                associatedGoalId = null; associatedGoalTitle = null
+                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
                 return@LaunchedEffect
             }
             viewModel.loadEkagraAnalytics()
@@ -589,7 +539,7 @@ fun EkagraScreen(
     }
     val mottoText = when {
         timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && timerRunning -> "BREAK TIME"
-        timerMode == TimerMode.FOCUS && timerRunning && focusShieldActive -> "STUDY TIME - KAVACH ENABLED"
+        timerMode == TimerMode.FOCUS && timerRunning && shieldState.isEnabled -> "STUDY TIME - KAVACH ENABLED"
         timerRunning -> "STAY FOCUSED, YOU'RE DOING GREAT!"
         else         -> "READY TO FOCUS?"
     }
@@ -614,16 +564,6 @@ fun EkagraScreen(
                 ?: IstDateUtils.getDateKey(goal.createdAt)
                 ?: IstDateUtils.getDateKey(goal.startedAt)
             day == todayKey && goal.status !in listOf("missed", "expired") && goal.lifecycleStatus != "missed"
-        }
-    }
-    val missedGoals = remember(linkableGoals, todayKey) {
-        linkableGoals.filter { goal ->
-            val day = IstDateUtils.getDateKey(goal.scheduledDate)
-                ?: IstDateUtils.getDateKey(goal.createdAt)
-                ?: IstDateUtils.getDateKey(goal.startedAt)
-            goal.status in listOf("missed", "expired") ||
-                goal.lifecycleStatus == "missed" ||
-                (day != null && day < todayKey)
         }
     }
 
@@ -748,18 +688,6 @@ fun EkagraScreen(
 
             // ── Kavach overlay screens ───────────────────────────────────────────
             when {
-                showKavachSessionSummary -> {
-                    // Full-screen state overlay (not a nav destination) — intercept
-                    // system Back so it dismisses the summary instead of falling
-                    // through to the tab BackHandler / NavController underneath.
-                    BackHandler { showKavachSessionSummary = false }
-                    com.safarparmar.app.ui.ekagra.focusshield.KavachSessionSummaryScreen(
-                        focusedMinutes  = kavachSummaryMinutes,
-                        blockedAttempts = kavachSummaryAttempts,
-                        onBack  = { showKavachSessionSummary = false },
-                        onDone  = { showKavachSessionSummary = false; focusShieldViewModel.clearSessionStats() },
-                    )
-                }
                 showKavachActiveSession -> {
                     BackHandler { showKavachActiveSession = false }
                     com.safarparmar.app.ui.ekagra.focusshield.KavachActiveSessionScreen(
@@ -1041,11 +969,10 @@ fun EkagraScreen(
                                             pending.totalSeconds, pending.secondsLeft, pending.mode, pending.startedAt,
                                             shouldMarkComplete, pending.endedAt)
                                     } else {
-                                        viewModel.updateExistingSession(
-                                            sessionId = pending.sessionId,
-                                            goalId = goal.id,
-                                            goalTitle = goal.title,
-                                            markGoalComplete = shouldMarkComplete,
+                                        viewModel.linkSavedSessionToGoal(
+                                            pending.sessionId,
+                                            goal,
+                                            shouldMarkComplete,
                                         )
                                     }
                                     clearAssociations()
@@ -1057,9 +984,10 @@ fun EkagraScreen(
                             sheetState    = organizeSheetState,
                             pending       = pending,
                             todayGoals    = todayGoals,
-                            missedGoals   = missedGoals,
                             titleInput    = titleInput,
                             onTitleChange = { titleInput = it },
+                            selectedTheme = selectedTheme,
+                            isDarkTheme   = isDarkTheme,
                             // Swiping the sheet away files the session under its safest
                             // default rather than losing it. The explicit choices below go
                             // through a confirmation because they are final.
@@ -1101,6 +1029,7 @@ fun EkagraScreen(
                                 label = confirmation.label,
                                 completesTarget = confirmation.completesTarget,
                                 keepsGoalOpen = confirmation.keepsGoalOpen,
+                                accentColor = selectedTheme?.accent ?: themeColorScheme.primary,
                                 onConfirm = {
                                     pendingSaveConfirmation = null
                                     confirmation.commit()
@@ -1109,6 +1038,74 @@ fun EkagraScreen(
                             )
                         }
                     }
+
+                    // ── New two-phase flow: Phase 1 — Session name dialog ────
+                    if (showSessionNameDialog) {
+                        val pending = pendingEndedSession
+                        if (pending != null) {
+                            val actualSecs = if (pending.mode.equals("stopwatch", ignoreCase = true)) {
+                                pending.secondsLeft
+                            } else {
+                                pending.totalSeconds - pending.secondsLeft
+                            }.coerceAtLeast(0)
+                            SessionNameDialog(
+                                initialTitle = titleInput,
+                                focusedTimeLabel = formatTopicStudyTime(actualSecs),
+                                onSave = { typedTitle ->
+                                    showSessionNameDialog = false
+                                    viewModel.saveSessionImmediately(
+                                        sessionId = pending.sessionId,
+                                        totalSeconds = pending.totalSeconds,
+                                        secondsLeft = pending.secondsLeft,
+                                        mode = pending.mode,
+                                        startedAt = pending.startedAt,
+                                        endedAt = pending.endedAt,
+                                        taskTitle = typedTitle,
+                                        isAutoComplete = false,
+                                    ) { _, _ ->
+                                        viewModel.loadEkagraAnalytics()
+                                    }
+                                    timerService?.reset()
+                                    pendingEndedSession = null
+                                    associatedGoalId = null; associatedGoalTitle = null
+                                    associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+                                },
+                                onDiscard = {
+                                    showSessionNameDialog = false
+                                    if (pending.sessionId.isNotBlank()) {
+                                        viewModel.discardSession(pending.sessionId)
+                                    }
+                                    timerService?.reset()
+                                    pendingEndedSession = null
+                                    associatedGoalId = null; associatedGoalTitle = null
+                                    associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+                                },
+                            )
+                        }
+                    }
+
+                    // ── New two-phase flow: Phase 2 — Post-save goal linking ──
+                    if (showPostSaveGoalLinking && savedSessionId != null) {
+                        PostSaveGoalLinkingSheet(
+                            savedSessionId = savedSessionId!!,
+                            savedDurationSeconds = savedSessionDuration,
+                            todayGoals = todayGoals,
+                            selectedTheme = selectedTheme,
+                            onDismiss = {
+                                showPostSaveGoalLinking = false
+                                savedSessionId = null
+                                viewModel.loadEkagraAnalytics()
+                            },
+                            onLinkGoal = { goal, markComplete ->
+                                val sessionId = savedSessionId!!
+                                viewModel.linkSavedSessionToGoal(sessionId, goal, markComplete)
+                                showPostSaveGoalLinking = false
+                                savedSessionId = null
+                                viewModel.loadEkagraAnalytics()
+                            },
+                        )
+                    }
+
                     if (showDurationPromptDialog) {
                         val dialogInk = rememberEkagraInk(onCanvas = false)
                         androidx.compose.ui.window.Dialog(
@@ -1307,30 +1304,6 @@ fun EkagraScreen(
                                     )
                                 }
                                 EkagraHairline(headerInk.hairline)
-                                if (isBeastMode && timerRunning) {
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text("Beast Mode Active (Locked)") },
-                                        enabled = false,
-                                        onClick = {},
-                                        leadingIcon = {
-                                            Icon(androidx.compose.material.icons.Icons.Default.FlashOn, contentDescription = null)
-                                        }
-                                    )
-                                } else {
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(if (isBeastMode) "Disable Beast Mode" else "Enable Beast Mode") },
-                                        onClick = {
-                                            focusShieldViewModel.setKavachProfile(
-                                                if (isBeastMode) AppUsageMode.FOCUSED else AppUsageMode.BEAST
-                                            )
-                                            showOverflowMenu = false
-                                        },
-                                        leadingIcon = {
-                                            Icon(androidx.compose.material.icons.Icons.Default.FlashOn, contentDescription = null)
-                                        }
-                                    )
-                                }
-                                EkagraHairline(headerInk.hairline)
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text("Apps to Block") },
                                     onClick = {
@@ -1491,7 +1464,7 @@ fun EkagraScreen(
                                         progress           = progress,
                                         hasProgress        = if (timerMode == TimerMode.STOPWATCH) secondsLeft > 0 else secondsLeft < totalSeconds,
                                         mottoText          = mottoText,
-                                        kavachActive       = focusShieldActive && timerRunning && timerMode == TimerMode.FOCUS,
+                                        kavachActive       = shieldState.isEnabled && timerRunning && timerMode == TimerMode.FOCUS,
                                         kavachBlockedCount = blockedHitCount,
                                         controlsVisible    = true,
                                         onOpenKavachSession = { showKavachActiveSession = true },
@@ -1565,14 +1538,16 @@ fun EkagraScreen(
                                         isDarkTheme   = isDarkTheme,
                                         themeAccent   = themeColorScheme.primary,
                                         onToggleKavach = focusShieldViewModel::setEnabled,
-                                        onToggleStrictMode = focusShieldViewModel::setStrictMode,
                                         onOpenAppPicker = { onNavigate(Routes.APP_PICKER) },
                                         onNavigate = onNavigate,
-                                        isBeastMode = isBeastMode,
                                         selectedTheme = selectedTheme,
                                         onOpenAnalytics = {
                                             onNavigate(Routes.nishthaAnalytics("kavach"))
                                         },
+                                        studyCircleLiveCount = studyCircleLiveSummary?.totalFocusing ?: 0,
+                                        myCircles = myCircles,
+                                        selectedStudyCircle = selectedStudyCircle,
+                                        onSelectStudyCircle = viewModel::selectStudyCircle,
                                     )
 
                                     EkagraNavTab.DURATION -> DurationTab(
@@ -1580,8 +1555,21 @@ fun EkagraScreen(
                                                                           bottom = innerPadding.calculateBottomPadding()),
                                         focusMinutes  = focusMinutes,
                                         breakMinutes  = breakMinutes,
-                                        onFocusChange = { focusMinutes = it },
-                                        onBreakChange = { breakMinutes = it; longBreakMinutes = it },
+                                        onFocusChange = {
+                                            focusMinutes = it
+                                            viewModel.setFocusDurationMinutes(it)
+                                            if (timerService?.isActive() == false && (timerMode == TimerMode.FOCUS || timerMode == TimerMode.POMODORO)) {
+                                                timerService.setDuration(TimerMode.FOCUS, it * 60, breakMinutes * 60)
+                                            }
+                                        },
+                                        onBreakChange = {
+                                            breakMinutes = it
+                                            longBreakMinutes = it
+                                            viewModel.setBreakDurationMinutes(it)
+                                            if (timerService?.isActive() == false && timerMode == TimerMode.BREAK) {
+                                                timerService.setDuration(TimerMode.BREAK, it * 60, it * 60)
+                                            }
+                                        },
                                         isMuted = isMuted,
                                         onMuteChange = { timerService?.setMute(it) },
                                         autoStartBreak = autoStartBreak,
@@ -1589,6 +1577,8 @@ fun EkagraScreen(
                                         timerAlertStyle = timerAlertStyle,
                                         onTimerAlertStyleChange = viewModel::setTimerAlertStyle,
                                         onStartPomodoro = { loops ->
+                                            viewModel.setFocusDurationMinutes(focusMinutes)
+                                            viewModel.setBreakDurationMinutes(breakMinutes)
                                             timerService?.startPomodoroSession(loops, focusMinutes, breakMinutes)
                                             timerService?.prepareAutoSaveSession(
                                                 taskTitle = associatedGoalTitle ?: associatedTopicTitle ?: taskText.takeIf { it.isNotBlank() },
@@ -1611,6 +1601,12 @@ fun EkagraScreen(
                                         },
                                         onSave = {
                                             durationPromptActedOn = true
+                                            viewModel.setFocusDurationMinutes(focusMinutes)
+                                            viewModel.setBreakDurationMinutes(breakMinutes)
+                                            if (timerService?.isActive() == false) {
+                                                val currentMins = if (timerMode == TimerMode.BREAK) breakMinutes else focusMinutes
+                                                timerService?.setDuration(timerMode, currentMins * 60, breakMinutes * 60)
+                                            }
                                             tabBackStack.select(EkagraNavTab.TIMER)
                                         },
                                     )
@@ -1625,6 +1621,7 @@ fun EkagraScreen(
                                         modifier  = Modifier.padding(top = innerPadding.calculateTopPadding(),
                                                                       bottom = innerPadding.calculateBottomPadding()),
                                         analytics = ekagraAnalytics,
+                                        selectedTheme = selectedTheme,
                                     )
                                     
                                     EkagraNavTab.MUSIC -> {}

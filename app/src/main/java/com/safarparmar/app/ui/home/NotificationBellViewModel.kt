@@ -56,6 +56,7 @@ class NotificationBellViewModel @Inject constructor(
                             type = announcementTypeFor(
                                 title = dto.title.orEmpty(),
                                 body = dto.body.orEmpty(),
+                                rawType = dto.type,
                             ),
                         )
                     }
@@ -121,12 +122,24 @@ class NotificationBellViewModel @Inject constructor(
         }
     }
 
-    private fun announcementTypeFor(title: String, body: String): AnnouncementType {
+    private fun announcementTypeFor(title: String, body: String, rawType: String? = null): AnnouncementType {
+        val typeStr = rawType.orEmpty().lowercase()
+        if (typeStr.isNotBlank()) {
+            when {
+                listOf("update", "app_update", "release", "version", "patch", "build", "upgrade", "changelog")
+                    .any(typeStr::contains) -> return AnnouncementType.APP_UPDATE
+                listOf("maintenance", "downtime", "server", "system_maintenance")
+                    .any(typeStr::contains) -> return AnnouncementType.MAINTENANCE
+                listOf("announcement", "general", "notice", "info")
+                    .any(typeStr::contains) -> return AnnouncementType.GENERAL
+            }
+        }
+
         val text = "$title $body".lowercase()
         return when {
-            listOf("new version", "app update", "update available", "what's new")
+            listOf("new version", "app update", "update available", "what's new", "update", "v4.", "v1.", "v2.", "v3.", "release", "patch", "feature", "bug fix", "build", "upgrade", "changelog", "syllabus update", "plan update", "new feature")
                 .any(text::contains) -> AnnouncementType.APP_UPDATE
-            listOf("maintenance", "downtime", "service interruption")
+            listOf("maintenance", "downtime", "service interruption", "scheduled maintenance", "server downtime")
                 .any(text::contains) -> AnnouncementType.MAINTENANCE
             else -> AnnouncementType.GENERAL
         }

@@ -41,6 +41,11 @@ interface EkagraRepository {
         planId: String? = null,
         topicTitle: String? = null,
     ): Resource<Unit>
+    suspend fun linkSessionToGoal(
+        sessionId: String,
+        goalId: String,
+        markGoalComplete: Boolean,
+    ): Resource<Unit>
     suspend fun getLinkedSessions(): Resource<List<com.safarparmar.app.domain.model.GoalLinkedSession>>
     suspend fun getTopicLinkedSessions(planId: String? = null): Resource<List<com.safarparmar.app.domain.model.TopicLinkedSession>>
 }

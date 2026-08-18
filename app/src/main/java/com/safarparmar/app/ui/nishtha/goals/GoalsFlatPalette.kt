@@ -20,11 +20,11 @@ object GoalsFlatColors {
     private val isDark: Boolean
         @Composable get() = !MaterialTheme.colorScheme.background.isLightBackground()
 
-    /** Primary Goals accent — emerald */
-    val Primary @Composable get() = if (isDark) Color(0xFF34D399) else Color(0xFF059669)
+    /** Primary Goals accent — dark forest green */
+    val Primary @Composable get() = if (isDark) Color(0xFF10B981) else Color(0xFF045435)
 
-    /** Done / completed */
-    val Done @Composable get() = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
+    /** Done / completed — dark forest green */
+    val Done @Composable get() = if (isDark) Color(0xFF34D399) else Color(0xFF045435)
 
     /** Today goal kind */
     val Today @Composable get() = Primary
@@ -33,7 +33,7 @@ object GoalsFlatColors {
     val Repeat @Composable get() = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
 
     /** Scheduled goal kind — violet */
-    val Scheduled @Composable get() = if (isDark) Color(0xFFC084FC) else Color(0xFF6D28D9)
+    val Scheduled @Composable get() = if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
 
     /** Insights / progress pulse — indigo */
     val Progress @Composable get() = if (isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A)

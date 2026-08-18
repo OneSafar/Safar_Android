@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -59,55 +60,47 @@ import com.safarparmar.app.ui.components.SafarPullRefreshBox
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.util.IstDateUtils
+import com.safarparmar.app.util.assignedDateKey
+import com.safarparmar.app.util.isGoalCompleted
+import com.safarparmar.app.util.isMissedGoal
+import com.safarparmar.app.util.isTodayGoal
+import com.safarparmar.app.util.isUpcomingGoal
 
 @Composable
 internal fun GoalsTab(
     filterMode: String = "today",
     goals: List<Goal>,
-    rolloverPrompts: List<Goal>,
     ekagraAnalytics: com.safarparmar.app.domain.model.EkagraAnalyticsStats,
     isLoading: Boolean,
     goalError: String? = null,
     onRefresh: () -> Unit = {},
     onAddClick: () -> Unit,
     onComplete: (Goal) -> Unit,
+    onReopen: (Goal) -> Unit,
     onEdit: (Goal) -> Unit,
     onDelete: (Goal) -> Unit,
-    onRolloverRetry: (Goal) -> Unit,
-    onRolloverArchive: (Goal) -> Unit,
 ) {
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = goals.filter { it.source != "ekagra" }
-    val pending = goals
-        .filter {
-            !it.completed && it.source != "ekagra" &&
-                it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
-                !(it.lifecycleStatus == "missed" && it.nextInstanceCreated) &&
-                !it.isDormant(todayKey)
-        }
+    val pending = standardGoals.filter { it.isTodayGoal(todayKey) }
         .sortedBy { it.startedAt ?: it.createdAt ?: it.scheduledDate ?: "" }
-    // Mirror the Pending exclusions. This read from the raw `goals` list, so the
-    // Upcoming tab was the one place that still showed Ekagra-internal tasks
-    // (source == "ekagra") and abandoned / rolled-over goals.
-    val scheduled = standardGoals
-        .filter {
-            !it.completed && it.isDormant(todayKey) &&
-                it.lifecycleStatus !in listOf("abandoned", "rolled_over") &&
-                !(it.lifecycleStatus == "missed" && it.nextInstanceCreated)
-        }
-        .sortedBy { it.scheduledDate ?: "" }
-    val completed = standardGoals.filter { it.completed }.sortedByDescending { it.completedAt ?: it.createdAt ?: "" }
+    val scheduled = standardGoals.filter { it.isUpcomingGoal(todayKey) }
+        .sortedBy { it.assignedDateKey() ?: "" }
+    val missed = standardGoals.filter { it.isMissedGoal(todayKey) }
+        .sortedByDescending { it.assignedDateKey() ?: "" }
+    val completed = standardGoals.filter { it.isGoalCompleted() }
+        .sortedByDescending { it.completedAt ?: it.createdAt ?: "" }
     val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
-    val todayManualGoals = standardGoals.filter { !it.completedViaFocus && it.anchorDateKey() == todayKey }
+    val todayGoals = standardGoals.filter { it.anchorDateKey() == todayKey }
     // Count every completion, however it happened — a goal finished through a
     // linked Ekagra session is still a goal the student completed. Only the
     // MINUTES below stay manual-only, because focus minutes are summed
     // separately from ekagraAnalytics and would otherwise be double counted.
     val allCompletedGoals = standardGoals.filter { it.isCompletedForStats() }
-    val doneToday = allCompletedGoals.count { it.completedDateKey() == todayKey }
+    val doneToday = allCompletedGoals.count { it.anchorDateKey() == todayKey }
     val completionRate = if (standardGoals.isNotEmpty()) (allCompletedGoals.size * 100 / standardGoals.size) else 0
-    val dailyProgress = if (todayManualGoals.isNotEmpty()) {
-        (todayManualGoals.count { it.isCompletedForStats() } * 100 / todayManualGoals.size)
+    val dailyProgress = if (todayGoals.isNotEmpty()) {
+        (todayGoals.count { it.isCompletedForStats() } * 100 / todayGoals.size)
     } else {
         0
     }
@@ -125,12 +118,16 @@ internal fun GoalsTab(
         return
     }
     if (isLoading && goals.isEmpty()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().background(GoalsFlatColors.Bg),
-            contentPadding = PaddingValues(20.dp),
+        // GoalsScreen owns the page's vertical scroll. A LazyColumn here would be
+        // measured with an infinite max height during the initial loading state.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(GoalsFlatColors.Bg)
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(5) { GoalRowSkeleton() }
+            repeat(5) { GoalRowSkeleton() }
         }
         return
     }
@@ -150,52 +147,78 @@ internal fun GoalsTab(
         onRefresh = onRefresh,
         modifier = Modifier.fillMaxSize().background(GoalsFlatColors.Bg),
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
+        Column(
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            if (filterMode == "today") {
-                if (pending.isNotEmpty()) {
-                    item { FlatSectionEyebrow("Pending · ${pending.size} tasks") }
-                    itemsIndexed(pending, key = { _, g -> g.id }) { index, goal ->
-                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
-                        if (index < pending.lastIndex) PlanHairline(alpha = 0.5f)
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth()
+                    .heightIn(max = 336.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
+                    .background(GoalsFlatColors.Primary.copy(alpha = 0.03f)),
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    if (filterMode == "today") {
+                        if (pending.isNotEmpty()) {
+                            item { FlatSectionEyebrow("Pending · ${pending.size} tasks") }
+                            itemsIndexed(pending, key = { _, g -> g.id }) { index, goal ->
+                                GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
+                                if (index < pending.lastIndex) PlanHairline(alpha = 0.5f)
+                            }
+                        } else {
+                            item { EmptyGoalsCard("All caught up! Time to plan more?", "Anything scheduled for later stays in the upcoming section.") }
+                        }
+                        val completedToday = completed.filter { it.anchorDateKey() == todayKey }
+                        if (completedToday.isNotEmpty()) {
+                            item {
+                                Spacer(Modifier.height(18.dp))
+                                PlanHairline()
+                                Spacer(Modifier.height(14.dp))
+                                FlatSectionEyebrow("Completed · ${completedToday.size} tasks")
+                            }
+                            itemsIndexed(completedToday, key = { _, g -> g.id }) { index, goal ->
+                                GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
+                                if (index < completedToday.lastIndex) PlanHairline(alpha = 0.5f)
+                            }
+                        }
+                    } else if (filterMode == "upcoming") {
+                        if (scheduled.isNotEmpty()) {
+                            item { FlatSectionEyebrow("Scheduled · ${scheduled.size} tasks") }
+                            itemsIndexed(scheduled, key = { _, g -> "scheduled-${g.id}" }) { index, goal ->
+                                GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
+                                if (index < scheduled.lastIndex) PlanHairline(alpha = 0.5f)
+                            }
+                        } else {
+                            item { EmptyGoalsCard("No upcoming tasks", "You have no tasks scheduled for later dates.") }
+                        }
+                    } else if (filterMode == "missed") {
+                        if (missed.isNotEmpty()) {
+                            item { FlatSectionEyebrow("Missed · ${missed.size} tasks") }
+                            itemsIndexed(missed, key = { _, g -> "missed-${g.id}" }) { index, goal ->
+                                GoalItem(goal, onComplete = { onComplete(goal) }, onReopen = { onReopen(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
+                                if (index < missed.lastIndex) PlanHairline(alpha = 0.5f)
+                            }
+                        } else {
+                            item { EmptyGoalsCard("No missed goals", "Goals that pass their assigned date will appear here.") }
+                        }
                     }
-                } else {
-                    item { EmptyGoalsCard("All caught up! Time to plan more?", "Anything scheduled for later stays in the upcoming section.") }
-                }
-                val completedToday = completed.filter { it.completedDateKey() == todayKey }
-                if (completedToday.isNotEmpty()) {
-                    item {
-                        Spacer(Modifier.height(18.dp))
-                        PlanHairline()
-                        Spacer(Modifier.height(14.dp))
-                        FlatSectionEyebrow("Completed · ${completedToday.size} tasks")
-                    }
-                    itemsIndexed(completedToday, key = { _, g -> g.id }) { index, goal ->
-                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
-                        if (index < completedToday.lastIndex) PlanHairline(alpha = 0.5f)
-                    }
-                }
-            } else if (filterMode == "upcoming") {
-                if (scheduled.isNotEmpty()) {
-                    item { FlatSectionEyebrow("Scheduled · ${scheduled.size} tasks") }
-                    itemsIndexed(scheduled, key = { _, g -> "scheduled-${g.id}" }) { index, goal ->
-                        GoalItem(goal, onComplete = { onComplete(goal) }, onEdit = { onEdit(goal) }, onDelete = { onDelete(goal) })
-                        if (index < scheduled.lastIndex) PlanHairline(alpha = 0.5f)
-                    }
-                } else {
-                    item { EmptyGoalsCard("No upcoming tasks", "You have no tasks scheduled for later dates.") }
                 }
             }
 
-            item {
-                Spacer(Modifier.height(22.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+            ) {
+                Spacer(Modifier.height(16.dp))
                 PlanHairline()
-                Spacer(Modifier.height(18.dp))
-            }
-            item {
+                Spacer(Modifier.height(14.dp))
                 LivePulseCard(
                     completedToday = doneToday,
                     openManualGoals = pending.size,
@@ -207,13 +230,11 @@ internal fun GoalsTab(
                     totalManual = manualTotalMinutes,
                     totalEkagra = focusTotalMinutes,
                 )
-            }
-            item {
                 Spacer(Modifier.height(18.dp))
                 PlanHairline(alpha = 0.6f)
                 Spacer(Modifier.height(16.dp))
                 ProTipCard()
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(32.dp))
             }
         }
     }
@@ -366,6 +387,7 @@ internal fun ProTipCard() {
 internal fun GoalItem(
     goal: Goal,
     onComplete: () -> Unit,
+    onReopen: (() -> Unit)? = null,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -432,6 +454,9 @@ internal fun GoalItem(
                     FlatBadge("✓ Done$studiedText", GoalsFlatColors.Done)
                 } else {
                     FlatBadge(goal.goalKindLabel(), badgeColor)
+                    if (goal.isMissedGoal()) {
+                        FlatBadge("Missed", GoalsFlatColors.Danger)
+                    }
                     if (goal.unitType != "binary") {
                         FlatBadge(goal.unitTypeLabel(), GoalsFlatColors.Muted)
                     }
@@ -445,9 +470,9 @@ internal fun GoalItem(
                     FlatBadge("Ekagra mode task", GoalsFlatColors.Ekagra)
                 }
             }
-            goal.scheduledDate?.let {
+            goal.assignedDateKey()?.let {
                 Text(
-                    IstDateUtils.labelFor(it),
+                    if (goal.isMissedGoal()) "Assigned ${IstDateUtils.labelFor(it)}" else IstDateUtils.labelFor(it),
                     fontSize = 11.sp,
                     color = GoalsFlatColors.Muted,
                     modifier = Modifier.padding(top = 4.dp),
@@ -492,6 +517,12 @@ internal fun GoalItem(
                         text = { Text("Edit") },
                         leadingIcon = { Icon(Icons.Default.Edit, null) },
                         onClick = { showMenu = false; onEdit() },
+                    )
+                } else if (onReopen != null) {
+                    DropdownMenuItem(
+                        text = { Text("Reopen") },
+                        leadingIcon = { Icon(Icons.Default.Restore, null, tint = GoalsFlatColors.Primary) },
+                        onClick = { showMenu = false; onReopen() },
                     )
                 }
                 // "Repeat Task" lived here. Removed: it was a third way to say

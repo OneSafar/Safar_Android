@@ -34,7 +34,11 @@ import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -59,6 +63,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -193,7 +198,8 @@ private fun AnnouncementsSheetContent(
     initialFilter: UpdatesFilter = UpdatesFilter.ALL,
 ) {
     val ink = rememberUpdatesInk()
-    val accent = MaterialTheme.colorScheme.primary
+    val isDarkTheme = MaterialTheme.colorScheme.surface.let { (it.red * 0.299f + it.green * 0.587f + it.blue * 0.114f) < 0.5f }
+    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
     var selectedFilter by remember { mutableStateOf(initialFilter) }
 
     val playingAudioItemId = remember { mutableStateOf<String?>(null) }
@@ -248,57 +254,115 @@ private fun AnnouncementsSheetContent(
         items.filter { it.matchesFilter(selectedFilter) }
     }
 
-    Column(modifier = modifier) {
+    val unreadCount = remember(items) { items.count(NotificationFeedItem::isUnread) }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(if (isDarkTheme) Color(0xFF18181B) else Color(0xFFF8FAFC)),
+    ) {
+        // Modern Flat Top Header Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 10.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "UPDATES",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 3.sp,
-                    color = ink.secondaryText,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "✕ hides an item. Mark read keeps it.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = ink.mutedText,
-                )
-            }
-            Text(
-                text = "Mark all as read",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = if (items.any(NotificationFeedItem::isUnread)) {
-                    accent
-                } else {
-                    ink.mutedText
-                },
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .clickable(
-                        enabled = items.any(NotificationFeedItem::isUnread),
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onMarkAllAsRead,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Notifications,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(20.dp),
                     )
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-            )
+                }
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = "Notifications",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ink.primaryText,
+                        )
+                        if (unreadCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(accent)
+                                    .padding(horizontal = 7.dp, vertical = 2.dp),
+                            ) {
+                                Text(
+                                    text = "$unreadCount new",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White,
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = "Stay updated with announcements and app releases",
+                        fontSize = 12.sp,
+                        color = ink.mutedText,
+                    )
+                }
+            }
+
+            if (unreadCount > 0) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(accent.copy(alpha = 0.1f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onMarkAllAsRead,
+                        )
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.DoneAll,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "Read all",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = accent,
+                    )
+                }
+            }
         }
 
         UpdatesHairline(ink.hairline)
 
+        // Modern Flat Filter Chips with live item counts
         UpdatesFilterChips(
+            items = items,
             selected = selectedFilter,
             onSelect = { selectedFilter = it },
             ink = ink,
             accent = accent,
+            isDarkTheme = isDarkTheme,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 12.dp),
@@ -310,12 +374,14 @@ private fun AnnouncementsSheetContent(
             isLoading -> LoadingState(ink = ink, modifier = Modifier.weight(1f))
             items.isEmpty() -> EmptyAnnouncementsState(
                 message = "You're all caught up!",
+                subtext = "No notifications right now.",
                 ink = ink,
                 accent = accent,
                 modifier = Modifier.weight(1f),
             )
             filteredItems.isEmpty() -> EmptyAnnouncementsState(
                 message = emptyMessageFor(selectedFilter),
+                subtext = emptySubtextFor(selectedFilter),
                 ink = ink,
                 accent = accent,
                 modifier = Modifier.weight(1f),
@@ -324,28 +390,24 @@ private fun AnnouncementsSheetContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(bottom = 32.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 itemsIndexed(
                     items = filteredItems,
                     key = { _, item -> item.id },
-                ) { index, item ->
+                ) { _, item ->
                     AnnouncementRow(
                         item = item,
                         ink = ink,
                         accent = accent,
+                        isDarkTheme = isDarkTheme,
                         isAudioPlaying = playingAudioItemId.value == item.id,
                         onMarkAsRead = { onMarkAsRead(item.id) },
                         onDismiss = { onDismissAnnouncement(item.id) },
                         onAction = { onAnnouncementAction(item) },
                         onToggleAudio = { url -> toggleAudio(item.id, url) },
                     )
-                    if (index < filteredItems.lastIndex) {
-                        UpdatesHairline(
-                            color = ink.hairline,
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                        )
-                    }
                 }
             }
         }
@@ -355,8 +417,15 @@ private fun AnnouncementsSheetContent(
 private fun emptyMessageFor(filter: UpdatesFilter): String =
     when (filter) {
         UpdatesFilter.ALL -> "You're all caught up!"
-        UpdatesFilter.ANNOUNCEMENTS -> "No announcements yet"
-        UpdatesFilter.UPDATES -> "No updates yet"
+        UpdatesFilter.ANNOUNCEMENTS -> "No announcements right now"
+        UpdatesFilter.UPDATES -> "No app updates right now"
+    }
+
+private fun emptySubtextFor(filter: UpdatesFilter): String =
+    when (filter) {
+        UpdatesFilter.ALL -> "Check back later for announcements and updates."
+        UpdatesFilter.ANNOUNCEMENTS -> "General announcements from Parmar Sir and the Safar team will appear here."
+        UpdatesFilter.UPDATES -> "New version releases and feature patch updates will appear here."
     }
 
 @Composable
@@ -374,12 +443,22 @@ private fun UpdatesHairline(
 
 @Composable
 private fun UpdatesFilterChips(
+    items: List<NotificationFeedItem>,
     selected: UpdatesFilter,
     onSelect: (UpdatesFilter) -> Unit,
     ink: UpdatesInk,
     accent: Color,
+    isDarkTheme: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val allCount = items.size
+    val announcementCount = remember(items) {
+        items.count { it.type == AnnouncementType.GENERAL || it.type == AnnouncementType.MAINTENANCE }
+    }
+    val updateCount = remember(items) {
+        items.count { it.type == AnnouncementType.APP_UPDATE }
+    }
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -387,26 +466,33 @@ private fun UpdatesFilterChips(
         UpdatesFilter.entries.forEach { option ->
             val isSelected = option == selected
             val label = when (option) {
-                UpdatesFilter.ALL -> "All"
-                UpdatesFilter.ANNOUNCEMENTS -> "Announcements"
-                UpdatesFilter.UPDATES -> "Updates"
+                UpdatesFilter.ALL -> "All ($allCount)"
+                UpdatesFilter.ANNOUNCEMENTS -> "Announcements ($announcementCount)"
+                UpdatesFilter.UPDATES -> "Updates ($updateCount)"
             }
-            val borderColor = if (isSelected) accent else ink.hairline
-            val textColor = if (isSelected) accent else ink.mutedText
+            val chipBg = if (isSelected) {
+                if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
+            } else {
+                if (isDarkTheme) Color(0xFF27272A) else Color(0xFFF1F5F9)
+            }
+            val textColor = if (isSelected) Color.White else (if (isDarkTheme) Color(0xFFA1A1AA) else Color(0xFF475569))
+            val borderColor = if (isSelected) Color.Transparent else (if (isDarkTheme) Color(0xFF3F3F46) else Color(0xFFE2E8F0))
+
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .border(1.dp, borderColor, RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(50))
+                    .background(chipBg)
+                    .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(50))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) { onSelect(option) }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
             ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     color = textColor,
                 )
             }
@@ -419,6 +505,7 @@ private fun AnnouncementRow(
     item: NotificationFeedItem,
     ink: UpdatesInk,
     accent: Color,
+    isDarkTheme: Boolean,
     isAudioPlaying: Boolean,
     onMarkAsRead: () -> Unit,
     onDismiss: () -> Unit,
@@ -427,10 +514,17 @@ private fun AnnouncementRow(
 ) {
     val context = LocalContext.current
     val isUpdate = item.type == AnnouncementType.APP_UPDATE
-    val titleColor = if (item.isUnread) ink.primaryText else ink.mutedText
-    val bodyColor = if (item.isUnread) ink.secondaryText else ink.mutedText
+    val titleColor = if (item.isUnread) ink.primaryText else ink.secondaryText
+    val bodyColor = if (item.isUnread) ink.primaryText.copy(alpha = 0.85f) else ink.mutedText
     val links = remember(item.body, item.deepLink) {
         parseAnnouncementLinks(item.body, item.deepLink)
+    }
+
+    val cardBg = if (isDarkTheme) Color(0xFF1F1F23) else Color(0xFFFFFFFF)
+    val cardBorder = if (item.isUnread) {
+        accent.copy(alpha = 0.45f)
+    } else {
+        if (isDarkTheme) Color(0xFF2D2F36) else Color(0xFFE2E8F0)
     }
 
     fun openUrl(url: String) {
@@ -447,34 +541,38 @@ private fun AnnouncementRow(
         }
     }
 
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = ::onRowClick,
-            )
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = BorderStroke(1.dp, cardBorder),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AnnouncementTypeIcon(
-                type = item.type,
-                ink = ink,
-                accent = accent,
-                muted = !item.isUnread,
-            )
-            Spacer(Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(top = 2.dp),
+            // Category Badge & Actions Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AnnouncementTypePill(
+                        type = item.type,
+                        isDarkTheme = isDarkTheme,
+                    )
                     if (item.isUnread) {
                         Box(
                             modifier = Modifier
@@ -482,98 +580,153 @@ private fun AnnouncementRow(
                                 .clip(CircleShape)
                                 .background(accent),
                         )
-                        Spacer(Modifier.width(8.dp))
                     }
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = titleColor,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
                 }
 
-                if (links.displayBody.isNotBlank()) {
-                    Spacer(Modifier.height(5.dp))
-                    Text(
-                        text = links.displayBody,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = bodyColor,
-                    )
-                }
-
-                if (isUpdate) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = "Open Play Store",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = accent.copy(alpha = if (item.isUnread) 1f else 0.7f),
-                    )
-                }
-
-                links.youtubeVideoId?.let { videoId ->
-                    Spacer(Modifier.height(10.dp))
-                    YoutubeThumb(
-                        videoId = videoId,
-                        ink = ink,
-                        onClick = {
-                            onMarkAsRead()
-                            openUrl(links.youtubeUrl ?: YoutubeUrls.watchUrl(videoId))
-                        },
-                    )
-                }
-
-                if (links.youtubeVideoId == null && !links.webUrl.isNullOrBlank()) {
-                    Spacer(Modifier.height(8.dp))
-                    LinkChip(
-                        url = links.webUrl,
-                        ink = ink,
-                        accent = accent,
-                        onClick = {
-                            onMarkAsRead()
-                            openUrl(links.webUrl)
-                        },
-                    )
-                }
-
-                item.audioUrl?.takeIf { it.isNotBlank() }?.let { audioUrl ->
-                    Spacer(Modifier.height(10.dp))
-                    AudioPlayRow(
-                        isPlaying = isAudioPlaying,
-                        ink = ink,
-                        accent = accent,
-                        onToggle = {
-                            onMarkAsRead()
-                            onToggleAudio(audioUrl)
-                        },
-                    )
-                }
-
-                if (item.createdAt.isNotBlank()) {
-                    Spacer(Modifier.height(7.dp))
-                    Text(
-                        text = formatPostDate(item.createdAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ink.mutedText,
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = "Hide ${item.title}",
+                        tint = ink.mutedText,
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
 
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = "Hide ${item.title}",
-                    tint = ink.mutedText,
-                    modifier = Modifier.size(18.dp),
+            // Notification Title
+            Text(
+                text = item.title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = titleColor,
+                lineHeight = 20.sp,
+            )
+
+            // Notification Body Content
+            if (links.displayBody.isNotBlank()) {
+                Text(
+                    text = links.displayBody,
+                    fontSize = 13.5.sp,
+                    color = bodyColor,
+                    lineHeight = 19.sp,
+                )
+            }
+
+            // Play Store CTA Button for App Updates
+            if (isUpdate) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(accent.copy(alpha = 0.12f))
+                        .clickable { onAction() }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        text = "Open Play Store ↗",
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = accent,
+                    )
+                }
+            }
+
+            // Youtube Video Thumbnail
+            links.youtubeVideoId?.let { videoId ->
+                YoutubeThumb(
+                    videoId = videoId,
+                    ink = ink,
+                    onClick = {
+                        onMarkAsRead()
+                        openUrl(links.youtubeUrl ?: YoutubeUrls.watchUrl(videoId))
+                    },
+                )
+            }
+
+            // Web Link Chip
+            if (links.youtubeVideoId == null && !links.webUrl.isNullOrBlank()) {
+                LinkChip(
+                    url = links.webUrl,
+                    ink = ink,
+                    accent = accent,
+                    onClick = {
+                        onMarkAsRead()
+                        openUrl(links.webUrl)
+                    },
+                )
+            }
+
+            // Audio Player Row
+            item.audioUrl?.takeIf { it.isNotBlank() }?.let { audioUrl ->
+                AudioPlayRow(
+                    isPlaying = isAudioPlaying,
+                    ink = ink,
+                    accent = accent,
+                    onToggle = {
+                        onMarkAsRead()
+                        onToggleAudio(audioUrl)
+                    },
+                )
+            }
+
+            // Footer Timestamp
+            if (item.createdAt.isNotBlank()) {
+                Text(
+                    text = formatPostDate(item.createdAt),
+                    fontSize = 11.5.sp,
+                    color = ink.mutedText,
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AnnouncementTypePill(
+    type: AnnouncementType,
+    isDarkTheme: Boolean,
+) {
+    val (label, icon, color) = when (type) {
+        AnnouncementType.APP_UPDATE -> Triple(
+            "APP UPDATE",
+            Icons.Outlined.NewReleases,
+            if (isDarkTheme) Color(0xFF38BDF8) else Color(0xFF0284C7),
+        )
+        AnnouncementType.MAINTENANCE -> Triple(
+            "MAINTENANCE",
+            Icons.Outlined.WarningAmber,
+            if (isDarkTheme) Color(0xFFF87171) else Color(0xFFDC2626),
+        )
+        AnnouncementType.GENERAL -> Triple(
+            "ANNOUNCEMENT",
+            Icons.Outlined.Campaign,
+            if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87),
+        )
+    }
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.12f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(13.dp),
+        )
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 0.5.sp,
+            color = color,
+        )
     }
 }
 
@@ -591,8 +744,8 @@ private fun YoutubeThumb(
         modifier = Modifier
             .fillMaxWidth()
             .height(148.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, ink.hairline, RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, ink.hairline, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -641,8 +794,8 @@ private fun LinkChip(
     }
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .border(1.dp, ink.hairline, RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
+            .border(1.dp, ink.hairline, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -673,8 +826,8 @@ private fun AudioPlayRow(
 ) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .border(1.dp, if (isPlaying) accent else ink.hairline, RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
+            .border(1.dp, if (isPlaying) accent else ink.hairline, RoundedCornerShape(8.dp))
             .clickable(onClick = onToggle)
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -695,68 +848,26 @@ private fun AudioPlayRow(
 }
 
 @Composable
-private fun AnnouncementTypeIcon(
-    type: AnnouncementType,
-    ink: UpdatesInk,
-    accent: Color,
-    muted: Boolean,
-) {
-    val icon: ImageVector
-    val description: String
-    val tint = when (type) {
-        AnnouncementType.APP_UPDATE -> {
-            icon = Icons.Outlined.NewReleases
-            description = "App update"
-            accent
-        }
-        AnnouncementType.MAINTENANCE -> {
-            icon = Icons.Outlined.WarningAmber
-            description = "Maintenance alert"
-            MaterialTheme.colorScheme.error
-        }
-        AnnouncementType.GENERAL -> {
-            icon = Icons.Outlined.Campaign
-            description = "General announcement"
-            ink.secondaryText
-        }
-    }
-    val alpha = if (muted) 0.55f else 1f
-
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .border(1.dp, ink.hairline, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = description,
-            tint = tint.copy(alpha = alpha),
-            modifier = Modifier.size(18.dp),
-        )
-    }
-}
-
-@Composable
 private fun LoadingState(
     ink: UpdatesInk,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(28.dp),
-            color = ink.secondaryText,
-            strokeWidth = 2.dp,
-        )
+        repeat(4) {
+            com.safarparmar.app.ui.components.AnnouncementRowSkeleton()
+        }
     }
 }
 
 @Composable
 private fun EmptyAnnouncementsState(
     message: String,
+    subtext: String,
     ink: UpdatesInk,
     accent: Color,
     modifier: Modifier = Modifier,
@@ -771,22 +882,31 @@ private fun EmptyAnnouncementsState(
         Box(
             modifier = Modifier
                 .size(64.dp)
-                .border(1.dp, ink.hairline, CircleShape),
+                .clip(CircleShape)
+                .background(accent.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Outlined.DoneAll,
+                imageVector = Icons.Outlined.Notifications,
                 contentDescription = null,
                 tint = accent,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(30.dp),
             )
         }
         Spacer(Modifier.height(16.dp))
         Text(
             text = message,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
             color = ink.primaryText,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = subtext,
+            fontSize = 12.5.sp,
+            color = ink.mutedText,
+            textAlign = TextAlign.Center,
         )
     }
 }

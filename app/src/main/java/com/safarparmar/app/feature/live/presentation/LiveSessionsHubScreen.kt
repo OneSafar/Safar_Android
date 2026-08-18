@@ -45,8 +45,8 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
 import com.safarparmar.app.ui.theme.LoraFontFamily
 
 /**
- * Standalone Live Sessions destination (drawer → Learn & Connect).
- * Previously nested as a Courses hub tab.
+ * Live Sessions destination opened from Courses. It remains a separate route so
+ * notification deep links and session-detail navigation keep working.
  */
 @Composable
 fun LiveSessionsHubScreen(

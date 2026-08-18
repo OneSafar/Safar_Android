@@ -41,8 +41,16 @@ interface HomeRepository {
         status: String,
         carryForwardMode: String
     ): Resource<Unit>
-    suspend fun completeGoal(id: String, studiedMinutes: Int): Resource<Unit>
+    suspend fun completeGoal(
+        id: String,
+        studiedMinutes: Int,
+        studiedSeconds: Int = 0,
+        scheduledDate: String? = null,
+    ): Resource<Unit>
     suspend fun deleteGoal(id: String): Resource<Unit>
+    suspend fun getRecentlyDeletedGoals(): Resource<List<Goal>>
+    suspend fun restoreGoal(id: String): Resource<Goal>
+    suspend fun reopenGoal(id: String): Resource<Goal>
     suspend fun repeatGoal(id: String, scheduledDate: String): Resource<Goal>
 
     /** Copies several goals onto today in one write. The server skips any that are

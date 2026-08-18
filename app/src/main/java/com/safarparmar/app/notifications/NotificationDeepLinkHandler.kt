@@ -32,6 +32,11 @@ object NotificationDeepLinkHandler {
     fun isExternalWebLink(uri: Uri?): Boolean =
         uri?.scheme.equals("https", ignoreCase = true) && !uri?.host.isNullOrBlank()
 
+    fun isExternalWebLink(urlStr: String?): Boolean {
+        val trimmed = urlStr?.trim().orEmpty()
+        return trimmed.startsWith("https://", ignoreCase = true)
+    }
+
     fun routeFor(deepLink: String?): String {
         val trimmed = deepLink?.trim().orEmpty()
         if (!trimmed.startsWith("safar://")) return Routes.HOME
@@ -77,6 +82,7 @@ object NotificationDeepLinkHandler {
             "achievements" -> Routes.ACHIEVEMENTS
             "dhyan" -> Routes.DHYAN
             "focus_shield" -> Routes.FOCUS_SHIELD
+            "youtube_study_mode" -> if (firstSegment == "analytics") Routes.YOUTUBE_STUDY_ANALYTICS else Routes.YOUTUBE_STUDY_MODE
             "course" -> Routes.nishthaRoot()
             "studyplanner", "study_planner" -> {
                 val planId = queryUri?.getQueryParameter("planId").orEmpty()
@@ -98,6 +104,10 @@ object NotificationDeepLinkHandler {
                 } ?: Routes.LIVE_SESSIONS_ROOT
                 "sessions" -> Routes.LIVE_SESSIONS_ROOT
                 else -> Routes.LIVE_SESSIONS_ROOT
+            }
+            "study_circles" -> when {
+                firstSegment.isNotBlank() -> Routes.studyCircleDetail(decodePathSegment(firstSegment))
+                else -> Routes.STUDY_CIRCLES
             }
             else -> Routes.HOME
         }

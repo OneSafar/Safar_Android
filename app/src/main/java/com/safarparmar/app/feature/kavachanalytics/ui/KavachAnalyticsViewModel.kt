@@ -14,6 +14,10 @@ import com.safarparmar.app.feature.kavachanalytics.domain.KavachCategoryFilter
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachGranularity
 import com.safarparmar.app.feature.kavachanalytics.domain.secondsFor
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
+import com.safarparmar.app.feature.youtubeinsights.YoutubeInsightsRepository
+import com.safarparmar.app.feature.youtubeinsights.YoutubeTotals
+import com.safarparmar.app.feature.kavachanalytics.data.local.YoutubeChannelEntity
+import com.safarparmar.app.feature.kavachanalytics.data.local.YoutubeDailyAggregateEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,8 +29,8 @@ import javax.inject.Inject
 
 /** Which measurement the summary and trend show. */
 enum class KavachScope(val label: String) {
-    ALL_DAY("Entire day"),
-    DURING_KAVACH("During Kavach"),
+    ALL_DAY("Full Day"),
+    DURING_KAVACH("Kavach Time"),
 }
 
 /** One period, resolved from a granularity and how many steps back the student has paged. */
@@ -92,20 +96,16 @@ data class KavachAnalyticsUiState(
     val startDate: String = "",
     val endDate: String = "",
     val report: KavachAnalyticsReport? = null,
-    /**
-     * Trailing week used to draw the Daily chart.
-     *
-     * A single day has one bar, which fills the width and says nothing — a trend
-     * needs neighbours to be a trend. The headline still describes the selected
-     * day; this only gives that day something to stand next to.
-     */
-    val contextReport: KavachAnalyticsReport? = null,
     /** Same-length previous period, used only for the delta. */
     val previousTotalSeconds: Int? = null,
     val classifications: List<AppClassificationEntity> = emptyList(),
     val unclassifiedPrompts: List<AppUsageRow> = emptyList(),
     val hasUsageAccess: Boolean = true,
     val appDetail: KavachAppDetail? = null,
+    val youtubeDetailOpen: Boolean = false,
+    val youtubeTotals: YoutubeTotals = YoutubeTotals(),
+    val youtubeTrend: List<YoutubeDailyAggregateEntity> = emptyList(),
+    val youtubeChannels: List<YoutubeChannelEntity> = emptyList(),
     val searchQuery: String = "",
     val error: String? = null,
 ) {
@@ -173,7 +173,7 @@ data class KavachAnalyticsUiState(
     /** Per-day totals for the chart, with the day the headline describes flagged. */
     val chartBars: List<KavachChartBar>
         get() {
-            val source = (contextReport ?: report)?.trend.orEmpty()
+            val source = report?.trend.orEmpty()
             val measured = source.associateBy { it.localDate }
             val dates = when (granularity) {
                 KavachGranularity.DAILY -> source.mapNotNull { runCatching { LocalDate.parse(it.localDate) }.getOrNull() }
@@ -206,6 +206,7 @@ data class KavachAnalyticsUiState(
 class KavachAnalyticsViewModel @Inject constructor(
     private val repository: KavachAnalyticsRepository,
     private val focusShieldRepository: FocusShieldRepository,
+    private val youtubeRepository: YoutubeInsightsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(KavachAnalyticsUiState())
@@ -213,6 +214,7 @@ class KavachAnalyticsViewModel @Inject constructor(
 
     init {
         reload()
+        refresh()
     }
 
     fun selectGranularity(granularity: KavachGranularity) {
@@ -246,7 +248,8 @@ class KavachAnalyticsViewModel @Inject constructor(
     // ── App detail ───────────────────────────────────────────────────────────
 
     fun openAppDetail(row: AppUsageRow) {
-        if (row.packageName == "com.google.android.youtube") {
+        if (row.packageName == com.safarparmar.app.feature.youtubeinsights.YoutubeUiParser.YOUTUBE_PACKAGE) {
+            // YouTube content analytics now has a dedicated Study Mode destination.
             return
         }
         val state = _uiState.value
@@ -265,6 +268,22 @@ class KavachAnalyticsViewModel @Inject constructor(
     }
 
     fun closeAppDetail() = _uiState.update { it.copy(appDetail = null) }
+    fun closeYoutubeDetail() = _uiState.update { it.copy(youtubeDetailOpen = false) }
+
+    fun setYoutubeChannelProductive(channelKey: String, productive: Boolean) {
+        viewModelScope.launch {
+            youtubeRepository.setProductive(channelKey, productive)
+            val state = _uiState.value
+            val (totals, trend) = youtubeRepository.totals(state.startDate, state.endDate)
+            _uiState.update {
+                it.copy(
+                    youtubeTotals = totals,
+                    youtubeTrend = trend,
+                    youtubeChannels = youtubeRepository.channels(),
+                )
+            }
+        }
+    }
 
     /**
      * Adds or removes this app from the set Kavach blocks. The reference app can
@@ -324,15 +343,6 @@ class KavachAnalyticsViewModel @Inject constructor(
         viewModelScope.launch {
             val result = runCatching { repository.report(start.toString(), end.toString()) }
 
-            // Daily needs a week of neighbours to draw anything worth looking at.
-            val context = if (state.granularity == KavachGranularity.DAILY) {
-                runCatching {
-                    repository.report(maxOf(end.minusDays(6), floor).toString(), end.toString())
-                }.getOrNull()
-            } else {
-                null
-            }
-
             val previous = period.previous().let { prev ->
                 if (prev.end.isBefore(floor)) null
                 else runCatching {
@@ -343,6 +353,7 @@ class KavachAnalyticsViewModel @Inject constructor(
                 }.getOrNull()
             }
             val classifications = runCatching { repository.classifications() }.getOrDefault(emptyList())
+            val youtube = runCatching { youtubeRepository.totals(start.toString(), end.toString()) }.getOrNull()
 
             _uiState.update { current ->
                 val report = result.getOrNull()
@@ -352,7 +363,6 @@ class KavachAnalyticsViewModel @Inject constructor(
                 current.copy(
                     isLoading = false,
                     report = report,
-                    contextReport = context,
                     previousTotalSeconds = previousTotals?.secondsFor(current.categoryFilter),
                     classifications = classifications,
                     unclassifiedPrompts = report?.apps
@@ -363,6 +373,8 @@ class KavachAnalyticsViewModel @Inject constructor(
                         ?.take(5)
                         .orEmpty(),
                     hasUsageAccess = repository.hasUsageAccess(),
+                    youtubeTotals = youtube?.first ?: YoutubeTotals(),
+                    youtubeTrend = youtube?.second.orEmpty(),
                     error = result.exceptionOrNull()?.let { "Couldn't load Kavach analytics." },
                 )
             }

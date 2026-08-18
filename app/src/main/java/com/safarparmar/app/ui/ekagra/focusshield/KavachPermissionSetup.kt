@@ -61,8 +61,8 @@ fun KavachPermissionSetupScreen(
     Scaffold(
         topBar = {
             if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Box(modifier = Modifier.statusBarsPadding().padding(start = 16.dp, top = 8.dp)) {
+                    KavachCircularBackButton(onClick = onBack)
                 }
             }
         }

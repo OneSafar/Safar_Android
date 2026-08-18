@@ -491,73 +491,84 @@ private fun SafarWelcomeDialog(
     onDismiss: () -> Unit,
 ) {
     val isLight = !isDarkTheme
-    val titleColor = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Lavender
-    val headlineColor = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val bodyColor = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
-    val accentLine = if (isLight) SafarGlassPalette.LightViolet else SafarGlassPalette.Violet
+    val titleColor = if (isLight) Color(0xFF581C87) else Color(0xFFC084FC)
+    val headlineColor = if (isLight) Color(0xFF1F2937) else Color(0xFFF9FAFB)
+    val bodyColor = if (isLight) Color(0xFF4B5563) else Color(0xFF9CA3AF)
+    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
     val shape = RoundedCornerShape(24.dp)
 
     Dialog(
         onDismissRequest = {},
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        SafarGlassDialogHost(isDarkTheme = isDarkTheme) {
+        Surface(
+            modifier = Modifier
+                .width(320.dp)
+                .padding(16.dp),
+            shape = shape,
+            color = if (isLight) Color.White else Color(0xFF1E1F25),
+            shadowElevation = 12.dp,
+            border = BorderStroke(1.dp, if (isLight) Color(0xFFE2E8F0) else Color(0xFF2D2F36)),
+        ) {
             Column(
-                modifier = Modifier
-                    .width(320.dp)
-                    .height(360.dp)
-                    .safarFrostedPanel(isLight = isLight, shape = shape, elevation = if (isLight) 18.dp else 10.dp)
-                    .padding(24.dp),
+                modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
-            Text(
-                text = "Hello${if (userName.isNotBlank()) ", $userName" else ""}.",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Black,
-                color = titleColor,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 12.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    text = "Welcome to SAFAR, your space to focus, plan, and grow.",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = headlineColor,
+                    text = "Hello${if (userName.isNotBlank()) ", $userName" else ""}.",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Black,
+                    color = titleColor,
                     textAlign = TextAlign.Center,
-                    lineHeight = 18.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Where it's just you and me, and our little battle of staying consistent.\n\nWe'll celebrate small wins, and we'll sit through the bad days together.\n\nA virtual pat on your back.\nSmile",
-                    fontSize = 12.sp,
-                    color = bodyColor,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 16.sp,
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = "Your journey starts here.",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accentLine,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            MacOSPrimaryActionButton(
-                text = "Let's get started",
-                onClick = onDismiss,
-                isLight = isLight,
-            )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = "Welcome to SAFAR, your space to focus, plan, and grow.",
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = headlineColor,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 19.sp,
+                    )
+                    Text(
+                        text = "Where it's just you and me, and our little battle of staying consistent.\n\nWe'll celebrate small wins, and we'll sit through the bad days together.\n\nA virtual pat on your back. Smile",
+                        fontSize = 12.5.sp,
+                        color = bodyColor,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 16.5.sp,
+                    )
+                    Text(
+                        text = "Your journey starts here.",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = titleColor,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = buttonBg,
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Text(
+                        text = "Let's get started",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
         }
     }
@@ -579,9 +590,12 @@ fun VideoPlaylistEntryPoint(
     val tooltipDismissed by dismissalFlow.collectAsStateWithLifecycle(initialValue = false)
     var tooltipVisible by remember { mutableStateOf(showTooltip) }
     val isLight = !isDarkTheme
-    val glassShape = RoundedCornerShape(14.dp)
-    val tipTitleColor = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
-    val tipIconTint = if (isLight) SafarGlassPalette.LightPink else SafarGlassPalette.Pink
+    val flatShape = RoundedCornerShape(16.dp)
+
+    val surfaceBg = if (isLight) Color(0xFFFFFFFF) else Color(0xFF1E1F25)
+    val borderClr = if (isLight) Color(0xFFE2E8F0) else Color(0xFF2D2F36)
+    val tipTitleColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val tipIconTint = Color(0xFFEC4899)
 
     fun openPlaylist() {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YoutubeUrls.VISUAL_GUIDANCE_PLAYLIST_URL))
@@ -600,65 +614,56 @@ fun VideoPlaylistEntryPoint(
         DropdownMenu(
             expanded = tooltipVisible && !tooltipDismissed,
             onDismissRequest = { tooltipVisible = false },
-            shape = glassShape,
+            shape = flatShape,
             containerColor = Color.Transparent,
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
         ) {
-            // Popup is its own window — enable strong compositor blur so the
-            // busy home hero text doesn't bleed through the tooltip.
-            val blurred = rememberPlannerBackdropBlur(radiusPx = SafarBackdropBlurRadiusPx)
-
-            Row(
+            Surface(
                 modifier = Modifier
-                    .widthIn(max = 268.dp)
-                    .clip(glassShape)
-                    .background(
-                        if (isLight) {
-                            Color(0xFFEBEEF3).copy(alpha = if (blurred) 0.78f else 0.94f)
-                        } else {
-                            Color(0xFF141418).copy(alpha = if (blurred) 0.72f else 0.90f)
-                        },
-                    )
-                    .safarFrostedPanel(
-                        isLight = isLight,
-                        shape = glassShape,
-                        tintAlpha = if (blurred) 0.38f else 0.52f,
-                        elevation = if (isLight) 16.dp else 10.dp,
-                    )
-                    .clickable(onClick = ::openPlaylist)
-                    .padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .widthIn(max = 280.dp)
+                    .clickable(onClick = ::openPlaylist),
+                shape = flatShape,
+                color = surfaceBg,
+                shadowElevation = 8.dp,
+                border = BorderStroke(1.dp, borderClr),
             ) {
-                Icon(
-                    imageVector = Icons.Default.PlayCircle,
-                    contentDescription = null,
-                    tint = tipIconTint,
-                    modifier = Modifier.size(22.dp),
-                )
-                Text(
-                    text = "Need help with SAFAR? Watch our YouTube video.",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = tipTitleColor,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(
-                    onClick = {
-                        tooltipVisible = false
-                        if (dataStore != null) {
-                            scope.launch { dataStore.setVideoGuideTooltipDismissed(true) }
-                        }
-                    },
-                    modifier = Modifier.size(40.dp),
+                Row(
+                    modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Do not show this tip again",
-                        tint = tipTitleColor.copy(alpha = 0.65f),
-                        modifier = Modifier.size(18.dp),
+                        imageVector = Icons.Default.PlayCircle,
+                        contentDescription = null,
+                        tint = tipIconTint,
+                        modifier = Modifier.size(24.dp),
                     )
+                    Text(
+                        text = "Need help with SAFAR?\nWatch our YouTube video.",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.5.sp,
+                        lineHeight = 16.sp,
+                        color = tipTitleColor,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(
+                        onClick = {
+                            tooltipVisible = false
+                            if (dataStore != null) {
+                                scope.launch { dataStore.setVideoGuideTooltipDismissed(true) }
+                            }
+                        },
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Do not show this tip again",
+                            tint = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
         }
@@ -695,7 +700,7 @@ private fun ToolImageCard(
 
     Column(
         modifier = modifier.bounceClick {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             onClick()
         },
         horizontalAlignment = Alignment.CenterHorizontally,

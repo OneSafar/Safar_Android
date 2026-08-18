@@ -171,6 +171,7 @@ internal fun EkagraDisplayTitle(
         fontStyle = FontStyle.Normal,
         fontWeight = FontWeight.Normal,
         fontSize = 30.sp,
+        lineHeight = 36.sp,
         color = color,
         modifier = modifier,
     )
@@ -245,7 +246,7 @@ internal fun <T> EkagraTextTabs(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .width(IntrinsicSize.Min)
+                    .width(IntrinsicSize.Max)
                     .clickable(
                         interactionSource = remembered(),
                         indication = null,
@@ -263,6 +264,8 @@ internal fun <T> EkagraTextTabs(
                         fontSize = EkagraChrome.text(13f),
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                         color = tabColor,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
                 Spacer(Modifier.height(8.dp))

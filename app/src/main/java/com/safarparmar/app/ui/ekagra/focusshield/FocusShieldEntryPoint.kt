@@ -8,4 +8,5 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 interface FocusShieldEntryPoint {
     fun focusShieldRepository(): FocusShieldRepository
+    fun youtubeInsightsRepository(): com.safarparmar.app.feature.youtubeinsights.YoutubeInsightsRepository
 }

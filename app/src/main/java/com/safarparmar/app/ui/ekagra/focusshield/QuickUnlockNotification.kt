@@ -17,7 +17,7 @@ import kotlin.math.ceil
 object QuickUnlockNotification {
     private const val NOTIFICATION_ID = 1005
 
-    fun show(context: Context, graceUntilMs: Long, userName: String? = null) {
+    fun show(context: Context, graceUntilMs: Long, minutes: Int = 0, userName: String? = null) {
         val remainingMs = (graceUntilMs - System.currentTimeMillis()).coerceAtLeast(0L)
         if (remainingMs <= 0L) {
             cancel(context)
@@ -30,7 +30,7 @@ object QuickUnlockNotification {
             return
         }
 
-        val minutesLeft = ceil(remainingMs / 60_000.0).toInt().coerceAtLeast(1)
+        val displayMins = if (minutes > 0) minutes else ceil(remainingMs / 60_000.0).toInt().coerceAtLeast(1)
         val contentIntent = PendingIntent.getActivity(
             context,
             NOTIFICATION_ID,
@@ -41,13 +41,13 @@ object QuickUnlockNotification {
         val notification = NotificationCompat.Builder(context, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(context))
-            .setContentTitle("Quick unlock active")
-            .setContentText(personalizeBody("$minutesLeft min left before KAVACH blocks again", userName))
+            .setContentTitle("KAVACH Quick Unlock Active")
+            .setContentText("Unlocked for $displayMins min. KAVACH will re-block when timer ends.")
             .setContentIntent(contentIntent)
-            .setOngoing(false)
+            .setOngoing(true)
             .setAutoCancel(false)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOnlyAlertOnce(false)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setWhen(graceUntilMs)
             .setUsesChronometer(true)

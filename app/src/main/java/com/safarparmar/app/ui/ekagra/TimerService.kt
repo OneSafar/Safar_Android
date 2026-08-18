@@ -28,6 +28,8 @@ import com.safarparmar.app.MainActivity
 import com.safarparmar.app.R
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.data.local.TimerAlertStyle
+import com.safarparmar.app.data.remote.api.FocusApi
+import com.safarparmar.app.data.remote.dto.FocusPresenceRequest
 import com.safarparmar.app.notifications.NotificationDeepLinkHandler
 import com.safarparmar.app.notifications.SafarNotificationChannels
 import com.safarparmar.app.notifications.SafarNotificationManager
@@ -35,14 +37,17 @@ import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldEntryPoint
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
 import com.safarparmar.app.ui.ekagra.focusshield.NotificationShieldPrefs
+import com.safarparmar.app.ui.ekagra.focusshield.BlockedMediaEnforcer
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
 import com.safarparmar.app.feature.kavachanalytics.domain.KavachSessionOutcome
 import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,10 +57,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
+import javax.inject.Inject
 import kotlin.math.roundToInt
 import com.safarparmar.app.ui.audio.MediaFileCache
 
+@AndroidEntryPoint
 class TimerService : Service() {
+
+    @Inject lateinit var focusApi: FocusApi
 
     companion object {
         const val CHANNEL_ID        = SafarNotificationChannels.FOCUS_TIMER
@@ -67,11 +76,6 @@ class TimerService : Service() {
         const val ACTION_PAUSE = "com.safar.ekagra.ACTION_PAUSE"
         const val ACTION_RESET      = "com.safar.ekagra.ACTION_RESET"
         const val ACTION_FOCUS_SHIELD_BLOCKED = "com.safar.ekagra.ACTION_FOCUS_SHIELD_BLOCKED"
-        // KAVACH foreground-app polling (replaces the former Accessibility event stream).
-        private const val FOREGROUND_POLL_MS = 500L
-        private const val SHIELD_SYNC_INTERVAL_MS = 1_500L
-        private const val FOREGROUND_LOOKBACK_MS = 2_000L
-        private const val BLOCK_DEBOUNCE_MS = 750L
         private const val TIMER_STATE_PREFS = "ekagra_timer_state_prefs"
         private const val KEY_HAS_STATE = "has_state"
         private const val KEY_MODE = "mode"
@@ -157,17 +161,16 @@ class TimerService : Service() {
 
     private val binder  = TimerBinder()
     private val scope   = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val notificationScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val notificationUpdates = Channel<Notification>(Channel.CONFLATED)
     private var tickJob: Job? = null
-    private var shieldActivationJob: Job? = null
+    private var focusPresenceJob: Job? = null
     private var lastTickElapsedMs: Long = 0L
     private val safarDataStore by lazy { SafarDataStore(applicationContext) }
-    private val homePackages: Set<String> by lazy { resolveHomePackages() }
-    private var shieldMonitorJob: Job? = null
     private var suspendedFocusState: SuspendedFocusState? = null
     private var cachedUserName: String = ""
     private var autoSaveMetadata: AutoSaveMetadata? = null
     private var sessionSaveQueuedThisRun: Boolean = false
-    @Volatile private var youtubeContentOwnsBlocking: Boolean = false
 
     private data class SuspendedFocusState(
         val totalSeconds: Int,
@@ -221,495 +224,14 @@ class TimerService : Service() {
     private var timerAlertStyle = TimerAlertStyle.SOUND
 
     // ── Focus Shield state ─────────────────────────────────────────────────
-    private val _focusShieldActive  = MutableStateFlow(false)
-    private val _blockedPackages    = MutableStateFlow<Set<String>>(emptySet())
-    private val _strictMode         = MutableStateFlow(false)
 
-    val focusShieldActive: StateFlow<Boolean>      = _focusShieldActive
-    val blockedPackages:   StateFlow<Set<String>>  = _blockedPackages
-    val strictMode:        StateFlow<Boolean>      = _strictMode
-
-    /**
-     * Called by EkagraScreen/ViewModel when a focus session starts
-     * and Focus Shield is enabled.
-     */
-    fun setFocusShieldConfig(
-        packages: Set<String>,
-        strict: Boolean,
-    ) {
-        _blockedPackages.value = packages
-        _strictMode.value = strict
-        debugFocusShield("TimerService.setFocusShieldConfig(${packages.size} pkgs, strict=$strict)")
-    }
-
-    fun enableFocusShieldForSession() {
-        val pkgs = _blockedPackages.value
-        if (pkgs.isEmpty()) {
-            disableFocusShieldForSession()
-            return
-        }
-        // Always On is already blocking, with an overlay that offers no escape.
-        // Taking over here would replace it with the Normal-Mode block sheet and its
-        // quick-unlock button — so the timer records the session and otherwise keeps
-        // its hands off. Deliberately does not write ShieldPrefs or the snapshot,
-        // because the Always On service treats those as "the timer is blocking now"
-        // and would stand down.
-        if (focusShieldRepo().isAlwaysOnMode.value) {
-            debugFocusShield("TimerService: Always On owns blocking; not activating session shield")
-            focusShieldRepo().activateForSession(
-                plannedSeconds = _totalSeconds.value.coerceAtLeast(0),
-                isFocusPeriod = _timerMode.value == TimerMode.FOCUS ||
-                    _timerMode.value == TimerMode.STOPWATCH ||
-                    _timerMode.value == TimerMode.POMODORO,
-            )
-            _focusShieldActive.value = true
-            return
-        }
-        if (!FocusShieldPermissionHelper.hasUsageStatsPermission(this)) {
-            debugFocusShield("Ekagra Shield not enabled: Usage access missing")
-            disableFocusShieldForSession()
-            return
-        }
-        if (!FocusShieldPermissionHelper.hasOverlayPermission(this)) {
-            debugFocusShield("Ekagra Shield not enabled: Display-over-other-apps missing")
-            disableFocusShieldForSession()
-            return
-        }
-        // Notification-listener access is optional (notification suppression only). If the user
-        // granted it, keep the binding warm; if not, KAVACH still blocks apps normally.
-        if (FocusShieldPermissionHelper.hasNotificationListenerAccess(this)) {
-            FocusShieldPermissionHelper.requestNotificationListenerRebind(this)
-        }
-
-        val strict = _strictMode.value
-
-        // Also update volatile snapshot for in-process fast access
-        FocusShieldRepository.Snapshot.active = true
-        FocusShieldRepository.Snapshot.packages = pkgs
-        FocusShieldRepository.Snapshot.strict = strict
-
-        debugFocusShield("TimerService.enableFocusShieldForSession()")
-        val repo = focusShieldRepo()
-        repo.activateForSession(
-            plannedSeconds = _totalSeconds.value.coerceAtLeast(0),
-            isFocusPeriod = _timerMode.value == TimerMode.FOCUS ||
-                _timerMode.value == TimerMode.STOPWATCH ||
-                _timerMode.value == TimerMode.POMODORO,
-        )
-        val activated = repo.sessionActive.value
-        _focusShieldActive.value = activated
-        if (activated) {
-            showFocusShieldActiveNotification()
-        } else {
-            debugFocusShield("TimerService.enableFocusShieldForSession() failed to activate: ${repo.activationBlockedReason.value}")
-            showFocusShieldFailedNotification(repo.activationBlockedReason.value)
-        }
-    }
-
-    fun disableFocusShieldForSession(force: Boolean = false) {
-        debugFocusShield("TimerService.disableFocusShieldForSession()")
-        val repo = focusShieldRepo()
-
-        _focusShieldActive.value = false
-
-        repo.deactivateSession()
-
-        // Clear SharedPreferences
-        shieldActivationJob?.cancel()
-        FocusShieldRepository.ShieldPrefs.clear(this)
-
-        // Clear volatile snapshot
-        FocusShieldRepository.Snapshot.active = false
-        FocusShieldRepository.Snapshot.packages = emptySet()
-
-        getSystemService(NotificationManager::class.java)
-            .cancel(FOCUS_SHIELD_ACTIVE_NOTIFICATION_ID)
-
-    }
-
-    private fun activateFocusShieldFromSettingsIfNeeded() {
-        shieldActivationJob?.cancel()
-        shieldActivationJob = scope.launch {
-            val enabled = safarDataStore.focusShieldEnabled.first()
-            val packages = safarDataStore.focusShieldBlockedPackages.first()
-            val strict = safarDataStore.focusShieldStrictMode.first()
-            val isFocusPeriod = _timerMode.value == TimerMode.FOCUS ||
-                _timerMode.value == TimerMode.STOPWATCH ||
-                _timerMode.value == TimerMode.POMODORO
-            // Beast Mode intentionally continues through breaks; Normal Mode does not.
-            val shouldBlockInCurrentPeriod = isFocusPeriod || strict
-
-            if (timerSessionActive && enabled && packages.isNotEmpty() && shouldBlockInCurrentPeriod) {
-                debugFocusShield("TimerService.start() activating from persisted settings: ${packages.size} packages")
-                setFocusShieldConfig(packages = packages, strict = strict)
-                enableFocusShieldForSession()
-            } else {
-                debugFocusShield("TimerService.start() shield not activated (enabled=$enabled, pkgs=${packages.size})")
-                disableFocusShieldForSession()
-            }
-        }
-    }
-
-    private fun startFocusShieldMonitor() {
-        shieldMonitorJob?.cancel()
-        // Runs off Main: currentForegroundPackage() below makes a blocking UsageStatsManager
-        // IPC call every FOREGROUND_POLL_MS. Previously this ran on the service's Main-dispatcher
-        // scope and could starve input dispatch during long KAVACH sessions (ANR risk).
-        shieldMonitorJob = scope.launch(Dispatchers.Default) {
-            var sinceSyncMs = 0L
-            // Gated on the session being active (started, running OR paused), not on
-            // _isRunning — KAVACH must keep blocking through a pause. syncFocusShieldState()
-            // inside the loop still disables the shield the moment the mode isn't
-            // Focus/Stopwatch (e.g. a break), so pausing a break stays a no-op here.
-            while (timerSessionActive) {
-                // Reconcile config/permissions roughly every 1.5s…
-                if (sinceSyncMs <= 0L) {
-                    syncFocusShieldState()
-                    sinceSyncMs = SHIELD_SYNC_INTERVAL_MS
-                }
-                // …but poll the foreground app quickly so a blocked app is caught fast.
-                monitorForegroundForBlocking()
-                delay(FOREGROUND_POLL_MS)
-                sinceSyncMs -= FOREGROUND_POLL_MS
-            }
-        }
-    }
-
-    private fun stopFocusShieldMonitor() {
-        shieldMonitorJob?.cancel()
-        shieldMonitorJob = null
-        lastBlockedPackage = null
-        lastBlockedAt = 0L
-        countedDistractionPackage = null
-    }
-
-    // ── Foreground-app blocking (Usage access + overlay; no Accessibility) ─────
-    private var lastBlockedPackage: String? = null
-    private var lastBlockedAt: Long = 0L
-    /** Package for which we already counted one distraction this foreground visit. */
-    private var countedDistractionPackage: String? = null
-    /** True while a quick unlock is in its grace window, so its end can be detected. */
-    private var quickUnlockWasActive: Boolean = false
-
-    /**
-     * Detects the current foreground app via UsageStats and, if it is a user-selected blocked app
-     * during an active KAVACH session, shows SAFAR's block screen. This replaces the former
-     * FocusShieldAccessibilityService — same behaviour, driven by polling instead of a11y events.
-     */
-    private fun monitorForegroundForBlocking() {
-        if (!FocusShieldRepository.ShieldPrefs.isActive(this)) return
-        val isStrict = FocusShieldRepository.ShieldPrefs.isStrict(this)
-        // In Normal Mode (non-strict), pausing the timer temporarily unblocks apps.
-        // In Beast Mode (strict), pausing the timer keeps apps locked down!
-        if (!isStrict && !_isRunning.value) return
-
-        // Honour the return-to-focus grace and the emergency-unlock grace window.
-        if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) return
-        val unlockActive = FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)
-        if (unlockActive) {
-            quickUnlockWasActive = true
-            return
-        }
-        if (quickUnlockWasActive) {
-            // The unlock window just lapsed — close it with the time actually used
-            // rather than the duration the student picked.
-            quickUnlockWasActive = false
-            runCatching { focusShieldRepo().settleExpiredQuickUnlocks() }
-        }
-
-        val foregroundPackage = currentForegroundPackage() ?: return
-        if (foregroundPackage == packageName) {
-            FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
-            return
-        }
-        if (isHomePackage(foregroundPackage)) {
-            countedDistractionPackage = null
-            FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
-            FocusShieldRepository.ShieldPrefs.clearReturnToFocusGrace(this)
-            return
-        }
-
-        val blockedPackages = FocusShieldRepository.ShieldPrefs.getPackages(this)
-        val youtubeContentOwned = foregroundPackage == "com.google.android.youtube" && youtubeContentOwnsBlocking
-        if (foregroundPackage in blockedPackages && !youtubeContentOwned) {
-            if (FocusShieldRepository.ShieldPrefs.isOneTimeUnlockedPackage(this, foregroundPackage)) return
-            launchBlockScreen(foregroundPackage)
-        } else if (shouldHideForPackage(foregroundPackage)) {
-            countedDistractionPackage = null
-            FocusShieldRepository.ShieldPrefs.clearOneTimeUnlock(this)
-            lastBlockedPackage = null
-            lastBlockedAt = 0L
-        }
-    }
-
-    private fun launchBlockScreen(blockedPackage: String) {
-        if (isHomePackage(blockedPackage)) return
-        if (FocusShieldRepository.ShieldPrefs.isInReturnToFocusGrace(this)) return
-
-        val now = SystemClock.elapsedRealtime()
-        if (lastBlockedPackage == blockedPackage && now - lastBlockedAt < BLOCK_DEBOUNCE_MS) return
-        lastBlockedPackage = blockedPackage
-        lastBlockedAt = now
-
-        // Count one distraction per foreground visit.
-        if (countedDistractionPackage != blockedPackage) {
-            countedDistractionPackage = blockedPackage
-            runCatching { focusShieldRepo().recordBlockedHit(blockedPackage) }
-        }
-
-        val strict = FocusShieldRepository.ShieldPrefs.isStrict(this)
-        val appName = labelForPackage(blockedPackage)
-        val openEkagra = isFocusTimerRunning(this)
-
-        // Safe-return notification (also visible if the activity launch is throttled).
-        showFocusShieldBlockedNotification(blockedPackage)
-
-        // The block screen itself. Launching an Activity from the background is permitted because
-        // we hold SYSTEM_ALERT_WINDOW ("Display over other apps").
-        val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT,
-            )
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE, blockedPackage)
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME, appName)
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_STRICT, strict)
-            putExtra(MainActivity.EXTRA_FOCUS_SHIELD_OPEN_EKAGRA, openEkagra)
-        }
-        runCatching { startActivity(intent) }
-            .onFailure { debugFocusShield("Block screen launch failed: ${it.javaClass.simpleName}") }
-    }
-
-    private fun currentForegroundPackage(): String? {
-        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
-            ?: return null
-        val now = System.currentTimeMillis()
-        val events = usageStatsManager.queryEvents(now - FOREGROUND_LOOKBACK_MS, now)
-        val event = UsageEvents.Event()
-        var latestPackage: String? = null
-        while (events.hasNextEvent()) {
-            events.getNextEvent(event)
-            val isForegroundEvent =
-                event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND ||
-                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                        event.eventType == UsageEvents.Event.ACTIVITY_RESUMED)
-            if (isForegroundEvent && !event.packageName.isNullOrBlank()) {
-                latestPackage = event.packageName
-            }
-        }
-        return latestPackage
-    }
-
-    private fun shouldHideForPackage(packageName: String): Boolean =
-        packageName == this.packageName ||
-            isHomePackage(packageName) ||
-            packageName == "com.android.settings"
-
-    private suspend fun syncFocusShieldState() {
-        if (!timerSessionActive) {
-            disableFocusShieldForSession()
-            return
-        }
-
-        // Always On blocks continuously and is not the timer's business. Reconciling
-        // here would call disableFocusShieldForSession() on every break tick, which
-        // clears the shared snapshot the Always On service reads.
-        if (safarDataStore.focusShieldAlwaysOnMode.first()) {
-            _focusShieldActive.value = true
-            return
-        }
-
-        val enabled = safarDataStore.focusShieldEnabled.first()
-        val packages = safarDataStore.focusShieldBlockedPackages.first()
-        val strict = safarDataStore.focusShieldStrictMode.first()
-        val isFocusPeriod = _timerMode.value == TimerMode.FOCUS ||
-            _timerMode.value == TimerMode.STOPWATCH ||
-            _timerMode.value == TimerMode.POMODORO
-        // Normal Mode releases selected apps during a break. Beast Mode keeps them blocked.
-        val shouldBlockInCurrentPeriod = isFocusPeriod || strict
-
-        if (
-            !enabled ||
-            packages.isEmpty() ||
-            !shouldBlockInCurrentPeriod ||
-            !FocusShieldPermissionHelper.hasUsageStatsPermission(this) ||
-            !FocusShieldPermissionHelper.hasOverlayPermission(this)
-        ) {
-            disableFocusShieldForSession()
-            return
-        }
-
-        val shouldUpdate = !_focusShieldActive.value ||
-            !FocusShieldRepository.ShieldPrefs.isActive(this) ||
-            packages != _blockedPackages.value ||
-            strict != _strictMode.value
-
-        if (shouldUpdate) {
-            setFocusShieldConfig(packages = packages, strict = strict)
-            enableFocusShieldForSession()
-        }
-    }
-
-    private fun handleFocusShieldBlockedIntent(intent: Intent?) {
-        val blockedPackage = intent
-            ?.getStringExtra(FocusShieldRepository.EXTRA_BLOCKED_PACKAGE)
-            .orEmpty()
-        if (blockedPackage.isBlank()) return
-        if (isHomePackage(blockedPackage)) return
-
-        debugFocusShield("Blocked intent received for $blockedPackage")
-
-        if (!FocusShieldRepository.ShieldPrefs.isActive(this)) return
-        val blockedPackages = FocusShieldRepository.ShieldPrefs.getPackages(this)
-        if (blockedPackage !in blockedPackages) return
-
-        // The block UI is launched by the accessibility service; here we only provide a safe return notification.
-        showFocusShieldBlockedNotification(blockedPackage)
-    }
-
-    private fun showFocusShieldBlockedNotification(blockedPackage: String) {
-        if (isHomePackage(blockedPackage)) return
-        val appName = labelForPackage(blockedPackage)
-        val strict = FocusShieldRepository.ShieldPrefs.isStrict(this)
-        val openEkagra = isFocusTimerRunning(this)
-        val returnLabel = if (strict) "Return to Ekagra" else "Return to SAFAR"
-        val focusPendingIntent = PendingIntent.getActivity(
-            this,
-            4,
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_PACKAGE, blockedPackage)
-                putExtra(MainActivity.EXTRA_FOCUS_SHIELD_BLOCKED_APP_NAME, appName)
-                putExtra(MainActivity.EXTRA_FOCUS_SHIELD_STRICT, strict)
-                putExtra(MainActivity.EXTRA_FOCUS_SHIELD_OPEN_EKAGRA, openEkagra)
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        val blockedText = personalizeNotificationBody("$appName is blocked while KAVACH is active.")
-        val blockedLongText = personalizeNotificationBody("$appName is blocked while KAVACH is active. Tap to return to SAFAR.")
-
-        val notification = NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_BLOCKED)
-            .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
-            .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
-            .setContentTitle("KAVACH is active")
-            .setContentText(blockedText)
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(blockedLongText),
-            )
-            .setContentIntent(focusPendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
-            .addAction(
-                android.R.drawable.ic_menu_revert,
-                returnLabel,
-                focusPendingIntent,
-            )
-            .build()
-
-        getSystemService(NotificationManager::class.java)
-            .notify(FOCUS_SHIELD_BLOCKED_NOTIFICATION_ID, notification)
-    }
-
-    private fun showFocusShieldActiveNotification() {
-        val focusPendingIntent = PendingIntent.getActivity(
-            this,
-            4,
-            NotificationDeepLinkHandler.activityIntent(this, "safar://ekagra"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        val activeText = personalizeNotificationBody("Selected distracting apps are blocked while KAVACH is active.")
-        val activeLongText = personalizeNotificationBody("Selected distracting apps are blocked while KAVACH is active. SAFAR checks only the current app's name to show the block screen for this feature.")
-
-        val notification = NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
-            .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
-            .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
-            .setContentTitle("KAVACH is active")
-            .setContentText(activeText)
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(activeLongText),
-            )
-            .setContentIntent(focusPendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .build()
-
-        getSystemService(NotificationManager::class.java)
-            .notify(FOCUS_SHIELD_ACTIVE_NOTIFICATION_ID, notification)
-    }
-
-    private fun showFocusShieldFailedNotification(reason: String?) {
-        val focusPendingIntent = PendingIntent.getActivity(
-            this,
-            4,
-            NotificationDeepLinkHandler.activityIntent(this, "safar://ekagra"),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        val body = personalizeNotificationBody(
-            reason ?: "KAVACH couldn't start this session. Check its permissions in settings.",
-        )
-
-        val notification = NotificationCompat.Builder(this, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
-            .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(this))
-            .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(this))
-            .setContentTitle("KAVACH is not active")
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setContentIntent(focusPendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
-            .build()
-
-        getSystemService(NotificationManager::class.java)
-            .notify(FOCUS_SHIELD_ACTIVE_NOTIFICATION_ID, notification)
-    }
-
-    private fun labelForPackage(packageName: String): String {
-        if (packageName.isBlank()) return "This app"
-        return runCatching {
-            val appInfo = packageManager.getApplicationInfo(packageName, 0)
-            packageManager.getApplicationLabel(appInfo).toString()
-        }.getOrDefault("This app")
-    }
-
-    private fun isHomePackage(packageName: String): Boolean {
-        if (packageName.isBlank()) return false
-        return packageName in homePackages ||
-            packageName.contains("launcher", ignoreCase = true)
-    }
-
-    private fun resolveHomePackages(): Set<String> {
-        val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-        val queried = packageManager.queryIntentActivities(homeIntent, 0)
-            .mapNotNull { it.activityInfo?.packageName }
-        val resolved = packageManager.resolveActivity(homeIntent, 0)?.activityInfo?.packageName
-        return (queried + listOfNotNull(resolved) + KNOWN_HOME_PACKAGES).toSet()
-    }
-
-    // ── Theme persistence (SharedPreferences so it survives navigation/rebind) ─
+    // ── Theme persistence (SharedPreferences so it survives navigation/rebind) ─    // ── Theme persistence (SharedPreferences so it survives navigation/rebind) ─
     private fun themePrefs() = getSharedPreferences("ekagra_theme_prefs", MODE_PRIVATE)
 
     private fun debugFocusShield(message: String) {
         if (BuildConfig.DEBUG) android.util.Log.d("FocusShield", message)
     }
 
-    private fun focusShieldRepo(): FocusShieldRepository =
-        EntryPointAccessors.fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
-            .focusShieldRepository()
 
     /**
      * Closes the Kavach analytics session with an explicit outcome.
@@ -722,13 +244,21 @@ class TimerService : Service() {
     private fun endKavachAnalyticsSession(outcome: KavachSessionOutcome) {
         val actualSeconds = runCatching { focusProgressSnapshot().actualSeconds }.getOrDefault(0)
         val recorder = runCatching { KavachAnalyticsRecorder.from(applicationContext) }.getOrNull()
-            ?: return
-        when (outcome) {
-            KavachSessionOutcome.COMPLETED -> recorder.sessionCompleted(actualSeconds)
-            KavachSessionOutcome.ENDED_EARLY -> recorder.sessionEndedEarly(actualSeconds)
-            KavachSessionOutcome.INTERRUPTED -> recorder.sessionInterrupted(actualSeconds)
+        if (recorder != null) {
+            when (outcome) {
+                KavachSessionOutcome.COMPLETED -> recorder.sessionCompleted(actualSeconds)
+                KavachSessionOutcome.ENDED_EARLY -> recorder.sessionEndedEarly(actualSeconds)
+                KavachSessionOutcome.INTERRUPTED -> recorder.sessionInterrupted(actualSeconds)
+            }
         }
+        focusShieldRepository().deactivateSession()
     }
+
+    private fun focusShieldRepository(): FocusShieldRepository =
+        EntryPointAccessors.fromApplication(
+            applicationContext,
+            FocusShieldEntryPoint::class.java,
+        ).focusShieldRepository()
 
     private fun clearTheme() {
         themePrefs().edit().clear().commit()
@@ -882,7 +412,7 @@ class TimerService : Service() {
                 context      = applicationContext,
                 secondsLeft  = _secondsLeft.value,
                 totalSeconds = _totalSeconds.value,
-                kavachActive = _focusShieldActive.value,
+                kavachActive = FocusShieldRepository.ShieldPrefs.isActive(this),
                 isRunning    = _isRunning.value,
             )
         } else {
@@ -893,6 +423,14 @@ class TimerService : Service() {
     override fun onCreate() {
         super.onCreate()
         SafarNotificationChannels.createAll(this)
+        notificationScope.launch {
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            for (notification in notificationUpdates) {
+                // notify() is a synchronous Binder call. Some OEM notification services can
+                // stall it long enough to ANR the app, so never execute it on the main thread.
+                runCatching { notificationManager.notify(NOTIFICATION_ID, notification) }
+            }
+        }
         (application as? Application)?.registerActivityLifecycleCallbacks(activityLifecycleCallbacks)
         scope.launch {
             safarDataStore.userName.collect { name ->
@@ -909,6 +447,28 @@ class TimerService : Service() {
                 timerAlertStyle = style
             }
         }
+        scope.launch {
+            safarDataStore.focusDurationMinutes.collect { minutes ->
+                if (!timerSessionActive && _timerMode.value == TimerMode.FOCUS) {
+                    _totalSeconds.value = minutes * 60
+                    _secondsLeft.value = minutes * 60
+                }
+            }
+        }
+        scope.launch {
+            safarDataStore.breakDurationMinutes.collect { minutes ->
+                standardBreakSeconds = minutes * 60
+                if (!timerSessionActive && _timerMode.value == TimerMode.BREAK) {
+                    _totalSeconds.value = minutes * 60
+                    _secondsLeft.value = minutes * 60
+                }
+            }
+        }
+        scope.launch {
+            combine(_isRunning, _timerMode) { running, mode ->
+                running && (mode == TimerMode.FOCUS || mode == TimerMode.STOPWATCH || mode == TimerMode.POMODORO)
+            }.collect(::syncFocusPresence)
+        }
         restorePersistedTimerState()
     }
 
@@ -919,7 +479,6 @@ class TimerService : Service() {
             ACTION_PLAY_PAUSE -> togglePlayPause()
             ACTION_PAUSE -> if (_isRunning.value) pause()
             ACTION_RESET      -> reset()
-            ACTION_FOCUS_SHIELD_BLOCKED -> handleFocusShieldBlockedIntent(intent)
         }
         return START_STICKY
     }
@@ -932,14 +491,29 @@ class TimerService : Service() {
     override fun onDestroy() {
         (application as? Application)?.unregisterActivityLifecycleCallbacks(activityLifecycleCallbacks)
         TimerBubbleOverlay.hide()
-        disableFocusShieldForSession()
-        stopFocusShieldMonitor()
         releaseMusic()
         releaseCompletionSound()
         runCatching { timerVibrator().cancel() }
         clearTheme()
+        focusPresenceJob?.cancel()
+        notificationUpdates.close()
+        notificationScope.cancel()
         scope.cancel()
         super.onDestroy()
+    }
+
+    private fun syncFocusPresence(active: Boolean) {
+        focusPresenceJob?.cancel()
+        focusPresenceJob = scope.launch(Dispatchers.IO) {
+            if (!active) {
+                runCatching { focusApi.setFocusPresence(FocusPresenceRequest(false)) }
+                return@launch
+            }
+            while (true) {
+                runCatching { focusApi.setFocusPresence(FocusPresenceRequest(true)) }
+                delay(30_000L)
+            }
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -965,8 +539,6 @@ class TimerService : Service() {
         suspendedFocusState = null
         tickJob?.cancel()
         releaseMusic()
-        disableFocusShieldForSession()
-        stopFocusShieldMonitor()
         stopForegroundCompat()
         clearPersistedTimerState()
     }
@@ -1038,8 +610,6 @@ class TimerService : Service() {
         _secondsLeft.value = focusState.remainingSeconds.coerceIn(1, focusState.totalSeconds)
         _isRunning.value = false
         releaseMusic()
-        stopFocusShieldMonitor()
-        disableFocusShieldForSession()
         persistTimerState()
         updateNotification()
         return true
@@ -1070,8 +640,6 @@ class TimerService : Service() {
 
         suspendedFocusState = focusState
         tickJob?.cancel()
-        stopFocusShieldMonitor()
-        disableFocusShieldForSession()
         releaseMusic()
         _timerMode.value = mode
         _totalSeconds.value = seconds.coerceAtLeast(60)
@@ -1084,8 +652,9 @@ class TimerService : Service() {
 
     fun start() {
         if (_secondsLeft.value <= 0 && _timerMode.value != TimerMode.STOPWATCH) return
+        val resumingPausedSession = timerSessionActive && !_isRunning.value && _timerMode.value != TimerMode.BREAK
         _isRunning.value = true
-        // Set before startFocusShieldMonitor() below — its polling loop's while
+        // Set before below — its polling loop's while
         // condition reads this on a freshly launched coroutine, so it must already
         // be true before that coroutine is scheduled, not after.
         timerSessionActive = true
@@ -1100,9 +669,14 @@ class TimerService : Service() {
             return
         }
 
-        activateFocusShieldFromSettingsIfNeeded()
         syncNotificationShieldForTimerSession()
-        startFocusShieldMonitor()
+        if (resumingPausedSession) {
+            focusShieldRepository().endQuickUnlockForEkagraResume()
+        }
+        focusShieldRepository().activateForSession(
+            plannedSeconds = if (_timerMode.value == TimerMode.STOPWATCH) 0 else _totalSeconds.value,
+            isFocusPeriod = _timerMode.value != TimerMode.BREAK,
+        )
         startMusic(currentMusicUrl)
         lastTickElapsedMs = SystemClock.elapsedRealtime()
         // A session is now live. The pill shows only while SAFAR is backgrounded (syncBubble).
@@ -1125,7 +699,7 @@ class TimerService : Service() {
                 TimerBubbleOverlay.update(
                     secondsLeft  = _secondsLeft.value,
                     totalSeconds = _totalSeconds.value,
-                    kavachActive = _focusShieldActive.value,
+                    kavachActive = FocusShieldRepository.ShieldPrefs.isActive(applicationContext),
                     isRunning    = true,
                 )
             }
@@ -1151,10 +725,8 @@ class TimerService : Service() {
                     _isRunning.value = false
                     persistTimerState()
                     releaseMusic()
-                    // A manually started break has ended. Do not leave Beast Mode's
+                    // A manually started break has ended. Do not leave KAVACH's
                     // break protection marked active while the restored focus timer is paused.
-                    disableFocusShieldForSession()
-                    stopFocusShieldMonitor()
                     updateNotification()
                     return@launch
                 }
@@ -1165,8 +737,6 @@ class TimerService : Service() {
                     val completedProgress = focusProgressSnapshot()
                     releaseMusic()
                     clearTheme()
-                    disableFocusShieldForSession()
-                    stopFocusShieldMonitor()
                     showCompletionNotification()
 
                     // Handle next session based on Pomodoro mode
@@ -1260,8 +830,6 @@ class TimerService : Service() {
                 clearPersistedTimerState()
                 releaseMusic()
                 clearTheme()
-                disableFocusShieldForSession()
-                stopFocusShieldMonitor()
                 showCompletionNotification()
                 updateNotification()
             }
@@ -1275,7 +843,7 @@ class TimerService : Service() {
         releaseMusic()
         // KAVACH intentionally stays active through a pause — the session hasn't
         // ended, the user could just be checking something and forget to resume.
-        // startFocusShieldMonitor()'s loop and syncFocusShieldState() are both
+        //'s loop and syncFocusShieldState() are both
         // keyed on timerSessionActive (unaffected by pause), so the monitor and
         // block screen keep working exactly as they did while running.
         updateNotification()
@@ -1296,8 +864,6 @@ class TimerService : Service() {
         clearPersistedTimerState()
         releaseMusic()
         clearTheme()
-        disableFocusShieldForSession()
-        stopFocusShieldMonitor()
         updateNotification()
         // Session ended — remove the pill.
         timerSessionActive = false
@@ -1325,8 +891,6 @@ class TimerService : Service() {
         clearPersistedTimerState()
         releaseMusic()
         clearTheme()
-        disableFocusShieldForSession()
-        stopFocusShieldMonitor()
         stopForegroundCompat()
         getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
         stopSelf()
@@ -1401,10 +965,9 @@ class TimerService : Service() {
             planId = null,
             topicTitle = null,
         )
-        val title = metadata.taskTitle
-            ?: metadata.goalTitle
-            ?: metadata.topicTitle
-            ?: DEFAULT_UNTITLED_SESSION_TITLE
+        // Natural timer completion is always preserved as a plain Untitled
+        // Ekagra session. Goal linking is an optional later action from History.
+        val title = DEFAULT_UNTITLED_SESSION_TITLE
         EkagraPendingSessionSaveStore.enqueue(
             this,
             PendingEkagraSessionSave(
@@ -1415,13 +978,13 @@ class TimerService : Service() {
                 plannedDurationMinutes = if (mode == TimerMode.STOPWATCH) 0 else (total + 59) / 60,
                 actualDurationMinutes = (actual / 60.0).roundToInt(),
                 actualDurationSeconds = actual,
-                goalId = metadata.goalId,
-                goalTitle = metadata.goalTitle,
-                topicId = metadata.topicId,
-                planId = metadata.planId,
-                topicTitle = metadata.topicTitle,
+                goalId = null,
+                goalTitle = null,
+                topicId = null,
+                planId = null,
+                topicTitle = null,
                 taskTitle = title,
-                shieldEnabled = _focusShieldActive.value || FocusShieldRepository.ShieldPrefs.isActive(this),
+                shieldEnabled = FocusShieldRepository.ShieldPrefs.isActive(this),
             ),
         )
         EkagraSessionSaveWorker.enqueue(this)
@@ -1674,8 +1237,10 @@ class TimerService : Service() {
 
     private fun updateNotification() {
         if (_isRunning.value || _secondsLeft.value < _totalSeconds.value) {
-            getSystemService(NotificationManager::class.java)
-                .notify(NOTIFICATION_ID, buildNotification())
+            // Timer ticks arrive once per second. A conflated channel retains only the newest
+            // notification if the system notification service is slow, avoiding both a main-
+            // thread Binder stall and an unbounded backlog of obsolete timer values.
+            notificationUpdates.trySend(buildNotification())
         } else {
             stopForegroundCompat()
         }

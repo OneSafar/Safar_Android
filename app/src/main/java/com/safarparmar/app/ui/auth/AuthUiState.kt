@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.auth
 
 enum class ForgotPasswordStep {
     EMAIL,
+    EMAIL_SENT,
     RESET
 }
 

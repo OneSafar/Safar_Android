@@ -121,10 +121,10 @@ class KavachAxisTest {
     private fun mins(n: Int) = n * 60
 
     @Test
-    fun `default daily baseline is 10 hours`() {
-        assertEquals(mins(600), KavachAnalyticsFormat.niceAxisMax(mins(41)))
-        assertEquals(mins(600), KavachAnalyticsFormat.niceAxisMax(mins(9)))
-        assertEquals(mins(600), KavachAnalyticsFormat.niceAxisMax(mins(300)))
+    fun `daily scale stays close to visible usage`() {
+        assertEquals(mins(60), KavachAnalyticsFormat.niceAxisMax(mins(41)))
+        assertEquals(mins(20), KavachAnalyticsFormat.niceAxisMax(mins(9)))
+        assertEquals(mins(360), KavachAnalyticsFormat.niceAxisMax(mins(300)))
         assertEquals(mins(600), KavachAnalyticsFormat.niceAxisMax(mins(600)))
     }
 
@@ -135,21 +135,32 @@ class KavachAxisTest {
     }
 
     @Test
-    fun `the midpoint tick is always a whole number of hours`() {
+    fun `week keeps the stable ten hour comparison scale`() {
+        assertEquals(
+            mins(600),
+            KavachAnalyticsFormat.niceAxisMax(
+                mins(61),
+                com.safarparmar.app.feature.kavachanalytics.domain.KavachGranularity.WEEKLY,
+            ),
+        )
+    }
+
+    @Test
+    fun `the midpoint tick is always a familiar whole minute value`() {
         listOf(41, 90, 200, 400, 700, 1_400).forEach { minutes ->
             val axis = KavachAnalyticsFormat.niceAxisMax(mins(minutes))
             assertEquals(
-                "axis $axis should halve cleanly into whole hours",
+                "axis $axis should halve cleanly into whole minutes",
                 0,
-                (axis / 2) % 3600,
+                (axis / 2) % 60,
             )
         }
     }
 
     @Test
-    fun `an empty period still gets the 10 hour baseline`() {
-        assertEquals(mins(600), KavachAnalyticsFormat.niceAxisMax(0))
-        assertEquals(mins(600), KavachAnalyticsFormat.niceAxisMax(-5))
+    fun `an empty period still gets a readable baseline`() {
+        assertEquals(mins(20), KavachAnalyticsFormat.niceAxisMax(0))
+        assertEquals(mins(20), KavachAnalyticsFormat.niceAxisMax(-5))
     }
 
     @Test

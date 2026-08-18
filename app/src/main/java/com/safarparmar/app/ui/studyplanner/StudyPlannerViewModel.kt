@@ -622,6 +622,39 @@ class StudyPlannerViewModel @Inject constructor(
         }
     }
 
+    override fun renamePlan(planId: String, title: String) {
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, error = null) }
+            var result = repo.updatePlan(planId, UpdatePlanRequest(title = cleanTitle))
+            if (result is Resource.Error && result.code == 409) {
+                delay(350)
+                result = repo.updatePlan(planId, UpdatePlanRequest(title = cleanTitle))
+            }
+            when (val response = result) {
+                is Resource.Success -> _uiState.update { state ->
+                    state.copy(
+                        plans = state.plans.map { plan ->
+                            if (plan.id == planId) response.data else plan
+                        },
+                        selectedPlan = if (state.selectedPlan?.id == planId) {
+                            response.data
+                        } else {
+                            state.selectedPlan
+                        },
+                        mutating = false,
+                        message = "Exam renamed",
+                    )
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(mutating = false, error = response.message)
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
     override fun updatePlan(request: UpdatePlanRequest) = mutateSelected { planId -> repo.updatePlan(planId, request) }
     override fun addSubject(name: String) = addSubjects(listOf(name))
 

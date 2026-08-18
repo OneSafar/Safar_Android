@@ -4,7 +4,10 @@ import com.safarparmar.app.data.remote.dto.DeleteEkagraSessionResponse
 import com.safarparmar.app.data.remote.dto.EkagraAnalyticsStatsDto
 import com.safarparmar.app.data.remote.dto.EkagraSessionsResponse
 import com.safarparmar.app.data.remote.dto.FocusStatsResponse
+import com.safarparmar.app.data.remote.dto.FocusPresenceRequest
 import com.safarparmar.app.data.remote.dto.LinkedEkagraSessionsResponse
+import com.safarparmar.app.data.remote.dto.LinkEkagraGoalRequest
+import com.safarparmar.app.data.remote.dto.LinkEkagraGoalResponse
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionRequest
 import com.safarparmar.app.data.remote.dto.SaveEkagraSessionResponse
 import com.safarparmar.app.data.remote.dto.TopicLinkedSessionsResponse
@@ -20,6 +23,9 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface FocusApi {
+
+    @POST("ekagra-sessions/presence")
+    suspend fun setFocusPresence(@Body request: FocusPresenceRequest): Response<Unit>
 
     @GET("ekagra-sessions/stats")
     suspend fun getStats(): Response<FocusStatsResponse>
@@ -50,4 +56,10 @@ interface FocusApi {
         @Path("sessionId") sessionId: String,
         @Body request: UpdateEkagraSessionRequest,
     ): Response<UpdateEkagraSessionResponse>
+
+    @POST("ekagra-sessions/{sessionId}/link-goal")
+    suspend fun linkSessionToGoal(
+        @Path("sessionId") sessionId: String,
+        @Body request: LinkEkagraGoalRequest,
+    ): Response<LinkEkagraGoalResponse>
 }

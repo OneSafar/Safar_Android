@@ -14,12 +14,13 @@ object MehfilFlatColors {
     val Text @Composable get() = PlannerFlatColors.TextDark
     val Muted @Composable get() = PlannerFlatColors.TextMuted
     val Hairline @Composable get() = PlannerFlatColors.BorderSoft
+    val Surface @Composable get() = PlannerFlatColors.CardWhite
 
     private val isDark: Boolean
         @Composable get() = isPlannerDark
 
     /** Primary Mehfil accent — violet */
-    val Primary @Composable get() = if (isDark) Color(0xFFC084FC) else Color(0xFF6D28D9)
+    val Primary @Composable get() = if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
 
     val Community @Composable get() = Primary
     val Saved @Composable get() = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)

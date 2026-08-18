@@ -53,12 +53,12 @@ class KavachAnalyticsRecorder @Inject constructor(
 
     // ── Session lifecycle ────────────────────────────────────────────────────
 
-    fun sessionStarted(strictMode: Boolean, plannedSeconds: Int) = record {
-        startSession(strictMode, plannedSeconds)
+    fun sessionStarted(alwaysOn: Boolean = false, plannedSeconds: Int) = record {
+        startSession(alwaysOn, plannedSeconds)
     }
 
     suspend fun startSession(
-        strictMode: Boolean,
+        alwaysOn: Boolean = false,
         plannedSeconds: Int,
         nowMs: Long = System.currentTimeMillis(),
     ): String = withContext(ioDispatcher) {
@@ -81,7 +81,7 @@ class KavachAnalyticsRecorder @Inject constructor(
                     endedAtMs = null,
                     plannedSeconds = plannedSeconds.coerceAtLeast(0),
                     actualSeconds = 0,
-                    mode = if (strictMode) KavachSessionMode.BEAST else KavachSessionMode.NORMAL,
+                    mode = if (alwaysOn) KavachSessionMode.ALWAYS_ON else KavachSessionMode.NORMAL,
                     outcome = null,
                     localDate = localDate(nowMs),
                     updatedAtMs = nowMs,
@@ -225,15 +225,23 @@ class KavachAnalyticsRecorder @Inject constructor(
      * repeated polls and overlay relaunches for the same visit, so this is recorded
      * exactly where that first hit is counted.
      */
-    fun blockedAttempt(packageName: String) = record {
+    fun blockedAttempt(packageName: String, attachToEkagraSession: Boolean) = record {
         if (packageName.isBlank()) return@record
-        val sessionId = dao.openSessions().firstOrNull()?.clientSessionId
+        val sessionId = if (attachToEkagraSession) {
+            dao.openSessions().firstOrNull()?.clientSessionId
+        } else null
         insertEvent(KavachEventType.BLOCKED_ATTEMPT, sessionId, packageName, System.currentTimeMillis())
     }
 
-    fun quickUnlockStarted(packageName: String, selectedSeconds: Int) = record {
+    fun quickUnlockStarted(
+        packageName: String,
+        selectedSeconds: Int,
+        attachToEkagraSession: Boolean,
+    ) = record {
         val nowMs = System.currentTimeMillis()
-        val sessionId = dao.openSessions().firstOrNull()?.clientSessionId
+        val sessionId = if (attachToEkagraSession) {
+            dao.openSessions().firstOrNull()?.clientSessionId
+        } else null
         // Close any unlock still open, session or not — a second unlock must never
         // leave the first one hanging.
         closeOpenUnlocks(nowMs)
@@ -260,6 +268,11 @@ class KavachAnalyticsRecorder @Inject constructor(
         if (nowMs >= open.atMs + open.durationSeconds * 1000L) {
             closeOpenUnlocks(nowMs)
         }
+    }
+
+    /** Ends a still-open Quick Unlock immediately, preserving only elapsed usage. */
+    fun quickUnlockEnded() = record {
+        closeOpenUnlocks(System.currentTimeMillis())
     }
 
     /**

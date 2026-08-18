@@ -60,8 +60,13 @@
     <string name="nav_previous">Previous</string>
     <string name="nav_next">Next</string>
     <string name="nav_focus_shield">KAVACH</string>
+    <string name="nav_youtube_study_mode">YouTube Study Mode</string>
     <string name="nav_live_classes">Live Classes</string>
     <string name="nav_live_sessions">Live Sessions</string>
+    <string name="courses_live_sessions_description">Join live classes, see upcoming sessions, and revisit scheduled learning.</string>
+    <string name="courses_live_sessions_open">Open →</string>
+    <string name="nav_study_circle">Study Circle</string>
+    <string name="nav_leaderboard">Leaderboard</string>
     <string name="nav_admin_notifications">Admin Notifications</string>
 
     <!-- KAVACH -->
@@ -154,9 +159,8 @@
 
     <!-- Drawer -->
     <string name="drawer_tagline">Your wellness journey</string>
-    <string name="drawer_section_study_focus">Study &amp; Focus</string>
-    <string name="drawer_section_wellness">Wellness</string>
-    <string name="drawer_section_learn_connect">Learn &amp; Connect</string>
+    <string name="drawer_section_study_productivity">Study &amp; Productivity</string>
+    <string name="drawer_section_well_being_community">Well-being &amp; Community</string>
 
     <!-- Home -->
     <string name="home_greeting">Good morning</string>
@@ -430,9 +434,6 @@
     <string name="focus_shield_blocked_title">App Blocked</string>
     <string name="focus_shield_blocked_message">%s is blocked while you study. Keep going!</string>
     <string name="focus_shield_emergency_unlock">Quick unlock</string>
-    <string name="focus_shield_return_to_timer">Back to timer</string>
-    <string name="focus_shield_accessibility_label">SAFAR KAVACH Alert</string>
-    <string name="focus_shield_accessibility_description">KAVACH is optional. It uses Accessibility Service only to detect apps you selected to block during active Ekagra focus timer sessions and show the SAFAR KAVACH block screen so you can return to your focus session. SAFAR does not read your private content, perform gestures, change settings, or share Accessibility data.</string>
     <string name="focus_shield_notification_listener_label">Notification shield</string>
 
     <!-- Notification action buttons -->

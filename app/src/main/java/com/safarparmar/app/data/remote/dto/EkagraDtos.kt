@@ -98,6 +98,17 @@ data class UpdateEkagraSessionResponse(
     val session: EkagraSession? = null,
 )
 
+data class LinkEkagraGoalRequest(
+    val goalId: String,
+    val markGoalComplete: Boolean,
+)
+
+data class LinkEkagraGoalResponse(
+    val ok: Boolean = false,
+    val goalId: String? = null,
+    val completed: Boolean = false,
+)
+
 data class LinkedEkagraSessionDto(
     val id: String = "",
     val goalId: String = "",

@@ -8,6 +8,7 @@ import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.domain.repository.HomeRepository
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
+import com.safarparmar.app.ui.ekagra.TimerService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -53,9 +54,6 @@ class FocusShieldRepository @Inject constructor(
     val isEnabled: StateFlow<Boolean> = dataStore.focusShieldEnabled
         .stateIn(scope, SharingStarted.Eagerly, false)
 
-    val isStrictMode: StateFlow<Boolean> = dataStore.focusShieldStrictMode
-        .stateIn(scope, SharingStarted.Eagerly, false)
-
     /**
      * All-day blocking, independent of the Ekagra timer. While this is on, the
      * chosen apps stay blocked and [KavachAlwaysOnService] keeps an ongoing
@@ -64,8 +62,23 @@ class FocusShieldRepository @Inject constructor(
     val isAlwaysOnMode: StateFlow<Boolean> = dataStore.focusShieldAlwaysOnMode
         .stateIn(scope, SharingStarted.Eagerly, false)
 
+    val isStrictMode: StateFlow<Boolean> = dataStore.focusShieldStrictMode
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
+    val appUsageMode: StateFlow<String?> = dataStore.appUsageMode
+        .stateIn(scope, SharingStarted.Eagerly, null)
+
     val blockedPackages: StateFlow<Set<String>> = dataStore.focusShieldBlockedPackages
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
+
+    val scheduleEnabled: StateFlow<Boolean> = dataStore.focusShieldScheduleEnabled
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
+    val scheduleStartMinute: StateFlow<Int> = dataStore.focusShieldScheduleStartMinute
+        .stateIn(scope, SharingStarted.Eagerly, 540) // 09:00 AM
+
+    val scheduleEndMinute: StateFlow<Int> = dataStore.focusShieldScheduleEndMinute
+        .stateIn(scope, SharingStarted.Eagerly, 1320) // 10:00 PM
 
     private val _sessionActive = MutableStateFlow(false)
     val sessionActive: StateFlow<Boolean> = _sessionActive.asStateFlow()
@@ -108,50 +121,28 @@ class FocusShieldRepository @Inject constructor(
      *   "session" would then be reported as ended early when the timer is reset.
      */
     fun activateForSession(plannedSeconds: Int = 0, isFocusPeriod: Boolean = true) {
+        // Always On owns protection independently; starting Ekagra must not create a
+        // second timer-linked analytics source underneath it.
+        if (isAlwaysOnMode.value) return
         val settings = currentSettings()
-        if (!settings.enabled) {
-            debugLog("activateForSession skipped: shield not enabled")
+        if (!settings.enabled || settings.packages.isEmpty()) {
             _activationBlockedReason.value = null
             return
         }
-
-        if (settings.packages.isEmpty()) {
-            debugLog("activateForSession skipped: no blocked packages")
-            _activationBlockedReason.value = null
-            return
-        }
-        // Always On owns blocking outright, and must keep owning it for the whole
-        // session. Handing over to timer-bound blocking here is what downgraded the
-        // student to Normal Mode mid-session: they got the bottom sheet with a quick
-        // unlock button, in the one mode whose entire point is that there is no way
-        // out. The timed session is still recorded, so study time is still measured —
-        // only the blocking stays where the student put it.
-        if (isAlwaysOnMode.value) {
-            debugLog("activateForSession deferred: Always On owns blocking")
-            _activationBlockedReason.value = null
-            if (isFocusPeriod) {
-                analyticsRecorder.sessionStarted(strictMode = settings.strict, plannedSeconds = plannedSeconds)
-            }
-            return
-        }
-
+        
         if (!hasRequiredPermissions()) {
-            debugLog("activateForSession skipped: required permission missing")
             _activationBlockedReason.value = "A permission KAVACH needs was turned off, so blocking isn't active this session."
-            // Keep the flag on the summary rather than quietly reporting a clean
-            // session in which nothing was ever actually blocked.
             analyticsRecorder.permissionLost()
             return
         }
-        activateBlocking(settings, resetUnlocks = true)
-        QuickUnlockNotification.cancel(appContext)
+        
         _activationBlockedReason.value = null
-        // Idempotent: a Normal-Mode break deactivates and re-activates blocking, but
-        // that is still one Kavach session from the student's point of view.
+        activateBlocking(settings, resetUnlocks = isFocusPeriod && !_sessionActive.value)
+        startKavachService(settings.packages)
+
         if (isFocusPeriod) {
-            analyticsRecorder.sessionStarted(strictMode = settings.strict, plannedSeconds = plannedSeconds)
+            analyticsRecorder.sessionStarted(plannedSeconds = plannedSeconds)
         }
-        debugLog("activateForSession enabled for ${settings.packages.size} packages")
     }
 
     fun deactivateSession() {
@@ -164,6 +155,11 @@ class FocusShieldRepository @Inject constructor(
         Snapshot.active = false
         Snapshot.packages = emptySet()
         Snapshot.strict = false
+        scope.launch {
+            if (!dataStore.focusShieldAlwaysOnMode.first()) {
+                KavachAlwaysOnService.stop(appContext)
+            }
+        }
         debugLog("deactivateSession cleared (blocks=$totalHits)")
     }
 
@@ -175,7 +171,10 @@ class FocusShieldRepository @Inject constructor(
         }
         // Called once per foreground visit by TimerService's debounce, which is
         // exactly the counting rule Kavach analytics reports.
-        analyticsRecorder.blockedAttempt(packageName)
+        analyticsRecorder.blockedAttempt(
+            packageName = packageName,
+            attachToEkagraSession = !isAlwaysOnMode.value,
+        )
     }
 
     /**
@@ -187,11 +186,30 @@ class FocusShieldRepository @Inject constructor(
         analyticsRecorder.quickUnlockStarted(
             packageName = packageName,
             selectedSeconds = selectedMinutes.coerceAtLeast(0) * 60,
+            attachToEkagraSession = !isAlwaysOnMode.value,
         )
+        // Quick Unlock time is intentionally not study time. Pause only a timer-linked
+        // Kavach session; Always On protection must remain independent of Ekagra.
+        if (!isAlwaysOnMode.value && _sessionActive.value) {
+            runCatching {
+                appContext.startService(
+                    Intent(appContext, TimerService::class.java).setAction(TimerService.ACTION_PAUSE),
+                )
+            }.onFailure {
+                debugLog("Could not pause Ekagra for Quick Unlock: ${it.javaClass.simpleName}")
+            }
+        }
     }
 
     /** Settles any quick unlock whose window has expired. Cheap; safe to call often. */
     fun settleExpiredQuickUnlocks() = analyticsRecorder.settleExpiredUnlocks()
+
+    /** Returning to a timer-linked focus session immediately restores protection. */
+    fun endQuickUnlockForEkagraResume() {
+        if (isAlwaysOnMode.value || !ShieldPrefs.isInGracePeriod(appContext)) return
+        ShieldPrefs.clearQuickUnlock(appContext)
+        analyticsRecorder.quickUnlockEnded()
+    }
 
     fun clearSessionStats() {
         _blockedHitCount.value = 0
@@ -201,30 +219,25 @@ class FocusShieldRepository @Inject constructor(
     fun setKavachProfile(mode: String) {
         scope.launch {
             dataStore.setAppUsageMode(mode)
+            dataStore.setFocusShieldScheduleEnabled(false)
+            val currentlyEnabled = isEnabled.value
             when (mode) {
                 com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON -> {
-                    dataStore.setFocusShieldEnabled(true)
-                    dataStore.setFocusShieldStrictMode(false)
                     dataStore.setFocusShieldAlwaysOnMode(true)
-                    startAlwaysOnService()
-                }
-                com.safarparmar.app.ui.launch.AppUsageMode.BEAST -> {
-                    dataStore.setFocusShieldEnabled(true)
-                    dataStore.setFocusShieldStrictMode(true)
-                    dataStore.setFocusShieldAlwaysOnMode(false)
-                    KavachAlwaysOnService.stop(appContext)
+                    if (currentlyEnabled && hasRequiredPermissions()) {
+                        startKavachService()
+                    }
                 }
                 com.safarparmar.app.ui.launch.AppUsageMode.FOCUSED,
                 com.safarparmar.app.ui.launch.AppUsageMode.STANDARD -> {
-                    dataStore.setFocusShieldEnabled(true)
-                    dataStore.setFocusShieldStrictMode(false)
                     dataStore.setFocusShieldAlwaysOnMode(false)
-                    KavachAlwaysOnService.stop(appContext)
+                    if (!_sessionActive.value) KavachAlwaysOnService.stop(appContext)
                 }
                 else -> {
                     dataStore.setFocusShieldEnabled(false)
                     dataStore.setFocusShieldStrictMode(false)
                     dataStore.setFocusShieldAlwaysOnMode(false)
+                    ShieldPrefs.clearQuickUnlock(appContext)
                     KavachAlwaysOnService.stop(appContext)
                     deactivateSession()
                 }
@@ -234,30 +247,32 @@ class FocusShieldRepository @Inject constructor(
 
     fun setEnabled(enabled: Boolean) {
         scope.launch {
+            if (enabled && !hasRequiredPermissions()) {
+                debugLog("Cannot enable Kavach without required permissions")
+                return@launch
+            }
             dataStore.setFocusShieldEnabled(enabled)
             if (!enabled) {
-                // Turning Kavach off has to take Always On with it, or blocking would
-                // carry on from a screen that says it is switched off.
+                // Turning Kavach off takes Beast Mode and active Quick Unlock with it
                 dataStore.setFocusShieldAlwaysOnMode(false)
-                dataStore.setFocusShieldStrictMode(false)
+                ShieldPrefs.clearQuickUnlock(appContext)
                 NotificationShieldPrefs.clear(appContext)
                 KavachAlwaysOnService.stop(appContext)
-            }
-            val settings = currentSettings().copy(enabled = enabled)
-            if (!enabled) {
                 deactivateSession()
-            }
-            if (enabled && blockedPackages.value.isNotEmpty()) {
-                homeRepository.trackKavachEvent("enabled", blockedPackages.value.size)
+            } else {
+                val mode = dataStore.appUsageMode.first()
+                if (mode == com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON) {
+                    dataStore.setFocusShieldAlwaysOnMode(true)
+                }
+                startKavachService()
+                if (blockedPackages.value.isNotEmpty()) {
+                    homeRepository.trackKavachEvent("enabled", blockedPackages.value.size)
+                }
             }
         }
     }
 
-    fun setStrictMode(enabled: Boolean) {
-        scope.launch {
-            dataStore.setFocusShieldStrictMode(enabled)
-        }
-    }
+
 
     /**
      * Turns all-day blocking on or off.
@@ -270,38 +285,39 @@ class FocusShieldRepository @Inject constructor(
             dataStore.setFocusShieldAlwaysOnMode(enabled)
             if (enabled) {
                 dataStore.setFocusShieldEnabled(true)
-                startAlwaysOnService()
+                startKavachService()
             } else {
                 KavachAlwaysOnService.stop(appContext)
             }
         }
     }
 
-    private fun startAlwaysOnService(packages: Set<String> = blockedPackages.value) {
+    fun setStrictMode(enabled: Boolean) {
+        scope.launch {
+            dataStore.setFocusShieldStrictMode(enabled)
+            if (enabled) ShieldPrefs.clearQuickUnlock(appContext)
+            if (isAlwaysOnMode.value || _sessionActive.value) startKavachService()
+        }
+    }
+
+    private fun startKavachService(packages: Set<String> = blockedPackages.value) {
         if (packages.isEmpty()) {
             debugLog("Always On not started: no blocked apps chosen")
             return
         }
-        // Drop any quick-unlock window still running from a previous Normal-Mode
-        // session. Carrying one into Always On would leave an app openable for
-        // minutes after the student switched to the mode that exists to prevent it.
-        ShieldPrefs.applyEmergencyUnlock(appContext, graceUntilMs = 0L)
-        QuickUnlockNotification.cancel(appContext)
         if (!hasRequiredPermissions()) {
             _activationBlockedReason.value =
-                "A permission KAVACH needs was turned off, so Always On isn't blocking."
+                "A permission KAVACH needs was turned off, so Beast Mode isn't blocking."
             return
         }
         KavachAlwaysOnService.start(appContext)
     }
 
     /** Restarts Always On after a reboot or app update, if the student left it on. */
-    fun restoreAlwaysOnIfEnabled() {
+    fun restoreKavachIfEnabled() {
         scope.launch {
-            if (dataStore.focusShieldAlwaysOnMode.first() &&
-                dataStore.focusShieldEnabled.first()
-            ) {
-                startAlwaysOnService(dataStore.focusShieldBlockedPackages.first())
+            if (dataStore.focusShieldEnabled.first() && dataStore.focusShieldAlwaysOnMode.first()) {
+                startKavachService(dataStore.focusShieldBlockedPackages.first())
             }
         }
     }
@@ -309,15 +325,19 @@ class FocusShieldRepository @Inject constructor(
     fun setBlockedPackages(packages: Set<String>) {
         scope.launch {
             dataStore.setFocusShieldBlockedPackages(packages)
-            // A newly chosen app must start being blocked without waiting for the
-            // next time the student opens Ekagra.
-            if (isAlwaysOnMode.value && packages.isNotEmpty()) {
-                startAlwaysOnService(packages)
-            }
-            if (isEnabled.value && packages.isNotEmpty()) {
+            if (isEnabled.value && packages.isNotEmpty() && (isAlwaysOnMode.value || _sessionActive.value)) {
+                startKavachService(packages)
                 homeRepository.trackKavachEvent("configured", packages.size)
             }
         }
+    }
+
+    fun setScheduleEnabled(enabled: Boolean) {
+        scope.launch { dataStore.setFocusShieldScheduleEnabled(enabled) }
+    }
+
+    fun setScheduleRange(startMinute: Int, endMinute: Int) {
+        scope.launch { dataStore.setFocusShieldScheduleRange(startMinute, endMinute) }
     }
 
     private fun activateBlocking(
@@ -364,7 +384,6 @@ class FocusShieldRepository @Inject constructor(
         private const val PREFS_NAME = "focus_shield_session"
         private const val KEY_ACTIVE = "active"
         private const val KEY_PACKAGES = "packages"
-        private const val KEY_STRICT = "strict"
         private const val KEY_GRACE_UNTIL_MS = "grace_until_ms"
         private const val KEY_ONE_TIME_UNLOCK_PACKAGE = "one_time_unlock_package"
         private const val KEY_RETURN_GRACE_UNTIL_ELAPSED = "return_grace_until_elapsed"
@@ -376,13 +395,13 @@ class FocusShieldRepository @Inject constructor(
             ctx: Context,
             active: Boolean,
             packages: Set<String>,
-            strict: Boolean,
+            strict: Boolean = false,
             resetUnlocks: Boolean = true,
         ) {
             prefs(ctx).edit().apply {
                 putBoolean(KEY_ACTIVE, active)
                 putStringSet(KEY_PACKAGES, packages)
-                putBoolean(KEY_STRICT, strict)
+                putBoolean("strict", strict)
                 if (resetUnlocks) {
                     putLong(KEY_GRACE_UNTIL_MS, 0L)
                     putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
@@ -391,7 +410,7 @@ class FocusShieldRepository @Inject constructor(
             if (BuildConfig.DEBUG) {
                 android.util.Log.d(
                     TAG,
-                    "ShieldPrefs.write(active=$active, count=${packages.size}, strict=$strict, reset=$resetUnlocks)",
+                    "ShieldPrefs.write(active=$active, count=${packages.size}, reset=$resetUnlocks)",
                 )
             }
         }
@@ -408,22 +427,47 @@ class FocusShieldRepository @Inject constructor(
         }
 
         fun isActive(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_ACTIVE, false)
+        fun isStrict(ctx: Context): Boolean = prefs(ctx).getBoolean("strict", false)
         fun getPackages(ctx: Context): Set<String> =
             prefs(ctx).getStringSet(KEY_PACKAGES, emptySet()) ?: emptySet()
 
-        fun isStrict(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_STRICT, false)
+        private const val KEY_LAST_QUICK_UNLOCK_MINUTES = "last_quick_unlock_minutes"
+        private const val KEY_QUICK_UNLOCK_JUST_EXPIRED = "quick_unlock_just_expired"
+
         fun getGraceUntilMs(ctx: Context): Long = prefs(ctx).getLong(KEY_GRACE_UNTIL_MS, 0L)
         fun isInGracePeriod(ctx: Context): Boolean = System.currentTimeMillis() < getGraceUntilMs(ctx)
 
         /** Grants a quick-unlock grace window (flat duration, no per-session quota). */
-        fun applyEmergencyUnlock(ctx: Context, graceUntilMs: Long, userName: String? = null) {
+        fun applyEmergencyUnlock(ctx: Context, graceUntilMs: Long, minutes: Int = 0, userName: String? = null) {
             prefs(ctx).edit()
                 .putLong(KEY_GRACE_UNTIL_MS, graceUntilMs)
+                .putInt(KEY_LAST_QUICK_UNLOCK_MINUTES, minutes)
+                .putBoolean(KEY_QUICK_UNLOCK_JUST_EXPIRED, true)
                 .apply()
-            QuickUnlockNotification.show(ctx, graceUntilMs, userName)
+            QuickUnlockNotification.show(ctx, graceUntilMs, minutes, userName)
             if (BuildConfig.DEBUG) {
-                android.util.Log.d(TAG, "ShieldPrefs.applyEmergencyUnlock(graceUntilMs=$graceUntilMs)")
+                android.util.Log.d(TAG, "ShieldPrefs.applyEmergencyUnlock(graceUntilMs=$graceUntilMs, minutes=$minutes)")
             }
+        }
+
+        fun clearQuickUnlock(ctx: Context) {
+            prefs(ctx).edit()
+                .putLong(KEY_GRACE_UNTIL_MS, 0L)
+                .putBoolean(KEY_QUICK_UNLOCK_JUST_EXPIRED, false)
+                .apply()
+            QuickUnlockNotification.cancel(ctx)
+            if (BuildConfig.DEBUG) android.util.Log.d(TAG, "ShieldPrefs.clearQuickUnlock()")
+        }
+
+        fun consumeQuickUnlockJustExpired(ctx: Context): Int {
+            val p = prefs(ctx)
+            val justExpired = p.getBoolean(KEY_QUICK_UNLOCK_JUST_EXPIRED, false)
+            if (justExpired && !isInGracePeriod(ctx)) {
+                val mins = p.getInt(KEY_LAST_QUICK_UNLOCK_MINUTES, 0)
+                p.edit().putBoolean(KEY_QUICK_UNLOCK_JUST_EXPIRED, false).apply()
+                return mins
+            }
+            return 0
         }
 
         fun applyOneTimeUnlock(ctx: Context, packageName: String) {
@@ -457,12 +501,23 @@ class FocusShieldRepository @Inject constructor(
         fun clearReturnToFocusGrace(ctx: Context) {
             prefs(ctx).edit().putLong(KEY_RETURN_GRACE_UNTIL_ELAPSED, 0L).apply()
         }
+
+        fun isWithinSchedule(currentMinuteOfDay: Int, startMinute: Int, endMinute: Int): Boolean {
+            return if (startMinute <= endMinute) {
+                currentMinuteOfDay in startMinute..endMinute
+            } else {
+                currentMinuteOfDay >= startMinute || currentMinuteOfDay <= endMinute
+            }
+        }
     }
 
     object Snapshot {
         @Volatile var active: Boolean = false
         @Volatile var packages: Set<String> = emptySet()
         @Volatile var strict: Boolean = false
+        @Volatile var scheduleEnabled: Boolean = false
+        @Volatile var scheduleStartMinute: Int = 540
+        @Volatile var scheduleEndMinute: Int = 1320
     }
 }
 

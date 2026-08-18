@@ -1,5 +1,6 @@
 package com.safarparmar.app.ui.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -306,37 +308,57 @@ fun DashboardScreen(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
                     ) {
                         // 1. Hero Welcome Header
-                        item { WelcomeBanner(uiState.userName, isDarkTheme) }
+                        item {
+                            StaggeredDashboardEntranceBox(index = 0) {
+                                WelcomeBanner(uiState.userName, isDarkTheme)
+                            }
+                        }
 
                         // 2. Active Title Card
                         item {
-                            ActiveTitleCard(
-                                title = uiState.activeTitle,
-                                titleImageUrl = uiState.activeTitleImageUrl,
-                                isDark = isDarkTheme,
-                                hasEarnedAchievements = uiState.earnedAchievements.isNotEmpty(),
-                                onNavigateToAchievements = { onNavigate(Routes.ACHIEVEMENTS) }
-                            )
+                            StaggeredDashboardEntranceBox(index = 1) {
+                                ActiveTitleCard(
+                                    title = uiState.activeTitle,
+                                    titleImageUrl = uiState.activeTitleImageUrl,
+                                    isDark = isDarkTheme,
+                                    hasEarnedAchievements = uiState.earnedAchievements.isNotEmpty(),
+                                    onNavigateToAchievements = { onNavigate(Routes.ACHIEVEMENTS) }
+                                )
+                            }
                         }
 
                         // 3. Study Plan Progress
-                        item { StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate) }
+                        item {
+                            StaggeredDashboardEntranceBox(index = 2) {
+                                StudyPlanProgressCard(uiState.studyPlan, isDarkTheme, onNavigate)
+                            }
+                        }
 
                         // 4. macOS Quick Control Grid (Interactive Hub)
                         item {
-                            MacOSQuickControlGrid(
-                                uiState = uiState,
-                                isDark = isDarkTheme,
-                                onOpenSheet = { sheet -> activeSheet = sheet }
-                            )
+                            StaggeredDashboardEntranceBox(index = 3) {
+                                MacOSQuickControlGrid(
+                                    uiState = uiState,
+                                    isDark = isDarkTheme,
+                                    onOpenSheet = { sheet -> activeSheet = sheet }
+                                )
+                            }
                         }
 
                         // 5. Analytics & Monthly Snapshot
-                        item { MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate) }
+                        item {
+                            StaggeredDashboardEntranceBox(index = 4) {
+                                MonthlyCard(uiState.monthlyReport, isDarkTheme, onNavigate)
+                            }
+                        }
 
                         // 6. Weekly Mood Graph
                         if (uiState.weeklyMoods.isNotEmpty()) {
-                            item { WeeklyMoodChart(uiState.weeklyMoods, isDarkTheme) }
+                            item {
+                                StaggeredDashboardEntranceBox(index = 5) {
+                                    WeeklyMoodChart(uiState.weeklyMoods, isDarkTheme)
+                                }
+                            }
                         }
                     }
                 }
@@ -1129,50 +1151,75 @@ private fun WeeklyMoodChart(moods: List<Mood>, isDark: Boolean) {
 
 @Composable
 private fun DashboardWelcomeOverlay(userName: String, isDark: Boolean, onDismiss: () -> Unit) {
+    val accent = if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
+    val buttonBg = if (isDark) Color(0xFF3B0764) else Color(0xFF581C87)
+    val titleColor = if (isDark) Color(0xFFF9FAFB) else Color(0xFF1F2937)
+    val subtitleColor = if (isDark) Color(0xFF9CA3AF) else Color(0xFF4B5563)
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        SafarGlassDialogHost(isDarkTheme = isDark) {
+        Surface(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .widthIn(max = 380.dp)
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = if (isDark) Color(0xFF1E1F25) else Color.White,
+            shadowElevation = 12.dp,
+            border = BorderStroke(1.dp, if (isDark) Color(0xFF2D2F36) else Color(0xFFE2E8F0)),
+        ) {
             Column(
-                modifier = Modifier
-                    .padding(horizontal = 28.dp)
-                    .widthIn(max = 420.dp)
-                    .fillMaxWidth()
-                    .glassSurface(shape = RoundedCornerShape(22.dp), isDarkTheme = isDark)
-                    .padding(horizontal = 22.dp, vertical = 20.dp),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                PlanEyebrow("Safar")
-                Icon(
-                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_leaf),
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = macAccentBlue(),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = accent,
+                    )
+                }
+
                 Text(
                     text = "Welcome back,\n${userName.replaceFirstChar { it.uppercase() }.ifEmpty { "Friend" }}",
                     fontFamily = LoraFontFamily,
-                    fontSize = 20.sp,
+                    fontSize = 21.sp,
                     fontWeight = FontWeight.Normal,
                     textAlign = TextAlign.Center,
                     lineHeight = 28.sp,
-                    color = macTextColor(isDark),
+                    color = titleColor,
                 )
+
                 Text(
                     text = "Your journey continues here.\nEvery small step forward counts — today is a new opportunity to grow, reflect, and be present.",
-                    fontSize = 14.sp,
-                    color = macSubtitleColor(isDark),
+                    fontSize = 13.5.sp,
+                    color = subtitleColor,
                     textAlign = TextAlign.Center,
-                    lineHeight = 20.sp,
+                    lineHeight = 19.sp,
                 )
+
                 Spacer(Modifier.height(4.dp))
-                GlassButton(
+
+                Button(
                     onClick = onDismiss,
-                    accentColor = macAccentBlue(),
-                    modifier = Modifier.fillMaxWidth(),
-                    isDarkTheme = isDark,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = buttonBg,
+                        contentColor = Color.White,
+                    ),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Star,
@@ -1296,17 +1343,27 @@ private fun CelebrationDialog(
     isDark: Boolean,
     onDismiss: () -> Unit,
 ) {
+    val buttonBg = if (isDark) Color(0xFF3B0764) else Color(0xFF581C87)
+    val titleColor = if (isDark) Color(0xFFF9FAFB) else Color(0xFF1F2937)
+    val subtitleColor = if (isDark) Color(0xFF9CA3AF) else Color(0xFF4B5563)
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        SafarGlassDialogHost(isDarkTheme = isDark) {
+        Surface(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .widthIn(max = 380.dp)
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = if (isDark) Color(0xFF1E1F25) else Color.White,
+            shadowElevation = 12.dp,
+            border = BorderStroke(1.dp, if (isDark) Color(0xFF2D2F36) else Color(0xFFE2E8F0)),
+        ) {
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 28.dp)
-                    .widthIn(max = 420.dp)
                     .fillMaxWidth()
-                    .glassSurface(shape = RoundedCornerShape(22.dp), isDarkTheme = isDark)
                     .padding(horizontal = 22.dp, vertical = 20.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1317,13 +1374,12 @@ private fun CelebrationDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    PlanEyebrow("Safar")
                     Text(
                         "Congratulations! 🎉",
                         fontFamily = LoraFontFamily,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Normal,
-                        color = macTextColor(isDark),
+                        color = titleColor,
                         textAlign = TextAlign.Center,
                     )
 
@@ -1334,7 +1390,7 @@ private fun CelebrationDialog(
                             "You unlocked a new achievement!"
                         },
                         fontSize = 14.sp,
-                        color = macSubtitleColor(isDark),
+                        color = subtitleColor,
                         textAlign = TextAlign.Center,
                     )
 
@@ -1360,7 +1416,7 @@ private fun CelebrationDialog(
                                     achievement.name,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = macTextColor(isDark),
+                                    color = titleColor,
                                     textAlign = TextAlign.Center,
                                 )
 
@@ -1368,7 +1424,7 @@ private fun CelebrationDialog(
                                     Text(
                                         achievement.description,
                                         fontSize = 13.sp,
-                                        color = macSubtitleColor(isDark),
+                                        color = subtitleColor,
                                         textAlign = TextAlign.Center,
                                     )
                                 }
@@ -1378,11 +1434,16 @@ private fun CelebrationDialog(
 
                     Spacer(Modifier.height(8.dp))
 
-                    GlassButton(
+                    Button(
                         onClick = onDismiss,
-                        accentColor = macAccentBlue(),
-                        modifier = Modifier.fillMaxWidth(),
-                        isDarkTheme = isDark,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = buttonBg,
+                            contentColor = Color.White,
+                        ),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Star,
@@ -1402,5 +1463,44 @@ private fun CelebrationDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun StaggeredDashboardEntranceBox(
+    index: Int,
+    content: @Composable () -> Unit,
+) {
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    val slideOffset by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isVisible) 0.dp else (20 + index * 12).dp,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 320,
+            delayMillis = index * 40,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+        ),
+        label = "dashboardStaggeredOffset",
+    )
+    val alphaAnim by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 280,
+            delayMillis = index * 40,
+        ),
+        label = "dashboardStaggeredAlpha",
+    )
+
+    Box(
+        modifier = Modifier
+            .graphicsLayer {
+                translationY = slideOffset.toPx()
+                alpha = alphaAnim
+            }
+    ) {
+        content()
     }
 }

@@ -36,6 +36,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flag
@@ -228,6 +230,7 @@ private fun NishthaBottomBar(
     val scheme = MaterialTheme.colorScheme
     val isLight = scheme.background.isLightBackground()
     val isDark = !isLight
+    val haptic = LocalHapticFeedback.current
 
     val selectedIndex = tabs.indexOf(selected).coerceAtLeast(0)
     val animatedIndex by animateFloatAsState(
@@ -340,7 +343,10 @@ private fun NishthaBottomBar(
                             .weight(1f)
                             .fillMaxHeight()
                             .clip(pillShape)
-                            .clickable { onSelect(tab) },
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onSelect(tab)
+                            },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
@@ -372,5 +378,5 @@ private fun nishthaTabAccent(tab: NishthaTab, isDark: Boolean): Color = when (ta
     NishthaTab.JOURNAL -> if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
     NishthaTab.GOALS -> if (isDark) Color(0xFF34D399) else Color(0xFF059669)
     NishthaTab.STREAKS -> if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706)
-    NishthaTab.ANALYTICS -> if (isDark) Color(0xFFC084FC) else Color(0xFF6D28D9)
+    NishthaTab.ANALYTICS -> if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
 }

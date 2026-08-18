@@ -26,6 +26,9 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -84,7 +87,6 @@ fun EkagraKavachInlineCard(
     forceExpanded: Boolean,
     isSessionRunning: Boolean = false,
     onToggleEnabled: (Boolean) -> Unit,
-    onToggleStrictMode: (Boolean) -> Unit = {},
     onOpenAppPicker: () -> Unit,
     onSetupPermissions: () -> Unit,
     modifier: Modifier = Modifier,
@@ -224,25 +226,106 @@ fun EkagraKavachInlineCard(
                         onOpenAppPicker = onOpenAppPicker,
                     )
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(scheme.surfaceVariant.copy(alpha = 0.3f))
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column {
-                            Text("Beast Mode", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = scheme.onSurface)
-                            Text("No short unlock until the timer ends.", fontSize = 11.sp, color = secondaryText)
+                    if (requiredPermissionsGranted && (!hasNotificationSuppressionAccess || !hasNotifications)) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = scheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    text = "OPTIONAL PROTECTION PERMISSIONS",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                    color = secondaryText,
+                                )
+                                if (!hasNotificationSuppressionAccess) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable { FocusShieldPermissionHelper.openNotificationListenerSettings(context) }
+                                            .padding(vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            Icons.Default.NotificationsActive,
+                                            contentDescription = null,
+                                            tint = KavachDesign.Primary,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Notification Shield",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = scheme.onSurface,
+                                            )
+                                            Text(
+                                                text = "Silence notifications from blocked apps.",
+                                                fontSize = 11.sp,
+                                                color = secondaryText,
+                                            )
+                                        }
+                                        Text(
+                                            text = "Enable",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = KavachDesign.Primary,
+                                        )
+                                    }
+                                }
+                                if (!hasNotifications && !hasNotificationSuppressionAccess) {
+                                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f), thickness = 0.5.dp)
+                                }
+                                if (!hasNotifications) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable { requestNotificationPermission() }
+                                            .padding(vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Notifications,
+                                            contentDescription = null,
+                                            tint = KavachDesign.Primary,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Timer Notifications",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = scheme.onSurface,
+                                            )
+                                            Text(
+                                                text = "Show timer progress on lock screen.",
+                                                fontSize = 11.sp,
+                                                color = secondaryText,
+                                            )
+                                        }
+                                        Text(
+                                            text = "Enable",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = KavachDesign.Primary,
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        Switch(
-                            checked = shieldState.isStrictMode,
-                            onCheckedChange = onToggleStrictMode,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
                     }
+
+
 
                     AnimatedVisibility(
                         visible = shieldState.isEnabled && requiredPermissionsGranted && shieldState.blockedPackages.isNotEmpty(),

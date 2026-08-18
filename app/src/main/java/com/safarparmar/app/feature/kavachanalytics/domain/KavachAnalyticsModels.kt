@@ -105,9 +105,9 @@ fun CategoryTotals.secondsFor(filter: KavachCategoryFilter): Int = when (filter)
 
 /** How the date range is stepped through. */
 enum class KavachGranularity(val label: String) {
-    DAILY("Daily"),
-    WEEKLY("Weekly"),
-    MONTHLY("Monthly"),
+    DAILY("Day"),
+    WEEKLY("Week"),
+    MONTHLY("Month"),
 }
 
 /** Kavach event types persisted immediately and rolled up at aggregation time. */
@@ -124,7 +124,7 @@ object KavachEventType {
 /** Kavach blocking profile a session ran under. */
 object KavachSessionMode {
     const val NORMAL = "normal"
-    const val BEAST = "beast"
+    const val ALWAYS_ON = "always_on"
 }
 
 // ── Read models used by the UI ───────────────────────────────────────────────
@@ -197,6 +197,8 @@ data class KavachAnalyticsReport(
     val apps: List<AppUsageRow> = emptyList(),
     val sessions: List<KavachSessionSummary> = emptyList(),
     val blockedAttempts: Int = 0,
+    val ekagraBlockedAttempts: Int = 0,
+    val alwaysOnBlockedAttempts: Int = 0,
     val blockedAttemptsByPackage: Map<String, Int> = emptyMap(),
     val quickUnlockCount: Int = 0,
     val quickUnlockSeconds: Int = 0,

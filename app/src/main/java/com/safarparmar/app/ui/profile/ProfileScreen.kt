@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -155,6 +156,11 @@ fun ProfileScreen(
                 }
             },
         ) { paddingValues ->
+            var profileVisible by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                profileVisible = true
+            }
+
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
@@ -173,34 +179,42 @@ fun ProfileScreen(
                         )
                     }
 
-                    ProfileHeaderSection(
-                        uiState = uiState,
-                        onAvatarClick = {
-                            if (uiState.userAvatar.isNullOrBlank()) imagePicker.launch("image/*")
-                            else showAvatarPreview = true
-                        },
-                        onEditAvatarClick = { imagePicker.launch("image/*") },
-                    )
-
-                    PlanHairline(alpha = 0.5f)
-
-                    ProfileSheetSection(title = "Personal Information") {
-                        PersonalInfoFields(uiState = uiState, viewModel = viewModel)
-                    }
-
-                    PlanHairline(alpha = 0.5f)
-
-                    ProfileSheetSection(title = "Academic & Exam Focus") {
-                        ExamFocusFields(uiState = uiState, viewModel = viewModel)
-                    }
-
-                    PlanHairline(alpha = 0.5f)
-
-                    ProfileSheetSection(title = "Account & Subscription") {
-                        AccountStatusRow(
-                            isPremiumActive = premiumStatus.hasAnyPaidAccess,
-                            onPremiumClick = onPremium,
+                    StaggeredProfileEntranceBox(index = 0, isVisible = profileVisible) {
+                        ProfileHeaderSection(
+                            uiState = uiState,
+                            onAvatarClick = {
+                                if (uiState.userAvatar.isNullOrBlank()) imagePicker.launch("image/*")
+                                else showAvatarPreview = true
+                            },
+                            onEditAvatarClick = { imagePicker.launch("image/*") },
                         )
+                    }
+
+                    PlanHairline(alpha = 0.5f)
+
+                    StaggeredProfileEntranceBox(index = 1, isVisible = profileVisible) {
+                        ProfileSheetSection(title = "Personal Information") {
+                            PersonalInfoFields(uiState = uiState, viewModel = viewModel)
+                        }
+                    }
+
+                    PlanHairline(alpha = 0.5f)
+
+                    StaggeredProfileEntranceBox(index = 2, isVisible = profileVisible) {
+                        ProfileSheetSection(title = "Academic & Exam Focus") {
+                            ExamFocusFields(uiState = uiState, viewModel = viewModel)
+                        }
+                    }
+
+                    PlanHairline(alpha = 0.5f)
+
+                    StaggeredProfileEntranceBox(index = 3, isVisible = profileVisible) {
+                        ProfileSheetSection(title = "Account & Subscription") {
+                            AccountStatusRow(
+                                isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                                onPremiumClick = onPremium,
+                            )
+                        }
                     }
 
                     if (uiState.error != null) {
@@ -215,11 +229,13 @@ fun ProfileScreen(
 
                     PlanHairline(alpha = 0.5f)
 
-                    ActionsRow(
-                        isSaving = uiState.isSaving,
-                        onLogoutClick = { viewModel.onEvent(ProfileEvent.ShowLogoutDialog) },
-                        onSaveClick = { viewModel.onEvent(ProfileEvent.SaveProfile) },
-                    )
+                    StaggeredProfileEntranceBox(index = 4, isVisible = profileVisible) {
+                        ActionsRow(
+                            isSaving = uiState.isSaving,
+                            onLogoutClick = { viewModel.onEvent(ProfileEvent.ShowLogoutDialog) },
+                            onSaveClick = { viewModel.onEvent(ProfileEvent.SaveProfile) },
+                        )
+                    }
 
                     FooterSection()
 
@@ -733,10 +749,10 @@ private fun FooterSection() {
     ) {
         Text(
             text = "For support or queries, reach us at:\nonesafar@gmail.com • safarparmar0@gmail.com",
-            fontSize = 12.sp,
+            fontSize = 11.sp,
             color = PlannerFlatColors.TextMuted,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
+            lineHeight = 16.sp,
         )
         Spacer(Modifier.height(8.dp))
         Text(
@@ -744,5 +760,40 @@ private fun FooterSection() {
             fontSize = 11.sp,
             color = PlannerFlatColors.TextMuted.copy(alpha = 0.7f),
         )
+    }
+}
+
+@Composable
+private fun StaggeredProfileEntranceBox(
+    index: Int,
+    isVisible: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val slideOffset by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isVisible) 0.dp else (20 + index * 12).dp,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 320,
+            delayMillis = index * 40,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+        ),
+        label = "profileStaggeredOffset",
+    )
+    val alphaAnim by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 280,
+            delayMillis = index * 40,
+        ),
+        label = "profileStaggeredAlpha",
+    )
+
+    Box(
+        modifier = Modifier
+            .graphicsLayer {
+                translationY = slideOffset.toPx()
+                alpha = alphaAnim
+            }
+    ) {
+        content()
     }
 }

@@ -34,8 +34,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -129,23 +132,22 @@ fun SettingsScreen(
             onToggleDarkTheme = onToggleDarkTheme,
             containerColor = SafarSemanticColors.plannerBackground(),
         ) { paddingValues ->
+            var settingsVisible by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                settingsVisible = true
+            }
+
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
                         .verticalScroll(rememberScrollState())
+                        .imePadding()
                         .padding(horizontal = 20.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "App Settings",
-                            fontFamily = LoraFontFamily,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = PlannerFlatColors.TextDark,
-                        )
                         Text(
                             text = "Customize theme, notifications, and permissions",
                             fontSize = 13.sp,
@@ -153,67 +155,83 @@ fun SettingsScreen(
                         )
                     }
 
-                    SettingsSheetSection(title = "Account & Subscription") {
-                        PremiumStatusSection(
-                            isPremiumActive = premiumStatus.hasAnyPaidAccess,
-                            onExplorePremium = onPremium,
-                            onRestoreStatus = { premiumViewModel.refreshPremiumStatus() },
-                        )
+                    StaggeredSettingsEntranceBox(index = 0, isVisible = settingsVisible) {
+                        SettingsSheetSection(title = "Account & Subscription") {
+                            PremiumStatusSection(
+                                isPremiumActive = premiumStatus.hasAnyPaidAccess,
+                                onExplorePremium = onPremium,
+                                onRestoreStatus = { premiumViewModel.refreshPremiumStatus() },
+                            )
+                        }
                     }
 
                     if (canAccessAdminComposer) {
                         PlanHairline(alpha = 0.5f)
-                        SettingsSheetSection(title = "Admin Tools") {
-                            SettingsNavigationRow(
-                                title = "Notification Composer",
-                                subtitle = "Broadcast push alerts to all enrolled students",
-                                icon = Icons.Default.AdminPanelSettings,
-                                onClick = onOpenAdminNotificationComposer,
+                        StaggeredSettingsEntranceBox(index = 1, isVisible = settingsVisible) {
+                            SettingsSheetSection(title = "Admin Tools") {
+                                SettingsNavigationRow(
+                                    title = "Notification Composer",
+                                    subtitle = "Broadcast push alerts to all enrolled students",
+                                    icon = Icons.Default.AdminPanelSettings,
+                                    onClick = onOpenAdminNotificationComposer,
+                                )
+                            }
+                        }
+                    }
+
+                    PlanHairline(alpha = 0.5f)
+
+                    StaggeredSettingsEntranceBox(index = 2, isVisible = settingsVisible) {
+                        val haptic = LocalHapticFeedback.current
+                        SettingsSheetSection(title = "Preferences & Appearance") {
+                            SettingsSwitchRow(
+                                title = "Dark Theme",
+                                subtitle = "Switch between dark and light theme",
+                                checked = isDarkTheme,
+                                onCheckedChange = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onToggleDarkTheme()
+                                },
+                                icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
                             )
                         }
                     }
 
                     PlanHairline(alpha = 0.5f)
 
-                    SettingsSheetSection(title = "Preferences & Appearance") {
-                        SettingsSwitchRow(
-                            title = "Dark Theme",
-                            subtitle = "Switch between dark and light theme",
-                            checked = isDarkTheme,
-                            onCheckedChange = { onToggleDarkTheme() },
-                            icon = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.WbSunny,
-                        )
-                    }
-
-                    PlanHairline(alpha = 0.5f)
-
-                    SettingsSheetSection(title = "Study Notifications") {
-                        NotificationsSection(
-                            uiState = uiState,
-                            onEvent = viewModel::onEvent,
-                            onShowTimePicker = { showTimePickerDialog = true },
-                        )
+                    StaggeredSettingsEntranceBox(index = 3, isVisible = settingsVisible) {
+                        SettingsSheetSection(title = "Study Notifications") {
+                            NotificationsSection(
+                                uiState = uiState,
+                                onEvent = viewModel::onEvent,
+                                onShowTimePicker = { showTimePickerDialog = true },
+                            )
+                        }
                     }
 
                     PlanHairline(alpha = 0.5f)
 
                     val grantedCount = listOf(hasUsagePermission, hasOverlayPermission, hasNotificationPermission).count { it }
-                    SettingsSheetSection(title = "App Permissions ($grantedCount/3)") {
-                        PermissionsSection(
-                            hasUsagePermission = hasUsagePermission,
-                            hasOverlayPermission = hasOverlayPermission,
-                            hasNotificationPermission = hasNotificationPermission,
-                            context = context,
-                        )
+                    StaggeredSettingsEntranceBox(index = 4, isVisible = settingsVisible) {
+                        SettingsSheetSection(title = "App Permissions ($grantedCount/3)") {
+                            PermissionsSection(
+                                hasUsagePermission = hasUsagePermission,
+                                hasOverlayPermission = hasOverlayPermission,
+                                hasNotificationPermission = hasNotificationPermission,
+                                context = context,
+                            )
+                        }
                     }
 
                     PlanHairline(alpha = 0.5f)
 
-                    SettingsSheetSection(title = "Legal & Information") {
-                        LegalSection(
-                            context = context,
-                            onShowPermissionInfo = { showPermissionInfoDialog = true },
-                        )
+                    StaggeredSettingsEntranceBox(index = 5, isVisible = settingsVisible) {
+                        SettingsSheetSection(title = "Legal & Information") {
+                            LegalSection(
+                                context = context,
+                                onShowPermissionInfo = { showPermissionInfoDialog = true },
+                            )
+                        }
                     }
 
                     FooterSection()
@@ -837,6 +855,41 @@ private fun checkNotificationPermission(context: Context): Boolean {
             Manifest.permission.POST_NOTIFICATIONS
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     } else true
+}
+
+@Composable
+private fun StaggeredSettingsEntranceBox(
+    index: Int,
+    isVisible: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val slideOffset by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isVisible) 0.dp else (20 + index * 12).dp,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 320,
+            delayMillis = index * 40,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+        ),
+        label = "settingsStaggeredOffset",
+    )
+    val alphaAnim by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 280,
+            delayMillis = index * 40,
+        ),
+        label = "settingsStaggeredAlpha",
+    )
+
+    Box(
+        modifier = Modifier
+            .graphicsLayer {
+                translationY = slideOffset.toPx()
+                alpha = alphaAnim
+            }
+    ) {
+        content()
+    }
 }
 
 private fun openUrl(context: Context, url: String) {

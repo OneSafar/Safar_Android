@@ -116,12 +116,39 @@ fun TemplatePickerStep(
             if (loadingTemplates) {
                 CircularProgressIndicator()
             } else {
-                val categoryOrder = listOf("SSC Exams", "Railways", "Defense & Police", "UPSC & State PSC", "Engineering & Medical", "Management & Banking", "Teaching & Research")
+                val categoryOrder = listOf(
+                    "SSC Exams",
+                    "Railways",
+                    "Banking",
+                    "UPSC & State PSC",
+                    "DSSSB",
+                    "Bihar Exams",
+                    "UP Exams",
+                    "CAT(Common Admission Test)",
+                    "Defense",
+                    "Engineering & Medical",
+                    "Teaching & Research"
+                )
+                fun getCategoryRank(cat: String): Int {
+                    val normalized = cat.trim().lowercase()
+                    if (normalized.contains("ssc") && !normalized.contains("state") && !normalized.contains("dsssb")) return 1
+                    if (normalized.contains("railway")) return 2
+                    if (normalized.contains("bank")) return 3
+                    if (normalized.contains("upsc")) return 4
+                    if (normalized.contains("dsssb")) return 5
+                    if (normalized.contains("bihar")) return 6
+                    if (normalized.contains("up exam") || normalized == "up exams") return 7
+                    if (normalized.contains("cat")) return 8
+                    if (normalized.contains("defense")) return 9
+                    if (normalized.contains("engineering") || normalized.contains("medical")) return 10
+                    if (normalized.contains("teaching") || normalized.contains("research")) return 11
+                    val index = categoryOrder.indexOfFirst { it.equals(cat, ignoreCase = true) }
+                    return if (index != -1) index + 1 else 999
+                }
                 val sortedGroups = remember(templates) { 
-                    templates.groupBy { it.category.takeIf { c -> c.isNotBlank() } ?: "Other" }.entries.sortedBy { 
-                        val index = categoryOrder.indexOf(it.key)
-                        if (index != -1) index else Int.MAX_VALUE
-                    }
+                    templates.groupBy { it.category.takeIf { c -> c.isNotBlank() } ?: "Other" }.entries.sortedWith(
+                        compareBy({ getCategoryRank(it.key) }, { it.key })
+                    )
                 }
                 var expandedCategories by remember { mutableStateOf(setOf<String>()) }
                 
@@ -287,7 +314,7 @@ fun TemplatePickerStep(
                     val subject = templateExtraSubjects[customSubjectIndex]
                     var showAddChapterDialog by remember(subjectIndex) { mutableStateOf(false) }
 
-                    DrillDownHeader(title = subject.name, onBack = onDrillBack)
+                    DrillDownHeader(title = subject.name)
                     LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         item {
                             TextButton(onClick = { showAddChapterDialog = true }) {
@@ -324,7 +351,7 @@ fun TemplatePickerStep(
                     val extras = templateExtraChapters[subjectIndex].orEmpty()
                     var showAddChapterDialog by remember(subjectIndex) { mutableStateOf(false) }
 
-                    DrillDownHeader(title = subject.name, onBack = onDrillBack)
+                    DrillDownHeader(title = subject.name)
                     LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         item {
                             TextButton(onClick = { showAddChapterDialog = true }) {
@@ -383,7 +410,7 @@ fun TemplatePickerStep(
                     val chapterId = (chapterRef as TemplateChapterRef.Custom).localId
                     val chapter = subject.chapters.first { it.localId == chapterId }
                     
-                    DrillDownHeader(title = chapter.name, onBack = onDrillBack)
+                    DrillDownHeader(title = chapter.name)
                     LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         item {
                             TextButton(onClick = { showAddTopicDialog = true }) {
@@ -420,7 +447,7 @@ fun TemplatePickerStep(
                         is TemplateChapterRef.Original -> {
                             val chapter = subject.chapters[chapterRef.index]
                             val extraTopics = templateExtraTopics[subjectIndex to chapterRef.index].orEmpty()
-                            DrillDownHeader(title = chapter.name, onBack = onDrillBack)
+                            DrillDownHeader(title = chapter.name)
                             Text(
                                 "Remove any topics you don't want in your plan.",
                                 style = MaterialTheme.typography.bodySmall,
@@ -468,7 +495,7 @@ fun TemplatePickerStep(
 
                         is TemplateChapterRef.Custom -> {
                             val chapter = templateExtraChapters[subjectIndex].orEmpty().first { it.localId == chapterRef.localId }
-                            DrillDownHeader(title = chapter.name, onBack = onDrillBack)
+                            DrillDownHeader(title = chapter.name)
                             LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 item {
                                     TextButton(onClick = { showAddTopicDialog = true }) {
@@ -516,12 +543,7 @@ fun TemplatePickerStep(
 }
 
 @Composable
-private fun DrillDownHeader(title: String, onBack: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        TextButton(onClick = onBack) {
-            Text("Back", fontWeight = FontWeight.Bold)
-        }
-    }
+private fun DrillDownHeader(title: String) {
     Text(title, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
 }
 

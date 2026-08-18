@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import com.safarparmar.app.ui.theme.*
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,8 +52,8 @@ fun AchievementsScreen(
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    Box(modifier = Modifier.padding(start = 12.dp)) {
+                        com.safarparmar.app.ui.ekagra.focusshield.KavachCircularBackButton(onClick = onBack)
                     }
                 },
                 title = {
@@ -104,12 +106,14 @@ fun AchievementsScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(filtered) { achievement ->
-                        AchievementCard(
-                            achievement = achievement,
-                            isSelected = achievement.id == selectedAchievementId,
-                            onSelectAchievement = onSelectAchievement,
-                        )
+                    itemsIndexed(filtered) { index, achievement ->
+                        StaggeredAchievementEntranceBox(index = index) {
+                            AchievementCard(
+                                achievement = achievement,
+                                isSelected = achievement.id == selectedAchievementId,
+                                onSelectAchievement = onSelectAchievement,
+                            )
+                        }
                     }
                 }
             }
@@ -203,8 +207,14 @@ private fun AchievementCard(
 
                 if (!isEarned && achievement.targetValue > 0) {
                     Spacer(Modifier.height(2.dp))
+                    val targetProgress = (achievement.currentValue / achievement.targetValue).toFloat().coerceIn(0f, 1f)
+                    val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = targetProgress,
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 600, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                        label = "achievementProgress",
+                    )
                     LinearProgressIndicator(
-                        progress = { (achievement.currentValue / achievement.targetValue).toFloat().coerceIn(0f, 1f) },
+                        progress = { animatedProgress },
                         modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
                         color = primary,
                         trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.15f),
@@ -256,4 +266,43 @@ private fun rarityColor(rarity: String): Color = when (rarity.lowercase()) {
     "rare"      -> Blue500
     "special"   -> Emerald400
     else        -> Slate400
+}
+
+@Composable
+private fun StaggeredAchievementEntranceBox(
+    index: Int,
+    content: @Composable () -> Unit,
+) {
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    val slideOffset by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isVisible) 0.dp else (18 + index * 10).dp,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 300,
+            delayMillis = index * 35,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing,
+        ),
+        label = "achievementStaggeredOffset",
+    )
+    val alphaAnim by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 260,
+            delayMillis = index * 35,
+        ),
+        label = "achievementStaggeredAlpha",
+    )
+
+    Box(
+        modifier = Modifier
+            .graphicsLayer {
+                translationY = slideOffset.toPx()
+                alpha = alphaAnim
+            }
+    ) {
+        content()
+    }
 }

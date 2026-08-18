@@ -193,12 +193,14 @@ internal fun TimerFocusTab(
     isDarkTheme: Boolean,
     themeAccent: Color,
     onToggleKavach: (Boolean) -> Unit,
-    onToggleStrictMode: (Boolean) -> Unit,
     onOpenAppPicker: () -> Unit,
     onNavigate: (String) -> Unit,
-    isBeastMode: Boolean = false,
     selectedTheme: VisualTheme? = null,
     onOpenAnalytics: () -> Unit = {},
+    studyCircleLiveCount: Int = 0,
+    myCircles: List<com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto> = emptyList(),
+    selectedStudyCircle: com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto? = null,
+    onSelectStudyCircle: (com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto) -> Unit = {},
 ) {
     val scheme  = MaterialTheme.colorScheme
     val configuration   = LocalConfiguration.current
@@ -215,8 +217,7 @@ internal fun TimerFocusTab(
       Column(Modifier.fillMaxSize()) {
         // Pinned above the scrolling, vertically-centred timer column so the
         // summary sits just under the top bar. Inside controlsVisible on purpose:
-        // once a session is running the chrome hides, and a usage counter is the
-        // last thing a student should be reading mid-focus.
+        // once a session is running the chrome hides.
         AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)),
@@ -224,7 +225,12 @@ internal fun TimerFocusTab(
         ) {
             com.safarparmar.app.feature.kavachanalytics.ui.KavachSummaryPills(
                 ink = ink,
-                onClick = onOpenAnalytics,
+                themeAccent = themeAccent,
+                onOpenAnalytics = onOpenAnalytics,
+                myCircles = myCircles,
+                selectedCircle = selectedStudyCircle,
+                onSelectCircle = onSelectStudyCircle,
+                onNavigate = onNavigate,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 4.dp),
             )
         }
@@ -258,7 +264,7 @@ internal fun TimerFocusTab(
                     val hasAllPermissions = shieldState.hasUsageStats &&
                                             shieldState.hasOverlayPermission
 
-                    if (hasAllPermissions && !isBeastMode) {
+                    if (hasAllPermissions) {
                         // Status chip — a hairline outline and a single accent dot
                         // instead of a frosted panel with a full switch.
                         // Under Always On the chip is read-only: tapping it used to
@@ -293,13 +299,13 @@ internal fun TimerFocusTab(
                             )
                             Text(
                                 text = when {
-                                    alwaysOn -> "Kavach always on"
+                                    alwaysOn -> "Kavach Always On"
                                     shieldState.isEnabled -> "Kavach on"
                                     else -> "Kavach off"
                                 },
                                 fontSize = EkagraChrome.text(12f),
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (shieldState.isEnabled && !alwaysOn) ink.primaryText else ink.mutedText,
+                                color = if (shieldState.isEnabled || alwaysOn) ink.primaryText else ink.mutedText,
                             )
                         }
                         Spacer(Modifier.height(24.dp))

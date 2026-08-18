@@ -15,9 +15,13 @@ import javax.inject.Inject
 
 data class FocusShieldUiState(
     val isEnabled: Boolean = false,
-    val isStrictMode: Boolean = false,
     val isAlwaysOnMode: Boolean = false,
+    val isStrictMode: Boolean = false,
+    val savedAppUsageMode: String? = null,
     val blockedPackages: Set<String> = emptySet(),
+    val isScheduleEnabled: Boolean = false,
+    val scheduleStartMinute: Int = 540,
+    val scheduleEndMinute: Int = 1320,
     val hasOverlayPermission: Boolean = false,
     val hasNotifications: Boolean = false,
     val hasNotificationSuppressionAccess: Boolean = false,
@@ -32,9 +36,13 @@ data class AppPickerUiState(
 
 private data class FocusShieldSettingsState(
     val enabled: Boolean,
-    val strict: Boolean,
     val alwaysOn: Boolean,
+    val strict: Boolean,
+    val savedMode: String?,
     val packages: Set<String>,
+    val scheduleEnabled: Boolean,
+    val scheduleStartMinute: Int,
+    val scheduleEndMinute: Int,
 )
 
 @HiltViewModel
@@ -50,15 +58,24 @@ class FocusShieldViewModel @Inject constructor(
 
     private val shieldSettings = combine(
         repo.isEnabled,
-        repo.isStrictMode,
         repo.isAlwaysOnMode,
+        repo.isStrictMode,
+        repo.appUsageMode,
         repo.blockedPackages,
-    ) { enabled, strict, alwaysOn, packages ->
+        repo.scheduleEnabled,
+        repo.scheduleStartMinute,
+        repo.scheduleEndMinute,
+    ) { array ->
+        @Suppress("UNCHECKED_CAST")
         FocusShieldSettingsState(
-            enabled = enabled,
-            strict = strict,
-            alwaysOn = alwaysOn,
-            packages = packages,
+            enabled = array[0] as Boolean,
+            alwaysOn = array[1] as Boolean,
+            strict = array[2] as Boolean,
+            savedMode = array[3] as String?,
+            packages = array[4] as Set<String>,
+            scheduleEnabled = array[5] as Boolean,
+            scheduleStartMinute = array[6] as Int,
+            scheduleEndMinute = array[7] as Int,
         )
     }
 
@@ -67,9 +84,13 @@ class FocusShieldViewModel @Inject constructor(
     ) { settings, _ ->
         FocusShieldUiState(
             isEnabled = settings.enabled,
-            isStrictMode = settings.strict,
             isAlwaysOnMode = settings.alwaysOn,
+            isStrictMode = settings.strict,
+            savedAppUsageMode = settings.savedMode,
             blockedPackages = settings.packages,
+            isScheduleEnabled = settings.scheduleEnabled,
+            scheduleStartMinute = settings.scheduleStartMinute,
+            scheduleEndMinute = settings.scheduleEndMinute,
             hasOverlayPermission = FocusShieldPermissionHelper.hasOverlayPermission(app),
             hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(app),
             hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(app),
@@ -155,8 +176,10 @@ class FocusShieldViewModel @Inject constructor(
     // ── Shield settings actions ──────────────────────────────────────────────
 
     fun setEnabled(enabled: Boolean) = repo.setEnabled(enabled)
-    fun setStrictMode(enabled: Boolean) = repo.setStrictMode(enabled)
     fun setKavachProfile(mode: String) = repo.setKavachProfile(mode)
+    fun setStrictMode(enabled: Boolean) = repo.setStrictMode(enabled)
+    fun setScheduleEnabled(enabled: Boolean) = repo.setScheduleEnabled(enabled)
+    fun setScheduleRange(startMinute: Int, endMinute: Int) = repo.setScheduleRange(startMinute, endMinute)
     fun refreshPermissions() {
         // Force a re-emission by triggering one of the combine inputs
         // Since we already read permissions inside combine, we just need
@@ -176,18 +199,4 @@ class FocusShieldViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     fun clearSessionStats() = repo.clearSessionStats()
-
-    fun snapshotBlockedAttempts(): List<KavachBlockedAttempt> {
-        val pm = app.packageManager
-        return blockedHitsByPackage.value.entries
-            .sortedByDescending { it.value }
-            .map { (pkg, count) ->
-                val label = runCatching {
-                    val info = pm.getApplicationInfo(pkg, 0)
-                    pm.getApplicationLabel(info).toString()
-                }.getOrDefault(pkg.substringAfterLast('.'))
-                val icon = runCatching { pm.getApplicationIcon(pkg) }.getOrNull()
-                KavachBlockedAttempt(appName = label, attemptCount = count, icon = icon)
-            }
-    }
 }

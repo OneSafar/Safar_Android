@@ -22,16 +22,20 @@ object Routes {
     const val STUDY_PLANNER_ROUTE = "study_planner?planId={planId}&showDailyTodoSetup={showDailyTodoSetup}&openTab={openTab}"
     const val CREATE_PLAN = "study_planner/create"
     const val MEHFIL = "mehfil"
+    const val LEADERBOARD = "leaderboard"
+    const val STUDY_CIRCLES = "study_circles"
+    const val STUDY_CIRCLE_DETAIL = "study_circles/{circleId}"
     const val DM_CHAT = "mehfil/dm_chat"
     const val DHYAN  = "dhyan"
     const val COURSES = "dhyan_courses"
     const val APP_PICKER = "ekagra/app_picker"
     const val KAVACH_ABOUT = "kavach/about"
-    const val KAVACH_SESSION_SUMMARY = "kavach/session_summary"
     /** App-category editor behind Kavach analytics and Kavach setup. */
     const val KAVACH_APP_CATEGORIES = "kavach/app_categories"
     const val LAUNCH_USAGE_QUESTIONNAIRE = "launch_usage_questionnaire"
     const val FOCUS_SHIELD = "focus_shield"
+    const val YOUTUBE_STUDY_MODE = "youtube_study_mode"
+    const val YOUTUBE_STUDY_ANALYTICS = "youtube_study_mode/analytics"
     const val LIVE_SESSIONS_ROOT = "live/sessions"
     const val LIVE_SESSIONS = "live/sessions?courseId={courseId}"
     const val LIVE_SESSION = "live/session/{sessionId}"
@@ -44,7 +48,7 @@ object Routes {
     fun nishthaTab(tab: Int): String = "nishtha?tab=$tab"
 
     /** Canonical entry route for drawer / HomeScreen launches. */
-    fun nishthaRoot(): String = "nishtha?tab=0&section=${android.net.Uri.encode("overview")}"
+    fun nishthaRoot(): String = "nishtha?tab=0&section=overview"
 
     /** Canonical entry route for drawer / HomeScreen launches. */
     fun studyPlannerRoot(): String = "study_planner?showDailyTodoSetup=false"
@@ -58,15 +62,18 @@ object Routes {
         else -> route
     }
 
+    private fun encodeParam(value: String): String =
+        runCatching { java.net.URLEncoder.encode(value, "UTF-8") }.getOrDefault(value)
+
     /** Deep-link target that opens a specific plan straight on its Revision tab. */
     fun studyPlannerRevision(planId: String): String =
-        "study_planner?planId=${android.net.Uri.encode(planId)}&showDailyTodoSetup=false&openTab=revision"
+        "study_planner?planId=${encodeParam(planId)}&showDailyTodoSetup=false&openTab=revision"
 
     fun ekagraForGoal(goalId: String, goalTitle: String): String =
-        "ekagra?goalId=${android.net.Uri.encode(goalId)}&goalTitle=${android.net.Uri.encode(goalTitle)}"
+        "ekagra?goalId=${encodeParam(goalId)}&goalTitle=${encodeParam(goalTitle)}"
 
     fun ekagraForTopic(topicId: String, topicTitle: String, planId: String): String =
-        "ekagra?topicId=${android.net.Uri.encode(topicId)}&topicTitle=${android.net.Uri.encode(topicTitle)}&planId=${android.net.Uri.encode(planId)}"
+        "ekagra?topicId=${encodeParam(topicId)}&topicTitle=${encodeParam(topicTitle)}&planId=${encodeParam(planId)}"
 
     /**
      * Context launches carry newly selected work. They must not restore an old
@@ -105,4 +112,7 @@ object Routes {
 
     fun liveSession(sessionId: String): String =
         "live/session/${android.net.Uri.encode(sessionId)}"
+
+    fun studyCircleDetail(circleId: String): String =
+        "study_circles/${android.net.Uri.encode(circleId)}"
 }

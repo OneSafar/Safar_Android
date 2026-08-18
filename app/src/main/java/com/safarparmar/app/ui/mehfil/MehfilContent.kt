@@ -35,8 +35,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Groups
@@ -81,7 +82,7 @@ import kotlinx.coroutines.delay
 internal enum class MehfilTab(val label: String, val icon: ImageVector) {
     COMMUNITY("Community", Icons.Default.Groups),
     SAVED("Saved", Icons.Default.Bookmark),
-    ANALYTICS("My Activity", Icons.Default.BarChart),
+    ANALYTICS("Activity", Icons.Default.BarChart),
     CONNECTIONS("Chats", Icons.Default.PersonAdd),
 }
 
@@ -118,8 +119,6 @@ internal fun MehfilContent(
     dataStore: com.safarparmar.app.data.local.SafarDataStore? = null,
 ) {
     val searchFocusRequester = remember { FocusRequester() }
-    val isLight = !isDarkTheme
-
     SafarDrawerScaffold(
         title = "Mehfil",
         subtitle = "SAFAR",
@@ -227,6 +226,11 @@ internal fun MehfilContent(
                                     onReactSandesh = onReactSandesh,
                                     onLikePost = onLikePost,
                                     onSavePost = onSavePost,
+                                    onCreatePostClick = onCreatePostClick,
+                                    onViewStudyCircles = { onNavigate(com.safarparmar.app.ui.navigation.Routes.STUDY_CIRCLES) },
+                                    onOpenStudyCircle = { circleId ->
+                                        onNavigate("${com.safarparmar.app.ui.navigation.Routes.STUDY_CIRCLES}/$circleId")
+                                    },
                                 )
                                 MehfilTab.SAVED -> SavedTab(
                                     uiState = uiState,
@@ -245,36 +249,6 @@ internal fun MehfilContent(
                             }
                         }
 
-                        // Flat accent FAB (not Material FAB)
-                        if (selectedTab == MehfilTab.COMMUNITY) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(24.dp)
-                                    .size(56.dp)
-                                    .shadow(
-                                        elevation = if (isLight) 6.dp else 12.dp,
-                                        shape = CircleShape,
-                                        spotColor = MehfilFlatColors.Primary.copy(alpha = 0.35f),
-                                        ambientColor = MehfilFlatColors.Primary.copy(alpha = 0.2f),
-                                    )
-                                    .clip(CircleShape)
-                                    .background(MehfilFlatColors.Primary)
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        onClick = onCreatePostClick,
-                                    ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = "Create post",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(26.dp),
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -286,12 +260,14 @@ private fun FlatTopIconChip(
     onClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
+    val chipShape = RoundedCornerShape(8.dp)
     Box(
         modifier = Modifier
             .padding(horizontal = 2.dp)
             .size(36.dp)
-            .clip(CircleShape)
-            .border(1.dp, MehfilFlatColors.Hairline, CircleShape)
+            .clip(chipShape)
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, chipShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -379,6 +355,7 @@ private fun MehfilBottomBar(
     val scheme = MaterialTheme.colorScheme
     val isDark = isPlannerDark
     val isLight = !isDark
+    val haptic = LocalHapticFeedback.current
 
     val selectedIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)
     val animatedIndex by animateFloatAsState(
@@ -416,115 +393,73 @@ private fun MehfilBottomBar(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = shadowElevation,
-                shape = barShape,
-                spotColor = shadowColor,
-                ambientColor = shadowColor,
-            )
             .border(
-                width = 0.5.dp,
-                brush = topBorderBrush,
-                shape = barShape,
+                width = 0.8.dp,
+                color = MehfilFlatColors.Hairline,
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
             ),
         color = scheme.surface,
-        shape = barShape,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
-        BoxWithConstraints(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(vertical = 6.dp, horizontal = 6.dp),
+                .height(60.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            val totalWidth = maxWidth
-            val itemWidth = totalWidth / tabs.size
-            val pillShape = RoundedCornerShape(20.dp)
+            tabs.forEach { tab ->
+                val isSelected = selectedTab == tab
+                val contentColor = if (isSelected) MehfilFlatColors.Primary else MehfilFlatColors.Muted
 
-            Box(
-                modifier = Modifier
-                    .offset(x = itemWidth * animatedIndex)
-                    .width(itemWidth)
-                    .height(56.dp)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                    .shadow(
-                        elevation = shadowElevation,
-                        shape = pillShape,
-                        spotColor = shadowColor,
-                        ambientColor = shadowColor,
-                    )
-                    .clip(pillShape)
-                    .background(glassBodyColor)
-                    .border(
-                        width = 0.5.dp,
-                        brush = glassBorderBrush,
-                        shape = pillShape,
-                    ),
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                tabs.forEach { tab ->
-                    val isSelected = selectedTab == tab
-                    val tabAccent = mehfilTabAccent(tab, isDark)
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            tabAccent
-                        } else {
-                            scheme.onSurfaceVariant.copy(alpha = 0.6f)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onTabSelected(tab)
                         },
-                        animationSpec = tween(200),
-                        label = "mehfilTabContentColor",
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(pillShape)
-                            .clickable { onTabSelected(tab) },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Box {
-                            Icon(
-                                imageVector = tab.icon,
-                                contentDescription = tab.label,
-                                tint = contentColor,
-                                modifier = Modifier.size(22.dp),
-                            )
-                            if (tab == MehfilTab.CONNECTIONS && pendingCount > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = 8.dp, y = (-4).dp)
-                                        .size(14.dp)
-                                        .clip(CircleShape)
-                                        .background(MehfilFlatColors.Like),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        if (pendingCount > 9) "9+" else pendingCount.toString(),
-                                        fontSize = 8.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                    )
-                                }
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Box {
+                        Icon(
+                            imageVector = tab.icon,
+                            contentDescription = tab.label,
+                            tint = contentColor,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        if (tab == MehfilTab.CONNECTIONS && pendingCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 8.dp, y = (-4).dp)
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                                    .background(MehfilFlatColors.Like),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    if (pendingCount > 9) "9+" else pendingCount.toString(),
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
                             }
                         }
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = tab.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = contentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = tab.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = contentColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -532,7 +467,7 @@ private fun MehfilBottomBar(
 }
 
 private fun mehfilTabAccent(tab: MehfilTab, isDark: Boolean): Color = when (tab) {
-    MehfilTab.COMMUNITY -> if (isDark) Color(0xFFC084FC) else Color(0xFF6D28D9)
+    MehfilTab.COMMUNITY -> if (isDark) Color(0xFFC084FC) else Color(0xFF581C87)
     MehfilTab.SAVED -> if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
     MehfilTab.ANALYTICS -> if (isDark) Color(0xFF34D399) else Color(0xFF059669)
     MehfilTab.CONNECTIONS -> if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706)

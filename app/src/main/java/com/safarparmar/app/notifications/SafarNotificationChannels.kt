@@ -15,12 +15,14 @@ object SafarNotificationChannels {
     // - BLOCKED: event notification when a blocked app is opened (should not be heads-up)
     const val FOCUS_SHIELD_STATUS = "focus_shield_status"
     const val FOCUS_SHIELD_BLOCKED = "focus_shield_blocked"
+    const val YOUTUBE_STUDY_MODE = "youtube_study_mode"
     const val STUDY_REMINDERS = "study_reminders"
     const val COURSE_UPDATES = "course_updates"
     const val ACHIEVEMENTS = "achievements"
     const val COMMUNITY = "community"
     const val ACCOUNT_SYSTEM = "account_system"
     const val ANNOUNCEMENTS = "announcements"
+    const val MEHFIL_CONNECT = "mehfil_connect"
 
     fun createAll(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -57,6 +59,14 @@ object SafarNotificationChannels {
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
                 description = "Shown when a blocked app is opened during an active ekagra session or Study Session"
+                setShowBadge(false)
+            },
+            NotificationChannel(
+                YOUTUBE_STUDY_MODE,
+                "YouTube Study Mode",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = "Channel blocking and classification actions"
                 setShowBadge(false)
             },
             NotificationChannel(
@@ -101,6 +111,13 @@ object SafarNotificationChannels {
             ).apply {
                 description = "Admin announcements and SAFAR campaigns"
             },
+            NotificationChannel(
+                MEHFIL_CONNECT,
+                "Mehfil Connect requests",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Connection requests from Study Circle members via Mehfil Connect"
+            },
         )
 
         context.getSystemService(NotificationManager::class.java)
@@ -112,12 +129,14 @@ object SafarNotificationChannels {
         FOCUS_SHIELD_ALERTS,
         FOCUS_SHIELD_STATUS,
         FOCUS_SHIELD_BLOCKED,
+        YOUTUBE_STUDY_MODE,
         STUDY_REMINDERS,
         COURSE_UPDATES,
         ACHIEVEMENTS,
         COMMUNITY,
         ACCOUNT_SYSTEM,
-        ANNOUNCEMENTS -> channelId
+        ANNOUNCEMENTS,
+        MEHFIL_CONNECT -> channelId
         else -> ACCOUNT_SYSTEM
     }
 }

@@ -1,9 +1,15 @@
 package com.safarparmar.app.ui.nishtha.analytics
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -72,24 +78,19 @@ internal fun AnalyticsOverviewSection(
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
 
-    val overviewThemeColor = if (isLight) Color(0xFF1E3A8A) else Color(0xFF90CAF9)
-    val goalsThemeColor = if (isLight) Color(0xFF065F46) else Color(0xFF81C784)
-    val focusThemeColor = if (isLight) Color(0xFF9A3412) else Color(0xFFFF8A65)
-    val monthlyThemeColor = if (isLight) Color(0xFF5B21B6) else Color(0xFFB39DDB)
+    val overviewThemeColor = primaryText(isLight)
+    val goalsThemeColor = if (isLight) Color(0xFF047857) else Color(0xFF4ADE80)
+    val focusThemeColor = if (isLight) Color(0xFFC2410C) else Color(0xFFFF8A65)
+    val monthlyThemeColor = if (isLight) Color(0xFF581C87) else Color(0xFFC084FC)
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            "Overview",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = overviewThemeColor
-        )
-        Text(
-            "Quick read across goals, ekagra, and the monthly review.",
-            fontSize = 12.sp,
-            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+        SectionHeading(
+            title = "Overview",
+            subtitle = "Quick read across goals, ekagra, and the monthly review.",
+            isLight = isLight,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HubMetricCard(Icons.Default.Timer, "Ekagra Today", formatStudyTime(focusToday), "Ekagra completed today", focusThemeColor, isLight, Modifier.weight(1f))
@@ -97,7 +98,7 @@ internal fun AnalyticsOverviewSection(
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HubMetricCard(Icons.AutoMirrored.Filled.FormatListBulleted, "Goals Set", totalGoalsSet.toString(), "Total goals you've created", goalsThemeColor, isLight, Modifier.weight(1f))
-            HubMetricCard(Icons.Default.CheckCircle, "Goals Completed", totalGoalsCompleted.toString(), "Total goals you've finished", goalsThemeColor, isLight, Modifier.weight(1f))
+            HubMetricCard(Icons.Default.CheckCircle, "Goals Completed", totalGoalsCompleted.toString(), "Total goals finished", goalsThemeColor, isLight, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HubMetricCard(Icons.Default.Bolt, "Consistency", report?.let { "${it.consistencyScore.toInt()}%" } ?: "-", "Monthly review preview", monthlyThemeColor, isLight, Modifier.weight(1f))
@@ -106,15 +107,16 @@ internal fun AnalyticsOverviewSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(secondaryText(isLight).copy(alpha = 0.06f))
                 .padding(16.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Analytics Home", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = overviewThemeColor)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Analytics Home", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
                 Text(
                     "Use Goals for completion patterns, Ekagra for timer depth, and Monthly Review for reflection.",
                     fontSize = 12.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                    color = secondaryText(isLight),
                     lineHeight = 16.sp
                 )
             }
@@ -126,17 +128,22 @@ internal fun AnalyticsOverviewSection(
 internal fun GoalInsightsSection(goals: List<Goal>) {
     val todayKey = IstDateUtils.todayKey()
     val standardGoals = goals.filter { it.source != "ekagra" }
-    val manualCompletedGoals = standardGoals.filter { it.isCompletedForStats() && !it.completedViaFocus }
-    val activeGoals = standardGoals.filter { !it.isDormant(todayKey) }
-    val total = activeGoals.size
-    val rate = if (total > 0) kotlin.math.round(manualCompletedGoals.size * 100f / total).toInt() else 0
-    val avgProgress = if (activeGoals.isNotEmpty()) kotlin.math.round(activeGoals.map { it.progressPercent() }.average()).toInt() else 0
+    val completedGoals = standardGoals.filter { it.isCompletedForStats() }
+    val total = standardGoals.size
+    val rate = if (total > 0) kotlin.math.round(completedGoals.size * 100f / total).toInt().coerceIn(0, 100) else 0
+    val avgProgress = if (standardGoals.isNotEmpty()) kotlin.math.round(standardGoals.map { it.progressPercent() }.average()).toInt() else 0
     val sevenDaySeries = remember(goals, todayKey) {
         val today = LocalDate.now(IstDateUtils.zone)
         (6 downTo 0).map { offset ->
             val day = today.minusDays(offset.toLong())
             val key = day.toString()
-            val dayGoals = standardGoals.filter { goal -> goal.anchorDateKey() == key }
+            val dayGoals = standardGoals.filter { goal ->
+                if (goal.isCompletedForStats()) {
+                    goal.completedDateKey() == key
+                } else {
+                    goal.anchorDateKey() == key
+                }
+            }
             val done = dayGoals.count { goal -> goal.statusBucket() == "completed" }
             val avg = if (dayGoals.isNotEmpty()) kotlin.math.round(dayGoals.map { it.progressPercent() }.average()).toInt() else 0
             GoalAnalyticsDay(day.format(DateTimeFormatter.ofPattern("EEE", Locale.getDefault())), key, done, dayGoals.size, avg)
@@ -151,67 +158,72 @@ internal fun GoalInsightsSection(goals: List<Goal>) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
 
-    val goalsThemeColor = if (isLight) Color(0xFF065F46) else Color(0xFF81C784)
+    val goalsThemeColor = if (isLight) Color(0xFF047857) else Color(0xFF4ADE80)
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Goal Insights", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = goalsThemeColor)
-        Text(
-            "Completion insights and goal progress from Nishtha goals.",
-            fontSize = 12.sp,
-            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+        SectionHeading(
+            title = "Goal Insights",
+            subtitle = "Completion insights and goal progress from Nishtha goals.",
+            isLight = isLight,
         )
+        val greenColor = if (isLight) Color(0xFF045435) else Color(0xFF10B981)
+        val indigoColor = if (isLight) Color(0xFF4338CA) else Color(0xFF818CF8)
+        val amberColor = if (isLight) Color(0xFFD97706) else Color(0xFFF59E0B)
+
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            GoalMetricCard("GOALS SET", standardGoals.size.toString(), "Total goals you've created", goalsThemeColor, isLight, Modifier.weight(1f))
-            GoalMetricCard("GOALS COMPLETED", standardGoals.count { it.isCompletedForStats() }.toString(), "Total goals you've finished", goalsThemeColor, isLight, Modifier.weight(1f))
+            GoalMetricCard("GOALS SET", standardGoals.size.toString(), "Total goals created", indigoColor, isLight, Modifier.weight(1f))
+            GoalMetricCard("GOALS COMPLETED", standardGoals.count { it.isCompletedForStats() }.toString(), "Total goals finished", greenColor, isLight, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            GoalMetricCard("COMPLETION RATE", "$rate%", "${manualCompletedGoals.size} of $total active manual goals completed", goalsThemeColor, isLight, Modifier.weight(1f))
-            GoalMetricCard("AVERAGE PROGRESS", "$avgProgress%", "Future scheduled goals stay excluded until their date arrives.", goalsThemeColor, isLight, Modifier.weight(1f))
+            GoalMetricCard("COMPLETION RATE", "$rate%", "${completedGoals.size} of $total goals completed", greenColor, isLight, Modifier.weight(1f))
+            GoalMetricCard("AVERAGE PROGRESS", "$avgProgress%", "Average progress across all goals.", amberColor, isLight, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            GoalMetricCard("CONSISTENCY (7 DAYS)", "$consistencyDays/7", "Days with at least one completed manual goal", goalsThemeColor, isLight, Modifier.weight(1f))
-            GoalMetricCard("CURRENT STREAK", "${currentStreak}d", "Consecutive days with completions", goalsThemeColor, isLight, Modifier.weight(1f))
+            GoalMetricCard("CONSISTENCY (7 DAYS)", "$consistencyDays/7", "Days with completed manual goal", indigoColor, isLight, Modifier.weight(1f))
+            GoalMetricCard("CURRENT STREAK", "${currentStreak}d", "Consecutive completion days", amberColor, isLight, Modifier.weight(1f))
         }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(secondaryText(isLight).copy(alpha = 0.06f))
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = goalsThemeColor, modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = greenColor, modifier = Modifier.size(18.dp))
                     Column {
-                        Text("Goal Consistency Trend", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = goalsThemeColor)
+                        Text("Goal Consistency Trend", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
                         Text(
                             "Your goal completion over the last 7 days",
-                            fontSize = 12.sp,
-                            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                            fontSize = 11.sp,
+                            color = secondaryText(isLight)
                         )
                     }
                 }
-                GoalConsistencyChart(sevenDaySeries, goalsThemeColor, isLight)
+                GoalConsistencyChart(sevenDaySeries, greenColor, isLight)
             }
         }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(secondaryText(isLight).copy(alpha = 0.06f))
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.CalendarToday, contentDescription = null, tint = goalsThemeColor, modifier = Modifier.size(16.dp))
-                        Text("Weekly Growth Pulse", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = goalsThemeColor)
+                        Text("Weekly Growth Pulse", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
                     }
                     Text(
                         "$averageDailyCompletion avg/day",
-                        fontSize = 12.sp,
-                        color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                        fontSize = 11.sp,
+                        color = secondaryText(isLight)
                     )
                 }
                 sevenDaySeries.forEach { entry -> WeeklyGrowthRow(entry, goalsThemeColor, isLight) }
@@ -225,17 +237,16 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
 
-    val accent = if (isLight) Color(0xFF9A3412) else Color(0xFFFF8A65)
+    val accent = if (isLight) Color(0xFFC2410C) else Color(0xFFFF8A65)
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Ekagra Insights", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = accent)
-        Text(
-            "Focused metrics from Ekagra timer sessions.",
-            fontSize = 12.sp,
-            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+        SectionHeading(
+            title = "Ekagra Insights",
+            subtitle = "Focused metrics from Ekagra timer sessions.",
+            isLight = isLight,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             CleanMetricCard("Total ekagra time", formatStudyTime(analytics.totalFocusMinutes), null, accent, isLight, Modifier.weight(1f))
@@ -278,6 +289,17 @@ internal fun FocusInsightsSection(analytics: EkagraAnalyticsStats) {
 }
 
 @Composable
+private fun SectionHeading(title: String, subtitle: String, isLight: Boolean) {
+    Column(
+        Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+        Text(subtitle, fontSize = 12.sp, color = secondaryText(isLight))
+    }
+}
+
+@Composable
 private fun HubMetricCard(
     icon: ImageVector,
     label: String,
@@ -289,25 +311,26 @@ private fun HubMetricCard(
 ) {
     Box(
         modifier = modifier
-            .heightIn(min = 132.dp)
-            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
-            .padding(16.dp)
+            .heightIn(min = 126.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.06f))
+            .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(30.dp)
                     .clip(CircleShape)
                     .background(accent.copy(alpha = if (isLight) 0.12f else 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(15.dp))
             }
             Text(
                 label.uppercase(Locale.US),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                color = secondaryText(isLight)
             )
             val density = LocalDensity.current
             CompositionLocalProvider(
@@ -316,12 +339,12 @@ private fun HubMetricCard(
                     fontScale = density.fontScale.coerceAtMost(1.3f)
                 )
             ) {
-                Text(value, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+                Text(value, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = primaryText(isLight))
             }
             Text(
                 sub,
                 fontSize = 11.sp,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                color = secondaryText(isLight),
                 lineHeight = 15.sp
             )
         }
@@ -339,16 +362,17 @@ private fun GoalMetricCard(
 ) {
     Box(
         modifier = modifier
-            .heightIn(min = 130.dp)
-            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
-            .padding(16.dp)
+            .heightIn(min = 124.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.06f))
+            .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 label.uppercase(Locale.US),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                color = secondaryText(isLight)
             )
             val density = LocalDensity.current
             CompositionLocalProvider(
@@ -357,12 +381,12 @@ private fun GoalMetricCard(
                     fontScale = density.fontScale.coerceAtMost(1.3f)
                 )
             ) {
-                Text(value, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = color)
+                Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = color)
             }
             Text(
                 sub,
                 fontSize = 11.sp,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                color = secondaryText(isLight),
                 lineHeight = 15.sp
             )
         }
@@ -380,8 +404,9 @@ private fun CleanMetricCard(
 ) {
     Box(
         modifier = modifier
-            .heightIn(min = 118.dp)
-            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(18.dp))
+            .heightIn(min = 114.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.06f))
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -389,7 +414,7 @@ private fun CleanMetricCard(
                 label.uppercase(Locale.US),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                color = secondaryText(isLight)
             )
             val density = LocalDensity.current
             CompositionLocalProvider(
@@ -398,13 +423,13 @@ private fun CleanMetricCard(
                     fontScale = density.fontScale.coerceAtMost(1.3f)
                 )
             ) {
-                Text(value, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+                Text(value, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = primaryText(isLight))
             }
             if (!sub.isNullOrBlank()) {
                 Text(
                     sub,
                     fontSize = 11.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary,
+                    color = secondaryText(isLight),
                     lineHeight = 15.sp
                 )
             }
@@ -418,38 +443,42 @@ private fun TimerDurationUsageCard(rows: List<EkagraTimerDurationUsage>, accent:
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .macOSControlPanel(isLight = isLight, shape = RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.06f))
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Timer Duration Usage", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = accent)
+            Text("Timer Duration Usage", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = primaryText(isLight))
             Text(
                 "Includes ekagra timers and both break types.",
-                fontSize = 12.sp,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                fontSize = 11.sp,
+                color = secondaryText(isLight)
             )
             if (durationRows.isEmpty()) {
                 Text(
                     "No timer duration usage yet.",
-                    fontSize = 13.sp,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                    fontSize = 12.sp,
+                    color = secondaryText(isLight)
                 )
             } else {
-                durationRows.forEach { row ->
+                durationRows.forEachIndexed { index, row ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Box(Modifier.size(9.dp).clip(CircleShape).background(accent))
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(accent))
                         Text(
                             timerDurationUsageLabel(row.sessionType, row.durationMinutes),
                             fontSize = 13.sp,
-                            color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary,
+                            color = primaryText(isLight),
                             modifier = Modifier.weight(1f)
                         )
                         Text(
                             row.count.toString(),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                            color = primaryText(isLight)
                         )
+                    }
+                    if (index < durationRows.size - 1) {
+                        HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
                     }
                 }
             }
@@ -458,26 +487,210 @@ private fun TimerDurationUsageCard(rows: List<EkagraTimerDurationUsage>, accent:
 }
 
 @Composable
-private fun GoalConsistencyChart(days: List<GoalAnalyticsDay>, barColor: Color, isLight: Boolean) {
-    Row(Modifier.fillMaxWidth().height(120.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
-        days.forEach { day ->
-            val score = if (day.total > 0) day.completed * 100 / day.total else 0
-            Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
-                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                    Box(
-                        Modifier.fillMaxWidth(0.72f)
-                            .fillMaxHeight((score.toFloat() / 100f).coerceIn(0.04f, 1f))
-                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                            .background(if (day.completed > 0) barColor else (if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.1f)))
-                    )
+private fun GoalConsistencyChart(days: List<GoalAnalyticsDay>, defaultThemeColor: Color, isLight: Boolean) {
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+
+    val rangeMax = 50f
+    val gridColor = secondaryText(isLight).copy(alpha = 0.12f)
+    val axisLabelColor = secondaryText(isLight)
+
+    val greenColor = if (isLight) Color(0xFF045435) else Color(0xFF10B981)
+    val indigoColor = if (isLight) Color(0xFF4338CA) else Color(0xFF818CF8)
+    val amberColor = if (isLight) Color(0xFFD97706) else Color(0xFFF59E0B)
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Enlarged Selection Tooltip Banner
+        AnimatedVisibility(
+            visible = selectedIndex != null,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            selectedIndex?.let { idx ->
+                val day = days.getOrNull(idx)
+                if (day != null) {
+                    val pct = if (day.total > 0) day.completed * 100 / day.total else 0
+                    val activeColor = when {
+                        day.completed == 0 -> if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+                        pct >= 70 || day.completed >= 10 -> greenColor
+                        pct >= 30 || day.completed >= 5 -> indigoColor
+                        else -> amberColor
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(activeColor.copy(alpha = 0.14f))
+                            .border(1.2.dp, activeColor.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(activeColor),
+                            )
+                            Text(
+                                text = "${day.dayLabel}:",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryText(isLight),
+                            )
+                            Text(
+                                text = "${day.completed} goal${if (day.completed == 1) "" else "s"} completed",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = activeColor,
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = activeColor.copy(alpha = 0.2f),
+                        ) {
+                            Text(
+                                text = "$pct% progress",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = activeColor,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            )
+                        }
+                    }
                 }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    day.dayLabel.take(1),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
-                )
+            }
+        }
+
+        // Enlarged Chart area (190dp height) with Y-axis labels + grid + bars
+        Row(
+            modifier = Modifier.fillMaxWidth().height(190.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            // Y-Axis Range Labels Column (50G, 10G, 0G)
+            Column(
+                modifier = Modifier
+                    .width(36.dp)
+                    .fillMaxHeight()
+                    .padding(bottom = 22.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.End,
+            ) {
+                Text("50G", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = axisLabelColor)
+                Text("10G", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = axisLabelColor)
+                Text("0G", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = axisLabelColor)
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Bars Container overlaid with Grid Lines
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+            ) {
+                // Grid lines background
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .padding(bottom = 22.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(gridColor))
+                }
+
+                // 7-day Bars Row
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    days.forEachIndexed { index, day ->
+                        val isSelected = selectedIndex == index
+                        val pct = if (day.total > 0) day.completed * 100 / day.total else 0
+                        // 3-color palette bar logic
+                        val dayBarColor = when {
+                            day.completed == 0 -> if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+                            pct >= 70 || day.completed >= 10 -> greenColor
+                            pct >= 30 || day.completed >= 5 -> indigoColor
+                            else -> amberColor
+                        }
+
+                        // Calculate bar height ratio based on goals completed up to 50G range max
+                        val goalRatio = (day.completed.toFloat() / rangeMax).coerceIn(0.04f, 1f)
+
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.BottomCenter,
+                            ) {
+                                // Enlarged Tooltip badge over bar if selected
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopCenter)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(if (day.completed > 0) dayBarColor else primaryText(isLight))
+                                            .padding(horizontal = 7.dp, vertical = 3.dp),
+                                    ) {
+                                        Text(
+                                            text = "${day.completed}G",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                        )
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.76f)
+                                        .fillMaxHeight(goalRatio)
+                                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                        .background(
+                                            if (day.completed > 0) {
+                                                if (isSelected) dayBarColor else dayBarColor.copy(alpha = 0.85f)
+                                            } else {
+                                                if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
+                                            },
+                                        )
+                                        .then(
+                                            if (isSelected) {
+                                                Modifier.border(2.dp, primaryText(isLight), RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                            } else {
+                                                Modifier
+                                            },
+                                        )
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null,
+                                            onClick = {
+                                                selectedIndex = if (selectedIndex == index) null else index
+                                            },
+                                        ),
+                                )
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                day.dayLabel.take(1),
+                                fontSize = 10.5.sp,
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                color = if (isSelected) (if (day.completed > 0) dayBarColor else primaryText(isLight)) else secondaryText(isLight),
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -489,8 +702,8 @@ private fun WeeklyGrowthRow(entry: GoalAnalyticsDay, barColor: Color, isLight: B
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (isLight) Color.Black.copy(alpha = 0.03f) else Color.White.copy(alpha = 0.05f))
+            .clip(RoundedCornerShape(12.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.05f))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
@@ -499,27 +712,33 @@ private fun WeeklyGrowthRow(entry: GoalAnalyticsDay, barColor: Color, isLight: B
                 entry.dayLabel,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+                color = primaryText(isLight)
             )
             Text(
                 "${entry.completed}/${entry.total} done",
                 fontSize = 12.sp,
-                color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+                color = secondaryText(isLight)
             )
         }
         LinearProgressIndicator(
             progress = { pct / 100f },
-            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+            modifier = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape),
             color = barColor,
-            trackColor = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.1f)
+            trackColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF334155)
         )
         Text(
             "Average progress: ${entry.avgProgress}%",
             fontSize = 11.sp,
-            color = if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
+            color = secondaryText(isLight)
         )
     }
 }
+
+private fun primaryText(isLight: Boolean) =
+    if (isLight) SafarGlassPalette.LightTextPrimary else SafarGlassPalette.TextPrimary
+
+private fun secondaryText(isLight: Boolean) =
+    if (isLight) SafarGlassPalette.LightTextSecondary else SafarGlassPalette.TextSecondary
 
 private data class GoalAnalyticsDay(
     val dayLabel: String,

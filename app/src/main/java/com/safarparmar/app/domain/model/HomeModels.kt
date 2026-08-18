@@ -47,6 +47,7 @@ data class Goal(
     val createdAt: String? = null,
     val completedAt: String? = null,
     val studiedMinutes: Int? = null,
+    val studiedSeconds: Int? = null,
     val scheduledDate: String? = null,
     val startedAt: String? = null,
     val expiresAt: String? = null,
@@ -54,6 +55,8 @@ data class Goal(
     val rolloverPromptPending: Boolean = false,
     val sourceGoalId: String? = null,
     val nextInstanceCreated: Boolean = false,
+    val deletedAt: String? = null,
+    val purgeAt: String? = null,
     val type: String? = null,
     val subtasks: List<GoalSubtask> = emptyList()
 )

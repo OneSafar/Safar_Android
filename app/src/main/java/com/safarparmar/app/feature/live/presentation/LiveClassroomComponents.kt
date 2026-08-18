@@ -165,8 +165,8 @@ fun LiveClassroomTopBar(
             )
         },
         navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            Box(modifier = Modifier.padding(start = 12.dp)) {
+                com.safarparmar.app.ui.ekagra.focusshield.KavachCircularBackButton(onClick = onBack)
             }
         },
         actions = {

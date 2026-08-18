@@ -152,6 +152,23 @@ class EkagraRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun linkSessionToGoal(
+        sessionId: String,
+        goalId: String,
+        markGoalComplete: Boolean,
+    ): Resource<Unit> {
+        return try {
+            val res = focusApi.linkSessionToGoal(
+                sessionId,
+                com.safarparmar.app.data.remote.dto.LinkEkagraGoalRequest(goalId, markGoalComplete),
+            )
+            if (res.isSuccessful && res.body()?.ok == true) Resource.Success(Unit)
+            else Resource.Error("Link failed: ${res.code()}")
+        } catch (e: Exception) {
+            Resource.Error("Network error: ${e.message}")
+        }
+    }
+
     private fun EkagraSession.normalized() = copy(
         userId = userId.ifBlank { userIdSnake ?: "" },
         goalId = goalId ?: goalIdSnake,

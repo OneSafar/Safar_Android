@@ -136,10 +136,14 @@ class SafarDataStore @Inject constructor(
         val FOCUS_SHIELD_LAST_BLOCK_COUNT = intPreferencesKey("focus_shield_last_block_count")
         val FOCUS_SHIELD_EMERGENCY_UNLOCKS_PER_SESSION = intPreferencesKey("focus_shield_emergency_unlocks_per_session")
         val FOCUS_SHIELD_EMERGENCY_UNLOCK_SECONDS      = intPreferencesKey("focus_shield_emergency_unlock_seconds")
+        val FOCUS_SHIELD_SCHEDULE_ENABLED              = booleanPreferencesKey("focus_shield_schedule_enabled")
+        val FOCUS_SHIELD_SCHEDULE_START_MINUTE         = intPreferencesKey("focus_shield_schedule_start_minute")
+        val FOCUS_SHIELD_SCHEDULE_END_MINUTE           = intPreferencesKey("focus_shield_schedule_end_minute")
         val YOUTUBE_INSIGHTS_ENABLED = booleanPreferencesKey("youtube_insights_enabled")
         val YOUTUBE_SHORTS_BLOCK_SCOPE = stringPreferencesKey("youtube_shorts_block_scope")
         val YOUTUBE_CHANNEL_BLOCK_SCOPE = stringPreferencesKey("youtube_channel_block_scope")
         val YOUTUBE_ACCESSIBILITY_CONSENT_VERSION = intPreferencesKey("youtube_accessibility_consent_version")
+        val SELECTED_STUDY_CIRCLE_ID = stringPreferencesKey("selected_study_circle_id")
         val YOUTUBE_ACCESSIBILITY_CONSENT_AT = longPreferencesKey("youtube_accessibility_consent_at")
         val YOUTUBE_STUDY_ONBOARDING_DONE = booleanPreferencesKey("youtube_study_onboarding_done_v1")
         val YOUTUBE_CHANNEL_NOTIFICATIONS = stringSetPreferencesKey("youtube_channel_notifications_v1")
@@ -149,6 +153,8 @@ class SafarDataStore @Inject constructor(
         val APP_USAGE_MODE = stringPreferencesKey("app_usage_mode")
         val AUTO_START_BREAK = booleanPreferencesKey("ekagra_auto_start_break")
         val TIMER_ALERT_STYLE = stringPreferencesKey("ekagra_timer_alert_style")
+        val FOCUS_DURATION_MINUTES = intPreferencesKey("ekagra_focus_duration_minutes")
+        val BREAK_DURATION_MINUTES = intPreferencesKey("ekagra_break_duration_minutes")
 
         val NOTIFICATION_BELL_LAST_SEEN_AT = stringPreferencesKey("notification_bell_last_seen_at")
         val NOTIFICATION_BELL_DISMISSED_IDS = stringSetPreferencesKey("notification_bell_dismissed_ids")
@@ -284,6 +290,10 @@ class SafarDataStore @Inject constructor(
         .catch { emit(emptyPreferences()) }
         .map { it[Keys.NOTIFIED_ACHIEVEMENTS] ?: emptySet() }
 
+    val selectedStudyCircleId: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.SELECTED_STUDY_CIRCLE_ID] }
+
     // ── Focus Shield Flows ────────────────────────────────────────────────────
 
     val focusShieldEnabled: Flow<Boolean> = context.dataStore.data
@@ -292,7 +302,12 @@ class SafarDataStore @Inject constructor(
 
     val focusShieldStrictMode: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
-        .map { it[Keys.FOCUS_SHIELD_STRICT_MODE] ?: false }
+        .map { prefs ->
+            prefs[Keys.FOCUS_SHIELD_STRICT_MODE]
+                // Before activation and protection were separated, always_on meant
+                // Beast. Preserve that choice until the student explicitly changes it.
+                ?: (prefs[Keys.APP_USAGE_MODE] == "always_on")
+        }
 
     val focusShieldAlwaysOnMode: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -308,6 +323,18 @@ class SafarDataStore @Inject constructor(
             val raw = prefs[Keys.FOCUS_SHIELD_BLOCKED_PACKAGES] ?: ""
             if (raw.isBlank()) emptySet() else raw.split(",").toSet()
         }
+
+    val focusShieldScheduleEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_SHIELD_SCHEDULE_ENABLED] ?: false }
+
+    val focusShieldScheduleStartMinute: Flow<Int> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_SHIELD_SCHEDULE_START_MINUTE] ?: 540 } // 09:00 AM
+
+    val focusShieldScheduleEndMinute: Flow<Int> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_SHIELD_SCHEDULE_END_MINUTE] ?: 1320 } // 10:00 PM
 
     val focusShieldEmergencyUnlocksPerSession: Flow<Int> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -364,6 +391,14 @@ class SafarDataStore @Inject constructor(
     val timerAlertStyle: Flow<TimerAlertStyle> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { TimerAlertStyle.fromStoredValue(it[Keys.TIMER_ALERT_STYLE]) }
+
+    val focusDurationMinutes: Flow<Int> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.FOCUS_DURATION_MINUTES] ?: 25 }
+
+    val breakDurationMinutes: Flow<Int> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[Keys.BREAK_DURATION_MINUTES] ?: 5 }
 
     val isPremium: Flow<Boolean> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
@@ -568,6 +603,11 @@ class SafarDataStore @Inject constructor(
     }
     suspend fun setFocusShieldLastBlockCount(count: Int) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_LAST_BLOCK_COUNT] = count }
     suspend fun setFocusShieldEmergencyUnlocksPerSession(count: Int) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCKS_PER_SESSION] = count.coerceAtLeast(0) }
+    suspend fun setFocusShieldScheduleEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_SCHEDULE_ENABLED] = enabled }
+    suspend fun setFocusShieldScheduleRange(startMinute: Int, endMinute: Int) = context.dataStore.edit {
+        it[Keys.FOCUS_SHIELD_SCHEDULE_START_MINUTE] = startMinute.coerceIn(0, 1439)
+        it[Keys.FOCUS_SHIELD_SCHEDULE_END_MINUTE] = endMinute.coerceIn(0, 1439)
+    }
     suspend fun setFocusShieldEmergencyUnlockSeconds(seconds: Int) = context.dataStore.edit { it[Keys.FOCUS_SHIELD_EMERGENCY_UNLOCK_SECONDS] = seconds.coerceAtLeast(10) }
     suspend fun setYoutubeInsightsEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.YOUTUBE_INSIGHTS_ENABLED] = enabled }
     suspend fun setYoutubeStudyOnboardingDone(done: Boolean) = context.dataStore.edit {
@@ -611,6 +651,14 @@ class SafarDataStore @Inject constructor(
         it[Keys.TIMER_ALERT_STYLE] = style.storedValue
     }
 
+    suspend fun setFocusDurationMinutes(minutes: Int) = context.dataStore.edit {
+        it[Keys.FOCUS_DURATION_MINUTES] = minutes.coerceAtLeast(1)
+    }
+
+    suspend fun setBreakDurationMinutes(minutes: Int) = context.dataStore.edit {
+        it[Keys.BREAK_DURATION_MINUTES] = minutes.coerceAtLeast(1)
+    }
+
     suspend fun setUserId(id: String?) {
         id?.let { context.dataStore.edit { prefs -> prefs[Keys.USER_ID] = it } }
     }
@@ -630,6 +678,13 @@ class SafarDataStore @Inject constructor(
     }
 
     suspend fun setIsAdmin(isAdmin: Boolean) = context.dataStore.edit { it[Keys.IS_ADMIN] = isAdmin }
+
+    suspend fun setSelectedStudyCircleId(id: String?) {
+        context.dataStore.edit { prefs ->
+            if (id != null) prefs[Keys.SELECTED_STUDY_CIRCLE_ID] = id
+            else prefs.remove(Keys.SELECTED_STUDY_CIRCLE_ID)
+        }
+    }
 
     suspend fun clearSession() {
         securePrefs.edit()

@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -113,11 +115,14 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun forgotPassword(email: String): Resource<ForgotPasswordResult> {
+        runCatching {
+            FirebaseAuth.getInstance().sendPasswordResetEmail(email).await()
+        }
         val r = safeApiCall { authApi.forgotPassword(ForgotPasswordRequest(email)) }
         return when (r) {
             is Resource.Success -> Resource.Success(
                 ForgotPasswordResult(
-                    message = r.data.message ?: "",
+                    message = r.data.message ?: "Password reset email sent. Please check your inbox.",
                     resetToken = r.data.resetToken
                 )
             )

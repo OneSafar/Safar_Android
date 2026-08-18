@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,10 +44,14 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -78,6 +83,7 @@ import com.safarparmar.app.R
 import com.safarparmar.app.domain.model.ActivityItem
 import com.safarparmar.app.domain.model.MehfilPost
 import com.safarparmar.app.domain.model.Sandesh
+import com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto
 import com.safarparmar.app.ui.components.PostCardSkeleton
 import com.safarparmar.app.ui.components.SafarEmptyState
 import com.safarparmar.app.ui.components.SafarPullRefreshBox
@@ -170,6 +176,9 @@ internal fun CommunityTab(
     onReactSandesh: (String) -> Unit,
     onLikePost: (MehfilPost) -> Unit,
     onSavePost: (String) -> Unit,
+    onCreatePostClick: () -> Unit,
+    onViewStudyCircles: () -> Unit,
+    onOpenStudyCircle: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
     val filteredPosts = remember(uiState.posts, searchQuery) {
@@ -215,36 +224,31 @@ internal fun CommunityTab(
     }
 
     Column(Modifier.fillMaxSize()) {
-        CommunityHeader(
-            resultCount = filteredPosts.size,
-            searchQuery = searchQuery,
-            onlineCount = uiState.onlineCount,
-            socketConnected = uiState.socketConnected,
-        )
+        if (searchQuery.isNotBlank()) {
+            CommunityHeader(
+                resultCount = filteredPosts.size,
+                searchQuery = searchQuery,
+                onlineCount = uiState.onlineCount,
+                socketConnected = uiState.socketConnected,
+            )
+        }
 
-        AnimatedVisibility(
-            visible = showSandesh && uiState.sandeshes.isNotEmpty(),
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
+        Spacer(Modifier.height(4.dp))
+        RoomSelector(selectedSpace = uiState.selectedSpace, onJoinRoom = onJoinRoom)
+        Spacer(Modifier.height(6.dp))
+
+        if (uiState.sandeshes.isNotEmpty()) {
             CollapsibleSandeshCard(
                 sandeshes = uiState.sandeshes,
                 reactedSandeshIds = uiState.reactedSandeshIds,
                 onReact = onReactSandesh,
                 onCommentClick = onSandeshCommentClick,
             )
+            Spacer(Modifier.height(4.dp))
         }
 
-        Text(
-            "The student lounge for unfiltered thoughts and academic life-hacks.",
-            fontSize = 12.sp,
-            lineHeight = 15.sp,
-            color = MehfilFlatColors.Muted,
-            modifier = Modifier.padding(horizontal = 12.dp),
-        )
-        Spacer(Modifier.size(6.dp))
-        RoomSelector(selectedSpace = uiState.selectedSpace, onJoinRoom = onJoinRoom)
-        Spacer(Modifier.size(4.dp))
+        InlineComposerCard(onClick = onCreatePostClick)
+        Spacer(Modifier.height(8.dp))
 
         when {
             uiState.isLoadingPosts && uiState.posts.isEmpty() -> LoadingPostList()
@@ -266,9 +270,20 @@ internal fun CommunityTab(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    item(key = "__community_posts_header__") {
+                        Text(
+                            "COMMUNITY POSTS",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = MehfilFlatColors.Muted,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                        )
+                    }
+
                     items(
                         items = filteredPosts,
                         key = { it.id },
@@ -324,7 +339,7 @@ private fun CommunityHeader(
     socketConnected: Boolean,
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -358,37 +373,38 @@ private fun CommunityHeader(
 private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
     val rooms = listOf(
         "ALL" to "All",
-        "ACADEMIC" to "Academic Hall",
-        "REFLECTIVE" to "Thoughts",
+        "ACADEMIC" to "Academic",
+        "REFLECTIVE" to "Reflective",
     )
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         rooms.forEach { (room, label) ->
-            val selected = selectedSpace == room
+            val selected = selectedSpace.equals(room, ignoreCase = true)
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(10.dp))
                     .then(
                         if (selected) {
                             Modifier.background(MehfilFlatColors.Primary)
                         } else {
-                            Modifier.border(1.dp, MehfilFlatColors.Hairline, CircleShape)
+                            Modifier
+                                .background(MehfilFlatColors.Surface)
+                                .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(10.dp))
                         },
                     )
                     .clickable { onJoinRoom(room) }
-                    .padding(vertical = 8.dp),
+                    .padding(horizontal = if (room == "ALL") 24.dp else 18.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label,
-                    fontSize = 11.sp,
+                    fontSize = 13.5.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (selected) Color.White else MehfilFlatColors.Muted,
+                    color = if (selected) Color.White else MehfilFlatColors.Text,
                     maxLines = 1,
                 )
             }
@@ -397,11 +413,140 @@ private fun RoomSelector(selectedSpace: String, onJoinRoom: (String) -> Unit) {
 }
 
 @Composable
+private fun StudyCircleShelf(
+    circles: List<StudyCircleSummaryDto>,
+    isLoading: Boolean,
+    onViewAll: () -> Unit,
+    onOpenCircle: (String) -> Unit,
+) {
+    val visibleCircles = circles.take(2)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(20.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Study Circles", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B168D))
+                Text("Focus together, grow together", fontSize = 12.sp, color = MehfilFlatColors.Muted)
+            }
+            FlatOutlineButton(text = "View all", onClick = onViewAll)
+        }
+
+        when {
+            isLoading -> Box(Modifier.fillMaxWidth().padding(18.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(Modifier.size(24.dp), color = Color(0xFF6B168D), strokeWidth = 2.dp)
+            }
+            visibleCircles.isEmpty() -> Row(
+                Modifier.fillMaxWidth().clickable(onClick = onViewAll).padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(Icons.Default.Groups, contentDescription = null, tint = Color(0xFF6B168D))
+                Column(Modifier.weight(1f)) {
+                    Text("Find your study people", fontWeight = FontWeight.SemiBold, color = MehfilFlatColors.Text)
+                    Text("Join or create your first circle", fontSize = 12.sp, color = MehfilFlatColors.Muted)
+                }
+            }
+            else -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                visibleCircles.forEach { circle ->
+                    StudyCircleShelfCard(circle, { onOpenCircle(circle.id) }, Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StudyCircleShelfCard(circle: StudyCircleSummaryDto, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val purple = Color(0xFF6B168D)
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, purple.copy(alpha = 0.22f), RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(Modifier.size(40.dp).clip(CircleShape).border(1.5.dp, purple, CircleShape), contentAlignment = Alignment.Center) {
+            Icon(
+                if (circle.visibility.equals("public", true)) Icons.Default.Language else Icons.Default.Lock,
+                contentDescription = circle.visibility,
+                tint = purple,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Text(circle.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text)
+        Text("${circle.focusingCount} focusing", fontSize = 11.sp, color = purple, fontWeight = FontWeight.SemiBold)
+        Box(Modifier.clip(CircleShape).background(purple.copy(alpha = 0.10f)).padding(horizontal = 12.dp, vertical = 6.dp)) {
+            Text("Open", fontSize = 12.sp, color = purple, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun InlineComposerCard(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFFF3E8FF)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = null,
+                tint = MehfilFlatColors.Primary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Text(
+            "Share something with the Mehfil",
+            Modifier.weight(1f),
+            fontSize = 13.5.sp,
+            color = MehfilFlatColors.Muted,
+        )
+        Box(
+            Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(MehfilFlatColors.Primary)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 18.dp, vertical = 9.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "Post",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.5.sp,
+            )
+        }
+    }
+}
+
+@Composable
 private fun LoadingPostList() {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(5) { PostCardSkeleton() }
     }
@@ -445,27 +590,49 @@ private fun CollapsibleSandeshCard(
 ) {
     if (sandeshes.isEmpty()) return
     var expanded by remember { mutableStateOf(false) }
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .mehfilGlassPanel(isLight),
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp)),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(Modifier.size(36.dp).clip(CircleShape).background(MehfilFlatColors.Primary.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                Icon(painter = painterResource(id = R.drawable.ic_megaphone), contentDescription = null, modifier = Modifier.size(16.dp), tint = MehfilFlatColors.Primary)
+            Box(
+                Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_megaphone),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MehfilFlatColors.Primary,
+                )
             }
             Column(Modifier.weight(1f)) {
-                Text("SANDESH", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MehfilFlatColors.Primary)
                 Text(
-                    if (sandeshes.size == 1) "1 new announcement" else "${sandeshes.size} announcements",
-                    fontSize = 13.sp,
+                    "SANDESH",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = MehfilFlatColors.Muted,
+                )
+                Text(
+                    if (sandeshes.size == 1) "1 announcement" else "${sandeshes.size} announcements",
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.Bold,
                     color = MehfilFlatColors.Text,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -638,74 +805,153 @@ private fun PostCard(
 ) {
     val canConnect = post.userId.isNotBlank() && post.userId != currentUserId
     val isConnectLocked = canConnect && !mehfilDm && !isLoadingPremiumFeatures
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+    val tagColor = spaceColor(post.space)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .mehfilGlassPanel(isLight)
-            .padding(14.dp),
+            .clip(RoundedCornerShape(14.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(38.dp).clip(CircleShape).background(MehfilFlatColors.Primary.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                Text(post.authorName.firstOrNull()?.uppercase() ?: "A", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Primary)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFEDE9FE)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    post.authorName.firstOrNull()?.uppercase() ?: "A",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MehfilFlatColors.Primary,
+                )
             }
             Column(Modifier.weight(1f)) {
-                Text(post.authorName, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Text, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(formatPostDate(post.createdAt), fontSize = 11.sp, color = MehfilFlatColors.Muted)
+                Text(
+                    post.authorName,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.5.sp,
+                    color = MehfilFlatColors.Text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    formatPostDate(post.createdAt),
+                    fontSize = 11.5.sp,
+                    color = MehfilFlatColors.Muted,
+                )
             }
-            if (post.space.isNotEmpty()) {
+            if (post.space.isNotBlank()) {
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .border(1.dp, spaceColor(post.space), RoundedCornerShape(6.dp))
+                        .border(1.dp, tagColor, RoundedCornerShape(6.dp))
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
-                    Text(post.space, fontSize = 9.sp, color = spaceColor(post.space), fontWeight = FontWeight.Bold)
+                    Text(
+                        post.space.uppercase(),
+                        fontSize = 10.sp,
+                        color = tagColor,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                    )
                 }
             }
         }
-        Text(post.content, fontSize = 14.sp, lineHeight = 20.sp, color = MehfilFlatColors.Text)
-        PlanHairline()
-        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.clickable(onClick = onLike)) {
+
+        Text(
+            post.content,
+            fontSize = 14.5.sp,
+            lineHeight = 21.sp,
+            color = MehfilFlatColors.Text,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+
+        HorizontalDivider(
+            thickness = 0.8.dp,
+            color = MehfilFlatColors.Hairline.copy(alpha = 0.6f),
+            modifier = Modifier.padding(vertical = 2.dp),
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.clickable(onClick = onLike),
+            ) {
                 Icon(
                     if (post.userLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = null,
-                    modifier = Modifier.size(17.dp),
+                    contentDescription = "Like",
+                    modifier = Modifier.size(18.dp),
                     tint = if (post.userLiked) MehfilFlatColors.Like else MehfilFlatColors.Muted,
                 )
-                Text("${post.reactionCount}", fontSize = 13.sp, color = MehfilFlatColors.Muted)
+                Text(
+                    "${post.reactionCount}",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (post.userLiked) MehfilFlatColors.Like else MehfilFlatColors.Muted,
+                )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.clickable(onClick = onComment)) {
-                Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(17.dp), tint = MehfilFlatColors.Muted)
-                Text("${post.commentCount}", fontSize = 13.sp, color = MehfilFlatColors.Muted)
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.clickable(onClick = onComment),
+            ) {
+                Icon(
+                    Icons.Default.ChatBubbleOutline,
+                    contentDescription = "Comment",
+                    modifier = Modifier.size(18.dp),
+                    tint = MehfilFlatColors.Muted,
+                )
+                Text(
+                    "${post.commentCount}",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MehfilFlatColors.Muted,
+                )
             }
+
             if (canConnect) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                     modifier = Modifier.clickable(onClick = onConnect),
                 ) {
                     Icon(
                         if (isConnectLocked) Icons.Default.Lock else Icons.Default.PersonAdd,
                         contentDescription = "Connect",
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(17.dp),
                         tint = if (isConnectLocked) MehfilFlatColors.Muted else MehfilFlatColors.Connect,
                     )
                     Text(
                         "Connect",
-                        fontSize = 12.sp,
+                        fontSize = 12.5.sp,
                         color = if (isConnectLocked) MehfilFlatColors.Muted else MehfilFlatColors.Connect,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
             }
+
             Spacer(Modifier.weight(1f))
+
             Icon(
                 if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                contentDescription = null,
-                modifier = Modifier.size(17.dp).clickable(onClick = onSave),
+                contentDescription = "Save",
+                modifier = Modifier
+                    .size(18.dp)
+                    .clickable(onClick = onSave),
                 tint = if (isSaved) MehfilFlatColors.Primary else MehfilFlatColors.Muted,
             )
         }
@@ -721,9 +967,7 @@ internal fun SavedTab(
     onConnect: (MehfilPost) -> Unit,
 ) {
     when {
-        uiState.isLoadingSaved -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = MehfilFlatColors.Primary)
-        }
+        uiState.isLoadingSaved -> LoadingPostList()
         uiState.savedPosts.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(painter = painterResource(id = R.drawable.ic_bookmarks_simple), contentDescription = null, modifier = Modifier.size(48.dp), tint = MehfilFlatColors.Muted)
@@ -738,34 +982,23 @@ internal fun SavedTab(
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = MehfilFlatColors.Text,
-                    modifier = Modifier.weight(1f),
                 )
-                Text("${uiState.savedPosts.size}", fontSize = 13.sp, color = MehfilFlatColors.Muted)
             }
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(
-                    items = uiState.savedPosts,
-                    key = { it.id },
-                    contentType = { "savedPost" },
-                ) { post ->
-                    val onLike = remember(post, onLikePost) { { onLikePost(post) } }
-                    val onComment = remember(post, onCommentClick) { { onCommentClick(post) } }
-                    val onUnsave = remember(post.id, onUnsavePost) { { onUnsavePost(post.id) } }
-                    val onConnectPost = remember(post, onConnect) { { onConnect(post) } }
+                items(uiState.savedPosts, key = { it.id }) { post ->
                     PostCard(
                         post = post,
                         isSaved = true,
                         currentUserId = uiState.currentUserId,
                         mehfilDm = uiState.mehfilDm,
                         isLoadingPremiumFeatures = uiState.isLoadingPremiumFeatures,
-                        onLike = onLike,
-                        onComment = onComment,
-                        onSave = onUnsave,
-                        onConnect = onConnectPost,
+                        onLike = { onLikePost(post) },
+                        onComment = { onCommentClick(post) },
+                        onSave = { onUnsavePost(post.id) },
+                        onConnect = { onConnect(post) },
                     )
                 }
             }
@@ -1046,7 +1279,9 @@ private fun spaceColor(space: String): Color = when (space.uppercase()) {
 }
 
 internal fun formatPostDate(ts: String): String = runCatching {
-    ZonedDateTime.parse(ts)
-        .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
-        .format(DateTimeFormatter.ofPattern("MMM d, yyyy • h:mm a", Locale.getDefault()))
+    val zdt = ZonedDateTime.parse(ts).withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
+    val now = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"))
+    val pattern = if (zdt.year == now.year) "d MMM, h:mm a" else "d MMM yyyy, h:mm a"
+    val formatted = zdt.format(DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH))
+    formatted.replace(" AM", " am").replace(" PM", " pm")
 }.getOrDefault(ts.take(16).replace('T', ' '))

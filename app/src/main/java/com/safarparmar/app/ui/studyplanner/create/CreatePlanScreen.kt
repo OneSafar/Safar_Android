@@ -153,8 +153,8 @@ fun CreatePlanScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = { handleBack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Box(modifier = Modifier.padding(start = 12.dp)) {
+                            com.safarparmar.app.ui.ekagra.focusshield.StudyPlannerCircularBackButton(onClick = { handleBack() })
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),

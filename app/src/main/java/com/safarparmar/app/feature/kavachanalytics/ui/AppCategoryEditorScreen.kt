@@ -1,10 +1,18 @@
 package com.safarparmar.app.feature.kavachanalytics.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -82,16 +90,25 @@ fun AppCategoryEditorScreen(
     Box(Modifier.fillMaxSize()) {
         LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
 
-        Column(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onBack) {
+                Box(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 12.dp)
+                        .size(38.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(if (!isLight) Color(0xFF3B0764) else Color(0xFF581C87))
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = primaryText(isLight),
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
                 Column(Modifier.weight(1f)) {
@@ -118,9 +135,10 @@ fun AppCategoryEditorScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             )
 
+            val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 48.dp + navBarBottom),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(apps, key = { it.packageName }) { app ->

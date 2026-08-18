@@ -55,9 +55,9 @@ class HomeRepositoryImpl @Inject constructor(
                     source = source,
                     goalKind = goalKind,
                     unitType = unitType,
-                    executionMode = "manual",
-                    linkedFocusEnabled = false,
-                    plannedFocusMinutes = null,
+                    executionMode = if (linkedFocusEnabled) "timed" else "manual",
+                    linkedFocusEnabled = linkedFocusEnabled,
+                    plannedFocusMinutes = plannedFocusMinutes,
                     targetValue = targetValue,
                     achievedValue = achievedValue,
                     status = status,
@@ -96,9 +96,9 @@ class HomeRepositoryImpl @Inject constructor(
                     subtasks = subtasks.map { it.toDto() },
                     goalKind = goalKind,
                     unitType = unitType,
-                    executionMode = "manual",
-                    linkedFocusEnabled = false,
-                    plannedFocusMinutes = null,
+                    executionMode = if (linkedFocusEnabled) "timed" else "manual",
+                    linkedFocusEnabled = linkedFocusEnabled,
+                    plannedFocusMinutes = plannedFocusMinutes,
                     targetValue = targetValue,
                     achievedValue = achievedValue,
                     status = status,
@@ -107,14 +107,37 @@ class HomeRepositoryImpl @Inject constructor(
             )
         }.map { }
 
-    override suspend fun completeGoal(id: String, studiedMinutes: Int): Resource<Unit> {
+    override suspend fun completeGoal(
+        id: String,
+        studiedMinutes: Int,
+        studiedSeconds: Int,
+        scheduledDate: String?,
+    ): Resource<Unit> {
         val completedAt = java.time.Instant.now().toString()
-        return safeApiCall { homeApi.completeGoal(id, CompleteGoalRequest(completedAt = completedAt, studiedMinutes = studiedMinutes)) }
-            .map { }
+        return safeApiCall {
+            homeApi.completeGoal(
+                id,
+                CompleteGoalRequest(
+                    completedAt = completedAt,
+                    studiedMinutes = studiedMinutes,
+                    studiedSeconds = if (studiedSeconds > 0) studiedSeconds else null,
+                    scheduledDate = scheduledDate,
+                ),
+            )
+        }.map { }
     }
 
     override suspend fun deleteGoal(id: String): Resource<Unit> =
         safeApiCall { homeApi.deleteGoal(id) }.map { }
+
+    override suspend fun getRecentlyDeletedGoals(): Resource<List<Goal>> =
+        safeApiCall { homeApi.getRecentlyDeletedGoals() }.map { rows -> rows.map { it.toDomain() } }
+
+    override suspend fun restoreGoal(id: String): Resource<Goal> =
+        safeApiCall { homeApi.restoreGoal(id) }.map { it.toDomain() }
+
+    override suspend fun reopenGoal(id: String): Resource<Goal> =
+        safeApiCall { homeApi.reopenGoal(id) }.map { it.toDomain() }
 
     override suspend fun repeatGoal(id: String, scheduledDate: String): Resource<Goal> =
         safeApiCall { homeApi.repeatGoal(id, RepeatGoalRequest(scheduledDate)) }.map { it.toDomain() }
@@ -230,7 +253,7 @@ class HomeRepositoryImpl @Inject constructor(
         description     = description,
         source          = source ?: "manual",
         importedFromGoal = importedFromGoal ?: importedFromGoalSnake ?: false,
-        completedViaFocus = completedViaFocus ?: completedViaFocusSnake ?: false,
+        completedViaFocus = completedViaFocus ?: completedViaFocusSnake ?: (isHistoricallyCompleted && ((studiedMinutes ?: 0) > 0 || (studiedMinutesSnake ?: 0) > 0 || (studiedSeconds ?: 0) > 0 || (studiedSecondsSnake ?: 0) > 0)),
         alreadyExisted = alreadyExisted ?: false,
         goalKind        = goalKind ?: goalKindSnake ?: "today",
         unitType        = unitType ?: unitTypeSnake ?: "binary",
@@ -247,6 +270,7 @@ class HomeRepositoryImpl @Inject constructor(
         createdAt       = createdAt ?: createdAtSnake,
         completedAt     = historicalCompletedAt,
         studiedMinutes  = studiedMinutes ?: studiedMinutesSnake,
+        studiedSeconds  = studiedSeconds ?: studiedSecondsSnake ?: ((studiedMinutes ?: studiedMinutesSnake)?.let { it * 60 }),
         scheduledDate   = scheduledDate ?: scheduledDateSnake,
         startedAt       = startedAtCamel ?: startedAt,
         expiresAt       = expiresAtCamel ?: expiresAt,
@@ -254,6 +278,8 @@ class HomeRepositoryImpl @Inject constructor(
         rolloverPromptPending = rolloverPromptPendingSnake ?: false,
         sourceGoalId    = sourceGoalIdSnake,
         nextInstanceCreated = nextInstanceCreatedSnake ?: false,
+        deletedAt       = deletedAt,
+        purgeAt         = purgeAt,
         type            = type,
         subtasks        = subtasks?.mapNotNull { it.toGoalSubtask() } ?: emptyList()
         )
@@ -305,7 +331,7 @@ class HomeRepositoryImpl @Inject constructor(
         totalSessions = totalSessions ?: 0,
         completedSessions = completedSessions ?: 0,
         endedEarlySessions = endedEarlySessions ?: 0,
-        abandonedSessions = abandonedSessions ?: endedEarlySessions ?: 0,
+        abandonedSessions = abandonedSessions ?: 0,
         weeklyData = weeklyData?.takeIf { it.size == 7 } ?: List(7) { 0 },
         weeklyBreaks = weeklyBreaks?.takeIf { it.size == 7 } ?: List(7) { 0 },
         focusStreak = focusStreak ?: 0,

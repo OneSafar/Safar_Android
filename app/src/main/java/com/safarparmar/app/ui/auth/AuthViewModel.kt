@@ -205,23 +205,12 @@ class AuthViewModel @Inject constructor(
                     authRepository.forgotPassword(email)
                 }) {
                     is Resource.Success -> {
-                        val token = result.data.resetToken
-                        if (!token.isNullOrBlank()) {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    forgotPasswordStep = ForgotPasswordStep.RESET,
-                                    forgotPasswordToken = token,
-                                    error = null,
-                                )
-                            }
-                        } else {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    error = result.data.message
-                                )
-                            }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                forgotPasswordStep = ForgotPasswordStep.EMAIL_SENT,
+                                error = null,
+                            )
                         }
                     }
                     is Resource.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }

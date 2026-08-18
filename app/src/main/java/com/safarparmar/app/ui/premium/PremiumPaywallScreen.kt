@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -71,9 +72,10 @@ private data class PremiumPlanOption(
 private fun PremiumSectionHeader(
     icon: ImageVector,
     title: String,
+    isDarkTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -83,13 +85,13 @@ private fun PremiumSectionHeader(
             modifier = Modifier
                 .size(34.dp)
                 .clip(CircleShape)
-                .background(scheme.primary.copy(alpha = 0.12f)),
+                .background(accent.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = scheme.primary,
+                tint = accent,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -110,6 +112,7 @@ fun PremiumPaywallScreen(
     isDarkTheme: Boolean = false,
     onNavigate: (String) -> Unit = {},
     onToggleDarkTheme: () -> Unit = {},
+    onBack: () -> Unit = {},
     viewModel: PremiumViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -149,7 +152,6 @@ fun PremiumPaywallScreen(
     }
     var selectedPlanId by remember { mutableStateOf("6month") }
     var selectedPlanDuration by remember { mutableStateOf(6) }
-    var currentExpiryDate by remember { mutableStateOf<String?>(null) }
     val selectedPlan = plans.firstOrNull { it.id == selectedPlanId } ?: plans.last()
     val isLoading = uiState is PremiumUiState.Loading
 
@@ -178,24 +180,20 @@ fun PremiumPaywallScreen(
                     viewModel.notifyPaymentFailed("Checkout needs an active screen. Please try again.")
                     return@LaunchedEffect
                 }
-
+                refreshAfterPaymentReturn = true
                 val checkout = Checkout()
                 checkout.setKeyID(state.keyId ?: "rzp_live_SWHJBT7AXadF8a")
-
-                val options = JSONObject()
-                options.put("name", "Safar")
-                options.put("description", "Safar Premium")
-                options.put("theme.color", "#0A84FF")
-                options.put("currency", state.order.currency)
-                options.put("amount", state.order.amount)
-                options.put("order_id", state.order.id)
-
-                val retryObj = JSONObject()
-                retryObj.put("enabled", true)
-                retryObj.put("max_count", 4)
-                options.put("retry", retryObj)
-
-                refreshAfterPaymentReturn = true
+                val options = JSONObject().apply {
+                    put("name", "Safar")
+                    put("description", "Safar Premium")
+                    put("order_id", state.order.id)
+                    put("currency", state.order.currency)
+                    put("amount", state.order.amount)
+                    put("theme.color", if (isDarkTheme) "#3B0764" else "#581C87")
+                    put("modal", JSONObject().apply {
+                        put("ondismiss", "function(){}")
+                    })
+                }
                 checkout.open(activity, options)
                 viewModel.resetState()
             } catch (e: Exception) {
@@ -206,33 +204,33 @@ fun PremiumPaywallScreen(
         }
     }
 
-    val activeStatus = (uiState as? PremiumUiState.PaymentSuccess)?.status ?: premiumStatus
-    val isPremiumActive = activeStatus.hasAnyPaidAccess
-    val formattedExpiry = remember(activeStatus.expiresAt) { formatPremiumExpiry(activeStatus.expiresAt) }
-    val planLabel = remember(activeStatus.planType) { premiumPlanLabel(activeStatus.planType) }
-    val newExpiryAfterPurchase = remember(currentExpiryDate, selectedPlanDuration) {
-        calculatePremiumExtensionExpiry(currentExpiryDate, selectedPlanDuration)
+    val isPremiumActive = premiumStatus.hasAnyPaidAccess
+    val formattedExpiry = remember(premiumStatus.expiresAt) { formatPremiumExpiry(premiumStatus.expiresAt) }
+    val formattedNewExpiry = remember(premiumStatus.expiresAt, selectedPlanDuration) {
+        calculatePremiumExtensionExpiry(premiumStatus.expiresAt, selectedPlanDuration)
     }
-    val formattedNewExpiry = remember(newExpiryAfterPurchase) { formatPremiumExpiry(newExpiryAfterPurchase) }
+    val planLabel = if (isPremiumActive) premiumPlanLabel(premiumStatus.planType) else "Free Plan"
+
     val updateSelectedPlan: (String) -> Unit = { planId ->
         selectedPlanId = planId
-        selectedPlanDuration = plans.firstOrNull { it.id == planId }?.durationMonths ?: selectedPlanDuration
-    }
-
-    LaunchedEffect(activeStatus.expiresAt) {
-        currentExpiryDate = activeStatus.expiresAt
+        val plan = plans.firstOrNull { it.id == planId }
+        if (plan != null) {
+            selectedPlanDuration = plan.durationMonths
+        }
     }
 
     CompositionLocalProvider(LocalPlannerIsDarkTheme provides isDarkTheme) {
         if (uiState is PremiumUiState.PaymentSuccess) {
             PremiumUnlockedDialog(
                 state = uiState as PremiumUiState.PaymentSuccess,
+                isDarkTheme = isDarkTheme,
                 onDismiss = viewModel::resetState,
             )
         }
 
         if (showTrialConfirmation) {
             StartTrialConfirmationDialog(
+                isDarkTheme = isDarkTheme,
                 onDismiss = { showTrialConfirmation = false },
                 onConfirm = {
                     showTrialConfirmation = false
@@ -241,46 +239,57 @@ fun PremiumPaywallScreen(
             )
         }
 
-        SafarDrawerScaffold(
-            title = "Safar Premium",
-            subtitle = "Unlimited Access & Analytics",
-            currentRoute = currentRoute,
-            isDarkTheme = isDarkTheme,
-            onNavigate = onNavigate,
-            onToggleDarkTheme = onToggleDarkTheme,
+        Scaffold(
             containerColor = SafarSemanticColors.plannerBackground(),
-        ) { paddingValues ->
-            Scaffold(
-                containerColor = Color.Transparent,
-                bottomBar = {
-                    PremiumBottomBar(
-                        selectedPlan = selectedPlan,
-                        isPremiumActive = isPremiumActive,
-                        isLoading = isLoading,
-                        onPurchase = {
-                            viewModel.createOrder(
-                                duration = selectedPlan.durationMonths,
+            contentWindowInsets = WindowInsets.safeDrawing,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Safar Premium",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = LoraFontFamily,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
-                        },
-                    )
-                },
-            ) { innerPadding ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(paddingValues)
-                        .padding(innerPadding)
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                ) {
-                    // Intro copy — title lives in the top app bar.
-                    Text(
-                        text = "Unlock AI study planning, Ekagra focus reports, and live sessions",
-                        fontSize = 13.sp,
-                        color = PlannerFlatColors.TextMuted,
-                    )
-
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = SafarSemanticColors.plannerBackground(),
+                    ),
+                )
+            },
+            bottomBar = {
+                PremiumBottomBar(
+                    selectedPlan = selectedPlan,
+                    isPremiumActive = isPremiumActive,
+                    isLoading = isLoading,
+                    isDarkTheme = isDarkTheme,
+                    onPurchase = {
+                        viewModel.createOrder(
+                            duration = selectedPlan.durationMonths,
+                        )
+                    },
+                )
+            },
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(paddingValues)
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
                     if (isPremiumActive) {
                         // Card 1: Active Subscription Summary
                         Card(
@@ -300,10 +309,11 @@ fun PremiumPaywallScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, (if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)).copy(alpha = 0.3f)),
                         ) {
                             SevenDayTrialBanner(
                                 isLoading = isLoading,
+                                isDarkTheme = isDarkTheme,
                                 onStartTrial = { showTrialConfirmation = true },
                             )
                         }
@@ -322,7 +332,7 @@ fun PremiumPaywallScreen(
                                 .padding(20.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            PremiumSectionHeader(icon = Icons.Default.Star, title = "Premium Features")
+                            PremiumSectionHeader(icon = Icons.Default.Star, title = "Premium Features", isDarkTheme = isDarkTheme)
                             PlanHairline(alpha = 0.5f)
                             PremiumBenefitsCard()
                         }
@@ -343,7 +353,8 @@ fun PremiumPaywallScreen(
                         ) {
                             PremiumSectionHeader(
                                 icon = Icons.Default.WorkspacePremium,
-                                title = if (isPremiumActive) "Extend Your Plan" else "Select Plan"
+                                title = if (isPremiumActive) "Extend Your Plan" else "Select Plan",
+                                isDarkTheme = isDarkTheme,
                             )
                             Text(
                                 text = "Purchasing extra time adds directly onto your existing plan without losing days.",
@@ -357,6 +368,7 @@ fun PremiumPaywallScreen(
                                 selectedPlan = selectedPlan,
                                 currentExpiryText = formattedExpiry,
                                 newExpiryText = formattedNewExpiry,
+                                isDarkTheme = isDarkTheme,
                                 onSelectPlan = updateSelectedPlan,
                             )
                         }
@@ -366,22 +378,21 @@ fun PremiumPaywallScreen(
 
                     PaywallFooter(
                         isLoading = isLoading,
+                        isDarkTheme = isDarkTheme,
                         onRestore = { viewModel.refreshPremiumStatus() },
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
     }
-}
 
 @Composable
 private fun StartTrialConfirmationDialog(
+    isDarkTheme: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SafarSemanticColors.plannerBackground(),
@@ -390,7 +401,7 @@ private fun StartTrialConfirmationDialog(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(CircleShape)
-                    .background(scheme.primary),
+                    .background(buttonBg),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -398,7 +409,7 @@ private fun StartTrialConfirmationDialog(
                     fontFamily = LoraFontFamily,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Normal,
-                    color = scheme.onPrimary,
+                    color = Color.White,
                 )
             }
         },
@@ -425,8 +436,8 @@ private fun StartTrialConfirmationDialog(
                 onClick = onConfirm,
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = scheme.primary,
-                    contentColor = scheme.onPrimary,
+                    containerColor = buttonBg,
+                    contentColor = Color.White,
                 ),
             ) {
                 Text("Start Free Trial", fontWeight = FontWeight.Bold)
@@ -444,8 +455,10 @@ private fun StartTrialConfirmationDialog(
 @Composable
 private fun PremiumUnlockedDialog(
     state: PremiumUiState.PaymentSuccess,
+    isDarkTheme: Boolean = false,
     onDismiss: () -> Unit,
 ) {
+    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
     val dialogExpiry = formatPremiumExpiry(state.status.expiresAt)
     val dialogPlanLabel = premiumPlanLabel(state.status.planType)
     var unlockTargetScale by remember { mutableStateOf(0.72f) }
@@ -520,9 +533,9 @@ private fun PremiumUnlockedDialog(
             Button(
                 onClick = onDismiss,
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(containerColor = buttonBg, contentColor = Color.White)
             ) {
-                Text("Continue", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                Text("Continue", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         shape = RoundedCornerShape(20.dp),
@@ -585,18 +598,21 @@ private fun PremiumPricingPanel(
     selectedPlan: PremiumPlanOption,
     currentExpiryText: String?,
     newExpiryText: String?,
+    isDarkTheme: Boolean = false,
     onSelectPlan: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         RadioPlanSelector(
             plans = plans,
             selectedPlanId = selectedPlanId,
+            isDarkTheme = isDarkTheme,
             onSelectPlan = onSelectPlan,
         )
         SelectedPlanCard(
             plan = selectedPlan,
             currentExpiryText = currentExpiryText,
             newExpiryText = newExpiryText,
+            isDarkTheme = isDarkTheme,
         )
     }
 }
@@ -605,9 +621,10 @@ private fun PremiumPricingPanel(
 private fun RadioPlanSelector(
     plans: List<PremiumPlanOption>,
     selectedPlanId: String,
+    isDarkTheme: Boolean = false,
     onSelectPlan: (String) -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         plans.forEach { plan ->
@@ -617,10 +634,10 @@ private fun RadioPlanSelector(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (selected) scheme.primary.copy(alpha = 0.08f) else Color.Transparent)
+                    .background(if (selected) accent.copy(alpha = 0.08f) else Color.Transparent)
                     .border(
                         width = if (selected) 1.5.dp else 1.dp,
-                        color = if (selected) scheme.primary else PlannerFlatColors.BorderSoft,
+                        color = if (selected) accent else PlannerFlatColors.BorderSoft,
                         shape = RoundedCornerShape(12.dp)
                     )
                     .clickable { onSelectPlan(plan.id) }
@@ -640,7 +657,7 @@ private fun RadioPlanSelector(
                             selected = selected,
                             onClick = null,
                             colors = RadioButtonDefaults.colors(
-                                selectedColor = scheme.primary,
+                                selectedColor = accent,
                                 unselectedColor = PlannerFlatColors.TextMuted,
                             ),
                         )
@@ -677,10 +694,10 @@ private fun RadioPlanSelector(
                     }
 
                     Text(
-                        text = "\u20B9${plan.price}",
+                        text = "₹${plan.price}",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = if (selected) scheme.primary else PlannerFlatColors.TextDark,
+                        color = if (selected) accent else PlannerFlatColors.TextDark,
                     )
                 }
             }
@@ -693,15 +710,16 @@ private fun SelectedPlanCard(
     plan: PremiumPlanOption,
     currentExpiryText: String?,
     newExpiryText: String?,
+    isDarkTheme: Boolean = false,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(scheme.primary.copy(alpha = 0.05f))
-            .border(1.dp, scheme.primary.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+            .background(accent.copy(alpha = 0.05f))
+            .border(1.dp, accent.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -724,10 +742,10 @@ private fun SelectedPlanCard(
                     )
                 }
                 Text(
-                    text = "\u20B9${plan.price}",
+                    text = "₹${plan.price}",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = scheme.primary,
+                    color = accent,
                 )
             }
 
@@ -743,7 +761,7 @@ private fun SelectedPlanCard(
                     text = "New expiry after purchase: ${newExpiryText ?: "Calculating..."}",
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = scheme.primary,
+                    color = accent,
                 )
             }
         }
@@ -753,9 +771,11 @@ private fun SelectedPlanCard(
 @Composable
 private fun SevenDayTrialBanner(
     isLoading: Boolean,
+    isDarkTheme: Boolean = false,
     onStartTrial: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
+    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
 
     Row(
         modifier = Modifier
@@ -769,7 +789,7 @@ private fun SevenDayTrialBanner(
             modifier = Modifier
                 .size(38.dp)
                 .clip(CircleShape)
-                .background(scheme.primary),
+                .background(buttonBg),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -777,7 +797,7 @@ private fun SevenDayTrialBanner(
                 fontFamily = LoraFontFamily,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Normal,
-                color = scheme.onPrimary,
+                color = Color.White,
             )
         }
         Column(
@@ -800,14 +820,14 @@ private fun SevenDayTrialBanner(
             CircularProgressIndicator(
                 modifier = Modifier.size(18.dp),
                 strokeWidth = 2.dp,
-                color = scheme.primary,
+                color = accent,
             )
         } else {
             Text(
                 text = "Try Free",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = scheme.primary
+                color = accent
             )
         }
     }
@@ -836,9 +856,10 @@ private fun UiStateMessage(
 @Composable
 private fun PaywallFooter(
     isLoading: Boolean,
+    isDarkTheme: Boolean = false,
     onRestore: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val accent = if (isDarkTheme) Color(0xFFC084FC) else Color(0xFF581C87)
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -852,7 +873,7 @@ private fun PaywallFooter(
         ) {
             Text(
                 text = "Restore Safar Premium",
-                color = scheme.primary,
+                color = accent,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
             )
@@ -870,9 +891,10 @@ private fun PremiumBottomBar(
     selectedPlan: PremiumPlanOption,
     isPremiumActive: Boolean,
     isLoading: Boolean,
+    isDarkTheme: Boolean = false,
     onPurchase: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val buttonBg = if (isDarkTheme) Color(0xFF3B0764) else Color(0xFF581C87)
 
     Surface(
         color = SafarSemanticColors.plannerBackground(),
@@ -895,7 +917,7 @@ private fun PremiumBottomBar(
                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(
-                    text = "\u20B9${selectedPlan.price}",
+                    text = "₹${selectedPlan.price}",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = PlannerFlatColors.TextDark,
@@ -910,14 +932,14 @@ private fun PremiumBottomBar(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (isLoading) scheme.primary.copy(alpha = 0.5f) else scheme.primary)
+                    .background(if (isLoading) buttonBg.copy(alpha = 0.5f) else buttonBg)
                     .clickable(enabled = !isLoading, onClick = onPurchase)
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        color = scheme.onPrimary,
+                        color = Color.White,
                         strokeWidth = 2.dp,
                         modifier = Modifier.size(18.dp),
                     )
@@ -929,14 +951,14 @@ private fun PremiumBottomBar(
                         Icon(
                             imageVector = Icons.Default.Security,
                             contentDescription = null,
-                            tint = scheme.onPrimary,
+                            tint = Color.White,
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
                             text = "Add ${selectedPlan.durationMonths} Months",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = scheme.onPrimary,
+                            color = Color.White,
                         )
                     }
                 }

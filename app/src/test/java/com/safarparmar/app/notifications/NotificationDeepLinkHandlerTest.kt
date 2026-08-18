@@ -39,8 +39,8 @@ class NotificationDeepLinkHandlerTest {
 
     @Test
     fun `https links are opened externally while unsupported schemes are rejected`() {
-        assertTrue(NotificationDeepLinkHandler.isExternalWebLink(Uri.parse("https://safar.parmarssc.in/updates")))
-        assertFalse(NotificationDeepLinkHandler.isExternalWebLink(Uri.parse("http://safar.parmarssc.in/updates")))
-        assertFalse(NotificationDeepLinkHandler.isExternalWebLink(Uri.parse("javascript:alert(1)")))
+        assertTrue(NotificationDeepLinkHandler.isExternalWebLink("https://safar.parmarssc.in/updates"))
+        assertFalse(NotificationDeepLinkHandler.isExternalWebLink("http://safar.parmarssc.in/updates"))
+        assertFalse(NotificationDeepLinkHandler.isExternalWebLink("javascript:alert(1)"))
     }
 }

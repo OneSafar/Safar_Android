@@ -367,15 +367,16 @@ fun KavachPermissionDisclosureCard(
                     )
                 }
                 Column {
+                    val allGranted = hasUsageStats && hasOverlay && hasNotifications && hasNotificationSuppressionAccess
                     Text(
-                        text = "Almost ready! 🎯",
+                        text = if (allGranted) "Permissions active 🛡️" else "Permissions & Access",
                         fontSize = 17.sp,
                         lineHeight = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface,
                     )
                     Text(
-                        text = stringResource(R.string.kavach_permissions_needed),
+                        text = if (allGranted) "All Kavach focus protections are active." else stringResource(R.string.kavach_permissions_needed),
                         fontSize = 12.sp,
                         lineHeight = 16.sp,
                         color = scheme.onSurfaceVariant,
@@ -741,7 +742,6 @@ fun KavachHowItWorksCard(modifier: Modifier = Modifier) {
                     color = KavachSubtitleColor,
                 )
                 KavachGuideLine(stringResource(R.string.kavach_guide_use))
-                KavachGuideLine(stringResource(R.string.kavach_guide_beast))
                 KavachGuideLine(stringResource(R.string.kavach_guide_unlock))
                 Text(
                     text = stringResource(R.string.kavach_about_privacy_card),
@@ -960,8 +960,8 @@ fun KavachControlCenterContainer(
                 // on — a blocker that is hard to stop is a trap, not a tool.
                 KavachControlRow(
                     iconRes = R.drawable.ic_shield_check,
-                    title = "Always On",
-                    subtitle = "Keep blocking even when no timer is running. A notification stays up while it's on.",
+                    title = "Always On Mode",
+                    subtitle = "Blocks your chosen apps 24/7. Turn it on or off anytime.",
                     onClick = { onAlwaysOnChange(!alwaysOn) },
                     isDark = isDark,
                 ) {

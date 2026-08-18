@@ -47,22 +47,32 @@ object KavachAnalyticsFormat {
      * always numbers a person already thinks in — and it also stops a quiet day
      * from drawing a full-height bar that looks alarming next to a busy one.
      */
-    /** Default standard axis max for daily view: 10 hours (36,000 seconds). */
-    private const val DEFAULT_DAILY_AXIS_SECONDS = 10 * 3600
-
     /**
-     * Scales the Y-axis. Default daily baseline is 10 hours (producing ticks 0, 5h, 10h).
-     * If usage exceeds 10 hours, scales up in even-hour increments so the midpoint tick
-     * is always a clean whole number of hours.
+     * Scales the Y-axis to a familiar duration close to the visible data. The previous
+     * fixed 10-hour floor made ordinary usage under an hour practically invisible.
      */
     fun niceAxisMax(
         seconds: Int,
         granularity: com.safarparmar.app.feature.kavachanalytics.domain.KavachGranularity = com.safarparmar.app.feature.kavachanalytics.domain.KavachGranularity.DAILY,
     ): Int {
-        if (seconds <= DEFAULT_DAILY_AXIS_SECONDS) return DEFAULT_DAILY_AXIS_SECONDS
+        // Week compares whole days, so preserve a stable 0h / 5h / 10h frame.
+        // Changing it to 0h / 1h / 2h exaggerates an otherwise ordinary short day.
+        if (granularity == com.safarparmar.app.feature.kavachanalytics.domain.KavachGranularity.WEEKLY &&
+            seconds <= 10 * 3600
+        ) {
+            return 10 * 3600
+        }
+
+        val minimum = DEFAULT_AXIS_MINUTES * 60
+        if (seconds <= minimum) return minimum
+
+        val familiarMinutes = intArrayOf(30, 60, 120, 180, 240, 360, 480, 600, 720)
+        familiarMinutes.firstOrNull { seconds <= it * 60 }?.let { return it * 60 }
+
+        // Beyond 12 hours, retain readable whole-hour ticks and round upward.
         val hours = (seconds + 3599) / 3600
         val evenHours = ((hours + 1) / 2) * 2
-        return (evenHours.coerceAtLeast(10)) * 3600
+        return evenHours * 3600
     }
 
     fun percent(part: Int, total: Int): Int =

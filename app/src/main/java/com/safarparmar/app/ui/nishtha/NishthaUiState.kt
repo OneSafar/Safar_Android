@@ -15,6 +15,8 @@ data class NishthaUiState(
     val journalError: String? = null,
     val isLoadingGoals: Boolean = false,
     val goals: List<Goal> = emptyList(),
+    val recentlyDeletedGoals: List<Goal> = emptyList(),
+    val isLoadingDeletedGoals: Boolean = false,
     val rolloverPrompts: List<Goal> = emptyList(),
     val ekagraAnalytics: EkagraAnalyticsStats = EkagraAnalyticsStats(),
     val isSavingGoal: Boolean = false,
@@ -23,10 +25,15 @@ data class NishthaUiState(
     val goalError: String? = null,
     /** One-shot toast text for goal actions. Cleared via clearGoalMessage(). */
     val goalMessage: String? = null,
+    /** create, update, complete, delete, restore, reopen, or repeat. */
+    val goalAction: String? = null,
+    /** Goal affected by delete/restore/reopen, used by Undo and focused UI updates. */
+    val goalActionGoalId: String? = null,
     val isLoadingStreaks: Boolean = false,
     val streaks: Streaks = Streaks(),
     val isLoadingReport: Boolean = false,
     val monthlyReport: MonthlyReport? = null,
+    val reportError: String? = null,
     val loginHistory: List<com.safarparmar.app.domain.model.LoginHistoryEntry> = emptyList(),
     val achievements: List<com.safarparmar.app.domain.model.Achievement> = emptyList(),
     val error: String? = null
@@ -42,7 +49,7 @@ sealed class NishthaEvent {
     object LoadGoals : NishthaEvent()
     data class AddGoal(val title: String, val description: String?, val priority: String, val scheduledDate: String, val startedAt: String, val subtasks: List<String> = emptyList()) : NishthaEvent()
     data class UpdateGoal(val id: String, val title: String, val description: String?, val priority: String) : NishthaEvent()
-    data class CompleteGoal(val id: String, val studiedMinutes: Int) : NishthaEvent()
+    data class CompleteGoal(val id: String, val studiedMinutes: Int, val studiedSeconds: Int = 0) : NishthaEvent()
     data class DeleteGoal(val id: String) : NishthaEvent()
     object ClearGoalSuccess : NishthaEvent()
     object LoadStreaks : NishthaEvent()

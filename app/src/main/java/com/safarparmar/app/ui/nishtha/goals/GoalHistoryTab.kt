@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -56,6 +57,8 @@ import com.safarparmar.app.ui.ekagra.EkagraViewModel
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.LoraFontFamily
 import com.safarparmar.app.util.IstDateUtils
+import com.safarparmar.app.util.assignedDateKey
+import com.safarparmar.app.util.isGoalCompleted
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -65,8 +68,12 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun HistoryTab(goals: List<Goal>) {
-    val completed = goals.filter { it.completed }
+internal fun HistoryTab(
+    goals: List<Goal>,
+    isSaving: Boolean,
+    onReopen: (Goal) -> Unit,
+) {
+    val completed = goals.filter { it.source != "ekagra" && it.isGoalCompleted() }
     val today = LocalDate.now(IstDateUtils.zone)
     var selectedDate by remember { mutableStateOf(today) }
     var showHistoryDatePicker by remember { mutableStateOf(false) }
@@ -74,19 +81,21 @@ internal fun HistoryTab(goals: List<Goal>) {
         initialSelectedDateMillis = selectedDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(),
     )
     val filtered = completed.filter { goal ->
-        val d = goal.completedAt?.take(10) ?: goal.scheduledDate?.take(10)
-        d == selectedDate.toString()
+        goal.assignedDateKey() == selectedDate.toString()
     }
 
     val ekagraViewModel = hiltViewModel<EkagraViewModel>()
     val linkedSessions by ekagraViewModel.linkedSessions.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { ekagraViewModel.loadLinkedSessions() }
-    val linkedSessionsForDate = remember(linkedSessions, selectedDate) {
-        linkedSessions.filter {
-            val d = (it.endedAt ?: it.startedAt)?.let { ts ->
-                runCatching { Instant.parse(ts).atZone(ZoneId.systemDefault()).toLocalDate() }.getOrNull()
+    val linkedSessionsForDate = remember(linkedSessions, selectedDate, goals) {
+        linkedSessions.filter { session ->
+            // Keep a late session beside the goal's assigned-day outcome. If the
+            // goal was deleted, fall back to the truthful session activity date.
+            val assignedDay = goals.firstOrNull { it.id == session.goalId }?.assignedDateKey()
+            val activityDay = (session.endedAt ?: session.startedAt)?.let { ts ->
+                runCatching { Instant.parse(ts).atZone(IstDateUtils.zone).toLocalDate().toString() }.getOrNull()
             }
-            d == selectedDate
+            (assignedDay ?: activityDay) == selectedDate.toString()
         }
     }
 
@@ -189,18 +198,36 @@ internal fun HistoryTab(goals: List<Goal>) {
         PlanHairline(modifier = Modifier.padding(horizontal = 20.dp))
 
         if (filtered.isEmpty() && linkedSessionsForDate.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
+                    .background(GoalsFlatColors.Primary.copy(alpha = 0.03f)),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text("Nothing found for this date.", color = GoalsFlatColors.Muted)
             }
             return
         }
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .fillMaxWidth()
+                .heightIn(max = 336.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(1.5.dp, GoalsFlatColors.Primary, RoundedCornerShape(16.dp))
+                .background(GoalsFlatColors.Primary.copy(alpha = 0.03f)),
         ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
             itemsIndexed(filtered, key = { _, goal -> goal.id }) { index, goal ->
                 val isHighlighted = highlightedGoalId == goal.id
                 val highlightColor by animateColorAsState(
@@ -212,7 +239,13 @@ internal fun HistoryTab(goals: List<Goal>) {
                         .fillMaxWidth()
                         .background(highlightColor),
                 ) {
-                    GoalItem(goal, onComplete = {}, onEdit = {}, onDelete = {})
+                    GoalItem(
+                        goal = goal,
+                        onComplete = {},
+                        onReopen = if (isSaving) null else ({ onReopen(goal) }),
+                        onEdit = {},
+                        onDelete = {},
+                    )
                 }
                 if (index < filtered.lastIndex) PlanHairline(alpha = 0.5f)
             }
@@ -252,6 +285,7 @@ internal fun HistoryTab(goals: List<Goal>) {
         }
     }
 }
+}
 
 @Composable
 private fun LinkedEkagraSessionRow(
@@ -260,7 +294,7 @@ private fun LinkedEkagraSessionRow(
 ) {
     val start = session.startedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
     val end = session.endedAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()).withZone(ZoneId.systemDefault())
+    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()).withZone(IstDateUtils.zone)
     val timeRange = if (start != null && end != null) {
         "${timeFormatter.format(start)} – ${timeFormatter.format(end)}"
     } else {

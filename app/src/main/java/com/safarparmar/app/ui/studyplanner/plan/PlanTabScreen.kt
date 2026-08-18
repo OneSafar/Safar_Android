@@ -1349,13 +1349,7 @@ private fun TopicSchedulingScreen(
                     .padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = scheme.onSurface
-                    )
-                }
+                com.safarparmar.app.ui.ekagra.focusshield.StudyPlannerCircularBackButton(onClick = onDismiss)
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(

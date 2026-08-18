@@ -32,6 +32,8 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -49,10 +51,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
@@ -147,22 +152,23 @@ private fun DmChatTopBar(
 ) {
     Column(Modifier.fillMaxWidth().background(MehfilFlatColors.Bg)) {
         Row(
-            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().background(MehfilFlatColors.Primary.copy(alpha = 0.09f)).statusBarsPadding().padding(horizontal = 8.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            val isDarkChat = androidx.compose.foundation.isSystemInDarkTheme()
             Box(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .border(1.dp, MehfilFlatColors.Hairline, CircleShape)
+                    .background(if (isDarkChat) Color(0xFF3B0764) else Color(0xFF581C87))
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = MehfilFlatColors.Text,
+                    tint = Color.White,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -216,7 +222,7 @@ private fun DmChatTopBar(
 @Composable
 private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSend: () -> Unit) {
     val canSend = value.isNotBlank()
-    Column(Modifier.fillMaxWidth().background(MehfilFlatColors.Bg)) {
+    Column(Modifier.fillMaxWidth().background(MehfilFlatColors.Primary.copy(alpha = 0.05f))) {
         PlanHairline()
         Row(
             Modifier.navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -229,6 +235,8 @@ private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSen
                 placeholder = { Text("Message...", fontSize = 14.sp, color = MehfilFlatColors.Muted) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = { if (canSend) onSend() }),
                 shape = RoundedCornerShape(12.dp),
                 textStyle = TextStyle(fontSize = 14.sp, color = MehfilFlatColors.Text),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -237,28 +245,33 @@ private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSen
                     focusedTextColor = MehfilFlatColors.Text,
                     unfocusedTextColor = MehfilFlatColors.Text,
                     cursorColor = MehfilFlatColors.Primary,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = MehfilFlatColors.Bg,
+                    unfocusedContainerColor = MehfilFlatColors.Bg,
                     focusedPlaceholderColor = MehfilFlatColors.Muted,
                     unfocusedPlaceholderColor = MehfilFlatColors.Muted,
                 ),
             )
-            IconButton(
+            Button(
                 onClick = onSend,
                 enabled = canSend,
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (canSend) MehfilFlatColors.Primary
-                        else MehfilFlatColors.Hairline.copy(alpha = 0.55f),
-                    ),
+                    .heightIn(min = 48.dp),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 15.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MehfilFlatColors.Primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = MehfilFlatColors.Hairline.copy(alpha = 0.55f),
+                    disabledContentColor = MehfilFlatColors.Muted,
+                ),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.Send,
-                    contentDescription = null,
-                    tint = if (canSend) Color.White else MehfilFlatColors.Muted,
+                    contentDescription = "Send message",
+                    modifier = Modifier.size(18.dp),
                 )
+                Spacer(Modifier.size(7.dp))
+                Text("Send", fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
     }
@@ -267,14 +280,23 @@ private fun DmMessageInput(value: String, onValueChange: (String) -> Unit, onSen
 @Composable
 private fun EmptyDmState(peerName: String, modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(MehfilFlatColors.Primary.copy(alpha = 0.08f))
+                .border(1.dp, MehfilFlatColors.Primary.copy(alpha = 0.18f), RoundedCornerShape(20.dp))
+                .padding(horizontal = 28.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
             Icon(
                 Icons.AutoMirrored.Filled.Chat,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
-                tint = MehfilFlatColors.Muted.copy(alpha = 0.45f),
+                tint = MehfilFlatColors.Primary,
             )
-            Text("Say hello to $peerName!", fontSize = 14.sp, color = MehfilFlatColors.Muted)
+            Text("Start your private chat", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MehfilFlatColors.Text)
+            Text("Say hello to $peerName below.", fontSize = 12.sp, color = MehfilFlatColors.Muted)
         }
     }
 }
