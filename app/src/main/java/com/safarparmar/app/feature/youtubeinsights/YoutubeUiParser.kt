@@ -99,7 +99,7 @@ object YoutubeUiParser {
             if (channelIds.any(id::contains)) cleanChannel(node.text ?: node.contentDescription) else null
         } ?: relevantNodes.filterNot(::isPlayVideoCard).firstNotNullOfOrNull { node ->
             semanticChannel(node.contentDescription ?: node.text)
-        }
+        } ?: findChannelByAvatarPattern(relevantNodes)
 
         val controlNodes = nodes.filterNot(::isPlayVideoCard)
         val hasExplicitPause = controlNodes.any { isPauseControl(it) }
@@ -134,15 +134,14 @@ object YoutubeUiParser {
 
     private fun isCommentsOrRelatedBoundary(id: String, text: String): Boolean {
         return id.contains("comment") ||
-            id.contains("related") ||
-            id.contains("results_list") ||
-            id.contains("item_list") ||
-            id.contains("watch_list") ||
+            id.contains("related_video") ||
+            id.contains("related_item") ||
             id.contains("suggested") ||
             text.startsWith("comments") ||
             text.startsWith("comment ") ||
             text.startsWith("टिप्पणियां") ||
-            text.startsWith("कमेंट")
+            text.startsWith("कमेंट") ||
+            text.startsWith("up next")
     }
 
     private fun extractHandle(value: CharSequence?): String? {
@@ -250,6 +249,41 @@ object YoutubeUiParser {
         "^(@[\\p{L}\\p{N}_.-]+)\\s+(?:[\\d.,]+\\s*(?:[kKmMbB]|lakh|crore)?\\s+)?(?:likes?|views?)\\b",
         setOf(RegexOption.IGNORE_CASE),
     )
+    private fun findChannelByAvatarPattern(relevantNodes: List<YoutubeUiNode>): String? {
+        val avatars = relevantNodes.filter { node ->
+            val cls = node.className.orEmpty()
+            val id = node.viewId.orEmpty().lowercase()
+            (cls.contains("ImageView", true) || id.contains("avatar") || id.contains("channel_avatar") || id.contains("channel_image")) &&
+                (node.isSquare || (node.width in 20..300 && node.height in 20..300))
+        }
+        for (avatar in avatars) {
+            val candidate = relevantNodes.firstOrNull { textNode ->
+                textNode !== avatar &&
+                    !isPlayVideoCard(textNode) &&
+                    !textNode.text.isNullOrBlank() &&
+                    isValidChannelText(textNode.text) &&
+                    (avatar.boundsTop == 0 || kotlin.math.abs(textNode.boundsTop - avatar.boundsTop) < 120)
+            }
+            if (candidate?.text != null) {
+                val cleaned = cleanChannel(candidate.text)
+                if (cleaned != null) return cleaned
+            }
+        }
+        return null
+    }
+
+    private fun isValidChannelText(value: String?): Boolean {
+        val text = value?.trim().orEmpty().lowercase()
+        if (text.length < 2 || text.length > 80) return false
+        val invalidTokens = listOf(
+            "views", "likes", "subscribers", "subscribe", "subscribed", "comments",
+            "play video", "share", "download", "save", "remix", "thanks", "clip",
+            "more", "ago", "hours", "minutes", "seconds", "days", "months", "years",
+            "सदस्यता", "टिप्पणियां", "शेयर", "डाउनलोड"
+        )
+        return invalidTokens.none { text.contains(it) }
+    }
+
     private val HANDLE_IN_LINE = Regex(
         "(@[\\p{L}\\p{N}_.-]{3,})",
         setOf(RegexOption.IGNORE_CASE),

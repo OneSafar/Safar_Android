@@ -126,8 +126,6 @@ fun YoutubeStudyModeScreen(
                 YoutubeStudyManagement(
                     state = state,
                     onSetEnabled = viewModel::setEnabled,
-                    onSetShortsScope = viewModel::setShortsScope,
-                    onSetChannelScope = viewModel::setChannelScope,
                     onSetProductive = viewModel::setProductive,
                     onOpenAnalytics = { onNavigate(Routes.YOUTUBE_STUDY_ANALYTICS) },
                     modifier = Modifier.fillMaxSize(),
@@ -407,8 +405,6 @@ private fun YoutubeStudyOnboarding(
 private fun YoutubeStudyManagement(
     state: YoutubeStudyModeUiState,
     onSetEnabled: (Boolean) -> Unit,
-    onSetShortsScope: (String) -> Unit,
-    onSetChannelScope: (String) -> Unit,
     onSetProductive: (String, Boolean) -> Unit,
     onOpenAnalytics: () -> Unit,
     modifier: Modifier = Modifier,
@@ -525,9 +521,9 @@ private fun YoutubeStudyManagement(
             elevation = CardDefaults.cardElevation(0.dp),
         ) {
             Column(Modifier.padding(vertical = 4.dp)) {
-                FlatScopeRow("Block Shorts", state.shortsScope) { onSetShortsScope(nextScope(state.shortsScope)) }
+                FlatRuleStatusRow("Block Shorts", state.enabled)
                 HorizontalDivider(color = KavachDesign.Border.copy(alpha = 0.4f), modifier = Modifier.padding(horizontal = 16.dp))
-                FlatScopeRow("Block Distracting Channels", state.channelScope) { onSetChannelScope(nextScope(state.channelScope)) }
+                FlatRuleStatusRow("Block Distracting Channels", state.enabled)
             }
         }
 
@@ -782,11 +778,10 @@ private fun FlatChannelToggleRow(
 }
 
 @Composable
-private fun FlatScopeRow(label: String, scope: String, onClick: () -> Unit) {
+private fun FlatRuleStatusRow(label: String, isEnabled: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -803,40 +798,17 @@ private fun FlatScopeRow(label: String, scope: String, onClick: () -> Unit) {
             modifier = Modifier
                 .clip(RoundedCornerShape(999.dp))
                 .background(
-                    when (scope) {
-                        "always" -> Color(0xFFEF4444).copy(alpha = 0.12f)
-                        "protected" -> KavachDesign.Primary.copy(alpha = 0.12f)
-                        else -> KavachDesign.Border.copy(alpha = 0.3f)
-                    }
+                    if (isEnabled) Color(0xFFEF4444).copy(alpha = 0.12f)
+                    else KavachDesign.Border.copy(alpha = 0.3f)
                 )
                 .padding(horizontal = 12.dp, vertical = 6.dp),
         ) {
             Text(
-                when (scope) {
-                    "protected" -> "During Kavach"
-                    "always" -> "Always Block"
-                    else -> "Off"
-                },
+                if (isEnabled) "Always Blocked" else "Disabled",
                 fontSize = 12.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = when (scope) {
-                    "always" -> Color(0xFFEF4444)
-                    "protected" -> KavachDesign.Primary
-                    else -> KavachDesign.TextMuted
-                },
-            )
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = KavachDesign.TextMuted,
-                modifier = Modifier.size(16.dp),
+                color = if (isEnabled) Color(0xFFEF4444) else KavachDesign.TextMuted,
             )
         }
     }
-}
-
-private fun nextScope(scope: String): String = when (scope) {
-    "off" -> "protected"
-    "protected" -> "always"
-    else -> "off"
 }

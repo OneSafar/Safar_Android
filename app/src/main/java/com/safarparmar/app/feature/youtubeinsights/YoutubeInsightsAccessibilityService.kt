@@ -45,8 +45,13 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
     private var pendingVideoTapAt = 0L
     private var userOpenedVideo = false
     private var wasBrowsingYoutube = false
+    private var pendingCandidateChannel: String? = null
+    private var candidateConfirmCount = 0
+    private var lastConfirmedChannel: String? = null
     /** Monotonic token prevents an older IO decision from restoring a stale overlay. */
     @Volatile private var decisionGeneration = 0L
+
+    private val debounceRunnable = Runnable { processActiveWindow() }
 
     private val watchdog = object : Runnable {
         override fun run() {
@@ -70,36 +75,40 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
             clickedChannel?.let {
                 pendingClickedChannel = it
                 pendingClickedChannelAt = now
+                pendingCandidateChannel = it
+                candidateConfirmCount = REQUIRED_CONFIRMATIONS
             }
             if (cardDescription != null) {
                 pendingVideoTapAt = now
-                // The click is reported while the old feed hierarchy can still be
-                // active. Do not mistake its autoplay preview for the opened video
-                // and press Back out of YouTube; inspect after navigation starts.
-                handler.postDelayed(::processActiveWindow, CLICK_TRANSITION_DELAY_MS)
+                handler.removeCallbacks(debounceRunnable)
+                handler.postDelayed(debounceRunnable, CLICK_TRANSITION_DELAY_MS)
                 return
             }
         }
-        if (now - lastProcessedElapsed < EVENT_DEBOUNCE_MS) return
-        lastProcessedElapsed = now
-        processActiveWindow()
+        // Trailing debounce prevents reading partial trees during lazy loading
+        handler.removeCallbacks(debounceRunnable)
+        handler.postDelayed(debounceRunnable, EVENT_DEBOUNCE_MS)
     }
 
     override fun onInterrupt() {
         handler.removeCallbacks(watchdog)
+        handler.removeCallbacks(debounceRunnable)
         decisionGeneration += 1
         scope.launch { repository.stop() }
         activeBlockKey = null
+        clearConfirmationState()
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(watchdog)
+        handler.removeCallbacks(debounceRunnable)
         decisionGeneration += 1
         scope.launch {
             repository.stop()
             scope.cancel()
         }
         activeBlockKey = null
+        clearConfirmationState()
         super.onDestroy()
     }
 
@@ -107,6 +116,7 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
         val generation = ++decisionGeneration
         if (!repository.enabled.value) {
             clearBlockState()
+            clearConfirmationState()
             scope.launch {
                 decisionMutex.withLock {
                     if (generation == decisionGeneration) repository.stop()
@@ -117,6 +127,7 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
         if (currentForegroundPackage() != YoutubeUiParser.YOUTUBE_PACKAGE) {
             clearPlaybackSession()
             clearBlockState()
+            clearConfirmationState()
             scope.launch {
                 decisionMutex.withLock {
                     if (generation == decisionGeneration) repository.stop()
@@ -127,6 +138,7 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow
         if (root?.packageName?.toString() != YoutubeUiParser.YOUTUBE_PACKAGE) {
             clearBlockState()
+            clearConfirmationState()
             scope.launch {
                 decisionMutex.withLock {
                     if (generation == decisionGeneration) repository.stop()
@@ -146,18 +158,11 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
                 "opened=$userOpenedVideo",
         )
         if (detection.kind == YoutubeContentKind.VIDEO) {
-            // Some YouTube/OEM combinations emit TYPE_VIEW_CLICKED with a null or
-            // leaf-only source. A browse -> full-watch transition is equivalent
-            // evidence of an intentional open. Inline autoplay never leaves the
-            // browse snapshot, so it cannot arm blocking through this path.
-            if (recentVideoTap || wasBrowsingYoutube) {
+            if (recentVideoTap || wasBrowsingYoutube || detection.channelName != null) {
                 userOpenedVideo = true
                 pendingVideoTapAt = 0L
             }
             wasBrowsingYoutube = false
-            // Player-like nodes also exist for silent Home/search thumbnail previews
-            // and the collapsed mini-player. A normal video is eligible for analytics
-            // and blocking only after a real video-card click was observed.
             if (!userOpenedVideo) {
                 detection = YoutubeDetection(YoutubeContentKind.NON_PLAYBACK)
             } else {
@@ -169,23 +174,52 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
         } else if (detection.kind == YoutubeContentKind.NON_PLAYBACK && !recentVideoTap) {
             userOpenedVideo = false
             clearPendingChannel()
+            clearConfirmationState()
             wasBrowsingYoutube = true
         }
+
+        // Candidate confirmation state machine:
+        // Require candidate channel to be confirmed before enforcing block decision,
+        // avoiding flicker from partial/lazy renders.
+        val candidate = detection.channelName
+        val isConfirmed = if (detection.kind == YoutubeContentKind.SHORTS) {
+            true
+        } else if (candidate != null) {
+            if (candidate.equals(pendingCandidateChannel, ignoreCase = true)) {
+                candidateConfirmCount++
+            } else {
+                pendingCandidateChannel = candidate
+                candidateConfirmCount = 1
+            }
+            candidateConfirmCount >= REQUIRED_CONFIRMATIONS || recentVideoTap || pendingChannel != null
+        } else {
+            false
+        }
+
+        if (isConfirmed && candidate != null) {
+            lastConfirmedChannel = candidate
+        }
+
         scope.launch {
             decisionMutex.withLock {
                 if (generation != decisionGeneration) return@withLock
                 repository.observe(detection)
                 val protectedNow = FocusShieldRepository.Snapshot.active
-                val shouldBlock = repository.shouldBlock(detection, protectedNow)
+                val effectiveDetection = if (lastConfirmedChannel != null && detection.channelName == null) {
+                    detection.copy(channelName = lastConfirmedChannel)
+                } else {
+                    detection
+                }
+                val shouldBlock = repository.shouldBlock(effectiveDetection, protectedNow)
                 debugLog(
-                    "decision kind=${detection.kind} channel=${detection.channelName ?: "unknown"} " +
-                        "scope=${repository.channelScope.value} protected=$protectedNow block=$shouldBlock",
+                    "decision kind=${effectiveDetection.kind} channel=${effectiveDetection.channelName ?: "unknown"} " +
+                        "confirmed=$isConfirmed enabled=${repository.enabled.value} protected=$protectedNow block=$shouldBlock",
                 )
                 if (generation != decisionGeneration) return@withLock
-                if (shouldBlock) {
-                    val shorts = detection.kind == YoutubeContentKind.SHORTS
+                if (shouldBlock && (isConfirmed || effectiveDetection.kind == YoutubeContentKind.SHORTS)) {
+                    val shorts = effectiveDetection.kind == YoutubeContentKind.SHORTS
                     val blockKey = if (shorts) "shorts" else
-                        "channel:${detection.channelName?.let(YoutubeUiParser::normalizeChannel)}"
+                        "channel:${effectiveDetection.channelName?.let(YoutubeUiParser::normalizeChannel)}"
 
                     val isNewAttempt = activeBlockKey != blockKey
                     if (isNewAttempt) {
@@ -194,7 +228,7 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
                             entryPoint.focusShieldRepository().recordBlockedHit(YoutubeUiParser.YOUTUBE_PACKAGE)
                         }
                         if (!shorts) {
-                            val channelName = detection.channelName
+                            val channelName = effectiveDetection.channelName
                             val channelKey = channelName?.let { repository.channelKey(it) }
                             if (channelName != null && channelKey != null &&
                                 repository.shouldShowBlockedChannelNotification(channelKey)
@@ -206,11 +240,17 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
                         }
                     }
                     escapeBlockedContent(shorts, showMessage = isNewAttempt)
-                } else {
+                } else if (!shouldBlock) {
                     clearBlockState()
                 }
             }
         }
+    }
+
+    private fun clearConfirmationState() {
+        pendingCandidateChannel = null
+        candidateConfirmCount = 0
+        lastConfirmedChannel = null
     }
 
     private fun clearBlockState() {
@@ -226,6 +266,7 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
 
     private fun clearPlaybackSession() {
         clearPendingChannel()
+        clearConfirmationState()
         pendingVideoTapAt = 0L
         userOpenedVideo = false
         wasBrowsingYoutube = false
@@ -347,8 +388,10 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
         val result = ArrayList<YoutubeUiNode>()
         val queue = ArrayDeque<AccessibilityNodeInfo>()
         queue.add(root)
+        val rect = android.graphics.Rect()
         while (queue.isNotEmpty() && result.size < MAX_NODES) {
             val node = queue.removeFirst()
+            node.getBoundsInScreen(rect)
             result += YoutubeUiNode(
                 text = node.text?.toString(),
                 contentDescription = node.contentDescription?.toString(),
@@ -356,6 +399,10 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
                 className = node.className?.toString(),
                 selected = node.isSelected,
                 clickable = node.isClickable,
+                boundsLeft = rect.left,
+                boundsTop = rect.top,
+                boundsRight = rect.right,
+                boundsBottom = rect.bottom,
             )
             for (index in 0 until node.childCount) node.getChild(index)?.let(queue::addLast)
         }
@@ -363,8 +410,9 @@ class YoutubeInsightsAccessibilityService : AccessibilityService() {
     }
 
     companion object {
-        private const val EVENT_DEBOUNCE_MS = 75L
-        private const val WATCHDOG_MS = 900L
+        private const val EVENT_DEBOUNCE_MS = 250L
+        private const val WATCHDOG_MS = 800L
+        private const val REQUIRED_CONFIRMATIONS = 2
         // After tapping a video card the transition to the watch screen can take
         // ~200–800 ms on mid-range devices.  Wait long enough for the first player
         // frame before evaluating so we never mis-classify the departing feed.

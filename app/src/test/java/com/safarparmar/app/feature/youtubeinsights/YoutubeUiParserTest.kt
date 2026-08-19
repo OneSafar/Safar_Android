@@ -309,6 +309,34 @@ class YoutubeUiParserTest {
         assertTrue(result.isPlaying)
     }
 
+    @Test fun `watch screen with avatar and adjacent channel name extracts channel by structural pattern`() {
+        val result = YoutubeUiParser.parse(snapshot(
+            YoutubeUiNode(viewId = "com.google.android.youtube:id/watch_player"),
+            YoutubeUiNode(text = "Complete Modern History in One Shot"),
+            // Obfuscated / generic avatar image view with square bounds
+            YoutubeUiNode(
+                className = "android.widget.ImageView",
+                boundsLeft = 32,
+                boundsTop = 450,
+                boundsRight = 112,
+                boundsBottom = 530,
+            ),
+            // Adjacent channel title TextView at the same horizontal height
+            YoutubeUiNode(
+                className = "android.widget.TextView",
+                text = "Parmar Academy",
+                boundsLeft = 130,
+                boundsTop = 460,
+                boundsRight = 400,
+                boundsBottom = 510,
+            ),
+            YoutubeUiNode(text = "Comments 50"),
+        ))
+        assertEquals(YoutubeContentKind.VIDEO, result.kind)
+        assertEquals("Parmar Academy", result.channelName)
+        assertTrue(result.isPlaying)
+    }
+
     private fun snapshot(vararg nodes: YoutubeUiNode) = YoutubeUiSnapshot(
         nodes = nodes.toList(),
         packageName = YoutubeUiParser.YOUTUBE_PACKAGE,

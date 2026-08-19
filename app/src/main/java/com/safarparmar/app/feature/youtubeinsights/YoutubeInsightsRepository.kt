@@ -33,10 +33,6 @@ class YoutubeInsightsRepository @Inject constructor(
 
     val enabled: StateFlow<Boolean> = dataStore.youtubeInsightsEnabled
         .stateIn(scope, SharingStarted.Eagerly, false)
-    val shortsScope: StateFlow<String> = dataStore.youtubeShortsBlockScope
-        .stateIn(scope, SharingStarted.Eagerly, YoutubeBlockScope.OFF.wire)
-    val channelScope: StateFlow<String> = dataStore.youtubeChannelBlockScope
-        .stateIn(scope, SharingStarted.Eagerly, YoutubeBlockScope.OFF.wire)
 
     private data class Open(
         val startedAtMs: Long,
@@ -177,18 +173,15 @@ class YoutubeInsightsRepository @Inject constructor(
     }
 
     suspend fun shouldBlock(detection: YoutubeDetection, protectedNow: Boolean = com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository.Snapshot.active): Boolean = when {
-        detection.kind == YoutubeContentKind.SHORTS ->
-            YoutubeBlockScope.fromWire(shortsScope.value).applies(protectedNow)
+        !enabled.value -> false
+        detection.kind == YoutubeContentKind.SHORTS -> true
         detection.kind == YoutubeContentKind.VIDEO && detection.channelName != null &&
-            !isProductive(detection.channelName) ->
-            YoutubeBlockScope.fromWire(channelScope.value).applies(protectedNow)
+            !isProductive(detection.channelName) -> true
         else -> false
     }
 
     /** True when content-level rules, rather than generic app blocking, own YouTube. */
-    fun ownsYoutubeBlocking(): Boolean = enabled.value &&
-        (YoutubeBlockScope.fromWire(shortsScope.value) != YoutubeBlockScope.OFF ||
-            YoutubeBlockScope.fromWire(channelScope.value) != YoutubeBlockScope.OFF)
+    fun ownsYoutubeBlocking(): Boolean = enabled.value
 
     suspend fun aggregateDate(localDate: String) {
         val intervals = dao.youtubeIntervalsBetween(localDate, localDate)

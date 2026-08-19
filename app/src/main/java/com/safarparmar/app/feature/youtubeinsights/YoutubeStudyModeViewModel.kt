@@ -18,8 +18,6 @@ data class YoutubeStudyModeUiState(
     val enabled: Boolean = false,
     val onboardingDone: Boolean = false,
     val consentVersion: Int = 0,
-    val shortsScope: String = "off",
-    val channelScope: String = "off",
     val hasAccessibility: Boolean = false,
     val hasNotifications: Boolean = false,
     val channels: List<YoutubeChannelEntity> = emptyList(),
@@ -29,8 +27,6 @@ private data class YoutubePreferences(
     val enabled: Boolean,
     val onboardingDone: Boolean,
     val consentVersion: Int,
-    val shortsScope: String,
-    val channelScope: String,
 )
 
 @HiltViewModel
@@ -46,10 +42,8 @@ class YoutubeStudyModeViewModel @Inject constructor(
         dataStore.youtubeInsightsEnabled,
         dataStore.youtubeStudyOnboardingDone,
         dataStore.youtubeAccessibilityConsentVersion,
-        dataStore.youtubeShortsBlockScope,
-        dataStore.youtubeChannelBlockScope,
-    ) { enabled, onboarding, consent, shorts, channel ->
-        YoutubePreferences(enabled, onboarding, consent, shorts, channel)
+    ) { enabled, onboarding, consent ->
+        YoutubePreferences(enabled, onboarding, consent)
     }
 
     val state = combine(preferences, channels, permissionTick) { prefs, rows, _ ->
@@ -57,8 +51,6 @@ class YoutubeStudyModeViewModel @Inject constructor(
             enabled = prefs.enabled,
             onboardingDone = prefs.onboardingDone,
             consentVersion = prefs.consentVersion,
-            shortsScope = prefs.shortsScope,
-            channelScope = prefs.channelScope,
             hasAccessibility = FocusShieldPermissionHelper.hasAccessibilityService(app),
             hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(app),
             channels = rows,
@@ -78,8 +70,6 @@ class YoutubeStudyModeViewModel @Inject constructor(
     }
 
     fun setEnabled(value: Boolean) = viewModelScope.launch { dataStore.setYoutubeInsightsEnabled(value) }
-    fun setShortsScope(value: String) = viewModelScope.launch { dataStore.setYoutubeShortsBlockScope(value) }
-    fun setChannelScope(value: String) = viewModelScope.launch { dataStore.setYoutubeChannelBlockScope(value) }
 
     fun setProductive(key: String, productive: Boolean) = viewModelScope.launch {
         repository.setProductive(key, productive)
@@ -89,15 +79,11 @@ class YoutubeStudyModeViewModel @Inject constructor(
     fun recordConsentAndEnable() = viewModelScope.launch {
         dataStore.recordYoutubeAccessibilityConsent(CONSENT_VERSION)
         dataStore.setYoutubeInsightsEnabled(true)
-        if (state.value.shortsScope == "off") dataStore.setYoutubeShortsBlockScope("always")
-        if (state.value.channelScope == "off") dataStore.setYoutubeChannelBlockScope("always")
     }
 
     fun finishOnboarding() = viewModelScope.launch {
         dataStore.recordYoutubeAccessibilityConsent(CONSENT_VERSION)
         dataStore.setYoutubeInsightsEnabled(true)
-        if (state.value.shortsScope == "off") dataStore.setYoutubeShortsBlockScope("always")
-        if (state.value.channelScope == "off") dataStore.setYoutubeChannelBlockScope("always")
         dataStore.setYoutubeStudyOnboardingDone(true)
     }
 

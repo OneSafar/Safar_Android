@@ -7,7 +7,15 @@ data class YoutubeUiNode(
     val className: String? = null,
     val selected: Boolean = false,
     val clickable: Boolean = false,
-)
+    val boundsLeft: Int = 0,
+    val boundsTop: Int = 0,
+    val boundsRight: Int = 0,
+    val boundsBottom: Int = 0,
+) {
+    val width: Int get() = (boundsRight - boundsLeft).coerceAtLeast(0)
+    val height: Int get() = (boundsBottom - boundsTop).coerceAtLeast(0)
+    val isSquare: Boolean get() = height > 0 && width.toFloat() / height in 0.75f..1.33f
+}
 
 data class YoutubeUiSnapshot(
     val nodes: List<YoutubeUiNode>,
@@ -22,15 +30,6 @@ data class YoutubeDetection(
     val isPlaying: Boolean = false,
 )
 
-enum class YoutubeBlockScope(val wire: String) {
-    OFF("off"), PROTECTED("protected"), ALWAYS("always");
-
-    fun applies(protectedNow: Boolean): Boolean = this == ALWAYS || (this == PROTECTED && protectedNow)
-
-    companion object {
-        fun fromWire(value: String?): YoutubeBlockScope = entries.firstOrNull { it.wire == value } ?: OFF
-    }
-}
 
 data class YoutubeTotals(
     val productiveSeconds: Int = 0,
