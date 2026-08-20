@@ -16,7 +16,11 @@ interface StudyCircleApi {
     suspend fun getMyCircles(): Response<StudyCirclesResponse>
 
     @GET("study-circles/public")
-    suspend fun getPublicCircles(@Query("search") search: String? = null): Response<PublicStudyCirclesResponse>
+    suspend fun getPublicCircles(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 15,
+        @Query("search") search: String? = null,
+    ): Response<PublicStudyCirclesResponse>
 
     @GET("study-circles/live-summary")
     suspend fun getLiveSummary(): Response<StudyCircleLiveSummaryDto>

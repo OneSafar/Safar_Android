@@ -171,7 +171,7 @@ fun SafarNavGraph(
 
     LaunchedEffect(isLoggedIn) {
         // null = DataStore not yet loaded, don't redirect yet
-        if (isLoggedIn == false && currentRoute != Routes.SPLASH && currentRoute != Routes.AUTH) {
+        if (isLoggedIn == false && currentRoute != Routes.SPLASH && currentRoute?.substringBefore("?") != Routes.AUTH) {
             navController.navigate(Routes.AUTH) { popUpTo(0) { inclusive = true } }
         }
     }
@@ -516,20 +516,66 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.DM_CHAT) {
-            val parentEntry = remember(it) {
+        composable(
+            route = Routes.DM_CHAT_ROUTE,
+            arguments = listOf(
+                navArgument("targetUserId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("targetUserName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("contextPreview") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { entry ->
+            val targetUserId = entry.arguments?.getString("targetUserId")
+            val targetUserName = entry.arguments?.getString("targetUserName")
+            val contextPreview = entry.arguments?.getString("contextPreview")
+
+            // Resolve the correct shared MehfilViewModel. Prefer the one already
+            // alive in the MEHFIL backstack entry; if coming directly from Study
+            // Circle (MEHFIL is not in the stack), fall back to STUDY_CIRCLE_DETAIL,
+            // then to an own-scoped instance. All three share the same socket via DI.
+            val parentEntry = remember(entry) {
                 runCatching { navController.getBackStackEntry(Routes.MEHFIL) }.getOrNull()
+                    ?: runCatching { navController.getBackStackEntry(Routes.STUDY_CIRCLE_DETAIL) }.getOrNull()
             }
             val mehfilVm = if (parentEntry != null) {
                 androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>(parentEntry)
             } else {
                 androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>()
             }
+
+            // When the screen is opened directly from Study Circle (args present) and
+            // no DM session is already active, automatically fire the connect request.
+            if (!targetUserId.isNullOrBlank()) {
+                val uiState by mehfilVm.uiState.collectAsStateWithLifecycle()
+                LaunchedEffect(targetUserId) {
+                    val dm = uiState.dmState
+                    if (dm is com.safarparmar.app.ui.mehfil.DmState.Idle) {
+                        mehfilVm.sendDmRequest(
+                            targetUserId = targetUserId,
+                            targetUserName = targetUserName ?: targetUserId,
+                            contextPreview = contextPreview ?: "",
+                        )
+                    }
+                }
+            }
+
             DmChatScreen(
                 viewModel = mehfilVm,
                 onBack = ::safeBack,
             )
         }
+
 
         // ── Dhyan / Courses / Live ────────────────────────────────────────────
 

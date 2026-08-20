@@ -77,11 +77,29 @@ private fun adminBroadcastErrorMessage(httpCode: Int?, raw: String?, email: Stri
 private val triggerOptions = listOf(
     AdminTriggerOption(
         id = "announcements",
-        label = "General Announcement",
+        label = "General Announcement (Announcements Tab)",
         type = "announcements",
         channel = "announcements",
-        defaultTitle = "SAFAR Update",
-        defaultBody = "We have an important update for you.",
+        defaultTitle = "SAFAR Announcement",
+        defaultBody = "We have an important announcement for you.",
+        defaultDeepLink = "safar://home",
+    ),
+    AdminTriggerOption(
+        id = "app_update",
+        label = "App Update / Release (Updates Tab)",
+        type = "app_update",
+        channel = "announcements",
+        defaultTitle = "✨ Major Update Available.",
+        defaultBody = "Check out what's new in the latest SAFAR update.",
+        defaultDeepLink = "https://play.google.com/store/apps/details?id=com.safarparmar.app",
+    ),
+    AdminTriggerOption(
+        id = "maintenance",
+        label = "System Maintenance (Announcements Tab)",
+        type = "maintenance",
+        channel = "announcements",
+        defaultTitle = "Scheduled Maintenance Notice",
+        defaultBody = "SAFAR servers will undergo brief scheduled maintenance.",
         defaultDeepLink = "safar://home",
     ),
 )
@@ -93,6 +111,8 @@ data class AdminDeepLinkOption(
 
 private val deepLinkOptions = listOf(
     AdminDeepLinkOption("Home Dashboard", "safar://dashboard"),
+    AdminDeepLinkOption("Updates (In-App Tab)", "safar://updates"),
+    AdminDeepLinkOption("Play Store App Link", "https://play.google.com/store/apps/details?id=com.safarparmar.app"),
     AdminDeepLinkOption("Exam Planner", "safar://study_planner"),
     AdminDeepLinkOption("Exam Planner - Create Plan", "safar://study_planner/create"),
     AdminDeepLinkOption("Exam Planner - Revision", "safar://study_planner?tab=revision"),
@@ -122,7 +142,6 @@ private val deepLinkOptions = listOf(
     AdminDeepLinkOption("Premium (Subscription)", "safar://premium"),
     AdminDeepLinkOption("Mehfil DM Paywall", "safar://premium/mehfil-dm"),
     AdminDeepLinkOption("Suggestions", "safar://suggestions"),
-    AdminDeepLinkOption("Updates", "safar://updates"),
     AdminDeepLinkOption("100K Challenge", "safar://challenge-100k"),
     AdminDeepLinkOption("Admin Notifications", "safar://admin/notifications"),
 )
@@ -211,9 +230,9 @@ class AdminNotificationComposerViewModel @Inject constructor(
         return true
     }
 
-    private fun requestPayload(state: AdminNotificationUiState, trigger: AdminTriggerOption) =
+    private fun requestPayload(state: AdminNotificationUiState, trigger: AdminTriggerOption, overrideType: String? = null) =
         AdminBroadcastRequest(
-            type = trigger.type,
+            type = overrideType ?: trigger.type,
             channel = trigger.channel,
             title = state.title.trim(),
             body = state.body.trim(),
@@ -230,7 +249,7 @@ class AdminNotificationComposerViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSending = true, lastError = null, lastSuccessMessage = null) }
             val result = safeApiCall {
-                notificationApi.sendAdminBroadcast(requestPayload(state, trigger))
+                notificationApi.sendAdminBroadcast(requestPayload(state, trigger, overrideType = "announcements"))
             }
             when (result) {
                 is Resource.Success -> {
@@ -266,7 +285,7 @@ class AdminNotificationComposerViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSending = true, lastError = null, lastSuccessMessage = null) }
             val result = safeApiCall {
-                notificationApi.sendTestNotification(requestPayload(state, trigger))
+                notificationApi.sendTestNotification(requestPayload(state, trigger, overrideType = "announcements"))
             }
             when (result) {
                 is Resource.Success -> {
@@ -565,7 +584,7 @@ private fun ComposerContent(
                         readOnly = true,
                         value = selectedTrigger.label,
                         onValueChange = {},
-                        label = { Text("Trigger") },
+                        label = { Text("In-App Bell Destination") },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = triggerExpanded)
                         },

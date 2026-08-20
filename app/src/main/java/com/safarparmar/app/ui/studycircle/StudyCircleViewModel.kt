@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import retrofit2.Response
@@ -25,6 +26,10 @@ data class StudyCircleHubState(
     val refreshing: Boolean = false,
     val circles: List<StudyCircleSummaryDto> = emptyList(),
     val publicCircles: List<PublicStudyCircleDto> = emptyList(),
+    val publicPage: Int = 1,
+    val publicTotal: Int = 0,
+    val publicHasMore: Boolean = false,
+    val loadingMorePublic: Boolean = false,
     val error: String? = null,
     val busyId: String? = null,
 )
@@ -99,16 +104,20 @@ class StudyCircleViewModel @Inject constructor(
         _hub.value = _hub.value.copy(loading = !refresh, refreshing = refresh, error = null)
         try {
             val mine = async { timedApiCall("Your circles") { api.getMyCircles() } }
-            val public = async { timedApiCall("Public circles") { api.getPublicCircles() } }
+            val public = async { timedApiCall("Public circles") { api.getPublicCircles(page = 1, limit = 15) } }
             val mineResult = mine.await()
             val publicResult = public.await()
             val mineData = (mineResult as? Resource.Success)?.data?.circles
-            val publicData = (publicResult as? Resource.Success)?.data?.circles
+            val publicResponse = (publicResult as? Resource.Success)?.data
 
-            if (mineData != null || publicData != null) {
+            if (mineData != null || publicResponse != null) {
                 _hub.value = _hub.value.copy(
                     circles = mineData ?: previous.circles,
-                    publicCircles = publicData ?: previous.publicCircles,
+                    publicCircles = publicResponse?.circles ?: previous.publicCircles,
+                    publicPage = 1,
+                    publicTotal = publicResponse?.total ?: previous.publicTotal,
+                    publicHasMore = publicResponse?.hasMore ?: false,
+                    loadingMorePublic = false,
                     error = null,
                 )
                 val partialError = (mineResult as? Resource.Error)?.message
@@ -123,6 +132,39 @@ class StudyCircleViewModel @Inject constructor(
             }
         } finally {
             _hub.value = _hub.value.copy(loading = false, refreshing = false)
+        }
+    }
+
+    fun loadMorePublicCircles() = viewModelScope.launch {
+        val state = _hub.value
+        if (state.loading || state.refreshing || state.loadingMorePublic || !state.publicHasMore) return@launch
+        _hub.update { it.copy(loadingMorePublic = true) }
+        try {
+            val nextPage = state.publicPage + 1
+            when (val result = safeApiCall { api.getPublicCircles(page = nextPage, limit = 15) }) {
+                is Resource.Success -> {
+                    val data = result.data
+                    _hub.update { current ->
+                        val existingIds = current.publicCircles.mapTo(HashSet()) { it.id }
+                        val newItems = data.circles.filterNot { it.id in existingIds }
+                        current.copy(
+                            publicCircles = current.publicCircles + newItems,
+                            publicPage = nextPage,
+                            publicTotal = data.total,
+                            publicHasMore = data.hasMore,
+                            loadingMorePublic = false,
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    _hub.update { it.copy(loadingMorePublic = false) }
+                }
+                else -> {
+                    _hub.update { it.copy(loadingMorePublic = false) }
+                }
+            }
+        } catch (_: Exception) {
+            _hub.update { it.copy(loadingMorePublic = false) }
         }
     }
 
@@ -146,7 +188,34 @@ class StudyCircleViewModel @Inject constructor(
         if (circle.joined) { onOpened(circle.id); return }
         action(circle.id) {
             when (val result = safeApiCall { api.joinPublic(circle.id) }) {
-                is Resource.Success -> { _message.value = "Joined public Study Circle"; onOpened(result.data.circleId) }
+                is Resource.Success -> {
+                    _message.value = "Joined public Study Circle"
+                    _hub.update { hub ->
+                        hub.copy(
+                            publicCircles = hub.publicCircles.map {
+                                if (it.id == circle.id) it.copy(joined = true, memberCount = it.memberCount + 1)
+                                else it
+                            }
+                        )
+                    }
+                    onOpened(result.data.circleId)
+                }
+                is Resource.Error -> _message.value = result.message
+                else -> Unit
+            }
+        }
+    }
+
+    fun joinDetailCircle(onJoined: () -> Unit) {
+        val circle = _detail.value.circle ?: return
+        detailAction {
+            when (val result = safeApiCall { api.joinPublic(circle.id) }) {
+                is Resource.Success -> {
+                    _message.value = "Joined public Study Circle"
+                    loadDetail(circle.id, refresh = true)
+                    loadHub(refresh = true)
+                    onJoined()
+                }
                 is Resource.Error -> _message.value = result.message
                 else -> Unit
             }
@@ -191,9 +260,24 @@ class StudyCircleViewModel @Inject constructor(
 
     fun leaveCircle(onLeft: () -> Unit) {
         val circle = _detail.value.circle ?: return
+        val circleId = circle.id
         detailAction {
-            when (val result = safeApiCall { api.leaveCircle(circle.id) }) {
-                is Resource.Success -> { _message.value = if (circle.memberCount == 1) "Circle archived" else "You left the circle"; onLeft() }
+            when (val result = safeApiCall { api.leaveCircle(circleId) }) {
+                is Resource.Success -> {
+                    _message.value = if (circle.memberCount <= 1) "Circle archived" else "You left the circle"
+                    _hub.update { hub ->
+                        hub.copy(
+                            circles = hub.circles.filterNot { it.id == circleId },
+                            publicCircles = hub.publicCircles.map {
+                                if (it.id == circleId) it.copy(joined = false, memberCount = (it.memberCount - 1).coerceAtLeast(0))
+                                else it
+                            },
+                        )
+                    }
+                    _detail.value = StudyCircleDetailState()
+                    onLeft()
+                    loadHub(refresh = true)
+                }
                 is Resource.Error -> _message.value = result.message
                 else -> Unit
             }
@@ -225,11 +309,20 @@ class StudyCircleViewModel @Inject constructor(
 
     fun deleteCircle(onDeleted: () -> Unit) {
         val circle = _detail.value.circle ?: return
+        val circleId = circle.id
         detailAction {
-            when (val result = safeApiCall { api.deleteCircle(circle.id) }) {
+            when (val result = safeApiCall { api.deleteCircle(circleId) }) {
                 is Resource.Success -> {
                     _message.value = "Study group deleted"
+                    _hub.update { hub ->
+                        hub.copy(
+                            circles = hub.circles.filterNot { it.id == circleId },
+                            publicCircles = hub.publicCircles.filterNot { it.id == circleId },
+                        )
+                    }
+                    _detail.value = StudyCircleDetailState()
                     onDeleted()
+                    loadHub(refresh = true)
                 }
                 is Resource.Error -> _message.value = result.message
                 else -> Unit

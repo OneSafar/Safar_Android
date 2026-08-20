@@ -21,8 +21,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -324,27 +322,31 @@ private fun CheckInScreenContent(
                 Spacer(Modifier.height(14.dp))
 
                 // ── Mood grid — macOS Control Center tiles only ─────────────
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    userScrollEnabled = false,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 4.dp, top = 2.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 360.dp),
+                        .padding(top = 2.dp, bottom = 4.dp),
                 ) {
-                    items(moodOptions.size) { index ->
-                        val mood = moodOptions[index]
-                        MoodChip(
-                            mood = mood,
-                            selected = selectedMood == mood,
-                            isLight = isLight,
-                            onClick = {
-                                selectedMood = mood
-                                scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
-                            },
-                        )
+                    moodOptions.chunked(3).forEach { rowMoods ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            rowMoods.forEach { mood ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    MoodChip(
+                                        mood = mood,
+                                        selected = selectedMood == mood,
+                                        isLight = isLight,
+                                        onClick = {
+                                            selectedMood = mood
+                                            scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
+                                        },
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 

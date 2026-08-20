@@ -1,13 +1,21 @@
 package com.safarparmar.app.ui.studycircle
 
 import android.widget.Toast
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,7 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -33,11 +41,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -48,27 +53,31 @@ import com.safarparmar.app.data.remote.dto.StudyCircleMemberDto
 import com.safarparmar.app.data.remote.dto.StudyCircleSummaryDto
 import com.safarparmar.app.ui.drawer.SafarDrawerScaffold
 import com.safarparmar.app.ui.navigation.Routes
-import com.safarparmar.app.ui.theme.isLightBackground
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
+import com.safarparmar.app.ui.studyplanner.components.isPlannerDark
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val MAX_CIRCLE_NAME_LENGTH = 40
 
-private val CircleIndigo: Color
-    @Composable get() = if (!MaterialTheme.colorScheme.background.isLightBackground()) {
-        Color(0xFFC084FC)
-    } else {
-        Color(0xFF581C87)
-    }
-private val CircleAmber = Color(0xFFF59E0B)
+// ── Unified Design Tokens ───────────────────────────────────────────────────
 
-val RoyalPurpleLight = Color(0xFFA855F7)
-val RoyalPurpleMid   = Color(0xFF7C3AED)
-val RoyalPurpleDark  = Color(0xFF581C87)
+/** Primary color: Deep Royal Purple/Blue */
+private val CirclePrimary: Color
+    @Composable get() = if (isPlannerDark) Color(0xFFC084FC) else Color(0xFF581C87)
 
-val RoyalPurpleGradient = Brush.linearGradient(
-    colors = listOf(RoyalPurpleLight, RoyalPurpleMid, RoyalPurpleDark)
-)
+private val CirclePrimaryButton: Color
+    @Composable get() = if (isPlannerDark) Color(0xFF7C3AED) else Color(0xFF581C87)
+
+/** Secondary color: Deep Green for Live & Active indicators */
+private val DeepGreen: Color
+    @Composable get() = if (isPlannerDark) Color(0xFF4ADE80) else Color(0xFF15803D)
+
+/** Text-only owner highlight in Deep Orange */
+private val DeepOrange: Color
+    @Composable get() = if (isPlannerDark) Color(0xFFFB923C) else Color(0xFFEA580C)
+
+// ── Live Animation Components ───────────────────────────────────────────────
 
 @Composable
 fun LivePulsingAvatarRing(
@@ -81,15 +90,16 @@ fun LivePulsingAvatarRing(
         return
     }
 
+    val liveColor = DeepGreen
     val infiniteTransition = rememberInfiniteTransition(label = "avatarLiveRing")
     val pulseProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            repeatMode = RepeatMode.Restart,
         ),
-        label = "avatarPulseProgress"
+        label = "avatarPulseProgress",
     )
 
     Box(contentAlignment = Alignment.Center, modifier = modifier.padding(3.dp)) {
@@ -100,20 +110,20 @@ fun LivePulsingAvatarRing(
 
             if (strokeWidth > 0.1f) {
                 drawCircle(
-                    brush = RoyalPurpleGradient,
+                    color = liveColor,
                     radius = baseRadius + extraRadius,
                     center = center,
                     style = Stroke(width = strokeWidth),
-                    alpha = (1f - pulseProgress).coerceIn(0f, 1f)
+                    alpha = ((1f - pulseProgress) * 0.7f).coerceIn(0f, 1f),
                 )
             }
             // Inner crisp accent ring
             drawCircle(
-                brush = RoyalPurpleGradient,
+                color = liveColor,
                 radius = baseRadius,
                 center = center,
                 style = Stroke(width = 1.5.dp.toPx()),
-                alpha = 0.9f
+                alpha = 0.9f,
             )
         }
         content()
@@ -122,15 +132,16 @@ fun LivePulsingAvatarRing(
 
 @Composable
 fun LivePulseDot(modifier: Modifier = Modifier, size: Int = 8) {
+    val liveColor = DeepGreen
     val infiniteTransition = rememberInfiniteTransition(label = "liveDotPulse")
     val pulseProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            repeatMode = RepeatMode.Restart,
         ),
-        label = "dotPulseProgress"
+        label = "dotPulseProgress",
     )
 
     Box(
@@ -144,15 +155,15 @@ fun LivePulseDot(modifier: Modifier = Modifier, size: Int = 8) {
 
             if (strokeWidth > 0.1f) {
                 drawCircle(
-                    brush = RoyalPurpleGradient,
+                    color = liveColor,
                     radius = baseRadius + extraRadius,
                     center = center,
                     style = Stroke(width = strokeWidth),
-                    alpha = (1f - pulseProgress).coerceIn(0f, 1f),
+                    alpha = ((1f - pulseProgress) * 0.7f).coerceIn(0f, 1f),
                 )
             }
             drawCircle(
-                brush = RoyalPurpleGradient,
+                color = liveColor,
                 radius = baseRadius,
                 center = center,
             )
@@ -162,31 +173,31 @@ fun LivePulseDot(modifier: Modifier = Modifier, size: Int = 8) {
 
 @Composable
 fun LiveFocusingBadge(modifier: Modifier = Modifier) {
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+    val liveColor = DeepGreen
     Surface(
         modifier = modifier,
-        color = (if (isLight) RoyalPurpleDark else RoyalPurpleLight).copy(alpha = 0.12f),
+        color = liveColor.copy(alpha = 0.12f),
         shape = RoundedCornerShape(50),
-        border = BorderStroke(1.dp, (if (isLight) RoyalPurpleDark else RoyalPurpleLight).copy(alpha = 0.35f)),
+        border = BorderStroke(1.dp, liveColor.copy(alpha = 0.35f)),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             LivePulseDot(size = 6)
             Text(
-                "FOCUSING",
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.5.sp,
-                color = if (isLight) RoyalPurpleDark else RoyalPurpleLight,
+                "Focusing",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = liveColor,
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// ── Hub Screen Root ─────────────────────────────────────────────────────────
+
 @Composable
 fun StudyCircleScreen(
     currentRoute: String = Routes.STUDY_CIRCLES,
@@ -200,6 +211,10 @@ fun StudyCircleScreen(
     var dialog by remember { mutableStateOf<CircleDialog?>(null) }
     var selectedTab by rememberSaveable { mutableStateOf(CircleListTab.All) }
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.loadHub(refresh = true)
+    }
 
     LaunchedEffect(message) {
         message?.let {
@@ -217,12 +232,12 @@ fun StudyCircleScreen(
         onToggleDarkTheme = onToggleDarkTheme,
         topBarActions = {
             IconButton(onClick = { viewModel.loadHub(refresh = true) }, enabled = !state.refreshing) {
-                if (state.refreshing) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp)
-                else Icon(Icons.Default.Refresh, "Refresh circles")
+                if (state.refreshing) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = CirclePrimary)
+                else Icon(Icons.Default.Refresh, "Refresh circles", tint = PlannerFlatColors.TextDark)
             }
         },
         useGlassTopBar = false,
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = PlannerFlatColors.BgCream,
     ) { padding ->
         val atLimit = state.circles.size >= 5
         val joinedIds = remember(state.circles) { state.circles.mapTo(mutableSetOf()) { it.id } }
@@ -230,6 +245,7 @@ fun StudyCircleScreen(
             state.publicCircles.filterNot { it.id in joinedIds }
         }
         var searchQuery by rememberSaveable { mutableStateOf("") }
+        var visiblePublicLimit by rememberSaveable { mutableIntStateOf(15) }
         val filteredCircles = remember(state.circles, searchQuery) {
             val q = searchQuery.trim().lowercase()
             if (q.isBlank()) state.circles
@@ -240,11 +256,19 @@ fun StudyCircleScreen(
             if (q.isBlank()) availablePublicCircles
             else availablePublicCircles.filter { it.name.lowercase().contains(q) }
         }
-        val allCount = state.circles.size + availablePublicCircles.size
+        val displayedPublicCircles = remember(filteredPublicCircles, visiblePublicLimit, searchQuery) {
+            if (searchQuery.isNotBlank()) filteredPublicCircles
+            else filteredPublicCircles.take(visiblePublicLimit)
+        }
+        val allCount = state.circles.size + (if (state.publicTotal > 0) state.publicTotal else availablePublicCircles.size)
+
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(PlannerFlatColors.BgCream),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
                 StudyCircleTopButtons(
@@ -268,20 +292,23 @@ fun StudyCircleScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Search public groups by name", fontSize = 14.sp) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        placeholder = { Text("Search public groups by name", fontSize = 14.sp, color = PlannerFlatColors.TextMuted) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = PlannerFlatColors.TextMuted) },
                         trailingIcon = if (searchQuery.isNotBlank()) {
                             {
                                 IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear search", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Icon(Icons.Default.Close, contentDescription = "Clear search", tint = PlannerFlatColors.TextMuted)
                                 }
                             }
                         } else null,
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                            focusedBorderColor = CircleIndigo,
+                            focusedContainerColor = PlannerFlatColors.CardWhite,
+                            unfocusedContainerColor = PlannerFlatColors.CardWhite,
+                            unfocusedBorderColor = PlannerFlatColors.BorderSoft,
+                            focusedBorderColor = CirclePrimary,
+                            cursorColor = CirclePrimary,
                         ),
                     )
                 }
@@ -292,28 +319,105 @@ fun StudyCircleScreen(
                 item { CircleErrorState(state.error.orEmpty(), viewModel::loadHub) }
             } else {
                 if (selectedTab == CircleListTab.All) {
-                    if (allCount == 0) {
-                        item { DashedStyleEmptyCard("No circles are available yet.") }
+                    if (allCount == 0 && state.publicCircles.isEmpty()) {
+                        item { DashedStyleEmptyCard("No study circles are available yet.") }
                     } else if (searchQuery.isNotBlank() && filteredCircles.isEmpty() && filteredPublicCircles.isEmpty()) {
                         item { DashedStyleEmptyCard("No circles match \"$searchQuery\".") }
                     } else {
-                        items(filteredCircles, key = { "joined-${it.id}" }) { circle ->
-                            MyCircleCard(circle) { onNavigate(Routes.studyCircleDetail(circle.id)) }
-                        }
-                        items(filteredPublicCircles, key = { "available-${it.id}" }) { circle ->
-                            PublicCircleCard(
-                                circle = circle,
-                                enabled = !atLimit,
-                                busy = state.busyId == circle.id,
-                                onJoin = { viewModel.joinPublic(circle) { onNavigate(Routes.studyCircleDetail(it)) } },
-                                onOpen = { onNavigate(Routes.studyCircleDetail(circle.id)) },
-                            )
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                                border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                                elevation = CardDefaults.cardElevation(0.dp),
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    var isFirst = true
+                                    filteredCircles.forEach { circle ->
+                                        if (!isFirst) {
+                                            HorizontalDivider(
+                                                color = PlannerFlatColors.BorderSoft.copy(alpha = 0.6f),
+                                                thickness = 1.dp,
+                                            )
+                                        }
+                                        isFirst = false
+                                        MyCircleRow(circle) { onNavigate(Routes.studyCircleDetail(circle.id)) }
+                                    }
+                                    displayedPublicCircles.forEachIndexed { index, circle ->
+                                        if (!isFirst) {
+                                            HorizontalDivider(
+                                                color = PlannerFlatColors.BorderSoft.copy(alpha = 0.6f),
+                                                thickness = 1.dp,
+                                            )
+                                        }
+                                        isFirst = false
+                                        PublicCircleRow(
+                                            circle = circle,
+                                            rank = index + 1,
+                                            enabled = !atLimit,
+                                            busy = state.busyId == circle.id,
+                                            onJoin = { viewModel.joinPublic(circle) { onNavigate(Routes.studyCircleDetail(it)) } },
+                                            onOpen = { onNavigate(Routes.studyCircleDetail(circle.id)) },
+                                        )
+                                    }
+                                    if (searchQuery.isBlank() && filteredPublicCircles.size > displayedPublicCircles.size) {
+                                        HorizontalDivider(
+                                            color = PlannerFlatColors.BorderSoft.copy(alpha = 0.6f),
+                                            thickness = 1.dp,
+                                        )
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { visiblePublicLimit += 15 }
+                                                .padding(vertical = 13.dp, horizontal = 16.dp),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Icon(
+                                                Icons.Default.ExpandMore,
+                                                contentDescription = null,
+                                                tint = CirclePrimary,
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                text = "Show more groups",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = CirclePrimary,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 } else {
-                    if (state.circles.isEmpty()) item { DashedStyleEmptyCard("You have not joined a circle yet.") }
-                    items(state.circles, key = { "yours-${it.id}" }) { circle ->
-                        MyCircleCard(circle) { onNavigate(Routes.studyCircleDetail(circle.id)) }
+                    if (state.circles.isEmpty()) {
+                        item { DashedStyleEmptyCard("You have not joined a circle yet.") }
+                    } else {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
+                                border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                                elevation = CardDefaults.cardElevation(0.dp),
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    state.circles.forEachIndexed { index, circle ->
+                                        if (index > 0) {
+                                            HorizontalDivider(
+                                                color = PlannerFlatColors.BorderSoft.copy(alpha = 0.6f),
+                                                thickness = 1.dp,
+                                            )
+                                        }
+                                        MyCircleRow(circle) { onNavigate(Routes.studyCircleDetail(circle.id)) }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -336,8 +440,9 @@ fun StudyCircleScreen(
 }
 
 private enum class CircleDialog { Create, Join }
-
 private enum class CircleListTab { All, Yours }
+
+// ── Action Buttons & Header Controls ────────────────────────────────────────
 
 @Composable
 private fun StudyCircleTopButtons(
@@ -345,9 +450,8 @@ private fun StudyCircleTopButtons(
     onJoin: () -> Unit,
     onCreate: () -> Unit,
 ) {
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-    val primaryBg = if (isLight) Color(0xFF581C87) else Color(0xFF6B21A8)
-    val outlineClr = CircleIndigo
+    val primary = CirclePrimary
+    val primaryBtn = CirclePrimaryButton
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -356,12 +460,14 @@ private fun StudyCircleTopButtons(
         OutlinedButton(
             onClick = onJoin,
             enabled = !atLimit,
-            modifier = Modifier.weight(1f).height(48.dp),
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp),
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.2.dp, outlineClr),
+            border = BorderStroke(1.2.dp, primary),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = outlineClr,
-                disabledContentColor = outlineClr.copy(alpha = 0.38f),
+                contentColor = primary,
+                disabledContentColor = primary.copy(alpha = 0.38f),
             ),
         ) {
             Icon(Icons.Default.Key, null, Modifier.size(17.dp))
@@ -371,12 +477,14 @@ private fun StudyCircleTopButtons(
         Button(
             onClick = onCreate,
             enabled = !atLimit,
-            modifier = Modifier.weight(1f).height(48.dp),
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = primaryBg,
+                containerColor = primaryBtn,
                 contentColor = Color.White,
-                disabledContainerColor = primaryBg.copy(alpha = 0.38f),
+                disabledContainerColor = primaryBtn.copy(alpha = 0.38f),
                 disabledContentColor = Color.White.copy(alpha = 0.38f),
             ),
         ) {
@@ -390,20 +498,22 @@ private fun StudyCircleTopButtons(
 @Composable
 private fun CircleLimitInfoRow(count: Int, atLimit: Boolean) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             Icons.Default.Info,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            tint = PlannerFlatColors.TextMuted,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(10.dp))
         Text(
             if (atLimit) "You're in 5 of 5 circles. Private circles hold up to 100 members."
             else "You're in $count of 5 circles. Private circles hold up to 100 members.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = PlannerFlatColors.TextMuted,
             fontSize = 13.sp,
             lineHeight = 18.sp,
         )
@@ -417,236 +527,331 @@ private fun CircleTabsHeader(
     yoursCount: Int,
     onSelectTab: (CircleListTab) -> Unit,
 ) {
+    val primary = CirclePrimary
+    val textMuted = PlannerFlatColors.TextMuted
+
     Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val isAll = selectedTab == CircleListTab.All
-        Column(
-            modifier = Modifier.clickable { onSelectTab(CircleListTab.All) },
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
+            modifier = Modifier
+                .heightIn(min = 48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onSelectTab(CircleListTab.All) },
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = "All $allCount",
-                fontSize = 15.sp,
-                fontWeight = if (isAll) FontWeight.Bold else FontWeight.Medium,
-                color = if (isAll) CircleIndigo else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(6.dp))
-            Box(
-                Modifier
-                    .width(44.dp)
-                    .height(2.5.dp)
-                    .background(if (isAll) CircleIndigo else Color.Transparent, RoundedCornerShape(2.dp))
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "All ($allCount)",
+                    fontSize = 14.5.sp,
+                    fontWeight = if (isAll) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isAll) primary else textMuted,
+                )
+                Spacer(Modifier.height(5.dp))
+                Box(
+                    Modifier
+                        .width(36.dp)
+                        .height(2.5.dp)
+                        .background(if (isAll) primary else Color.Transparent, RoundedCornerShape(2.dp)),
+                )
+            }
         }
 
         val isYours = selectedTab == CircleListTab.Yours
-        Column(
-            modifier = Modifier.clickable { onSelectTab(CircleListTab.Yours) },
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
+            modifier = Modifier
+                .heightIn(min = 48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onSelectTab(CircleListTab.Yours) },
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = "Yours $yoursCount",
-                fontSize = 15.sp,
-                fontWeight = if (isYours) FontWeight.Bold else FontWeight.Medium,
-                color = if (isYours) CircleIndigo else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(6.dp))
-            Box(
-                Modifier
-                    .width(44.dp)
-                    .height(2.5.dp)
-                    .background(if (isYours) CircleIndigo else Color.Transparent, RoundedCornerShape(2.dp))
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Yours ($yoursCount)",
+                    fontSize = 14.5.sp,
+                    fontWeight = if (isYours) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isYours) primary else textMuted,
+                )
+                Spacer(Modifier.height(5.dp))
+                Box(
+                    Modifier
+                        .width(36.dp)
+                        .height(2.5.dp)
+                        .background(if (isYours) primary else Color.Transparent, RoundedCornerShape(2.dp)),
+                )
+            }
         }
     }
 }
 
+// ── Circle List Cards ───────────────────────────────────────────────────────
+
 @Composable
-private fun MyCircleCard(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
-    FlatCircleCard(Modifier.clickable(onClick = onClick)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
+private fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
+    val primary = CirclePrimary
+    val isPublic = circle.visibility == "public"
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 13.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(primary.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center,
         ) {
-            CircleIcon(public = circle.visibility == "public", size = 46)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
+            Icon(
+                if (isPublic) Icons.Default.Public else Icons.Default.Lock,
+                contentDescription = if (isPublic) "Public Circle" else "Private Circle",
+                tint = primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
+        Spacer(Modifier.width(13.dp))
+
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = circle.name,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = PlannerFlatColors.TextDark,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(3.dp))
+            val memberText = if (isPublic) {
+                "${circle.memberCount} members · Public"
+            } else {
+                "${circle.memberCount} of ${circle.maxMembers ?: 100} members · Private"
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text(
-                    text = circle.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
+                    text = memberText,
+                    color = PlannerFlatColors.TextMuted,
+                    fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                Spacer(Modifier.height(3.dp))
-                val memberText = if (circle.visibility == "public") {
-                    "${circle.memberCount} members, public"
-                } else {
-                    "${circle.memberCount} of ${circle.maxMembers ?: 100} members, private"
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = memberText,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (circle.focusingCount > 0) {
-                        Text(" · ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                        val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            LivePulseDot(size = 6)
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = "${circle.focusingCount} live",
-                                color = if (isLight) RoyalPurpleDark else RoyalPurpleLight,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                        }
+                if (circle.focusingCount > 0) {
+                    Text(" · ", color = PlannerFlatColors.TextMuted, fontSize = 12.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 2.dp),
+                    ) {
+                        LivePulseDot(size = 6)
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "${circle.focusingCount} live",
+                            color = DeepGreen,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
                     }
                 }
             }
-            Spacer(Modifier.width(8.dp))
-            if (circle.role == "owner") {
-                OwnerPillBadge()
-                Spacer(Modifier.width(6.dp))
-            }
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = "Open circle",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(18.dp),
-            )
         }
+
+        Spacer(Modifier.width(8.dp))
+
+        if (circle.role == "owner") {
+            OwnerTextBadge()
+            Spacer(Modifier.width(6.dp))
+        }
+
+        Icon(
+            Icons.Default.ChevronRight,
+            contentDescription = "Open circle",
+            tint = PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 
 @Composable
-private fun PublicCircleCard(
+private fun PublicCircleRow(
     circle: PublicStudyCircleDto,
+    rank: Int,
     enabled: Boolean,
     busy: Boolean,
     onJoin: () -> Unit,
     onOpen: (() -> Unit)? = null,
 ) {
-    FlatCircleCard(
-        modifier = if (circle.joined && onOpen != null) {
-            Modifier.clickable(onClick = onOpen)
-        } else {
-            Modifier
-        },
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 13.dp),
+    val primary = CirclePrimary
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = onOpen != null) { onOpen?.invoke() }
+            .padding(horizontal = 14.dp, vertical = 13.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(primary.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center,
         ) {
-            CircleIcon(public = true, size = 46)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
+            Icon(
+                Icons.Default.Public,
+                contentDescription = "Public Circle",
+                tint = primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
+        Spacer(Modifier.width(13.dp))
+
+        Column(Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text(
                     text = circle.name,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.TextDark,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                Spacer(Modifier.height(3.dp))
-                val subText = if (circle.joined) {
-                    "${circle.memberCount} members, public"
-                } else {
-                    "Created by ${circle.ownerName}, ${circle.memberCount} ${if (circle.memberCount == 1) "member" else "members"}"
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = subText,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (circle.focusingCount > 0) {
-                        Text(" · ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                        val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            LivePulseDot(size = 6)
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = "${circle.focusingCount} live",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isLight) RoyalPurpleDark else RoyalPurpleLight,
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                        }
+                if (rank in 1..10) {
+                    Spacer(Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(primary.copy(alpha = 0.12f))
+                            .padding(horizontal = 6.dp, vertical = 1.5.dp),
+                    ) {
+                        Text(
+                            text = "#$rank Rank",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = primary,
+                        )
                     }
                 }
             }
-            Spacer(Modifier.width(8.dp))
-            if (circle.joined) {
-                IconButton(
-                    onClick = { onOpen?.invoke() },
-                    modifier = Modifier.size(34.dp),
-                ) {
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = "Open circle",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+
+            Spacer(Modifier.height(3.dp))
+
+            val subText = if (circle.joined) {
+                "${circle.memberCount} members · Public"
             } else {
-                OutlinedButton(
-                    onClick = onJoin,
-                    enabled = enabled && !busy,
-                    modifier = Modifier.height(34.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                    border = BorderStroke(1.dp, CircleIndigo),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CircleIndigo),
-                ) {
-                    if (busy) CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = CircleIndigo)
-                    else Text("Join", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                "By ${circle.ownerName} · ${circle.memberCount} ${if (circle.memberCount == 1) "member" else "members"}"
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = subText,
+                    fontSize = 12.sp,
+                    color = PlannerFlatColors.TextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (circle.focusingCount > 0) {
+                    Text(" · ", color = PlannerFlatColors.TextMuted, fontSize = 12.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 2.dp),
+                    ) {
+                        LivePulseDot(size = 6)
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "${circle.focusingCount} live",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DeepGreen,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.width(10.dp))
+
+        if (circle.joined) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = "Joined",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = PlannerFlatColors.TextMuted,
+                )
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = "Open circle",
+                    tint = PlannerFlatColors.TextMuted.copy(alpha = 0.5f),
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        } else {
+            OutlinedButton(
+                onClick = onJoin,
+                enabled = enabled && !busy,
+                modifier = Modifier.height(32.dp),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 13.dp, vertical = 0.dp),
+                border = BorderStroke(1.dp, primary),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = primary),
+            ) {
+                if (busy) {
+                    CircularProgressIndicator(Modifier.size(13.dp), strokeWidth = 2.dp, color = primary)
+                } else {
+                    Text("Join", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
     }
 }
 
+/** Pure Deep Orange text badge without any yellow background container */
 @Composable
-private fun OwnerPillBadge() {
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-    Surface(
-        color = if (isLight) Color(0xFFFEF3C7) else Color(0xFF3B2E10),
-        shape = RoundedCornerShape(4.dp),
+private fun OwnerTextBadge(modifier: Modifier = Modifier) {
+    val orange = DeepOrange
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
+        Icon(
+            Icons.Default.Star,
+            contentDescription = null,
+            tint = orange,
+            modifier = Modifier.size(12.dp),
+        )
         Text(
-            text = "OWNER",
-            color = if (isLight) Color(0xFFB45309) else Color(0xFFFDE68A),
-            fontSize = 9.5.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 0.5.sp,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+            text = "Owner",
+            color = orange,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
         )
     }
 }
@@ -655,8 +860,8 @@ private fun OwnerPillBadge() {
 private fun FlatCircleCard(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
-    containerColor: Color = MaterialTheme.colorScheme.surface,
-    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+    containerColor: Color = PlannerFlatColors.CardWhite,
+    border: BorderStroke? = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
@@ -665,16 +870,27 @@ private fun FlatCircleCard(
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = border,
         elevation = CardDefaults.cardElevation(0.dp),
-    ) { Column(Modifier.fillMaxWidth().padding(contentPadding), content = content) }
+    ) {
+        Column(Modifier.fillMaxWidth().padding(contentPadding), content = content)
+    }
 }
 
 @Composable
-private fun CircleIcon(public: Boolean, size: Int = 46) {
+private fun CircleIcon(public: Boolean, size: Int = 44) {
+    val primary = CirclePrimary
     Box(
-        Modifier.size(size.dp).clip(RoundedCornerShape(12.dp)).background(CircleIndigo.copy(alpha = 0.10f)),
+        Modifier
+            .size(size.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(primary.copy(alpha = 0.10f)),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(if (public) Icons.Default.Public else Icons.Default.Lock, null, tint = CircleIndigo, modifier = Modifier.size((size * .44f).dp))
+        Icon(
+            if (public) Icons.Default.Public else Icons.Default.Lock,
+            null,
+            tint = primary,
+            modifier = Modifier.size((size * .44f).dp),
+        )
     }
 }
 
@@ -683,85 +899,242 @@ private fun CircleLoadingState() = com.safarparmar.app.ui.components.StudyCircle
 
 @Composable
 private fun CircleErrorState(message: String, retry: () -> Unit) = FlatCircleCard {
-    Column(Modifier.fillMaxWidth().padding(vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Icon(Icons.Default.CloudOff, null, tint = MaterialTheme.colorScheme.error)
-        Spacer(Modifier.height(10.dp)); Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(12.dp)); OutlinedButton(onClick = retry) { Text("Try again") }
+        Spacer(Modifier.height(10.dp))
+        Text(message, textAlign = TextAlign.Center, color = PlannerFlatColors.TextMuted, fontSize = 13.sp)
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(onClick = retry, shape = RoundedCornerShape(10.dp)) {
+            Text("Try again")
+        }
     }
 }
 
 @Composable
 private fun DashedStyleEmptyCard(text: String) = Surface(
-    modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .28f),
-    shape = RoundedCornerShape(18.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-) { Text(text, Modifier.padding(28.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp) }
+    modifier = Modifier.fillMaxWidth(),
+    color = PlannerFlatColors.CardWhite,
+    shape = RoundedCornerShape(16.dp),
+    border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+) {
+    Text(
+        text,
+        Modifier.padding(28.dp),
+        textAlign = TextAlign.Center,
+        color = PlannerFlatColors.TextMuted,
+        fontSize = 13.5.sp,
+    )
+}
+
+// ── Anti-Slop Input Dialog (Create / Join) ───────────────────────────────────
 
 @Composable
-private fun StudyCircleInputDialog(mode: CircleDialog, busy: Boolean, onDismiss: () -> Unit, onSubmit: (String, String) -> Unit) {
+private fun StudyCircleInputDialog(
+    mode: CircleDialog,
+    busy: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (String, String) -> Unit,
+) {
     var value by remember(mode) { mutableStateOf("") }
     var visibility by remember(mode) { mutableStateOf("private") }
     val isCreate = mode == CircleDialog.Create
-    AlertDialog(
+    val primary = CirclePrimary
+    val primaryBtn = CirclePrimaryButton
+
+    Dialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        icon = { Icon(if (isCreate) Icons.Default.GroupAdd else Icons.Default.Key, null, tint = CircleIndigo) },
-        title = { Text(if (isCreate) "Create a Study Circle" else "Join a Study Circle", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(if (isCreate) "Choose a simple name and decide who can join." else "Enter the six-character code shared by a private circle owner.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 380.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(PlannerFlatColors.CardWhite)
+                    .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(18.dp))
+                    .padding(22.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // Title
+                Text(
+                    text = if (isCreate) "Create a Study Circle" else "Join with Code",
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PlannerFlatColors.TextDark,
+                )
+
+                // Subtitle
+                Text(
+                    text = if (isCreate) "Choose a name and decide who can join your group."
+                    else "Enter the 6-character code shared by the circle organizer.",
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    color = PlannerFlatColors.TextMuted,
+                )
+
+                // Input Field
                 OutlinedTextField(
                     value = value,
                     onValueChange = {
-                        value = if (isCreate) it.take(MAX_CIRCLE_NAME_LENGTH) else it.uppercase().filter(Char::isLetterOrDigit).take(6)
+                        value = if (isCreate) it.take(MAX_CIRCLE_NAME_LENGTH)
+                        else it.uppercase().filter(Char::isLetterOrDigit).take(6)
                     },
-                    modifier = Modifier.fillMaxWidth(), singleLine = true,
-                    label = { Text(if (isCreate) "Circle name" else "Join code") },
-                    placeholder = { Text(if (isCreate) "JEE Morning Group" else "ABC234") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !busy,
+                    placeholder = {
+                        Text(
+                            if (isCreate) "e.g. JEE Morning Group" else "e.g. ABC234",
+                            fontSize = 13.5.sp,
+                            color = PlannerFlatColors.TextMuted.copy(alpha = 0.7f),
+                        )
+                    },
                     supportingText = if (isCreate) {
                         {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                Text("${value.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp)
+                                Text("${value.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp, color = PlannerFlatColors.TextMuted)
                             }
                         }
                     } else null,
-                    keyboardOptions = KeyboardOptions(capitalization = if (isCreate) KeyboardCapitalization.Sentences else KeyboardCapitalization.Characters),
-                    shape = RoundedCornerShape(14.dp),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = if (isCreate) KeyboardCapitalization.Sentences else KeyboardCapitalization.Characters,
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = primary,
+                        unfocusedBorderColor = PlannerFlatColors.BorderSoft,
+                        cursorColor = primary,
+                    ),
                 )
+
+                // Visibility Choice (when creating)
                 if (isCreate) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         VisibilityChoice("private", visibility, Modifier.weight(1f)) { visibility = it }
                         VisibilityChoice("public", visibility, Modifier.weight(1f)) { visibility = it }
                     }
-                    Text(if (visibility == "public") "Anyone signed in to Safar can find and join." else "Only people with the join code can join.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (visibility == "public") "Anyone signed in to Safar can find and join."
+                        else "Only people with the invite code can join.",
+                        fontSize = 12.sp,
+                        color = PlannerFlatColors.TextMuted,
+                    )
+                }
+
+                // Action Buttons
+                val canSubmit = !busy && value.trim().length >= (if (isCreate) 3 else 6)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Cancel
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .border(1.dp, PlannerFlatColors.BorderSoft, RoundedCornerShape(10.dp))
+                            .clickable(enabled = !busy) { onDismiss() }
+                            .padding(vertical = 11.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = PlannerFlatColors.TextDark,
+                        )
+                    }
+
+                    // Confirm CTA
+                    Box(
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (canSubmit) primaryBtn else primaryBtn.copy(alpha = 0.4f))
+                            .clickable(enabled = canSubmit) { onSubmit(value.trim(), visibility) }
+                            .padding(vertical = 11.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (busy) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+                                Text(
+                                    text = if (isCreate) "Creating…" else "Joining…",
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White,
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = if (isCreate) "Create" else "Join",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                        }
+                    }
                 }
             }
-        },
-        confirmButton = {
-            val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-            val btnBg = if (isLight) Color(0xFF581C87) else Color(0xFF6B21A8)
-            Button(
-                onClick = { onSubmit(value.trim(), visibility) },
-                enabled = !busy && value.trim().length >= (if (isCreate) 3 else 6),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = btnBg,
-                    contentColor = Color.White,
-                    disabledContainerColor = btnBg.copy(alpha = 0.38f),
-                    disabledContentColor = Color.White.copy(alpha = 0.38f),
-                ),
-            ) { if (busy) CircularProgressIndicator(Modifier.size(17.dp), strokeWidth = 2.dp, color = Color.White) else Text(if (isCreate) "Create" else "Join") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") } },
-        shape = RoundedCornerShape(24.dp),
-    )
+        }
+    }
 }
 
 @Composable
 private fun VisibilityChoice(value: String, selected: String, modifier: Modifier, onSelect: (String) -> Unit) {
-    FilterChip(
-        selected = value == selected, onClick = { onSelect(value) }, modifier = modifier,
-        label = { Text(value.replaceFirstChar { it.uppercase() }) },
-        leadingIcon = { Icon(if (value == "public") Icons.Default.Public else Icons.Default.Lock, null, Modifier.size(16.dp)) },
-    )
+    val isSelected = value == selected
+    val primary = CirclePrimary
+    Surface(
+        onClick = { onSelect(value) },
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) primary.copy(alpha = 0.12f) else PlannerFlatColors.CardWhite,
+        border = BorderStroke(1.dp, if (isSelected) primary else PlannerFlatColors.BorderSoft),
+        modifier = modifier.height(38.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                if (value == "public") Icons.Default.Public else Icons.Default.Lock,
+                contentDescription = null,
+                tint = if (isSelected) primary else PlannerFlatColors.TextMuted,
+                modifier = Modifier.size(15.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = value.replaceFirstChar { it.uppercase() },
+                fontSize = 13.sp,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isSelected) primary else PlannerFlatColors.TextDark,
+            )
+        }
+    }
 }
+
+// ── Detail Screen ───────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -790,27 +1163,26 @@ fun StudyCircleDetailScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = PlannerFlatColors.BgCream,
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Study Circle", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+            TopAppBar(
+                title = { Text("Study Circle", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PlannerFlatColors.TextDark) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PlannerFlatColors.TextDark)
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.loadDetail(circleId, refresh = true) }, enabled = !state.refreshing) {
-                        if (state.refreshing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) else Icon(Icons.Default.Refresh, "Refresh")
+                        if (state.refreshing) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = CirclePrimary)
+                        else Icon(Icons.Default.Refresh, "Refresh", tint = PlannerFlatColors.TextDark)
                     }
-                    // Owner-only: Edit name / Delete / Leave in the top overflow menu.
-                    // Normal members leave via the ⋯ button on their own member card.
                     if (state.circle?.role == "owner") {
                         Box {
                             IconButton(onClick = { overflowExpanded = true }) {
-                                Icon(Icons.Default.MoreVert, "More options")
+                                Icon(Icons.Default.MoreVert, "More options", tint = PlannerFlatColors.TextDark)
                             }
                             DropdownMenu(
                                 expanded = overflowExpanded,
@@ -819,11 +1191,7 @@ fun StudyCircleDetailScreen(
                                 DropdownMenuItem(
                                     text = { Text("Edit group name") },
                                     leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Edit,
-                                            contentDescription = null,
-                                            tint = CircleIndigo,
-                                        )
+                                        Icon(Icons.Default.Edit, contentDescription = null, tint = CirclePrimary)
                                     },
                                     onClick = {
                                         overflowExpanded = false
@@ -834,11 +1202,7 @@ fun StudyCircleDetailScreen(
                                 DropdownMenuItem(
                                     text = { Text("Delete group", color = MaterialTheme.colorScheme.error) },
                                     leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                        )
+                                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                                     },
                                     onClick = {
                                         overflowExpanded = false
@@ -849,11 +1213,7 @@ fun StudyCircleDetailScreen(
                                 DropdownMenuItem(
                                     text = { Text("Leave circle", color = MaterialTheme.colorScheme.error) },
                                     leadingIcon = {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ExitToApp,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                        )
+                                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                                     },
                                     onClick = {
                                         overflowExpanded = false
@@ -865,15 +1225,22 @@ fun StudyCircleDetailScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PlannerFlatColors.BgCream),
             )
         },
     ) { padding ->
         when {
             state.loading -> com.safarparmar.app.ui.components.StudyCircleSkeleton(Modifier.padding(padding))
-            state.error != null || state.circle == null -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            state.error != null || state.circle == null -> Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .background(PlannerFlatColors.BgCream),
+                contentAlignment = Alignment.Center,
+            ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(state.error ?: "Circle not found", textAlign = TextAlign.Center); Spacer(Modifier.height(12.dp))
+                    Text(state.error ?: "Circle not found", textAlign = TextAlign.Center, color = PlannerFlatColors.TextMuted)
+                    Spacer(Modifier.height(12.dp))
                     OutlinedButton(onClick = { viewModel.loadDetail(circleId) }) { Text("Try again") }
                 }
             }
@@ -886,15 +1253,19 @@ fun StudyCircleDetailScreen(
                 hasDmAccess = mehfilDm || isPremium,
                 onEditName = { renameDialogOpen = true },
                 onToggleVisibility = viewModel::toggleVisibility,
+                onJoinCircle = { viewModel.joinDetailCircle { viewModel.loadDetail(circleId, refresh = true) } },
                 onConnectMember = { member ->
                     val circleName = state.circle?.name.orEmpty()
-                    viewModel.connectWithMember(
-                        targetUserId = member.userId,
-                        targetUserName = member.name,
-                        circleName = circleName,
-                        onRequirePremium = { onNavigate(Routes.MEHFIL) },
-                        onConnected = { onNavigate(Routes.MEHFIL) },
+                    onNavigate(
+                        Routes.dmChatDirect(
+                            targetUserId = member.userId,
+                            targetUserName = member.name,
+                            contextPreview = "Study Circle: $circleName",
+                        )
                     )
+                },
+                onRequirePremium = {
+                    Toast.makeText(context, "You need to upgrade to Safar Premium to use this feature", Toast.LENGTH_SHORT).show()
                 },
                 onRemove = { userId, name -> confirm = ConfirmAction.Remove(userId, name) },
                 onLeave = { confirm = ConfirmAction.Leave },
@@ -934,7 +1305,7 @@ fun StudyCircleDetailScreen(
                     Text(
                         "Enter a new name for your study group (3–$MAX_CIRCLE_NAME_LENGTH characters).",
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = PlannerFlatColors.TextMuted,
                     )
                     OutlinedTextField(
                         value = newName,
@@ -951,9 +1322,10 @@ fun StudyCircleDetailScreen(
                         },
                         supportingText = {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                Text("${newName.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp)
+                                Text("${newName.trim().length}/$MAX_CIRCLE_NAME_LENGTH", fontSize = 11.sp, color = PlannerFlatColors.TextMuted)
                             }
                         },
+                        shape = RoundedCornerShape(10.dp),
                     )
                 }
             },
@@ -968,6 +1340,7 @@ fun StudyCircleDetailScreen(
                                     message = "Renamed to \"$savedName\"",
                                     actionLabel = "UNDO",
                                     duration = SnackbarDuration.Short,
+                                    withDismissAction = true,
                                 )
                                 if (result == SnackbarResult.ActionPerformed) {
                                     viewModel.renameCircle(previousName)
@@ -976,7 +1349,8 @@ fun StudyCircleDetailScreen(
                         }
                     },
                     enabled = canSave && !state.actionInProgress,
-                    colors = ButtonDefaults.buttonColors(containerColor = CircleIndigo),
+                    colors = ButtonDefaults.buttonColors(containerColor = CirclePrimaryButton),
+                    shape = RoundedCornerShape(10.dp),
                 ) {
                     Text("Save")
                 }
@@ -989,7 +1363,7 @@ fun StudyCircleDetailScreen(
                     Text("Cancel")
                 }
             },
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(18.dp),
         )
     }
 
@@ -998,16 +1372,25 @@ fun StudyCircleDetailScreen(
         val title = when (action) {
             ConfirmAction.Delete -> "Delete Study Group?"
             is ConfirmAction.Remove -> "Remove ${action.name}?"
-            ConfirmAction.Leave -> when { circle.memberCount == 1 -> "Leave and archive this circle?"; circle.role == "owner" -> "Leave and transfer ownership?"; else -> "Leave this circle?" }
+            ConfirmAction.Leave -> when {
+                circle.memberCount == 1 -> "Leave and archive circle?"
+                circle.role == "owner" -> "Leave and transfer ownership?"
+                else -> "Leave this circle?"
+            }
         }
         val description = when (action) {
             ConfirmAction.Delete -> "Are you sure you want to delete \"${circle.name}\"? All members will be removed and this action cannot be undone."
             is ConfirmAction.Remove -> "This person will lose access to the member list and leaderboard."
-            ConfirmAction.Leave -> when { circle.memberCount == 1 -> "You are the last member, so the circle will be archived."; circle.role == "owner" -> "The oldest active member will become the new owner."; else -> "You will lose access to this circle and its leaderboard." }
+            ConfirmAction.Leave -> when {
+                circle.memberCount == 1 -> "You are the last member, so the circle will be archived."
+                circle.role == "owner" -> "The oldest active member will become the new owner."
+                else -> "You will lose access to this circle and its leaderboard."
+            }
         }
         AlertDialog(
             onDismissRequest = { if (!state.actionInProgress) confirm = null },
-            title = { Text(title, fontWeight = FontWeight.Bold) }, text = { Text(description) },
+            title = { Text(title, fontWeight = FontWeight.Bold) },
+            text = { Text(description, color = PlannerFlatColors.TextMuted, fontSize = 13.5.sp) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1019,6 +1402,7 @@ fun StudyCircleDetailScreen(
                     },
                     enabled = !state.actionInProgress,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(10.dp),
                 ) {
                     Text(
                         when (action) {
@@ -1029,8 +1413,12 @@ fun StudyCircleDetailScreen(
                     )
                 }
             },
-            dismissButton = { TextButton(onClick = { confirm = null }, enabled = !state.actionInProgress) { Text("Cancel") } },
-            shape = RoundedCornerShape(24.dp),
+            dismissButton = {
+                TextButton(onClick = { confirm = null }, enabled = !state.actionInProgress) {
+                    Text("Cancel")
+                }
+            },
+            shape = RoundedCornerShape(18.dp),
         )
     }
 }
@@ -1051,29 +1439,94 @@ private fun DetailContent(
     hasDmAccess: Boolean,
     onEditName: () -> Unit,
     onToggleVisibility: () -> Unit,
+    onJoinCircle: () -> Unit,
     onConnectMember: (StudyCircleMemberDto) -> Unit,
+    onRequirePremium: () -> Unit,
     onRemove: (String, String) -> Unit,
     onLeave: () -> Unit,
 ) {
     val entryByUser = remember(entries) { entries.associateBy { it.userId } }
-    val sortedMembers = remember(circle.members, entryByUser) {
-        circle.members.sortedBy { member ->
+    val sortedMembers = remember(circle.members, entryByUser, currentUserId) {
+        val self = circle.members.filter { it.userId == currentUserId }
+        val others = circle.members.filterNot { it.userId == currentUserId }.sortedBy { member ->
             entryByUser[member.userId]?.rank?.takeIf { it > 0 } ?: 999
         }
+        self + others
     }
     val ownerName = remember(circle) { circle.members.firstOrNull { it.role == "owner" }?.name ?: "Organizer" }
     val clipboard = LocalClipboardManager.current
-    val context = LocalContext.current
     val owner = circle.role == "owner"
+    val isMember = circle.role == "owner" || circle.role == "member" || circle.members.any { it.userId == currentUserId }
     val joinCode = circle.joinCode
+    val primary = CirclePrimary
+    val primaryBtn = CirclePrimaryButton
+    var isCodeCopied by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isCodeCopied) {
+        if (isCodeCopied) {
+            delay(1500)
+            isCodeCopied = false
+        }
+    }
+
     LazyColumn(
-        Modifier.fillMaxSize().padding(padding),
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+        Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .background(PlannerFlatColors.BgCream),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        // 0. Public Preview Banner (if viewing without being a member)
+        if (!isMember && circle.visibility == "public") {
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = primary.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, primary.copy(alpha = 0.25f)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Previewing Public Group",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = primary,
+                            )
+                            Text(
+                                "Join to log focus sessions and compete on the leaderboard.",
+                                fontSize = 12.sp,
+                                color = PlannerFlatColors.TextMuted,
+                            )
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Button(
+                            onClick = onJoinCircle,
+                            enabled = !busy,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = primaryBtn,
+                                contentColor = Color.White,
+                            ),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        ) {
+                            if (busy) CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = Color.White)
+                            else Text("Join Circle", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 1. Overview Card
         item {
-            FlatCircleCard(contentPadding = PaddingValues(16.dp)) {
-                // Top row with Avatar, Title, Rename, and Owner Badge
+            FlatCircleCard(contentPadding = PaddingValues(18.dp)) {
+                // Top row with Initial Avatar, Title, Rename, and Owner Badge
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
@@ -1082,14 +1535,14 @@ private fun DetailContent(
                         modifier = Modifier
                             .size(46.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(CircleIndigo.copy(alpha = 0.12f)),
+                            .background(primary.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = circle.name.take(1).uppercase(),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = CircleIndigo,
+                            color = primary,
                         )
                     }
                     Spacer(Modifier.width(12.dp))
@@ -1098,6 +1551,7 @@ private fun DetailContent(
                             text = circle.name,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
+                            color = PlannerFlatColors.TextDark,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1106,47 +1560,28 @@ private fun DetailContent(
                             Text(
                                 text = "Tap to rename",
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = primary,
+                                fontWeight = FontWeight.Medium,
                                 modifier = Modifier.clickable(enabled = !busy, onClick = onEditName),
                             )
                         } else {
                             Text(
                                 text = "Created by $ownerName",
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = PlannerFlatColors.TextMuted,
                             )
                         }
                     }
                     if (owner) {
-                        val isLight = MaterialTheme.colorScheme.background.isLightBackground()
-                        Surface(
-                            color = if (isLight) Color(0xFFFEF3C7) else Color(0xFF3B2E10),
-                            shape = RoundedCornerShape(50),
-                            border = BorderStroke(1.dp, if (isLight) Color(0xFFFDE68A) else Color(0xFF78350F)),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(Icons.Default.Star, null, tint = CircleAmber, modifier = Modifier.size(11.dp))
-                                Spacer(Modifier.width(3.dp))
-                                Text(
-                                    text = "OWNER",
-                                    color = if (isLight) Color(0xFFB45309) else Color(0xFFFDE68A),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    letterSpacing = 0.5.sp,
-                                )
-                            }
-                        }
+                        OwnerTextBadge()
                     }
                 }
 
                 Spacer(Modifier.height(14.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
-                Spacer(Modifier.height(10.dp))
+                HorizontalDivider(color = PlannerFlatColors.BorderSoft)
+                Spacer(Modifier.height(12.dp))
 
-                // Stats row with divider
+                // Stats row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1155,21 +1590,21 @@ private fun DetailContent(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Icon(Icons.Default.Group, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Default.Group, null, Modifier.size(16.dp), tint = PlannerFlatColors.TextMuted)
                         Spacer(Modifier.width(6.dp))
                         val memberCountDisplay = if (circle.visibility == "public") {
                             "${circle.memberCount} members"
                         } else {
                             "${circle.memberCount}/${circle.maxMembers ?: 100} members"
                         }
-                        Text(memberCountDisplay, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                        Text(memberCountDisplay, color = PlannerFlatColors.TextMuted, fontSize = 13.sp)
                     }
 
                     Box(
                         Modifier
                             .height(16.dp)
                             .width(1.dp)
-                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                            .background(PlannerFlatColors.BorderSoft)
                     )
                     Spacer(Modifier.width(16.dp))
 
@@ -1181,21 +1616,21 @@ private fun DetailContent(
                             if (circle.visibility == "public") Icons.Default.Public else Icons.Default.Lock,
                             null,
                             Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = PlannerFlatColors.TextMuted,
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            if (circle.visibility == "public") "Public circle" else "Private, needs code",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            if (circle.visibility == "public") "Public circle" else "Private circle",
+                            color = PlannerFlatColors.TextMuted,
                             fontSize = 13.sp,
                         )
                     }
                 }
 
-                // Live status row (only if someone is focusing)
+                // Live status row (if members are focusing)
                 if (circle.focusingCount > 0) {
-                    Spacer(Modifier.height(10.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider(color = PlannerFlatColors.BorderSoft)
                     Spacer(Modifier.height(12.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         LivePulseDot(size = 8)
@@ -1204,79 +1639,25 @@ private fun DetailContent(
                             if (circle.focusingCount == 1) "1 member focusing right now" else "${circle.focusingCount} members focusing right now",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = CircleIndigo,
+                            color = DeepGreen,
                         )
                     }
                 }
 
-                // Every active member of a private circle can share its invite code.
-                if (circle.visibility == "private" && !joinCode.isNullOrBlank()) {
-                    Spacer(Modifier.height(14.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    "INVITE CODE",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.2.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    joinCode.chunked(1).joinToString(" "),
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 2.sp,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                                Spacer(Modifier.height(5.dp))
-                                Text(
-                                    "Copy and share this invite code with your friends to join this study group.",
-                                    fontSize = 11.sp,
-                                    lineHeight = 15.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        clipboard.setText(AnnotatedString(joinCode))
-                                        Toast.makeText(context, "Join code copied", Toast.LENGTH_SHORT).show()
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(Icons.Default.ContentCopy, null, tint = CircleIndigo, modifier = Modifier.size(15.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("Copy", color = CircleIndigo, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                            }
-                        }
-                    }
-                }
-
-                // Make circle public / private button (if owner)
+                // Toggle visibility button (if owner)
                 if (owner) {
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(14.dp))
                     OutlinedButton(
                         onClick = onToggleVisibility,
                         enabled = !busy,
-                        modifier = Modifier.fillMaxWidth().height(46.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PlannerFlatColors.TextDark),
                     ) {
-                        Icon(if (circle.visibility == "public") Icons.Default.Lock else Icons.Default.Public, null, Modifier.size(16.dp))
+                        Icon(if (circle.visibility == "public") Icons.Default.Lock else Icons.Default.Public, null, Modifier.size(15.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(
                             if (circle.visibility == "public") "Make circle private" else "Make circle public",
@@ -1288,21 +1669,107 @@ private fun DetailContent(
             }
         }
 
-        // GROUP RANKING Section header
-        item {
-            Text(
-                "GROUP RANKING",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp),
-            )
+        // 2. Dedicated Top-Level Invite Code Card
+        if (circle.visibility == "private" && !joinCode.isNullOrBlank()) {
+            item {
+                FlatCircleCard(contentPadding = PaddingValues(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                "Invite Code",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PlannerFlatColors.TextDark,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                joinCode.chunked(1).joinToString(" "),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 2.sp,
+                                color = primary,
+                            )
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                "Share this code with friends to join this group.",
+                                fontSize = 11.5.sp,
+                                lineHeight = 16.sp,
+                                color = PlannerFlatColors.TextMuted,
+                            )
+                        }
+
+                        // Tactile silent copy button
+                        Surface(
+                            onClick = {
+                                clipboard.setText(AnnotatedString(joinCode))
+                                isCodeCopied = true
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isCodeCopied) DeepGreen.copy(alpha = 0.12f) else primary.copy(alpha = 0.10f),
+                            border = BorderStroke(1.dp, if (isCodeCopied) DeepGreen else primary.copy(alpha = 0.3f)),
+                            modifier = Modifier.padding(start = 8.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = if (isCodeCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                                    contentDescription = null,
+                                    tint = if (isCodeCopied) DeepGreen else primary,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Spacer(Modifier.width(5.dp))
+                                Text(
+                                    text = if (isCodeCopied) "Copied!" else "Copy",
+                                    color = if (isCodeCopied) DeepGreen else primary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        // Ranking members
-        items(sortedMembers, key = { it.userId }) { member ->
-            LeaderboardMemberCard(
+        // 3. Section Header
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Group Rankings",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerFlatColors.TextDark,
+                )
+                Text(
+                    "Focus Time",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = PlannerFlatColors.TextMuted,
+                )
+            }
+        }
+
+        // 4. Ranking Members List (Variation 3: Modern Minimalist Typography List)
+        itemsIndexed(sortedMembers, key = { _, it -> it.userId }) { index, member ->
+            if (index > 0) {
+                HorizontalDivider(
+                    color = PlannerFlatColors.BorderSoft.copy(alpha = 0.55f),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
+            LeaderboardMemberRow(
                 member = member,
                 entry = entryByUser[member.userId],
                 currentUserId = currentUserId,
@@ -1310,16 +1777,18 @@ private fun DetailContent(
                 owner = owner,
                 busy = busy,
                 onConnect = onConnectMember,
+                onRequirePremium = onRequirePremium,
                 onRemove = onRemove,
                 onLeave = onLeave,
             )
         }
-
     }
 }
 
+// ── Member Row (Variation 3 - Modern Minimalist Typography List) ─────────────
+
 @Composable
-private fun LeaderboardMemberCard(
+private fun LeaderboardMemberRow(
     member: StudyCircleMemberDto,
     entry: StudyCircleLeaderboardEntryDto?,
     currentUserId: String,
@@ -1327,6 +1796,7 @@ private fun LeaderboardMemberCard(
     owner: Boolean,
     busy: Boolean,
     onConnect: (StudyCircleMemberDto) -> Unit,
+    onRequirePremium: () -> Unit,
     onRemove: (String, String) -> Unit,
     onLeave: () -> Unit,
 ) {
@@ -1334,216 +1804,239 @@ private fun LeaderboardMemberCard(
     val rank = entry?.rank?.takeIf { it > 0 }
     val isSelf = member.userId == currentUserId
     val canConnect = member.userId.isNotBlank() && !isSelf
-    // Connect button is locked (greyed out) if the viewing user has no DM access,
-    // OR if the target member is non-premium (they would see the paywall on tap).
-    val isConnectLocked = canConnect && (!hasDmAccess || !member.isPremium)
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     var selfMenuExpanded by remember { mutableStateOf(false) }
 
-    val liveGreen = if (isLight) Color(0xFF15803D) else Color(0xFF4ADE80)
-    val cardBg = if (isLive) {
-        if (isLight) Color(0xFFF8F5FC) else Color(0xFF1E172E)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val cardBorder = if (isSelf) {
-        BorderStroke(2.5.dp, CircleIndigo)
-    } else if (isLive) {
-        BorderStroke(1.dp, CircleIndigo.copy(alpha = if (isLight) 0.25f else 0.40f))
-    } else {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+    val primary = CirclePrimary
+    val primaryBtn = CirclePrimaryButton
+    val liveGreen = DeepGreen
+
+    val rowBg = when {
+        isSelf -> primary.copy(alpha = 0.08f)
+        isLive -> liveGreen.copy(alpha = 0.04f)
+        else -> Color.Transparent
     }
 
-    FlatCircleCard(
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
-        containerColor = cardBg,
-        border = cardBorder,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(rowBg)
+            .padding(horizontal = 10.dp, vertical = 11.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
+        // Rank numeral: Dedicated fixed-width container
+        Box(
+            modifier = Modifier.width(32.dp),
+            contentAlignment = Alignment.CenterStart,
         ) {
-            Surface(
-                modifier = Modifier.size(28.dp),
-                shape = CircleShape,
-                color = Color.Transparent,
-                border = BorderStroke(1.dp, if (isLive || rank == 1) CircleIndigo else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
+            val rankText = rank?.toString() ?: "–"
+            Text(
+                text = rankText,
+                fontSize = 13.5.sp,
+                fontWeight = if (rank in 1..3 || isLive) FontWeight.Bold else FontWeight.SemiBold,
+                color = when (rank) {
+                    1 -> Color(0xFFF59E0B)
+                    2 -> Color(0xFF94A3B8)
+                    3 -> Color(0xFFD97706)
+                    else -> PlannerFlatColors.TextMuted
+                },
+                textAlign = TextAlign.Start,
+            )
+        }
+
+        Spacer(Modifier.width(8.dp))
+
+        // Avatar with live indicator
+        Box(
+            modifier = Modifier.size(38.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (!member.avatar.isNullOrBlank()) {
+                AsyncImage(
+                    model = member.avatar,
+                    contentDescription = member.name,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape),
+                )
+            } else {
+                Box(
+                    Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(if (isLive) liveGreen.copy(alpha = 0.12f) else PlannerFlatColors.BorderSoft),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Text(
-                        text = rank?.toString() ?: "–",
-                        fontWeight = if (isLive || rank == 1) FontWeight.Bold else FontWeight.SemiBold,
+                        text = member.name.take(2).uppercase(),
                         fontSize = 12.sp,
-                        color = if (isLive || rank == 1) CircleIndigo else MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isLive) liveGreen else PlannerFlatColors.TextDark,
                     )
                 }
             }
-            Spacer(Modifier.width(10.dp))
 
-            // Avatar with solid green dot on bottom-right corner with background stroke cutout
-            Box(
-                modifier = Modifier.size(38.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (!member.avatar.isNullOrBlank()) {
-                    AsyncImage(
-                        model = member.avatar,
-                        contentDescription = member.name,
-                        modifier = Modifier.size(36.dp).clip(CircleShape),
-                    )
-                } else {
-                    Box(
-                        Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(if (isLive) CircleIndigo.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            tint = if (isLive) CircleIndigo else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
+            if (isLive) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(10.dp)
+                        .background(PlannerFlatColors.BgCream, CircleShape)
+                        .padding(1.5.dp)
+                        .background(liveGreen, CircleShape),
+                )
+            }
+        }
 
-                if (isLive) {
+        Spacer(Modifier.width(11.dp))
+
+        // Member Info
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (isSelf) "You" else member.name,
+                    fontWeight = if (isSelf) FontWeight.Bold else FontWeight.SemiBold,
+                    fontSize = 14.5.sp,
+                    color = PlannerFlatColors.TextDark,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (isSelf) {
+                    Spacer(Modifier.width(6.dp))
                     Box(
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(11.dp)
-                            .background(cardBg, CircleShape)
-                            .padding(1.5.dp)
-                            .background(liveGreen, CircleShape)
-                    )
-                }
-            }
-            Spacer(Modifier.width(10.dp))
-
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = member.name,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (isSelf) {
-                        Spacer(Modifier.width(4.dp))
-                        Text("(you)", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    if (member.role == "owner") {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Default.Star, contentDescription = "Owner", tint = CircleAmber, modifier = Modifier.size(13.dp))
-                    }
-                }
-                Spacer(Modifier.height(2.dp))
-                if (isLive) {
-                    val focusMins = entry?.totalFocusMinutes ?: 0
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(liveGreen, CircleShape)
-                        )
-                        Spacer(Modifier.width(5.dp))
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(primary.copy(alpha = 0.15f))
+                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                    ) {
                         Text(
-                            text = if (focusMins > 0) {
-                                "Live · ${formatFocusMinutes(focusMins)} focus time"
-                            } else {
-                                "Focusing now"
-                            },
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = liveGreen,
-                            maxLines = 1,
+                            text = "YOU",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = primary,
                         )
                     }
-                } else {
-                    val focusMins = entry?.totalFocusMinutes ?: 0
-                    val sessionCount = entry?.sessionCount ?: 0
-                    val subtext = if (focusMins > 0) {
-                        "${formatFocusMinutes(focusMins)} focus time · $sessionCount ${if (sessionCount == 1) "session" else "sessions"}"
-                    } else {
-                        "0m focus time · Not focused today"
-                    }
-                    Text(
-                        text = subtext,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
+                }
+                if (member.role == "owner") {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Default.Star, contentDescription = "Owner", tint = DeepOrange, modifier = Modifier.size(12.dp))
                 }
             }
+            Spacer(Modifier.height(2.5.dp))
+            if (isLive) {
+                val focusMins = entry?.totalFocusMinutes ?: 0
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.5.dp)
+                            .background(liveGreen, CircleShape),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = if (focusMins > 0) "Live · ${formatFocusMinutes(focusMins)}" else "Focusing now",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = liveGreen,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
+            } else {
+                val focusMins = entry?.totalFocusMinutes ?: 0
+                val sessionCount = entry?.sessionCount ?: 0
+                val subtext = if (focusMins > 0) {
+                    "${formatFocusMinutes(focusMins)} · $sessionCount ${if (sessionCount == 1) "session" else "sessions"}"
+                } else {
+                    "0m · Not focused today"
+                }
+                Text(
+                    text = subtext,
+                    fontSize = 12.sp,
+                    color = PlannerFlatColors.TextMuted,
+                    maxLines = 1,
+                )
+            }
+        }
 
-            Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(8.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                if (isSelf) {
-                    // Self card: horizontal three-dot (⋯) opens a "Leave circle" option.
-                    Box {
-                        IconButton(
-                            onClick = { selfMenuExpanded = true },
-                            modifier = Modifier.size(34.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.MoreHoriz,
-                                contentDescription = "More options",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = selfMenuExpanded,
-                            onDismissRequest = { selfMenuExpanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Leave circle", color = MaterialTheme.colorScheme.error) },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ExitToApp,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
-                                },
-                                onClick = {
-                                    selfMenuExpanded = false
-                                    onLeave()
-                                },
-                                enabled = !busy,
-                            )
-                        }
+        // Action Buttons
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            if (isSelf) {
+                Box {
+                    IconButton(
+                        onClick = { selfMenuExpanded = true },
+                        modifier = Modifier.size(34.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.MoreHoriz,
+                            contentDescription = "More options",
+                            tint = PlannerFlatColors.TextMuted,
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
-                } else if (canConnect) {
-                    // Other members: Connect button.
-                    // Black = premium member (can connect directly after tap).
-                    // Greyed-out = non-premium member (paywall shown on tap).
-                    val connectContainerColor = when {
-                        isConnectLocked -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        member.isPremium -> Color(0xFF111827)   // Solid near-black for premium
-                        else             -> CircleIndigo
+                    DropdownMenu(
+                        expanded = selfMenuExpanded,
+                        onDismissRequest = { selfMenuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Leave circle", color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            onClick = {
+                                selfMenuExpanded = false
+                                onLeave()
+                            },
+                            enabled = !busy,
+                        )
                     }
-                    val connectBorderColor = when {
-                        isConnectLocked -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-                        member.isPremium -> Color(0xFF111827)
-                        else             -> CircleIndigo
-                    }
-                    val connectIconTint = if (isConnectLocked) MaterialTheme.colorScheme.onSurfaceVariant else Color.White
-                    val connectTextColor = if (isConnectLocked) MaterialTheme.colorScheme.onSurfaceVariant else Color.White
-                    val connectIcon = if (isConnectLocked) Icons.Default.Lock else Icons.Default.PersonAdd
-
+                }
+            } else if (canConnect) {
+                // Distinction: Premium users get active Primary CTA; Free users get locked grayed pill
+                if (hasDmAccess) {
+                    // User HAS Safar Premium -> Active Primary CTA
                     Surface(
                         onClick = { onConnect(member) },
                         shape = RoundedCornerShape(8.dp),
-                        color = connectContainerColor,
-                        border = BorderStroke(1.dp, connectBorderColor),
-                        shadowElevation = if (isConnectLocked) 0.dp else 2.dp,
-                        modifier = Modifier.height(34.dp),
+                        color = primaryBtn,
+                        modifier = Modifier.height(32.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = "Connect",
+                                modifier = Modifier.size(13.dp),
+                                tint = Color.White,
+                            )
+                            Text(
+                                text = "Connect",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                        }
+                    }
+                } else {
+                    // User does NOT have Safar Premium -> Grayed-out Locked Pill
+                    Surface(
+                        onClick = onRequirePremium,
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        modifier = Modifier.height(32.dp),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1551,42 +2044,43 @@ private fun LeaderboardMemberCard(
                             modifier = Modifier.padding(horizontal = 8.dp),
                         ) {
                             Icon(
-                                imageVector = connectIcon,
-                                contentDescription = "Connect",
-                                modifier = Modifier.size(13.dp),
-                                tint = connectIconTint,
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Connect (Premium)",
+                                modifier = Modifier.size(12.dp),
+                                tint = PlannerFlatColors.TextMuted,
                             )
                             Text(
                                 text = "Connect",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = connectTextColor,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = PlannerFlatColors.TextMuted,
                             )
                         }
                     }
                 }
-                // Owner-only: Remove member button (shown for non-owner members)
-                if (owner && member.role != "owner") {
-                    IconButton(
-                        onClick = { onRemove(member.userId, member.name) },
-                        enabled = !busy,
-                        modifier = Modifier.size(30.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.PersonRemove,
-                            "Remove ${member.name}",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
+            }
+            if (owner && member.role != "owner") {
+                IconButton(
+                    onClick = { onRemove(member.userId, member.name) },
+                    enabled = !busy,
+                    modifier = Modifier.size(30.dp),
+                ) {
+                    Icon(
+                        Icons.Default.PersonRemove,
+                        "Remove ${member.name}",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp),
+                    )
                 }
             }
         }
     }
 }
 
+// ── Formatting Helpers ───────────────────────────────────────────────────────
+
 private fun formatFocusMinutes(minutes: Int): String = when {
-    minutes < 60 -> "$minutes min"
+    minutes < 60 -> "${minutes}m"
     minutes % 60 == 0 -> "${minutes / 60}h"
     else -> "${minutes / 60}h ${minutes % 60}m"
 }

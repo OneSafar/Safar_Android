@@ -21,18 +21,13 @@
 -keep class sun.misc.Unsafe { *; }
 
 # Retrofit & OkHttp
--keep class retrofit2.** { *; }
--keepclasseswithmembers class * {
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepclassmembers class * {
     @retrofit2.http.* <methods>;
 }
 -dontwarn retrofit2.**
--keep class okhttp3.** { *; }
 -dontwarn okhttp3.**
 -dontwarn okio.**
-
-# Room Database
--keep class androidx.room.** { *; }
--dontwarn androidx.room.**
 
 # Socket.IO & Engine.IO
 -keep class io.socket.** { *; }
@@ -43,7 +38,3 @@
 -dontwarn com.razorpay.**
 -dontwarn proguard.annotation.Keep
 -dontwarn proguard.annotation.KeepClassMembers
-
-# Media3 / ExoPlayer
--keep class androidx.media3.** { *; }
--dontwarn androidx.media3.**

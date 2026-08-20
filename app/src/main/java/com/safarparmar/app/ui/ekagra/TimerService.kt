@@ -22,6 +22,8 @@ import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.content.pm.ServiceInfo
+import androidx.core.app.ServiceCompat
 import androidx.core.app.NotificationCompat
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.MainActivity
@@ -261,7 +263,7 @@ class TimerService : Service() {
         ).focusShieldRepository()
 
     private fun clearTheme() {
-        themePrefs().edit().clear().commit()
+        themePrefs().edit().clear().apply()
     }
 
     // ── Audio player (lives in the service — survives navigation) ─────────────
@@ -661,7 +663,17 @@ class TimerService : Service() {
         persistTimerState()
 
         try {
-            startForeground(NOTIFICATION_ID, buildNotification())
+            val notification = buildNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ServiceCompat.startForeground(
+                    this,
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
         } catch (e: Exception) {
             // Android 12+ prevents starting foreground services from the background.
             // If this happens (e.g., system recreates service), gracefully pause the timer instead of crashing.
@@ -1143,7 +1155,7 @@ class TimerService : Service() {
 
     private fun clearPersistedTimerState() {
         autoSaveMetadata = null
-        timerStatePrefs().edit().clear().commit()
+        timerStatePrefs().edit().clear().apply()
     }
 
     // ── Notification ──────────────────────────────────────────────────────────

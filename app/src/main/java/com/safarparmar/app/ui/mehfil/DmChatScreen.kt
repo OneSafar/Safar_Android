@@ -70,8 +70,40 @@ fun DmChatScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dmState = uiState.dmState
 
-    if (dmState !is DmState.Open) {
+    // If neither Waiting nor Open, pop back (e.g. if room was closed or state is Idle
+    // without a pending request being fired).
+    if (dmState is DmState.Idle && uiState.dmTargetUserId.isNullOrBlank()) {
         LaunchedEffect(Unit) { onBack() }
+        return
+    }
+
+    // Show a clean waiting/pending UI while the other person hasn't accepted yet.
+    if (dmState is DmState.Waiting) {
+        DmWaitingScreen(
+            peerName = dmState.userName,
+            error = uiState.dmError,
+            onBack = onBack,
+        )
+        return
+    }
+
+    // DmState.Idle with a pending request in-flight (just sent, not yet got server ack)
+    if (dmState is DmState.Idle && !uiState.dmTargetUserId.isNullOrBlank() && !uiState.dmError.isNullOrBlank()) {
+        DmWaitingScreen(
+            peerName = uiState.dmTargetUserName.ifBlank { "student" },
+            error = uiState.dmError,
+            onBack = onBack,
+        )
+        return
+    }
+
+    if (dmState !is DmState.Open) {
+        // Transition state (sending request, etc.) — show a minimal loading screen.
+        DmWaitingScreen(
+            peerName = uiState.dmTargetUserName.ifBlank { "student" },
+            error = uiState.dmError,
+            onBack = onBack,
+        )
         return
     }
 
@@ -140,6 +172,113 @@ fun DmChatScreen(
         }
     }
 }
+
+/** Shown while waiting for the other person to accept a DM connection request. */
+@Composable
+private fun DmWaitingScreen(
+    peerName: String,
+    error: String?,
+    onBack: () -> Unit,
+) {
+    BackHandler { onBack() }
+    Scaffold(
+        containerColor = MehfilFlatColors.Bg,
+        contentWindowInsets = WindowInsets.safeDrawing,
+        topBar = {
+            Column(Modifier.fillMaxWidth().background(MehfilFlatColors.Bg)) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(MehfilFlatColors.Primary.copy(alpha = 0.09f))
+                        .statusBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        modifier = androidx.compose.ui.Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MehfilFlatColors.Primary)
+                            .clickable(onClick = onBack),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    DmAvatar(name = peerName, avatarUrl = null, size = 34.dp)
+                    Text(
+                        peerName.ifBlank { "Student" },
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = MehfilFlatColors.Text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                PlanHairline()
+            }
+        },
+    ) { innerPadding ->
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MehfilFlatColors.Primary.copy(alpha = 0.08f))
+                    .border(1.dp, MehfilFlatColors.Primary.copy(alpha = 0.18f), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 28.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Chat,
+                    contentDescription = null,
+                    tint = MehfilFlatColors.Primary,
+                    modifier = Modifier.size(36.dp),
+                )
+                Text(
+                    "Request Sent!",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = MehfilFlatColors.Text,
+                )
+                if (!error.isNullOrBlank()) {
+                    Text(
+                        error,
+                        fontSize = 13.sp,
+                        color = MehfilFlatColors.Like,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                } else {
+                    Text(
+                        "Waiting for ${peerName.ifBlank { "the student" }} to accept your Mehfil Connect request.",
+                        fontSize = 13.sp,
+                        color = MehfilFlatColors.Muted,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        lineHeight = 19.sp,
+                    )
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MehfilFlatColors.Primary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+
 
 @Composable
 private fun DmChatTopBar(

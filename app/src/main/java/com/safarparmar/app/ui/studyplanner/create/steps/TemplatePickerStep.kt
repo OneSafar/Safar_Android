@@ -152,7 +152,10 @@ fun TemplatePickerStep(
                 }
                 var expandedCategories by remember { mutableStateOf(setOf<String>()) }
                 
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     items(sortedGroups, key = { it.key }) { (category, categoryTemplates) ->
                         val isExpanded = expandedCategories.contains(category)
                         

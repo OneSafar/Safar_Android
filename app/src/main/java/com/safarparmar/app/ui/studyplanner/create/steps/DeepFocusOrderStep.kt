@@ -200,7 +200,12 @@ private fun DeepFocusTopicsSheet(
         dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.BorderSoft) },
         containerColor = PlannerFlatColors.BgCream,
     ) {
-        Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.75f)
+                .padding(bottom = 24.dp)
+        ) {
             Text(
                 text = chapterName,
                 style = MaterialTheme.typography.titleMedium,
@@ -225,7 +230,12 @@ private fun DeepFocusTopicsSheet(
                 )
             } else {
                 val topicKeys = remember(topicNames) { uniqueNameKeys(topicNames) }
-                LazyColumn(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 20.dp)
+                ) {
                     itemsIndexed(topicNames, key = { index, _ -> topicKeys[index] }) { index, name ->
                         DeepFocusRow(
                             order = index + 1,

@@ -206,10 +206,6 @@ dependencies {
     //animation
     implementation("androidx.compose.animation:animation")
 
-    //video
-    implementation("androidx.media3:media3-exoplayer:1.3.1")
-    implementation("androidx.media3:media3-ui:1.3.1")
-
     //di
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

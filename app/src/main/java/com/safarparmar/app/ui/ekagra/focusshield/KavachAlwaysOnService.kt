@@ -11,6 +11,8 @@ import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import android.app.PendingIntent
+import android.content.pm.ServiceInfo
+import androidx.core.app.ServiceCompat
 import androidx.core.app.NotificationCompat
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.data.local.SafarDataStore
@@ -102,7 +104,17 @@ class KavachAlwaysOnService : Service() {
         // promote itself. Do this at the earliest lifecycle callback rather than
         // waiting for onStartCommand(), which can be delayed on some OEM builds.
         SafarNotificationChannels.createAll(this)
-        startForeground(NOTIFICATION_ID, buildStatusNotification())
+        val notification = buildStatusNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            } else {
+                0
+            }
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

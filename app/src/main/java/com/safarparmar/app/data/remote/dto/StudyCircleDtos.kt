@@ -65,7 +65,13 @@ data class StudyCirclePeriodDto(
 )
 
 data class StudyCirclesResponse(val circles: List<StudyCircleSummaryDto> = emptyList())
-data class PublicStudyCirclesResponse(val circles: List<PublicStudyCircleDto> = emptyList())
+data class PublicStudyCirclesResponse(
+    val circles: List<PublicStudyCircleDto> = emptyList(),
+    val total: Int = 0,
+    val page: Int = 1,
+    val limit: Int = 15,
+    val hasMore: Boolean = false,
+)
 data class StudyCircleResponse(val circle: StudyCircleDetailDto = StudyCircleDetailDto())
 data class CreatedStudyCircleResponse(val circle: StudyCircleSummaryDto = StudyCircleSummaryDto())
 data class JoinStudyCircleResponse(val circleId: String = "", val alreadyMember: Boolean = false)

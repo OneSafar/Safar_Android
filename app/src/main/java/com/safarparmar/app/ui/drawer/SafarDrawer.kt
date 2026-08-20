@@ -107,11 +107,12 @@ val drawerSections = listOf(
                 Icons.Default.Leaderboard,
                 Routes.LEADERBOARD,
             ),
-            DrawerItem(
-                R.string.nav_youtube_study_mode,
-                Icons.Default.SmartDisplay,
-                Routes.YOUTUBE_STUDY_MODE,
-            ),
+            // YouTube Study Mode — hidden from sidebar (UI entry point disabled; feature intact)
+            // DrawerItem(
+            //     R.string.nav_youtube_study_mode,
+            //     Icons.Default.SmartDisplay,
+            //     Routes.YOUTUBE_STUDY_MODE,
+            // ),
             DrawerItem(R.string.module_courses, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
         ),
     ),
@@ -260,8 +261,7 @@ fun SafarDrawer(
         Box(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(top = 10.dp, bottom = 10.dp, end = 10.dp, start = 0.dp)
-                .shadow(12.dp, drawerShape)
+                .padding(top = 8.dp, bottom = 8.dp, end = 8.dp, start = 0.dp)
                 .clip(drawerShape)
                 .background(containerBgColor)
                 .border(
@@ -290,89 +290,94 @@ fun SafarDrawer(
                     color     = containerBorderColor,
                 )
 
-                // 2. NAV LIST IN GROUPED CARDS
+                // 2. NAV LIST IN EDGE-TO-EDGE STYLE WITH HAIRLINE DIVIDERS
                 LazyColumn(
                     modifier       = Modifier.weight(1f),
-                    contentPadding = PaddingValues(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     // Pinned Top Items (Home, Dashboard)
-                    item {
+                    item(key = "pinned-top") {
                         StaggeredEntranceBox(index = 1, isVisible = entranceVisible) {
-                            GroupedSurfaceCard(isLight = isLight, dk = dk, lt = lt) {
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    drawerPinnedTop.forEach { item ->
-                                        DrawerNavRow(
-                                            item            = item,
-                                            currentRoute    = currentRoute,
-                                            isPremiumActive = isPremiumActive,
-                                            isLight         = isLight,
-                                            dk              = dk,
-                                            lt              = lt,
-                                            onNavigate      = onNavigate,
-                                            onCloseDrawer   = onCloseDrawer,
-                                        )
-                                    }
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                drawerPinnedTop.forEach { item ->
+                                    DrawerNavRow(
+                                        item            = item,
+                                        currentRoute    = currentRoute,
+                                        isPremiumActive = isPremiumActive,
+                                        isLight         = isLight,
+                                        dk              = dk,
+                                        lt              = lt,
+                                        onNavigate      = onNavigate,
+                                        onCloseDrawer   = onCloseDrawer,
+                                    )
                                 }
                             }
                         }
                     }
 
-                    // Section Cards (Study & Productivity, Well-being & Community)
+                    // Section Lists (Study & Productivity, Well-being & Community)
                     drawerSections.forEachIndexed { sIdx, section ->
                         val expanded = expandedSections[section.id] == true
                         val sectionHasSelection = section.items.any { item ->
                             isDrawerItemSelected(item = item, currentBase = currentBase)
                         }
+
+                        item(key = "divider-section-${section.id}") {
+                            HorizontalDivider(
+                                thickness = 1.dp,
+                                color     = containerBorderColor.copy(alpha = 0.5f),
+                                modifier  = Modifier.padding(vertical = 4.dp, horizontal = 4.dp),
+                            )
+                        }
+
                         item(key = "section-${section.id}") {
                             StaggeredEntranceBox(index = 2 + sIdx, isVisible = entranceVisible) {
-                                GroupedSurfaceCard(isLight = isLight, dk = dk, lt = lt) {
-                                    Column {
-                                        DrawerSectionHeader(
-                                            label = stringResource(section.labelRes),
-                                            icon = section.icon,
-                                            expanded = expanded,
-                                            hasSelectedChild = sectionHasSelection && !expanded,
-                                            isLight = isLight,
-                                            dk = dk,
-                                            lt = lt,
-                                            onToggle = {
-                                                expandedSections[section.id] = !expanded
-                                            },
-                                        )
+                                Column {
+                                    DrawerSectionHeader(
+                                        label = stringResource(section.labelRes),
+                                        icon = section.icon,
+                                        expanded = expanded,
+                                        hasSelectedChild = sectionHasSelection && !expanded,
+                                        isLight = isLight,
+                                        dk = dk,
+                                        lt = lt,
+                                        onToggle = {
+                                            expandedSections[section.id] = !expanded
+                                        },
+                                    )
 
-                                        AnimatedVisibility(
-                                            visible = expanded,
-                                            enter = expandVertically(
-                                                animationSpec = spring(
-                                                    dampingRatio = Spring.DampingRatioLowBouncy,
-                                                    stiffness = Spring.StiffnessMediumLow
-                                                )
-                                            ) + fadeIn(animationSpec = tween(200)),
-                                            exit = shrinkVertically(
-                                                animationSpec = spring(
-                                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                                    stiffness = Spring.StiffnessMedium
-                                                )
-                                            ) + fadeOut(animationSpec = tween(180)),
+                                    AnimatedVisibility(
+                                        visible = expanded,
+                                        enter = expandVertically(
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                                stiffness = Spring.StiffnessMediumLow
+                                            )
+                                        ) + fadeIn(animationSpec = tween(200)),
+                                        exit = shrinkVertically(
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                stiffness = Spring.StiffnessMedium
+                                            )
+                                        ) + fadeOut(animationSpec = tween(180)),
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(top = 2.dp),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp),
                                         ) {
-                                            Column(
-                                                modifier = Modifier.padding(top = 4.dp),
-                                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                                            ) {
-                                                section.items.forEach { item ->
-                                                    DrawerNavRow(
-                                                        item            = item,
-                                                        currentRoute    = currentRoute,
-                                                        isPremiumActive = isPremiumActive,
-                                                        isLight         = isLight,
-                                                        dk              = dk,
-                                                        lt              = lt,
-                                                        onNavigate      = onNavigate,
-                                                        onCloseDrawer   = onCloseDrawer,
-                                                        indented        = true,
-                                                    )
-                                                }
+                                            section.items.forEach { item ->
+                                                DrawerNavRow(
+                                                    item            = item,
+                                                    currentRoute    = currentRoute,
+                                                    isPremiumActive = isPremiumActive,
+                                                    isLight         = isLight,
+                                                    dk              = dk,
+                                                    lt              = lt,
+                                                    onNavigate      = onNavigate,
+                                                    onCloseDrawer   = onCloseDrawer,
+                                                    indented        = true,
+                                                )
                                             }
                                         }
                                     }
@@ -382,22 +387,28 @@ fun SafarDrawer(
                     }
 
                     // Pinned Bottom Items (Profile, Settings, Admin)
-                    item {
+                    item(key = "divider-bottom") {
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color     = containerBorderColor.copy(alpha = 0.5f),
+                            modifier  = Modifier.padding(vertical = 4.dp, horizontal = 4.dp),
+                        )
+                    }
+
+                    item(key = "pinned-bottom") {
                         StaggeredEntranceBox(index = 4, isVisible = entranceVisible) {
-                            GroupedSurfaceCard(isLight = isLight, dk = dk, lt = lt) {
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    drawerPinnedBottom.filter { !it.requiresAdmin || isAdmin }.forEach { item ->
-                                        DrawerNavRow(
-                                            item            = item,
-                                            currentRoute    = currentRoute,
-                                            isPremiumActive = isPremiumActive,
-                                            isLight         = isLight,
-                                            dk              = dk,
-                                            lt              = lt,
-                                            onNavigate      = onNavigate,
-                                            onCloseDrawer   = onCloseDrawer,
-                                        )
-                                    }
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                drawerPinnedBottom.filter { !it.requiresAdmin || isAdmin }.forEach { item ->
+                                    DrawerNavRow(
+                                        item            = item,
+                                        currentRoute    = currentRoute,
+                                        isPremiumActive = isPremiumActive,
+                                        isLight         = isLight,
+                                        dk              = dk,
+                                        lt              = lt,
+                                        onNavigate      = onNavigate,
+                                        onCloseDrawer   = onCloseDrawer,
+                                    )
                                 }
                             }
                         }
@@ -409,7 +420,7 @@ fun SafarDrawer(
                     color     = containerBorderColor,
                 )
 
-                // 3. DARK MODE SWITCH CARD AT FOOTER
+                // 3. DARK MODE SWITCH AT FOOTER
                 StaggeredEntranceBox(index = 5, isVisible = entranceVisible) {
                     DrawerDarkModeCard(
                         isLight           = isLight,
@@ -913,17 +924,6 @@ private fun DrawerDarkModeCard(
     dk: DarkFlat,
     lt: LightFlat,
 ) {
-    val cardBgAnimated by animateColorAsState(
-        targetValue = if (isLight) Color(0xFFFFFFFF) else Color(0xFF1F1F24),
-        animationSpec = tween(300),
-        label = "cardBgAnimated",
-    )
-    val cardBorderAnimated by animateColorAsState(
-        targetValue = if (isLight) lt.border else dk.border,
-        animationSpec = tween(300),
-        label = "cardBorderAnimated",
-    )
-
     val iconRotation by animateFloatAsState(
         targetValue = if (isDarkTheme) 180f else 0f,
         animationSpec = spring(
@@ -933,71 +933,58 @@ private fun DrawerDarkModeCard(
         label = "iconRotation",
     )
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp)
-            .shadow(if (isLight) 2.dp else 0.dp, RoundedCornerShape(16.dp))
-            .clip(RoundedCornerShape(16.dp))
-            .background(cardBgAnimated)
-            .border(
-                width = 1.dp,
-                color = cardBorderAnimated,
-                shape = RoundedCornerShape(16.dp),
-            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
             ) { onToggleDarkTheme() }
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Icon(
-                    imageVector = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.Nightlight,
-                    contentDescription = null,
-                    tint = if (isDarkTheme) Color(0xFF818CF8) else Color(0xFF3730A3),
-                    modifier = Modifier
-                        .size(22.dp)
-                        .graphicsLayer { rotationZ = iconRotation },
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Text(
-                        text = "Dark Mode",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                        ),
-                        color = if (isLight) lt.textPrimary else dk.textPrimary,
-                    )
-                    Text(
-                        text = if (isDarkTheme) "Dark theme enabled" else "Light theme enabled",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontSize = 12.sp,
-                        color = if (isLight) lt.textSecondary else dk.textSecondary,
-                    )
-                }
-            }
-
-            Switch(
-                checked = isDarkTheme,
-                onCheckedChange = { onToggleDarkTheme() },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = if (isLight) Color(0xFF6D28D9) else Color(0xFF38BDF8),
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF475569),
-                    uncheckedBorderColor = Color.Transparent,
-                    checkedBorderColor = Color.Transparent,
-                ),
+            Icon(
+                imageVector = if (isDarkTheme) Icons.Default.Nightlight else Icons.Default.Nightlight,
+                contentDescription = null,
+                tint = if (isDarkTheme) Color(0xFF818CF8) else Color(0xFF3730A3),
+                modifier = Modifier
+                    .size(22.dp)
+                    .graphicsLayer { rotationZ = iconRotation },
             )
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    text = "Dark Mode",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                    ),
+                    color = if (isLight) lt.textPrimary else dk.textPrimary,
+                )
+                Text(
+                    text = if (isDarkTheme) "Dark theme enabled" else "Light theme enabled",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 12.sp,
+                    color = if (isLight) lt.textSecondary else dk.textSecondary,
+                )
+            }
         }
+
+        Switch(
+            checked = isDarkTheme,
+            onCheckedChange = { onToggleDarkTheme() },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = if (isLight) Color(0xFF6D28D9) else Color(0xFF38BDF8),
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = if (isLight) Color(0xFFE2E8F0) else Color(0xFF475569),
+                uncheckedBorderColor = Color.Transparent,
+                checkedBorderColor = Color.Transparent,
+            ),
+        )
     }
 }

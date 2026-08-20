@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -272,7 +274,7 @@ private fun AnnouncementsSheetContent(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f, fill = false),
             ) {
                 Box(
                     modifier = Modifier
@@ -288,38 +290,26 @@ private fun AnnouncementsSheetContent(
                         modifier = Modifier.size(20.dp),
                     )
                 }
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                Text(
+                    text = "Notifications",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ink.primaryText,
+                )
+                if (unreadCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(accent)
+                            .padding(horizontal = 7.dp, vertical = 2.dp),
                     ) {
                         Text(
-                            text = "Notifications",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ink.primaryText,
+                            text = "$unreadCount new",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
                         )
-                        if (unreadCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(accent)
-                                    .padding(horizontal = 7.dp, vertical = 2.dp),
-                            ) {
-                                Text(
-                                    text = "$unreadCount new",
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White,
-                                )
-                            }
-                        }
                     }
-                    Text(
-                        text = "Stay updated with announcements and app releases",
-                        fontSize = 12.sp,
-                        color = ink.mutedText,
-                    )
                 }
             }
 
@@ -355,7 +345,7 @@ private fun AnnouncementsSheetContent(
 
         UpdatesHairline(ink.hairline)
 
-        // Modern Flat Filter Chips with live item counts
+        // Modern Flat Filter Chips with live item counts (horizontally scrollable & unclipped)
         UpdatesFilterChips(
             items = items,
             selected = selectedFilter,
@@ -363,9 +353,7 @@ private fun AnnouncementsSheetContent(
             ink = ink,
             accent = accent,
             isDarkTheme = isDarkTheme,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
         )
 
         UpdatesHairline(ink.hairline)
@@ -459,11 +447,13 @@ private fun UpdatesFilterChips(
         items.count { it.type == AnnouncementType.APP_UPDATE }
     }
 
-    Row(
-        modifier = modifier,
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        UpdatesFilter.entries.forEach { option ->
+        items(UpdatesFilter.entries.toTypedArray()) { option ->
             val isSelected = option == selected
             val label = when (option) {
                 UpdatesFilter.ALL -> "All ($allCount)"
@@ -488,12 +478,15 @@ private fun UpdatesFilterChips(
                         indication = null,
                     ) { onSelect(option) }
                     .padding(horizontal = 14.dp, vertical = 7.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     color = textColor,
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
         }

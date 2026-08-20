@@ -26,6 +26,8 @@ object Routes {
     const val STUDY_CIRCLES = "study_circles"
     const val STUDY_CIRCLE_DETAIL = "study_circles/{circleId}"
     const val DM_CHAT = "mehfil/dm_chat"
+    /** Full route pattern for DM_CHAT that accepts optional deep-link args. */
+    const val DM_CHAT_ROUTE = "mehfil/dm_chat?targetUserId={targetUserId}&targetUserName={targetUserName}&contextPreview={contextPreview}"
     const val DHYAN  = "dhyan"
     const val COURSES = "dhyan_courses"
     const val APP_PICKER = "ekagra/app_picker"
@@ -70,9 +72,6 @@ object Routes {
     private fun encodeParam(value: String): String =
         runCatching { java.net.URLEncoder.encode(value, "UTF-8") }.getOrDefault(value)
 
-    private fun decodeParam(value: String): String =
-        runCatching { java.net.URLDecoder.decode(value, "UTF-8") }.getOrDefault(value)
-
     /** Deep-link target that opens a specific plan straight on its Revision tab. */
     fun studyPlannerRevision(planId: String): String =
         "study_planner?planId=${encodeParam(planId)}&showDailyTodoSetup=false&openTab=revision"
@@ -103,24 +102,34 @@ object Routes {
         if (route.substringBefore("?") != NISHTHA) return false
         val wantsTab = Regex("tab=(\\d+)").find(route)?.groupValues?.get(1)?.toIntOrNull()
         val wantsSection = Regex("section=([^&]+)").find(route)?.groupValues?.get(1)
-            ?.let { decodeParam(it) }
+            ?.let { android.net.Uri.decode(it) }
         return (wantsTab != null && wantsTab != 0) ||
             (wantsSection != null && wantsSection != "overview")
     }
 
     // Analytics is Nishtha tab index 4; resolves to the single NISHTHA_ROUTE.
     fun nishthaAnalytics(section: String = "overview"): String =
-        "nishtha?tab=4&section=${encodeParam(section)}"
+        "nishtha?tab=4&section=${android.net.Uri.encode(section)}"
 
     fun ekagraAnalytics(): String = nishthaAnalytics("ekagra")
 
     fun liveSessions(courseId: String? = null): String =
         if (courseId.isNullOrBlank()) LIVE_SESSIONS_ROOT
-        else "live/sessions?courseId=${encodeParam(courseId)}"
+        else "live/sessions?courseId=${android.net.Uri.encode(courseId)}"
 
     fun liveSession(sessionId: String): String =
-        "live/session/${encodeParam(sessionId)}"
+        "live/session/${android.net.Uri.encode(sessionId)}"
 
     fun studyCircleDetail(circleId: String): String =
-        "study_circles/${encodeParam(circleId)}"
+        "study_circles/${android.net.Uri.encode(circleId)}"
+
+    /**
+     * Navigate directly into the DM chat screen for a specific user, bypassing the
+     * Mehfil hub. Encodes the target's info so the DmChatScreen can fire the connect
+     * request itself when no active DmSession already exists.
+     */
+    fun dmChatDirect(targetUserId: String, targetUserName: String, contextPreview: String): String =
+        "mehfil/dm_chat?targetUserId=${encodeParam(targetUserId)}" +
+            "&targetUserName=${encodeParam(targetUserName)}" +
+            "&contextPreview=${encodeParam(contextPreview)}"
 }
