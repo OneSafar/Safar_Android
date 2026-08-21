@@ -884,6 +884,8 @@ private fun SyllabusChangePlanSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp)
                 .navigationBarsPadding()
                 .padding(start = 24.dp, end = 24.dp, bottom = 28.dp),
         ) {

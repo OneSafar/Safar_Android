@@ -563,6 +563,32 @@ class NishthaViewModel @Inject constructor(
         }
     }
 
+    fun restoreCheckInStreak() {
+        if (_uiState.value.isRestoringStreak || !_uiState.value.streaks.checkInRestore.available) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRestoringStreak = true, streakMessage = null) }
+            when (val result = homeRepository.restoreCheckInStreak()) {
+                is Resource.Success -> _uiState.update {
+                    it.copy(
+                        isRestoringStreak = false,
+                        streaks = result.data,
+                        streakMessage = "Check-in streak restored",
+                    )
+                }
+                is Resource.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isRestoringStreak = false,
+                            streakMessage = result.message,
+                        )
+                    }
+                    loadStreaks()
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
     private fun loadLoginHistory() {
         viewModelScope.launch {
             when (val r = homeRepository.getLoginHistory()) {

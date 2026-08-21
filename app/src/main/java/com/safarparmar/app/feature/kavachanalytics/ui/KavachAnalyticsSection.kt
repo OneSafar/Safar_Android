@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -255,7 +257,11 @@ fun YoutubeInsightsDetailSheet(
     val totals = state.youtubeTotals
     val protected = state.scope == KavachScope.DURING_KAVACH
     Column(
-        Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+        Modifier
+            .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = 600.dp)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 12.dp),
     ) {
         Text(
@@ -1086,7 +1092,12 @@ private fun KavachActivityDetailSheet(
     isLight: Boolean,
 ) {
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp),
+        Modifier
+            .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = 600.dp)
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         when (detail) {
@@ -1407,7 +1418,12 @@ private fun AppDetailSheet(
     onToggleBlocked: () -> Unit,
 ) {
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp),
+        Modifier
+            .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = 600.dp)
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {

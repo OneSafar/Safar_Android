@@ -30,6 +30,8 @@ data class NishthaUiState(
     /** Goal affected by delete/restore/reopen, used by Undo and focused UI updates. */
     val goalActionGoalId: String? = null,
     val isLoadingStreaks: Boolean = false,
+    val isRestoringStreak: Boolean = false,
+    val streakMessage: String? = null,
     val streaks: Streaks = Streaks(),
     val isLoadingReport: Boolean = false,
     val monthlyReport: MonthlyReport? = null,

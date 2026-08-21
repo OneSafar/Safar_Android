@@ -26,6 +26,9 @@ data class FocusShieldUiState(
     val hasNotifications: Boolean = false,
     val hasNotificationSuppressionAccess: Boolean = false,
     val hasUsageStats: Boolean = false,
+    val isProtectionActive: Boolean = false,
+    val isProtectionStarting: Boolean = false,
+    val activationMessage: String? = null,
 )
 
 data class AppPickerUiState(
@@ -80,8 +83,12 @@ class FocusShieldViewModel @Inject constructor(
     }
 
     val shieldState: StateFlow<FocusShieldUiState> = combine(
-        shieldSettings, _permissionRefreshTick,
-    ) { settings, _ ->
+        shieldSettings,
+        repo.protectionActive,
+        repo.protectionStarting,
+        repo.activationBlockedReason,
+        _permissionRefreshTick,
+    ) { settings, protectionActive, protectionStarting, activationMessage, _ ->
         FocusShieldUiState(
             isEnabled = settings.enabled,
             isAlwaysOnMode = settings.alwaysOn,
@@ -95,6 +102,9 @@ class FocusShieldViewModel @Inject constructor(
             hasNotifications = FocusShieldPermissionHelper.hasNotificationPermission(app),
             hasNotificationSuppressionAccess = FocusShieldPermissionHelper.hasNotificationListenerAccess(app),
             hasUsageStats = FocusShieldPermissionHelper.hasUsageStatsPermission(app),
+            isProtectionActive = protectionActive,
+            isProtectionStarting = protectionStarting,
+            activationMessage = activationMessage,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FocusShieldUiState())
 
@@ -176,6 +186,7 @@ class FocusShieldViewModel @Inject constructor(
     // ── Shield settings actions ──────────────────────────────────────────────
 
     fun setEnabled(enabled: Boolean) = repo.setEnabled(enabled)
+    fun clearActivationMessage() = repo.clearActivationMessage()
     fun setKavachProfile(mode: String) = repo.setKavachProfile(mode)
     fun setStrictMode(enabled: Boolean) = repo.setStrictMode(enabled)
     fun setScheduleEnabled(enabled: Boolean) = repo.setScheduleEnabled(enabled)

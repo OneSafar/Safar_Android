@@ -272,8 +272,9 @@ internal fun TimerFocusTab(
                         // silently drops the user back to Normal mode.
                         val alwaysOn = shieldState.isAlwaysOnMode
                         val dotColor = when {
-                            alwaysOn -> ink.mutedText
-                            shieldState.isEnabled -> themeAccent
+                            shieldState.isProtectionActive -> themeAccent
+                            shieldState.isProtectionStarting -> Color(0xFFF59E0B)
+                            shieldState.isEnabled && !isRunning -> themeAccent.copy(alpha = 0.7f)
                             else -> null
                         }
                         Row(
@@ -299,8 +300,11 @@ internal fun TimerFocusTab(
                             )
                             Text(
                                 text = when {
-                                    alwaysOn -> "Kavach Always On"
-                                    shieldState.isEnabled -> "Kavach on"
+                                    shieldState.isProtectionActive && alwaysOn -> "Kavach Always On · Active"
+                                    shieldState.isProtectionActive -> "Kavach active"
+                                    shieldState.isProtectionStarting -> "Kavach starting…"
+                                    shieldState.isEnabled && !isRunning -> "Kavach ready"
+                                    shieldState.isEnabled -> "Kavach unavailable"
                                     else -> "Kavach off"
                                 },
                                 fontSize = EkagraChrome.text(12f),

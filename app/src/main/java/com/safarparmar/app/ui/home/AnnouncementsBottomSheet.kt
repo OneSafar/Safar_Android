@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -182,6 +184,8 @@ fun AnnouncementsBottomSheet(
             onAnnouncementAction = onAnnouncementAction,
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp)
                 // A tall measured sheet gives Material 3 a partially-expanded anchor.
                 .fillMaxHeight(0.90f),
         )

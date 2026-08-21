@@ -269,6 +269,8 @@ fun PermissionGuideSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),

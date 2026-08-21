@@ -6,6 +6,7 @@ import retrofit2.http.*
 
 interface HomeApi {
     @GET("streaks") suspend fun getStreaks(): Response<StreaksDto>
+    @POST("streaks/check-in/restore") suspend fun restoreCheckInStreak(): Response<StreaksDto>
     @GET("moods")
     suspend fun getMoods(
         @Query("page") page: Int = 1,

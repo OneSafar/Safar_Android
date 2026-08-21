@@ -19,6 +19,9 @@ class HomeRepositoryImpl @Inject constructor(
     override suspend fun getStreaks(): Resource<Streaks> =
         safeApiCall { homeApi.getStreaks() }.map { it.toDomain() }
 
+    override suspend fun restoreCheckInStreak(): Resource<Streaks> =
+        safeApiCall { homeApi.restoreCheckInStreak() }.map { it.toDomain() }
+
     override suspend fun getMoods(): Resource<List<Mood>> =
         safeApiCall { homeApi.getMoods() }.map { list -> list.map { it.toDomain() } }
 
@@ -225,7 +228,13 @@ class HomeRepositoryImpl @Inject constructor(
         loginStreak          = loginStreak ?: loginStreakSnake ?: 0,
         checkInStreak        = checkInStreak ?: checkInStreakSnake ?: 0,
         goalCompletionStreak = goalCompletionStreak ?: goalCompletionStreakSnake ?: 0,
-        lastActiveDate       = lastActiveDate ?: lastActiveDateSnake
+        lastActiveDate       = lastActiveDate ?: lastActiveDateSnake,
+        checkInRestore       = CheckInRestore(
+            available = checkInRestore?.available ?: false,
+            missedDate = checkInRestore?.missedDate,
+            projectedStreak = checkInRestore?.projectedStreak,
+            activeProtectedDate = checkInRestore?.activeProtectedDate,
+        ),
     )
 
     private fun MoodDto.toDomain() = Mood(

@@ -11,7 +11,15 @@ data class StreaksDto(
     val goalCompletionStreak: Int? = null,
     @SerializedName("goal_completion_streak")    val goalCompletionStreakSnake: Int? = null,
     val lastActiveDate: String? = null,
-    @SerializedName("last_active_date")          val lastActiveDateSnake: String? = null
+    @SerializedName("last_active_date")          val lastActiveDateSnake: String? = null,
+    val checkInRestore: CheckInRestoreDto? = null,
+)
+
+data class CheckInRestoreDto(
+    val available: Boolean? = false,
+    val missedDate: String? = null,
+    val projectedStreak: Int? = null,
+    val activeProtectedDate: String? = null,
 )
 
 data class MoodDto(

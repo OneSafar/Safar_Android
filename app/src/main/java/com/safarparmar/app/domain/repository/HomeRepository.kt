@@ -5,6 +5,7 @@ import com.safarparmar.app.util.Resource
 
 interface HomeRepository {
     suspend fun getStreaks(): Resource<Streaks>
+    suspend fun restoreCheckInStreak(): Resource<Streaks>
     suspend fun getMoods(): Resource<List<Mood>>
     suspend fun getGoals(): Resource<List<Goal>>
     suspend fun addGoal(

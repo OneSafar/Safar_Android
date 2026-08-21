@@ -91,8 +91,22 @@ class AuthViewModelTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `submit forgot password email success transitions to email sent step`() = runTest {
-        val viewModel = AuthViewModel(FakeAuthRepository())
+    fun `submit forgot password email success with token transitions to reset step`() = runTest {
+        val viewModel = AuthViewModel(FakeAuthRepository(forgotPasswordResult = Resource.Success(ForgotPasswordResult("ok", "fake_token"))))
+
+        viewModel.onEvent(AuthEvent.ForgotPassword)
+        viewModel.onEvent(AuthEvent.EmailChanged("kumar@gmail.com"))
+        viewModel.onEvent(AuthEvent.SubmitForgotPasswordRequest)
+        advanceUntilIdle()
+
+        assertEquals(ForgotPasswordStep.RESET, viewModel.uiState.value.forgotPasswordStep)
+        assertEquals("fake_token", viewModel.uiState.value.forgotPasswordToken)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `submit forgot password email success without token transitions to email sent step`() = runTest {
+        val viewModel = AuthViewModel(FakeAuthRepository(forgotPasswordResult = Resource.Success(ForgotPasswordResult("ok", null))))
 
         viewModel.onEvent(AuthEvent.ForgotPassword)
         viewModel.onEvent(AuthEvent.EmailChanged("kumar@gmail.com"))
@@ -105,7 +119,7 @@ class AuthViewModelTest {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `submit reset password confirm success resets to login mode`() = runTest {
-        val viewModel = AuthViewModel(FakeAuthRepository())
+        val viewModel = AuthViewModel(FakeAuthRepository(forgotPasswordResult = Resource.Success(ForgotPasswordResult("ok", "fake_token"))))
 
         viewModel.onEvent(AuthEvent.ForgotPassword)
         viewModel.onEvent(AuthEvent.EmailChanged("kumar@gmail.com"))
@@ -123,6 +137,7 @@ class AuthViewModelTest {
 
     private class FakeAuthRepository(
         private val loginResult: Resource<User> = Resource.Error("unused"),
+        private val forgotPasswordResult: Resource<ForgotPasswordResult> = Resource.Success(ForgotPasswordResult("ok", "fake_token")),
     ) : AuthRepository {
         override val isLoggedIn: Flow<Boolean> = MutableStateFlow(false)
 
@@ -140,13 +155,13 @@ class AuthViewModelTest {
             photoUrl: String?,
         ): Resource<User> = Resource.Success(User(id = "new"))
 
-        override suspend fun forgotPassword(email: String): Resource<ForgotPasswordResult> =
-            Resource.Success(ForgotPasswordResult("ok", "fake_token"))
+        override suspend fun forgotPassword(email: String): Resource<ForgotPasswordResult> = forgotPasswordResult
 
         override suspend fun resetPasswordConfirm(token: String, newPassword: String): Resource<Unit> =
             Resource.Success(Unit)
 
         override suspend fun logout(): Resource<Unit> = Resource.Success(Unit)
+
         override suspend fun deleteAccount(password: String): Resource<Unit> = Resource.Success(Unit)
 
         override suspend fun refreshToken(): Resource<Unit> = Resource.Success(Unit)

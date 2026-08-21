@@ -503,8 +503,9 @@ private fun SafarWelcomeDialog(
     ) {
         Surface(
             modifier = Modifier
-                .width(320.dp)
-                .padding(16.dp),
+                .padding(horizontal = 24.dp)
+                .widthIn(max = 380.dp)
+                .fillMaxWidth(),
             shape = shape,
             color = if (isLight) Color.White else Color(0xFF1E1F25),
             shadowElevation = 12.dp,

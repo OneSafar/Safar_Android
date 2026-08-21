@@ -1042,6 +1042,8 @@ private fun BreathingOptionsSheet(
         Column(
             Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 40.dp),
@@ -1136,6 +1138,8 @@ private fun BreathingSoundSheet(
         Column(
             Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 40.dp),
         ) {

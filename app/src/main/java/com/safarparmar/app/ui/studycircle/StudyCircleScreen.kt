@@ -79,6 +79,13 @@ private val CirclePrimaryButton: Color
 private val DeepGreen: Color
     @Composable get() = if (isPlannerDark) Color(0xFF4ADE80) else Color(0xFF15803D)
 
+/** Dedicated SAFAR Official accent: deep green in light mode, legible mint in dark mode. */
+private val OfficialGreen: Color
+    @Composable get() = if (isPlannerDark) Color(0xFF34D399) else Color(0xFF0B5C3A)
+
+private val OfficialSurface: Color
+    @Composable get() = if (isPlannerDark) Color(0xFF10261D) else Color(0xFFF0F7F3)
+
 /** Text-only owner highlight in Deep Orange */
 private val DeepOrange: Color
     @Composable get() = if (isPlannerDark) Color(0xFFFB923C) else Color(0xFFEA580C)
@@ -246,6 +253,7 @@ fun StudyCircleScreen(
         containerColor = PlannerFlatColors.BgCream,
     ) { padding ->
         val atLimit = state.circles.size >= 5
+        val creationAllowed = state.creationEligibility.allowed
         val joinedIds = remember(state.circles) { state.circles.mapTo(mutableSetOf()) { it.id } }
         val availablePublicCircles = remember(state.publicCircles, joinedIds) {
             state.publicCircles.filterNot { it.id in joinedIds }
@@ -279,11 +287,12 @@ fun StudyCircleScreen(
             item {
                 StudyCircleTopButtons(
                     atLimit = atLimit,
+                    creationAllowed = creationAllowed,
                     onJoin = { dialog = CircleDialog.Join },
                     onCreate = { dialog = CircleDialog.Create },
                 )
             }
-            item { CircleLimitInfoRow(state.circles.size, atLimit) }
+            item { CircleLimitInfoRow(atLimit, state.creationEligibility.requiredStreak, creationAllowed) }
             if (state.pinnedCircles.isNotEmpty()) {
                 item {
                     OfficialCirclesSection(
@@ -313,7 +322,7 @@ fun StudyCircleScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Search public groups by name", fontSize = 14.sp, color = PlannerFlatColors.TextMuted) },
+                        placeholder = { Text("Search public circles by name", fontSize = 14.sp, color = PlannerFlatColors.TextMuted) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = PlannerFlatColors.TextMuted) },
                         trailingIcon = if (searchQuery.isNotBlank()) {
                             {
@@ -403,7 +412,7 @@ fun StudyCircleScreen(
                                             )
                                             Spacer(Modifier.width(6.dp))
                                             Text(
-                                                text = "Show more groups",
+                                                text = "Show more circles",
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = CirclePrimary,
@@ -468,6 +477,7 @@ private enum class CircleListTab { All, Yours }
 @Composable
 private fun StudyCircleTopButtons(
     atLimit: Boolean,
+    creationAllowed: Boolean,
     onJoin: () -> Unit,
     onCreate: () -> Unit,
 ) {
@@ -497,7 +507,7 @@ private fun StudyCircleTopButtons(
         }
         Button(
             onClick = onCreate,
-            enabled = !atLimit,
+            enabled = !atLimit && creationAllowed,
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp),
@@ -517,7 +527,11 @@ private fun StudyCircleTopButtons(
 }
 
 @Composable
-private fun CircleLimitInfoRow(count: Int, atLimit: Boolean) {
+private fun CircleLimitInfoRow(
+    atLimit: Boolean,
+    requiredStreak: Int,
+    creationAllowed: Boolean,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -528,15 +542,21 @@ private fun CircleLimitInfoRow(count: Int, atLimit: Boolean) {
             Icons.Default.Info,
             contentDescription = null,
             tint = PlannerFlatColors.TextMuted,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(16.dp),
         )
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
-            if (atLimit) "You're in 5 of 5 circles. Private circles hold up to 100 members."
-            else "You're in $count of 5 circles. Private circles hold up to 100 members.",
+            when {
+                atLimit -> "5-circle limit reached. Leave one to add another."
+                !creationAllowed -> "$requiredStreak-day check-in streak needed to create circles."
+                else -> "Join up to 5 circles; private circles allow 100 members."
+            },
             color = PlannerFlatColors.TextMuted,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
+            fontSize = 12.sp,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -614,31 +634,20 @@ private fun CircleTabsHeader(
 
 @Composable
 fun OfficialBadge(modifier: Modifier = Modifier) {
-    val primary = CirclePrimary
+    val official = OfficialGreen
     Surface(
         modifier = modifier,
-        color = primary.copy(alpha = 0.12f),
+        color = official.copy(alpha = 0.10f),
         shape = RoundedCornerShape(6.dp),
-        border = BorderStroke(1.dp, primary.copy(alpha = 0.30f)),
+        border = BorderStroke(1.dp, official.copy(alpha = 0.30f)),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Icon(
-                Icons.Default.Verified,
-                contentDescription = "Official Group",
-                tint = primary,
-                modifier = Modifier.size(12.dp),
-            )
-            Text(
-                "Official",
-                fontSize = 10.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = primary,
-            )
-        }
+        Text(
+            text = "Official",
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+            fontSize = 10.5.sp,
+            fontWeight = FontWeight.Bold,
+            color = official,
+        )
     }
 }
 
@@ -650,7 +659,7 @@ private fun OfficialCirclesSection(
     onJoin: (PublicStudyCircleDto) -> Unit,
     onOpen: (String) -> Unit,
 ) {
-    val primary = CirclePrimary
+    val official = OfficialGreen
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -671,43 +680,43 @@ private fun OfficialCirclesSection(
                     modifier = Modifier
                         .size(24.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(primary.copy(alpha = 0.12f)),
+                        .background(official.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Default.Verified,
                         contentDescription = null,
-                        tint = primary,
+                        tint = official,
                         modifier = Modifier.size(15.dp),
                     )
                 }
                 Text(
-                    text = "SAFAR Official Groups",
+                    text = "Our Official Circles",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark,
+                    color = official,
                 )
             }
             Text(
                 text = "${pinnedCircles.size}/5 Pinned",
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = primary,
+                color = official,
             )
         }
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.CardWhite),
-            border = BorderStroke(1.dp, primary.copy(alpha = 0.22f)),
+            colors = CardDefaults.cardColors(containerColor = OfficialSurface),
+            border = BorderStroke(1.dp, official.copy(alpha = 0.35f)),
             elevation = CardDefaults.cardElevation(0.dp),
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 pinnedCircles.forEachIndexed { index, circle ->
                     if (index > 0) {
                         HorizontalDivider(
-                            color = PlannerFlatColors.BorderSoft.copy(alpha = 0.6f),
+                            color = official.copy(alpha = 0.18f),
                             thickness = 1.dp,
                         )
                     }
@@ -732,8 +741,7 @@ private fun OfficialCircleRow(
     onJoin: () -> Unit,
     onOpen: () -> Unit,
 ) {
-    val primary = CirclePrimary
-    val primaryBtn = CirclePrimaryButton
+    val official = OfficialGreen
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -746,13 +754,13 @@ private fun OfficialCircleRow(
             modifier = Modifier
                 .size(42.dp)
                 .clip(CircleShape)
-                .background(primary.copy(alpha = 0.12f)),
+                .background(official.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Default.Verified,
                 contentDescription = "Official Circle",
-                tint = primary,
+                tint = official,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -769,7 +777,7 @@ private fun OfficialCircleRow(
                     text = circle.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark,
+                    color = official,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -782,7 +790,7 @@ private fun OfficialCircleRow(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = "${circle.memberCount} members",
+                    text = "${circle.memberCount} members · Official",
                     color = PlannerFlatColors.TextMuted,
                     fontSize = 12.sp,
                 )
@@ -806,13 +814,13 @@ private fun OfficialCircleRow(
             OutlinedButton(
                 onClick = onOpen,
                 shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, primary.copy(alpha = 0.5f)),
+                border = BorderStroke(1.dp, official.copy(alpha = 0.55f)),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                 modifier = Modifier.height(32.dp),
             ) {
                 Text(
                     "Open",
-                    color = primary,
+                    color = official,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -823,7 +831,7 @@ private fun OfficialCircleRow(
                 enabled = !busy,
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryBtn,
+                    containerColor = official,
                     contentColor = Color.White,
                 ),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -852,26 +860,29 @@ private fun OfficialCircleRow(
 @Composable
 private fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
     val primary = CirclePrimary
+    val official = OfficialGreen
     val isPublic = circle.visibility == "public"
+    val accent = if (circle.isPinned) official else primary
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .background(if (circle.isPinned) official.copy(alpha = 0.04f) else Color.Transparent)
             .padding(horizontal = 14.dp, vertical = 13.dp),
     ) {
         Box(
             modifier = Modifier
                 .size(42.dp)
                 .clip(CircleShape)
-                .background(primary.copy(alpha = 0.10f)),
+                .background(accent.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 if (circle.isPinned) Icons.Default.Verified else if (isPublic) Icons.Default.Public else Icons.Default.Lock,
                 contentDescription = if (circle.isPinned) "Official Circle" else if (isPublic) "Public Circle" else "Private Circle",
-                tint = primary,
+                tint = accent,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -888,7 +899,7 @@ private fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
                     text = circle.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark,
+                    color = if (circle.isPinned) official else PlannerFlatColors.TextDark,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -898,7 +909,9 @@ private fun MyCircleRow(circle: StudyCircleSummaryDto, onClick: () -> Unit) {
                 }
             }
             Spacer(Modifier.height(3.dp))
-            val memberText = if (isPublic) {
+            val memberText = if (circle.isPinned) {
+                "${circle.memberCount} members · Official"
+            } else if (isPublic) {
                 "${circle.memberCount} members · Public"
             } else {
                 "${circle.memberCount} of ${circle.maxMembers ?: 100} members · Private"
@@ -962,25 +975,28 @@ private fun PublicCircleRow(
     onOpen: (() -> Unit)? = null,
 ) {
     val primary = CirclePrimary
+    val official = OfficialGreen
+    val accent = if (circle.isPinned) official else primary
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = onOpen != null) { onOpen?.invoke() }
+            .background(if (circle.isPinned) official.copy(alpha = 0.04f) else Color.Transparent)
             .padding(horizontal = 14.dp, vertical = 13.dp),
     ) {
         Box(
             modifier = Modifier
                 .size(42.dp)
                 .clip(CircleShape)
-                .background(primary.copy(alpha = 0.10f)),
+                .background(accent.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 if (circle.isPinned) Icons.Default.Verified else Icons.Default.Public,
                 contentDescription = if (circle.isPinned) "Official Circle" else "Public Circle",
-                tint = primary,
+                tint = accent,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -997,7 +1013,7 @@ private fun PublicCircleRow(
                     text = circle.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PlannerFlatColors.TextDark,
+                    color = if (circle.isPinned) official else PlannerFlatColors.TextDark,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -1023,7 +1039,9 @@ private fun PublicCircleRow(
 
             Spacer(Modifier.height(3.dp))
 
-            val subText = if (circle.joined) {
+            val subText = if (circle.isPinned) {
+                "${circle.memberCount} members · Official"
+            } else if (circle.joined) {
                 "${circle.memberCount} members · Public"
             } else {
                 "By ${circle.ownerName} · ${circle.memberCount} ${if (circle.memberCount == 1) "member" else "members"}"
@@ -1089,11 +1107,11 @@ private fun PublicCircleRow(
                 modifier = Modifier.height(32.dp),
                 shape = RoundedCornerShape(8.dp),
                 contentPadding = PaddingValues(horizontal = 13.dp, vertical = 0.dp),
-                border = BorderStroke(1.dp, primary),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = primary),
+                border = BorderStroke(1.dp, accent),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = accent),
             ) {
                 if (busy) {
-                    CircularProgressIndicator(Modifier.size(13.dp), strokeWidth = 2.dp, color = primary)
+                    CircularProgressIndicator(Modifier.size(13.dp), strokeWidth = 2.dp, color = accent)
                 } else {
                     Text("Join", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
@@ -1247,7 +1265,7 @@ private fun StudyCircleInputDialog(
 
                 // Subtitle
                 Text(
-                    text = if (isCreate) "Choose a name and decide who can join your group."
+                    text = if (isCreate) "Choose a name and decide who can join your circle."
                     else "Enter the 6-character code shared by the circle organizer.",
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
@@ -1266,7 +1284,7 @@ private fun StudyCircleInputDialog(
                     enabled = !busy,
                     placeholder = {
                         Text(
-                            if (isCreate) "e.g. JEE Morning Group" else "e.g. ABC234",
+                            if (isCreate) "e.g. JEE Morning Circle" else "e.g. ABC234",
                             fontSize = 13.5.sp,
                             color = PlannerFlatColors.TextMuted.copy(alpha = 0.7f),
                         )
@@ -1463,8 +1481,8 @@ fun StudyCircleDetailScreen(
                                     DropdownMenuItem(
                                         text = {
                                             Text(
-                                                if (state.circle?.isPinned == true) "Unpin from Official Groups"
-                                                else "Pin as Official Group"
+                                                if (state.circle?.isPinned == true) "Unpin from Official Circles"
+                                                else "Pin as Official Circle"
                                             )
                                         },
                                         leadingIcon = {
@@ -1485,7 +1503,7 @@ fun StudyCircleDetailScreen(
                                 }
                                 if (state.circle?.role == "owner") {
                                     DropdownMenuItem(
-                                        text = { Text("Edit group name") },
+                                        text = { Text("Edit circle name") },
                                         leadingIcon = {
                                             Icon(Icons.Default.Edit, contentDescription = null, tint = CirclePrimary)
                                         },
@@ -1496,7 +1514,7 @@ fun StudyCircleDetailScreen(
                                         enabled = !state.actionInProgress,
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Delete group", color = MaterialTheme.colorScheme.error) },
+                                        text = { Text("Delete circle", color = MaterialTheme.colorScheme.error) },
                                         leadingIcon = {
                                             Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                                         },
@@ -1586,7 +1604,7 @@ fun StudyCircleDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Edit Group Name", fontWeight = FontWeight.Bold)
+                    Text("Edit Circle Name", fontWeight = FontWeight.Bold)
                     if (canUndo) {
                         TextButton(
                             onClick = { newName = originalName },
@@ -1602,7 +1620,7 @@ fun StudyCircleDetailScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Enter a new name for your study group (3–$MAX_CIRCLE_NAME_LENGTH characters).",
+                        "Enter a new name for your study circle (3–$MAX_CIRCLE_NAME_LENGTH characters).",
                         fontSize = 13.sp,
                         color = PlannerFlatColors.TextMuted,
                     )
@@ -1669,7 +1687,7 @@ fun StudyCircleDetailScreen(
     confirm?.let { action ->
         val circle = state.circle ?: return@let
         val title = when (action) {
-            ConfirmAction.Delete -> "Delete Study Group?"
+            ConfirmAction.Delete -> "Delete Study Circle?"
             is ConfirmAction.Remove -> "Remove ${action.name}?"
             ConfirmAction.Leave -> when {
                 circle.memberCount == 1 -> "Leave and archive circle?"
@@ -1705,7 +1723,7 @@ fun StudyCircleDetailScreen(
                 ) {
                     Text(
                         when (action) {
-                            ConfirmAction.Delete -> "Delete group"
+                            ConfirmAction.Delete -> "Delete circle"
                             is ConfirmAction.Remove -> "Remove member"
                             ConfirmAction.Leave -> "Leave circle"
                         }
@@ -1761,6 +1779,8 @@ private fun DetailContent(
     val joinCode = circle.joinCode
     val primary = CirclePrimary
     val primaryBtn = CirclePrimaryButton
+    val official = OfficialGreen
+    val circleAccent = if (circle.isPinned) official else primary
     var isCodeCopied by remember { mutableStateOf(false) }
 
     LaunchedEffect(isCodeCopied) {
@@ -1794,7 +1814,7 @@ private fun DetailContent(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Previewing Public Group",
+                                "Previewing Public Circle",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 color = primary,
@@ -1836,15 +1856,24 @@ private fun DetailContent(
                         modifier = Modifier
                             .size(46.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(primary.copy(alpha = 0.12f)),
+                            .background(circleAccent.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = circle.name.take(1).uppercase(),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = primary,
-                        )
+                        if (circle.isPinned) {
+                            Icon(
+                                Icons.Default.Verified,
+                                contentDescription = "Official Circle",
+                                tint = official,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        } else {
+                            Text(
+                                text = circle.name.take(1).uppercase(),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = circleAccent,
+                            )
+                        }
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
@@ -1852,7 +1881,7 @@ private fun DetailContent(
                             text = circle.name,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PlannerFlatColors.TextDark,
+                            color = if (circle.isPinned) official else PlannerFlatColors.TextDark,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1889,8 +1918,8 @@ private fun DetailContent(
                         ) {
                             Icon(
                                 if (circle.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
-                                contentDescription = if (circle.isPinned) "Unpin official group" else "Pin as official group",
-                                tint = if (circle.isPinned) CirclePrimary else PlannerFlatColors.TextMuted,
+                                contentDescription = if (circle.isPinned) "Unpin official circle" else "Pin as official circle",
+                                tint = if (circle.isPinned) official else PlannerFlatColors.TextMuted,
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -1912,7 +1941,7 @@ private fun DetailContent(
                     ) {
                         Icon(Icons.Default.Group, null, Modifier.size(16.dp), tint = PlannerFlatColors.TextMuted)
                         Spacer(Modifier.width(6.dp))
-                        val memberCountDisplay = if (circle.visibility == "public") {
+                        val memberCountDisplay = if (circle.isPinned || circle.visibility == "public") {
                             "${circle.memberCount} members"
                         } else {
                             "${circle.memberCount}/${circle.maxMembers ?: 100} members"
@@ -1932,18 +1961,34 @@ private fun DetailContent(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1.2f),
                     ) {
-                        Icon(
-                            if (circle.visibility == "public") Icons.Default.Public else Icons.Default.Lock,
-                            null,
-                            Modifier.size(14.dp),
-                            tint = PlannerFlatColors.TextMuted,
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            if (circle.visibility == "public") "Public circle" else "Private circle",
-                            color = PlannerFlatColors.TextMuted,
-                            fontSize = 13.sp,
-                        )
+                        if (circle.isPinned) {
+                            Icon(
+                                Icons.Default.Verified,
+                                contentDescription = "Official circle",
+                                modifier = Modifier.size(15.dp),
+                                tint = official,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "Official circle",
+                                color = official,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        } else {
+                            Icon(
+                                if (circle.visibility == "public") Icons.Default.Public else Icons.Default.Lock,
+                                null,
+                                Modifier.size(14.dp),
+                                tint = PlannerFlatColors.TextMuted,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                if (circle.visibility == "public") "Public circle" else "Private circle",
+                                color = PlannerFlatColors.TextMuted,
+                                fontSize = 13.sp,
+                            )
+                        }
                     }
                 }
 
@@ -1964,8 +2009,8 @@ private fun DetailContent(
                     }
                 }
 
-                // Toggle visibility button (if owner)
-                if (owner) {
+                // Toggle visibility button (if owner and not pinned)
+                if (owner && !circle.isPinned) {
                     Spacer(Modifier.height(14.dp))
                     OutlinedButton(
                         onClick = onToggleVisibility,
@@ -2014,7 +2059,7 @@ private fun DetailContent(
                             )
                             Spacer(Modifier.height(3.dp))
                             Text(
-                                "Share this code with friends to join this group.",
+                                "Share this code with friends to join this circle.",
                                 fontSize = 11.5.sp,
                                 lineHeight = 16.sp,
                                 color = PlannerFlatColors.TextMuted,
@@ -2066,7 +2111,7 @@ private fun DetailContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Group Rankings",
+                    "Circle Rankings",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = PlannerFlatColors.TextDark,

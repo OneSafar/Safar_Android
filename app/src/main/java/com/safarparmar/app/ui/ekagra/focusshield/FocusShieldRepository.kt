@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -100,6 +101,13 @@ class FocusShieldRepository @Inject constructor(
     private val _activationBlockedReason = MutableStateFlow<String?>(null)
     val activationBlockedReason: StateFlow<String?> = _activationBlockedReason.asStateFlow()
 
+    private val _protectionActive = MutableStateFlow(false)
+    val protectionActive: StateFlow<Boolean> = _protectionActive.asStateFlow()
+
+    private val _protectionStarting = MutableStateFlow(false)
+    val protectionStarting: StateFlow<Boolean> = _protectionStarting.asStateFlow()
+    private var protectionStartAttempt = 0L
+
     init {
         scope.launch {
             combine(
@@ -125,20 +133,29 @@ class FocusShieldRepository @Inject constructor(
         // second timer-linked analytics source underneath it.
         if (isAlwaysOnMode.value) return
         val settings = currentSettings()
-        if (!settings.enabled || settings.packages.isEmpty()) {
-            _activationBlockedReason.value = null
+        if (!settings.enabled) {
             return
         }
-        
-        if (!hasRequiredPermissions()) {
-            _activationBlockedReason.value = "A permission KAVACH needs was turned off, so blocking isn't active this session."
-            analyticsRecorder.permissionLost()
+        activationWarning(settings.packages)?.let { warning ->
+            reportProtectionFailure(warning)
+            if (settings.packages.isNotEmpty() && !hasRequiredPermissions()) {
+                analyticsRecorder.permissionLost()
+            }
             return
         }
         
         _activationBlockedReason.value = null
+        _protectionStarting.value = true
+        _protectionActive.value = false
         activateBlocking(settings, resetUnlocks = isFocusPeriod && !_sessionActive.value)
-        startKavachService(settings.packages)
+        if (!startKavachService(settings.packages)) {
+            _sessionActive.value = false
+            _sessionBlockedPackages.value = emptySet()
+            ShieldPrefs.clear(appContext)
+            Snapshot.active = false
+            Snapshot.packages = emptySet()
+            return
+        }
 
         if (isFocusPeriod) {
             analyticsRecorder.sessionStarted(plannedSeconds = plannedSeconds)
@@ -150,6 +167,8 @@ class FocusShieldRepository @Inject constructor(
         scope.launch { dataStore.setFocusShieldLastBlockCount(totalHits) }
         _sessionActive.value = false
         _sessionBlockedPackages.value = emptySet()
+        _protectionActive.value = false
+        _protectionStarting.value = false
         _activationBlockedReason.value = null
         ShieldPrefs.clear(appContext)
         Snapshot.active = false
@@ -247,8 +266,9 @@ class FocusShieldRepository @Inject constructor(
 
     fun setEnabled(enabled: Boolean) {
         scope.launch {
-            if (enabled && !hasRequiredPermissions()) {
-                debugLog("Cannot enable Kavach without required permissions")
+            val warning = if (enabled) activationWarning(blockedPackages.value) else null
+            if (warning != null) {
+                reportProtectionFailure(warning)
                 return@launch
             }
             dataStore.setFocusShieldEnabled(enabled)
@@ -264,7 +284,8 @@ class FocusShieldRepository @Inject constructor(
                 if (mode == com.safarparmar.app.ui.launch.AppUsageMode.ALWAYS_ON) {
                     dataStore.setFocusShieldAlwaysOnMode(true)
                 }
-                startKavachService()
+                // Normal mode is now ready; actual protection starts with Ekagra.
+                if (dataStore.focusShieldAlwaysOnMode.first()) startKavachService()
                 if (blockedPackages.value.isNotEmpty()) {
                     homeRepository.trackKavachEvent("enabled", blockedPackages.value.size)
                 }
@@ -300,17 +321,51 @@ class FocusShieldRepository @Inject constructor(
         }
     }
 
-    private fun startKavachService(packages: Set<String> = blockedPackages.value) {
-        if (packages.isEmpty()) {
-            debugLog("Always On not started: no blocked apps chosen")
-            return
+    private fun startKavachService(packages: Set<String> = blockedPackages.value): Boolean {
+        activationWarning(packages)?.let { warning ->
+            reportProtectionFailure(warning)
+            return false
         }
-        if (!hasRequiredPermissions()) {
-            _activationBlockedReason.value =
-                "A permission KAVACH needs was turned off, so Beast Mode isn't blocking."
-            return
+        _protectionStarting.value = true
+        _protectionActive.value = false
+        val attempt = ++protectionStartAttempt
+        if (!KavachAlwaysOnService.start(appContext)) {
+            reportProtectionFailure("Kavach could not start. Please try again.")
+            return false
         }
-        KavachAlwaysOnService.start(appContext)
+        scope.launch {
+            delay(5_000L)
+            if (attempt == protectionStartAttempt && _protectionStarting.value && !_protectionActive.value) {
+                reportProtectionFailure(
+                    "Your phone stopped Kavach in the background. Allow unrestricted battery use.",
+                )
+            }
+        }
+        return true
+    }
+
+    fun reportProtectionActive() {
+        _protectionStarting.value = false
+        _protectionActive.value = true
+        _activationBlockedReason.value = null
+    }
+
+    fun reportProtectionFailure(message: String) {
+        protectionStartAttempt++
+        _protectionStarting.value = false
+        _protectionActive.value = false
+        _activationBlockedReason.value = message
+        debugLog(message)
+    }
+
+    fun reportProtectionStopped() {
+        protectionStartAttempt++
+        _protectionStarting.value = false
+        _protectionActive.value = false
+    }
+
+    fun clearActivationMessage() {
+        _activationBlockedReason.value = null
     }
 
     /** Restarts Always On after a reboot or app update, if the student left it on. */
@@ -375,6 +430,13 @@ class FocusShieldRepository @Inject constructor(
     private fun hasRequiredPermissions(): Boolean =
         FocusShieldPermissionHelper.hasUsageStatsPermission(appContext) &&
             FocusShieldPermissionHelper.hasOverlayPermission(appContext)
+
+    private fun activationWarning(packages: Set<String>): String? =
+        KavachActivationReadiness.warning(
+            blockedPackages = packages,
+            hasUsageAccess = FocusShieldPermissionHelper.hasUsageStatsPermission(appContext),
+            hasOverlayPermission = FocusShieldPermissionHelper.hasOverlayPermission(appContext),
+        )
 
     private fun debugLog(message: String) {
         if (BuildConfig.DEBUG) android.util.Log.d(TAG, message)

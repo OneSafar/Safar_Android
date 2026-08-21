@@ -139,7 +139,7 @@ fun PodiumVariationArchitecturalStudio(
                     )
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().height(290.dp),
+                        modifier = Modifier.fillMaxWidth().height(260.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.Bottom,
                     ) {
@@ -149,7 +149,6 @@ fun PodiumVariationArchitecturalStudio(
                                 place = place,
                                 pedestalHeight = pedestalHeight,
                                 riseDelayMs = when (place) { 2 -> 50; 1 -> 150; else -> 250 },
-                                badgeDelayMs = when (place) { 2 -> 350; 1 -> 450; else -> 550 },
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                             )
                         }
@@ -166,7 +165,6 @@ private fun ArchitecturalPodiumColumn(
     place: Int,
     pedestalHeight: Dp,
     riseDelayMs: Int,
-    badgeDelayMs: Int,
     modifier: Modifier = Modifier,
 ) {
     val isDark = isPlannerDark
@@ -200,17 +198,6 @@ private fun ArchitecturalPodiumColumn(
         label = "archScale",
     )
 
-    var badgeVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(entry.userId) {
-        kotlinx.coroutines.delay(badgeDelayMs.toLong())
-        badgeVisible = true
-    }
-    val badgeScale by animateFloatAsState(
-        targetValue = if (badgeVisible) 1f else 0f,
-        animationSpec = tween(420, easing = EaseOutBack),
-        label = "badgeScale",
-    )
-
     val floatTransition = rememberInfiniteTransition(label = "archFloat$place")
     val floatOffset by floatTransition.animateFloat(
         initialValue = 0f, targetValue = -4f,
@@ -223,55 +210,34 @@ private fun ArchitecturalPodiumColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom,
     ) {
-        // Avatar + Crown Headpiece positioned directly on top of the user profile
+        // Clean Floating Avatar
         Box(
             modifier = Modifier
-                .offset { IntOffset(0, floatOffset.dp.roundToPx()) },
-            contentAlignment = Alignment.TopCenter,
+                .offset { IntOffset(0, floatOffset.dp.roundToPx()) }
+                .size(avatarSize + 4.dp)
+                .background(pedestalColor, CircleShape),
+            contentAlignment = Alignment.Center,
         ) {
-            // User Avatar Box (with top padding for crown clearance)
             Box(
                 modifier = Modifier
-                    .padding(top = if (place == 1) 18.dp else 16.dp)
-                    .size(avatarSize + 4.dp)
-                    .background(pedestalColor, CircleShape),
+                    .size(avatarSize)
+                    .clip(CircleShape)
+                    .background(pedestalColor),
                 contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(avatarSize)
-                        .clip(CircleShape)
-                        .background(pedestalColor),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (!entry.avatar.isNullOrBlank()) {
-                        AsyncImage(
-                            model = entry.avatar,
-                            contentDescription = entry.name,
-                            modifier = Modifier.fillMaxSize().clip(CircleShape),
-                        )
-                    } else {
-                        Text(
-                            text = entry.name.take(2).uppercase(),
-                            fontSize = (avatarSize.value * 0.32f).sp,
-                            fontWeight = FontWeight.Bold,
-                            color = medalColor,
-                        )
-                    }
-                }
-            }
-
-            // High-Craft Vector Headpiece Badge crowning directly on top of the avatar head
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .scale(badgeScale),
-                contentAlignment = Alignment.Center,
-            ) {
-                when (place) {
-                    1 -> ImperialGoldCrownBadge(modifier = Modifier.size(38.dp))
-                    2 -> HeraldicSilverLaurelShieldBadge(modifier = Modifier.size(34.dp))
-                    3 -> RadiantBronzeFlameMedallionBadge(modifier = Modifier.size(34.dp))
+                if (!entry.avatar.isNullOrBlank()) {
+                    AsyncImage(
+                        model = entry.avatar,
+                        contentDescription = entry.name,
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                    )
+                } else {
+                    Text(
+                        text = entry.name.take(2).uppercase(),
+                        fontSize = (avatarSize.value * 0.32f).sp,
+                        fontWeight = FontWeight.Bold,
+                        color = medalColor,
+                    )
                 }
             }
         }

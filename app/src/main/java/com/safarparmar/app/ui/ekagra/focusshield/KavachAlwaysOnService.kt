@@ -14,6 +14,7 @@ import android.app.PendingIntent
 import android.content.pm.ServiceInfo
 import androidx.core.app.ServiceCompat
 import androidx.core.app.NotificationCompat
+import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.MainActivity
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
@@ -45,7 +46,8 @@ class KavachAlwaysOnService : Service() {
     companion object {
         private const val NOTIFICATION_ID = 1010
         private const val SETTINGS_SYNC_MS = 2_000L
-        private const val FOREGROUND_LOOKBACK_MS = 2_000L
+        private const val INITIAL_FOREGROUND_LOOKBACK_MS = 24 * 60 * 60 * 1_000L
+        private const val EVENT_QUERY_OVERLAP_MS = 1_000L
         private const val BLOCK_DEBOUNCE_MS = 750L
         /** Tighter poll while the overlay is up so it dismisses almost instantly. */
         private const val OVERLAY_DISMISS_POLL_MS = 250L
@@ -57,14 +59,20 @@ class KavachAlwaysOnService : Service() {
             "com.vivo.launcher", "com.transsion.XOSLauncher",
         )
 
-        fun start(context: Context) {
+        fun start(context: Context): Boolean {
             val intent = Intent(context, KavachAlwaysOnService::class.java)
-            runCatching {
+            return runCatching {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
                 } else {
                     context.startService(intent)
                 }
+                true
+            }.getOrElse {
+                if (BuildConfig.DEBUG) {
+                    android.util.Log.e("FocusShield", "Could not start Kavach service", it)
+                }
+                false
             }
         }
 
@@ -92,6 +100,9 @@ class KavachAlwaysOnService : Service() {
     private var scheduleEnabled = false
     private var scheduleStartMinute = 540
     private var scheduleEndMinute = 1320
+    private var lastUsageEventQueryMs = 0L
+    private val foregroundAppTracker = ForegroundAppTracker()
+    private var stopReasonAlreadyReported = false
 
     private fun focusShieldRepository(): FocusShieldRepository =
         dagger.hilt.android.EntryPointAccessors
@@ -130,6 +141,14 @@ class KavachAlwaysOnService : Service() {
             runCatching { KavachAnalyticsRecorder.from(applicationContext).endProtection(source) }
         }
         KavachAlwaysOnPrefs.clear(this)
+        val repository = runCatching { focusShieldRepository() }.getOrNull()
+        if (!stopReasonAlreadyReported && FocusShieldRepository.ShieldPrefs.isActive(this)) {
+            repository?.reportProtectionFailure(
+                "Your phone stopped Kavach in the background. Allow unrestricted battery use.",
+            )
+        } else {
+            repository?.reportProtectionStopped()
+        }
         monitorJob?.cancel()
         scope.cancel()
         super.onDestroy()
@@ -168,6 +187,15 @@ class KavachAlwaysOnService : Service() {
 
         val timerLinkedActive = FocusShieldRepository.ShieldPrefs.isActive(this)
         if (!enabled || (!alwaysOn && !timerLinkedActive) || packages.isEmpty() || !ready) {
+            stopReasonAlreadyReported = true
+            if (enabled && (alwaysOn || timerLinkedActive)) {
+                val warning = when {
+                    packages.isEmpty() -> "Select at least one app for Kavach to block."
+                    !ready -> "Kavach stopped working. Check Usage Access and Display over other apps."
+                    else -> null
+                }
+                warning?.let { runCatching { focusShieldRepository().reportProtectionFailure(it) } }
+            }
             KavachAlwaysOnPrefs.clear(this)
             FocusShieldRepository.Snapshot.active = false
             stopSelf()
@@ -204,6 +232,7 @@ class KavachAlwaysOnService : Service() {
         FocusShieldRepository.Snapshot.scheduleEnabled = scheduleEnabled
         FocusShieldRepository.Snapshot.scheduleStartMinute = scheduleStartMinute
         FocusShieldRepository.Snapshot.scheduleEndMinute = scheduleEndMinute
+        runCatching { focusShieldRepository().reportProtectionActive() }
         return true
     }
 
@@ -339,18 +368,30 @@ class KavachAlwaysOnService : Service() {
     private fun currentForegroundPackage(): String? {
         val manager = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return null
         val now = System.currentTimeMillis()
-        val events = runCatching { manager.queryEvents(now - FOREGROUND_LOOKBACK_MS, now) }.getOrNull()
+        val queryStart = if (lastUsageEventQueryMs == 0L) {
+            now - INITIAL_FOREGROUND_LOOKBACK_MS
+        } else {
+            (lastUsageEventQueryMs - EVENT_QUERY_OVERLAP_MS).coerceAtLeast(now - INITIAL_FOREGROUND_LOOKBACK_MS)
+        }
+        val events = runCatching { manager.queryEvents(queryStart, now) }.getOrNull()
             ?: return null
         val event = UsageEvents.Event()
-        var latest: String? = null
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
             val foreground = event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND ||
                 (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
                     event.eventType == UsageEvents.Event.ACTIVITY_RESUMED)
-            if (foreground && !event.packageName.isNullOrBlank()) latest = event.packageName
+            val background = event.eventType == UsageEvents.Event.MOVE_TO_BACKGROUND ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                    event.eventType == UsageEvents.Event.ACTIVITY_PAUSED)
+            val eventPackage = event.packageName
+            when {
+                foreground -> foregroundAppTracker.onForeground(eventPackage)
+                background -> foregroundAppTracker.onBackground(eventPackage)
+            }
         }
-        return latest
+        lastUsageEventQueryMs = now
+        return foregroundAppTracker.currentPackage
     }
 
     private fun isHomePackage(packageName: String): Boolean =

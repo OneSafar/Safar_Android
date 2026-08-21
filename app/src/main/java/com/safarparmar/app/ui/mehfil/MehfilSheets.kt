@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -92,7 +94,13 @@ internal fun CommentsBottomSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) {
-        Column(Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp)
+                .fillMaxHeight(0.92f)
+        ) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -299,11 +307,17 @@ internal fun SandeshBottomSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = { BottomSheetDefaults.DragHandle(color = MehfilFlatColors.Hairline) },
     ) {
-        AnimatedContent(
-            targetState = showComments,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "sandesh_nav",
-        ) { inComments ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp),
+        ) {
+            AnimatedContent(
+                targetState = showComments,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "sandesh_nav",
+            ) { inComments ->
             if (inComments) {
                 SandeshCommentsPane(
                     comments = sandeshComments,
@@ -336,6 +350,7 @@ internal fun SandeshBottomSheet(
             }
         }
     }
+}
 }
 
 @Composable
@@ -545,6 +560,8 @@ internal fun CreatePostSheet(
         Column(
             Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 40.dp),
@@ -676,6 +693,8 @@ internal fun GuidelinesSheet(onDismiss: () -> Unit) {
         Column(
             Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 40.dp),

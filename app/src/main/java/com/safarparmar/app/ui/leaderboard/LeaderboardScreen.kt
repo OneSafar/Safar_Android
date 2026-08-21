@@ -292,7 +292,7 @@ private fun PodiumSection(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(280.dp),
+                        .height(260.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.Bottom,
                 ) {
@@ -306,11 +306,6 @@ private fun PodiumSection(
                                 2 -> 50
                                 1 -> 150
                                 else -> 250
-                            },
-                            badgeDelayMs = when (place) {
-                                2 -> 350
-                                1 -> 450
-                                else -> 550
                             },
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
@@ -327,7 +322,6 @@ private fun PodiumColumn(
     place: Int,
     pedestalHeight: Dp,
     riseDelayMs: Int,
-    badgeDelayMs: Int,
     modifier: Modifier = Modifier,
 ) {
     val isDark = isPlannerDark
@@ -361,18 +355,6 @@ private fun PodiumColumn(
         label = "pedestalScale",
     )
 
-    // ── Badge pop-in (once, after the pedestal rises) ──────────────────────
-    var badgeVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(entry.userId) {
-        kotlinx.coroutines.delay(badgeDelayMs.toLong())
-        badgeVisible = true
-    }
-    val badgeScale by animateFloatAsState(
-        targetValue = if (badgeVisible) 1f else 0f,
-        animationSpec = tween(durationMillis = 420, easing = EaseOutBack),
-        label = "badgeScale",
-    )
-
     // ── Gentle float for the avatar (infinite, staggered per column) ───────
     val floatTransition = rememberInfiniteTransition(label = "podiumFloat$place")
     val floatOffset by floatTransition.animateFloat(
@@ -400,57 +382,11 @@ private fun PodiumColumn(
         androidx.compose.runtime.remember { mutableStateOf(0f) }
     }
 
-    // ── One-shot diagonal shine sweep across the badge ──────────────────────
-    val shineTransition = rememberInfiniteTransition(label = "shine$place")
-    val shineX by shineTransition.animateFloat(
-        initialValue = -60f,
-        targetValue = 60f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2600, easing = LinearEasing, delayMillis = 1200 + place * 300),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shineX",
-    )
-
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom,
     ) {
-        // Animated badge floating above the avatar, with pop-in + shine sweep
-        Box(
-            modifier = Modifier
-                .padding(bottom = 2.dp)
-                .scale(badgeScale)
-                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-            contentAlignment = Alignment.Center,
-        ) {
-            when (place) {
-                1 -> Rank1GoldCrownBadge(modifier = Modifier.size(30.dp))
-                2 -> Rank2SilverLaurelBadge(modifier = Modifier.size(26.dp))
-                3 -> Rank3BronzeFlameBadge(modifier = Modifier.size(26.dp))
-            }
-            // Shine highlight — a thin bright diagonal band sweeping over the badge
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .graphicsLayer {
-                        translationX = shineX
-                        rotationZ = 20f
-                    }
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.White.copy(alpha = 0.55f),
-                                Color.Transparent,
-                            ),
-                            start = Offset(0f, 0f),
-                            end = Offset(40f, 0f),
-                        ),
-                    ),
-            )
-        }
 
         // Avatar + Rank Ring, floating gently, gold pulses
         Box(

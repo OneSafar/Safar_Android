@@ -25,6 +25,7 @@ data class StudyCircleHubState(
     val loading: Boolean = true,
     val refreshing: Boolean = false,
     val circles: List<StudyCircleSummaryDto> = emptyList(),
+    val creationEligibility: StudyCircleCreationEligibilityDto = StudyCircleCreationEligibilityDto(),
     val publicCircles: List<PublicStudyCircleDto> = emptyList(),
     val pinnedCircles: List<PublicStudyCircleDto> = emptyList(),
     val publicPage: Int = 1,
@@ -107,17 +108,19 @@ class StudyCircleViewModel @Inject constructor(
         try {
             val mine = async { timedApiCall("Your circles") { api.getMyCircles() } }
             val public = async { timedApiCall("Public circles") { api.getPublicCircles(page = 1, limit = 15) } }
-            val pinned = async { timedApiCall("Official groups") { api.getPinnedCircles() } }
+            val pinned = async { timedApiCall("Official circles") { api.getPinnedCircles() } }
             val mineResult = mine.await()
             val publicResult = public.await()
             val pinnedResult = pinned.await()
             val mineData = (mineResult as? Resource.Success)?.data?.circles
+            val creationEligibility = (mineResult as? Resource.Success)?.data?.creationEligibility
             val publicResponse = (publicResult as? Resource.Success)?.data
             val pinnedResponse = (pinnedResult as? Resource.Success)?.data
 
             if (mineData != null || publicResponse != null || pinnedResponse != null) {
                 _hub.value = _hub.value.copy(
                     circles = mineData ?: previous.circles,
+                    creationEligibility = creationEligibility ?: previous.creationEligibility,
                     publicCircles = publicResponse?.circles ?: previous.publicCircles,
                     pinnedCircles = pinnedResponse?.circles ?: previous.pinnedCircles,
                     publicPage = 1,
@@ -301,7 +304,7 @@ class StudyCircleViewModel @Inject constructor(
             when (val result = safeApiCall { api.updateCircleName(circle.id, UpdateStudyCircleNameRequest(trimmed)) }) {
                 is Resource.Success -> {
                     _detail.value = _detail.value.copy(circle = circle.copy(name = result.data.name))
-                    _message.value = "Group name updated to \"${result.data.name}\""
+                    _message.value = "Circle name updated to \"${result.data.name}\""
                     onRenamed?.invoke(previousName)
                 }
                 is Resource.Error -> _message.value = result.message
@@ -316,7 +319,7 @@ class StudyCircleViewModel @Inject constructor(
         detailAction {
             when (val result = safeApiCall { api.deleteCircle(circleId) }) {
                 is Resource.Success -> {
-                    _message.value = "Study group deleted"
+                    _message.value = "Study circle deleted"
                     _hub.update { hub ->
                         hub.copy(
                             circles = hub.circles.filterNot { it.id == circleId },
@@ -350,7 +353,7 @@ class StudyCircleViewModel @Inject constructor(
             when (val result = safeApiCall { api.togglePinCircle(circleId, PinStudyCircleRequest(target)) }) {
                 is Resource.Success -> {
                     val newPinned = result.data.isPinned
-                    _message.value = if (newPinned) "Group pinned as Official Group" else "Group unpinned from Official Groups"
+                    _message.value = if (newPinned) "Circle pinned as Official Circle" else "Circle unpinned from Official Circles"
                     _detail.update { detail ->
                         detail.copy(
                             circle = detail.circle?.copy(isPinned = newPinned),

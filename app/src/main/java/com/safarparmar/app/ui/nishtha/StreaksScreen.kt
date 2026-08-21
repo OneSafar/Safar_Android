@@ -26,7 +26,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -195,30 +197,75 @@ private fun StreaksScreenContent(
                 bgIconOffsetX = 20.dp,
                 bgIconOffsetY = (-20).dp,
                 bottomContent = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {},
-                        ),
-                    ) {
-                        Text(
-                            stringResource(R.string.streaks_start_today),
-                            color = StreaksPalette.CheckIn,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = StreaksPalette.CheckIn,
-                            modifier = Modifier.size(14.dp),
-                        )
+                    if (streaks.checkInRestore.available) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "You missed ${streaks.checkInRestore.missedDate}. Restore once to continue at ${streaks.checkInRestore.projectedStreak} days.",
+                                color = PlannerFlatColors.TextMuted,
+                                fontSize = 12.sp,
+                                lineHeight = 17.sp,
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable(
+                                    enabled = !uiState.isRestoringStreak,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = viewModel::restoreCheckInStreak,
+                                ),
+                            ) {
+                                if (uiState.isRestoringStreak) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp,
+                                        color = StreaksPalette.CheckIn,
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = StreaksPalette.CheckIn,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                }
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    if (uiState.isRestoringStreak) "Restoring…" else "Restore streak",
+                                    color = StreaksPalette.CheckIn,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                )
+                            }
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                stringResource(R.string.streaks_start_today),
+                                color = StreaksPalette.CheckIn,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = StreaksPalette.CheckIn,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
                     }
                 },
             )
+
+            uiState.streakMessage?.let { message ->
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    message,
+                    color = StreaksPalette.CheckIn,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
 
 
 

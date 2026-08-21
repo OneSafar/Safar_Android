@@ -93,8 +93,8 @@ android {
         applicationId = "com.safarparmar.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 37
-        versionName = "1.6.24"
+        versionCode = 39
+        versionName = "1.6.26"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
         ndk {

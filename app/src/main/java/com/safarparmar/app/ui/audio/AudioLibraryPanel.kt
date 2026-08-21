@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -57,9 +59,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
-import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
-import com.safarparmar.app.ui.theme.LoraFontFamily
+import com.safarparmar.app.ui.ekagra.EkagraDisplayTitle
+import com.safarparmar.app.ui.ekagra.EkagraEyebrow
+import com.safarparmar.app.ui.ekagra.EkagraHairline
+import com.safarparmar.app.ui.ekagra.EkagraInk
+import com.safarparmar.app.ui.ekagra.EkagraPill
+import com.safarparmar.app.ui.ekagra.rememberEkagraInk
 import com.safarparmar.app.ui.theme.isLightBackground
 
 /** Visual theme for the shared audio library bottom sheet. */
@@ -189,6 +194,16 @@ fun AudioLibraryPanel(
         else AudioLibrary.TRACKS.filter { it.category == selectedCategory }
     }
 
+    val ink = remember(colors) {
+        EkagraInk(
+            primaryText = colors.text,
+            secondaryText = colors.muted,
+            mutedText = colors.muted,
+            hairline = colors.hairline,
+            trackFaint = colors.hairline.copy(alpha = 0.3f),
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = colors.bg,
@@ -199,20 +214,16 @@ fun AudioLibraryPanel(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
                 .fillMaxHeight(0.85f)
                 .padding(horizontal = 20.dp),
         ) {
             Spacer(Modifier.height(4.dp))
-            PlanEyebrow("Music")
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "Audio library",
-                fontFamily = LoraFontFamily,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Normal,
-                color = colors.text,
-            )
-            Spacer(Modifier.height(16.dp))
+            EkagraEyebrow("Music", ink.secondaryText)
+            Spacer(Modifier.height(4.dp))
+            EkagraDisplayTitle("Audio library", ink.primaryText)
+            Spacer(Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier
@@ -223,32 +234,18 @@ fun AudioLibraryPanel(
                 categories.forEach { category ->
                     val selected = selectedCategory == category
                     val label = category?.displayName ?: "All"
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .then(
-                                if (selected) {
-                                    Modifier.background(colors.accent)
-                                } else {
-                                    Modifier.border(1.dp, colors.hairline, RoundedCornerShape(10.dp))
-                                },
-                            )
-                            .clickable { selectedCategory = category }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            label,
-                            fontSize = 12.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selected) Color.White else colors.muted,
-                        )
-                    }
+                    EkagraPill(
+                        label = label,
+                        selected = selected,
+                        accent = colors.accent,
+                        ink = ink,
+                        onClick = { selectedCategory = category },
+                    )
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
-            PlanHairline()
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(12.dp))
+            EkagraHairline(ink.hairline)
 
             LazyColumn(
                 modifier = Modifier
@@ -269,13 +266,13 @@ fun AudioLibraryPanel(
                                     releasePreview()
                                     onDismiss()
                                 }
-                                .padding(vertical = 14.dp),
+                                .padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(30.dp)
                                     .clip(CircleShape)
                                     .background(
                                         if (isSelected) {
@@ -294,7 +291,7 @@ fun AudioLibraryPanel(
                                         imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayArrow,
                                         contentDescription = "Preview",
                                         tint = if (isSelected) colors.accent else colors.muted,
-                                        modifier = Modifier.size(18.dp),
+                                        modifier = Modifier.size(15.dp),
                                     )
                                 }
                             }
@@ -303,14 +300,14 @@ fun AudioLibraryPanel(
                                 Text(
                                     text = track.name,
                                     fontSize = 14.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = colors.text,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = ink.primaryText,
                                 )
                                 if (track.description != null) {
                                     Text(
                                         text = track.description,
-                                        fontSize = 12.sp,
-                                        color = colors.muted,
+                                        fontSize = 11.5.sp,
+                                        color = ink.mutedText,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.padding(top = 2.dp),
@@ -323,11 +320,11 @@ fun AudioLibraryPanel(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
                                     tint = colors.accent,
-                                    modifier = Modifier.size(18.dp),
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                         }
-                        PlanHairline(alpha = 0.55f)
+                        EkagraHairline(ink.hairline.copy(alpha = 0.5f))
                     }
                 }
             }

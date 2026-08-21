@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -318,6 +319,8 @@ fun PlanSettingsSheet(
             state = listState,
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp)
                 .navigationBarsPadding()
                 .imePadding(),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 32.dp),
@@ -759,6 +762,8 @@ fun ReplaceTopicSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp)
                 .navigationBarsPadding(),
         ) {
             // Header
@@ -1046,7 +1051,12 @@ fun ManualSubjectOrderSheet(
         containerColor = PlannerFlatColors.BgCream,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 32.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp)
+                .padding(20.dp)
+                .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
@@ -1224,6 +1234,8 @@ fun DailyTodoSetupSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 600.dp)
                 .navigationBarsPadding()
                 .imePadding()
                 .padding(horizontal = 20.dp, vertical = 8.dp),

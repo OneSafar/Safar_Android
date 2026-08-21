@@ -499,7 +499,7 @@ private fun DrawScope.drawSparkleStar(center: Offset, radius: Float, rotationDeg
             quadraticTo(center.x, center.y, center.x + radius, center.y)
             quadraticTo(center.x, center.y, center.x, center.y + radius)
             quadraticTo(center.x, center.y, center.x - radius, center.y)
-            quadraticTo(center.x, center.y, center.x - radius, center.y)
+            quadraticTo(center.x, center.y, center.x, center.y - radius)
             close()
         }
         drawPath(path, color)

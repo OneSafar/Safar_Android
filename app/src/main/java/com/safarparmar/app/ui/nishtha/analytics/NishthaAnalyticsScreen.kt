@@ -50,6 +50,9 @@ import com.safarparmar.app.ui.glass.SafarGlassPalette
 import com.safarparmar.app.ui.glass.GlassDivider
 import com.safarparmar.app.ui.glass.SafarGlassButton
 
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+
 @Composable
 fun NishthaAnalyticsScreen(
     viewModel: NishthaViewModel = hiltViewModel(),
@@ -61,17 +64,24 @@ fun NishthaAnalyticsScreen(
     val achievements = uiState.achievements
 
     val today = remember { LocalDate.now(com.safarparmar.app.util.IstDateUtils.zone) }
-    val months = remember {
-        (0..5).map { offset ->
-            today.minusMonths(offset.toLong()).let { d ->
-                Pair(
-                    d.format(DateTimeFormatter.ofPattern("yyyy-MM")),
-                    d.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.getDefault()))
-                )
+    val months = remember(today) {
+        (0..11).map { offset ->
+            val d = today.minusMonths(offset.toLong())
+            val key = d.format(DateTimeFormatter.ofPattern("yyyy-MM"))
+            val fullLabel = when (offset) {
+                0 -> "${d.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))} (Current Month)"
+                1 -> "${d.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))} (Last Month)"
+                else -> d.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
             }
+            val displayLabel = d.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+            Triple(key, fullLabel, displayLabel)
         }
     }
     var selectedMonth by remember { mutableStateOf(months[0].first) }
+    val currentMonthIndex = months.indexOfFirst { it.first == selectedMonth }.coerceAtLeast(0)
+    val canGoPrev = currentMonthIndex < months.size - 1
+    val canGoNext = currentMonthIndex > 0
+
     var selectedSection by remember(initialSection) {
         mutableStateOf(
             when (initialSection.lowercase(Locale.US)) {
@@ -86,51 +96,23 @@ fun NishthaAnalyticsScreen(
     }
 
     var showMonthPicker by remember { mutableStateOf(false) }
-    val androidContext = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(selectedMonth) {
         viewModel.onEvent(NishthaEvent.LoadReportForMonth(selectedMonth))
     }
 
-    // Native month-year picker via DatePickerDialog (capped to current month, no future)
-    if (showMonthPicker) {
-        val parts = selectedMonth.split("-")
-        val initYear = parts[0].toIntOrNull() ?: today.year
-        val initMonth = (parts.getOrNull(1)?.toIntOrNull() ?: today.monthValue) - 1 // 0-based
-        val cal = java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.YEAR, initYear)
-            set(java.util.Calendar.MONTH, initMonth)
-            set(java.util.Calendar.DAY_OF_MONTH, 1)
-        }
-        val maxCal = java.util.Calendar.getInstance() // today = max
-        val dialog = android.app.DatePickerDialog(
-            androidContext,
-            { _, year, month, _ ->
-                selectedMonth = "$year-${(month + 1).toString().padStart(2, '0')}"
-                showMonthPicker = false
-            },
-            cal.get(java.util.Calendar.YEAR),
-            cal.get(java.util.Calendar.MONTH),
-            1
-        )
-        dialog.datePicker.maxDate = maxCal.timeInMillis
-        // Show only month+year by hiding day spinner
-        dialog.datePicker.apply {
-            try {
-                val f = javaClass.getDeclaredField("mDaySpinner")
-                f.isAccessible = true
-                (f.get(this) as? android.view.View)?.visibility = android.view.View.GONE
-            } catch (_: Exception) {}
-        }
-        DisposableEffect(Unit) {
-            dialog.show()
-            dialog.setOnDismissListener { showMonthPicker = false }
-            onDispose { dialog.dismiss() }
-        }
-    }
-
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
     val isLight = !isDark
+
+    if (showMonthPicker) {
+        MonthSelectionDialog(
+            months = months,
+            selectedMonth = selectedMonth,
+            onSelectMonth = { selectedMonth = it },
+            onDismiss = { showMonthPicker = false },
+            isLight = isLight,
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LiquidGlassBackdrop(modifier = Modifier.fillMaxSize(), isLight = isLight)
@@ -161,7 +143,11 @@ fun NishthaAnalyticsScreen(
                         onNavigate = onNavigate,
                     )
                     "monthly" -> MonthlyReviewSection(
-                        selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.second ?: "",
+                        selectedMonthLabel = months.firstOrNull { it.first == selectedMonth }?.third ?: "",
+                        canGoPrev = canGoPrev,
+                        canGoNext = canGoNext,
+                        onPrevMonth = { if (canGoPrev) selectedMonth = months[currentMonthIndex + 1].first },
+                        onNextMonth = { if (canGoNext) selectedMonth = months[currentMonthIndex - 1].first },
                         onMonthClick = { showMonthPicker = true },
                         isLoading = uiState.isLoadingReport,
                         report = report,
@@ -217,6 +203,10 @@ private fun AnalyticsSectionChip(
 @Composable
 private fun MonthlyReviewSection(
     selectedMonthLabel: String,
+    canGoPrev: Boolean,
+    canGoNext: Boolean,
+    onPrevMonth: () -> Unit,
+    onNextMonth: () -> Unit,
     onMonthClick: () -> Unit,
     isLoading: Boolean,
     report: MonthlyReport?,
@@ -230,35 +220,77 @@ private fun MonthlyReviewSection(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(secondaryText(isLight).copy(alpha = 0.08f))
-                .clickable { onMonthClick() }
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+        // Month Selector Bar (Arrow Left, Month Name Dropdown, Arrow Right)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            IconButton(
+                onClick = onPrevMonth,
+                enabled = canGoPrev,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(secondaryText(isLight).copy(alpha = if (canGoPrev) 0.08f else 0.03f))
             ) {
                 Icon(
-                    Icons.Default.CalendarMonth,
-                    contentDescription = null,
-                    tint = primaryText(isLight),
-                    modifier = Modifier.size(20.dp)
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Previous Month",
+                    tint = if (canGoPrev) primaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
+                    modifier = Modifier.size(18.dp)
                 )
-                Text(
-                    selectedMonthLabel,
-                    color = primaryText(isLight),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f)
-                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(secondaryText(isLight).copy(alpha = 0.08f))
+                    .clickable { onMonthClick() }
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        Icons.Default.CalendarMonth,
+                        contentDescription = null,
+                        tint = if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        selectedMonthLabel,
+                        color = primaryText(isLight),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        contentDescription = "Select Month",
+                        tint = secondaryText(isLight),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onNextMonth,
+                enabled = canGoNext,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(secondaryText(isLight).copy(alpha = if (canGoNext) 0.08f else 0.03f))
+            ) {
                 Icon(
-                    Icons.Default.ArrowDropDown,
-                    contentDescription = null,
-                    tint = secondaryText(isLight)
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Next Month",
+                    tint = if (canGoNext) primaryText(isLight) else secondaryText(isLight).copy(alpha = 0.3f),
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -862,4 +894,82 @@ private fun LineChart(values: List<Float>, modifier: Modifier = Modifier) {
             drawCircle(color = Color.White, radius = 3f, center = pt)
         }
     }
+}
+
+@Composable
+private fun MonthSelectionDialog(
+    months: List<Triple<String, String, String>>,
+    selectedMonth: String,
+    onSelectMonth: (String) -> Unit,
+    onDismiss: () -> Unit,
+    isLight: Boolean,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Select Month",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = primaryText(isLight)
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                months.forEach { (key, fullLabel, _) ->
+                    val isSelected = key == selectedMonth
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                onSelectMonth(key)
+                                onDismiss()
+                            },
+                        color = if (isSelected) {
+                            (if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC)).copy(alpha = 0.12f)
+                        } else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = fullLabel,
+                                fontSize = 14.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) {
+                                    if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC)
+                                } else primaryText(isLight),
+                            )
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = if (isLight) Color(0xFF5B21B6) else Color(0xFFC084FC),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", fontWeight = FontWeight.SemiBold)
+            }
+        },
+        shape = RoundedCornerShape(20.dp),
+        containerColor = if (isLight) Color.White else Color(0xFF1E1E2E),
+    )
 }

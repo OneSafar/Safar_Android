@@ -373,7 +373,13 @@ fun DashboardScreen(
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                     dragHandle = { BottomSheetDefaults.DragHandle(color = DashboardFlatColors.Hairline) },
                 ) {
-                    Box(modifier = Modifier.padding(bottom = 32.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                            .widthIn(max = 600.dp)
+                            .padding(bottom = 32.dp),
+                    ) {
                         when (activeSheet) {
                             DashboardSheetType.MOOD -> MoodSheetContent(uiState.todayMood, isDarkTheme, onNavigate, onDismiss = { activeSheet = DashboardSheetType.NONE })
                             DashboardSheetType.GOALS -> TodayGoalsSheetContent(uiState.todayGoals, isDarkTheme, onNavigate, onDismiss = { activeSheet = DashboardSheetType.NONE })

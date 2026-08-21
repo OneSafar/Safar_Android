@@ -95,34 +95,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/**
- * macOS "Control Center" glass panel — OPAQUE body (no translucent alpha, so
- * the page's cream/charcoal background never shows through), a 0.5dp top-edge
- * light-gradient border, and a soft depth shadow. Used for card-like surfaces
- * (posts, Sandesh, activity, connections); everything else in this file stays
- * flat-hairline per [MehfilFlatColors].
- */
-private fun Modifier.mehfilGlassPanel(isLight: Boolean, shape: RoundedCornerShape = RoundedCornerShape(20.dp)): Modifier {
-    val bodyColor = if (isLight) Color(0xFFF9F9FB) else Color(0xFF2C2C2E)
-    val borderBrush = if (isLight) {
-        Brush.verticalGradient(colors = listOf(Color(0xFFE5E5EA), Color(0xFFD1D1D6)))
-    } else {
-        Brush.verticalGradient(colors = listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.02f)))
-    }
-    val shadowElevation = if (isLight) 4.dp else 12.dp
-    val shadowColor = if (isLight) Color.Black.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.8f)
-    return this
-        .shadow(
-            elevation = shadowElevation,
-            shape = shape,
-            spotColor = shadowColor,
-            ambientColor = shadowColor,
-        )
-        .clip(shape)
-        .background(bodyColor)
-        .border(width = 0.5.dp, brush = borderBrush, shape = shape)
-}
-
 /** Small flat filled button — Primary fill, white text. Used for Accept actions. */
 @Composable
 private fun FlatPrimaryButton(
@@ -244,11 +216,8 @@ internal fun CommunityTab(
                 onReact = onReactSandesh,
                 onCommentClick = onSandeshCommentClick,
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
         }
-
-        InlineComposerCard(onClick = onCreatePostClick)
-        Spacer(Modifier.height(8.dp))
 
         when {
             uiState.isLoadingPosts && uiState.posts.isEmpty() -> LoadingPostList()
@@ -475,8 +444,8 @@ private fun StudyCircleShelfCard(circle: StudyCircleSummaryDto, onClick: () -> U
     ) {
         Box(Modifier.size(40.dp).clip(CircleShape).border(1.5.dp, purple, CircleShape), contentAlignment = Alignment.Center) {
             Icon(
-                if (circle.visibility.equals("public", true)) Icons.Default.Language else Icons.Default.Lock,
-                contentDescription = circle.visibility,
+                if (circle.isPinned) Icons.Default.VerifiedUser else if (circle.visibility.equals("public", true)) Icons.Default.Language else Icons.Default.Lock,
+                contentDescription = if (circle.isPinned) "Official" else circle.visibility,
                 tint = purple,
                 modifier = Modifier.size(20.dp),
             )
@@ -489,57 +458,6 @@ private fun StudyCircleShelfCard(circle: StudyCircleSummaryDto, onClick: () -> U
     }
 }
 
-@Composable
-private fun InlineComposerCard(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(MehfilFlatColors.Surface)
-            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(
-            Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(Color(0xFFF3E8FF)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Default.Edit,
-                contentDescription = null,
-                tint = MehfilFlatColors.Primary,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        Text(
-            "Share something with the Mehfil",
-            Modifier.weight(1f),
-            fontSize = 13.5.sp,
-            color = MehfilFlatColors.Muted,
-        )
-        Box(
-            Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(MehfilFlatColors.Primary)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 18.dp, vertical = 9.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "Post",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.5.sp,
-            )
-        }
-    }
-}
 
 @Composable
 private fun LoadingPostList() {
@@ -674,12 +592,13 @@ private fun SandeshAnnouncementCard(
     onReact: (String) -> Unit,
     onCommentClick: (String) -> Unit,
 ) {
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .mehfilGlassPanel(isLight, shape = RoundedCornerShape(16.dp))
-            .padding(12.dp),
+            .clip(RoundedCornerShape(14.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
+            .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1060,10 +979,11 @@ internal fun AnalyticsTab(uiState: MehfilUiState) {
 
 @Composable
 private fun ActivityStatCard(label: String, value: String, icon: ImageVector, modifier: Modifier) {
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     Column(
         modifier = modifier
-            .mehfilGlassPanel(isLight, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1076,11 +996,12 @@ private fun ActivityStatCard(label: String, value: String, icon: ImageVector, mo
 
 @Composable
 private fun ActivityRow(item: ActivityItem) {
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .mehfilGlassPanel(isLight, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1125,7 +1046,6 @@ internal fun ConnectionsTab(
 ) {
     val pending = uiState.pendingDmRequests
     val dmState = uiState.dmState
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
 
     Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (pending.isNotEmpty()) {
@@ -1141,7 +1061,9 @@ internal fun ConnectionsTab(
             is DmState.Open -> Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .mehfilGlassPanel(isLight, shape = RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MehfilFlatColors.Surface)
+                    .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
                     .clickable { onNavigateToDmChat() }
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1162,11 +1084,12 @@ private fun PendingRequestsCard(
     onAcceptDm: (String) -> Unit,
     onDeclineDm: (String) -> Unit,
 ) {
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .mehfilGlassPanel(isLight, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -1195,11 +1118,12 @@ private fun PendingRequestsCard(
 
 @Composable
 private fun ConnectIdleCard() {
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .mehfilGlassPanel(isLight, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -1214,11 +1138,12 @@ private fun IncomingRequestCard(
     onAcceptDm: (String) -> Unit,
     onDeclineDm: (String) -> Unit,
 ) {
-    val isLight = MaterialTheme.colorScheme.background.isLightBackground()
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .mehfilGlassPanel(isLight, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(MehfilFlatColors.Surface)
+            .border(1.dp, MehfilFlatColors.Hairline, RoundedCornerShape(14.dp))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

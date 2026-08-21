@@ -263,26 +263,28 @@ internal fun OrganizeFreeFocusSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
                 .heightIn(max = maxSheetHeight)
         ) {
             // 2. Header Block
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 6.dp)) {
                 Text(
                     text = "Session Complete",
-                    fontSize = 20.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = primaryTextColor,
                 )
                 Text(
                     text = "$focusedTimeLabel focused",
-                    fontSize = 28.sp,
+                    fontSize = 19.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = primaryTextColor,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    modifier = Modifier.padding(vertical = 2.dp)
                 )
                 Text(
                     text = "Save normally in Ekagra or link it to today's goal.",
-                    fontSize = 13.sp,
+                    fontSize = 9.5.sp,
                     color = secondaryTextColor,
                 )
             }
@@ -308,7 +310,7 @@ internal fun OrganizeFreeFocusSheet(
                         )
                         Text(
                             text = pending.topicTitle ?: "Untitled topic",
-                            fontSize = 16.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Medium,
                             color = primaryTextColor,
                         )
@@ -316,13 +318,13 @@ internal fun OrganizeFreeFocusSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { markTopicDone = !markTopicDone }
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(20.dp)
+                                    .size(16.dp)
                                     .border(
                                         1.dp,
                                         if (markTopicDone) topicAccent else secondaryTextColor.copy(alpha = 0.5f),
@@ -339,13 +341,13 @@ internal fun OrganizeFreeFocusSheet(
                                         Icons.Default.Check,
                                         contentDescription = null,
                                         tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(11.dp)
                                     )
                                 }
                             }
                             Text(
                                 text = "Mark topic as completed",
-                                fontSize = 14.sp,
+                                fontSize = 10.sp,
                                 color = primaryTextColor,
                             )
                         }
@@ -353,7 +355,7 @@ internal fun OrganizeFreeFocusSheet(
                     HorizontalDivider(color = dividerColor)
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         ActionPill(
@@ -371,7 +373,7 @@ internal fun OrganizeFreeFocusSheet(
                     }
                 } else {
                     // Goal linking or free save
-                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp)) {
                         SaveSectionHeader(
                             label = "LINK TO A GOAL",
                             accent = goalAccent,
@@ -381,15 +383,15 @@ internal fun OrganizeFreeFocusSheet(
                             text = "You can only link today's created goals. Create a goal today if you have not created one.",
                             accent = goalAccent,
                             textColor = secondaryTextColor,
-                            modifier = Modifier.padding(vertical = 6.dp),
+                            modifier = Modifier.padding(vertical = 4.dp),
                         )
 
                         if (shownGoals.isEmpty()) {
                             Text(
                                 "No open goals for today.",
-                                fontSize = 13.sp,
+                                fontSize = 9.5.sp,
                                 color = secondaryTextColor,
-                                modifier = Modifier.padding(vertical = 8.dp),
+                                modifier = Modifier.padding(vertical = 6.dp),
                             )
                         } else {
                             shownGoals.forEachIndexed { index, goal ->
@@ -400,13 +402,13 @@ internal fun OrganizeFreeFocusSheet(
                                         .clickable {
                                             selectedGoal = if (selected) null else goal
                                         }
-                                        .padding(vertical = 12.dp),
+                                        .padding(vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(28.dp)
+                                            .size(20.dp)
                                             .clip(CircleShape)
                                             .background(
                                                 if (selected) goalAccent
@@ -418,13 +420,13 @@ internal fun OrganizeFreeFocusSheet(
                                             imageVector = if (selected) Icons.Default.Check else Icons.Default.Link,
                                             contentDescription = null,
                                             tint = if (selected) Color.White else goalAccent,
-                                            modifier = Modifier.size(15.dp)
+                                            modifier = Modifier.size(11.dp)
                                         )
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = goal.title,
-                                            fontSize = 14.sp,
+                                            fontSize = 10.sp,
                                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                                             color = if (selected) goalAccent else primaryTextColor,
                                             maxLines = 1,
@@ -432,7 +434,7 @@ internal fun OrganizeFreeFocusSheet(
                                         goalRowSubtitle(goal)?.let { subtitle ->
                                             Text(
                                                 text = subtitle,
-                                                fontSize = 11.5.sp,
+                                                fontSize = 8.5.sp,
                                                 color = secondaryTextColor,
                                                 maxLines = 1,
                                             )
@@ -446,13 +448,13 @@ internal fun OrganizeFreeFocusSheet(
                         }
 
                         if (selectedGoal != null) {
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Time will be added to this goal.",
-                                fontSize = 12.5.sp,
+                                fontSize = 9.sp,
                                 color = secondaryTextColor,
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             ActionPill(
                                 text = "Keep Goal Open",
                                 accentColor = goalAccent,
@@ -465,11 +467,11 @@ internal fun OrganizeFreeFocusSheet(
                             )
                             Text(
                                 text = "Keep goal active.",
-                                fontSize = 11.5.sp,
+                                fontSize = 8.5.sp,
                                 color = secondaryTextColor,
-                                modifier = Modifier.padding(top = 4.dp),
+                                modifier = Modifier.padding(top = 2.dp),
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             ActionPill(
                                 text = "Mark Goal Done",
                                 accentColor = goalAccent,
@@ -482,17 +484,17 @@ internal fun OrganizeFreeFocusSheet(
                             )
                             Text(
                                 text = "Complete goal now.",
-                                fontSize = 11.5.sp,
+                                fontSize = 8.5.sp,
                                 color = secondaryTextColor,
-                                modifier = Modifier.padding(top = 4.dp),
+                                modifier = Modifier.padding(top = 2.dp),
                             )
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
 
                     HorizontalDivider(color = dividerColor)
 
-                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp)) {
                         SaveSectionHeader(
                             label = "SAVE TO EKAGRA",
                             accent = quickAccent,
@@ -504,16 +506,16 @@ internal fun OrganizeFreeFocusSheet(
                             singleLine = true,
                             textStyle = androidx.compose.ui.text.TextStyle(
                                 color = primaryTextColor,
-                                fontSize = 16.sp
+                                fontSize = 11.5.sp
                             ),
                             cursorBrush = androidx.compose.ui.graphics.SolidColor(quickAccent),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 6.dp),
                             decorationBox = { field ->
                                 Box {
                                     if (titleInput.isBlank()) {
-                                        Text("Session name (optional)", fontSize = 16.sp, color = secondaryTextColor)
+                                        Text("Session name (optional)", fontSize = 11.5.sp, color = secondaryTextColor)
                                     }
                                     field()
                                 }
@@ -582,17 +584,17 @@ private fun ActionPill(
     Surface(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         color = accentColor.copy(alpha = if (isDark) 0.22f else 0.12f),
-        border = BorderStroke(1.2.dp, accentColor.copy(alpha = if (isDark) 0.5f else 0.35f)),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = if (isDark) 0.5f else 0.35f)),
     ) {
         Box(
-            modifier = Modifier.padding(vertical = 13.dp, horizontal = 16.dp),
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = text,
-                fontSize = 14.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = accentColor
             )
@@ -608,26 +610,26 @@ private fun InfoNoticeCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         color = accent.copy(alpha = 0.10f),
         border = BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
                 imageVector = Icons.Default.Info,
                 contentDescription = null,
                 tint = accent,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(13.dp),
             )
             Text(
                 text = text,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
+                fontSize = 8.5.sp,
+                lineHeight = 12.sp,
                 color = textColor,
             )
         }
@@ -669,25 +671,25 @@ private fun SaveSectionHeader(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.padding(bottom = 10.dp),
+        modifier = modifier.padding(bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(22.dp)
-                .clip(RoundedCornerShape(7.dp))
+                .size(16.dp)
+                .clip(RoundedCornerShape(5.dp))
                 .background(accent.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(13.dp))
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(10.dp))
         }
         Text(
             text = label,
-            fontSize = 11.5.sp,
+            fontSize = 8.5.sp,
             fontWeight = FontWeight.Bold,
             color = accent,
-            letterSpacing = 1.sp,
+            letterSpacing = 0.8.sp,
         )
     }
 }
@@ -915,7 +917,10 @@ internal fun PostSaveGoalLinkingSheet(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
+                .fillMaxHeight()
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp),
         ) {

@@ -92,6 +92,7 @@ class TimerService : Service() {
         private const val KEY_COMPLETED_POMODORO_LOOPS = "completed_pomodoro_loops"
         private const val KEY_POMODORO_FOCUS_SECONDS = "pomodoro_focus_seconds"
         private const val KEY_POMODORO_BREAK_SECONDS = "pomodoro_break_seconds"
+        private const val TIMER_STATE_WRITE_INTERVAL_MS = 5_000L
         private const val KEY_AUTO_SAVE_CLIENT_SESSION_ID = "auto_save_client_session_id"
         private const val KEY_AUTO_SAVE_STARTED_AT = "auto_save_started_at"
         private const val KEY_AUTO_SAVE_TASK_TITLE = "auto_save_task_title"
@@ -165,6 +166,10 @@ class TimerService : Service() {
     private val scope   = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val notificationScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val notificationUpdates = Channel<Notification>(Channel.CONFLATED)
+    private val persistenceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val timerStateWrites = Channel<TimerStateWrite>(Channel.CONFLATED)
+    private var persistenceWriterJob: Job? = null
+    private var lastPeriodicStateWriteElapsedMs = 0L
     private var tickJob: Job? = null
     private var focusPresenceJob: Job? = null
     private var lastTickElapsedMs: Long = 0L
@@ -178,6 +183,25 @@ class TimerService : Service() {
         val totalSeconds: Int,
         val remainingSeconds: Int,
     )
+
+    private sealed interface TimerStateWrite {
+        data class Save(
+            val total: Int,
+            val remaining: Int,
+            val mode: String,
+            val isRunning: Boolean,
+            val savedAtMs: Long,
+            val suspendedTotal: Int,
+            val suspendedRemaining: Int,
+            val standardBreakSeconds: Int,
+            val targetPomodoroLoops: Int,
+            val completedPomodoroLoops: Int,
+            val pomodoroFocusSeconds: Int,
+            val pomodoroBreakSeconds: Int,
+        ) : TimerStateWrite
+
+        data object Clear : TimerStateWrite
+    }
 
     private data class AutoSaveMetadata(
         val clientSessionId: String,
@@ -263,7 +287,7 @@ class TimerService : Service() {
         ).focusShieldRepository()
 
     private fun clearTheme() {
-        themePrefs().edit().clear().apply()
+        persistenceScope.launch { themePrefs().edit().clear().apply() }
     }
 
     // ── Audio player (lives in the service — survives navigation) ─────────────
@@ -425,6 +449,28 @@ class TimerService : Service() {
     override fun onCreate() {
         super.onCreate()
         SafarNotificationChannels.createAll(this)
+        persistenceWriterJob = persistenceScope.launch {
+            for (write in timerStateWrites) {
+                when (write) {
+                    is TimerStateWrite.Save -> timerStatePrefs().edit()
+                        .putBoolean(KEY_HAS_STATE, true)
+                        .putString(KEY_MODE, write.mode)
+                        .putInt(KEY_TOTAL_SECONDS, write.total)
+                        .putInt(KEY_REMAINING_SECONDS, write.remaining)
+                        .putBoolean(KEY_IS_RUNNING, write.isRunning)
+                        .putLong(KEY_SAVED_AT_MS, write.savedAtMs)
+                        .putInt(KEY_SUSPENDED_TOTAL_SECONDS, write.suspendedTotal)
+                        .putInt(KEY_SUSPENDED_REMAINING_SECONDS, write.suspendedRemaining)
+                        .putInt(KEY_STANDARD_BREAK_SECONDS, write.standardBreakSeconds)
+                        .putInt(KEY_TARGET_POMODORO_LOOPS, write.targetPomodoroLoops)
+                        .putInt(KEY_COMPLETED_POMODORO_LOOPS, write.completedPomodoroLoops)
+                        .putInt(KEY_POMODORO_FOCUS_SECONDS, write.pomodoroFocusSeconds)
+                        .putInt(KEY_POMODORO_BREAK_SECONDS, write.pomodoroBreakSeconds)
+                        .commit()
+                    TimerStateWrite.Clear -> timerStatePrefs().edit().clear().commit()
+                }
+            }
+        }
         notificationScope.launch {
             val notificationManager = getSystemService(NotificationManager::class.java)
             for (notification in notificationUpdates) {
@@ -500,6 +546,8 @@ class TimerService : Service() {
         focusPresenceJob?.cancel()
         notificationUpdates.close()
         notificationScope.cancel()
+        timerStateWrites.close()
+        persistenceWriterJob?.invokeOnCompletion { persistenceScope.cancel() }
         scope.cancel()
         super.onDestroy()
     }
@@ -520,10 +568,12 @@ class TimerService : Service() {
 
     // ── Public API ────────────────────────────────────────────────────────────
     fun saveTheme(themeIndex: Int, songName: String) {
-        themePrefs().edit()
-            .putInt("theme_index", themeIndex)
-            .putString("song_name", songName)
-            .apply()
+        persistenceScope.launch {
+            themePrefs().edit()
+                .putInt("theme_index", themeIndex)
+                .putString("song_name", songName)
+                .commit()
+        }
     }
 
     fun setDuration(mode: TimerMode, seconds: Int, breakSeconds: Int = 5 * 60) {
@@ -705,7 +755,7 @@ class TimerService : Service() {
                 } else {
                     _secondsLeft.value = (_secondsLeft.value - elapsedSeconds).coerceAtLeast(0)
                 }
-                persistTimerState()
+                persistTimerState(periodic = true)
                 updateNotification()
                 // Refresh the floating pill each tick (no-op when SAFAR is foregrounded).
                 TimerBubbleOverlay.update(
@@ -925,16 +975,18 @@ class TimerService : Service() {
 
     private fun persistAutoSaveMetadata() {
         val metadata = autoSaveMetadata ?: return
-        timerStatePrefs().edit()
-            .putString(KEY_AUTO_SAVE_CLIENT_SESSION_ID, metadata.clientSessionId)
-            .putString(KEY_AUTO_SAVE_STARTED_AT, metadata.startedAt)
-            .putString(KEY_AUTO_SAVE_TASK_TITLE, metadata.taskTitle)
-            .putString(KEY_AUTO_SAVE_GOAL_ID, metadata.goalId)
-            .putString(KEY_AUTO_SAVE_GOAL_TITLE, metadata.goalTitle)
-            .putString(KEY_AUTO_SAVE_TOPIC_ID, metadata.topicId)
-            .putString(KEY_AUTO_SAVE_PLAN_ID, metadata.planId)
-            .putString(KEY_AUTO_SAVE_TOPIC_TITLE, metadata.topicTitle)
-            .apply()
+        persistenceScope.launch {
+            timerStatePrefs().edit()
+                .putString(KEY_AUTO_SAVE_CLIENT_SESSION_ID, metadata.clientSessionId)
+                .putString(KEY_AUTO_SAVE_STARTED_AT, metadata.startedAt)
+                .putString(KEY_AUTO_SAVE_TASK_TITLE, metadata.taskTitle)
+                .putString(KEY_AUTO_SAVE_GOAL_ID, metadata.goalId)
+                .putString(KEY_AUTO_SAVE_GOAL_TITLE, metadata.goalTitle)
+                .putString(KEY_AUTO_SAVE_TOPIC_ID, metadata.topicId)
+                .putString(KEY_AUTO_SAVE_PLAN_ID, metadata.planId)
+                .putString(KEY_AUTO_SAVE_TOPIC_TITLE, metadata.topicTitle)
+                .commit()
+        }
     }
 
     private fun restoreAutoSaveMetadata(prefs: SharedPreferences) {
@@ -1059,7 +1111,12 @@ class TimerService : Service() {
         flushPendingSavesNow()
     }
 
-    private fun persistTimerState() {
+    private fun persistTimerState(periodic: Boolean = false) {
+        if (periodic) {
+            val nowElapsed = SystemClock.elapsedRealtime()
+            if (nowElapsed - lastPeriodicStateWriteElapsedMs < TIMER_STATE_WRITE_INTERVAL_MS) return
+            lastPeriodicStateWriteElapsedMs = nowElapsed
+        }
         val total = if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value else _totalSeconds.value
         val remaining = if (_timerMode.value == TimerMode.STOPWATCH) _secondsLeft.value else _secondsLeft.value.coerceIn(0, total.coerceAtLeast(1))
         val shouldPersist = _isRunning.value || (_timerMode.value == TimerMode.STOPWATCH && remaining > 0) || (remaining < total)
@@ -1069,21 +1126,22 @@ class TimerService : Service() {
         }
 
         val suspended = suspendedFocusState
-        timerStatePrefs().edit()
-            .putBoolean(KEY_HAS_STATE, true)
-            .putString(KEY_MODE, _timerMode.value.name)
-            .putInt(KEY_TOTAL_SECONDS, total)
-            .putInt(KEY_REMAINING_SECONDS, remaining)
-            .putBoolean(KEY_IS_RUNNING, _isRunning.value)
-            .putLong(KEY_SAVED_AT_MS, System.currentTimeMillis())
-            .putInt(KEY_SUSPENDED_TOTAL_SECONDS, suspended?.totalSeconds ?: 0)
-            .putInt(KEY_SUSPENDED_REMAINING_SECONDS, suspended?.remainingSeconds ?: 0)
-            .putInt(KEY_STANDARD_BREAK_SECONDS, standardBreakSeconds)
-            .putInt(KEY_TARGET_POMODORO_LOOPS, _targetPomodoroLoops.value)
-            .putInt(KEY_COMPLETED_POMODORO_LOOPS, _pomodorosCompleted.value)
-            .putInt(KEY_POMODORO_FOCUS_SECONDS, pomodoroFocusSeconds)
-            .putInt(KEY_POMODORO_BREAK_SECONDS, pomodoroBreakSeconds)
-            .apply()
+        timerStateWrites.trySend(
+            TimerStateWrite.Save(
+                total = total,
+                remaining = remaining,
+                mode = _timerMode.value.name,
+                isRunning = _isRunning.value,
+                savedAtMs = System.currentTimeMillis(),
+                suspendedTotal = suspended?.totalSeconds ?: 0,
+                suspendedRemaining = suspended?.remainingSeconds ?: 0,
+                standardBreakSeconds = standardBreakSeconds,
+                targetPomodoroLoops = _targetPomodoroLoops.value,
+                completedPomodoroLoops = _pomodorosCompleted.value,
+                pomodoroFocusSeconds = pomodoroFocusSeconds,
+                pomodoroBreakSeconds = pomodoroBreakSeconds,
+            ),
+        )
     }
 
     private fun restorePersistedTimerState() {
@@ -1155,7 +1213,7 @@ class TimerService : Service() {
 
     private fun clearPersistedTimerState() {
         autoSaveMetadata = null
-        timerStatePrefs().edit().clear().apply()
+        timerStateWrites.trySend(TimerStateWrite.Clear)
     }
 
     // ── Notification ──────────────────────────────────────────────────────────

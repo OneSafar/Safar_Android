@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -126,6 +128,8 @@ fun RevisionScheduleSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .wrapContentWidth(Alignment.CenterHorizontally)
+                    .widthIn(max = 600.dp)
                     .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
@@ -180,6 +184,8 @@ fun RevisionScheduleSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .wrapContentWidth(Alignment.CenterHorizontally)
+                    .widthIn(max = 600.dp)
                     .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp)

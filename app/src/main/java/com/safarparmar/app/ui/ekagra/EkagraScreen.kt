@@ -134,6 +134,7 @@ fun EkagraScreen(
     val timerMode         by (timerService?.timerMode          ?: fallbackTimerMode).collectAsStateWithLifecycle()
     val isMuted           by (timerService?.isMuted            ?: MutableStateFlow(false)).collectAsStateWithLifecycle()
     val blockedHitCount   by focusShieldViewModel.blockedHitCount.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // UI state
     val tabBackStack             = rememberFeatureTabBackStack(EkagraNavTab.TIMER)
@@ -141,6 +142,7 @@ fun EkagraScreen(
     val selectedTab              = tabBackStack.currentTab
     var showKavachActiveSession  by remember { mutableStateOf(false) }
     var showThemeDialog          by remember { mutableStateOf(false) }
+    var showEndSessionConfirmDialog by remember { mutableStateOf(false) }
     var showAudioLibraryPanel    by remember { mutableStateOf(false) }
     var showOrganizeSheet        by remember { mutableStateOf(false) }
     var showTopicStudySheet      by remember { mutableStateOf(false) }
@@ -413,7 +415,11 @@ fun EkagraScreen(
 
     // ── Side-effects ────────────────────────────────────────────────────────────
 
-    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(shieldState.activationMessage) {
+        val message = shieldState.activationMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        focusShieldViewModel.clearActivationMessage()
+    }
 
     LaunchedEffect(selectedTab) {
         if (selectedTab == EkagraNavTab.TIMER && timerService?.isActive() == false)
@@ -557,7 +563,7 @@ fun EkagraScreen(
     }
     val mottoText = when {
         timerMode != TimerMode.FOCUS && timerMode != TimerMode.STOPWATCH && timerMode != TimerMode.POMODORO && timerRunning -> "BREAK TIME"
-        timerMode == TimerMode.FOCUS && timerRunning && shieldState.isEnabled -> "STUDY TIME - KAVACH ENABLED"
+        timerMode == TimerMode.FOCUS && timerRunning && shieldState.isProtectionActive -> "STUDY TIME - KAVACH ACTIVE"
         timerRunning -> "STAY FOCUSED, YOU'RE DOING GREAT!"
         else         -> "READY TO FOCUS?"
     }
@@ -702,7 +708,7 @@ fun EkagraScreen(
                         secondsLeft  = secondsLeft,
                         blockedCount = blockedHitCount,
                         onBack       = { showKavachActiveSession = false },
-                        onEndSession = { showKavachActiveSession = false; endCurrentSession() },
+                        onEndSession = { showKavachActiveSession = false; showEndSessionConfirmDialog = true },
                     )
                 }
                 else -> {
@@ -712,6 +718,44 @@ fun EkagraScreen(
                             selectedTheme = it
                             showThemeDialog = false 
                         }, onDismiss = { showThemeDialog = false })
+                    if (showEndSessionConfirmDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showEndSessionConfirmDialog = false },
+                            shape = RoundedCornerShape(20.dp),
+                            title = {
+                                Text(
+                                    text = "End session?",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+                            },
+                            text = {
+                                Text(
+                                    text = "Do you want to end the session?",
+                                    fontSize = 14.sp
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        showEndSessionConfirmDialog = false
+                                        endCurrentSession()
+                                    }
+                                ) {
+                                    Text("Yes", fontWeight = FontWeight.Bold)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = {
+                                        showEndSessionConfirmDialog = false
+                                    }
+                                ) {
+                                    Text("No")
+                                }
+                            },
+                        )
+                    }
                     // ── Overlay bubble permission prompt (shown once) ─────────────
                     if (showOverlayPermPrompt) {
                         androidx.compose.material3.ModalBottomSheet(
@@ -725,6 +769,8 @@ fun EkagraScreen(
                             androidx.compose.foundation.layout.Column(
                                 modifier = androidx.compose.ui.Modifier
                                     .fillMaxWidth()
+                                    .wrapContentWidth(androidx.compose.ui.Alignment.CenterHorizontally)
+                                    .widthIn(max = 560.dp)
                                     .padding(horizontal = 24.dp, vertical = 20.dp),
                                 horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
@@ -1118,9 +1164,8 @@ fun EkagraScreen(
                         val dialogInk = rememberEkagraInk(onCanvas = false)
                         androidx.compose.ui.window.Dialog(
                             onDismissRequest = { showDurationPromptDialog = false },
+                            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
                         ) {
-                            // Card — light blue-tinted surface in light mode; follows the
-                            // theme's dark surfaces at night instead of glaring light-blue.
                             val dialogBg     = themeColorScheme.surfaceContainerHigh
                             val dialogTitle  = themeColorScheme.onSurface
                             val dialogBody   = themeColorScheme.onSurfaceVariant
@@ -1131,33 +1176,37 @@ fun EkagraScreen(
                                 tonalElevation = 0.dp,
                                 shadowElevation = 0.dp,
                                 modifier = Modifier
+                                    .padding(horizontal = 24.dp)
+                                    .widthIn(max = 380.dp)
                                     .fillMaxWidth()
                                     .wrapContentHeight()
                                     .border(1.dp, dialogInk.hairline, RoundedCornerShape(20.dp)),
                             ) {
                                 Column(
                                     modifier = Modifier.padding(
-                                        start = 24.dp, end = 24.dp,
-                                        top = 28.dp, bottom = 20.dp
+                                        start = 22.dp, end = 22.dp,
+                                        top = 22.dp, bottom = 20.dp
                                     ),
                                     verticalArrangement = Arrangement.spacedBy(0.dp),
                                 ) {
-                                    // Title
+                                    EkagraEyebrow("Ekagra", dialogInk.secondaryText)
+                                    Spacer(Modifier.height(4.dp))
                                     Text(
-                                        text = "Set Duration",
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.Bold,
+                                        text = "Set duration?",
+                                        fontFamily = EkagraSerif,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Normal,
                                         color = dialogTitle,
                                     )
-                                    Spacer(Modifier.height(12.dp))
+                                    Spacer(Modifier.height(10.dp))
                                     // Body
                                     Text(
                                         text = "Would you like to set your own duration before starting?",
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontSize = 13.5.sp,
                                         color = dialogBody,
-                                        lineHeight = 20.sp,
+                                        lineHeight = 19.sp,
                                     )
-                                    Spacer(Modifier.height(20.dp))
+                                    Spacer(Modifier.height(16.dp))
                                     // "Do not show this again" checkbox row
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -1166,7 +1215,7 @@ fun EkagraScreen(
                                             .clip(RoundedCornerShape(8.dp))
                                             .clickable { dontShowDurationPromptAgain = !dontShowDurationPromptAgain }
                                             .padding(vertical = 2.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
                                         Checkbox(
                                             checked = dontShowDurationPromptAgain,
@@ -1179,11 +1228,11 @@ fun EkagraScreen(
                                         )
                                         Text(
                                             text = "Do not show this again",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = dialogTitle,
+                                            fontSize = 13.sp,
+                                            color = dialogInk.primaryText,
                                         )
                                     }
-                                    Spacer(Modifier.height(24.dp))
+                                    Spacer(Modifier.height(20.dp))
                                     // Action buttons — hairline styled
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -1472,7 +1521,7 @@ fun EkagraScreen(
                                         progress           = progress,
                                         hasProgress        = if (timerMode == TimerMode.STOPWATCH) secondsLeft > 0 else secondsLeft < totalSeconds,
                                         mottoText          = mottoText,
-                                        kavachActive       = shieldState.isEnabled && timerRunning && timerMode == TimerMode.FOCUS,
+                                        kavachActive       = shieldState.isProtectionActive && timerRunning && timerMode == TimerMode.FOCUS,
                                         kavachBlockedCount = blockedHitCount,
                                         controlsVisible    = true,
                                         onOpenKavachSession = { showKavachActiveSession = true },
@@ -1539,7 +1588,7 @@ fun EkagraScreen(
                                         },
                                         onReset       = {
                                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            endCurrentSession()
+                                            showEndSessionConfirmDialog = true
                                         },
                                         onGoToDuration = { tabBackStack.select(EkagraNavTab.DURATION) },
                                         shieldState   = shieldState,

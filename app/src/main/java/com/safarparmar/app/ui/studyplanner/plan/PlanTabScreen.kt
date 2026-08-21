@@ -38,6 +38,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -880,7 +882,12 @@ private fun CreatePlanPromptSheet(
         containerColor = PlannerFlatColors.BgCream,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
+                .padding(20.dp)
+                .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text("Let's set up your plan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -1159,6 +1166,8 @@ private fun MoreTimeNeededSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = 560.dp)
                 .navigationBarsPadding()
                 .padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

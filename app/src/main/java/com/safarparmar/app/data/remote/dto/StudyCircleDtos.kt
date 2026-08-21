@@ -12,6 +12,13 @@ data class StudyCircleSummaryDto(
     val createdAt: String = "",
 )
 
+data class StudyCircleCreationEligibilityDto(
+    val allowed: Boolean = false,
+    val currentStreak: Int = 0,
+    val requiredStreak: Int = 21,
+    val adminBypass: Boolean = false,
+)
+
 data class StudyCircleMemberDto(
     val userId: String = "",
     val name: String = "Safar learner",
@@ -67,7 +74,10 @@ data class StudyCirclePeriodDto(
     val timezone: String = "Asia/Kolkata",
 )
 
-data class StudyCirclesResponse(val circles: List<StudyCircleSummaryDto> = emptyList())
+data class StudyCirclesResponse(
+    val circles: List<StudyCircleSummaryDto> = emptyList(),
+    val creationEligibility: StudyCircleCreationEligibilityDto = StudyCircleCreationEligibilityDto(),
+)
 data class PublicStudyCirclesResponse(
     val circles: List<PublicStudyCircleDto> = emptyList(),
     val total: Int = 0,

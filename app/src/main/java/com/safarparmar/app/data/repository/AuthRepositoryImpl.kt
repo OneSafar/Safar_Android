@@ -169,7 +169,7 @@ class AuthRepositoryImpl @Inject constructor(
                 cookieStore.removeAll()
                 Resource.Success(Unit)
             }
-            is Resource.Error   -> Resource.Error(r.message)
+            is Resource.Error   -> Resource.Error(r.message.ifBlank { "Failed to delete account. Please check your password." })
             is Resource.Loading -> Resource.Loading()
         }
     }

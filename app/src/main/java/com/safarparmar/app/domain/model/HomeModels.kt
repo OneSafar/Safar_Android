@@ -7,7 +7,16 @@ data class Streaks(
     val loginStreak: Int = 0,
     val checkInStreak: Int = 0,
     val goalCompletionStreak: Int = 0,
-    val lastActiveDate: String? = null
+    val lastActiveDate: String? = null,
+    val checkInRestore: CheckInRestore = CheckInRestore(),
+)
+
+@Immutable
+data class CheckInRestore(
+    val available: Boolean = false,
+    val missedDate: String? = null,
+    val projectedStreak: Int? = null,
+    val activeProtectedDate: String? = null,
 )
 
 @Immutable
