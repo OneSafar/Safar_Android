@@ -34,45 +34,32 @@ fun TextInputDialog(
     onConfirm: (String) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
-    val currentDensity = LocalDensity.current
-    val clampedDensity = remember(currentDensity) {
-        Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f),
-        )
-    }
     PlannerDialog(
         onDismissRequest = onDismiss,
         title = title,
         text = {
-            CompositionLocalProvider(LocalDensity provides clampedDensity) {
-                OutlinedTextField(
-                    text,
-                    { text = it },
-                    label = { Text(label) },
-                    supportingText = { if (text.isBlank()) Text(emptyHint) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(
-                        onDone = { if (text.trim().length >= 2) onConfirm(text.trim()) },
-                    ),
-                )
-            }
+            OutlinedTextField(
+                text,
+                { text = it },
+                label = { Text(label) },
+                supportingText = { if (text.isBlank()) Text(emptyHint) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = { if (text.trim().length >= 2) onConfirm(text.trim()) },
+                ),
+            )
         },
         dismissButton = {
-            CompositionLocalProvider(LocalDensity provides clampedDensity) {
-                PlannerDialogTextAction("Cancel", onClick = onDismiss)
-            }
+            PlannerDialogTextAction("Cancel", onClick = onDismiss)
         },
         confirmButton = {
-            CompositionLocalProvider(LocalDensity provides clampedDensity) {
-                PlannerDialogAction(
-                    text = confirmLabel,
-                    onClick = { onConfirm(text.trim()) },
-                    enabled = text.trim().length >= 2,
-                )
-            }
+            PlannerDialogAction(
+                text = confirmLabel,
+                onClick = { onConfirm(text.trim()) },
+                enabled = text.trim().length >= 2,
+            )
         },
     )
 }

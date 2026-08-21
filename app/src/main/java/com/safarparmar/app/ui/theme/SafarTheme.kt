@@ -120,7 +120,6 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainerHigh = surfaceContainerHighDark,
     surfaceContainerHighest = surfaceContainerHighestDark,
 )
-
 @Composable
 fun SafarTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -139,10 +138,10 @@ fun SafarTheme(
     val densityLimit = systemDensity.coerceAtMost(maxAllowedDensity)
     val finalDensityValue = customDensityValue.coerceAtMost(densityLimit) * 0.85f
     
-    val customDensity = remember(finalDensityValue, currentDensity.fontScale) {
+    val customDensity = remember(finalDensityValue) {
         Density(
             density = finalDensityValue,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
+            fontScale = 1.0f
         )
     }
 

@@ -653,16 +653,7 @@ fun StudyPlannerScreen(
     } else {
         null
     }
-    val currentDensity = LocalDensity.current
-    val clampedDensity = remember(currentDensity) {
-        Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
-
     CompositionLocalProvider(
-        LocalDensity provides clampedDensity,
         com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme provides isDarkTheme
     ) {
         SafarDrawerScaffold(
@@ -1771,35 +1762,22 @@ internal fun PlannerExportButton(onClick: () -> Unit, modifier: Modifier = Modif
 }
 
 @Composable internal fun ConfirmActionDialog(title: String, body: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
-    val clampedDensity = remember(currentDensity) {
-        androidx.compose.ui.unit.Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
     PlannerDialog(
         onDismissRequest = onDismiss,
         title = title,
         text = {
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-                PlannerDialogText(body)
-            }
+            PlannerDialogText(body)
         },
         dismissButton = {
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-                PlannerDialogTextAction("Cancel", onClick = onDismiss)
-            }
+            PlannerDialogTextAction("Cancel", onClick = onDismiss)
         },
         confirmButton = {
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides clampedDensity) {
-                // Destructive confirm keeps the error colour, rendered as glass.
-                PlannerDialogAction(
-                    text = "Confirm",
-                    accentColor = MaterialTheme.colorScheme.error,
-                    onClick = onConfirm,
-                )
-            }
+            // Destructive confirm keeps the error colour, rendered as glass.
+            PlannerDialogAction(
+                text = "Confirm",
+                accentColor = MaterialTheme.colorScheme.error,
+                onClick = onConfirm,
+            )
         },
     )
 }

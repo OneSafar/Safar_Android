@@ -8,6 +8,7 @@ data class StudyCircleSummaryDto(
     val memberCount: Int = 0,
     val focusingCount: Int = 0,
     val maxMembers: Int? = null,
+    val isPinned: Boolean = false,
     val createdAt: String = "",
 )
 
@@ -30,6 +31,7 @@ data class StudyCircleDetailDto(
     val memberCount: Int = 0,
     val maxMembers: Int? = null,
     val focusingCount: Int = 0,
+    val isPinned: Boolean = false,
     val createdAt: String = "",
     val joinCode: String? = null,
     val members: List<StudyCircleMemberDto> = emptyList(),
@@ -44,6 +46,7 @@ data class PublicStudyCircleDto(
     val focusingCount: Int = 0,
     val maxMembers: Int? = null,
     val joined: Boolean = false,
+    val isPinned: Boolean = false,
     val createdAt: String = "",
 )
 
@@ -102,3 +105,5 @@ data class UpdateStudyCircleNameRequest(val name: String)
 data class JoinStudyCircleRequest(val code: String)
 data class SetStudyCircleVisibilityRequest(val visibility: String)
 data class FocusPresenceRequest(val active: Boolean)
+data class PinStudyCircleRequest(val isPinned: Boolean? = null)
+data class PinStudyCircleResponse(val id: String = "", val isPinned: Boolean = false)

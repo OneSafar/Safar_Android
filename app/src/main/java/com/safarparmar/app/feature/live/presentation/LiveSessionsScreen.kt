@@ -90,24 +90,15 @@ fun LiveSessionsScreen(
     }
 
 
-    val currentDensity = LocalDensity.current
-    val lockedDensity = remember(currentDensity) {
-        Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
+    Scaffold(
+        topBar = {
+            if (showTopBar) {
+                LiveClassroomTopBar(onBack = onBack)
+            }
+        },
 
-    CompositionLocalProvider(LocalDensity provides lockedDensity) {
-        Scaffold(
-            topBar = {
-                if (showTopBar) {
-                    LiveClassroomTopBar(onBack = onBack)
-                }
-            },
-
-            containerColor = MaterialTheme.colorScheme.background,
-        ) { padding ->
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -239,9 +230,8 @@ fun LiveSessionsScreen(
                             onClick = { selectedSessionId = session.id },
                         )
                     }
-                }
+            }
         }
     }
-}
 }
 }

@@ -1,7 +1,6 @@
 package com.safarparmar.app.ui.drawer
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -237,16 +236,8 @@ fun SafarDrawer(
         entranceVisible = true
     }
 
-    val containerBgColor by animateColorAsState(
-        targetValue = if (isLight) lt.bg else dk.bg,
-        animationSpec = tween(350),
-        label = "containerBgColor",
-    )
-    val containerBorderColor by animateColorAsState(
-        targetValue = if (isLight) lt.border else dk.border,
-        animationSpec = tween(350),
-        label = "containerBorderColor",
-    )
+    val containerBgColor = if (isLight) lt.bg else dk.bg
+    val containerBorderColor = if (isLight) lt.border else dk.border
 
     ModalDrawerSheet(
         modifier = Modifier
@@ -485,16 +476,8 @@ private fun GroupedSurfaceCard(
     lt: LightFlat,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val cardBgColor by animateColorAsState(
-        targetValue = if (isLight) lt.cardBg else dk.cardBg,
-        animationSpec = tween(300),
-        label = "cardBgColor",
-    )
-    val cardBorderColor by animateColorAsState(
-        targetValue = if (isLight) lt.border else dk.border,
-        animationSpec = tween(300),
-        label = "cardBorderColor",
-    )
+    val cardBgColor = if (isLight) lt.cardBg else dk.cardBg
+    val cardBorderColor = if (isLight) lt.border else dk.border
 
     val cardShape = RoundedCornerShape(16.dp)
 
@@ -756,35 +739,23 @@ private fun DrawerNavRow(
     val selected    = isDrawerItemSelected(item = item, currentBase = currentBase)
     val showLock    = item.requiresPremium && !isPremiumActive
 
-    val rowBgAnimated by animateColorAsState(
-        targetValue = when {
-            selected && isLight -> lt.selBg
-            selected -> dk.selBg
-            else -> Color.Transparent
-        },
-        animationSpec = tween(220),
-        label = "rowBgAnimated",
-    )
-    val textColorAnimated by animateColorAsState(
-        targetValue = when {
-            selected && isLight -> lt.selText
-            selected -> dk.selText
-            isLight -> lt.textPrimary
-            else -> dk.textPrimary
-        },
-        animationSpec = tween(220),
-        label = "textColorAnimated",
-    )
-    val iconColorAnimated by animateColorAsState(
-        targetValue = when {
-            selected && isLight -> lt.selIcon
-            selected -> dk.selIcon
-            isLight -> lt.iconIndigo
-            else -> dk.iconIndigo
-        },
-        animationSpec = tween(220),
-        label = "iconColorAnimated",
-    )
+    val rowBg = when {
+        selected && isLight -> lt.selBg
+        selected -> dk.selBg
+        else -> Color.Transparent
+    }
+    val textColor = when {
+        selected && isLight -> lt.selText
+        selected -> dk.selText
+        isLight -> lt.textPrimary
+        else -> dk.textPrimary
+    }
+    val iconColor = when {
+        selected && isLight -> lt.selIcon
+        selected -> dk.selIcon
+        isLight -> lt.iconIndigo
+        else -> dk.iconIndigo
+    }
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -804,7 +775,7 @@ private fun DrawerNavRow(
                 scaleY = itemScale
             }
             .clip(capsuleShape)
-            .background(rowBgAnimated)
+            .background(rowBg)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -837,7 +808,7 @@ private fun DrawerNavRow(
             Icon(
                 imageVector = item.icon,
                 contentDescription = label,
-                tint = iconColorAnimated,
+                tint = iconColor,
                 modifier = Modifier.size(20.dp),
             )
 
@@ -845,7 +816,7 @@ private fun DrawerNavRow(
                 text = label,
                 modifier = Modifier.weight(1f),
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = textColorAnimated,
+                color = textColor,
                 fontSize = 14.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

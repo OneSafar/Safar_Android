@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldPermissionHelper
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -105,6 +106,7 @@ fun SettingsScreen(
     var hasUsagePermission by remember { mutableStateOf(false) }
     var hasOverlayPermission by remember { mutableStateOf(false) }
     var hasNotificationPermission by remember { mutableStateOf(false) }
+    var hasNotificationShieldPermission by remember { mutableStateOf(false) }
     var showTimePickerDialog by remember { mutableStateOf(false) }
     var showPermissionInfoDialog by remember { mutableStateOf(false) }
 
@@ -112,6 +114,7 @@ fun SettingsScreen(
         hasUsagePermission = checkUsageStatsPermission(context)
         hasOverlayPermission = checkOverlayPermission(context)
         hasNotificationPermission = checkNotificationPermission(context)
+        hasNotificationShieldPermission = FocusShieldPermissionHelper.hasNotificationListenerAccess(context)
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -213,13 +216,14 @@ fun SettingsScreen(
 
                     PlanHairline(alpha = 0.5f)
 
-                    val grantedCount = listOf(hasUsagePermission, hasOverlayPermission, hasNotificationPermission).count { it }
+                    val grantedCount = listOf(hasUsagePermission, hasOverlayPermission, hasNotificationPermission, hasNotificationShieldPermission).count { it }
                     StaggeredSettingsEntranceBox(index = 4, isVisible = settingsVisible) {
-                        SettingsSheetSection(title = "App Permissions ($grantedCount/3)") {
+                        SettingsSheetSection(title = "App Permissions ($grantedCount/4)") {
                             PermissionsSection(
                                 hasUsagePermission = hasUsagePermission,
                                 hasOverlayPermission = hasOverlayPermission,
                                 hasNotificationPermission = hasNotificationPermission,
+                                hasNotificationShieldPermission = hasNotificationShieldPermission,
                                 context = context,
                             )
                         }
@@ -456,6 +460,7 @@ private fun PermissionsSection(
     hasUsagePermission: Boolean,
     hasOverlayPermission: Boolean,
     hasNotificationPermission: Boolean,
+    hasNotificationShieldPermission: Boolean,
     context: Context,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -497,6 +502,15 @@ private fun PermissionsSection(
                 },
             )
         }
+
+        PermissionRow(
+            title = "Notification Shield",
+            subtitle = "Suppresses distracting notifications during focus",
+            isGranted = hasNotificationShieldPermission,
+            onGrantClick = {
+                FocusShieldPermissionHelper.openNotificationListenerSettings(context)
+            },
+        )
     }
 }
 
@@ -539,7 +553,9 @@ private fun PermissionRow(
     val scheme = MaterialTheme.colorScheme
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onGrantClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -564,7 +580,9 @@ private fun PermissionRow(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.padding(horizontal = 8.dp)
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
@@ -584,7 +602,6 @@ private fun PermissionRow(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(SafarSemanticColors.brandPurple())
-                    .clickable(onClick = onGrantClick)
                     .padding(vertical = 7.dp, horizontal = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -711,6 +728,7 @@ private fun SettingsNavigationRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerDialog(
     initialHour: Int,
@@ -718,8 +736,11 @@ private fun TimePickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int, Int) -> Unit,
 ) {
-    var selectedHour by remember { mutableStateOf(initialHour) }
-    var selectedMinute by remember { mutableStateOf(initialMinute) }
+    val timePickerState = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = false,
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -734,22 +755,34 @@ private fun TimePickerDialog(
             )
         },
         text = {
-            Row(
+            Box(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = formatTime12h(selectedHour, selectedMinute),
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = SafarSemanticColors.brandPurple()
+                TimePicker(
+                    state = timePickerState,
+                    colors = TimePickerDefaults.colors(
+                        clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
+                        clockDialSelectedContentColor = Color.White,
+                        clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                        selectorColor = SafarSemanticColors.brandPurple(),
+                        containerColor = Color.Transparent,
+                        periodSelectorBorderColor = SafarSemanticColors.brandPurple(),
+                        periodSelectorSelectedContainerColor = SafarSemanticColors.brandPurple(),
+                        periodSelectorUnselectedContainerColor = Color.Transparent,
+                        periodSelectorSelectedContentColor = Color.White,
+                        periodSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                        timeSelectorSelectedContainerColor = SafarSemanticColors.brandPurple().copy(alpha = 0.15f),
+                        timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        timeSelectorSelectedContentColor = SafarSemanticColors.brandPurple(),
+                        timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
                 )
             }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(selectedHour, selectedMinute) },
+                onClick = { onConfirm(timePickerState.hour, timePickerState.minute) },
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = SafarSemanticColors.brandPurple(),
@@ -797,6 +830,11 @@ private fun PermissionExplanationDialog(onDismiss: () -> Unit) {
                 )
                 Text(
                     text = "• Display Over Apps: Renders the full-screen study focus shield over distracting apps.",
+                    fontSize = 12.5.sp,
+                    color = PlannerFlatColors.TextDark
+                )
+                Text(
+                    text = "• Notification Shield: Suppresses distracting notifications during active Ekagra focus sessions.",
                     fontSize = 12.5.sp,
                     color = PlannerFlatColors.TextDark
                 )

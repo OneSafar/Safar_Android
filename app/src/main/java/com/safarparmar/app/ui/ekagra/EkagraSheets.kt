@@ -221,10 +221,8 @@ internal fun OrganizeFreeFocusSheet(
     selectedTheme: VisualTheme? = null,
     isDarkTheme: Boolean = true,
 ) {
-    @Suppress("UNUSED_VARIABLE")
-    val ignoredSheetState = sheetState
-    val sheetStateLocal = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.65f
+    val scrollState = rememberScrollState()
+    val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
     val focusedTimeLabel = formatTopicStudyTime(
         pending?.let(::topicStudyActualSeconds) ?: 0,
     )
@@ -258,7 +256,7 @@ internal fun OrganizeFreeFocusSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetStateLocal,
+        sheetState = sheetState,
         containerColor = containerColor,
         dragHandle = { BottomSheetDefaults.DragHandle(color = secondaryTextColor.copy(alpha = 0.4f)) },
     ) {
@@ -266,7 +264,6 @@ internal fun OrganizeFreeFocusSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = maxSheetHeight)
-                .padding(bottom = 24.dp)
         ) {
             // 2. Header Block
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
@@ -293,7 +290,14 @@ internal fun OrganizeFreeFocusSheet(
             HorizontalDivider(color = dividerColor)
 
             // 3. Scrollable List Internal to Sheet
-            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(scrollState)
+                    .imePadding()
+                    .padding(bottom = 24.dp)
+            ) {
                 if (pending?.topicId != null) {
                     // Exam Planner topic save
                     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

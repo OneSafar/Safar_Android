@@ -195,9 +195,6 @@ class MehfilViewModel @Inject constructor(
             launch {
                 socketManager.connected.collect { connected ->
                     _uiState.update { it.copy(socketConnected = connected) }
-                    if (!connected && _uiState.value.posts.isEmpty()) {
-                        loadPostsFallback()
-                    }
                 }
             }
 

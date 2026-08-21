@@ -348,46 +348,42 @@ internal fun TimerFocusTab(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    val density = LocalDensity.current
-                    CompositionLocalProvider(
-                        LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))
-                    ) {
-                        // Build time text — all modes support h:mm:ss when >= 1 hour
-                        val h = secondsLeft / 3600
-                        val m = (secondsLeft % 3600) / 60
-                        val s = secondsLeft % 60
-                        val timerText = when (timerMode) {
-                            TimerMode.STOPWATCH -> formatElapsedDuration(secondsLeft.toLong())
-                            else -> if (h > 0) "%d:%02d:%02d".format(h, m, s)
-                                    else "%02d:%02d".format(m, s)
-                        }
-
-                        // 3-tier adaptive font size: shrinks as content grows
-                        // Tier 1 — under 1 min   → e.g. "59s"         → 62sp (largest)
-                        // Tier 2 — 1 min – 59 min → e.g. "59m 59s"    → 50sp
-                        // Tier 3 — 1 h+          → e.g. "1h 59m 59s"  → 34sp (fits comfortably)
-                        val timerFontSize = when {
-                            secondsLeft >= 3600 -> EkagraChrome.text(34f)
-                            secondsLeft >= 60   -> EkagraChrome.text(50f)
-                            else                -> EkagraChrome.text(62f)
-                        }
-                        val timerLetterSpacing = if (secondsLeft >= 3600) 0.sp else 1.sp
-
-                        // The 3-2-1 countdown itself is rendered by the full-screen
-                        // scrim in EkagraScreen (above the dim overlay, not inside
-                        // this ring) — this inner circle only ever shows the running
-                        // time once the countdown finishes.
-                        Text(
-                            timerText,
-                            fontFamily    = EkagraSerif,
-                            fontSize      = timerFontSize,
-                            fontWeight    = FontWeight.Medium,
-                            letterSpacing = timerLetterSpacing,
-                            color         = ink.primaryText,
-                            textAlign     = TextAlign.Center,
-                            maxLines      = 1,
-                        )
+                    // Build time text — all modes support h:mm:ss when >= 1 hour
+                    val h = secondsLeft / 3600
+                    val m = (secondsLeft % 3600) / 60
+                    val s = secondsLeft % 60
+                    val timerText = when (timerMode) {
+                        TimerMode.STOPWATCH -> formatElapsedDuration(secondsLeft.toLong())
+                        else -> if (h > 0) "%d:%02d:%02d".format(h, m, s)
+                                else "%02d:%02d".format(m, s)
                     }
+
+                    // 3-tier adaptive font size: shrinks as content grows
+                    // Tier 1 — under 1 min   → e.g. "59s"         → 62sp (largest)
+                    // Tier 2 — 1 min – 59 min → e.g. "59m 59s"    → 50sp
+                    // Tier 3 — 1 h+          → e.g. "1h 59m 59s"  → 34sp (fits comfortably)
+                    val timerFontSize = when {
+                        secondsLeft >= 3600 -> EkagraChrome.text(34f)
+                        secondsLeft >= 60   -> EkagraChrome.text(50f)
+                        else                -> EkagraChrome.text(62f)
+                    }
+                    val timerLetterSpacing = if (secondsLeft >= 3600) 0.sp else 1.sp
+
+                    // The 3-2-1 countdown itself is rendered by the full-screen
+                    // scrim in EkagraScreen (above the dim overlay, not inside
+                    // this ring) — this inner circle only ever shows the running
+                    // time once the countdown finishes.
+                    Text(
+                        timerText,
+                        fontFamily    = EkagraSerif,
+                        fontSize      = timerFontSize,
+                        fontWeight    = FontWeight.Medium,
+                        letterSpacing = timerLetterSpacing,
+                        color         = ink.primaryText,
+                        textAlign     = TextAlign.Center,
+                        maxLines      = 1,
+                    )
+
                     AnimatedVisibility(
                         visible = controlsVisible,
                         enter = fadeIn(animationSpec = tween(400, easing = FastOutSlowInEasing)) +

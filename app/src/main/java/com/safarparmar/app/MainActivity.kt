@@ -111,11 +111,11 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
             val maintenanceInfo by maintenanceStateManager.state.collectAsStateWithLifecycle()
             val isCheckingMaintenance by maintenanceStateManager.isChecking.collectAsStateWithLifecycle()
 
-            // Clamp font scale globally across the app to prevent broken layouts on large display settings
+            // Anchor font scale globally across the entire app so all screens, dialogs, and sheets maintain intended typography and layout
             val currentDensity = androidx.compose.ui.platform.LocalDensity.current
             val customDensity = androidx.compose.ui.unit.Density(
                 density = currentDensity.density,
-                fontScale = (currentDensity.fontScale * 1.10f).coerceIn(0.75f, 1.25f) // 10% larger, still clamped
+                fontScale = 1.0f // Strictly anchored to 1.0f
             )
 
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides customDensity) {

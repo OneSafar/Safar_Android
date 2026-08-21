@@ -390,22 +390,14 @@ private fun StreakGlassCard(
             }
 
             Row(verticalAlignment = Alignment.Bottom) {
-                val density = LocalDensity.current
-                CompositionLocalProvider(
-                    LocalDensity provides Density(
-                        density = density.density,
-                        fontScale = density.fontScale.coerceAtMost(1.3f),
-                    ),
-                ) {
-                    Text(
-                        "$value",
-                        fontFamily = LoraFontFamily,
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = titleColor,
-                        lineHeight = 48.sp,
-                    )
-                }
+                Text(
+                    "$value",
+                    fontFamily = LoraFontFamily,
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = titleColor,
+                    lineHeight = 48.sp,
+                )
                 Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(R.string.streaks_days_unit),

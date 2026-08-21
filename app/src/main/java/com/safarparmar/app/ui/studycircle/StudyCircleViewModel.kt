@@ -26,6 +26,7 @@ data class StudyCircleHubState(
     val refreshing: Boolean = false,
     val circles: List<StudyCircleSummaryDto> = emptyList(),
     val publicCircles: List<PublicStudyCircleDto> = emptyList(),
+    val pinnedCircles: List<PublicStudyCircleDto> = emptyList(),
     val publicPage: Int = 1,
     val publicTotal: Int = 0,
     val publicHasMore: Boolean = false,
@@ -57,6 +58,7 @@ class StudyCircleViewModel @Inject constructor(
     val message = _message.asStateFlow()
 
     val currentUserId = dataStore.userId.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val isAdmin = dataStore.isAdmin.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val mehfilDm = dataStore.premiumFeatureMehfilDm.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val isPremium = dataStore.isPremium.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -105,24 +107,25 @@ class StudyCircleViewModel @Inject constructor(
         try {
             val mine = async { timedApiCall("Your circles") { api.getMyCircles() } }
             val public = async { timedApiCall("Public circles") { api.getPublicCircles(page = 1, limit = 15) } }
+            val pinned = async { timedApiCall("Official groups") { api.getPinnedCircles() } }
             val mineResult = mine.await()
             val publicResult = public.await()
+            val pinnedResult = pinned.await()
             val mineData = (mineResult as? Resource.Success)?.data?.circles
             val publicResponse = (publicResult as? Resource.Success)?.data
+            val pinnedResponse = (pinnedResult as? Resource.Success)?.data
 
-            if (mineData != null || publicResponse != null) {
+            if (mineData != null || publicResponse != null || pinnedResponse != null) {
                 _hub.value = _hub.value.copy(
                     circles = mineData ?: previous.circles,
                     publicCircles = publicResponse?.circles ?: previous.publicCircles,
+                    pinnedCircles = pinnedResponse?.circles ?: previous.pinnedCircles,
                     publicPage = 1,
                     publicTotal = publicResponse?.total ?: previous.publicTotal,
                     publicHasMore = publicResponse?.hasMore ?: false,
                     loadingMorePublic = false,
                     error = null,
                 )
-                val partialError = (mineResult as? Resource.Error)?.message
-                    ?: (publicResult as? Resource.Error)?.message
-                if (partialError != null) _message.value = partialError
             } else {
                 _hub.value = _hub.value.copy(
                     error = (mineResult as? Resource.Error)?.message
@@ -335,6 +338,26 @@ class StudyCircleViewModel @Inject constructor(
         detailAction {
             when (val result = safeApiCall { api.removeMember(circle.id, userId) }) {
                 is Resource.Success -> { _message.value = "$name was removed"; loadDetail(circle.id, refresh = true) }
+                is Resource.Error -> _message.value = result.message
+                else -> Unit
+            }
+        }
+    }
+
+    fun togglePinCircle(circleId: String, currentPinned: Boolean) {
+        detailAction {
+            val target = !currentPinned
+            when (val result = safeApiCall { api.togglePinCircle(circleId, PinStudyCircleRequest(target)) }) {
+                is Resource.Success -> {
+                    val newPinned = result.data.isPinned
+                    _message.value = if (newPinned) "Group pinned as Official Group" else "Group unpinned from Official Groups"
+                    _detail.update { detail ->
+                        detail.copy(
+                            circle = detail.circle?.copy(isPinned = newPinned),
+                        )
+                    }
+                    loadHub(refresh = true)
+                }
                 is Resource.Error -> _message.value = result.message
                 else -> Unit
             }

@@ -147,21 +147,12 @@ fun LiveSessionScreen(
         viewModel.clearLiveChatError()
     }
 
-    val currentDensity = LocalDensity.current
-    val lockedDensity = remember(currentDensity) {
-        Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
-
-    CompositionLocalProvider(LocalDensity provides lockedDensity) {
-        SafarDrawerScaffold(
-            title = uiState.session?.title ?: "Live Session",
-            currentRoute = currentRoute,
-            isDarkTheme = isDarkTheme,
-            onNavigate = onNavigate,
-            onToggleDarkTheme = onToggleDarkTheme,
+    SafarDrawerScaffold(
+        title = uiState.session?.title ?: "Live Session",
+        currentRoute = currentRoute,
+        isDarkTheme = isDarkTheme,
+        onNavigate = onNavigate,
+        onToggleDarkTheme = onToggleDarkTheme,
         topBarActions = {
             IconButton(onClick = { viewModel.loadSession(sessionId) }) {
                 Icon(Icons.Default.Refresh, contentDescription = "Refresh")
@@ -238,10 +229,9 @@ fun LiveSessionScreen(
                     )
                 }
             }
-            }
         }
     }
-    }
+}
 }
 }
 

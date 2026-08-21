@@ -343,13 +343,6 @@ fun SyllabusSubjectsScreen(
         actions.reorderSyllabus(topicIdsByChapterId = mapOf(chapterId to chapter.topics.map { it.id }))
     }
 
-    val currentDensity = LocalDensity.current
-    val clampedDensity = remember(currentDensity) {
-        Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
     val syllabusWindowInsets = if (showBottomBar) {
         WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
     } else {
@@ -357,7 +350,6 @@ fun SyllabusSubjectsScreen(
     }
 
     CompositionLocalProvider(
-        LocalDensity provides clampedDensity,
         com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme provides isDarkTheme,
     ) {
         androidx.compose.animation.AnimatedContent(

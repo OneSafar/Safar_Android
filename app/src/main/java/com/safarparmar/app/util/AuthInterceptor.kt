@@ -71,7 +71,10 @@ class AuthInterceptor @Inject constructor(
             val refreshBody = refreshResponse.body?.string().orEmpty()
             if (refreshResponse.isSuccessful) {
                 val refreshedToken = runCatching {
-                    JSONObject(refreshBody).optString("accessToken").takeIf { it.isNotBlank() }
+                    val json = JSONObject(refreshBody)
+                    json.optString("accessToken").takeIf { it.isNotBlank() }
+                        ?: json.optString("token").takeIf { it.isNotBlank() }
+                        ?: json.optJSONObject("data")?.optString("accessToken")?.takeIf { it.isNotBlank() }
                 }.getOrNull()
                 refreshResponse.close()
                 if (refreshedToken != null) {

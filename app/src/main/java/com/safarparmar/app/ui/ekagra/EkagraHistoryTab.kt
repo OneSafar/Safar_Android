@@ -189,15 +189,12 @@ internal fun FocusHistoryTab(
             horizontalArrangement = Arrangement.spacedBy(32.dp),
         ) {
             Column {
-                val density = LocalDensity.current
-                CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
-                    Text(
-                        formatElapsedDuration(tabFocusSeconds),
-                        fontFamily = EkagraSerif,
-                        fontSize   = 26.sp,
-                        color      = ink.primaryText,
-                    )
-                }
+                Text(
+                    formatElapsedDuration(tabFocusSeconds),
+                    fontFamily = EkagraSerif,
+                    fontSize   = 26.sp,
+                    color      = ink.primaryText,
+                )
                 Text(
                     if (selectedSubTab == 0) "Total focus time" else "Total time",
                     fontSize = 11.sp,

@@ -472,7 +472,7 @@ class EkagraViewModel @Inject constructor(
     }
 
     fun onSessionCompleted(totalSeconds: Int, secondsLeft: Int, mode: String = "Timer") {
-        val id = activeSessionId ?: _activeSession.value?.id ?: return
+        val id = activeSessionId ?: _activeSession.value?.id ?: "local-${java.util.UUID.randomUUID()}"
         completeSession(id, totalSeconds, secondsLeft, mode, sessionStartedAt)
     }
 

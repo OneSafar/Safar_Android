@@ -66,13 +66,16 @@ import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 fun DmChatScreen(
     viewModel: MehfilViewModel,
     onBack: () -> Unit,
+    targetUserId: String? = null,
+    targetUserName: String? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dmState = uiState.dmState
+    val effectiveTargetUserId = targetUserId?.ifBlank { null } ?: uiState.dmTargetUserId?.ifBlank { null }
+    val effectiveTargetName = (targetUserName?.ifBlank { null } ?: uiState.dmTargetUserName.ifBlank { null }) ?: "student"
 
-    // If neither Waiting nor Open, pop back (e.g. if room was closed or state is Idle
-    // without a pending request being fired).
-    if (dmState is DmState.Idle && uiState.dmTargetUserId.isNullOrBlank()) {
+    // If neither Waiting nor Open, and no target was provided, pop back (e.g. room was closed).
+    if (dmState is DmState.Idle && effectiveTargetUserId.isNullOrBlank()) {
         LaunchedEffect(Unit) { onBack() }
         return
     }
@@ -80,17 +83,7 @@ fun DmChatScreen(
     // Show a clean waiting/pending UI while the other person hasn't accepted yet.
     if (dmState is DmState.Waiting) {
         DmWaitingScreen(
-            peerName = dmState.userName,
-            error = uiState.dmError,
-            onBack = onBack,
-        )
-        return
-    }
-
-    // DmState.Idle with a pending request in-flight (just sent, not yet got server ack)
-    if (dmState is DmState.Idle && !uiState.dmTargetUserId.isNullOrBlank() && !uiState.dmError.isNullOrBlank()) {
-        DmWaitingScreen(
-            peerName = uiState.dmTargetUserName.ifBlank { "student" },
+            peerName = dmState.userName.ifBlank { effectiveTargetName },
             error = uiState.dmError,
             onBack = onBack,
         )
@@ -98,9 +91,9 @@ fun DmChatScreen(
     }
 
     if (dmState !is DmState.Open) {
-        // Transition state (sending request, etc.) — show a minimal loading screen.
+        // Transition state (sending request, connecting, waiting for server ack)
         DmWaitingScreen(
-            peerName = uiState.dmTargetUserName.ifBlank { "student" },
+            peerName = effectiveTargetName,
             error = uiState.dmError,
             onBack = onBack,
         )

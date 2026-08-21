@@ -517,7 +517,25 @@ fun EkagraScreen(
                 ) { _, _ ->
                     viewModel.loadEkagraAnalytics()
                 }
-                viewModel.discardSession(session.id)
+                timerService?.reset()
+                associatedGoalId = null; associatedGoalTitle = null
+                associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
+                return@LaunchedEffect
+            } else if (totalSeconds > 0) {
+                val endedAt = Instant.now().toString()
+                val fallbackId = "local-${java.util.UUID.randomUUID()}"
+                viewModel.saveSessionImmediately(
+                    sessionId = fallbackId,
+                    totalSeconds = totalSeconds,
+                    secondsLeft = 0,
+                    mode = completedMode.toApiMode(),
+                    startedAt = Instant.now().minusSeconds(totalSeconds.toLong()).toString(),
+                    endedAt = endedAt,
+                    taskTitle = null,
+                    isAutoComplete = true,
+                ) { _, _ ->
+                    viewModel.loadEkagraAnalytics()
+                }
                 timerService?.reset()
                 associatedGoalId = null; associatedGoalTitle = null
                 associatedTopicId = null; associatedTopicTitle = null; associatedPlanId = null
@@ -671,17 +689,7 @@ fun EkagraScreen(
         }
     }
 
-    // Font-scale clamp — preserve user font scale but cap extreme sizes
-    val currentDensity = LocalDensity.current
-    val clampedDensity = remember(currentDensity) {
-        Density(
-            density = currentDensity.density,
-            fontScale = currentDensity.fontScale.coerceIn(0.75f, 1.25f)
-        )
-    }
-
     CompositionLocalProvider(
-        LocalDensity provides clampedDensity,
         LocalPlannerIsDarkTheme provides isDarkTheme,
     ) {
         MaterialTheme(colorScheme = themeColorScheme) {

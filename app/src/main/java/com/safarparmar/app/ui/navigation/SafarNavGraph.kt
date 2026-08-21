@@ -573,6 +573,8 @@ fun SafarNavGraph(
             DmChatScreen(
                 viewModel = mehfilVm,
                 onBack = ::safeBack,
+                targetUserId = targetUserId,
+                targetUserName = targetUserName,
             )
         }
 

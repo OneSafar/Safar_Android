@@ -851,22 +851,14 @@ private fun BreathingTab(
 
             Spacer(Modifier.height(8.dp))
 
-            val density = LocalDensity.current
-            CompositionLocalProvider(
-                LocalDensity provides Density(
-                    density = density.density,
-                    fontScale = density.fontScale.coerceAtMost(1.3f),
-                ),
-            ) {
-                Text(
-                    "%02d:%02d".format(sessionSecondsLeft / 60, sessionSecondsLeft % 60),
-                    fontFamily = LoraFontFamily,
-                    fontSize = 52.sp,
-                    fontWeight = FontWeight.Normal,
-                    letterSpacing = (-2).sp,
-                    color = DhyanFlatColors.Text,
-                )
-            }
+            Text(
+                "%02d:%02d".format(sessionSecondsLeft / 60, sessionSecondsLeft % 60),
+                fontFamily = LoraFontFamily,
+                fontSize = 52.sp,
+                fontWeight = FontWeight.Normal,
+                letterSpacing = (-2).sp,
+                color = DhyanFlatColors.Text,
+            )
         }
 
         Spacer(Modifier.height(DhyanSectionGap))

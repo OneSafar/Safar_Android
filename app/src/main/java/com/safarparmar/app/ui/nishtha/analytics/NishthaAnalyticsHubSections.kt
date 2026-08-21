@@ -332,15 +332,7 @@ private fun HubMetricCard(
                 fontWeight = FontWeight.Bold,
                 color = secondaryText(isLight)
             )
-            val density = LocalDensity.current
-            CompositionLocalProvider(
-                LocalDensity provides Density(
-                    density = density.density,
-                    fontScale = density.fontScale.coerceAtMost(1.3f)
-                )
-            ) {
-                Text(value, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = primaryText(isLight))
-            }
+            Text(value, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = primaryText(isLight))
             Text(
                 sub,
                 fontSize = 11.sp,
@@ -374,15 +366,7 @@ private fun GoalMetricCard(
                 fontWeight = FontWeight.Bold,
                 color = secondaryText(isLight)
             )
-            val density = LocalDensity.current
-            CompositionLocalProvider(
-                LocalDensity provides Density(
-                    density = density.density,
-                    fontScale = density.fontScale.coerceAtMost(1.3f)
-                )
-            ) {
-                Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = color)
-            }
+            Text(value, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = color)
             Text(
                 sub,
                 fontSize = 11.sp,
@@ -416,15 +400,7 @@ private fun CleanMetricCard(
                 fontWeight = FontWeight.Bold,
                 color = secondaryText(isLight)
             )
-            val density = LocalDensity.current
-            CompositionLocalProvider(
-                LocalDensity provides Density(
-                    density = density.density,
-                    fontScale = density.fontScale.coerceAtMost(1.3f)
-                )
-            ) {
-                Text(value, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = primaryText(isLight))
-            }
+            Text(value, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = primaryText(isLight))
             if (!sub.isNullOrBlank()) {
                 Text(
                     sub,

@@ -22,6 +22,9 @@ interface StudyCircleApi {
         @Query("search") search: String? = null,
     ): Response<PublicStudyCirclesResponse>
 
+    @GET("study-circles/pinned")
+    suspend fun getPinnedCircles(): Response<PublicStudyCirclesResponse>
+
     @GET("study-circles/live-summary")
     suspend fun getLiveSummary(): Response<StudyCircleLiveSummaryDto>
 
@@ -63,4 +66,10 @@ interface StudyCircleApi {
         @Path("circleId") circleId: String,
         @Path("userId") userId: String,
     ): Response<StudyCircleActionResponse>
+
+    @PATCH("study-circles/{circleId}/pin")
+    suspend fun togglePinCircle(
+        @Path("circleId") circleId: String,
+        @Body request: PinStudyCircleRequest = PinStudyCircleRequest(),
+    ): Response<PinStudyCircleResponse>
 }
