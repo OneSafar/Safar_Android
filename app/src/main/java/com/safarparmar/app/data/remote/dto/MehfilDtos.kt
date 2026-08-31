@@ -16,6 +16,8 @@ data class MehfilPostDto(
     val authorName: String? = null,
     val authorAvatar: String? = null,
     val userId: String? = null,
+    val user: String? = null,
+    @SerializedName("author_id")    val authorId: String? = null,
     @SerializedName("created_at")   val createdAt: String? = null,
     // API may use relatableCount/commentsCount OR reactionCount/commentCount
     val relatableCount: Int? = null,
@@ -27,7 +29,12 @@ data class MehfilPostDto(
     val isSaved: Boolean? = false,
 )
 
-data class MehfilAuthorDto(val id: String? = null, val name: String? = null, val avatar: String? = null)
+data class MehfilAuthorDto(
+    val id: String? = null,
+    @SerializedName("_id") val mongoId: String? = null,
+    val name: String? = null,
+    val avatar: String? = null
+)
 
 data class SandeshDto(
     @SerializedName("_id")          val mongoId: String? = null,

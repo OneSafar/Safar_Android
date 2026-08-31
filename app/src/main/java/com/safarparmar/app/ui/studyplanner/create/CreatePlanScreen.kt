@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -45,6 +46,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.safarparmar.app.ui.studyplanner.components.LocalPlannerIsDarkTheme
+import com.safarparmar.app.ui.studyplanner.components.LocalPlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerSourceAccent
 import com.safarparmar.app.ui.studyplanner.create.steps.BuildingPreviewStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ChapterRatingStep
 import com.safarparmar.app.ui.studyplanner.create.steps.ChoosePathStep
@@ -55,6 +58,7 @@ import com.safarparmar.app.ui.studyplanner.create.steps.MixedBagSubjectPickerSte
 import com.safarparmar.app.ui.studyplanner.create.steps.PasteSyllabusStep
 import com.safarparmar.app.ui.studyplanner.create.steps.PlanPreviewStep
 import com.safarparmar.app.ui.studyplanner.create.steps.PlanSettingsStep
+import com.safarparmar.app.ui.studyplanner.create.steps.SavedSyllabusPickerStep
 import com.safarparmar.app.ui.studyplanner.create.steps.TemplatePickerStep
 import com.safarparmar.app.ui.theme.SafarSemanticColors
 import com.safarparmar.app.ui.theme.isLightBackground
@@ -65,6 +69,7 @@ private fun stepTitle(step: CreatePlanStep): String = when (step) {
     CreatePlanStep.TemplatePicker -> "Templates"
     CreatePlanStep.ManualTopicTree -> "Build it myself"
     CreatePlanStep.PasteSyllabus -> "Paste your syllabus"
+    CreatePlanStep.SavedSyllabusPicker -> "Build it myself"
     CreatePlanStep.PlanSettings -> "Plan settings"
     CreatePlanStep.ChapterRating -> "Rate your chapters"
     CreatePlanStep.DeepFocusOrder -> "Order your syllabus"
@@ -84,6 +89,7 @@ private fun stepTitle(step: CreatePlanStep): String = when (step) {
 @Composable
 fun CreatePlanScreen(
     canUsePremiumPlannerFeatures: Boolean,
+    startAtSavedSyllabi: Boolean = false,
     onUpgrade: () -> Unit,
     onBack: () -> Unit,
     onPlanConfirmed: (String) -> Unit,
@@ -91,6 +97,12 @@ fun CreatePlanScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showCelebration by remember { mutableStateOf(false) }
+
+    LaunchedEffect(startAtSavedSyllabi) {
+        if (startAtSavedSyllabi) {
+            viewModel.chooseSource(PlanSource.Saved)
+        }
+    }
 
     // The Preview step is the one place a plan is actually persisted (as a draft) before
     // the user has confirmed anything — so a successful confirm gets a brief celebration
@@ -109,10 +121,13 @@ fun CreatePlanScreen(
             } else {
                 viewModel.goToStep(CreatePlanStep.ChoosePath)
             }
-            CreatePlanStep.ManualTopicTree, CreatePlanStep.PasteSyllabus -> viewModel.goToStep(CreatePlanStep.ChoosePath)
+            CreatePlanStep.ManualTopicTree -> viewModel.returnToSavedSyllabi()
+            CreatePlanStep.PasteSyllabus, CreatePlanStep.SavedSyllabusPicker ->
+                viewModel.goToStep(CreatePlanStep.ChoosePath)
             CreatePlanStep.PlanSettings -> viewModel.goToStep(
                 when (state.source) {
                     PlanSource.Template -> CreatePlanStep.TemplatePicker
+                    PlanSource.Saved -> CreatePlanStep.SavedSyllabusPicker
                     PlanSource.Manual -> CreatePlanStep.ManualTopicTree
                     PlanSource.Paste -> CreatePlanStep.PasteSyllabus
                     null -> CreatePlanStep.ChoosePath
@@ -137,11 +152,19 @@ fun CreatePlanScreen(
     // Align PlannerFlatColors with Material theme (not system dark) so cream sheets
     // don't flip black while topic cards stay light Material surfaces.
     val plannerIsDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    CompositionLocalProvider(LocalPlannerIsDarkTheme provides plannerIsDark) {
+    val sourceAccent = when (state.source) {
+        PlanSource.Template -> PlannerSourceAccent.Template
+        PlanSource.Saved, PlanSource.Manual, PlanSource.Paste -> PlannerSourceAccent.Custom
+        null -> null
+    }
+    CompositionLocalProvider(
+        LocalPlannerIsDarkTheme provides plannerIsDark,
+        LocalPlannerAccent provides sourceAccent,
+    ) {
     Scaffold(
         containerColor = SafarSemanticColors.plannerBackground(),
         topBar = {
-            if (!showCelebration) {
+            if (!showCelebration && state.step != CreatePlanStep.ManualTopicTree) {
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
@@ -228,6 +251,8 @@ fun CreatePlanScreen(
                     title = state.title,
                     subjects = state.manualSubjects,
                     validationError = state.manualValidationError,
+                    isSaving = state.isSavingManualSyllabus,
+                    isAutosaving = state.isAutosavingManualDraft,
                     onTitleChange = viewModel::setTitle,
                     onAddSubject = viewModel::addManualSubject,
                     onRemoveSubject = viewModel::removeManualSubject,
@@ -236,6 +261,20 @@ fun CreatePlanScreen(
                     onAddTopic = viewModel::addManualTopic,
                     onRemoveTopic = viewModel::removeManualTopic,
                     onContinue = viewModel::continueFromManual,
+                    onBack = { handleBack() },
+                    modifier = Modifier.padding(padding).statusBarsPadding(),
+                )
+                CreatePlanStep.SavedSyllabusPicker -> SavedSyllabusPickerStep(
+                    syllabi = state.savedSyllabi,
+                    selectedSyllabusId = state.selectedSavedSyllabusId,
+                    isLoading = state.loadingSavedSyllabi,
+                    error = state.savedSyllabiError,
+                    onSelect = viewModel::selectSavedSyllabus,
+                    onDelete = viewModel::deleteSavedSyllabus,
+                    onRetry = viewModel::retrySavedSyllabi,
+                    onBuildNew = viewModel::startNewManualSyllabus,
+                    onEdit = viewModel::editSavedSyllabus,
+                    onContinue = viewModel::continueFromSavedSyllabus,
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.PasteSyllabus -> PasteSyllabusStep(
@@ -288,6 +327,7 @@ fun CreatePlanScreen(
                     onMoveChapter = viewModel::moveDeepFocusChapter,
                     onMoveTopic = viewModel::moveDeepFocusTopic,
                     onContinue = { viewModel.goToStep(CreatePlanStep.PlanSettings) },
+                    canReorderSubjects = state.studyStyle != "mixed_bag",
                     modifier = Modifier.padding(padding),
                 )
                 CreatePlanStep.MixedBagSubjectPicker -> MixedBagSubjectPickerStep(

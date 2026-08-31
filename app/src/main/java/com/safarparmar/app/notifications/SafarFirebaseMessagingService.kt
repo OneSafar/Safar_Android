@@ -35,6 +35,17 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
         val body = data["body"] ?: message.notification?.body ?: ""
         val channel = SafarNotificationChannels.normalize(data["channel"])
         val deepLink = data["deepLink"]
+
+        // Mehfil Connect notifications are strictly in-app only; do NOT post system push notifications.
+        val isMehfilConnect = channel == SafarNotificationChannels.MEHFIL_CONNECT ||
+            data["channel"] == "mehfil_connect" ||
+            data["type"] == "mehfil_connect" ||
+            data["type"] == "dm_request" ||
+            data["type"] == "dm_accepted" ||
+            data["type"] == "dm_message" ||
+            deepLink?.contains("mehfil/dm_chat") == true
+        if (isMehfilConnect) return
+
         val imageUrl = data["imageUrl"] ?: message.notification?.imageUrl?.toString()
         val priority = when (data["priority"]) {
             "high" -> NotificationCompat.PRIORITY_HIGH
@@ -73,9 +84,7 @@ class SafarFirebaseMessagingService : FirebaseMessagingService() {
             SafarNotificationChannels.ACHIEVEMENTS -> dataStore.achievementsEnabled.first()
             SafarNotificationChannels.COMMUNITY -> dataStore.communityRepliesEnabled.first()
             SafarNotificationChannels.ANNOUNCEMENTS -> dataStore.announcementsEnabled.first()
-            // Mehfil Connect requests are always delivered when global notifications are on;
-            // the premium paywall is shown inside the app, not suppressed at the notification layer.
-            SafarNotificationChannels.MEHFIL_CONNECT -> true
+            SafarNotificationChannels.MEHFIL_CONNECT -> false
             SafarNotificationChannels.ACCOUNT_SYSTEM -> true
             else -> true
         }

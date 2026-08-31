@@ -2,6 +2,7 @@ package com.safarparmar.app.ui.ekagra.focusshield
 
 import android.app.AppOpsManager
 import android.app.NotificationManager
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -10,8 +11,10 @@ import android.os.Build
 import android.os.Process
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
+import android.view.accessibility.AccessibilityManager
 import com.safarparmar.app.BuildConfig
 import com.safarparmar.app.MainActivity
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2AccessibilityService
 
 object FocusShieldPermissionHelper {
 
@@ -52,14 +55,38 @@ object FocusShieldPermissionHelper {
         }
     }
 
-    /**
-     * KAVACH no longer uses Android Accessibility Service. Blocking is driven entirely by
-     * Usage access (foreground-app detection) plus "Display over other apps" (the block screen).
-     * These stubs remain only so legacy callers keep compiling; they always report "not required".
-     */
+    /** KAVACH itself no longer needs accessibility; YouTube Study Mode still does. */
     fun isAccessibilityFeatureEnabled(): Boolean = false
 
-    fun hasAccessibilityService(context: Context): Boolean = false
+    /**
+     * Checks the dedicated YouTube Study Mode service, not merely whether some
+     * unrelated accessibility service is enabled. AccessibilityManager is the
+     * authoritative API; the secure-setting fallback covers OEMs that return a
+     * stale/empty enabled-service list immediately after Settings closes.
+     */
+    fun hasAccessibilityService(context: Context): Boolean {
+        val expected = ComponentName(context, YoutubeStudyV2AccessibilityService::class.java)
+        val managerEnabled = runCatching {
+            val manager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+            manager?.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+                .orEmpty()
+                .any { info ->
+                    val service = info.resolveInfo?.serviceInfo ?: return@any false
+                    ComponentName(service.packageName, service.name) == expected
+                }
+        }.getOrDefault(false)
+        if (managerEnabled) return true
+
+        val enabledServices = runCatching {
+            Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+            )
+        }.getOrNull().orEmpty()
+        return enabledServices.split(':').any { flattened ->
+            ComponentName.unflattenFromString(flattened.trim()) == expected
+        }
+    }
 
     fun openAccessibilitySettings(context: Context) {
         context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

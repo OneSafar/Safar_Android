@@ -37,8 +37,7 @@ import com.safarparmar.app.ui.launch.LaunchUsageQuestionnaireScreen
 import com.safarparmar.app.ui.studyplanner.screens.SyllabusSubjectsScreen
 import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldStandaloneScreen
 import com.safarparmar.app.ui.ekagra.focusshield.KavachAboutScreen
-import com.safarparmar.app.feature.youtubeinsights.YoutubeStudyModeScreen
-import com.safarparmar.app.feature.youtubeinsights.YoutubeStudyAnalyticsScreen
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Screen
 import com.safarparmar.app.feature.live.presentation.LiveSessionScreen
 import com.safarparmar.app.feature.live.presentation.LiveSessionsHubScreen
 import com.safarparmar.app.ui.premium.PremiumPaywallScreen
@@ -100,7 +99,7 @@ fun SafarNavGraph(
         Routes.DASHBOARD,
         Routes.STUDY_PLANNER,
         Routes.FOCUS_SHIELD,
-        Routes.YOUTUBE_STUDY_MODE,
+        Routes.YOUTUBE_STUDY_MODE_V2,
         Routes.NISHTHA,
         Routes.EKAGRA,
         Routes.MEHFIL,
@@ -363,17 +362,8 @@ fun SafarNavGraph(
             )
         }
 
-        composable(Routes.YOUTUBE_STUDY_MODE) {
-            YoutubeStudyModeScreen(
-                currentRoute = currentRoute,
-                isDarkTheme = isDarkTheme,
-                onNavigate = ::navigate,
-                onToggleDarkTheme = onToggleDarkTheme,
-            )
-        }
-
-        composable(Routes.YOUTUBE_STUDY_ANALYTICS) {
-            YoutubeStudyAnalyticsScreen(onBack = ::safeBack)
+        composable(Routes.YOUTUBE_STUDY_MODE_V2) {
+            YoutubeStudyV2Screen(onBack = ::safeBack)
         }
 
         composable(Routes.APP_PICKER) {
@@ -425,12 +415,17 @@ fun SafarNavGraph(
             )
         }
 
-        composable(route = Routes.CREATE_PLAN) {
+        composable(
+            route = "${Routes.CREATE_PLAN}?startAtSaved={startAtSaved}",
+            arguments = listOf(androidx.navigation.navArgument("startAtSaved") { type = androidx.navigation.NavType.BoolType; defaultValue = false })
+        ) { backStackEntry ->
+            val startAtSaved = backStackEntry.arguments?.getBoolean("startAtSaved") ?: false
             val premiumViewModel2: PremiumViewModel = androidx.hilt.navigation.compose.hiltViewModel()
             val premiumStatus2 by premiumViewModel2.premiumStatus.collectAsStateWithLifecycle()
             val canUsePremiumPlannerFeatures = premiumStatus2.hasAnyPaidAccess || premiumStatus2.canUseStudyPlannerInsights
             com.safarparmar.app.ui.studyplanner.create.CreatePlanScreen(
                 canUsePremiumPlannerFeatures = canUsePremiumPlannerFeatures,
+                startAtSavedSyllabi = startAtSaved,
                 onUpgrade = { navigate(Routes.PREMIUM) },
                 onBack = ::safeBack,
                 onPlanConfirmed = { confirmedPlanId ->
@@ -534,11 +529,16 @@ fun SafarNavGraph(
                     nullable = true
                     defaultValue = null
                 },
+                navArgument("autoRequest") {
+                    type = NavType.BoolType
+                    defaultValue = true
+                },
             ),
         ) { entry ->
-            val targetUserId = entry.arguments?.getString("targetUserId")
-            val targetUserName = entry.arguments?.getString("targetUserName")
-            val contextPreview = entry.arguments?.getString("contextPreview")
+            val targetUserId = safeDecodeParam(entry.arguments?.getString("targetUserId"))
+            val targetUserName = safeDecodeParam(entry.arguments?.getString("targetUserName"))
+            val contextPreview = safeDecodeParam(entry.arguments?.getString("contextPreview"))
+            val autoRequest = entry.arguments?.getBoolean("autoRequest") ?: true
 
             // Resolve the correct shared MehfilViewModel. Prefer the one already
             // alive in the MEHFIL backstack entry; if coming directly from Study
@@ -554,9 +554,9 @@ fun SafarNavGraph(
                 androidx.hilt.navigation.compose.hiltViewModel<com.safarparmar.app.ui.mehfil.MehfilViewModel>()
             }
 
-            // When the screen is opened directly from Study Circle (args present) and
-            // no DM session is already active, automatically fire the connect request.
-            if (!targetUserId.isNullOrBlank()) {
+            // When the screen is opened directly to send a request (args present & autoRequest=true)
+            // and no DM session is already active, automatically fire the connect request.
+            if (!targetUserId.isNullOrBlank() && autoRequest) {
                 val uiState by mehfilVm.uiState.collectAsStateWithLifecycle()
                 LaunchedEffect(targetUserId) {
                     val dm = uiState.dmState
@@ -694,4 +694,11 @@ fun SafarNavGraph(
             )
         }
     }
+}
+
+private fun safeDecodeParam(value: String?): String? {
+    if (value == null) return null
+    return runCatching {
+        java.net.URLDecoder.decode(value.replace("+", " "), "UTF-8")
+    }.getOrDefault(value.replace("+", " "))
 }

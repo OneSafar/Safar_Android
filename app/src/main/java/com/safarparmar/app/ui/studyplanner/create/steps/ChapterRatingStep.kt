@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.theme.isLightBackground
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -306,12 +307,7 @@ internal fun ChapterRatingStep(
         Spacer(Modifier.height(12.dp))
 
         val isLight = scheme.background.isLightBackground()
-        val styleAccent = when (studyStyle) {
-            "deep_focus" -> PlannerAccent.Coral
-            "mixed_bag" -> PlannerAccent.Teal
-            "balanced" -> PlannerAccent.Amber
-            else -> null
-        }
+        val sourceAccent = PlannerFlatColors.PrimaryAccent
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -365,7 +361,7 @@ internal fun ChapterRatingStep(
                 text = "Build my plan",
                 onClick = onContinue,
                 isLight = isLight,
-                customAccent = styleAccent,
+                customAccent = sourceAccent,
             )
         }
     }

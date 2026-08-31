@@ -58,6 +58,7 @@ interface PlannerActions {
     /** Clears the one-time "show the subject-order sheet" flag set after a Manual-mode plan creation. */
     fun clearPendingManualSubjectOrder()
     fun deletePlan(planId: String)
+    fun saveCurrentSyllabusForReuse()
     fun renamePlan(planId: String, title: String)
     fun updatePlan(request: UpdatePlanRequest)
     fun addSubject(name: String)

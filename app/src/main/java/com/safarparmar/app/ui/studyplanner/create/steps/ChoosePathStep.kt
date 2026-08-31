@@ -71,7 +71,7 @@ fun ChoosePathStep(
             title = "Use a template",
             subtitle = "SSC, UPSC, Railways, Defence — ready to customize",
             actionHint = "Explore templates →",
-            accentColor = if (isLight) Color(0xFF8358D3) else Color(0xFFB39DDB),
+            accentColor = if (isLight) Color(0xFF064E3B) else Color(0xFF34D399),
             isLight = isLight,
             onClick = { onChoose(PlanSource.Template) },
             modifier = Modifier.weight(1f),
@@ -80,11 +80,11 @@ fun ChoosePathStep(
         LiquidGlassPathCard(
             icon = Icons.Default.Edit,
             title = "Build it myself",
-            subtitle = "Add your own subjects and topics",
-            actionHint = "Start from scratch →",
+            subtitle = "Reuse one you made or create a new syllabus",
+            actionHint = "Open my syllabi →",
             accentColor = if (isLight) Color(0xFFFF8A37) else Color(0xFFFFB74D),
             isLight = isLight,
-            onClick = { onChoose(PlanSource.Manual) },
+            onClick = { onChoose(PlanSource.Saved) },
             modifier = Modifier.weight(1f),
         )
     }

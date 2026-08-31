@@ -258,9 +258,11 @@ fun ProfileScreen(
                 )
             }
 
-            if (uiState.showLogoutDialog) {
+            if (uiState.showLogoutDialog || uiState.isLoggingOut) {
                 AlertDialog(
-                    onDismissRequest = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) },
+                    onDismissRequest = {
+                        if (!uiState.isLoggingOut) viewModel.onEvent(ProfileEvent.DismissLogoutDialog)
+                    },
                     containerColor = SafarSemanticColors.plannerBackground(),
                     icon = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = scheme.error) },
                     title = { Text("Confirm Logout", fontFamily = LoraFontFamily, fontSize = 20.sp, fontWeight = FontWeight.Normal, color = PlannerFlatColors.TextDark) },
@@ -268,15 +270,28 @@ fun ProfileScreen(
                     confirmButton = {
                         Button(
                             onClick = { viewModel.logout { onLogout() } },
+                            enabled = !uiState.isLoggingOut,
                             colors = ButtonDefaults.buttonColors(containerColor = scheme.error),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("Logout", fontWeight = FontWeight.Bold)
+                            if (uiState.isLoggingOut) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.White,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text("Logging out...", fontWeight = FontWeight.Bold)
+                            } else {
+                                Text("Logout", fontWeight = FontWeight.Bold)
+                            }
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) }) {
-                            Text("Cancel", fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
+                        if (!uiState.isLoggingOut) {
+                            TextButton(onClick = { viewModel.onEvent(ProfileEvent.DismissLogoutDialog) }) {
+                                Text("Cancel", fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
+                            }
                         }
                     },
                     shape = RoundedCornerShape(20.dp),

@@ -106,12 +106,11 @@ val drawerSections = listOf(
                 Icons.Default.Leaderboard,
                 Routes.LEADERBOARD,
             ),
-            // YouTube Study Mode — hidden from sidebar (UI entry point disabled; feature intact)
-            // DrawerItem(
-            //     R.string.nav_youtube_study_mode,
-            //     Icons.Default.SmartDisplay,
-            //     Routes.YOUTUBE_STUDY_MODE,
-            // ),
+            DrawerItem(
+                R.string.nav_youtube_study_mode,
+                Icons.Default.SmartDisplay,
+                Routes.YOUTUBE_STUDY_MODE_V2,
+            ),
             DrawerItem(R.string.module_courses, Icons.AutoMirrored.Filled.MenuBook, Routes.COURSES),
         ),
     ),
@@ -242,32 +241,24 @@ fun SafarDrawer(
     ModalDrawerSheet(
         modifier = Modifier
             .fillMaxHeight()
-            .width(360.dp)
-            .statusBarsPadding(),
-        drawerContainerColor = Color.Transparent,
-        drawerContentColor   = Color.Transparent,
+            .widthIn(max = 420.dp)
+            .fillMaxWidth(0.88f),
+        drawerContainerColor = containerBgColor,
+        drawerContentColor   = if (isLight) lt.textPrimary else dk.textPrimary,
         drawerTonalElevation = 0.dp,
         drawerShape          = drawerShape,
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(top = 8.dp, bottom = 8.dp, end = 8.dp, start = 0.dp)
-                .clip(drawerShape)
-                .background(containerBgColor)
-                .border(
-                    width = 1.dp,
-                    color = containerBorderColor,
-                    shape = drawerShape,
-                ),
+                .navigationBarsPadding(),
         ) {
-            Column(modifier = Modifier.fillMaxHeight()) {
 
-                // 1. USER PROFILE HEADER
-                StaggeredEntranceBox(index = 0, isVisible = entranceVisible) {
-                    DrawerUserProfileHeader(
-                        userName        = userName,
-                        userEmail       = userEmail,
+            // 1. USER PROFILE HEADER
+            StaggeredEntranceBox(index = 0, isVisible = entranceVisible) {
+                DrawerUserProfileHeader(
+                    userName        = userName,
+                    userEmail       = userEmail,
                         userAvatar      = userAvatar,
                         isLight         = isLight,
                         isPremiumActive = isPremiumActive,
@@ -424,7 +415,6 @@ fun SafarDrawer(
             }
         }
     }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STAGGERED ENTRANCE CONTAINER
@@ -529,6 +519,7 @@ private fun DrawerUserProfileHeader(
                     colors = listOf(Color(0xFF1E1F24), dk.bg)
                 )
             )
+            .statusBarsPadding()
             .padding(horizontal = 20.dp, vertical = 20.dp)
     ) {
         Row(

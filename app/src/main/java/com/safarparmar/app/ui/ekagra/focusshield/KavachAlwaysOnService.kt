@@ -19,6 +19,8 @@ import com.safarparmar.app.MainActivity
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
 import com.safarparmar.app.feature.kavachanalytics.data.local.ProtectionSource
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Parser
+import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Preferences
 import com.safarparmar.app.notifications.SafarNotificationChannels
 import com.safarparmar.app.notifications.SafarNotificationManager
 import com.safarparmar.app.ui.navigation.Routes
@@ -111,26 +113,36 @@ class KavachAlwaysOnService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        // startForegroundService() gives the service only a short deadline to
-        // promote itself. Do this at the earliest lifecycle callback rather than
-        // waiting for onStartCommand(), which can be delayed on some OEM builds.
-        SafarNotificationChannels.createAll(this)
-        val notification = buildStatusNotification()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            } else {
-                0
-            }
-            ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
-        }
+        promoteToForeground()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        promoteToForeground()
         if (monitorJob == null) startMonitoring()
         return START_STICKY
+    }
+
+    private fun promoteToForeground() {
+        runCatching {
+            SafarNotificationChannels.createAll(this)
+            val notification = buildStatusNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ServiceCompat.startForeground(
+                    this,
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, 0)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        }.onFailure { e ->
+            if (BuildConfig.DEBUG) {
+                android.util.Log.e("FocusShield", "Failed to promote Kavach to foreground", e)
+            }
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -177,7 +189,14 @@ class KavachAlwaysOnService : Service() {
         val alwaysOn = dataStore.focusShieldAlwaysOnMode.first()
         val strict = dataStore.focusShieldStrictMode.first()
         val enabled = dataStore.focusShieldEnabled.first()
-        val packages = dataStore.focusShieldBlockedPackages.first()
+        val configuredPackages = dataStore.focusShieldBlockedPackages.first()
+        // Content-level YouTube Study Mode owns YouTube whenever it is enabled;
+        // generic KAVACH must not block the whole app or suppress its notifications.
+        val packages = if (YoutubeStudyV2Preferences.isEnabled(this)) {
+            configuredPackages - YoutubeStudyV2Parser.YOUTUBE_PACKAGE
+        } else {
+            configuredPackages
+        }
         // Peak Focus scheduling is intentionally outside the first activation/protection release.
         scheduleEnabled = false
         scheduleStartMinute = dataStore.focusShieldScheduleStartMinute.first()
@@ -186,11 +205,11 @@ class KavachAlwaysOnService : Service() {
             FocusShieldPermissionHelper.hasOverlayPermission(this)
 
         val timerLinkedActive = FocusShieldRepository.ShieldPrefs.isActive(this)
-        if (!enabled || (!alwaysOn && !timerLinkedActive) || packages.isEmpty() || !ready) {
+        if (!enabled || (!alwaysOn && !timerLinkedActive) || configuredPackages.isEmpty() || !ready) {
             stopReasonAlreadyReported = true
             if (enabled && (alwaysOn || timerLinkedActive)) {
                 val warning = when {
-                    packages.isEmpty() -> "Select at least one app for Kavach to block."
+                    configuredPackages.isEmpty() -> "Select at least one app for Kavach to block."
                     !ready -> "Kavach stopped working. Check Usage Access and Display over other apps."
                     else -> null
                 }

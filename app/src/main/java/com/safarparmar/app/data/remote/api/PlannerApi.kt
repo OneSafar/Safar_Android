@@ -61,6 +61,27 @@ interface PlannerApi {
     @POST("plans/confirm")
     suspend fun confirmPlan(@Body request: PlanConfirmRequest): Response<StudyPlan>
 
+    @GET("plans/saved-syllabi")
+    suspend fun getSavedSyllabi(): Response<List<SavedSyllabus>>
+
+    @POST("plans/saved-syllabi")
+    suspend fun saveSyllabus(@Body request: SaveSyllabusRequest): Response<SavedSyllabus>
+
+    @POST("plans/saved-syllabi/draft")
+    suspend fun saveSyllabusDraft(@Body request: SaveSyllabusRequest): Response<SavedSyllabus>
+
+    @PATCH("plans/saved-syllabi/{syllabusId}")
+    suspend fun updateSavedSyllabus(
+        @Path("syllabusId") syllabusId: String,
+        @Body request: SaveSyllabusRequest,
+    ): Response<SavedSyllabus>
+
+    @DELETE("plans/saved-syllabi/{syllabusId}")
+    suspend fun deleteSavedSyllabus(@Path("syllabusId") syllabusId: String): Response<BasicPlannerResponse>
+
+    @POST("plans/{planId}/save-syllabus")
+    suspend fun savePlanSyllabus(@Path("planId") planId: String): Response<SavedSyllabus>
+
     @GET("plans/{planId}")
     suspend fun getPlan(
         @Path("planId") planId: String,
@@ -321,6 +342,7 @@ data class PlanPreviewRequest(
     val source: String,
     val title: String? = null,
     val templateId: String? = null,
+    val savedSyllabusId: String? = null,
     val excludeTopicKeys: List<List<Int>>? = null,
     /** New chapters the user appended to a template subject (drill-down "+" on the
      *  chapters screen), each carrying its own topics — merged server-side before
@@ -358,6 +380,24 @@ data class PlanPreviewRequest(
     /** false = "Same every day": server strips all weights so each day holds
      *  exactly [dailyGoal] topics. Omitted/true = weighted planning. */
     val weightedPlanning: Boolean? = null,
+)
+
+data class SavedSyllabus(
+    val id: String,
+    val name: String,
+    val subjects: List<ImportSyllabusSubjectRequest> = emptyList(),
+    val subjectCount: Int = 0,
+    val chapterCount: Int = 0,
+    val topicCount: Int = 0,
+    val isDraft: Boolean = false,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+)
+
+data class SaveSyllabusRequest(
+    val name: String,
+    val subjects: List<ImportSyllabusSubjectRequest>,
+    val isDraft: Boolean? = null,
 )
 
 data class ChapterRatingRequest(

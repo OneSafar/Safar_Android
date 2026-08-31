@@ -535,7 +535,12 @@ class EkagraViewModel @Inject constructor(
                 is Resource.Success -> {
                     if (markGoalComplete && !goalId.isNullOrBlank()) {
                         val min = if (studiedMinutes > 0) studiedMinutes else studiedSeconds / 60
-                        homeRepo.completeGoal(goalId, studiedMinutes = min, studiedSeconds = studiedSeconds)
+                        homeRepo.completeGoal(
+                            goalId,
+                            studiedMinutes = min,
+                            studiedSeconds = studiedSeconds,
+                            completedViaFocus = true,
+                        )
                         com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goalId)
                     } else if (!goalId.isNullOrBlank()) {
                         com.safarparmar.app.ui.nishtha.goals.GoalEventBus.postGoalUpdated(goalId)

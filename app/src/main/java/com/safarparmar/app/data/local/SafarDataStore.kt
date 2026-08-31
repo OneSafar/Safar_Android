@@ -615,6 +615,10 @@ class SafarDataStore @Inject constructor(
     }
 
     /** Returns true once per normalized channel key, even across process restarts. */
+    suspend fun hasYoutubeChannelNotificationShown(channelKey: String): Boolean =
+        channelKey in (context.dataStore.data.first()[Keys.YOUTUBE_CHANNEL_NOTIFICATIONS] ?: emptySet())
+
+    /** Records a notification only after NotificationManager accepted the post. */
     suspend fun markYoutubeChannelNotificationShown(channelKey: String): Boolean {
         var first = false
         context.dataStore.edit { prefs ->

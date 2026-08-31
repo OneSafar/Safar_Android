@@ -231,7 +231,7 @@ fun PlanSectionHeader(
         Text(
             text = title,
             fontFamily = LoraFontFamily,
-            fontStyle = FontStyle.Italic,
+            fontStyle = FontStyle.Normal,
             fontWeight = FontWeight.Normal,
             fontSize = 22.sp,
             color = MaterialTheme.colorScheme.onSurface,

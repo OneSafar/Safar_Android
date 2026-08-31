@@ -19,6 +19,7 @@ data class ProfileUiState(
     val saveSuccess: Boolean = false,
     val avatarUploadSuccess: Boolean = false,
     val showLogoutDialog: Boolean = false,
+    val isLoggingOut: Boolean = false,
     val showDeleteAccountDialog: Boolean = false,
     val isDeletingAccount: Boolean = false,
     val deleteAccountError: String? = null,

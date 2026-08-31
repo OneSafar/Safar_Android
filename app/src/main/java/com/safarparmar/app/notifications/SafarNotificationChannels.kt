@@ -16,6 +16,7 @@ object SafarNotificationChannels {
     const val FOCUS_SHIELD_STATUS = "focus_shield_status"
     const val FOCUS_SHIELD_BLOCKED = "focus_shield_blocked"
     const val YOUTUBE_STUDY_MODE = "youtube_study_mode"
+    const val YOUTUBE_STUDY_V2_STATUS = "youtube_study_v2_status"
     const val STUDY_REMINDERS = "study_reminders"
     const val COURSE_UPDATES = "course_updates"
     const val ACHIEVEMENTS = "achievements"
@@ -70,6 +71,14 @@ object SafarNotificationChannels {
                 setShowBadge(false)
             },
             NotificationChannel(
+                YOUTUBE_STUDY_V2_STATUS,
+                "YouTube Study Mode V2 status",
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = "V2 monitoring status and accessibility-service health"
+                setShowBadge(false)
+            },
+            NotificationChannel(
                 STUDY_REMINDERS,
                 "Study reminders",
                 NotificationManager.IMPORTANCE_DEFAULT,
@@ -111,17 +120,12 @@ object SafarNotificationChannels {
             ).apply {
                 description = "Admin announcements and SAFAR campaigns"
             },
-            NotificationChannel(
-                MEHFIL_CONNECT,
-                "Mehfil Connect requests",
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = "Connection requests from Study Circle members via Mehfil Connect"
-            },
         )
 
-        context.getSystemService(NotificationManager::class.java)
-            .createNotificationChannels(channels)
+        val notificationManager = context.getSystemService(NotificationManager::class.java)
+        notificationManager?.createNotificationChannels(channels)
+        // Clean up legacy Mehfil Connect channel so OS does not hold it
+        runCatching { notificationManager?.deleteNotificationChannel(MEHFIL_CONNECT) }
     }
 
     fun normalize(channelId: String?): String = when (channelId) {
@@ -130,6 +134,7 @@ object SafarNotificationChannels {
         FOCUS_SHIELD_STATUS,
         FOCUS_SHIELD_BLOCKED,
         YOUTUBE_STUDY_MODE,
+        YOUTUBE_STUDY_V2_STATUS,
         STUDY_REMINDERS,
         COURSE_UPDATES,
         ACHIEVEMENTS,

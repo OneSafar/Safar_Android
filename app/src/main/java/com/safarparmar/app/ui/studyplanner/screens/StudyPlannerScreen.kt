@@ -66,6 +66,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Analytics
@@ -200,6 +204,7 @@ import com.safarparmar.app.domain.model.studyplanner.PlannerAnalytics
 import com.safarparmar.app.domain.model.studyplanner.PlanProgress
 import com.safarparmar.app.domain.model.studyplanner.StudyChapter
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
+import com.safarparmar.app.data.remote.api.SavedSyllabus
 import com.safarparmar.app.domain.model.studyplanner.StudySubject
 import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
@@ -274,6 +279,7 @@ private data class StudyPlannerChromeState(
 private data class StudyPlansListState(
     val plans: List<StudyPlan> = emptyList(),
     val templates: List<ExamTemplateSummary> = emptyList(),
+    val draftSyllabi: List<com.safarparmar.app.data.remote.api.SavedSyllabus> = emptyList(),
     val loading: Boolean = false,
 )
 
@@ -385,6 +391,7 @@ fun StudyPlannerScreen(
         StudyPlansListState(
             plans = state.plans,
             templates = state.templates,
+            draftSyllabi = state.draftSyllabi,
             loading = state.loading,
         )
     }
@@ -394,6 +401,7 @@ fun StudyPlannerScreen(
                 StudyPlansListState(
                     plans = state.plans,
                     templates = state.templates,
+                    draftSyllabi = state.draftSyllabi,
                     loading = state.loading,
                 )
             }
@@ -863,6 +871,7 @@ private fun StudyPlansScreen(
 ) {
     var pendingDelete by remember { mutableStateOf<StudyPlan?>(null) }
     var pendingRename by remember { mutableStateOf<StudyPlan?>(null) }
+    var showDraftsInfo by remember { mutableStateOf(false) }
     val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
 
     pendingDelete?.let { plan ->
@@ -885,117 +894,225 @@ private fun StudyPlansScreen(
         )
     }
 
-    // ── Flat 2.0 layout ──────────────────────────────────────────
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    if (showDraftsInfo) {
+        DraftsInfoDialog(
+            onDismiss = { showDraftsInfo = false },
+            isLight = !isDark
+        )
+    }
 
-        // 2. Screen content column
-        Column(modifier = Modifier.fillMaxSize()) {
-            SafarPullRefreshBox(
-                isRefreshing = state.loading && state.plans.isNotEmpty(),
-                onRefresh = { actions.refreshPlans() },
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+    // ── Modern Flat Dashboard (Variant 3) ─────────────────────────
+    Box(modifier = Modifier.fillMaxSize()) {
+        SafarPullRefreshBox(
+            isRefreshing = state.loading && state.plans.isNotEmpty(),
+            onRefresh = { actions.refreshPlans() },
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, top = 20.dp, end = 16.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, top = 28.dp, end = 16.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
+                // ── Top Quick Actions Grid (Variant 3) ──────────────────
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // 1. New Plan
+                        PlannerQuickActionCard(
+                            title = "New Plan",
+                            subtitle = "Start fresh or template",
+                            icon = Icons.Default.Add,
+                            iconBg = if (isDark) Color(0xFF34D399).copy(alpha = 0.15f) else Color(0xFF064E3B).copy(alpha = 0.12f),
+                            iconTint = if (isDark) Color(0xFF34D399) else Color(0xFF064E3B),
+                            borderColor = if (isDark) Color(0xFF272C35) else Color(0xFFE2E8F0),
+                            isLight = !isDark,
+                            onClick = {
+                                onAdvanceTour()
+                                onNavigate(Routes.CREATE_PLAN)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
 
-                    // ── Header ──────────────────────────────────────────────
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Text(
-                                    text = "Choose an exam to create a focused study plan.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = PlannerFlatColors.TextMuted,
-                                )
-                            }
-                            
-                            MacOSControlIconBadge(
-                                accentColor = PlannerFlatColors.PrimaryAccent,
+                        // 2. Drafts (or Templates if 0 drafts)
+                        if (state.draftSyllabi.isNotEmpty()) {
+                            PlannerQuickActionCard(
+                                title = "Drafts (${state.draftSyllabi.size})",
+                                subtitle = "Resume building →",
+                                icon = Icons.AutoMirrored.Outlined.Article,
+                                iconBg = Color(0xFFF59E0B).copy(alpha = 0.15f),
+                                iconTint = Color(0xFFD97706),
+                                borderColor = if (isDark) Color(0xFFB45309).copy(alpha = 0.4f) else Color(0xFFFDE68A),
                                 isLight = !isDark,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.EmojiEvents,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(22.dp),
-                                )
-                            }
-                        }
-                    }
-
-                    // ── Loading skeletons ────────────────────────────────────
-                    if (state.loading && state.plans.isEmpty()) {
-                        items(3) {
-                            PlanCardSkeleton(modifier = Modifier.padding(vertical = 4.dp))
-                        }
-                    }
-
-                    // ── Empty state ──────────────────────────────────────────
-                    if (state.plans.isEmpty() && !state.loading) {
-                        item {
-                            PlannerEmptyState(
-                                title = "No target exam yet",
-                                body = "Plan an exam and it will appear here.",
-                                action = "Plan Your Exams",
+                                onInfoClick = { showDraftsInfo = true },
+                                onClick = {
+                                    onAdvanceTour()
+                                    onNavigate("${Routes.CREATE_PLAN}?startAtSaved=true")
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            PlannerQuickActionCard(
+                                title = "Templates",
+                                subtitle = "Browse exam syllabi →",
+                                icon = Icons.Outlined.AutoStories,
+                                iconBg = if (isDark) Color(0xFF818CF8).copy(alpha = 0.15f) else Color(0xFF4F46E5).copy(alpha = 0.10f),
+                                iconTint = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
+                                borderColor = if (isDark) Color(0xFF272C35) else Color(0xFFE2E8F0),
                                 isLight = !isDark,
-                                onAction = {
+                                onClick = {
                                     onAdvanceTour()
                                     onNavigate(Routes.CREATE_PLAN)
                                 },
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
+                }
 
-                    // ── Plan cards ───────────────────────────────────────────
-                    if (state.plans.isNotEmpty()) {
-                        items(state.plans, key = { it.id }) { plan ->
-                            val planNumber = state.plans
-                                .sortedWith(compareBy<StudyPlan>({ it.createdAt.orEmpty() }, { it.id }))
-                                .indexOfFirst { it.id == plan.id }
-                                .let { if (it >= 0) it + 1 else 1 }
-                            PlannerTargetExamRow(
-                                plan = plan,
-                                planNumber = planNumber,
-                                isActive = plan.id == activePlanAnchorId,
-                                isLight = !isDark,
-                                onOpen = {
-                                    actions.openPlan(plan.id)
-                                    actions.setSection(PlannerSection.PLAN)
-                                },
-                                onRename = { pendingRename = plan },
-                                onDelete = { pendingDelete = plan },
-                            )
-                        }
+                // ── Loading skeletons ────────────────────────────────────
+                if (state.loading && state.plans.isEmpty()) {
+                    items(3) {
+                        PlanCardSkeleton(modifier = Modifier.padding(vertical = 4.dp))
                     }
+                }
 
-                    // Bottom breathing room above the create-bar
-                    item { Spacer(Modifier.height(12.dp)) }
+                // ── Empty state ──────────────────────────────────────────
+                if (state.plans.isEmpty() && !state.loading) {
+                    item {
+                        PlannerEmptyState(
+                            title = "No target exam yet",
+                            body = "Plan an exam and it will appear here.",
+                            action = "Plan Your Exams",
+                            isLight = !isDark,
+                            onAction = {
+                                onAdvanceTour()
+                                onNavigate(Routes.CREATE_PLAN)
+                            },
+                        )
+                    }
+                }
+
+                // ── Section Header ───────────────────────────────────────
+                if (state.plans.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "ACTIVE EXAMS (${state.plans.size})",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp,
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                        )
+                    }
+                }
+
+                // ── Plan cards ───────────────────────────────────────────
+                if (state.plans.isNotEmpty()) {
+                    items(state.plans, key = { it.id }) { plan ->
+                        val planNumber = state.plans
+                            .sortedWith(compareBy<StudyPlan>({ it.createdAt.orEmpty() }, { it.id }))
+                            .indexOfFirst { it.id == plan.id }
+                            .let { if (it >= 0) it + 1 else 1 }
+                        PlannerTargetExamRow(
+                            plan = plan,
+                            planNumber = planNumber,
+                            isActive = plan.id == activePlanAnchorId,
+                            isLight = !isDark,
+                            onOpen = {
+                                actions.openPlan(plan.id)
+                                actions.setSection(PlannerSection.PLAN)
+                            },
+                            onRename = { pendingRename = plan },
+                            onDelete = { pendingDelete = plan },
+                        )
+                    }
+                }
+
+                item { Spacer(Modifier.height(12.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlannerQuickActionCard(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    borderColor: Color,
+    isLight: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onInfoClick: (() -> Unit)? = null,
+) {
+    val bg = if (isLight) Color.White else Color(0xFF181B20)
+    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = bg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(iconBg, RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                if (onInfoClick != null) {
+                    IconButton(
+                        onClick = onInfoClick,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = "What is Drafts?",
+                            tint = textSecondary.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
-            // ── Pinned "Create Your New Plan" bar ────────────────────────────
-            if (state.plans.isNotEmpty()) {
-                PlannerCreateNewPlanBar(
-                    isDark = isDark,
-                    isLight = !isDark,
-                    onClick = {
-                        onAdvanceTour()
-                        onNavigate(Routes.CREATE_PLAN)
-                    },
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -1003,31 +1120,79 @@ private fun StudyPlansScreen(
 }
 
 @Composable
-private fun PlannerCreateNewPlanBar(
-    isDark: Boolean,
+private fun DraftsInfoDialog(
+    onDismiss: () -> Unit,
     isLight: Boolean = false,
-    onClick: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        MacOSControlActionButton(
-            text = "Create Your New Plan",
-            icon = Icons.Default.Add,
-            onClick = onClick,
-            isLight = isLight,
-            accentColor = PlannerFlatColors.PrimaryAccent,
-            subtitle = "Add a new target exam",
-        )
+    val bg = if (isLight) Color.White else Color(0xFF181B20)
+    val border = if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
+    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+    val accent = if (isLight) Color(0xFF064E3B) else Color(0xFF34D399)
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = bg,
+            border = androidx.compose.foundation.BorderStroke(1.dp, border),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(22.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(Color(0xFFF59E0B).copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.Article,
+                            contentDescription = null,
+                            tint = Color(0xFFD97706),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Text(
+                        text = "What are Drafts?",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textPrimary
+                    )
+                }
+
+                Text(
+                    text = "When you use \"Build It Myself\" to create your own exam syllabus (subjects, chapters, and topics) and leave before finishing, it is saved here as a draft.\n\nTap this card anytime to continue editing or delete your unfinished syllabi.",
+                    fontSize = 14.sp,
+                    color = textSecondary,
+                    lineHeight = 20.sp
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Button(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = accent,
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
+                    ) {
+                        Text("Got it", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
     }
 }
-
-
-
-
 
 @Composable
 private fun PlannerEmptyState(
@@ -1037,28 +1202,71 @@ private fun PlannerEmptyState(
     isLight: Boolean = false,
     onAction: () -> Unit,
 ) {
-    MacOSControlEmptyState(
-        title = title,
-        body = body,
-        actionText = action,
-        actionIcon = Icons.Default.Add,
-        onAction = onAction,
-        isLight = isLight,
-        accentColor = PlannerFlatColors.PrimaryAccent,
-    )
-}
+    val bg = if (isLight) Color.White else Color(0xFF181B20)
+    val border = if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
+    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+    val accent = if (isLight) Color(0xFF064E3B) else Color(0xFF34D399)
 
-private data class TargetExamTone(
-    val accent: Color,
-    val softBackground: Color,
-    val chipBackground: Color,
-)
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = bg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, border),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(accent.copy(alpha = 0.12f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.School,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-private fun targetExamTone(planId: String, isDark: Boolean): TargetExamTone {
-    val accent = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5)
-    val bg = if (isDark) Color(0xFF818CF8).copy(alpha = 0.16f) else Color(0xFF4F46E5).copy(alpha = 0.10f)
-    val chipBg = if (isDark) Color(0xFF818CF8).copy(alpha = 0.25f) else Color(0xFF4F46E5).copy(alpha = 0.18f)
-    return TargetExamTone(accent, bg, chipBg)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = textPrimary,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Text(
+                    text = body,
+                    fontSize = 13.sp,
+                    color = textSecondary,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+
+            Button(
+                onClick = onAction,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = accent,
+                    contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(action, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
 }
 
 private fun planCreatedDate(value: String?): String? {
@@ -1071,8 +1279,6 @@ private fun planCreatedDate(value: String?): String? {
     return date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
 }
 
-
-
 @Composable
 private fun PlannerTargetExamRow(
     plan: StudyPlan,
@@ -1083,48 +1289,114 @@ private fun PlannerTargetExamRow(
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val isDark = !MaterialTheme.colorScheme.background.isLightBackground()
-    val tone = targetExamTone(plan.id, isDark)
+    val isDark = !isLight
     val title = plan.title.ifBlank { plan.examType ?: "Study plan" }
     val createdDate = remember(plan.createdAt) { planCreatedDate(plan.createdAt) }
     val subtitle = buildString {
         append("Plan ")
         append(planNumber)
         createdDate?.let {
-            append(" • Created ")
+            append(" · Created ")
             append(it)
         }
     }
     val days = daysUntil(plan.examDate)
     var menuExpanded by remember { mutableStateOf(false) }
-    val menuIconTint = PlannerFlatColors.TextMuted
-    // ── Flat 2.0 tile ────────────────────────────────────────────
-    MacOSExamPlanCard(
-        title      = title,
-        subtitle   = subtitle,
-        accentColor = tone.accent,
-        badgeText  = examBadgeLabel(days),
-        isActive   = isActive,
-        isLight    = isLight,
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.School,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp),
-            )
-        },
-        trailingContent = {
+
+    val bg = if (isLight) Color.White else Color(0xFF181B20)
+    val border = when {
+        isActive -> if (isDark) Color(0xFF34D399) else Color(0xFF064E3B)
+        else -> if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
+    }
+    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+
+    Surface(
+        onClick = onOpen,
+        shape = RoundedCornerShape(16.dp),
+        color = bg,
+        border = androidx.compose.foundation.BorderStroke(if (isActive) 1.5.dp else 1.dp, border),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Clean flat icon container
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .background(
+                        if (isDark) Color(0xFF818CF8).copy(alpha = 0.15f) else Color(0xFF4F46E5).copy(alpha = 0.10f),
+                        RoundedCornerShape(12.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.School,
+                    contentDescription = null,
+                    tint = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Days left pill
+            val badge = examBadgeLabel(days)
+            if (badge.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = badge,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+                    )
+                }
+            }
+
             Box {
                 IconButton(
                     onClick = { menuExpanded = true },
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Open $title options",
-                        tint = menuIconTint,
-                        modifier = Modifier.size(18.dp),
+                        contentDescription = "Options",
+                        tint = textSecondary,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
                 PlannerOverflowMenu(
@@ -1144,9 +1416,8 @@ private fun PlannerTargetExamRow(
                     )
                 }
             }
-        },
-        onOpen = onOpen,
-    )
+        }
+    }
 }
 
 @Composable
@@ -1254,6 +1525,7 @@ private fun PlannerHome(
         StudyPlannerUiState(
             plans = plansState.plans,
             templates = plansState.templates,
+            draftSyllabi = plansState.draftSyllabi,
             selectedPlan = chromeState.selectedPlan,
             calendar = detailState.calendar,
             analytics = detailState.analytics,
@@ -1879,4 +2151,90 @@ private fun StructuredSyllabusPreview.addTopic(subjectIndex: Int, chapterIndex: 
     val clean = name.trim()
     if (clean.isBlank()) return this
     return copy(subjects = subjects.mapIndexed { sIndex, subject -> if (sIndex != subjectIndex) subject else subject.copy(chapters = subject.chapters.mapIndexed { cIndex, chapter -> if (cIndex != chapterIndex) chapter else chapter.copy(topics = chapter.topics + clean) }) }).withRecomputedStats()
+}
+
+@Composable
+fun PlannerContinueBuildingCard(
+    drafts: List<com.safarparmar.app.data.remote.api.SavedSyllabus>,
+    isLight: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bg = if (isLight) Color.White else Color(0xFF181B20)
+    val border = if (isLight) Color(0xFFE2E8F0) else Color(0xFF272C35)
+    val textPrimary = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    val textSecondary = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+    
+    // Most recent draft
+    val mostRecent = drafts.maxByOrNull { it.updatedAt.orEmpty() } ?: drafts.firstOrNull() ?: return
+    val totalSubjects = maxOf(mostRecent.subjectCount, mostRecent.subjects.size)
+    val totalChapters = maxOf(mostRecent.chapterCount, mostRecent.subjects.sumOf { it.chapters.size })
+    val totalTopics = maxOf(mostRecent.topicCount, mostRecent.subjects.sumOf { s -> s.chapters.sumOf { it.topics.size } })
+    val displayTitle = mostRecent.name.ifBlank { "Untitled syllabus" }
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = bg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, border),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Badge & Title row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFF59E0B).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "DRAFT",
+                            color = Color(0xFFD97706),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                    Text(
+                        text = displayTitle,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                
+                // Stats row
+                val stats = mutableListOf<String>()
+                if (totalSubjects > 0) stats.add("$totalSubjects subjects")
+                if (totalChapters > 0) stats.add("$totalChapters chapters")
+                if (totalTopics > 0) stats.add("$totalTopics topics")
+                
+                Text(
+                    text = if (stats.isNotEmpty()) stats.joinToString(" · ") else "Tap to continue building",
+                    fontSize = 13.sp,
+                    color = textSecondary
+                )
+            }
+            
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = textSecondary.copy(alpha = 0.7f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
 }

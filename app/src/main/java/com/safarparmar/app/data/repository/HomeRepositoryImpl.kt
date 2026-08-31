@@ -115,6 +115,7 @@ class HomeRepositoryImpl @Inject constructor(
         studiedMinutes: Int,
         studiedSeconds: Int,
         scheduledDate: String?,
+        completedViaFocus: Boolean,
     ): Resource<Unit> {
         val completedAt = java.time.Instant.now().toString()
         return safeApiCall {
@@ -124,6 +125,7 @@ class HomeRepositoryImpl @Inject constructor(
                     completedAt = completedAt,
                     studiedMinutes = studiedMinutes,
                     studiedSeconds = if (studiedSeconds > 0) studiedSeconds else null,
+                    completedViaFocus = completedViaFocus,
                     scheduledDate = scheduledDate,
                 ),
             )

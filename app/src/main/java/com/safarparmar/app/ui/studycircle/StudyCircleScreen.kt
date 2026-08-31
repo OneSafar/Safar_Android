@@ -40,9 +40,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -229,11 +231,40 @@ fun StudyCircleScreen(
         viewModel.loadHub(refresh = true)
     }
 
+    val pendingDmRequests by viewModel.pendingDmRequests.collectAsStateWithLifecycle()
+    var showConnectRequestsSheet by rememberSaveable { mutableStateOf(false) }
+
     LaunchedEffect(message) {
         message?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             viewModel.consumeMessage()
         }
+    }
+
+    if (showConnectRequestsSheet) {
+        StudyCircleConnectRequestsSheet(
+            pendingRequests = pendingDmRequests,
+            onAccept = { fromUserId, userName ->
+                viewModel.acceptDmRequest(fromUserId) { uid, uname ->
+                    showConnectRequestsSheet = false
+                    onNavigate(
+                        Routes.dmChatDirect(
+                            targetUserId = uid,
+                            targetUserName = uname,
+                            contextPreview = "Study Circle connection",
+                            autoRequest = false,
+                        )
+                    )
+                }
+            },
+            onDecline = { fromUserId ->
+                viewModel.declineDmRequest(fromUserId)
+            },
+            onOpenDmChat = {
+                onNavigate(Routes.DM_CHAT)
+            },
+            onDismiss = { showConnectRequestsSheet = false },
+        )
     }
 
     SafarDrawerScaffold(
@@ -244,6 +275,27 @@ fun StudyCircleScreen(
         onNavigate = onNavigate,
         onToggleDarkTheme = onToggleDarkTheme,
         topBarActions = {
+            val pendingCount = pendingDmRequests.size
+            IconButton(onClick = { showConnectRequestsSheet = true }) {
+                BadgedBox(
+                    badge = {
+                        if (pendingCount > 0) {
+                            Badge(
+                                containerColor = Color(0xFFF97316),
+                                contentColor = Color.White,
+                            ) {
+                                Text("$pendingCount", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                            }
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (pendingCount > 0) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                        contentDescription = "Connection requests",
+                        tint = if (pendingCount > 0) CirclePrimaryButton else PlannerFlatColors.TextDark,
+                    )
+                }
+            }
             IconButton(onClick = { viewModel.loadHub(refresh = true) }, enabled = !state.refreshing) {
                 if (state.refreshing) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = CirclePrimary)
                 else Icon(Icons.Default.Refresh, "Refresh circles", tint = PlannerFlatColors.TextDark)
@@ -1444,11 +1496,39 @@ fun StudyCircleDetailScreen(
     var confirm by remember { mutableStateOf<ConfirmAction?>(null) }
     var overflowExpanded by remember { mutableStateOf(false) }
     var renameDialogOpen by remember { mutableStateOf(false) }
+    val pendingDmRequests by viewModel.pendingDmRequests.collectAsStateWithLifecycle()
+    var showConnectRequestsSheet by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(circleId) { viewModel.loadDetail(circleId) }
     LaunchedEffect(circleId) { while (true) { delay(30_000); viewModel.loadDetail(circleId, refresh = true) } }
     LaunchedEffect(message) {
         message?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.consumeMessage() }
+    }
+
+    if (showConnectRequestsSheet) {
+        StudyCircleConnectRequestsSheet(
+            pendingRequests = pendingDmRequests,
+            onAccept = { fromUserId, userName ->
+                viewModel.acceptDmRequest(fromUserId) { uid, uname ->
+                    showConnectRequestsSheet = false
+                    onNavigate(
+                        Routes.dmChatDirect(
+                            targetUserId = uid,
+                            targetUserName = uname,
+                            contextPreview = "Study Circle connection",
+                            autoRequest = false,
+                        )
+                    )
+                }
+            },
+            onDecline = { fromUserId ->
+                viewModel.declineDmRequest(fromUserId)
+            },
+            onOpenDmChat = {
+                onNavigate(Routes.DM_CHAT)
+            },
+            onDismiss = { showConnectRequestsSheet = false },
+        )
     }
 
     Scaffold(
@@ -1464,6 +1544,27 @@ fun StudyCircleDetailScreen(
                     }
                 },
                 actions = {
+                    val pendingCount = pendingDmRequests.size
+                    IconButton(onClick = { showConnectRequestsSheet = true }) {
+                        BadgedBox(
+                            badge = {
+                                if (pendingCount > 0) {
+                                    Badge(
+                                        containerColor = Color(0xFFF97316),
+                                        contentColor = Color.White,
+                                    ) {
+                                        Text("$pendingCount", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (pendingCount > 0) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                                contentDescription = "Connection requests",
+                                tint = if (pendingCount > 0) CirclePrimaryButton else PlannerFlatColors.TextDark,
+                            )
+                        }
+                    }
                     IconButton(onClick = { viewModel.loadDetail(circleId, refresh = true) }, enabled = !state.refreshing) {
                         if (state.refreshing) CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = CirclePrimary)
                         else Icon(Icons.Default.Refresh, "Refresh", tint = PlannerFlatColors.TextDark)
@@ -2497,4 +2598,234 @@ private fun formatFocusMinutes(minutes: Int): String = when {
     minutes < 60 -> "${minutes}m"
     minutes % 60 == 0 -> "${minutes / 60}h"
     else -> "${minutes / 60}h ${minutes % 60}m"
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StudyCircleConnectRequestsSheet(
+    pendingRequests: List<PendingStudyCircleDmRequest>,
+    onAccept: (fromUserId: String, userName: String) -> Unit,
+    onDecline: (fromUserId: String) -> Unit,
+    onOpenDmChat: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var acceptingUserId by remember { mutableStateOf<String?>(null) }
+
+    val currentDensity = LocalDensity.current
+    val clampedDensity = remember(currentDensity) {
+        Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.85f, 1.05f),
+        )
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = PlannerFlatColors.CardWhite,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = PlannerFlatColors.TextMuted.copy(alpha = 0.4f)) },
+    ) {
+        CompositionLocalProvider(LocalDensity provides clampedDensity) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .padding(bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f).padding(end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(CirclePrimary.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Chat,
+                                contentDescription = null,
+                                tint = CirclePrimaryButton,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Connection Requests",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = PlannerFlatColors.TextDark,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = if (pendingRequests.isNotEmpty()) "${pendingRequests.size} student${if (pendingRequests.size > 1) "s" else ""} want to connect"
+                                else "Direct student messaging",
+                                fontSize = 12.sp,
+                                color = PlannerFlatColors.TextMuted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            onDismiss()
+                            onOpenDmChat()
+                        },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            text = "Open Chats",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CirclePrimaryButton,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
+                }
+
+            if (pendingRequests.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.BgCream),
+                    border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsNone,
+                            contentDescription = null,
+                            tint = PlannerFlatColors.TextMuted,
+                            modifier = Modifier.size(36.dp),
+                        )
+                        Text(
+                            text = "No pending requests",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = PlannerFlatColors.TextDark,
+                        )
+                        Text(
+                            text = "When students in your Study Circles or Mehfil send you a chat request, you can accept and chat directly here.",
+                            fontSize = 12.5.sp,
+                            textAlign = TextAlign.Center,
+                            color = PlannerFlatColors.TextMuted,
+                            lineHeight = 17.sp,
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(pendingRequests, key = { it.userId }) { request ->
+                        val isAccepting = acceptingUserId == request.userId
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = PlannerFlatColors.BgCream),
+                            border = BorderStroke(1.dp, PlannerFlatColors.BorderSoft),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(CirclePrimary.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    if (!request.userAvatar.isNullOrBlank()) {
+                                        AsyncImage(
+                                            model = request.userAvatar,
+                                            contentDescription = request.userName,
+                                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        )
+                                    } else {
+                                        Text(
+                                            text = request.userName.firstOrNull()?.uppercase() ?: "S",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp,
+                                            color = CirclePrimaryButton,
+                                        )
+                                    }
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = request.userName,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = PlannerFlatColors.TextDark,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = "Wants to connect",
+                                        fontSize = 12.sp,
+                                        color = PlannerFlatColors.TextMuted,
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Button(
+                                        onClick = {
+                                            acceptingUserId = request.userId
+                                            onAccept(request.userId, request.userName)
+                                        },
+                                        enabled = acceptingUserId == null,
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = CirclePrimaryButton),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(34.dp),
+                                    ) {
+                                        if (isAccepting) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color.White,
+                                            )
+                                        } else {
+                                            Text("Accept", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    OutlinedButton(
+                                        onClick = { onDecline(request.userId) },
+                                        enabled = acceptingUserId == null,
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(34.dp),
+                                    ) {
+                                        Text("Decline", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    }
+                }
+            }
+        }
+    }
 }

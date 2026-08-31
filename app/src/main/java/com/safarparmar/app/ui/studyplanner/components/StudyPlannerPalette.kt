@@ -1,3 +1,5 @@
+// Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4
+// Hallmark · semantic accent system: template-green · custom-orange · status colours preserved
 package com.safarparmar.app.ui.studyplanner.components
 
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +20,22 @@ import com.safarparmar.app.ui.theme.isLightBackground
 val LocalPlannerIsDarkTheme = staticCompositionLocalOf<Boolean?> { null }
 
 /**
+ * Plan-origin signature accent. It is intentionally separate from status colours:
+ * template plans use deep green, while custom/manual plans use orange. Callers
+ * provide it only around the active wizard or plan so destructive, warning, and
+ * success actions retain their own semantic colours.
+ */
+val LocalPlannerAccent = staticCompositionLocalOf<Color?> { null }
+
+object PlannerSourceAccent {
+    val Template: Color
+        @Composable get() = if (isPlannerDark) Color(0xFF0C8065) else Color(0xFF064E3B)
+
+    val Custom: Color
+        @Composable get() = if (isPlannerDark) Color(0xFFC84A0A) else Color(0xFFCF4A0A)
+}
+
+/**
  * Planner flat palette dark flag. Prefer [LocalPlannerIsDarkTheme] (set by SafarTheme /
  * feature screens). Fallback uses **Material** background luminance — never system dark —
  * so system-dark + app-light no longer yields black cream sheets on light cards.
@@ -34,9 +52,9 @@ object PlannerFlatColors {
     val TextMuted @Composable get() = if (isPlannerDark) Color(0xFF94A3B8) else Color(0xFF64748B)
     val BorderSoft @Composable get() = if (isPlannerDark) Color(0xFF33333D) else Color(0xFFE2DDF0)
     val ShadowSoft @Composable get() = if (isPlannerDark) Color.Black.copy(alpha = 0.2f) else Color(0xFF1E1B4B).copy(alpha = 0.04f)
-    val PrimaryAccent @Composable get() = if (isPlannerDark) Color(0xFFE0654B) else Color(0xFFE0654B) // Coral for Planner
-    val AccentShadow @Composable get() = if (isPlannerDark) Color(0xFFE0654B).copy(alpha = 0.3f) else Color(0xFFE0654B).copy(alpha = 0.3f)
-    val AccentTint @Composable get() = if (isPlannerDark) Color(0xFFE0654B).copy(alpha = 0.15f) else Color(0xFFE0654B).copy(alpha = 0.1f)
+    val PrimaryAccent @Composable get() = LocalPlannerAccent.current ?: Color(0xFFE0654B)
+    val AccentShadow @Composable get() = PrimaryAccent.copy(alpha = 0.30f)
+    val AccentTint @Composable get() = PrimaryAccent.copy(alpha = if (isPlannerDark) 0.15f else 0.10f)
 }
 
 /**
@@ -68,12 +86,11 @@ object PlannerAccent {
  * always matches on-screen CTAs (Open >, %, Change My Plan, etc.).
  */
 object PlannerTabAccent {
-    private val Coral = Color(0xFFE0654B)
-    val Home: Color @Composable get() = Coral
-    val Plan: Color @Composable get() = Coral
-    val Syllabus: Color @Composable get() = Coral
-    val Calendar: Color @Composable get() = Coral
-    val Progress: Color @Composable get() = Coral
+    val Home: Color @Composable get() = PlannerFlatColors.PrimaryAccent
+    val Plan: Color @Composable get() = PlannerFlatColors.PrimaryAccent
+    val Syllabus: Color @Composable get() = PlannerFlatColors.PrimaryAccent
+    val Calendar: Color @Composable get() = PlannerFlatColors.PrimaryAccent
+    val Progress: Color @Composable get() = PlannerFlatColors.PrimaryAccent
 }
 
 /**

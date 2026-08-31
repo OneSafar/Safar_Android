@@ -248,7 +248,7 @@ class KavachAnalyticsViewModel @Inject constructor(
     // ── App detail ───────────────────────────────────────────────────────────
 
     fun openAppDetail(row: AppUsageRow) {
-        if (row.packageName == com.safarparmar.app.feature.youtubeinsights.YoutubeUiParser.YOUTUBE_PACKAGE) {
+        if (row.packageName == com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Parser.YOUTUBE_PACKAGE) {
             // YouTube content analytics now has a dedicated Study Mode destination.
             return
         }

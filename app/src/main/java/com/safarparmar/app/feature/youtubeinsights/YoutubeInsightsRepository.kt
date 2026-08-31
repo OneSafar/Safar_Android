@@ -44,54 +44,6 @@ class YoutubeInsightsRepository @Inject constructor(
     private var open: Open? = null
     private var lastPersistedHeartbeatMs = 0L
 
-    suspend fun observe(detection: YoutubeDetection?, nowMs: Long = System.currentTimeMillis()) = mutex.withLock {
-        if (!enabled.value || detection == null ||
-            detection.kind == YoutubeContentKind.NON_PLAYBACK || detection.kind == YoutubeContentKind.UNKNOWN
-        ) {
-            closeLocked(nowMs)
-            return@withLock
-        }
-
-        // Channel discovery is independent from time measurement. YouTube may
-        // expose a visible Play control while opening/pausing a video; the content
-        // still needs to be saved before shouldBlock() sends the student back.
-        val key = detection.channelName?.let { resolveChannelKey(it) }
-        if (key != null) {
-            val existing = dao.youtubeChannel(key)
-            dao.upsertYoutubeChannel(
-                YoutubeChannelEntity(
-                    channelKey = key,
-                    displayName = detection.channelName,
-                    isProductive = existing?.isProductive ?: false,
-                    lastSeenAtMs = nowMs,
-                ),
-            )
-        }
-        if (!detection.isPlaying) {
-            closeLocked(nowMs)
-            return@withLock
-        }
-        val category = when {
-            detection.kind == YoutubeContentKind.SHORTS -> CATEGORY_SHORTS
-            key == null -> CATEGORY_UNIDENTIFIED
-            dao.youtubeChannel(key)?.isProductive == true -> CATEGORY_PRODUCTIVE
-            else -> CATEGORY_DISTRACTING
-        }
-        val current = open
-        if (current != null && current.channelKey == key && current.category == category &&
-            current.shorts == (detection.kind == YoutubeContentKind.SHORTS)
-        ) {
-            current.heartbeatAtMs = nowMs
-            persistOpenLocked(current)
-        } else {
-            closeLocked(nowMs)
-            open = Open(nowMs, nowMs, key, category, detection.kind == YoutubeContentKind.SHORTS)
-            persistOpenLocked(open!!, force = true)
-        }
-    }
-
-    suspend fun stop(nowMs: Long = System.currentTimeMillis()) = mutex.withLock { closeLocked(nowMs) }
-
     /** Finalises a process-killed interval only up to its last durable heartbeat. */
     suspend fun recoverStaleInterval() = mutex.withLock {
         if (open != null) return@withLock
@@ -113,7 +65,7 @@ class YoutubeInsightsRepository @Inject constructor(
     /** Creates the onboarding suggestions once without overwriting an existing choice. */
     suspend fun seedStarterChannels(nowMs: Long = System.currentTimeMillis()) {
         STARTER_CHANNELS.forEach { name ->
-            val key = YoutubeUiParser.normalizeChannel(name)
+            val key = YoutubeChannelIdentity.normalize(name)
             if (dao.youtubeChannel(key) == null) {
                 dao.upsertYoutubeChannel(YoutubeChannelEntity(key, name, false, nowMs))
             }
@@ -121,8 +73,12 @@ class YoutubeInsightsRepository @Inject constructor(
         consolidateStarterAliases()
     }
 
-    suspend fun shouldShowBlockedChannelNotification(channelKey: String): Boolean =
+    suspend fun hasShownBlockedChannelNotification(channelKey: String): Boolean =
+        dataStore.hasYoutubeChannelNotificationShown(channelKey)
+
+    suspend fun markBlockedChannelNotificationShown(channelKey: String) {
         dataStore.markYoutubeChannelNotificationShown(channelKey)
+    }
 
     suspend fun setProductive(channelKey: String, productive: Boolean) {
         dao.setYoutubeChannelProductive(channelKey, productive)
@@ -138,23 +94,30 @@ class YoutubeInsightsRepository @Inject constructor(
     /** Maps compact YouTube handles (for example @SAFARPARMAR) to seeded display-name keys. */
     suspend fun channelKey(channelName: String): String = resolveChannelKey(channelName)
 
-    private suspend fun resolveChannelKey(channelName: String): String {
-        val normalized = YoutubeUiParser.normalizeChannel(channelName)
-        val identity = compactIdentity(normalized)
-        val candidates = dao.youtubeChannels().filter { compactIdentity(it.channelKey) == identity }
+    private suspend fun resolveChannelKey(channelName: String): String =
+        resolveChannelKey(listOf(channelName))
+
+    private suspend fun resolveChannelKey(channelNames: Collection<String>): String {
+        val normalizedNames = channelNames.map(YoutubeChannelIdentity::normalize).distinct()
+        val identities = normalizedNames.map(YoutubeChannelIdentity::identityKey).toSet()
+        val candidates = dao.youtubeChannels().filter {
+            YoutubeChannelIdentity.identityKey(it.channelKey) in identities
+        }
         return candidates.firstOrNull { it.isProductive }?.channelKey
             ?: candidates.firstOrNull { it.channelKey in STARTER_CHANNEL_KEYS }?.channelKey
             ?: candidates.firstOrNull()?.channelKey
-            ?: normalized
+            ?: normalizedNames.first()
     }
 
     /** Merges @handle variants such as SAFAR_PARMAR into the seeded Safar Parmar row. */
     private suspend fun consolidateStarterAliases() {
         val rows = dao.youtubeChannels()
         STARTER_CHANNELS.forEach { starterName ->
-            val targetKey = YoutubeUiParser.normalizeChannel(starterName)
+            val targetKey = YoutubeChannelIdentity.normalize(starterName)
             val aliases = rows.filter {
-                it.channelKey != targetKey && compactIdentity(it.channelKey) == compactIdentity(targetKey)
+                it.channelKey != targetKey &&
+                    YoutubeChannelIdentity.identityKey(it.channelKey) ==
+                    YoutubeChannelIdentity.identityKey(targetKey)
             }
             if (aliases.isEmpty()) return@forEach
             val target = dao.youtubeChannel(targetKey) ?: return@forEach
@@ -171,17 +134,6 @@ class YoutubeInsightsRepository @Inject constructor(
             }
         }
     }
-
-    suspend fun shouldBlock(detection: YoutubeDetection, protectedNow: Boolean = com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository.Snapshot.active): Boolean = when {
-        !enabled.value -> false
-        detection.kind == YoutubeContentKind.SHORTS -> true
-        detection.kind == YoutubeContentKind.VIDEO && detection.channelName != null &&
-            !isProductive(detection.channelName) -> true
-        else -> false
-    }
-
-    /** True when content-level rules, rather than generic app blocking, own YouTube. */
-    fun ownsYoutubeBlocking(): Boolean = enabled.value
 
     suspend fun aggregateDate(localDate: String) {
         val intervals = dao.youtubeIntervalsBetween(localDate, localDate)
@@ -321,7 +273,7 @@ class YoutubeInsightsRepository @Inject constructor(
             "Safar Parmar",
             "Khan Academy",
         )
-        val STARTER_CHANNEL_KEYS = STARTER_CHANNELS.map(YoutubeUiParser::normalizeChannel).toSet()
+        val STARTER_CHANNEL_KEYS = STARTER_CHANNELS.map(YoutubeChannelIdentity::normalize).toSet()
         const val CATEGORY_PRODUCTIVE = "productive"
         const val CATEGORY_DISTRACTING = "distracting"
         const val CATEGORY_SHORTS = "shorts"
@@ -329,7 +281,5 @@ class YoutubeInsightsRepository @Inject constructor(
         private const val MIN_INTERVAL_MS = 1_000L
         private const val HEARTBEAT_GRACE_MS = 5_000L
         private const val PERSIST_HEARTBEAT_MS = 2_000L
-        private fun compactIdentity(value: String): String =
-            value.lowercase().filter { it.isLetterOrDigit() }
     }
 }

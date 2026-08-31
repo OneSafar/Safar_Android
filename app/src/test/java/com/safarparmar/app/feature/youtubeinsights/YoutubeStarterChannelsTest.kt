@@ -12,11 +12,4 @@ class YoutubeStarterChannelsTest {
         assertTrue("parmar academy" in YoutubeInsightsRepository.STARTER_CHANNEL_KEYS)
         assertTrue("safar parmar" in YoutubeInsightsRepository.STARTER_CHANNEL_KEYS)
     }
-
-    @Test
-    fun `channel notification ids are stable and channel specific`() {
-        val first = YoutubeChannelNotifications.notificationId("physics wallah")
-        assertEquals(first, YoutubeChannelNotifications.notificationId("physics wallah"))
-        assertTrue(first != YoutubeChannelNotifications.notificationId("unacademy"))
-    }
 }

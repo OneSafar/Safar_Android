@@ -410,6 +410,7 @@ fun PlanPreviewStep(
                 isLoading = isConfirming,
                 enabled = !isConfirming,
                 isLight = isLight,
+                customAccent = accent,
                 modifier = Modifier.weight(1.2f),
             )
         }
@@ -621,14 +622,19 @@ private fun TopicPill(
                     .clip(CircleShape)
                     .background(subjectDotColor(topic.subjectColor)),
             )
+            val isLight = scheme.background.isLightBackground()
+            val chapterColor = if (isLight) Color(0xFF0284C7) else Color(0xFF38BDF8)
+            val subjectColor = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+            val dividerColor = if (isLight) Color(0xFF94A3B8) else Color(0xFF64748B)
+
             Column(
                 modifier = Modifier.padding(start = 10.dp).weight(1f),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     topic.topicName,
-                    fontSize = 13.5.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
                     color = scheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -637,31 +643,29 @@ private fun TopicPill(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (topic.subjectName.isNotBlank()) {
-                        // Muted, not coloured — the subject is already carried by the
-                        // dot on the left, so a blue label on every single row just
-                        // shouted and crowded the list.
+                    if (topic.chapterName.isNotBlank()) {
                         Text(
-                            topic.subjectName,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = PlannerFlatColors.TextMuted,
+                            topic.chapterName,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = chapterColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    if (topic.subjectName.isNotBlank() && topic.chapterName.isNotBlank()) {
+                    if (topic.chapterName.isNotBlank() && topic.subjectName.isNotBlank()) {
                         Text(
                             "·",
                             fontSize = 11.sp,
-                            color = scheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            color = dividerColor,
                         )
                     }
-                    if (topic.chapterName.isNotBlank()) {
+                    if (topic.subjectName.isNotBlank()) {
                         Text(
-                            topic.chapterName,
+                            topic.subjectName,
                             fontSize = 11.sp,
-                            color = scheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium,
+                            color = subjectColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false),

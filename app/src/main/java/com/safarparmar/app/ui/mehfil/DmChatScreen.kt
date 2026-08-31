@@ -82,20 +82,41 @@ fun DmChatScreen(
 
     // Show a clean waiting/pending UI while the other person hasn't accepted yet.
     if (dmState is DmState.Waiting) {
+        val targetName = dmState.userName.ifBlank { effectiveTargetName }
         DmWaitingScreen(
-            peerName = dmState.userName.ifBlank { effectiveTargetName },
+            peerName = targetName,
             error = uiState.dmError,
             onBack = onBack,
+            title = "Connection Request Sent!",
+            subtitle = "Waiting for ${targetName.ifBlank { "the student" }} to accept your Mehfil Connect request.\n\nYou will automatically enter the chat room once accepted.",
+            onRetry = {
+                if (!effectiveTargetUserId.isNullOrBlank()) {
+                    viewModel.sendDmRequest(
+                        targetUserId = effectiveTargetUserId,
+                        targetUserName = effectiveTargetName,
+                    )
+                }
+            },
         )
         return
     }
 
     if (dmState !is DmState.Open) {
-        // Transition state (sending request, connecting, waiting for server ack)
+        // Transition state (acceptor entering chat room, connecting, or waiting for socket ack)
         DmWaitingScreen(
             peerName = effectiveTargetName,
             error = uiState.dmError,
             onBack = onBack,
+            title = "Connecting to Chat...",
+            subtitle = "Entering private chat with $effectiveTargetName...",
+            onRetry = {
+                if (!effectiveTargetUserId.isNullOrBlank()) {
+                    viewModel.sendDmRequest(
+                        targetUserId = effectiveTargetUserId,
+                        targetUserName = effectiveTargetName,
+                    )
+                }
+            },
         )
         return
     }
@@ -172,28 +193,34 @@ private fun DmWaitingScreen(
     peerName: String,
     error: String?,
     onBack: () -> Unit,
+    onRetry: (() -> Unit)? = null,
+    title: String = "Connection Request Sent!",
+    subtitle: String = "Waiting for ${peerName.ifBlank { "the student" }} to accept your Mehfil Connect request.\n\nYou will automatically enter the chat room once accepted.",
 ) {
     BackHandler { onBack() }
     Scaffold(
         containerColor = MehfilFlatColors.Bg,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
-            Column(Modifier.fillMaxWidth().background(MehfilFlatColors.Bg)) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .background(MehfilFlatColors.Surface)
+                    .statusBarsPadding()
+            ) {
                 Row(
-                    Modifier
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .background(MehfilFlatColors.Primary.copy(alpha = 0.09f))
-                        .statusBarsPadding()
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Box(
-                        modifier = androidx.compose.ui.Modifier
-                            .size(36.dp)
+                        modifier = Modifier
+                            .size(32.dp)
                             .clip(CircleShape)
                             .background(MehfilFlatColors.Primary)
-                            .clickable(onClick = onBack),
+                            .clickable { onBack() },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -226,43 +253,63 @@ private fun DmWaitingScreen(
         ) {
             Column(
                 modifier = Modifier
+                    .fillMaxWidth(0.9f)
                     .clip(RoundedCornerShape(20.dp))
                     .background(MehfilFlatColors.Primary.copy(alpha = 0.08f))
                     .border(1.dp, MehfilFlatColors.Primary.copy(alpha = 0.18f), RoundedCornerShape(20.dp))
                     .padding(horizontal = 28.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = null,
-                    tint = MehfilFlatColors.Primary,
-                    modifier = Modifier.size(36.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MehfilFlatColors.Primary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Chat,
+                        contentDescription = null,
+                        tint = MehfilFlatColors.Primary,
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
                 Text(
-                    "Request Sent!",
+                    text = if (error.isNullOrBlank()) title else "Connection Status",
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
                     color = MehfilFlatColors.Text,
                 )
                 if (!error.isNullOrBlank()) {
                     Text(
-                        error,
-                        fontSize = 13.sp,
+                        text = error,
+                        fontSize = 13.5.sp,
                         color = MehfilFlatColors.Like,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        lineHeight = 18.sp,
                     )
+                    if (onRetry != null) {
+                        Button(
+                            onClick = onRetry,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MehfilFlatColors.Primary),
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        ) {
+                            Text("Try Again", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
                 } else {
                     Text(
-                        "Waiting for ${peerName.ifBlank { "the student" }} to accept your Mehfil Connect request.",
+                        text = subtitle,
                         fontSize = 13.sp,
                         color = MehfilFlatColors.Muted,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         lineHeight = 19.sp,
                     )
                     androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.5.dp,
                         color = MehfilFlatColors.Primary,
                     )
                 }

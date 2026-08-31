@@ -196,9 +196,9 @@ class ProfileViewModel @Inject constructor(
 
     private fun handleLogout() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, showLogoutDialog = false) }
+            _uiState.update { it.copy(isLoggingOut = true, showLogoutDialog = false) }
             authRepository.logout()
-            _uiState.update { it.copy(isLoading = false) }
+            _uiState.update { it.copy(isLoggingOut = false) }
         }
     }
 
@@ -218,6 +218,11 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun logout(onDone: () -> Unit) {
-        viewModelScope.launch { authRepository.logout(); onDone() }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoggingOut = true, showLogoutDialog = false) }
+            authRepository.logout()
+            _uiState.update { it.copy(isLoggingOut = false) }
+            onDone()
+        }
     }
 }

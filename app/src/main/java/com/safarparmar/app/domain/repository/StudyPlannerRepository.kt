@@ -8,6 +8,8 @@ import com.safarparmar.app.data.remote.api.CreatePlanRequest
 import com.safarparmar.app.data.remote.api.PlanConfirmRequest
 import com.safarparmar.app.data.remote.api.PlanPreviewRequest
 import com.safarparmar.app.data.remote.api.PlanPreviewResult
+import com.safarparmar.app.data.remote.api.SavedSyllabus
+import com.safarparmar.app.data.remote.api.SaveSyllabusRequest
 import com.safarparmar.app.data.remote.api.SubjectRequest
 import com.safarparmar.app.data.remote.api.BulkTopicsRequest
 import com.safarparmar.app.data.remote.api.ImportSyllabusRequest
@@ -43,6 +45,12 @@ interface StudyPlannerRepository {
     suspend fun createPlanFromTemplate(request: CreateFromTemplateRequest): Resource<StudyPlan>
     suspend fun previewPlan(request: PlanPreviewRequest): Resource<PlanPreviewResult>
     suspend fun confirmPlan(draftId: String): Resource<StudyPlan>
+    suspend fun getSavedSyllabi(): Resource<List<SavedSyllabus>>
+    suspend fun saveSyllabus(request: SaveSyllabusRequest): Resource<SavedSyllabus>
+    suspend fun saveSyllabusDraft(request: SaveSyllabusRequest): Resource<SavedSyllabus>
+    suspend fun updateSavedSyllabus(syllabusId: String, request: SaveSyllabusRequest): Resource<SavedSyllabus>
+    suspend fun deleteSavedSyllabus(syllabusId: String): Resource<Unit>
+    suspend fun savePlanSyllabus(planId: String): Resource<SavedSyllabus>
     suspend fun getPlan(planId: String): Resource<StudyPlan>
     suspend fun updatePlan(planId: String, request: UpdatePlanRequest): Resource<StudyPlan>
     suspend fun undoRollover(planId: String, request: RolloverUndoRequest): Resource<RolloverUndoResult>

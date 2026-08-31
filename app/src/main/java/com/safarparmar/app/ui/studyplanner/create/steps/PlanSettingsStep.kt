@@ -57,6 +57,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.PlannerExamDateField
 import com.safarparmar.app.ui.studyplanner.logic.jsDayOfWeek
 import com.safarparmar.app.ui.studyplanner.plan.PlanEyebrow
@@ -179,6 +180,32 @@ fun PlanSettingsStep(
                     },
                 )
             }
+
+            Spacer(Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(accent.copy(alpha = 0.08f))
+                    .clickable { onOpenDeepFocusOrder() }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Rearrange chapters & topics order",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accent,
+                )
+                Text(
+                    "Customize →",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accent,
+                )
+            }
         }
 
         PlanHairline(alpha = 0.5f)
@@ -248,12 +275,7 @@ fun PlanSettingsStep(
         Spacer(Modifier.height(4.dp))
 
         val isLight = scheme.background.isLightBackground()
-        val styleAccent = when (studyStyle) {
-            "deep_focus" -> PlannerAccent.Coral
-            "mixed_bag" -> PlannerAccent.Teal
-            "balanced" -> PlannerAccent.Amber
-            else -> null
-        }
+        val sourceAccent = PlannerFlatColors.PrimaryAccent
 
         MacOSPrimaryActionButton(
             text = "Build my plan",
@@ -266,7 +288,7 @@ fun PlanSettingsStep(
                 }
             },
             isLight = isLight,
-            customAccent = styleAccent,
+            customAccent = sourceAccent,
         )
     }
 }
@@ -386,4 +408,3 @@ private fun StudyStyleIconOption(
         )
     }
 }
-

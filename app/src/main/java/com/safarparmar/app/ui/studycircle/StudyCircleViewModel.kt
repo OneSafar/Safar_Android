@@ -11,6 +11,7 @@ import com.safarparmar.app.util.safeApiCall
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +46,13 @@ data class StudyCircleDetailState(
     val actionInProgress: Boolean = false,
 )
 
+data class PendingStudyCircleDmRequest(
+    val userId: String,
+    val userName: String,
+    val requestId: String,
+    val userAvatar: String? = null,
+)
+
 @HiltViewModel
 class StudyCircleViewModel @Inject constructor(
     private val api: StudyCircleApi,
@@ -58,12 +66,93 @@ class StudyCircleViewModel @Inject constructor(
     private val _message = MutableStateFlow<String?>(null)
     val message = _message.asStateFlow()
 
+    private val _pendingDmRequests = MutableStateFlow<List<PendingStudyCircleDmRequest>>(emptyList())
+    val pendingDmRequests = _pendingDmRequests.asStateFlow()
+
     val currentUserId = dataStore.userId.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
     val isAdmin = dataStore.isAdmin.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val mehfilDm = dataStore.premiumFeatureMehfilDm.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val isPremium = dataStore.isPremium.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    init { loadHub() }
+    init {
+        loadHub()
+        observeDmEvents()
+    }
+
+    private fun observeDmEvents() {
+        viewModelScope.launch {
+            val token = dataStore.authToken.firstOrNull() ?: ""
+            val userId = dataStore.userId.firstOrNull() ?: ""
+            val userName = dataStore.userName.firstOrNull() ?: "Safarite"
+            val avatar = dataStore.userAvatar.firstOrNull()
+            if (token.isNotEmpty() && userId.isNotEmpty() && !socketManager.isConnected()) {
+                socketManager.connect(token, userId, userName, avatar)
+            }
+
+            socketManager.dmEvent.collect { event ->
+                when (event.type) {
+                    "incoming_request" -> {
+                        _pendingDmRequests.update { list ->
+                            listOf(
+                                PendingStudyCircleDmRequest(
+                                    userId = event.fromUserId,
+                                    userName = event.fromUserName.ifBlank { event.fromUserId },
+                                    requestId = event.requestId.ifBlank { event.fromUserId },
+                                    userAvatar = event.fromUserAvatar,
+                                )
+                            ) + list.filterNot { it.userId == event.fromUserId }
+                        }
+                    }
+                    "sync_pending" -> {
+                        _pendingDmRequests.update {
+                            event.pendingList.map { id ->
+                                PendingStudyCircleDmRequest(
+                                    userId = id,
+                                    userName = id,
+                                    requestId = id,
+                                )
+                            }
+                        }
+                    }
+                    "declined", "accepted" -> {
+                        _pendingDmRequests.update { list ->
+                            list.filterNot { it.userId == event.fromUserId }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun acceptDmRequest(fromUserId: String, onAccepted: (userId: String, userName: String) -> Unit) {
+        viewModelScope.launch {
+            val token = dataStore.authToken.firstOrNull() ?: ""
+            val userId = dataStore.userId.firstOrNull() ?: ""
+            val userName = dataStore.userName.firstOrNull() ?: "Safarite"
+            val avatar = dataStore.userAvatar.firstOrNull()
+            if (token.isNotEmpty() && userId.isNotEmpty() && !socketManager.isConnected()) {
+                socketManager.connect(token, userId, userName, avatar)
+                withTimeoutOrNull(4000) {
+                    while (!socketManager.isConnected()) delay(150)
+                }
+            }
+            val pending = _pendingDmRequests.value.firstOrNull { it.userId == fromUserId }
+            val requestId = pending?.requestId.orEmpty()
+            val uName = pending?.userName.orEmpty().ifBlank { fromUserId }
+            socketManager.emitDmAccept(requestId = requestId, fromUserId = fromUserId)
+            _pendingDmRequests.update { list -> list.filterNot { it.userId == fromUserId } }
+            onAccepted(fromUserId, uName)
+        }
+    }
+
+    fun declineDmRequest(fromUserId: String) {
+        viewModelScope.launch {
+            val pending = _pendingDmRequests.value.firstOrNull { it.userId == fromUserId }
+            val requestId = pending?.requestId.orEmpty()
+            socketManager.emitDmDecline(requestId = requestId, fromUserId = fromUserId)
+            _pendingDmRequests.update { list -> list.filterNot { it.userId == fromUserId } }
+        }
+    }
 
     fun consumeMessage() { _message.value = null }
 

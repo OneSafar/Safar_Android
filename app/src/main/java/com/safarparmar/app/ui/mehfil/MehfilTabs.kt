@@ -1098,14 +1098,22 @@ private fun PendingRequestsCard(
             Text("Chat requests", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MehfilFlatColors.Chats)
         }
         pending.forEach { request ->
+            var acceptingThis by remember { mutableStateOf(false) }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MiniDmAvatar(name = request.userName, avatarUrl = request.userAvatar)
                 Text(request.userName, fontSize = 13.sp, color = MehfilFlatColors.Text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                FlatPrimaryButton(
-                    text = "Accept",
-                    onClick = { onAcceptDm(request.userId) },
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
-                )
+                if (acceptingThis) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp).padding(2.dp), strokeWidth = 2.dp, color = MehfilFlatColors.Primary)
+                } else {
+                    FlatPrimaryButton(
+                        text = "Accept",
+                        onClick = {
+                            acceptingThis = true
+                            onAcceptDm(request.userId)
+                        },
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
+                    )
+                }
                 FlatOutlineButton(
                     text = "Decline",
                     onClick = { onDeclineDm(request.userId) },

@@ -131,7 +131,6 @@ private val deepLinkOptions = listOf(
     AdminDeepLinkOption("Kavach About", "safar://kavach/about"),
     AdminDeepLinkOption("Kavach App Categories", "safar://kavach/app_categories"),
     AdminDeepLinkOption("YouTube Study Mode", "safar://youtube_study_mode"),
-    AdminDeepLinkOption("YouTube Study Analytics", "safar://youtube_study_mode/analytics"),
     AdminDeepLinkOption("Ekagra (Ekagra)", "safar://ekagra"),
     AdminDeepLinkOption("Dhyan (Mindfulness)", "safar://dhyan"),
     AdminDeepLinkOption("Courses", "safar://dhyan_courses"),

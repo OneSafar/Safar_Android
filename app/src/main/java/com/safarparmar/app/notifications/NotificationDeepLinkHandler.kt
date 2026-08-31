@@ -88,7 +88,8 @@ object NotificationDeepLinkHandler {
                 "app_categories" -> Routes.KAVACH_APP_CATEGORIES
                 else -> Routes.FOCUS_SHIELD
             }
-            "youtube_study_mode" -> if (firstSegment == "analytics") Routes.YOUTUBE_STUDY_ANALYTICS else Routes.YOUTUBE_STUDY_MODE
+            "youtube_study_mode" -> Routes.YOUTUBE_STUDY_MODE_V2
+            "youtube_study_v2" -> Routes.YOUTUBE_STUDY_MODE_V2
             "course" -> Routes.COURSES
             "studyplanner", "study_planner" -> {
                 val planId = queryUri?.getQueryParameter("planId").orEmpty()

@@ -21,6 +21,7 @@ import com.safarparmar.app.data.remote.api.PlanRestoreResult
 import com.safarparmar.app.data.remote.api.ReorderSyllabusRequest
 import com.safarparmar.app.data.remote.api.RolloverUndoRequest
 import com.safarparmar.app.data.remote.api.RevisionDateChangeRequest
+import com.safarparmar.app.data.remote.api.SaveSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructureSyllabusResponse
 import com.safarparmar.app.data.remote.api.StructuredSyllabusPreview
@@ -77,6 +78,14 @@ class StudyPlannerRepositoryImpl @Inject constructor(
     override suspend fun createPlanFromTemplate(request: CreateFromTemplateRequest): Resource<StudyPlan> = safeApiCall { api.createPlanFromTemplate(request) }
     override suspend fun previewPlan(request: PlanPreviewRequest): Resource<PlanPreviewResult> = safeApiCall { api.previewPlan(request) }
     override suspend fun confirmPlan(draftId: String): Resource<StudyPlan> = safeApiCall { api.confirmPlan(PlanConfirmRequest(draftId)) }
+    override suspend fun getSavedSyllabi() = safeApiCall { api.getSavedSyllabi() }
+    override suspend fun saveSyllabus(request: SaveSyllabusRequest) = safeApiCall { api.saveSyllabus(request) }
+    override suspend fun saveSyllabusDraft(request: SaveSyllabusRequest) = safeApiCall { api.saveSyllabusDraft(request) }
+    override suspend fun updateSavedSyllabus(syllabusId: String, request: SaveSyllabusRequest) =
+        safeApiCall { api.updateSavedSyllabus(syllabusId, request) }
+    override suspend fun deleteSavedSyllabus(syllabusId: String): Resource<Unit> =
+        safeApiCall { api.deleteSavedSyllabus(syllabusId) }.map { }
+    override suspend fun savePlanSyllabus(planId: String) = safeApiCall { api.savePlanSyllabus(planId) }
     override suspend fun getPlan(planId: String): Resource<StudyPlan> = safeApiCall {
         api.getPlan(planId, LocalDate.now().toString(), ZoneId.systemDefault().id)
     }

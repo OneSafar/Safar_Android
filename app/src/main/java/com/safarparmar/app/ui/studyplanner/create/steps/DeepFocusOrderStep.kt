@@ -90,11 +90,12 @@ private fun uniqueNameKeys(names: List<String>): List<String> {
 fun DeepFocusOrderStep(
     outline: List<DeepFocusOutlineSubject>,
     drillSubjectIndex: Int?,
-    onDrillIntoSubject: (Int) -> Unit,
+    onDrillIntoSubject: (Int?) -> Unit,
     onMoveSubject: (fromIndex: Int, toIndex: Int) -> Unit,
     onMoveChapter: (subjectName: String, fromIndex: Int, toIndex: Int) -> Unit,
     onMoveTopic: (subjectName: String, chapterName: String, fromIndex: Int, toIndex: Int) -> Unit,
     onContinue: () -> Unit = {},
+    canReorderSubjects: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val subject = drillSubjectIndex?.let { outline.getOrNull(it) }
@@ -105,7 +106,11 @@ fun DeepFocusOrderStep(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Tap a subject to order its chapters and topics. Press and hold anywhere on a card, then drag, to reorder it.",
+                if (canReorderSubjects) {
+                    "Tap a subject to order its chapters and topics. Press and hold anywhere on a card, then drag, to reorder it."
+                } else {
+                    "Your priority order is set (1, 2, 3). Tap any subject below to arrange its chapters and topics."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -122,9 +127,10 @@ fun DeepFocusOrderStep(
                         elevation = 10f,
                         cornerRadius = 18.dp,
                         onClick = { onDrillIntoSubject(subjectIndex) },
-                        onMoveUp = { onMoveSubject(subjectIndex, subjectIndex - 1) },
-                        onMoveDown = { onMoveSubject(subjectIndex, subjectIndex + 1) },
+                        onMoveUp = { if (canReorderSubjects) onMoveSubject(subjectIndex, subjectIndex - 1) },
+                        onMoveDown = { if (canReorderSubjects) onMoveSubject(subjectIndex, subjectIndex + 1) },
                         useCardSurface = true,
+                        canDrag = canReorderSubjects,
                         modifier = Modifier.animateItem(),
                     )
                 }
@@ -135,7 +141,7 @@ fun DeepFocusOrderStep(
                 text = "Continue",
                 onClick = onContinue,
                 isLight = isLight,
-                customAccent = PlannerAccent.Coral,
+                customAccent = PlannerFlatColors.PrimaryAccent,
             )
         }
     } else {
@@ -174,6 +180,14 @@ fun DeepFocusOrderStep(
                     )
                 }
             }
+
+            val isLight = MaterialTheme.colorScheme.background.isLightBackground()
+            MacOSPrimaryActionButton(
+                text = "Back to subjects",
+                onClick = { onDrillIntoSubject(null) },
+                isLight = isLight,
+                customAccent = PlannerAccent.Teal,
+            )
         }
 
         val openChapter = openChapterName?.let { name -> subject.chapters.find { it.name == name } }
@@ -286,6 +300,7 @@ private fun DeepFocusRow(
     useCardSurface: Boolean,
     modifier: Modifier = Modifier,
     usePlannerFlatColors: Boolean = false,
+    canDrag: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
@@ -332,40 +347,46 @@ private fun DeepFocusRow(
             shape = RoundedCornerShape(cornerRadius)
             clip = false
         }
-        .pointerInput(Unit) {
-            detectDragGesturesAfterLongPress(
-                onDragStart = {
-                    isDragging = true
-                    dragOffsetY = 0f
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                },
-                onDragEnd = {
-                    isDragging = false
-                    dragOffsetY = 0f
-                },
-                onDragCancel = {
-                    isDragging = false
-                    dragOffsetY = 0f
-                },
-                onDrag = { change, dragAmount ->
-                    change.consume()
-                    dragOffsetY += dragAmount.y
-                    val threshold = itemHeightPx * 0.5f
-                    if (threshold > 0) {
-                        while (dragOffsetY >= threshold) {
-                            currentOnMoveDown()
-                            dragOffsetY -= itemHeightPx
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        }
-                        while (dragOffsetY <= -threshold) {
-                            currentOnMoveUp()
-                            dragOffsetY += itemHeightPx
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        }
-                    }
-                },
-            )
-        }
+        .then(
+            if (canDrag) {
+                Modifier.pointerInput(Unit) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = {
+                            isDragging = true
+                            dragOffsetY = 0f
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        },
+                        onDragEnd = {
+                            isDragging = false
+                            dragOffsetY = 0f
+                        },
+                        onDragCancel = {
+                            isDragging = false
+                            dragOffsetY = 0f
+                        },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            dragOffsetY += dragAmount.y
+                            val threshold = itemHeightPx * 0.5f
+                            if (threshold > 0) {
+                                while (dragOffsetY >= threshold) {
+                                    currentOnMoveDown()
+                                    dragOffsetY -= itemHeightPx
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                                while (dragOffsetY <= -threshold) {
+                                    currentOnMoveUp()
+                                    dragOffsetY += itemHeightPx
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            }
+                        },
+                    )
+                }
+            } else {
+                Modifier
+            }
+        )
 
     Surface(
         modifier = shared,

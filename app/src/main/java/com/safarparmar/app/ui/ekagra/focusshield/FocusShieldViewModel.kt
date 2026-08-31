@@ -168,7 +168,6 @@ class FocusShieldViewModel @Inject constructor(
             "com.ss.android.ugc.trill",
             "tv.twitch.android.app",
             "com.netflix.mediaclient",
-            "com.google.android.youtube",
             "com.reddit.frontpage"
         )
         val current = repo.blockedPackages.value.toMutableSet()

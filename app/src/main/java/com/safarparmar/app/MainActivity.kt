@@ -62,6 +62,9 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
     @Inject
     lateinit var maintenanceStateManager: com.safarparmar.app.data.remote.maintenance.MaintenanceStateManager
 
+    @Inject
+    lateinit var youtubeStudyV2HealthMonitor: com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2HealthMonitor
+
     private var timerService by mutableStateOf<TimerService?>(null)
     var navigateToEkagra by mutableStateOf(false)
         private set
@@ -173,6 +176,11 @@ class MainActivity : AppCompatActivity(), PaymentResultWithDataListener {
 
     fun resetNavigateToEkagra() { navigateToEkagra = false }
     fun resetNotificationRoute() { notificationRoute = null }
+
+    override fun onResume() {
+        super.onResume()
+        youtubeStudyV2HealthMonitor.checkOnAppResume(this)
+    }
 
     private fun applyOrientationPolicy() {
         val currentRequest = requestedOrientation

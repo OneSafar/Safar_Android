@@ -122,7 +122,12 @@ class MehfilRepositoryImpl @Inject constructor(
             ?: author?.name?.takeIf { it.isNotBlank() }
             ?: "Anonymous"
         val resolvedAvatar = authorAvatar ?: author?.avatar
-        val resolvedUserId = userId ?: author?.id ?: ""
+        val resolvedUserId = userId?.takeIf { it.isNotBlank() }
+            ?: user?.takeIf { it.isNotBlank() }
+            ?: authorId?.takeIf { it.isNotBlank() }
+            ?: author?.id?.takeIf { it.isNotBlank() }
+            ?: author?.mongoId?.takeIf { it.isNotBlank() }
+            ?: ""
         val displayName    = if (isAnonymous == true) "Anonymous" else resolvedName
         val resolvedSpace  = space?.takeIf { it.isNotBlank() } ?: category ?: ""
         val resolvedReactions = relatableCount ?: reactionCount ?: 0

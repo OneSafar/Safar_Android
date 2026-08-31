@@ -240,7 +240,7 @@ data class CompleteGoalRequest(
     val completedAt: String,
     val studiedMinutes: Int,
     @SerializedName("studied_seconds") val studiedSeconds: Int? = null,
-    @SerializedName("completed_via_focus") val completedViaFocus: Boolean = true,
+    @SerializedName("completed_via_focus") val completedViaFocus: Boolean = false,
     val scheduledDate: String? = null,
 )
 

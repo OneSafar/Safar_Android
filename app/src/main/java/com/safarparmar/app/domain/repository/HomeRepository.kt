@@ -47,6 +47,7 @@ interface HomeRepository {
         studiedMinutes: Int,
         studiedSeconds: Int = 0,
         scheduledDate: String? = null,
+        completedViaFocus: Boolean = false,
     ): Resource<Unit>
     suspend fun deleteGoal(id: String): Resource<Unit>
     suspend fun getRecentlyDeletedGoals(): Resource<List<Goal>>

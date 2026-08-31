@@ -16,6 +16,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <!-- Allow PackageManager to resolve launchable apps for the app picker. -->
     <queries>
         <intent>
@@ -103,21 +104,26 @@
                 android:value="Digital wellbeing: the student turns on KAVACH to block distracting apps they chose themselves, for as long as they leave it on. Blocking must continue while SAFAR is in the background, so the check cannot be deferred to a job. No other foregroundServiceType applies." /></service>
 
         <service
-            android:name=".feature.youtubeinsights.YoutubeInsightsAccessibilityService"
+            android:name=".feature.youtubestudyv2.YoutubeStudyV2AccessibilityService"
             android:exported="true"
-            android:label="@string/youtube_insights_accessibility_label"
+            android:label="@string/youtube_study_v2_accessibility_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"
-                android:resource="@xml/youtube_insights_accessibility_service" />
+                android:resource="@xml/youtube_study_v2_accessibility_service" />
         </service>
 
-        <receiver
-            android:name=".feature.youtubeinsights.YoutubeChannelActionReceiver"
-            android:exported="false" />
+        <service
+            android:name=".feature.youtubestudyv2.YoutubeStudyV2GuardService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Digital wellbeing: maintains the explicitly enabled YouTube Study Mode V2 accessibility monitor while SAFAR is backgrounded." />
+        </service>
 
         <!-- Supporting locale sync and persist for pre-Android 13 devices using AppCompat -->
         <service

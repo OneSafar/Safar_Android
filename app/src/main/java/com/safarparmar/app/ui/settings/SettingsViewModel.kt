@@ -98,19 +98,19 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 listOf(
-                    dataStore.notificationsEnabled.map { it as Any },
-                    dataStore.focusTimerNotificationsEnabled.map { it as Any },
-                    dataStore.dailyStudyReminderEnabled.map { it as Any },
-                    dataStore.streakReminderEnabled.map { it as Any },
-                    dataStore.courseUpdatesEnabled.map { it as Any },
-                    dataStore.achievementsEnabled.map { it as Any },
-                    dataStore.communityRepliesEnabled.map { it as Any },
-                    dataStore.announcementsEnabled.map { it as Any },
-                    dataStore.weeklySummaryEnabled.map { it as Any },
-                    dataStore.dailyReminderTime.map { it as Any },
-                    dataStore.quietHoursStart.map { it as Any },
-                    dataStore.quietHoursEnd.map { it as Any },
-                    dataStore.userEmail.map { it as Any },
+                    dataStore.notificationsEnabled,
+                    dataStore.focusTimerNotificationsEnabled,
+                    dataStore.dailyStudyReminderEnabled,
+                    dataStore.streakReminderEnabled,
+                    dataStore.courseUpdatesEnabled,
+                    dataStore.achievementsEnabled,
+                    dataStore.communityRepliesEnabled,
+                    dataStore.announcementsEnabled,
+                    dataStore.weeklySummaryEnabled,
+                    dataStore.dailyReminderTime,
+                    dataStore.quietHoursStart,
+                    dataStore.quietHoursEnd,
+                    dataStore.userEmail.map { it.orEmpty() },
                 ),
             ) { values ->
                 _uiState.update { current ->
@@ -127,7 +127,7 @@ class SettingsViewModel @Inject constructor(
                         dailyReminderTime = values[9] as String,
                         quietHoursStart = values[10] as String,
                         quietHoursEnd = values[11] as String,
-                        userEmail = (values[12] as? String) ?: current.userEmail,
+                        userEmail = (values[12] as String).takeIf { it.isNotBlank() } ?: current.userEmail,
                     )
                 }
             }.collect()

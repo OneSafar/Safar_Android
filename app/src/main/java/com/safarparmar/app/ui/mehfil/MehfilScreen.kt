@@ -203,15 +203,13 @@ fun MehfilScreen(
         },
         onConnect = { post ->
             dmChatNavigated.value = false
-            val sent = viewModel.sendDmRequest(
+            viewModel.sendDmRequest(
                 targetUserId = post.userId,
                 targetUserName = post.authorName,
                 contextPostId = post.id,
                 contextPreview = post.content.take(60),
             )
-            if (sent) {
-                tabBackStack.select(MehfilTab.CONNECTIONS)
-            }
+            tabBackStack.select(MehfilTab.CONNECTIONS)
         },
         onAcceptDm = { userId ->
             dmChatNavigated.value = false

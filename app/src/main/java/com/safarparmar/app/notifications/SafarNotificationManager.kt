@@ -189,6 +189,12 @@ class SafarNotificationManager(
         notificationManager.notify(summaryId, summaryNotification)
     }
 
+    /** Cancels a child and immediately removes/updates any now-stale OEM group summary. */
+    fun cancelGrouped(notificationId: Int, channelId: String) {
+        notificationManager.cancel(notificationId)
+        postGroupSummary(SafarNotificationChannels.normalize(channelId))
+    }
+
     /** Channel-scoped group key for the notification shade bundling. */
     private fun groupKeyForChannel(channelId: String): String = "safar_group_$channelId"
 
@@ -257,11 +263,11 @@ class SafarNotificationManager(
         dedupeType: String? = null,
         /** Optional HTTPS image URL / YouTube thumbnail for Rich Notifications */
         imageUrl: String? = null,
-    ) {
+    ): Boolean {
         val resolvedId = notificationId ?: stableNotificationId(type = dedupeType, deepLink = deepLink, title = title)
         val normalizedChannel = SafarNotificationChannels.normalize(channelId)
         if (evaluateNotificationAvailability(normalizedChannel).reason != NotificationAvailabilityReason.allowed) {
-            return
+            return false
         }
         val personalizedBody = if (personalize) personalizeBody(body) else body
         val imageBitmap = fetchBitmap(imageUrl)
@@ -281,6 +287,7 @@ class SafarNotificationManager(
         )
         // P2 fix: post group summary so Android collapses stacked channel notifications
         postGroupSummary(normalizedChannel)
+        return true
     }
 
     private suspend fun personalizeBody(body: String): String = body

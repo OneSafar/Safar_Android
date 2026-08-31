@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.plan.PlanHairline
 import com.safarparmar.app.ui.theme.isLightBackground
 import com.safarparmar.app.ui.studyplanner.screens.PremiumPlannerGateCard
@@ -540,6 +541,7 @@ fun TemplatePickerStep(
                 onClick = onContinue,
                 enabled = canUsePremiumPlannerFeatures && remainingTopicCount > 0,
                 isLight = isLight,
+                customAccent = PlannerFlatColors.PrimaryAccent,
             )
         }
     }

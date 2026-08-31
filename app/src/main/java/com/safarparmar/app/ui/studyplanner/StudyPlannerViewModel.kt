@@ -33,6 +33,7 @@ import com.safarparmar.app.domain.model.studyplanner.ExamTemplateSummary
 import com.safarparmar.app.domain.model.studyplanner.PlannerAnalytics
 import com.safarparmar.app.domain.model.studyplanner.PlannerSection
 import com.safarparmar.app.domain.model.studyplanner.StudyPlan
+import com.safarparmar.app.data.remote.api.SavedSyllabus
 import com.safarparmar.app.domain.model.studyplanner.StudyTopic
 import com.safarparmar.app.domain.model.studyplanner.TopicStatus
 import com.safarparmar.app.domain.model.studyplanner.RevisionCompletion
@@ -118,6 +119,7 @@ data class FinishDayUndoState(
 data class StudyPlannerUiState(
     val plans: List<StudyPlan> = emptyList(),
     val templates: List<ExamTemplateSummary> = emptyList(),
+    val draftSyllabi: List<com.safarparmar.app.data.remote.api.SavedSyllabus> = emptyList(),
     val selectedPlan: StudyPlan? = null,
     val calendar: CalendarMap = emptyMap(),
     val analytics: PlannerAnalytics? = null,
@@ -453,6 +455,10 @@ class StudyPlannerViewModel @Inject constructor(
     override fun refreshPlans() {
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null) }
+            when (val drafts = repo.getSavedSyllabi()) {
+                is Resource.Success -> _uiState.update { it.copy(draftSyllabi = drafts.data.filter { s -> s.isDraft }) }
+                else -> Unit
+            }
             when (val r = repo.listPlans()) {
                 is Resource.Success -> {
                     _uiState.update { it.copy(plans = r.data, loading = false) }
@@ -617,6 +623,29 @@ class StudyPlannerViewModel @Inject constructor(
                     refreshPlans()
                 }
                 is Resource.Error -> _uiState.update { it.copy(mutating = false, error = r.message) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    override fun saveCurrentSyllabusForReuse() {
+        val planId = _uiState.value.selectedPlan?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(mutating = true, error = null) }
+            when (val result = repo.savePlanSyllabus(planId)) {
+                is Resource.Success -> _uiState.update { state ->
+                    val updatedPlan = state.selectedPlan?.takeIf { it.id == planId }
+                        ?.copy(savedSyllabusId = result.data.id)
+                    state.copy(
+                        mutating = false,
+                        selectedPlan = updatedPlan ?: state.selectedPlan,
+                        plans = state.plans.map { plan ->
+                            if (plan.id == planId) plan.copy(savedSyllabusId = result.data.id) else plan
+                        },
+                        message = "Syllabus saved for reuse",
+                    )
+                }
+                is Resource.Error -> _uiState.update { it.copy(mutating = false, error = result.message) }
                 is Resource.Loading -> Unit
             }
         }
@@ -1972,6 +2001,10 @@ class StudyPlannerViewModel @Inject constructor(
      * calendar/analytics until the next manual refresh.
      */
     private fun hydratePlanFromServerBestEffort(planId: String) = viewModelScope.launch {
+        when (val drafts = repo.getSavedSyllabi()) {
+            is Resource.Success -> _uiState.update { it.copy(draftSyllabi = drafts.data.filter { s -> s.isDraft }) }
+            else -> Unit
+        }
         when (val plansResult = repo.listPlans()) {
             is Resource.Success -> _uiState.update { it.copy(plans = plansResult.data) }
             else -> Unit

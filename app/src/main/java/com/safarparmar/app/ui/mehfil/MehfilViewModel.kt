@@ -13,11 +13,14 @@ import com.safarparmar.app.domain.repository.MehfilRepository
 import com.safarparmar.app.domain.repository.AuthRepository
 import com.safarparmar.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 enum class DmMessageState { SENDING, SENT, FAILED }
@@ -243,41 +246,31 @@ class MehfilViewModel @Inject constructor(
                         ) }
                         "incoming_request" -> _uiState.update { it.copy(
                             dmState = DmState.IncomingRequest(event.fromUserId, event.fromUserName, event.fromUserAvatar),
-                            pendingDmRequests = listOf(PendingDmRequest(event.fromUserId, event.fromUserName, event.requestId, event.fromUserAvatar)) +
+                            pendingDmRequests = listOf(PendingDmRequest(event.fromUserId, event.fromUserName, event.requestId.ifBlank { event.fromUserId }, event.fromUserAvatar)) +
                                 it.pendingDmRequests.filterNot { p -> p.userId == event.fromUserId },
                         ) }
-                        "opened"           -> _uiState.update { it.copy(
-                            dmState = if (it.mehfilDm) {
-                                val existing = it.dmState as? DmState.Open
-                                DmState.Open(
-                                    peerId = event.fromUserId,
-                                    peerName = event.fromUserName.ifBlank { it.dmTargetUserName }.ifBlank { event.fromUserId },
+                        "opened", "accepted" -> _uiState.update { state ->
+                            val existing = state.dmState as? DmState.Open
+                            val peerId = event.fromUserId.ifBlank { state.dmTargetUserId.orEmpty() }
+                            val peerName = event.fromUserName.ifBlank { state.dmTargetUserName }.ifBlank { peerId }.ifBlank { "Student" }
+                            val avatar = event.fromUserAvatar ?: state.currentUserAvatar
+                            state.copy(
+                                dmState = DmState.Open(
+                                    peerId = peerId,
+                                    peerName = peerName,
                                     roomId = event.roomId,
-                                    peerAvatar = event.fromUserAvatar,
+                                    peerAvatar = avatar,
                                     messages = if (event.restored && existing?.roomId == event.roomId) existing.messages else emptyList(),
-                                )
-                            } else {
-                                DmState.Idle
-                            },
-                            showPremiumGate = !it.mehfilDm || it.showPremiumGate,
-                            dmPeerOnline = true,
-                        ) }
-                        "accepted"         -> _uiState.update { it.copy(
-                            dmState = if (it.mehfilDm) {
-                                DmState.Open(
-                                    peerId = event.fromUserId,
-                                    peerName = event.fromUserName.ifBlank { it.dmTargetUserName }.ifBlank { event.fromUserId },
-                                    roomId = event.roomId,
-                                    peerAvatar = event.fromUserAvatar,
-                                )
-                            } else {
-                                DmState.Idle
-                            },
-                            showPremiumGate = !it.mehfilDm || it.showPremiumGate,
-                            dmPeerOnline = true,
-                        ) }
+                                ),
+                                dmTargetUserId = peerId,
+                                dmTargetUserName = peerName,
+                                dmPeerOnline = true,
+                                dmError = null,
+                                pendingDmRequests = state.pendingDmRequests.filterNot { p -> p.userId == peerId },
+                            )
+                        }
                         "declined"         -> _uiState.update { it.copy(dmState = DmState.Idle, dmError = "Request declined") }
-                        "sync_pending"     -> _uiState.update { it.copy(pendingDmRequests = event.pendingList.map { id -> PendingDmRequest(id, id, "") }) }
+                        "sync_pending"     -> _uiState.update { it.copy(pendingDmRequests = event.pendingList.map { id -> PendingDmRequest(id, id, id) }) }
                         "message"          -> {
                             val cur = _uiState.value.dmState
                             if (cur is DmState.Open) {
@@ -631,56 +624,110 @@ class MehfilViewModel @Inject constructor(
         targetUserName: String = "",
         contextPostId: String = "",
         contextPreview: String = "",
-    ): Boolean {
-        if (targetUserId.isBlank()) {
-            _uiState.update { it.copy(dmError = "Cannot connect: user ID is missing") }
-            return false
+    ) {
+        viewModelScope.launch {
+            if (targetUserId.isBlank()) {
+                _uiState.update { it.copy(dmError = "Cannot connect: user ID is missing") }
+                return@launch
+            }
+            val currentUid = _uiState.value.currentUserId.ifBlank { dataStore.userId.firstOrNull().orEmpty() }
+            if (targetUserId == currentUid && currentUid.isNotBlank()) {
+                _uiState.update { it.copy(dmError = "You cannot connect with yourself") }
+                return@launch
+            }
+
+            // Immediately place UI into Waiting state with clean spinner while connecting and checking premium
+            _uiState.update {
+                it.copy(
+                    dmState = DmState.Waiting(targetUserName.ifBlank { "student" }),
+                    dmError = null,
+                    dmTargetUserId = targetUserId,
+                    dmTargetUserName = targetUserName,
+                )
+            }
+
+            // Check / Wait for Premium access
+            val isPremLocally = (dataStore.premiumFeatureMehfilDm.firstOrNull() ?: false) || (dataStore.isPremium.firstOrNull() ?: false)
+            if (!isPremLocally && _uiState.value.isLoadingPremiumFeatures) {
+                withTimeoutOrNull(2500) {
+                    while (_uiState.value.isLoadingPremiumFeatures) {
+                        delay(100)
+                    }
+                }
+            }
+
+            val hasAccess = isPremLocally || _uiState.value.mehfilDm || (premiumRepository.cachedStatus.firstOrNull()?.canUseMehfilDm == true)
+            if (!hasAccess) {
+                _uiState.update { it.copy(showPremiumGate = true, dmError = "Safar Premium is required for Mehfil Connect", dmState = DmState.Idle) }
+                return@launch
+            }
+
+            // Ensure socket is connected
+            if (!socketManager.isConnected()) {
+                val token = dataStore.authToken.firstOrNull() ?: ""
+                val userId = dataStore.userId.firstOrNull() ?: ""
+                val userName = dataStore.userName.firstOrNull() ?: "Safarite"
+                val avatar = dataStore.userAvatar.firstOrNull()
+                if (token.isNotEmpty() && userId.isNotEmpty()) {
+                    socketManager.connect(token, userId, userName, avatar)
+                }
+                withTimeoutOrNull(4000) {
+                    while (!socketManager.isConnected()) {
+                        delay(150)
+                    }
+                }
+            }
+
+            if (!socketManager.isConnected()) {
+                _uiState.update { it.copy(dmError = "Mehfil is reconnecting. Please try again.") }
+                return@launch
+            }
+
+            // Socket is connected and premium verified -> emit request
+            _uiState.update { it.copy(dmState = DmState.Waiting(targetUserName.ifBlank { "student" }), dmError = null) }
+            socketManager.emitDmRequest(targetUserId, contextPostId, contextPreview)
         }
-        if (targetUserId == _uiState.value.currentUserId) {
-            _uiState.update { it.copy(dmError = "You cannot connect with yourself") }
-            return false
-        }
-        if (_uiState.value.isLoadingPremiumFeatures) {
-            _uiState.update { it.copy(dmError = "Checking your Premium access. Please try again in a moment.") }
-            return false
-        }
-        if (!_uiState.value.mehfilDm) {
-            _uiState.update { it.copy(showPremiumGate = true, dmError = null) }
-            return false
-        }
-        if (!socketManager.isConnected()) {
-            _uiState.update { it.copy(dmError = "Mehfil is reconnecting. Please try again.") }
-            return false
-        }
-        _uiState.update { it.copy(dmState = DmState.Idle, dmError = null, dmTargetUserId = targetUserId, dmTargetUserName = targetUserName) }
-        socketManager.emitDmRequest(targetUserId, contextPostId, contextPreview)
-        return true
     }
     fun acceptDm(fromUserId: String) {
-        if (!_uiState.value.mehfilDm) {
-            _uiState.update { it.copy(showPremiumGate = true, dmError = null) }
-            return
+        viewModelScope.launch {
+            val isPremLocally = (dataStore.premiumFeatureMehfilDm.firstOrNull() ?: false) || (dataStore.isPremium.firstOrNull() ?: false)
+            val hasAccess = isPremLocally || _uiState.value.mehfilDm || (premiumRepository.cachedStatus.firstOrNull()?.canUseMehfilDm == true)
+            if (!hasAccess) {
+                _uiState.update { it.copy(showPremiumGate = true, dmError = null) }
+                return@launch
+            }
+            if (!socketManager.isConnected()) {
+                val token = dataStore.authToken.firstOrNull() ?: ""
+                val userId = dataStore.userId.firstOrNull() ?: ""
+                val userName = dataStore.userName.firstOrNull() ?: "Safarite"
+                val avatar = dataStore.userAvatar.firstOrNull()
+                if (token.isNotEmpty() && userId.isNotEmpty()) {
+                    socketManager.connect(token, userId, userName, avatar)
+                }
+                withTimeoutOrNull(4000) {
+                    while (!socketManager.isConnected()) {
+                        delay(150)
+                    }
+                }
+            }
+            val pending = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }
+            val requestId = pending?.requestId.orEmpty()
+            socketManager.emitDmAccept(requestId = requestId, fromUserId = fromUserId)
+            _uiState.update { it.copy(
+                dmError = null,
+                dmTargetUserId = fromUserId,
+                pendingDmRequests = it.pendingDmRequests.filterNot { p -> p.userId == fromUserId },
+            ) }
         }
-        val pending = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }
-        val requestId = pending?.requestId ?: ""
-        if (!socketManager.isConnected()) {
-            _uiState.update { it.copy(dmError = "Mehfil is reconnecting. Please try again.") }
-            return
-        }
-        if (requestId.isBlank()) {
-            _uiState.update { it.copy(dmError = "This connection request has expired.") }
-            return
-        }
-        socketManager.emitDmAccept(requestId)
-        _uiState.update { it.copy(dmError = null) }
     }
     fun declineDm(fromUserId: String) {
-        val requestId = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }?.requestId ?: ""
-        if (!socketManager.isConnected() || requestId.isBlank()) {
+        val pending = _uiState.value.pendingDmRequests.firstOrNull { it.userId == fromUserId }
+        val requestId = pending?.requestId.orEmpty()
+        if (!socketManager.isConnected()) {
             _uiState.update { it.copy(dmError = "Could not decline this request. Try again.") }
             return
         }
-        socketManager.emitDmDecline(requestId)
+        socketManager.emitDmDecline(requestId = requestId, fromUserId = fromUserId)
         _uiState.update { it.copy(
             dmState = DmState.Idle,
             pendingDmRequests = it.pendingDmRequests.filter { p -> p.userId != fromUserId },

@@ -211,6 +211,7 @@ data class StudyPlan(
     val subjects: List<StudySubject> = emptyList(),
     val features: StudyPlannerFeatureFlags = StudyPlannerFeatureFlags(),
     val templateId: String? = null,
+    val savedSyllabusId: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
     val progress: PlanProgress? = null,

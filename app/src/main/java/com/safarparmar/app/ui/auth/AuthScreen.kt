@@ -400,12 +400,13 @@ fun HtmlPrimaryButton(
     text: String,
     onClick: () -> Unit,
     enabled: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     val isDarkTheme = LocalIsDarkTheme.current
     val shape = RoundedCornerShape(20.dp)
 
-    val buttonColor = if (enabled) PrimaryAccent else PrimaryAccent.copy(alpha = 0.5f)
+    val buttonColor = if (enabled && !isLoading) PrimaryAccent else PrimaryAccent.copy(alpha = 0.5f)
     val borderBrush = if (isDarkTheme) {
         Brush.verticalGradient(
             colors = listOf(Color.White.copy(alpha = 0.35f), Color.White.copy(alpha = 0.05f))
@@ -436,7 +437,7 @@ fun HtmlPrimaryButton(
                 brush = borderBrush,
                 shape = shape
             )
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled && !isLoading, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -444,8 +445,15 @@ fun HtmlPrimaryButton(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
         ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.5.dp,
+                    color = Color.White,
+                )
+            }
             Text(
                 text = text,
                 color = Color.White,
@@ -639,6 +647,7 @@ fun LoginContent(
             text = if (uiState.isLoading) "Signing in..." else "Sign In",
             onClick = { onEvent(AuthEvent.Login) },
             enabled = !uiState.isLoading,
+            isLoading = uiState.isLoading,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -858,6 +867,7 @@ fun SignupContent(
             text = if (uiState.isLoading) "Creating account..." else "Create Account",
             onClick = { onEvent(AuthEvent.Signup) },
             enabled = !uiState.isLoading,
+            isLoading = uiState.isLoading,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -987,6 +997,7 @@ fun ForgotPasswordContent(
                     text = if (uiState.isLoading) "Sending link..." else "Send Reset Link",
                     onClick = { onEvent(AuthEvent.SubmitForgotPasswordRequest) },
                     enabled = !uiState.isLoading,
+                    isLoading = uiState.isLoading,
                 )
             }
             ForgotPasswordStep.EMAIL_SENT -> {
@@ -1076,6 +1087,7 @@ fun ForgotPasswordContent(
                     text = if (uiState.isLoading) "Saving password..." else "Save Password",
                     onClick = { onEvent(AuthEvent.SubmitResetPasswordConfirm) },
                     enabled = !uiState.isLoading,
+                    isLoading = uiState.isLoading,
                 )
             }
         }

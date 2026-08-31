@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.safarparmar.app.ui.glass.MacOSPrimaryActionButton
 import com.safarparmar.app.ui.studyplanner.components.PlannerAccent
+import com.safarparmar.app.ui.studyplanner.components.PlannerFlatColors
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialog
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogAction
 import com.safarparmar.app.ui.studyplanner.components.PlannerDialogText
@@ -178,13 +179,13 @@ fun MixedBagSubjectPickerStep(
                 onClick = { onConfirm(selected.toList(), orderMode) },
                 enabled = canConfirm,
                 isLight = isLight,
-                customAccent = PlannerAccent.Teal,
+                customAccent = PlannerFlatColors.PrimaryAccent,
             )
             Text(
                 text = "Skip — keep an even mix",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = PlannerAccent.Teal,
+                color = scheme.onSurfaceVariant,
                 modifier = Modifier
                     .clickable { onSkip() }
                     .padding(vertical = 6.dp),

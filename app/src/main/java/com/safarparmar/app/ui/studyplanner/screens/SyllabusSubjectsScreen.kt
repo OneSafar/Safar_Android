@@ -113,6 +113,7 @@ fun SyllabusSubjectsScreen(
     var topicForDatePicker by remember { mutableStateOf<StudyTopic?>(null) }
     var showChangePlan by rememberSaveable { mutableStateOf(false) }
     var showNewDatesConfirm by rememberSaveable { mutableStateOf(false) }
+    var showSaveForReuseConfirm by rememberSaveable { mutableStateOf(false) }
     var showChangeHelp by rememberSaveable { mutableStateOf(false) }
     var showPlanSettings by rememberSaveable { mutableStateOf(false) }
     var showFullPlanTitle by rememberSaveable { mutableStateOf(false) }
@@ -797,6 +798,7 @@ fun SyllabusSubjectsScreen(
     if (showChangePlan) {
         SyllabusChangePlanSheet(
             canMakeDates = localSubjects.isNotEmpty() && !state.mutating,
+            isAlreadySaved = !selectedPlan?.savedSyllabusId.isNullOrBlank(),
             onAddSubject = {
                 showChangePlan = false
                 dialogState = SyllabusDialogState.AddSubject
@@ -813,7 +815,32 @@ fun SyllabusSubjectsScreen(
                 showChangePlan = false
                 showNewDatesConfirm = true
             },
+            onSaveForReuse = {
+                showChangePlan = false
+                showSaveForReuseConfirm = true
+            },
             onDismiss = { showChangePlan = false },
+        )
+    }
+
+    if (showSaveForReuseConfirm) {
+        PlannerDialog(
+            onDismissRequest = { showSaveForReuseConfirm = false },
+            title = if (selectedPlan?.savedSyllabusId.isNullOrBlank()) "Save this syllabus?" else "Update saved syllabus?",
+            text = {
+                PlannerDialogText(
+                    "Only subjects, chapters, topics, and topic sizes are saved. Dates and progress stay with this plan."
+                )
+            },
+            dismissButton = {
+                PlannerDialogTextAction("Not now") { showSaveForReuseConfirm = false }
+            },
+            confirmButton = {
+                PlannerDialogAction(text = "Save for reuse") {
+                    showSaveForReuseConfirm = false
+                    actions.saveCurrentSyllabusForReuse()
+                }
+            },
         )
     }
 
@@ -869,10 +896,12 @@ fun SyllabusSubjectsScreen(
 @Composable
 private fun SyllabusChangePlanSheet(
     canMakeDates: Boolean,
+    isAlreadySaved: Boolean,
     onAddSubject: () -> Unit,
     onChangeDetails: () -> Unit,
     onChangeOrderOrSize: () -> Unit,
     onMakeNewDates: () -> Unit,
+    onSaveForReuse: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -885,23 +914,23 @@ private fun SyllabusChangePlanSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentWidth(Alignment.CenterHorizontally)
-                .widthIn(max = 600.dp)
+                .widthIn(max = 540.dp)
                 .navigationBarsPadding()
-                .padding(start = 24.dp, end = 24.dp, bottom = 28.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 14.dp),
         ) {
             Text(
                 text = "What do you want to change?",
-                fontSize = 22.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PlannerFlatColors.TextDark,
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(3.dp))
             Text(
                 text = "Choose one option. Your plan will not change until you save it.",
-                fontSize = 12.5.sp,
+                fontSize = 12.sp,
                 color = PlannerFlatColors.TextMuted,
             )
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(10.dp))
             PlanHairline()
             SyllabusChangePlanRow(
                 title = "Add a subject",
@@ -921,11 +950,17 @@ private fun SyllabusChangePlanSheet(
                 onClick = onChangeOrderOrSize,
             )
             PlanHairline()
+            SyllabusChangePlanRow(
+                title = if (isAlreadySaved) "Update saved syllabus" else "Save syllabus for reuse",
+                description = "Use these subjects and topics when creating another plan.",
+                onClick = onSaveForReuse,
+            )
+            PlanHairline()
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = if (canMakeDates) PlannerFlatColors.PrimaryAccent.copy(alpha = 0.12f) else Color.Transparent,
-                border = if (canMakeDates) BorderStroke(1.5.dp, PlannerFlatColors.PrimaryAccent) else null,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = if (canMakeDates) PlannerFlatColors.PrimaryAccent.copy(alpha = 0.10f) else Color.Transparent,
+                border = if (canMakeDates) BorderStroke(1.dp, PlannerFlatColors.PrimaryAccent) else null,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
             ) {
                 SyllabusChangePlanRow(
                     title = "Make new study dates",
@@ -937,9 +972,9 @@ private fun SyllabusChangePlanSheet(
             PlanHairline()
             TextButton(
                 onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                modifier = Modifier.fillMaxWidth().height(42.dp),
             ) {
-                Text("Not now", fontWeight = FontWeight.Bold, color = PlannerFlatColors.TextMuted)
+                Text("Not now", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = PlannerFlatColors.TextMuted)
             }
         }
     }
@@ -955,35 +990,33 @@ private fun SyllabusChangePlanRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 68.dp)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 11.dp),
+            .padding(vertical = 7.dp, horizontal = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = if (enabled) PlannerFlatColors.TextDark else PlannerFlatColors.TextMuted,
             )
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.height(1.dp))
             Text(
                 text = description,
-                fontSize = 11.5.sp,
+                fontSize = 11.sp,
                 color = PlannerFlatColors.TextMuted,
             )
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(10.dp))
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = if (enabled) PlannerFlatColors.PrimaryAccent else PlannerFlatColors.BorderSoft,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(18.dp),
         )
     }
 }
-
 
 
 

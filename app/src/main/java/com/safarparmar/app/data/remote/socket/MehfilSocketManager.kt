@@ -34,6 +34,8 @@ data class ThoughtDto(
     @SerializedName("authorName")     val authorName: String? = null,
     @SerializedName("authorAvatar")   val authorAvatar: String? = null,
     @SerializedName("userId")         val userId: String? = null,
+    @SerializedName("user")           val user: String? = null,
+    @SerializedName("author_id")      val authorId: String? = null,
     @SerializedName("createdAt")      val createdAt: String? = null,
     // API returns relatableCount and commentsCount
     @SerializedName("relatableCount") val relatableCount: Int? = null,
@@ -45,6 +47,8 @@ data class ThoughtDto(
 )
 
 data class ThoughtAuthorDto(
+    @SerializedName("id")     val id: String? = null,
+    @SerializedName("_id")    val mongoId: String? = null,
     @SerializedName("name")   val name: String? = null,
     @SerializedName("avatar") val avatar: String? = null,
 )
@@ -55,7 +59,12 @@ fun ThoughtDto.toDomain(): MehfilPost {
         ?: author?.name?.takeIf { it.isNotBlank() }
         ?: "Anonymous"
     val resolvedAvatar = authorAvatar ?: author?.avatar
-    val resolvedUserId = userId ?: ""
+    val resolvedUserId = userId?.takeIf { it.isNotBlank() }
+        ?: user?.takeIf { it.isNotBlank() }
+        ?: authorId?.takeIf { it.isNotBlank() }
+        ?: author?.id?.takeIf { it.isNotBlank() }
+        ?: author?.mongoId?.takeIf { it.isNotBlank() }
+        ?: ""
     // Resolved display name: respect isAnonymous flag
     val displayName = if (isAnonymous == true) "Anonymous" else resolvedName
     // API uses relatableCount / commentsCount; fallback to reactionCount / commentCount
@@ -114,7 +123,7 @@ class MehfilSocketManager @Inject constructor(
         val restored: Boolean = false,
         val clientMessageId: String = "",
     )
-    private val _dmEvent = MutableSharedFlow<DmEvent>(extraBufferCapacity = 16)
+    private val _dmEvent = MutableSharedFlow<DmEvent>(replay = 1, extraBufferCapacity = 16)
     val dmEvent = _dmEvent.asSharedFlow()
 
     // Live session events
@@ -562,11 +571,17 @@ class MehfilSocketManager @Inject constructor(
         })
     }
 
-    fun emitDmAccept(requestId: String) {
+    fun emitDmAccept(requestId: String, fromUserId: String = "") {
         val s = socket ?: return
         if (!s.connected()) return
-        android.util.Log.d("MehfilSocket", "dm:accept → requestId=$requestId")
-        s.emit("dm:accept", JSONObject().put("requestId", requestId))
+        android.util.Log.d("MehfilSocket", "dm:accept → requestId=$requestId fromUserId=$fromUserId")
+        val payload = JSONObject()
+        if (requestId.isNotBlank()) payload.put("requestId", requestId)
+        if (fromUserId.isNotBlank()) {
+            payload.put("fromUserId", fromUserId)
+            payload.put("userId", fromUserId)
+        }
+        s.emit("dm:accept", payload)
     }
 
     fun emitDmLeaveRoom(roomId: String) {
@@ -576,11 +591,17 @@ class MehfilSocketManager @Inject constructor(
         s.emit("dm:leave_room", JSONObject().put("roomId", roomId))
     }
 
-    fun emitDmDecline(requestId: String) {
+    fun emitDmDecline(requestId: String, fromUserId: String = "") {
         val s = socket ?: return
         if (!s.connected()) return
-        android.util.Log.d("MehfilSocket", "dm:decline → requestId=$requestId")
-        s.emit("dm:decline", JSONObject().put("requestId", requestId))
+        android.util.Log.d("MehfilSocket", "dm:decline → requestId=$requestId fromUserId=$fromUserId")
+        val payload = JSONObject()
+        if (requestId.isNotBlank()) payload.put("requestId", requestId)
+        if (fromUserId.isNotBlank()) {
+            payload.put("fromUserId", fromUserId)
+            payload.put("userId", fromUserId)
+        }
+        s.emit("dm:decline", payload)
     }
 
     fun emitLiveJoin(sessionId: String) {

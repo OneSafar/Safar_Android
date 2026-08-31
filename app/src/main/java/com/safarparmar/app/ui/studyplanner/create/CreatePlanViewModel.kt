@@ -11,6 +11,8 @@ import com.safarparmar.app.data.remote.api.PlanPreviewRequest
 import com.safarparmar.app.data.remote.api.PlanPreviewResult
 import com.safarparmar.app.data.remote.api.StructureSyllabusRequest
 import com.safarparmar.app.data.remote.api.StructuredSyllabusPreview
+import com.safarparmar.app.data.remote.api.SavedSyllabus
+import com.safarparmar.app.data.remote.api.SaveSyllabusRequest
 import com.safarparmar.app.data.remote.api.TemplateExtraChapterRequest
 import com.safarparmar.app.data.remote.api.TemplateExtraTopicRequest
 import com.safarparmar.app.domain.model.studyplanner.ChapterDifficulty
@@ -29,12 +31,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 
 enum class CreatePlanStep {
     ChoosePath,
     TemplatePicker,
     ManualTopicTree,
     PasteSyllabus,
+    SavedSyllabusPicker,
     PlanSettings,
     ChapterRating,
     DeepFocusOrder,
@@ -44,7 +48,7 @@ enum class CreatePlanStep {
     DailyTopics,
 }
 
-enum class PlanSource { Template, Manual, Paste }
+enum class PlanSource { Template, Saved, Manual, Paste }
 
 /** A chapter addressed on the template drill-down screens — either one that shipped
  *  with the template ([Original], addressed by its index for exclusion/extra-topic
@@ -145,6 +149,16 @@ data class CreatePlanUiState(
     // Manual path — pure client-side, no backend calls until preview
     val manualSubjects: List<DraftSubject> = emptyList(),
     val manualValidationError: String? = null,
+    val isSavingManualSyllabus: Boolean = false,
+    val isAutosavingManualDraft: Boolean = false,
+    val savedManualSyllabusId: String? = null,
+
+    // Reusable syllabus path
+    val savedSyllabi: List<SavedSyllabus> = emptyList(),
+    val loadingSavedSyllabi: Boolean = false,
+    val savedSyllabiError: String? = null,
+    val selectedSavedSyllabusId: String? = null,
+    val manualOpenedFromSavedPicker: Boolean = false,
 
     // Paste path
     val pasteText: String = "",
@@ -192,6 +206,7 @@ class CreatePlanViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CreatePlanUiState())
     val uiState = _uiState.asStateFlow()
     private var templateDetailJob: Job? = null
+    private var manualDraftJob: Job? = null
 
     fun clearError() = _uiState.update { it.copy(error = null, premiumRequired = false) }
 
@@ -206,8 +221,150 @@ class CreatePlanViewModel @Inject constructor(
                 goToStep(CreatePlanStep.TemplatePicker)
                 if (_uiState.value.templates.isEmpty()) loadTemplates()
             }
+            PlanSource.Saved -> {
+                goToStep(CreatePlanStep.SavedSyllabusPicker)
+                loadSavedSyllabi()
+            }
             PlanSource.Manual -> goToStep(CreatePlanStep.ManualTopicTree)
             PlanSource.Paste -> goToStep(CreatePlanStep.PasteSyllabus)
+        }
+    }
+
+    private fun loadSavedSyllabi() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(loadingSavedSyllabi = true, savedSyllabiError = null) }
+            when (val result = repo.getSavedSyllabi()) {
+                is Resource.Success -> _uiState.update {
+                    it.copy(loadingSavedSyllabi = false, savedSyllabi = result.data)
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(loadingSavedSyllabi = false, savedSyllabiError = result.message)
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun retrySavedSyllabi() = loadSavedSyllabi()
+
+    fun selectSavedSyllabus(syllabusId: String) = _uiState.update { state ->
+        val selected = state.savedSyllabi.firstOrNull { it.id == syllabusId } ?: return@update state
+        val previousName = state.savedSyllabi.firstOrNull { it.id == state.selectedSavedSyllabusId }?.name
+        state.copy(
+            selectedSavedSyllabusId = syllabusId,
+            title = if (state.title.isBlank() || state.title == previousName) selected.name else state.title,
+        )
+    }
+
+    fun continueFromSavedSyllabus() {
+        val selected = _uiState.value.savedSyllabi.firstOrNull { it.id == _uiState.value.selectedSavedSyllabusId }
+        if (selected == null || selected.isDraft) return
+        goToStep(CreatePlanStep.PlanSettings)
+    }
+
+    fun startNewManualSyllabus() = _uiState.update {
+        manualDraftJob?.cancel()
+        it.copy(
+            source = PlanSource.Manual,
+            step = CreatePlanStep.ManualTopicTree,
+            manualOpenedFromSavedPicker = true,
+            manualSubjects = emptyList(),
+            manualValidationError = null,
+            savedManualSyllabusId = null,
+            title = "",
+        )
+    }
+
+    fun editSavedSyllabus(syllabusId: String) {
+        val syllabus = _uiState.value.savedSyllabi.firstOrNull { it.id == syllabusId } ?: return
+        manualDraftJob?.cancel()
+        _uiState.update {
+            it.copy(
+                source = PlanSource.Manual,
+                step = CreatePlanStep.ManualTopicTree,
+                manualOpenedFromSavedPicker = true,
+                savedManualSyllabusId = syllabus.id,
+                selectedSavedSyllabusId = null,
+                title = syllabus.name.takeUnless { name -> name == "Untitled syllabus" }.orEmpty(),
+                manualSubjects = syllabus.subjects.map { subject ->
+                    DraftSubject(
+                        name = subject.name,
+                        chapters = subject.chapters.map { chapter ->
+                            DraftChapter(name = chapter.name, topics = chapter.topics.map { topic -> DraftTopic(name = topic.name) })
+                        },
+                    )
+                },
+                manualValidationError = null,
+            )
+        }
+    }
+
+    private fun scheduleManualDraftSave() {
+        manualDraftJob?.cancel()
+        manualDraftJob = viewModelScope.launch {
+            delay(700)
+            val state = _uiState.value
+            if (state.step != CreatePlanStep.ManualTopicTree || (state.title.isBlank() && state.manualSubjects.isEmpty())) return@launch
+            val request = SaveSyllabusRequest(
+                name = state.title.ifBlank { "Untitled syllabus" },
+                subjects = state.manualSubjects.toDraftImportRequest(),
+                isDraft = true,
+            )
+            _uiState.update { it.copy(isAutosavingManualDraft = true) }
+            val result = state.savedManualSyllabusId?.let { repo.updateSavedSyllabus(it, request) }
+                ?: repo.saveSyllabusDraft(request)
+            when (result) {
+                is Resource.Success -> _uiState.update { current ->
+                    current.copy(
+                        isAutosavingManualDraft = false,
+                        savedManualSyllabusId = result.data.id,
+                        savedSyllabi = listOf(result.data) + current.savedSyllabi.filterNot { it.id == result.data.id },
+                    )
+                }
+                is Resource.Error -> _uiState.update { it.copy(isAutosavingManualDraft = false) }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
+    fun returnToSavedSyllabi() {
+        manualDraftJob?.cancel()
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.title.isNotBlank() || state.manualSubjects.isNotEmpty()) {
+                val request = SaveSyllabusRequest(
+                    name = state.title.ifBlank { "Untitled syllabus" },
+                    subjects = state.manualSubjects.toDraftImportRequest(),
+                    isDraft = true,
+                )
+                if (state.savedManualSyllabusId != null) {
+                    repo.updateSavedSyllabus(state.savedManualSyllabusId, request)
+                } else {
+                    val res = repo.saveSyllabusDraft(request)
+                    if (res is Resource.Success) {
+                        _uiState.update { it.copy(savedManualSyllabusId = res.data.id) }
+                    }
+                }
+            }
+            loadSavedSyllabi()
+            _uiState.update {
+                it.copy(source = PlanSource.Saved, step = CreatePlanStep.SavedSyllabusPicker)
+            }
+        }
+    }
+
+    fun deleteSavedSyllabus(syllabusId: String) {
+        viewModelScope.launch {
+            when (val result = repo.deleteSavedSyllabus(syllabusId)) {
+                is Resource.Success -> _uiState.update { state ->
+                    state.copy(
+                        savedSyllabi = state.savedSyllabi.filterNot { it.id == syllabusId },
+                        selectedSavedSyllabusId = state.selectedSavedSyllabusId.takeUnless { it == syllabusId },
+                    )
+                }
+                is Resource.Error -> _uiState.update { it.copy(savedSyllabiError = result.message) }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
@@ -499,6 +656,7 @@ class CreatePlanViewModel @Inject constructor(
                 manualValidationError = null,
             )
         }
+        scheduleManualDraftSave()
     }
 
     fun removeManualSubject(subjectId: String) {
@@ -508,6 +666,7 @@ class CreatePlanViewModel @Inject constructor(
                 manualValidationError = null,
             )
         }
+        scheduleManualDraftSave()
     }
 
     fun addManualChapter(subjectId: String, name: String) {
@@ -521,6 +680,7 @@ class CreatePlanViewModel @Inject constructor(
                 manualValidationError = null,
             )
         }
+        scheduleManualDraftSave()
     }
 
     fun removeManualChapter(subjectId: String, chapterId: String) {
@@ -533,6 +693,7 @@ class CreatePlanViewModel @Inject constructor(
                 manualValidationError = null,
             )
         }
+        scheduleManualDraftSave()
     }
 
     fun addManualTopic(subjectId: String, chapterId: String, name: String) {
@@ -551,6 +712,7 @@ class CreatePlanViewModel @Inject constructor(
                 manualValidationError = null,
             )
         }
+        scheduleManualDraftSave()
     }
 
     fun removeManualTopic(subjectId: String, chapterId: String, topicId: String) {
@@ -568,15 +730,43 @@ class CreatePlanViewModel @Inject constructor(
                 manualValidationError = null,
             )
         }
+        scheduleManualDraftSave()
     }
 
     fun continueFromManual() {
-        val validationError = validateManualSubjects(_uiState.value.manualSubjects)
+        manualDraftJob?.cancel()
+        val state = _uiState.value
+        val validationError = validateManualSubjects(state.manualSubjects)
         if (validationError != null) {
             _uiState.update { it.copy(manualValidationError = validationError) }
             return
         }
-        _uiState.update { it.copy(manualValidationError = null, step = CreatePlanStep.PlanSettings) }
+        val request = SaveSyllabusRequest(
+            name = state.title.ifBlank { "My syllabus" },
+            subjects = state.manualSubjects.toImportRequest(),
+            isDraft = false,
+        )
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingManualSyllabus = true, manualValidationError = null) }
+            val result = state.savedManualSyllabusId?.let { repo.updateSavedSyllabus(it, request) }
+                ?: repo.saveSyllabus(request)
+            when (result) {
+                is Resource.Success -> _uiState.update {
+                    it.copy(
+                        isSavingManualSyllabus = false,
+                        savedManualSyllabusId = result.data.id,
+                        step = CreatePlanStep.PlanSettings,
+                    )
+                }
+                is Resource.Error -> _uiState.update {
+                    it.copy(
+                        isSavingManualSyllabus = false,
+                        manualValidationError = result.message ?: "Couldn't save this syllabus. Please try again.",
+                    )
+                }
+                is Resource.Loading -> Unit
+            }
+        }
     }
 
     // ── Paste path ───────────────────────────────────────────────────
@@ -608,7 +798,10 @@ class CreatePlanViewModel @Inject constructor(
 
     // ── Shared settings ──────────────────────────────────────────────
 
-    fun setTitle(title: String) = _uiState.update { it.copy(title = title) }
+    fun setTitle(title: String) {
+        _uiState.update { it.copy(title = title) }
+        if (_uiState.value.step == CreatePlanStep.ManualTopicTree) scheduleManualDraftSave()
+    }
     fun setExamType(examType: String) = _uiState.update { it.copy(examType = examType) }
     fun setExamDate(examDate: String) = _uiState.update { it.copy(examDate = examDate) }
     fun setOffDays(offDays: Set<Int>) = _uiState.update { it.copy(offDays = offDays) }
@@ -682,6 +875,15 @@ class CreatePlanViewModel @Inject constructor(
                     .map { DeepFocusOutlineChapter(it.name, it.topics.map { t -> t.name }) }
                 if (chapters.isEmpty()) null else DeepFocusOutlineSubject(subject.name, chapters)
             }
+            PlanSource.Saved -> state.savedSyllabi
+                .firstOrNull { it.id == state.selectedSavedSyllabusId }
+                ?.subjects
+                ?.mapNotNull { subject ->
+                    val chapters = subject.chapters.filter { it.topics.isNotEmpty() }
+                        .map { chapter -> DeepFocusOutlineChapter(chapter.name, chapter.topics.map { it.name }) }
+                    if (chapters.isEmpty()) null else DeepFocusOutlineSubject(subject.name, chapters)
+                }
+                .orEmpty()
             PlanSource.Paste -> state.structuredPreview?.subjects?.mapNotNull { subject ->
                 val chapters = subject.chapters.filter { it.topics.isNotEmpty() }
                     .map { DeepFocusOutlineChapter(it.name, it.topics) }
@@ -759,16 +961,21 @@ class CreatePlanViewModel @Inject constructor(
     fun deepFocusOutline(): List<DeepFocusOutlineSubject> {
         val state = _uiState.value
         val order = state.deepFocusSubjectOrder ?: return currentOutline()
-        return order.mapNotNull { subjectName ->
+        val allSubjects = order.mapNotNull { subjectName ->
             val chapterNames = state.deepFocusChapterOrder[subjectName] ?: return@mapNotNull null
             val chapters = chapterNames.mapNotNull { chapterName ->
                 state.deepFocusTopicOrder[subjectName to chapterName]?.let { DeepFocusOutlineChapter(chapterName, it) }
             }
             DeepFocusOutlineSubject(subjectName, chapters)
         }
+        if (state.studyStyle == "mixed_bag" && !state.mixedBagPrioritySubjects.isNullOrEmpty()) {
+            val prioritySet = state.mixedBagPrioritySubjects.toSet()
+            return allSubjects.filter { it.name in prioritySet }
+        }
+        return allSubjects
     }
 
-    fun drillIntoDeepFocusSubject(index: Int) = _uiState.update { it.copy(deepFocusDrillSubjectIndex = index) }
+    fun drillIntoDeepFocusSubject(index: Int?) = _uiState.update { it.copy(deepFocusDrillSubjectIndex = if (index != null && index >= 0) index else null) }
 
     /** Pops the drill-down back to the subject list. Returns true if there was a
      *  level to pop, false if already at the subject list (caller should then fall
@@ -866,13 +1073,29 @@ class CreatePlanViewModel @Inject constructor(
 
     /** Confirms the chosen "hardest" subjects — these are scheduled exclusively
      *  first, in [orderMode], and the remaining subjects only start once they run
-     *  out — then returns to settings. */
+     *  out — then opens the chapter and topic arrangement screen. */
     fun setMixedBagPrioritySubjects(names: List<String>, orderMode: String = "sequential") {
-        _uiState.update {
-            it.copy(
+        if (currentOutline().isEmpty()) return
+        _uiState.update { state ->
+            val prioritySet = names.toSet()
+            val prioritySubjects = names.toList()
+            val remainingSubjects = currentOutline().map { it.name }.filter { it !in prioritySet }
+            val subjectOrder = prioritySubjects + remainingSubjects
+
+            val merged = mergeOutlineOrder(
+                currentOutline(),
+                subjectOrder,
+                state.deepFocusChapterOrder,
+                state.deepFocusTopicOrder,
+            )
+            state.copy(
                 mixedBagPrioritySubjects = names,
                 mixedBagOrderMode = if (orderMode == "balanced") "balanced" else "sequential",
-                step = CreatePlanStep.PlanSettings,
+                step = CreatePlanStep.DeepFocusOrder,
+                deepFocusSubjectOrder = subjectOrder,
+                deepFocusChapterOrder = merged.associate { it.name to it.chapters.map { c -> c.name } },
+                deepFocusTopicOrder = merged.flatMap { s -> s.chapters.map { c -> (s.name to c.name) to c.topicNames } }.toMap(),
+                deepFocusDrillSubjectIndex = null,
             )
         }
     }
@@ -900,6 +1123,9 @@ class CreatePlanViewModel @Inject constructor(
                 original + extraTopicsOnExisting + extraChapterTopics
             }
             PlanSource.Manual -> state.manualSubjects.sumOf { s -> s.chapters.sumOf { it.topics.size } }
+            PlanSource.Saved -> state.savedSyllabi
+                .firstOrNull { it.id == state.selectedSavedSyllabusId }
+                ?.topicCount ?: 0
             PlanSource.Paste -> state.structuredPreview?.subjects?.sumOf { s -> s.chapters.sumOf { it.topics.size } } ?: 0
             null -> 0
         }
@@ -1122,6 +1348,7 @@ class CreatePlanViewModel @Inject constructor(
             PlanSource.Manual -> PlanPreviewRequest(
                 source = "manual",
                 title = state.title.ifBlank { null },
+                savedSyllabusId = state.savedManualSyllabusId,
                 subjects = state.manualSubjects.toImportRequest(),
                 chapterRatings = chapterRatings,
                 weightedPlanning = state.weightedPlanning,
@@ -1136,6 +1363,26 @@ class CreatePlanViewModel @Inject constructor(
                 strategy = effectiveStrategy,
                 overloadMode = overloadMode,
             )
+            PlanSource.Saved -> {
+                val savedSyllabusId = state.selectedSavedSyllabusId ?: return
+                PlanPreviewRequest(
+                    source = "saved",
+                    title = state.title.ifBlank { null },
+                    savedSyllabusId = savedSyllabusId,
+                    chapterRatings = chapterRatings,
+                    weightedPlanning = state.weightedPlanning,
+                    subjectOrder = subjectOrder,
+                    chapterOrder = chapterOrder,
+                    topicOrder = topicOrder,
+                    prioritySubjects = prioritySubjects,
+                    priorityOrderMode = priorityOrderMode,
+                    examDate = state.examDate.ifBlank { null },
+                    dailyGoal = effectiveDailyGoal,
+                    offDays = state.offDays.toList(),
+                    strategy = effectiveStrategy,
+                    overloadMode = overloadMode,
+                )
+            }
             PlanSource.Paste -> {
                 val preview = state.structuredPreview ?: return
                 PlanPreviewRequest(
@@ -1348,5 +1595,19 @@ internal fun List<DraftSubject>.toImportRequest(): List<ImportSyllabusSubjectReq
     ImportSyllabusSubjectRequest(
         name = subject.name.trim(),
         chapters = chapters,
+    )
+}
+
+internal fun List<DraftSubject>.toDraftImportRequest(): List<ImportSyllabusSubjectRequest> = mapNotNull { subject ->
+    if (subject.name.isBlank()) null else ImportSyllabusSubjectRequest(
+        name = subject.name.trim(),
+        chapters = subject.chapters.mapNotNull { chapter ->
+            if (chapter.name.isBlank()) null else ImportSyllabusChapterRequest(
+                name = chapter.name.trim(),
+                topics = chapter.topics.mapNotNull { topic ->
+                    topic.name.trim().takeIf { it.isNotEmpty() }?.let(::ImportSyllabusTopicRequest)
+                },
+            )
+        },
     )
 }
