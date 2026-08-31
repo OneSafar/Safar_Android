@@ -19,8 +19,12 @@ data class YoutubeStudyV2UiState(
     val resolving: Boolean = false,
     val allowed: List<YoutubeV2IdentityEntity> = emptyList(),
     val available: List<ResolvedYoutubeChannelDto> = emptyList(),
+    val categories: List<YoutubeCategoryDto> = emptyList(),
+    val allowedCategories: Set<String> = setOf("education", "science_tech"),
+    val selectedCategory: String? = null,
     val availableExpanded: Boolean = false,
     val loadingAvailable: Boolean = false,
+    val loadingCategories: Boolean = false,
     val setupStep: Int = 1,
     val setupCompleted: Boolean = false,
     val message: String? = null,
@@ -34,16 +38,26 @@ class YoutubeStudyV2ViewModel @Inject constructor(
     private val preferences: YoutubeStudyV2Preferences,
 ) : ViewModel() {
     private val local = MutableStateFlow(YoutubeStudyV2UiState())
-    private data class SetupState(val enabled: Boolean, val step: Int, val completed: Boolean)
-    private val setup = combine(preferences.enabled, preferences.setupStep, preferences.setupCompleted) {
-            enabled, step, completed -> SetupState(enabled, step, completed)
+    private data class SetupState(
+        val enabled: Boolean,
+        val step: Int,
+        val completed: Boolean,
+        val allowedCategories: Set<String>,
+    )
+    private val setup = combine(
+        preferences.enabled,
+        preferences.setupStep,
+        preferences.setupCompleted,
+        preferences.allowedCategories,
+    ) { enabled, step, completed, allowedCategories ->
+        SetupState(enabled, step, completed, allowedCategories)
     }
-    val state = combine(local, setup, repository.allowedChannels) {
-            ui, setupState, allowed ->
+    val state = combine(local, setup, repository.allowedChannels) { ui, setupState, allowed ->
         ui.copy(
             enabled = setupState.enabled,
             setupStep = setupState.step,
             setupCompleted = setupState.completed,
+            allowedCategories = setupState.allowedCategories,
             allowed = allowed,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), YoutubeStudyV2UiState())
@@ -51,6 +65,7 @@ class YoutubeStudyV2ViewModel @Inject constructor(
     init {
         refreshPermission()
         loadAvailable()
+        loadCategories()
     }
 
     fun setReference(value: String) { local.value = local.value.copy(reference = value, message = null) }
@@ -147,6 +162,48 @@ class YoutubeStudyV2ViewModel @Inject constructor(
                     )
                 }
         }
+    }
+
+    fun loadCategories() {
+        if (local.value.loadingCategories) return
+        local.value = local.value.copy(loadingCategories = true)
+        viewModelScope.launch {
+            repository.categories()
+                .onSuccess { categories ->
+                    local.value = local.value.copy(
+                        categories = categories,
+                        loadingCategories = false,
+                    )
+                }
+                .onFailure {
+                    // Fallback to local default categories
+                    val defaults = listOf(
+                        YoutubeCategoryDto("education", "Education & Academics", "Competitive exams, school, college, math, history", true),
+                        YoutubeCategoryDto("science_tech", "Science & Technology", "Coding, AI, engineering, space, physics", true),
+                        YoutubeCategoryDto("news_politics", "News & Analysis", "Current affairs, documentaries, news", false),
+                        YoutubeCategoryDto("howto", "Skills & How-To", "Design, art, productivity, skills", false),
+                        YoutubeCategoryDto("music", "Music & Audio", "Focus music, study beats, lofi", false),
+                        YoutubeCategoryDto("gaming", "Gaming & Esports", "Gaming streams, gameplay, esports", false),
+                        YoutubeCategoryDto("entertainment", "Entertainment & Vlogs", "Movies, vlogs, reactions, shows", false),
+                        YoutubeCategoryDto("comedy", "Comedy & Memes", "Sketches, comedy, memes", false),
+                        YoutubeCategoryDto("sports", "Sports", "Matches, highlights, athletics", false),
+                        YoutubeCategoryDto("lifestyle", "Lifestyle & Fitness", "Workouts, daily routines, fashion", false),
+                    )
+                    local.value = local.value.copy(
+                        categories = defaults,
+                        loadingCategories = false,
+                    )
+                }
+        }
+    }
+
+    fun toggleCategory(categoryId: String) {
+        val currentAllowed = preferences.allowedCategories.value.contains(categoryId)
+        preferences.setCategoryAllowed(categoryId, !currentAllowed)
+    }
+
+    fun setSelectedCategory(category: String?) {
+        local.value = local.value.copy(selectedCategory = category)
     }
 
     fun setProductive(channelId: String, productive: Boolean) {
