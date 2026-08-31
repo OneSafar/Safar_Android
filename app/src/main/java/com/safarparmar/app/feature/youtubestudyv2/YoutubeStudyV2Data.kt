@@ -189,7 +189,19 @@ class YoutubeStudyV2Repository(
                 ?: "Could not load available channels (${response.code()})."
             error(message)
         }
-        response.body()?.channels ?: error("The server returned no available-channel list.")
+        val channelsList = response.body()?.channels ?: error("The server returned no available-channel list.")
+        channelsList.forEach { dto ->
+            if (CHANNEL_ID.matches(dto.channelId)) {
+                runCatching {
+                    val handle = normalizeHandle(dto.handle)
+                    if (HANDLE.matches(handle)) {
+                        val isAllowed = dao.isAllowed(dto.channelId)
+                        saveIdentity(dto, productive = isAllowed)
+                    }
+                }
+            }
+        }
+        channelsList
     }
 
     suspend fun setAvailableProductive(
@@ -245,17 +257,38 @@ class YoutubeStudyV2Repository(
                 ?.takeIf { it.isNotBlank() }
         val channelId = normalizedHandle?.let { dao.channelIdForHandle(it) }
             ?: normalizedDisplay?.let { display -> dao.channelIdsForDisplay(display).singleOrNull() }
-        if (channelId == null) return YoutubeV2RuntimeDecision.BLOCK
-        if (dao.isAllowed(channelId)) return YoutubeV2RuntimeDecision.ALLOW
 
-        val identity = dao.identityForChannelId(channelId)
-        if (identity != null) {
-            val channelCategories = identity.categories.split(",").map { it.trim().lowercase() }.filter { it.isNotBlank() }
-            val allowedCategories = preferences.allowedCategories.value.map { it.trim().lowercase() }.toSet()
-            if (channelCategories.any { allowedCategories.contains(it) }) {
-                return YoutubeV2RuntimeDecision.ALLOW
+        // 1. Individually allowed channel
+        if (channelId != null && dao.isAllowed(channelId)) return YoutubeV2RuntimeDecision.ALLOW
+
+        // 2. Allowed categories check from local Room DB
+        val allowedCategories = preferences.allowedCategories.value.map { it.trim().lowercase() }.toSet()
+        if (channelId != null) {
+            val identity = dao.identityForChannelId(channelId)
+            if (identity != null) {
+                val channelCategories = identity.categories.split(",").map { it.trim().lowercase() }.filter { it.isNotBlank() }
+                if (channelCategories.any { allowedCategories.contains(it) }) {
+                    return YoutubeV2RuntimeDecision.ALLOW
+                }
             }
         }
+
+        // 3. If unlisted channel and categories are active, resolve on the fly using YouTube Data API
+        if (channelId == null && normalizedHandle != null && allowedCategories.isNotEmpty()) {
+            val resolvedDto = runCatching {
+                val res = api.resolve(ResolveYoutubeChannelRequest(normalizedHandle))
+                if (res.isSuccessful) res.body()?.channel else null
+            }.getOrNull()
+
+            if (resolvedDto != null && CHANNEL_ID.matches(resolvedDto.channelId)) {
+                val savedEntity = saveIdentity(resolvedDto, productive = false)
+                val channelCategories = savedEntity.categories.split(",").map { it.trim().lowercase() }.filter { it.isNotBlank() }
+                if (channelCategories.any { allowedCategories.contains(it) }) {
+                    return YoutubeV2RuntimeDecision.ALLOW
+                }
+            }
+        }
+
         return YoutubeV2RuntimeDecision.BLOCK
     }
 

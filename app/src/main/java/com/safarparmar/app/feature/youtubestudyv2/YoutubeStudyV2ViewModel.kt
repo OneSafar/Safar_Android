@@ -82,7 +82,9 @@ class YoutubeStudyV2ViewModel @Inject constructor(
     }
 
     fun continueToReview() {
-        if (state.value.allowed.isNotEmpty()) preferences.setSetupStep(3)
+        if (state.value.allowed.isNotEmpty() || state.value.allowedCategories.isNotEmpty()) {
+            preferences.setSetupStep(3)
+        }
     }
 
     fun returnToChannelSelection() {

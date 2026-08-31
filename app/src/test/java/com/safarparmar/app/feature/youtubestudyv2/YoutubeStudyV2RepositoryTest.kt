@@ -19,7 +19,8 @@ class YoutubeStudyV2RepositoryTest {
     private val repository = YoutubeStudyV2Repository(database, dao, api, preferences)
 
     @Test
-    fun `unknown runtime handle blocks without API discovery or database writes`() = runTest {
+    fun `unknown runtime handle with no active categories blocks without API discovery`() = runTest {
+        every { preferences.allowedCategories } returns MutableStateFlow(emptySet())
         coEvery { dao.channelIdForHandle("@unknownchannel") } returns null
 
         val decision = repository.decide("@UnknownChannel", null)
@@ -44,6 +45,7 @@ class YoutubeStudyV2RepositoryTest {
 
     @Test
     fun `channel belonging to enabled category is allowed even if not individually whitelisted`() = runTest {
+        every { preferences.allowedCategories } returns MutableStateFlow(setOf("education", "science_tech"))
         val channelId = "UC_x5XG1OV2P6uZZ5FSM9Ttw"
         coEvery { dao.channelIdForHandle("@googledevelopers") } returns channelId
         coEvery { dao.isAllowed(channelId) } returns false
