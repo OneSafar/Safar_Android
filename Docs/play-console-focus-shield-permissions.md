@@ -4,7 +4,7 @@ Use this material when submitting a build that contains YouTube Insights. Legal 
 
 ## Prominent in-app disclosure
 
-> YouTube Insights uses Android Accessibility access only while the feature is enabled. It reads visible information inside the YouTube app—such as whether a video or Short is playing and the displayed channel name—to measure productive, distracting, Shorts and unidentified time. When content matching your blocking choices opens, SAFAR pauses it and leaves that YouTube screen automatically. Channel names, your productive-channel choices, video titles and screen content stay on this device. SAFAR syncs only daily category totals. You can disable YouTube Insights or revoke Accessibility access at any time.
+> YouTube Insights uses Android Accessibility access only while the feature is enabled. It reads visible information inside the YouTube app—such as whether a video or Short is playing and the displayed channel handle—to measure productive, distracting, Shorts and unidentified time. When blocked content opens, SAFAR pauses it and leaves that YouTube screen automatically. A newly detected exact channel handle is sent to SAFAR's server to verify its permanent YouTube Channel ID and add that verified identity to the shared channel catalogue. Productive-channel choices, video titles and screen content stay on this device. You can disable YouTube Insights or revoke Accessibility access at any time.
 
 The disclosure appears in the dedicated YouTube Study Mode onboarding before Android Accessibility Settings opens. Consent version and time are recorded locally. The feature is off by default and is separate from Kavach app blocking.
 

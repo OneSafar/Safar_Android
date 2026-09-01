@@ -423,7 +423,7 @@ fun YoutubeInsightsDetailSheet(
         Spacer(Modifier.height(32.dp))
         Text("Productive channels", fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Text(
-            "Channels are discovered from YouTube and stored only on this device.",
+            "Verified channels are shared with SAFAR. Your Productive choices stay on this device.",
             fontSize = 13.sp,
             color = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8),
             modifier = Modifier.padding(top = 3.dp, bottom = 10.dp),

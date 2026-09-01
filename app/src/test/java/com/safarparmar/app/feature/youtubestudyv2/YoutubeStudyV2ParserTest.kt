@@ -121,6 +121,39 @@ class YoutubeStudyV2ParserTest {
     }
 
     @Test
+    fun `handle mentioned in video title is never treated as channel owner`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
+            node(id = "watch_player", clazz = "SurfaceView", parent = 0, left = 0, top = 100, right = 1080, bottom = 800),
+            node(id = "video_title", text = "Why @wronghandle is trending", clazz = "TextView", parent = 0, left = 20, top = 810, right = 900, bottom = 880),
+        )
+
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+
+        assertNull(result.exactHandle)
+        assertFalse(result.hasOwnerEvidence)
+    }
+
+    @Test
+    fun `structural owner handle works on a compact low density screen`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 720, bottom = 1280),
+            node(id = "watch_player", clazz = "SurfaceView", parent = 0, left = 0, top = 40, right = 720, bottom = 450),
+            node(id = "video_owner", parent = 0, left = 8, top = 500, right = 600, bottom = 570),
+            node(clazz = "ImageView", parent = 2, left = 12, top = 505, right = 62, bottom = 555),
+            node(text = "Study Channel", clazz = "TextView", parent = 2, left = 70, top = 505, right = 300, bottom = 530),
+            node(text = "@StudyChannel", clazz = "TextView", parent = 2, left = 70, top = 532, right = 300, bottom = 560),
+        )
+
+        val result = YoutubeStudyV2Parser.parse(
+            YoutubeV2Snapshot(YoutubeStudyV2Parser.YOUTUBE_PACKAGE, 1f, 720, 1280, nodes),
+        )
+
+        assertEquals("@studychannel", result.exactHandle)
+        assertEquals("Study Channel", result.displayName)
+    }
+
+    @Test
     fun `pre-roll advertiser is marked as ad and never becomes owner evidence`() {
         val nodes = baseWatchNodes() + listOf(
             node(description = "Visit advertiser", clazz = "Button", parent = 1, clickable = true, left = 700, top = 120, right = 1000, bottom = 180),

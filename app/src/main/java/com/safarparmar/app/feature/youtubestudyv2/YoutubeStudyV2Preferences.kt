@@ -18,24 +18,6 @@ class YoutubeStudyV2Preferences @Inject constructor(
     val setupStep: StateFlow<Int> = _setupStep
     private val _setupCompleted = MutableStateFlow(preferences.getBoolean(KEY_SETUP_COMPLETED, false))
     val setupCompleted: StateFlow<Boolean> = _setupCompleted
-    private val defaultCategories = setOf("education", "science_tech")
-    private val _allowedCategories = MutableStateFlow(
-        preferences.getStringSet(KEY_ALLOWED_CATEGORIES, defaultCategories) ?: defaultCategories
-    )
-    val allowedCategories: StateFlow<Set<String>> = _allowedCategories
-
-    fun setCategoryAllowed(categoryId: String, allowed: Boolean) {
-        val updated = _allowedCategories.value.toMutableSet()
-        if (allowed) updated.add(categoryId) else updated.remove(categoryId)
-        preferences.edit().putStringSet(KEY_ALLOWED_CATEGORIES, updated).apply()
-        _allowedCategories.value = updated
-    }
-
-    fun setAllowedCategories(categories: Set<String>) {
-        preferences.edit().putStringSet(KEY_ALLOWED_CATEGORIES, categories).apply()
-        _allowedCategories.value = categories
-    }
-
     fun setEnabled(value: Boolean) {
         preferences.edit().putBoolean(KEY_ENABLED, value).apply()
         _enabled.value = value
@@ -76,8 +58,6 @@ class YoutubeStudyV2Preferences @Inject constructor(
         private const val KEY_DISCLOSURE_ACCEPTED = "accessibility_disclosure_accepted"
         private const val KEY_SETUP_STEP = "setup_step"
         private const val KEY_SETUP_COMPLETED = "setup_completed"
-        private const val KEY_ALLOWED_CATEGORIES = "allowed_categories"
-
         fun isEnabled(context: Context): Boolean = context
             .getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
             .getBoolean(KEY_ENABLED, false)

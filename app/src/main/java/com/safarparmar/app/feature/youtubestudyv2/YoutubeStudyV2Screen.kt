@@ -43,8 +43,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -126,7 +124,6 @@ fun YoutubeStudyV2Screen(
                     state = state,
                     onSetEnabled = viewModel::setEnabled,
                     onOpenAccessibility = ::openAccessibilitySettings,
-                    onToggleCategory = viewModel::toggleCategory,
                     onReferenceChanged = viewModel::setReference,
                     onAddChannel = viewModel::resolveAndAllow,
                     onSetProductive = viewModel::setProductive,
@@ -142,7 +139,6 @@ fun YoutubeStudyV2Screen(
                         else openAccessibilitySettings()
                     },
                     onNotNow = onBack,
-                    onToggleCategory = viewModel::toggleCategory,
                     onReferenceChanged = viewModel::setReference,
                     onAddChannel = viewModel::resolveAndAllow,
                     onSetAvailableProductive = viewModel::setAvailableProductive,
@@ -160,7 +156,6 @@ private fun StudyModeSetup(
     state: YoutubeStudyV2UiState,
     onAgree: () -> Unit,
     onNotNow: () -> Unit,
-    onToggleCategory: (String) -> Unit,
     onReferenceChanged: (String) -> Unit,
     onAddChannel: () -> Unit,
     onSetAvailableProductive: (ResolvedYoutubeChannelDto, Boolean) -> Unit,
@@ -179,14 +174,13 @@ private fun StudyModeSetup(
             2 -> item {
                 ChannelSelectionStep(
                     state,
-                    onToggleCategory,
                     onReferenceChanged,
                     onAddChannel,
                     onSetAvailableProductive,
                     onContinue,
                 )
             }
-            else -> item { ReadyStep(state.allowed.size, state.allowedCategories.size, onBackToChannels, onStart) }
+            else -> item { ReadyStep(state.allowed.size, onBackToChannels, onStart) }
         }
     }
 }
@@ -213,7 +207,7 @@ private fun PermissionStep(permissionConnected: Boolean, onAgree: () -> Unit, on
         HeroIcon(Icons.Default.Shield)
         PageHeading(
             "Block YouTube distractions",
-            "Choose the categories and channels you want to watch. SAFAR blocks the rest and all Shorts.",
+            "Choose the channels you want to watch. SAFAR blocks all other channels and Shorts.",
         )
         SectionRule()
         Text("Permission needed", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -223,7 +217,7 @@ private fun PermissionStep(permissionConnected: Boolean, onAgree: () -> Unit, on
             color = KavachDesign.TextMuted,
         )
         Text(
-            "When you add a channel, its @handle is sent to SAFAR and YouTube to check its category and identity. SAFAR does not read passwords, messages, or other apps. You can turn this off anytime.",
+            "When you open a new channel, SAFAR sends only its @handle to verify the Channel ID. The verified channel is added to the shared channel list. SAFAR does not read passwords, messages, or other apps.",
             style = MaterialTheme.typography.bodyMedium,
             color = KavachDesign.TextMuted,
         )
@@ -239,67 +233,8 @@ private fun PermissionStep(permissionConnected: Boolean, onAgree: () -> Unit, on
 }
 
 @Composable
-private fun CategorySelectionSection(
-    categories: List<YoutubeCategoryDto>,
-    allowedCategories: Set<String>,
-    onToggleCategory: (String) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionHeading("Allowed categories", "Videos under selected categories will play without blocking.")
-        if (categories.isEmpty()) {
-            Text("Loading categories…", color = KavachDesign.TextMuted, style = MaterialTheme.typography.bodySmall)
-        } else {
-            categories.forEach { category ->
-                val isAllowed = allowedCategories.contains(category.id)
-                Surface(
-                    onClick = { onToggleCategory(category.id) },
-                    shape = RoundedCornerShape(14.dp),
-                    color = if (isAllowed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                    else MaterialTheme.colorScheme.surfaceContainerLow,
-                    border = BorderStroke(
-                        1.dp,
-                        if (isAllowed) KavachDesign.Primary.copy(alpha = 0.5f)
-                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Checkbox(
-                            checked = isAllowed,
-                            onCheckedChange = { onToggleCategory(category.id) },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = KavachDesign.Primary,
-                            ),
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                category.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (isAllowed) FontWeight.SemiBold else FontWeight.Normal,
-                            )
-                            if (category.description.isNotBlank()) {
-                                Text(
-                                    category.description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = KavachDesign.TextMuted,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun ChannelSelectionStep(
     state: YoutubeStudyV2UiState,
-    onToggleCategory: (String) -> Unit,
     onReferenceChanged: (String) -> Unit,
     onAddChannel: () -> Unit,
     onSetAvailableProductive: (ResolvedYoutubeChannelDto, Boolean) -> Unit,
@@ -309,15 +244,9 @@ private fun ChannelSelectionStep(
     var availableExpanded by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         PageHeading(
-            "Choose study categories & channels",
-            "Selected categories and channels can play. All other content and Shorts are blocked.",
+            "Choose productive channels",
+            "Only the channels you turn on can play. All other channels and Shorts are blocked.",
         )
-        CategorySelectionSection(
-            categories = state.categories,
-            allowedCategories = state.allowedCategories,
-            onToggleCategory = onToggleCategory,
-        )
-        SectionRule()
         SectionHeading("Suggested study channels", "Turn on specific channels you want.")
         when {
             state.loadingAvailable -> Text("Loading suggestions…", color = KavachDesign.TextMuted)
@@ -360,9 +289,9 @@ private fun ChannelSelectionStep(
             !state.resolving && state.reference.isNotBlank(),
         )
         StateMessage(state)
-        val canContinue = state.allowed.isNotEmpty() || state.allowedCategories.isNotEmpty()
+        val canContinue = state.allowed.isNotEmpty()
         PrimaryActionButton(
-            if (canContinue) "Continue · Ready" else "Select a category or channel",
+            if (canContinue) "Continue · Ready" else "Choose at least one channel",
             onContinue,
             canContinue,
         )
@@ -370,15 +299,14 @@ private fun ChannelSelectionStep(
 }
 
 @Composable
-private fun ReadyStep(productiveCount: Int, allowedCategoryCount: Int, onBack: () -> Unit, onStart: () -> Unit) {
+private fun ReadyStep(productiveCount: Int, onBack: () -> Unit, onStart: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         HeroIcon(Icons.Default.CheckCircle)
         PageHeading("Ready to start", "Check your choices.")
         SectionRule()
         RuleRow(Icons.Default.Block, "Shorts", "Always blocked")
-        RuleRow(Icons.Default.CheckCircle, "Allowed categories", "$allowedCategoryCount active")
-        RuleRow(Icons.Default.CheckCircle, "Specific channels", "$productiveCount allowed")
-        RuleRow(Icons.Default.Shield, "Other categories & channels", "Blocked")
+        RuleRow(Icons.Default.CheckCircle, "Productive channels", "$productiveCount allowed")
+        RuleRow(Icons.Default.Shield, "All other channels", "Blocked")
         RuleRow(Icons.Default.PlayArrow, "Home screen & previews", "Allowed")
         SectionRule()
         PrimaryActionButton("Start Study Mode", onStart)
@@ -393,7 +321,6 @@ private fun StudyModeDashboard(
     state: YoutubeStudyV2UiState,
     onSetEnabled: (Boolean) -> Unit,
     onOpenAccessibility: () -> Unit,
-    onToggleCategory: (String) -> Unit,
     onReferenceChanged: (String) -> Unit,
     onAddChannel: () -> Unit,
     onSetProductive: (String, Boolean) -> Unit,
@@ -401,7 +328,6 @@ private fun StudyModeDashboard(
     onSetAvailableProductive: (ResolvedYoutubeChannelDto, Boolean) -> Unit,
 ) {
     var reliabilityExpanded by rememberSaveable { mutableStateOf(false) }
-    var categoriesExpanded by rememberSaveable { mutableStateOf(true) }
     LazyColumn(
         modifier = Modifier.fillMaxWidth().widthIn(max = 560.dp).padding(horizontal = 20.dp),
         contentPadding = PaddingValues(top = 12.dp, bottom = 36.dp),
@@ -409,20 +335,6 @@ private fun StudyModeDashboard(
     ) {
         item {
             ProtectionStatus(state.enabled, state.accessibilityEnabled, state.allowed.size, onSetEnabled, onOpenAccessibility)
-        }
-        item {
-            ExpandableSection(
-                "Allowed categories (${state.allowedCategories.size})",
-                "Toggle entire video categories.",
-                categoriesExpanded,
-                { categoriesExpanded = !categoriesExpanded },
-            ) {
-                CategorySelectionSection(
-                    categories = state.categories,
-                    allowedCategories = state.allowedCategories,
-                    onToggleCategory = onToggleCategory,
-                )
-            }
         }
         item { SectionHeading("Productive channels", "These specific channels can play.") }
         if (state.allowed.isEmpty()) {
@@ -766,7 +678,6 @@ private fun YoutubeStudySetupPhonePreview() {
             state = previewState(setupStep = 2),
             onAgree = {},
             onNotNow = {},
-            onToggleCategory = {},
             onReferenceChanged = {},
             onAddChannel = {},
             onSetAvailableProductive = { _, _ -> },
@@ -790,7 +701,6 @@ private fun YoutubeStudyDashboardTabletPreview() {
             ),
             onSetEnabled = {},
             onOpenAccessibility = {},
-            onToggleCategory = {},
             onReferenceChanged = {},
             onAddChannel = {},
             onSetProductive = { _, _ -> },

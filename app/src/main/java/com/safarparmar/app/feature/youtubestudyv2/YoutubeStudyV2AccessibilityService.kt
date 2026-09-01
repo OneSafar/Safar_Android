@@ -134,13 +134,13 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             else lastEvaluatedKey = null
             return
         }
-        if (observation.kind == YoutubeV2ContentKind.VIDEO && !observation.hasOwnerEvidence) {
+        if (observation.kind == YoutubeV2ContentKind.VIDEO && observation.exactHandle.isNullOrBlank()) {
             val now = SystemClock.elapsedRealtime()
             val missingSince = ownerMissingSinceMs ?: now.also { ownerMissingSinceMs = it }
             // YouTube builds the watch player before its owner row, especially
-            // while a pre-roll ad is visible. Advertiser identity is never the
-            // video's identity, so wait through the ad. Outside ads, preserve
-            // fail-closed behavior after a bounded owner-loading window.
+            // while a pre-roll ad is visible, and the display name can appear
+            // before the exact handle. Wait briefly for the exact identity so a
+            // new channel can be registered without trusting ambiguous text.
             if (observation.adPlaying || now - missingSince < OWNER_EVIDENCE_WAIT_MS) {
                 firstStableRead = null
                 scheduleRead(OWNER_EVIDENCE_RETRY_MS)
@@ -149,6 +149,8 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         } else {
             ownerMissingSinceMs = null
         }
+
+        // Fast-path evaluation: owner evidence is confirmed
         firstStableRead = observation
         val generation = evaluationGeneration
         handler.postDelayed({ captureConfirmation(observation, generation) }, STABILITY_GAP_MS)
@@ -180,6 +182,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
                     block()
                 }
             }
+            if (decision == YoutubeV2RuntimeDecision.BLOCK) {
+                repository.registerDiscoveredHandle(observation.exactHandle)
+            }
         }
     }
 
@@ -189,7 +194,7 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         blockOverlayVisible = true
         overlay.showContent(
             title = "Channel blocked",
-            subtitle = "This channel is not Productive. Add its @handle in SAFAR to allow it.",
+            subtitle = "This channel is not in your Productive list. You can allow it in YouTube Study Mode.",
             buttonText = "OK",
             onAction = {
                 blockOverlayVisible = false
@@ -313,11 +318,11 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
 
     companion object {
-        private const val DEBOUNCE_MS = 500L
-        private const val STABILITY_GAP_MS = 300L
-        private const val CLICK_TRANSITION_MS = 500L
-        private const val SHORTS_PROBE_MS = 150L
-        private const val OWNER_EVIDENCE_RETRY_MS = 250L
+        private const val DEBOUNCE_MS = 250L
+        private const val STABILITY_GAP_MS = 200L
+        private const val CLICK_TRANSITION_MS = 120L
+        private const val SHORTS_PROBE_MS = 80L
+        private const val OWNER_EVIDENCE_RETRY_MS = 150L
         private const val OWNER_EVIDENCE_WAIT_MS = 3_000L
         private const val HEARTBEAT_MS = 30_000L
         private const val CLICK_PARENT_DEPTH = 5

@@ -19,7 +19,7 @@ object YoutubeStudyV2Module {
     @Singleton
     fun database(@ApplicationContext context: Context): YoutubeStudyV2Database = Room
         .databaseBuilder(context, YoutubeStudyV2Database::class.java, YoutubeStudyV2Database.NAME)
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
         .fallbackToDestructiveMigration()
         .build()
 
@@ -54,6 +54,41 @@ object YoutubeStudyV2Module {
         }
     }
 
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Version 4 guessed that every legacy identity was educational.
+            // Invalidate those guesses so the resolver refreshes each channel
+            // once and stores only categories verified by the backend.
+            db.execSQL("UPDATE youtube_v2_identity SET categories = 'unclassified'")
+        }
+    }
+
+    private val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE youtube_v2_identity_new (
+                    channelId TEXT NOT NULL PRIMARY KEY,
+                    handle TEXT NOT NULL,
+                    displayName TEXT NOT NULL,
+                    thumbnailUrl TEXT,
+                    resolvedAtMs INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                INSERT INTO youtube_v2_identity_new
+                    (channelId, handle, displayName, thumbnailUrl, resolvedAtMs)
+                SELECT channelId, handle, displayName, thumbnailUrl, resolvedAtMs
+                FROM youtube_v2_identity
+                """.trimIndent(),
+            )
+            db.execSQL("DROP TABLE youtube_v2_identity")
+            db.execSQL("ALTER TABLE youtube_v2_identity_new RENAME TO youtube_v2_identity")
+        }
+    }
+
     @Provides
     @Singleton
     fun dao(database: YoutubeStudyV2Database): YoutubeStudyV2Dao = database.dao()
@@ -68,6 +103,5 @@ object YoutubeStudyV2Module {
         database: YoutubeStudyV2Database,
         dao: YoutubeStudyV2Dao,
         api: YoutubeStudyV2Api,
-        preferences: YoutubeStudyV2Preferences,
-    ): YoutubeStudyV2Repository = YoutubeStudyV2Repository(database, dao, api, preferences)
+    ): YoutubeStudyV2Repository = YoutubeStudyV2Repository(database, dao, api)
 }

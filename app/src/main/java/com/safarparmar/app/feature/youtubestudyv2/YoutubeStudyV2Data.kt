@@ -21,7 +21,6 @@ data class YoutubeV2IdentityEntity(
     val handle: String,
     val displayName: String,
     val thumbnailUrl: String?,
-    val categories: String = "education",
     val resolvedAtMs: Long,
 )
 
@@ -96,7 +95,7 @@ interface YoutubeStudyV2Dao {
         YoutubeV2AliasEntity::class,
         YoutubeV2AllowlistEntity::class,
     ],
-    version = 4,
+    version = 6,
     exportSchema = false,
 )
 abstract class YoutubeStudyV2Database : RoomDatabase() {
@@ -110,21 +109,11 @@ data class ResolveYoutubeChannelRequest(val reference: String)
 data class ResolveYoutubeChannelResponse(val channel: ResolvedYoutubeChannelDto)
 data class AvailableYoutubeChannelsResponse(val channels: List<ResolvedYoutubeChannelDto>)
 
-data class YoutubeCategoryDto(
-    val id: String,
-    val name: String,
-    val description: String,
-    val defaultAllowed: Boolean,
-)
-
-data class AvailableYoutubeCategoriesResponse(val categories: List<YoutubeCategoryDto>)
-
 data class ResolvedYoutubeChannelDto(
     val channelId: String,
     val handle: String,
     val displayName: String,
     val thumbnailUrl: String? = null,
-    val categories: List<String> = emptyList(),
     val source: String? = null,
 )
 
@@ -137,9 +126,6 @@ interface YoutubeStudyV2Api {
     @GET("youtube-study-v2/available")
     suspend fun available(@RetrofitQuery("limit") limit: Int = 100): Response<AvailableYoutubeChannelsResponse>
 
-    @GET("youtube-study-v2/categories")
-    suspend fun categories(): Response<AvailableYoutubeCategoriesResponse>
-
     @POST("youtube-study-v2/resolve")
     suspend fun resolve(@Body request: ResolveYoutubeChannelRequest): Response<ResolveYoutubeChannelResponse>
 }
@@ -150,7 +136,6 @@ class YoutubeStudyV2Repository(
     private val database: YoutubeStudyV2Database,
     private val dao: YoutubeStudyV2Dao,
     private val api: YoutubeStudyV2Api,
-    private val preferences: YoutubeStudyV2Preferences,
 ) {
     val allowedChannels: Flow<List<YoutubeV2IdentityEntity>> = dao.observeAllowed()
 
@@ -170,16 +155,6 @@ class YoutubeStudyV2Repository(
             channel = entity,
             source = dto.source?.lowercase()?.takeIf { it == "cache" || it == "youtube" } ?: "unknown",
         )
-    }
-
-    suspend fun categories(): Result<List<YoutubeCategoryDto>> = runCatching {
-        val response = api.categories()
-        if (!response.isSuccessful) {
-            val message = response.errorBody()?.string()?.let(::extractServerMessage)
-                ?: "Could not load categories (${response.code()})."
-            error(message)
-        }
-        response.body()?.categories ?: error("The server returned no categories.")
     }
 
     suspend fun availableChannels(): Result<List<ResolvedYoutubeChannelDto>> = runCatching {
@@ -223,13 +198,11 @@ class YoutubeStudyV2Repository(
         require(CHANNEL_ID.matches(dto.channelId)) { "The resolver returned an invalid Channel ID." }
         val handle = normalizeHandle(dto.handle)
         require(HANDLE.matches(handle)) { "The resolver returned an invalid channel handle." }
-        val categoriesStr = if (dto.categories.isNotEmpty()) dto.categories.joinToString(",") else "education"
         val entity = YoutubeV2IdentityEntity(
             channelId = dto.channelId,
             handle = handle,
             displayName = dto.displayName.trim(),
             thumbnailUrl = dto.thumbnailUrl,
-            categories = categoriesStr,
             resolvedAtMs = System.currentTimeMillis(),
         )
         database.withTransaction {
@@ -261,35 +234,26 @@ class YoutubeStudyV2Repository(
         // 1. Individually allowed channel
         if (channelId != null && dao.isAllowed(channelId)) return YoutubeV2RuntimeDecision.ALLOW
 
-        // 2. Allowed categories check from local Room DB
-        val allowedCategories = preferences.allowedCategories.value.map { it.trim().lowercase() }.toSet()
-        if (channelId != null) {
-            val identity = dao.identityForChannelId(channelId)
-            if (identity != null) {
-                val channelCategories = identity.categories.split(",").map { it.trim().lowercase() }.filter { it.isNotBlank() }
-                if (channelCategories.any { allowedCategories.contains(it) }) {
-                    return YoutubeV2RuntimeDecision.ALLOW
-                }
-            }
-        }
-
-        // 3. If unlisted channel and categories are active, resolve on the fly using YouTube Data API
-        if (channelId == null && normalizedHandle != null && allowedCategories.isNotEmpty()) {
-            val resolvedDto = runCatching {
-                val res = api.resolve(ResolveYoutubeChannelRequest(normalizedHandle))
-                if (res.isSuccessful) res.body()?.channel else null
-            }.getOrNull()
-
-            if (resolvedDto != null && CHANNEL_ID.matches(resolvedDto.channelId)) {
-                val savedEntity = saveIdentity(resolvedDto, productive = false)
-                val channelCategories = savedEntity.categories.split(",").map { it.trim().lowercase() }.filter { it.isNotBlank() }
-                if (channelCategories.any { allowedCategories.contains(it) }) {
-                    return YoutubeV2RuntimeDecision.ALLOW
-                }
-            }
-        }
-
         return YoutubeV2RuntimeDecision.BLOCK
+    }
+
+    /**
+     * Registers a newly observed exact handle in SAFAR's shared MongoDB-backed
+     * catalogue. This never changes the user's productive allowlist.
+     */
+    suspend fun registerDiscoveredHandle(exactHandle: String?): Result<YoutubeV2IdentityEntity?> = runCatching {
+        val handle = exactHandle
+            ?.let(::normalizeHandle)
+            ?.takeIf(HANDLE::matches)
+            ?: return@runCatching null
+        dao.channelIdForHandle(handle)?.let { return@runCatching dao.identityForChannelId(it) }
+
+        val response = api.resolve(ResolveYoutubeChannelRequest(handle))
+        if (!response.isSuccessful) return@runCatching null
+        val dto = response.body()?.channel ?: return@runCatching null
+        require(CHANNEL_ID.matches(dto.channelId)) { "The resolver returned an invalid Channel ID." }
+        val productive = dao.isAllowed(dto.channelId)
+        saveIdentity(dto, productive = productive)
     }
 
     companion object {

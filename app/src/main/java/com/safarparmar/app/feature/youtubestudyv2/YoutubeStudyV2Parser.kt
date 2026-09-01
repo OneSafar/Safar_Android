@@ -119,7 +119,7 @@ object YoutubeStudyV2Parser {
         // or recommendations can never become the video owner.
         val metadataHandle = exactHandleInMetadataBand(nodes, visible, playerBottom, density)
         semanticOwnerCard(snapshot, visible, playerBottom)?.let { evidence ->
-            return evidence.copy(handle = metadataHandle ?: evidence.handle)
+            return evidence.copy(handle = evidence.handle ?: metadataHandle)
         }
         val avatars = visible.filter { index ->
             val node = nodes[index]
@@ -128,6 +128,8 @@ object YoutubeStudyV2Parser {
             val widthDp = node.width / density
             val heightDp = node.height / density
             (className.contains("ImageView", true) || id.contains("avatar") || id.contains("channel_image")) &&
+                node.bottom >= playerBottom - OWNER_BAND_TOP_SLOP_DP * density &&
+                node.top <= playerBottom + OWNER_HANDLE_MAX_OFFSET_DP * density &&
                 widthDp in AVATAR_MIN_DP..AVATAR_MAX_DP && heightDp in AVATAR_MIN_DP..AVATAR_MAX_DP &&
                 max(widthDp, heightDp) / min(widthDp, heightDp).coerceAtLeast(1f) <= MAX_AVATAR_ASPECT
         }
@@ -158,9 +160,15 @@ object YoutubeStudyV2Parser {
             }
         }
 
-        val best = candidates.maxByOrNull { it.first } ?: return semanticOwner(nodes, visible)
-            ?.let { evidence -> evidence.copy(handle = metadataHandle ?: evidence.handle) }
-            ?: metadataHandle?.let { OwnerEvidence(it, null) }
+        val best = candidates.maxByOrNull { it.first } ?: run {
+            val avatarDisplay = avatars.asSequence()
+                .mapNotNull { index -> cleanOwnerText(nodes[index].contentDescription ?: nodes[index].text) }
+                .firstOrNull(::isPlausibleOwnerLabel)
+            return semanticOwner(nodes, visible)
+                ?.let { evidence -> evidence.copy(handle = evidence.handle ?: metadataHandle, displayName = evidence.displayName ?: avatarDisplay) }
+                ?: metadataHandle?.let { OwnerEvidence(it, avatarDisplay) }
+                ?: avatarDisplay?.let { OwnerEvidence(null, it) }
+        }
         val groupIndices = visible.filter { index ->
             val node = nodes[index]
             val textNode = nodes[best.third]
@@ -175,7 +183,7 @@ object YoutubeStudyV2Parser {
             ?.let(YoutubeStudyV2Repository::normalizeHandle)
         val display = cleanText(nodes[best.third].text ?: nodes[best.third].contentDescription)
             ?.takeUnless { handleRegex.matches(it) }
-        return OwnerEvidence(metadataHandle ?: structuralHandle, display)
+        return OwnerEvidence(structuralHandle ?: metadataHandle, display)
     }
 
     private fun exactHandleInMetadataBand(
@@ -184,16 +192,28 @@ object YoutubeStudyV2Parser {
         playerBottom: Int,
         density: Float,
     ): String? = visible.asSequence()
-        .map(nodes::get)
-        .filter { node ->
+        .map { index -> index to nodes[index] }
+        .filter { (_, node) ->
+            val id = node.viewId.orEmpty().lowercase()
             node.bottom >= playerBottom - OWNER_BAND_TOP_SLOP_DP * density &&
-                node.top <= playerBottom + OWNER_HANDLE_MAX_OFFSET_DP * density
+                node.top <= playerBottom + OWNER_HANDLE_MAX_OFFSET_DP * density &&
+                titleIds.none(id::contains) &&
+                NON_OWNER_TEXT_IDS.none(id::contains)
         }
-        .flatMap { node -> sequenceOf(node.text, node.contentDescription) }
-        .filterNotNull()
-        .mapNotNull(::cleanText)
-        .firstOrNull(handleRegex::matches)
-        ?.let(YoutubeStudyV2Repository::normalizeHandle)
+        .mapNotNull { (index, node) ->
+            val values = sequenceOf(node.text, node.contentDescription).filterNotNull()
+            val handle = values.mapNotNull { handleRegex.find(it)?.value }.firstOrNull() ?: return@mapNotNull null
+            val id = node.viewId.orEmpty().lowercase()
+            val score =
+                (if (hasOwnerAncestor(nodes, index)) 1_000 else 0) +
+                (if (ownerIds.any(id::contains)) 600 else 0) +
+                (if (node.contentDescription.orEmpty().startsWith("go to channel", true)) 400 else 0) +
+                (if (node.className.orEmpty().contains("TextView", true)) 50 else 0) -
+                ((node.top - playerBottom).coerceAtLeast(0) / density).toInt()
+            score to YoutubeStudyV2Repository.normalizeHandle(handle)
+        }
+        .maxByOrNull { it.first }
+        ?.second
 
     private fun isAdPlayback(
         nodes: List<YoutubeV2Node>,
@@ -294,20 +314,20 @@ object YoutubeStudyV2Parser {
     }
 
     const val YOUTUBE_PACKAGE = "com.google.android.youtube"
-    private const val MIN_SURFACE_WIDTH_RATIO = 0.65f
-    private const val MIN_SURFACE_HEIGHT_RATIO = 0.12f
-    private const val AVATAR_MIN_DP = 24f
-    private const val AVATAR_MAX_DP = 72f
-    private const val MAX_AVATAR_ASPECT = 1.25f
-    private const val MIN_HORIZONTAL_GAP_DP = -4f
-    private const val MAX_HORIZONTAL_GAP_DP = 48f
-    private const val MIN_VERTICAL_OVERLAP = 0.45f
-    private const val OWNER_CARD_MAX_OFFSET_DP = 220f
-    private const val OWNER_HANDLE_MAX_OFFSET_DP = 220f
-    private const val OWNER_BAND_TOP_SLOP_DP = 8f
-    private const val OWNER_CARD_MIN_HEIGHT_DP = 32f
-    private const val OWNER_CARD_MAX_HEIGHT_DP = 100f
-    private const val OWNER_CARD_MAX_WIDTH_RATIO = 0.75f
+    private const val MIN_SURFACE_WIDTH_RATIO = 0.35f
+    private const val MIN_SURFACE_HEIGHT_RATIO = 0.10f
+    private const val AVATAR_MIN_DP = 20f
+    private const val AVATAR_MAX_DP = 88f
+    private const val MAX_AVATAR_ASPECT = 1.35f
+    private const val MIN_HORIZONTAL_GAP_DP = -8f
+    private const val MAX_HORIZONTAL_GAP_DP = 64f
+    private const val MIN_VERTICAL_OVERLAP = 0.35f
+    private const val OWNER_CARD_MAX_OFFSET_DP = 280f
+    private const val OWNER_HANDLE_MAX_OFFSET_DP = 280f
+    private const val OWNER_BAND_TOP_SLOP_DP = 16f
+    private const val OWNER_CARD_MIN_HEIGHT_DP = 28f
+    private const val OWNER_CARD_MAX_HEIGHT_DP = 140f
+    private const val OWNER_CARD_MAX_WIDTH_RATIO = 0.90f
     private const val OWNER_IMAGE_DESCENDANT_HOPS = 4
     private const val MAX_ANCESTOR_HOPS = 5
     private val INVALID_OWNER_WORDS = listOf(
@@ -318,6 +338,7 @@ object YoutubeStudyV2Parser {
     private val AD_PLAYBACK_MARKERS = listOf(
         "visit advertiser", "skip ad", "stop ad", "ad countdown", "ad badge",
     )
+    private val NON_OWNER_TEXT_IDS = listOf("comment", "description", "recommend", "suggest", "transcript")
     private val SUBSCRIBER_SUFFIX = Regex(
         "\\s+[\\d.,\\u00a0]+(?:\\s*(?:k|m|b|lakh|crore))?\\s+subscribers?\\b.*$",
         RegexOption.IGNORE_CASE,
