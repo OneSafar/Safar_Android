@@ -184,6 +184,8 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             }
             if (decision == YoutubeV2RuntimeDecision.BLOCK) {
                 repository.registerDiscoveredHandle(observation.exactHandle)
+                    .getOrNull()
+                    ?.let { YoutubeStudyV2BlockedNotification.show(this@YoutubeStudyV2AccessibilityService, it) }
             }
         }
     }

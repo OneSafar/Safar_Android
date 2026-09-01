@@ -64,5 +64,12 @@ class YoutubeStudyV2RepositoryTest {
 
         assertEquals(entity, repository.registerDiscoveredHandle("@GoogleDevelopers").getOrThrow())
         coVerify(exactly = 0) { api.resolve(any()) }
+        coVerify(exactly = 0) { api.discover(any()) }
+    }
+
+    @Test
+    fun `automatic discovery never submits a display name`() = runTest {
+        assertEquals(null, repository.registerDiscoveredHandle("Parmar SSC").getOrThrow())
+        coVerify(exactly = 0) { api.discover(any()) }
     }
 }

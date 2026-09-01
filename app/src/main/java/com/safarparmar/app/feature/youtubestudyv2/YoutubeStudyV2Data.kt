@@ -105,6 +105,7 @@ abstract class YoutubeStudyV2Database : RoomDatabase() {
 }
 
 data class ResolveYoutubeChannelRequest(val reference: String)
+data class DiscoverYoutubeHandleRequest(val handle: String)
 
 data class ResolveYoutubeChannelResponse(val channel: ResolvedYoutubeChannelDto)
 data class AvailableYoutubeChannelsResponse(val channels: List<ResolvedYoutubeChannelDto>)
@@ -128,6 +129,9 @@ interface YoutubeStudyV2Api {
 
     @POST("youtube-study-v2/resolve")
     suspend fun resolve(@Body request: ResolveYoutubeChannelRequest): Response<ResolveYoutubeChannelResponse>
+
+    @POST("youtube-study-v2/discover")
+    suspend fun discover(@Body request: DiscoverYoutubeHandleRequest): Response<ResolveYoutubeChannelResponse>
 }
 
 enum class YoutubeV2RuntimeDecision { ALLOW, BLOCK }
@@ -248,7 +252,7 @@ class YoutubeStudyV2Repository(
             ?: return@runCatching null
         dao.channelIdForHandle(handle)?.let { return@runCatching dao.identityForChannelId(it) }
 
-        val response = api.resolve(ResolveYoutubeChannelRequest(handle))
+        val response = api.discover(DiscoverYoutubeHandleRequest(handle))
         if (!response.isSuccessful) return@runCatching null
         val dto = response.body()?.channel ?: return@runCatching null
         require(CHANNEL_ID.matches(dto.channelId)) { "The resolver returned an invalid Channel ID." }
