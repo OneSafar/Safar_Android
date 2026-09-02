@@ -62,6 +62,7 @@ object YoutubeStudyV2Parser {
     private val ownerIds = listOf("video_owner", "owner_row", "channel_row", "channel_info")
     private val shortsIds = listOf("reel_watch", "shorts_player", "shorts_video")
     private val handleRegex = Regex("@[\\p{L}\\p{N}_.-]{3,30}")
+    private val leadingHandleRegex = Regex("^\\s*(@[\\p{L}\\p{N}_.-]{3,30})(?=\\s|$)")
 
     fun parse(snapshot: YoutubeV2Snapshot): YoutubeV2Observation {
         if (snapshot.packageName != YOUTUBE_PACKAGE) return YoutubeV2Observation(YoutubeV2ContentKind.NON_PLAYBACK)
@@ -97,7 +98,7 @@ object YoutubeStudyV2Parser {
             .firstOrNull { node -> titleIds.any(node.viewId.orEmpty().lowercase()::contains) }
             ?.let { cleanText(it.text ?: it.contentDescription) }
 
-        val owner = findOwnerRow(snapshot, visible, playbackRegion.bottom)
+        val owner = findOwnerRow(snapshot, visible, playbackRegion.bottom, title)
         return YoutubeV2Observation(
             kind = kind,
             watchScreenConfirmed = true,
@@ -110,16 +111,24 @@ object YoutubeStudyV2Parser {
 
     private data class OwnerEvidence(val handle: String?, val displayName: String?)
 
-    private fun findOwnerRow(snapshot: YoutubeV2Snapshot, visible: List<Int>, playerBottom: Int): OwnerEvidence? {
+    private fun findOwnerRow(
+        snapshot: YoutubeV2Snapshot,
+        visible: List<Int>,
+        playerBottom: Int,
+        titleText: String? = null,
+    ): OwnerEvidence? {
         val nodes = snapshot.nodes
         val density = snapshot.density.coerceAtLeast(1f)
         // Recent YouTube watch pages expose an exact @handle beside the title
         // before their semantic owner card has finished rendering. Restrict the
         // search to the watch-metadata band so handles in comments, descriptions,
         // or recommendations can never become the video owner.
-        val metadataHandle = exactHandleInMetadataBand(nodes, visible, playerBottom, density)
+        val metadataHandle = exactHandleInMetadataBand(nodes, visible, playerBottom, density, titleText)
         semanticOwnerCard(snapshot, visible, playerBottom)?.let { evidence ->
-            return evidence.copy(handle = evidence.handle ?: metadataHandle)
+            val matchedHandle = evidence.handle ?: metadataHandle?.takeIf { h ->
+                evidence.displayName == null || isHandleCompatibleWithDisplay(h, evidence.displayName)
+            }
+            return evidence.copy(handle = matchedHandle)
         }
         val avatars = visible.filter { index ->
             val node = nodes[index]
@@ -127,7 +136,8 @@ object YoutubeStudyV2Parser {
             val id = node.viewId.orEmpty().lowercase()
             val widthDp = node.width / density
             val heightDp = node.height / density
-            (className.contains("ImageView", true) || id.contains("avatar") || id.contains("channel_image")) &&
+            (className.contains("ImageView", true) || id.contains("avatar") || id.contains("channel_image") ||
+                node.contentDescription.orEmpty().startsWith("go to channel", true)) &&
                 node.bottom >= playerBottom - OWNER_BAND_TOP_SLOP_DP * density &&
                 node.top <= playerBottom + OWNER_HANDLE_MAX_OFFSET_DP * density &&
                 widthDp in AVATAR_MIN_DP..AVATAR_MAX_DP && heightDp in AVATAR_MIN_DP..AVATAR_MAX_DP &&
@@ -165,9 +175,17 @@ object YoutubeStudyV2Parser {
                 .mapNotNull { index -> cleanOwnerText(nodes[index].contentDescription ?: nodes[index].text) }
                 .firstOrNull(::isPlausibleOwnerLabel)
             return semanticOwner(nodes, visible)
-                ?.let { evidence -> evidence.copy(handle = evidence.handle ?: metadataHandle, displayName = evidence.displayName ?: avatarDisplay) }
-                ?: metadataHandle?.let { OwnerEvidence(it, avatarDisplay) }
-                ?: avatarDisplay?.let { OwnerEvidence(null, it) }
+                ?.let { evidence ->
+                    val matchedHandle = evidence.handle ?: metadataHandle?.takeIf { h ->
+                        evidence.displayName == null || isHandleCompatibleWithDisplay(h, evidence.displayName)
+                    }
+                    evidence.copy(handle = matchedHandle, displayName = evidence.displayName ?: avatarDisplay)
+                }
+                ?: avatarDisplay?.let { d ->
+                    val matchedHandle = metadataHandle?.takeIf { h -> isHandleCompatibleWithDisplay(h, d) }
+                    OwnerEvidence(matchedHandle, d)
+                }
+                ?: metadataHandle?.let { OwnerEvidence(it, null) }
         }
         val groupIndices = visible.filter { index ->
             val node = nodes[index]
@@ -183,7 +201,10 @@ object YoutubeStudyV2Parser {
             ?.let(YoutubeStudyV2Repository::normalizeHandle)
         val display = cleanText(nodes[best.third].text ?: nodes[best.third].contentDescription)
             ?.takeUnless { handleRegex.matches(it) }
-        return OwnerEvidence(structuralHandle ?: metadataHandle, display)
+        val resolvedHandle = structuralHandle ?: metadataHandle?.takeIf { h ->
+            display == null || isHandleCompatibleWithDisplay(h, display)
+        }
+        return OwnerEvidence(resolvedHandle, display)
     }
 
     private fun exactHandleInMetadataBand(
@@ -191,29 +212,89 @@ object YoutubeStudyV2Parser {
         visible: List<Int>,
         playerBottom: Int,
         density: Float,
+        titleText: String? = null,
     ): String? = visible.asSequence()
         .map { index -> index to nodes[index] }
         .filter { (_, node) ->
             val id = node.viewId.orEmpty().lowercase()
             node.bottom >= playerBottom - OWNER_BAND_TOP_SLOP_DP * density &&
-                node.top <= playerBottom + OWNER_HANDLE_MAX_OFFSET_DP * density &&
-                titleIds.none(id::contains) &&
+                node.top <= playerBottom + (OWNER_HANDLE_MAX_OFFSET_DP * 1.5f) * density &&
                 NON_OWNER_TEXT_IDS.none(id::contains)
         }
         .mapNotNull { (index, node) ->
             val values = sequenceOf(node.text, node.contentDescription).filterNotNull()
-            val handle = values.mapNotNull { handleRegex.find(it)?.value }.firstOrNull() ?: return@mapNotNull null
             val id = node.viewId.orEmpty().lowercase()
+            val semanticOwnerProof = hasOwnerAncestor(nodes, index) ||
+                ownerIds.any(id::contains) ||
+                node.contentDescription.orEmpty().startsWith("go to channel", true)
+            val valueAndHandle = values.mapNotNull { value ->
+                verifiedUploaderHandle(value, semanticOwnerProof)?.let { value to it }
+            }.firstOrNull() ?: return@mapNotNull null
+            val (rawValue, handle) = valueAndHandle
+            val uploaderMetadataProof = hasUploaderMetadataProof(rawValue)
+            // A title may contain @mentions. Position alone is never identity
+            // proof: the candidate must look like YouTube's uploader metadata or
+            // live inside a semantic owner container.
+            if (!semanticOwnerProof && !uploaderMetadataProof) return@mapNotNull null
             val score =
                 (if (hasOwnerAncestor(nodes, index)) 1_000 else 0) +
                 (if (ownerIds.any(id::contains)) 600 else 0) +
                 (if (node.contentDescription.orEmpty().startsWith("go to channel", true)) 400 else 0) +
+                (if (uploaderMetadataProof) 250 else 0) +
                 (if (node.className.orEmpty().contains("TextView", true)) 50 else 0) -
                 ((node.top - playerBottom).coerceAtLeast(0) / density).toInt()
             score to YoutubeStudyV2Repository.normalizeHandle(handle)
         }
         .maxByOrNull { it.first }
         ?.second
+
+    /**
+     * YouTube sometimes merges title + uploader metadata into one accessibility
+     * node. Split at each handle and accept only the segment that owns the
+     * engagement/time metadata. A title mention before that segment is ignored.
+     */
+    internal fun verifiedUploaderHandle(value: String, semanticOwnerProof: Boolean = false): String? {
+        val matches = handleRegex.findAll(value).toList()
+        if (matches.isEmpty()) return null
+        if (semanticOwnerProof) {
+            return matches.last().value.let(YoutubeStudyV2Repository::normalizeHandle)
+        }
+
+        val leading = leadingHandleRegex.find(value)?.groupValues?.getOrNull(1)
+        matches.forEachIndexed { index, match ->
+            val segmentEnd = matches.getOrNull(index + 1)?.range?.first ?: value.length
+            val segment = value.substring(match.range.last + 1, segmentEnd)
+            val beginsUploaderLine = leading != null && match.range.first == value.indexOf(leading)
+            val followsEarlierMention = index > 0
+            if ((beginsUploaderLine || followsEarlierMention) && hasUploaderMetadataProof(segment)) {
+                return YoutubeStudyV2Repository.normalizeHandle(match.value)
+            }
+        }
+        return null
+    }
+
+    private fun hasUploaderMetadataProof(value: String): Boolean {
+        val lower = value.lowercase()
+        val hasNumbers = value.any { it.isDigit() }
+        return UPLOADER_ENGAGEMENT_MARKERS.any(lower::contains) ||
+            UPLOADER_CONTEXT_MARKERS.any(lower::contains) ||
+            (hasNumbers && (value.contains("·") || value.contains("•") || value.contains("|") || lower.contains("k") || lower.contains("m") || lower.contains("lakh") || lower.contains("crore")))
+    }
+
+    private fun hasAncestorWithId(
+        nodes: List<YoutubeV2Node>,
+        node: YoutubeV2Node,
+        markers: List<String>,
+    ): Boolean {
+        var index = node.parentIndex
+        repeat(MAX_ANCESTOR_HOPS) {
+            val current = index?.takeIf(nodes.indices::contains) ?: return false
+            val id = nodes[current].viewId.orEmpty().lowercase()
+            if (markers.any(id::contains)) return true
+            index = nodes[current].parentIndex
+        }
+        return false
+    }
 
     private fun isAdPlayback(
         nodes: List<YoutubeV2Node>,
@@ -244,7 +325,7 @@ object YoutubeStudyV2Parser {
                     node.top <= playerBottom + OWNER_CARD_MAX_OFFSET_DP * density &&
                     heightDp in OWNER_CARD_MIN_HEIGHT_DP..OWNER_CARD_MAX_HEIGHT_DP &&
                     node.width <= snapshot.screenWidth * OWNER_CARD_MAX_WIDTH_RATIO &&
-                    hasImageDescendant(nodes, index)
+                    (hasImageDescendant(nodes, index) || node.contentDescription.orEmpty().startsWith("go to channel", true))
             }
             .mapNotNull { index -> cleanOwnerText(nodes[index].contentDescription ?: nodes[index].text) }
             .firstOrNull(::isPlausibleOwnerLabel)
@@ -308,8 +389,9 @@ object YoutubeStudyV2Parser {
         val cleaned = cleanText(value) ?: return null
         val withoutAction = cleaned.replace(Regex("^go to channel\\s+", RegexOption.IGNORE_CASE), "")
         return withoutAction
+            .replace(METADATA_SUFFIX, "")
             .replace(SUBSCRIBER_SUFFIX, "")
-            .trim(' ', '.', ',', '·', '-')
+            .trim(' ', '.', ',', '·', '-', '•', '|')
             .takeIf { it.isNotBlank() }
     }
 
@@ -339,8 +421,25 @@ object YoutubeStudyV2Parser {
         "visit advertiser", "skip ad", "stop ad", "ad countdown", "ad badge",
     )
     private val NON_OWNER_TEXT_IDS = listOf("comment", "description", "recommend", "suggest", "transcript")
+    private val UPLOADER_ENGAGEMENT_MARKERS = listOf(" view", " views", " like", " likes")
+    private val UPLOADER_CONTEXT_MARKERS = listOf(" ago", " watching", " subscriber", " subscribers")
+    private val METADATA_SUFFIX = Regex(
+        "\\s*(?:·|•|\\|)?\\s*[\\d.,\\u00a0]+(?:\\s*(?:k|m|b|lakh|crore))?\\s+(?:views?|likes?|subscribers?|watching|products?|ago).*$",
+        RegexOption.IGNORE_CASE,
+    )
     private val SUBSCRIBER_SUFFIX = Regex(
         "\\s+[\\d.,\\u00a0]+(?:\\s*(?:k|m|b|lakh|crore))?\\s+subscribers?\\b.*$",
         RegexOption.IGNORE_CASE,
     )
+
+    internal fun isHandleCompatibleWithDisplay(handle: String, displayName: String): Boolean {
+        val h = handle.trim().removePrefix("@").lowercase().filter { it.isLetterOrDigit() }
+        val d = displayName.trim().lowercase().filter { it.isLetterOrDigit() }
+        if (h.isEmpty() || d.isEmpty()) return true
+        if (h == d || h.contains(d) || d.contains(h)) return true
+        // Check word-by-word (e.g. "Tanmay Bhat" -> ["tanmay", "bhat"])
+        val words = displayName.trim().lowercase().split(Regex("[\\s_.-]+")).filter { it.length >= 3 }
+        if (words.isNotEmpty() && words.any { h.contains(it) }) return true
+        return false
+    }
 }

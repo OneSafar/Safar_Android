@@ -1,16 +1,17 @@
 package com.safarparmar.app.feature.youtubestudyv2
 
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5
- * designed-as-app · structure: flat task-led setup to control centre
- * tokens: SAFAR Material theme + KavachDesign · adaptive: contained 560dp column
+ * redesign · genre: modern-minimal · theme: Cobalt (deep-black + royal-blue)
+ * tokens: KavachDesign + YTCM palette · adaptive: 560dp column · isLight-flagged
+ * states: default · loading · error · empty · permission-needed · permission-ok
  */
 
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,31 +37,36 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.SmartDisplay
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,16 +76,46 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.saveable.rememberSaveable
+import com.safarparmar.app.feature.kavachanalytics.ui.KavachCategoryColors
+import com.safarparmar.app.feature.kavachanalytics.ui.OutlineChip
+import com.safarparmar.app.feature.kavachanalytics.ui.primaryText
+import com.safarparmar.app.feature.kavachanalytics.ui.secondaryText
 import com.safarparmar.app.ui.ekagra.focusshield.KavachDesign
 import com.safarparmar.app.ui.theme.SafarTheme
+
+// ── YTCM Design Tokens ───────────────────────────────────────────────────────
+
+internal object YTCMColors {
+    /** Near-black — premium button fill in light mode */
+    val PremiumBlack = Color(0xFF0F172A)
+    /** Deep royal purple — accent, toggle track, progress */
+    val RoyalPurple = Color(0xFF6B21A8)
+
+    /** Royal purple surface wash */
+    fun royalPurpleSurface(isLight: Boolean) =
+        if (isLight) Color(0xFFF3E8FF) else Color(0xFF3B0764)
+
+    /** Primary CTA fill — near-black in light, brand purple in dark */
+    fun ctaFill(isLight: Boolean) =
+        if (isLight) PremiumBlack else Color(0xFFC084FC)
+
+    /** Toggle track colors */
+    fun toggleTrack(isLight: Boolean) =
+        if (isLight) RoyalPurple else Color(0xFF9333EA)
+
+    fun toggleTrackUnchecked(isLight: Boolean) =
+        if (isLight) Color(0xFFCBD5E1) else Color(0xFF334155)
+}
+
+// ── Standalone Screen Wrapper (Kept for compatibility) ───────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +126,8 @@ fun YoutubeStudyV2Screen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
+    val isLight = !isSystemInDarkTheme()
+
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshPermission()
@@ -106,298 +144,978 @@ fun YoutubeStudyV2Screen(
         containerColor = KavachDesign.Background,
         topBar = {
             TopAppBar(
-                title = { Text("YouTube Study Mode") },
+                title = {
+                    Text(
+                        "Study Mode",
+                        fontWeight = FontWeight.Bold,
+                        color = primaryText(isLight),
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = primaryText(isLight),
+                        )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = KavachDesign.Background,
+                ),
             )
         },
     ) { padding ->
-        Box(
-            modifier = Modifier.fillMaxSize().padding(padding).navigationBarsPadding(),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            if (state.setupCompleted) {
-                StudyModeDashboard(
-                    state = state,
-                    onSetEnabled = viewModel::setEnabled,
-                    onOpenAccessibility = ::openAccessibilitySettings,
-                    onReferenceChanged = viewModel::setReference,
-                    onAddChannel = viewModel::resolveAndAllow,
-                    onSetProductive = viewModel::setProductive,
-                    onToggleAvailable = viewModel::toggleAvailable,
-                    onSetAvailableProductive = viewModel::setAvailableProductive,
-                )
-            } else {
-                StudyModeSetup(
-                    state = state,
-                    onAgree = {
-                        viewModel.acceptDisclosure()
-                        if (state.accessibilityEnabled) viewModel.refreshPermission()
-                        else openAccessibilitySettings()
-                    },
-                    onNotNow = onBack,
-                    onReferenceChanged = viewModel::setReference,
-                    onAddChannel = viewModel::resolveAndAllow,
-                    onSetAvailableProductive = viewModel::setAvailableProductive,
-                    onContinue = viewModel::continueToReview,
-                    onBackToChannels = viewModel::returnToChannelSelection,
-                    onStart = viewModel::finishSetup,
-                )
-            }
-        }
+        YoutubeStudyV2Content(
+            state = state,
+            isLight = isLight,
+            onAgree = {
+                viewModel.acceptDisclosure()
+                if (state.accessibilityEnabled) viewModel.goToStep2()
+                else openAccessibilitySettings()
+            },
+            onNotNow = onBack,
+            onSetEnabled = viewModel::setEnabled,
+            onOpenAccessibility = ::openAccessibilitySettings,
+            onReferenceChanged = viewModel::setReference,
+            onAddChannel = viewModel::resolveAndAllow,
+            onSetClassification = viewModel::setClassification,
+            onToggleAvailable = viewModel::toggleAvailable,
+            onSetAvailableClassification = viewModel::setAvailableClassification,
+            onDeleteChannel = viewModel::deleteChannel,
+            onBackToStep1 = viewModel::returnToStep1,
+            onStart = viewModel::finishSetup,
+            modifier = Modifier.padding(padding).navigationBarsPadding(),
+        )
     }
 }
 
+// ── Embeddable Content (Used in Kavach Tab) ───────────────────────────────────
+
 @Composable
-private fun StudyModeSetup(
+fun YoutubeStudyV2Content(
     state: YoutubeStudyV2UiState,
+    isLight: Boolean,
     onAgree: () -> Unit,
     onNotNow: () -> Unit,
-    onReferenceChanged: (String) -> Unit,
-    onAddChannel: () -> Unit,
-    onSetAvailableProductive: (ResolvedYoutubeChannelDto, Boolean) -> Unit,
-    onContinue: () -> Unit,
-    onBackToChannels: () -> Unit,
-    onStart: () -> Unit,
-) {
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth().widthIn(max = 560.dp).padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
-    ) {
-        item { SetupProgress(state.setupStep) }
-        when (state.setupStep) {
-            1 -> item { PermissionStep(state.accessibilityEnabled, onAgree, onNotNow) }
-            2 -> item {
-                ChannelSelectionStep(
-                    state,
-                    onReferenceChanged,
-                    onAddChannel,
-                    onSetAvailableProductive,
-                    onContinue,
-                )
-            }
-            else -> item { ReadyStep(state.allowed.size, onBackToChannels, onStart) }
-        }
-    }
-}
-
-@Composable
-private fun SetupProgress(step: Int) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Setup", style = MaterialTheme.typography.labelMedium, color = KavachDesign.Primary, fontWeight = FontWeight.Bold)
-            Text("$step of 3", style = MaterialTheme.typography.labelMedium, color = KavachDesign.TextMuted)
-        }
-        LinearProgressIndicator(
-            progress = { step / 3f },
-            modifier = Modifier.fillMaxWidth().height(4.dp),
-            color = KavachDesign.Primary,
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-        )
-    }
-}
-
-@Composable
-private fun PermissionStep(permissionConnected: Boolean, onAgree: () -> Unit, onNotNow: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        HeroIcon(Icons.Default.Shield)
-        PageHeading(
-            "Block YouTube distractions",
-            "Choose the channels you want to watch. SAFAR blocks all other channels and Shorts.",
-        )
-        SectionRule()
-        Text("Permission needed", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(
-            "SAFAR uses Accessibility only in YouTube. It reads the channel shown on a video you open. It also detects Shorts.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = KavachDesign.TextMuted,
-        )
-        Text(
-            "When you open a new channel, SAFAR sends only its @handle to verify the Channel ID. The verified channel is added to the shared channel list. SAFAR does not read passwords, messages, or other apps.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = KavachDesign.TextMuted,
-        )
-        if (permissionConnected) StatusStrip(Icons.Default.CheckCircle, "Accessibility is on")
-        PrimaryActionButton(
-            if (permissionConnected) "I agree · Continue" else "I agree · Open settings",
-            onAgree,
-        )
-        TextButton(onClick = onNotNow, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Not now", color = KavachDesign.TextMuted)
-        }
-    }
-}
-
-@Composable
-private fun ChannelSelectionStep(
-    state: YoutubeStudyV2UiState,
-    onReferenceChanged: (String) -> Unit,
-    onAddChannel: () -> Unit,
-    onSetAvailableProductive: (ResolvedYoutubeChannelDto, Boolean) -> Unit,
-    onContinue: () -> Unit,
-) {
-    val suggestions = starterChannels(state.available)
-    var availableExpanded by rememberSaveable { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        PageHeading(
-            "Choose productive channels",
-            "Only the channels you turn on can play. All other channels and Shorts are blocked.",
-        )
-        SectionHeading("Suggested study channels", "Turn on specific channels you want.")
-        when {
-            state.loadingAvailable -> Text("Loading suggestions…", color = KavachDesign.TextMuted)
-            suggestions.isEmpty() -> Text("No suggestions. Add a channel below.", color = KavachDesign.TextMuted)
-            else -> suggestions.forEachIndexed { index, channel ->
-                val productive = state.allowed.any { it.channelId == channel.channelId }
-                ChannelToggleRow(channel.displayName, channel.handle, productive) {
-                    onSetAvailableProductive(channel, it)
-                }
-                if (index != suggestions.lastIndex) SectionRule()
-            }
-        }
-        ExpandableSection(
-            "Available channels",
-            "Find and choose more channels.",
-            availableExpanded,
-            { availableExpanded = !availableExpanded },
-        ) {
-            AvailableChannelList(
-                channels = state.available,
-                allowedChannelIds = state.allowed.mapTo(mutableSetOf()) { it.channelId },
-                onProductiveChange = onSetAvailableProductive,
-            )
-        }
-        SectionRule()
-        SectionHeading("Add a channel", "Can't find your channel? Add its @handle.")
-        OutlinedTextField(
-            value = state.reference,
-            onValueChange = onReferenceChanged,
-            label = { Text("YouTube @handle") },
-            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-            supportingText = { Text("Example: @parmarssc") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-        )
-        PrimaryActionButton(
-            if (state.resolving) "Checking…" else "Add channel",
-            onAddChannel,
-            !state.resolving && state.reference.isNotBlank(),
-        )
-        StateMessage(state)
-        val canContinue = state.allowed.isNotEmpty()
-        PrimaryActionButton(
-            if (canContinue) "Continue · Ready" else "Choose at least one channel",
-            onContinue,
-            canContinue,
-        )
-    }
-}
-
-@Composable
-private fun ReadyStep(productiveCount: Int, onBack: () -> Unit, onStart: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        HeroIcon(Icons.Default.CheckCircle)
-        PageHeading("Ready to start", "Check your choices.")
-        SectionRule()
-        RuleRow(Icons.Default.Block, "Shorts", "Always blocked")
-        RuleRow(Icons.Default.CheckCircle, "Productive channels", "$productiveCount allowed")
-        RuleRow(Icons.Default.Shield, "All other channels", "Blocked")
-        RuleRow(Icons.Default.PlayArrow, "Home screen & previews", "Allowed")
-        SectionRule()
-        PrimaryActionButton("Start Study Mode", onStart)
-        TextButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Back to settings", color = KavachDesign.TextMuted)
-        }
-    }
-}
-
-@Composable
-private fun StudyModeDashboard(
-    state: YoutubeStudyV2UiState,
     onSetEnabled: (Boolean) -> Unit,
     onOpenAccessibility: () -> Unit,
     onReferenceChanged: (String) -> Unit,
     onAddChannel: () -> Unit,
-    onSetProductive: (String, Boolean) -> Unit,
+    onSetClassification: (String, YoutubeChannelClassification) -> Unit,
     onToggleAvailable: () -> Unit,
-    onSetAvailableProductive: (ResolvedYoutubeChannelDto, Boolean) -> Unit,
+    onSetAvailableClassification: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
+    onDeleteChannel: (String) -> Unit,
+    onBackToStep1: () -> Unit,
+    onStart: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    var reliabilityExpanded by rememberSaveable { mutableStateOf(false) }
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth().widthIn(max = 560.dp).padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 36.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        item {
-            ProtectionStatus(state.enabled, state.accessibilityEnabled, state.allowed.size, onSetEnabled, onOpenAccessibility)
-        }
-        item { SectionHeading("Productive channels", "These specific channels can play.") }
-        if (state.allowed.isEmpty()) {
-            item { Text("No custom channels added.", color = KavachDesign.TextMuted) }
+        if (state.setupCompleted) {
+            StudyModeDashboard(
+                state = state,
+                isLight = isLight,
+                onSetEnabled = onSetEnabled,
+                onOpenAccessibility = onOpenAccessibility,
+                onReferenceChanged = onReferenceChanged,
+                onAddChannel = onAddChannel,
+                onSetClassification = onSetClassification,
+                onToggleAvailable = onToggleAvailable,
+                onSetAvailableClassification = onSetAvailableClassification,
+                onDeleteChannel = onDeleteChannel,
+            )
         } else {
-            items(state.allowed, key = { it.channelId }) { channel ->
-                ChannelToggleRow(channel.displayName, channel.handle, true) {
-                    onSetProductive(channel.channelId, it)
-                }
-                SectionRule()
-            }
+            StudyModeSetup(
+                state = state,
+                isLight = isLight,
+                onAgree = onAgree,
+                onNotNow = onNotNow,
+                onReferenceChanged = onReferenceChanged,
+                onAddChannel = onAddChannel,
+                onSetAvailableClassification = onSetAvailableClassification,
+                onBackToStep1 = onBackToStep1,
+                onStart = onStart,
+            )
         }
-        item {
-            ExpandableSection(
-                "Available channels",
-                "Find and choose more channels.",
-                state.availableExpanded,
-                onToggleAvailable,
-            ) {
-                AvailableChannelList(
-                    channels = state.available,
-                    allowedChannelIds = state.allowed.mapTo(mutableSetOf()) { it.channelId },
-                    initialFilter = AvailableChannelFilter.DISTRACTING,
-                    onProductiveChange = onSetAvailableProductive,
+    }
+}
+
+// ── Setup flow ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun StudyModeSetup(
+    state: YoutubeStudyV2UiState,
+    isLight: Boolean,
+    onAgree: () -> Unit,
+    onNotNow: () -> Unit,
+    onReferenceChanged: (String) -> Unit,
+    onAddChannel: () -> Unit,
+    onSetAvailableClassification: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
+    onBackToStep1: () -> Unit,
+    onStart: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 560.dp)
+            .padding(horizontal = 24.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        item { SetupProgress(state.setupStep, isLight) }
+        when (state.setupStep) {
+            1 -> item { PermissionStep(state.accessibilityEnabled, isLight, onAgree, onNotNow) }
+            else -> item {
+                ChannelSelectionStep(
+                    state = state,
+                    isLight = isLight,
+                    onReferenceChanged = onReferenceChanged,
+                    onAddChannel = onAddChannel,
+                    onSetAvailableClassification = onSetAvailableClassification,
+                    onBackToStep1 = onBackToStep1,
+                    onStart = onStart,
                 )
-            }
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionHeading("Add a channel", "Can't find your channel? Add its @handle.")
-                OutlinedTextField(
-                    value = state.reference,
-                    onValueChange = onReferenceChanged,
-                    label = { Text("YouTube @handle") },
-                    supportingText = { Text("Example: @parmarssc") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                )
-                PrimaryActionButton(
-                    if (state.resolving) "Checking…" else "Add channel",
-                    onAddChannel,
-                    !state.resolving && state.reference.isNotBlank(),
-                )
-                StateMessage(state)
-            }
-        }
-        item {
-            ExpandableSection(
-                "Study Mode not working?",
-                "Check these phone settings.",
-                reliabilityExpanded,
-                { reliabilityExpanded = !reliabilityExpanded },
-            ) {
-                Text("MIUI: Turn on Autostart. Set Battery saver to No restrictions.")
-                Text("ColorOS/realme: Turn on Auto launch and background activity.")
-                Text("Samsung: Remove SAFAR from Sleeping apps.")
             }
         }
     }
 }
 
-internal enum class AvailableChannelFilter { ALL, PRODUCTIVE, DISTRACTING }
+@Composable
+private fun SetupProgress(step: Int, isLight: Boolean) {
+    val clampedStep = step.coerceIn(1, 2)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                "Step $clampedStep of 2",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = primaryText(isLight),
+            )
+            Text(
+                if (clampedStep == 1) "Permission" else "Channels",
+                fontSize = 12.sp,
+                color = secondaryText(isLight),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .clip(CircleShape)
+                .background(secondaryText(isLight).copy(alpha = 0.12f)),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(clampedStep / 2f)
+                    .height(3.dp)
+                    .clip(CircleShape)
+                    .background(primaryText(isLight)),
+            )
+        }
+    }
+}
+
+// ── Step 1: Permission (Screen 3 Design) ───────────────────────────────────────
+
+@Composable
+private fun PermissionStep(
+    permissionConnected: Boolean,
+    isLight: Boolean,
+    onAgree: () -> Unit,
+    onNotNow: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Centered Hero
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(top = 8.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(if (isLight) Color(0xFFFEF2F2) else Color(0xFF450A0A)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.SmartDisplay,
+                    contentDescription = null,
+                    tint = if (isLight) Color(0xFFEF4444) else Color(0xFFF87171),
+                    modifier = Modifier.size(36.dp),
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "YouTube Study Mode",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = primaryText(isLight),
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                "Block distracting channels. Only productive channels will open.",
+                fontSize = 14.sp,
+                color = secondaryText(isLight),
+                textAlign = TextAlign.Center,
+            )
+        }
+
+        // Feature rows (Clean, airy, non-cluttered)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            FeatureRow(
+                icon = Icons.Default.SmartDisplay,
+                iconBg = if (isLight) Color(0xFFFEF2F2) else Color(0xFF450A0A),
+                iconTint = if (isLight) Color(0xFFEF4444) else Color(0xFFF87171),
+                label = "Distracting channels blocked automatically",
+                isLight = isLight,
+            )
+            FeatureRow(
+                icon = Icons.Default.Block,
+                iconBg = if (isLight) Color(0xFFFEF2F2) else Color(0xFF450A0A),
+                iconTint = if (isLight) Color(0xFFEF4444) else Color(0xFFF87171),
+                label = "YouTube Shorts always blocked",
+                isLight = isLight,
+            )
+            FeatureRow(
+                icon = Icons.Default.CheckCircle,
+                iconBg = if (isLight) Color(0xFFF0FDF4) else Color(0xFF052E16),
+                iconTint = if (isLight) Color(0xFF10B981) else Color(0xFF4ADE80),
+                label = "Productive channels always open safely",
+                isLight = isLight,
+            )
+        }
+
+        // Permission status pill
+        if (permissionConnected) {
+            StatusPill(
+                icon = Icons.Default.CheckCircle,
+                text = "Permissions active",
+                isOk = true,
+                isLight = isLight,
+            )
+        } else {
+            StatusPill(
+                icon = Icons.Default.Settings,
+                text = "Permissions are required",
+                isOk = false,
+                isLight = isLight,
+            )
+        }
+
+        // CTA
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            CtaButton(
+                text = if (permissionConnected) "Select Productive Channels →" else "Turn On Permission & Continue →",
+                isLight = isLight,
+                onClick = onAgree,
+            )
+            TextButton(onClick = onNotNow) {
+                Text("Not now", fontSize = 13.sp, color = secondaryText(isLight))
+            }
+        }
+    }
+}
+
+// ── Step 2: Channel Selection ────────────────────────────────────────────────
+
+@Composable
+private fun ChannelSelectionStep(
+    state: YoutubeStudyV2UiState,
+    isLight: Boolean,
+    onReferenceChanged: (String) -> Unit,
+    onAddChannel: () -> Unit,
+    onSetAvailableClassification: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
+    onBackToStep1: () -> Unit,
+    onStart: () -> Unit,
+) {
+    val suggestions = starterChannels(state.available)
+    var availableExpanded by rememberSaveable { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "Choose your productive channels",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = primaryText(isLight),
+            )
+            Text(
+                "Only these channels will open. Everything else is blocked.",
+                fontSize = 13.sp,
+                color = secondaryText(isLight),
+            )
+        }
+
+        SectionLabel("SUGGESTED PRODUCTIVE CHANNELS", isLight)
+        when {
+            state.loadingAvailable -> Text("Loading…", fontSize = 13.sp, color = secondaryText(isLight))
+            suggestions.isEmpty() -> Text("Add a channel below.", fontSize = 13.sp, color = secondaryText(isLight))
+            else -> ChannelCardGroup(
+                channels = suggestions,
+                classifications = state.classifications,
+                isLight = isLight,
+                onClassificationChange = onSetAvailableClassification,
+            )
+        }
+
+        ExpandableSection(
+            title = "Discovered Channels",
+            subtitle = "${state.available.size} channels found",
+            expanded = availableExpanded,
+            isLight = isLight,
+            onToggle = { availableExpanded = !availableExpanded },
+        ) {
+            AvailableChannelList(
+                channels = state.available,
+                classifications = state.classifications,
+                isLight = isLight,
+                onClassificationChange = onSetAvailableClassification,
+            )
+        }
+
+        YTCMDivider(isLight)
+
+        SectionLabel("ADD CHANNEL BY HANDLE", isLight)
+        OutlinedTextField(
+            value = state.reference,
+            onValueChange = onReferenceChanged,
+            placeholder = { Text("@channelhandle (e.g. @PhysicsWallah)", fontSize = 14.sp, color = secondaryText(isLight)) },
+            leadingIcon = {
+                Icon(Icons.Default.Add, null, tint = secondaryText(isLight), modifier = Modifier.size(18.dp))
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = YTCMColors.RoyalPurple,
+                unfocusedBorderColor = secondaryText(isLight).copy(alpha = 0.25f),
+                focusedLabelColor = YTCMColors.RoyalPurple,
+            ),
+        )
+        if (state.reference.isNotBlank()) {
+            CtaButton(
+                text = if (state.resolving) "Searching channel…" else "Add Channel →",
+                isLight = isLight,
+                enabled = !state.resolving,
+                onClick = onAddChannel,
+            )
+        }
+        state.message?.let {
+            Text(
+                it,
+                fontSize = 12.sp,
+                color = if (state.isError) MaterialTheme.colorScheme.error else YTCMColors.RoyalPurple,
+            )
+        }
+
+        YTCMDivider(isLight)
+
+        val canStart = state.allowed.isNotEmpty()
+        CtaButton(
+            text = if (canStart) "Start Study Mode · ${state.allowed.size} allowed" else "Pick at least one productive channel",
+            isLight = isLight,
+            enabled = canStart,
+            onClick = onStart,
+        )
+        TextButton(
+            onClick = onBackToStep1,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        ) {
+            Text("← Back to permissions", fontSize = 13.sp, color = secondaryText(isLight))
+        }
+    }
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun StudyModeDashboard(
+    state: YoutubeStudyV2UiState,
+    isLight: Boolean,
+    onSetEnabled: (Boolean) -> Unit,
+    onOpenAccessibility: () -> Unit,
+    onReferenceChanged: (String) -> Unit,
+    onAddChannel: () -> Unit,
+    onSetClassification: (String, YoutubeChannelClassification) -> Unit,
+    onToggleAvailable: () -> Unit,
+    onSetAvailableClassification: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
+    onDeleteChannel: (String) -> Unit,
+) {
+    var reliabilityExpanded by rememberSaveable { mutableStateOf(false) }
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 560.dp)
+            .padding(horizontal = 24.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp),
+    ) {
+        item {
+            ProtectionStatus(
+                state.enabled, state.accessibilityEnabled, state.allowed.size, isLight,
+                onSetEnabled, onOpenAccessibility,
+            )
+        }
+
+        item { SectionLabel("ALLOWED PRODUCTIVE CHANNELS", isLight) }
+
+        if (state.allowed.isEmpty()) {
+            item { Text("No productive channels added yet.", fontSize = 13.sp, color = secondaryText(isLight)) }
+        } else {
+            items(state.allowed, key = { it.channelId }) { channel ->
+                ChannelToggleRow(
+                    name = channel.displayName,
+                    handle = channel.handle,
+                    classification = YoutubeChannelClassification.PRODUCTIVE,
+                    isLight = isLight,
+                    onClassificationChange = { onSetClassification(channel.channelId, it) },
+                    onDelete = { onDeleteChannel(channel.channelId) },
+                )
+                YTCMDivider(isLight)
+            }
+        }
+
+        item {
+            ExpandableSection(
+                title = "Your YouTube Channels",
+                subtitle = "${state.available.size} channels found",
+                expanded = state.availableExpanded,
+                isLight = isLight,
+                onToggle = onToggleAvailable,
+            ) {
+                AvailableChannelList(
+                    channels = state.available,
+                    classifications = state.classifications,
+                    initialFilter = AvailableChannelFilter.DISTRACTING,
+                    isLight = isLight,
+                    onClassificationChange = onSetAvailableClassification,
+                    onDeleteChannel = onDeleteChannel,
+                )
+            }
+        }
+
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                YTCMDivider(isLight)
+                SectionLabel("ADD CHANNEL BY HANDLE", isLight)
+                OutlinedTextField(
+                    value = state.reference,
+                    onValueChange = onReferenceChanged,
+                    placeholder = { Text("@channelhandle (e.g. @PhysicsWallah)", fontSize = 14.sp, color = secondaryText(isLight)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = YTCMColors.RoyalPurple,
+                        unfocusedBorderColor = secondaryText(isLight).copy(alpha = 0.25f),
+                    ),
+                )
+                if (state.reference.isNotBlank()) {
+                    CtaButton(
+                        text = if (state.resolving) "Searching channel…" else "Add Channel →",
+                        isLight = isLight,
+                        enabled = !state.resolving,
+                        onClick = onAddChannel,
+                    )
+                }
+                state.message?.let {
+                    Text(it, fontSize = 12.sp, color = if (state.isError) MaterialTheme.colorScheme.error else YTCMColors.RoyalPurple)
+                }
+            }
+        }
+
+        item {
+            ExpandableSection(
+                title = "Protection Stopping Automatically?",
+                subtitle = "Fix background settings for your phone",
+                expanded = reliabilityExpanded,
+                isLight = isLight,
+                onToggle = { reliabilityExpanded = !reliabilityExpanded },
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Xiaomi / Redmi: Turn on Autostart & set Battery Saver to No Restrictions", fontSize = 12.sp, color = secondaryText(isLight))
+                    Text("Realme / OPPO: Turn on Auto Launch & Background Running", fontSize = 12.sp, color = secondaryText(isLight))
+                    Text("Samsung: Remove SAFAR from Sleeping Apps list", fontSize = 12.sp, color = secondaryText(isLight))
+                }
+            }
+        }
+    }
+}
+
+// ── Protection Status Card ────────────────────────────────────────────────────
+
+@Composable
+private fun ProtectionStatus(
+    enabled: Boolean,
+    accessibilityEnabled: Boolean,
+    productiveCount: Int,
+    isLight: Boolean,
+    onSetEnabled: (Boolean) -> Unit,
+    onOpenAccessibility: () -> Unit,
+) {
+    val active = enabled && accessibilityEnabled
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                if (active) YTCMColors.royalPurpleSurface(isLight)
+                else if (isLight) Color(0xFFF8FAFC) else Color(0xFF0F172A),
+            )
+            .border(
+                1.dp,
+                if (active) YTCMColors.RoyalPurple.copy(alpha = 0.35f) else secondaryText(isLight).copy(alpha = 0.12f),
+                RoundedCornerShape(18.dp),
+            )
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (active) YTCMColors.RoyalPurple.copy(alpha = 0.15f)
+                        else secondaryText(isLight).copy(alpha = 0.10f),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    if (active) Icons.Default.SmartDisplay else Icons.Default.VisibilityOff,
+                    contentDescription = null,
+                    tint = if (active) YTCMColors.RoyalPurple else secondaryText(isLight),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (active) "YouTube Study Mode Active" else "YouTube Study Mode Off",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryText(isLight),
+                )
+                Text(
+                    if (active) "Shorts blocked · $productiveCount productive ${if (productiveCount == 1) "channel" else "channels"} allowed"
+                    else "Turn on toggle to start blocking",
+                    fontSize = 12.sp,
+                    color = secondaryText(isLight),
+                )
+            }
+            Switch(
+                checked = active,
+                enabled = accessibilityEnabled,
+                onCheckedChange = onSetEnabled,
+                colors = SwitchDefaults.colors(
+                    checkedTrackColor = YTCMColors.toggleTrack(isLight),
+                    checkedThumbColor = Color.White,
+                    uncheckedTrackColor = YTCMColors.toggleTrackUnchecked(isLight),
+                    uncheckedBorderColor = Color.Transparent,
+                ),
+            )
+        }
+        if (!accessibilityEnabled) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.08f))
+                    .clickable(onClick = onOpenAccessibility)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                Text(
+                    "Permission off — Tap to fix in Settings",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+// ── Channel colors ──────────────────────────────────────────────────────────
+
+internal object ChannelColors {
+    /** Deep Green */
+    fun productive(isLight: Boolean) =
+        if (isLight) Color(0xFF047857) else Color(0xFF34D399)
+
+    /** Maroon */
+    fun distracting(isLight: Boolean) =
+        if (isLight) Color(0xFF881337) else Color(0xFFFB7185)
+}
+
+// ── Channel toggle row ───────────────────────────────────────────────────────
+
+@Composable
+private fun ChannelToggleRow(
+    name: String,
+    handle: String?,
+    classification: YoutubeChannelClassification,
+    isLight: Boolean,
+    onClassificationChange: (YoutubeChannelClassification) -> Unit,
+    onDelete: (() -> Unit)? = null,
+) {
+    val productive = classification == YoutubeChannelClassification.PRODUCTIVE
+    val distracting = classification == YoutubeChannelClassification.DISTRACTING
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when {
+                            productive -> ChannelColors.productive(isLight).copy(alpha = 0.12f)
+                            distracting -> ChannelColors.distracting(isLight).copy(alpha = 0.12f)
+                            else -> secondaryText(isLight).copy(alpha = 0.10f)
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    when {
+                        productive -> Icons.Default.Check
+                        distracting -> Icons.Default.Block
+                        else -> Icons.Default.VisibilityOff
+                    },
+                    contentDescription = null,
+                    tint = when {
+                        productive -> ChannelColors.productive(isLight)
+                        distracting -> ChannelColors.distracting(isLight)
+                        else -> secondaryText(isLight)
+                    },
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Column(Modifier.weight(1f)) {
+                Text(name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryText(isLight))
+                Text(handle ?: "Verified channel", fontSize = 11.sp, color = secondaryText(isLight))
+            }
+            if (onDelete != null) {
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = "Delete channel",
+                        tint = secondaryText(isLight).copy(alpha = 0.6f),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Productive in Deep Green
+            OutlineChip(
+                label = "Productive",
+                accent = ChannelColors.productive(isLight),
+                isLight = isLight,
+                selected = productive,
+                onClick = {
+                    onClassificationChange(
+                        if (productive) YoutubeChannelClassification.OTHERS else YoutubeChannelClassification.PRODUCTIVE,
+                    )
+                },
+            )
+            // Distracting in Maroon
+            OutlineChip(
+                label = "Distracting",
+                accent = ChannelColors.distracting(isLight),
+                isLight = isLight,
+                selected = distracting,
+                onClick = {
+                    onClassificationChange(
+                        if (distracting) YoutubeChannelClassification.OTHERS else YoutubeChannelClassification.DISTRACTING,
+                    )
+                },
+            )
+        }
+    }
+}
+
+// ── Channel card group (setup suggestions) ───────────────────────────────────
+
+@Composable
+private fun ChannelCardGroup(
+    channels: List<ResolvedYoutubeChannelDto>,
+    classifications: Map<String, YoutubeChannelClassification>,
+    isLight: Boolean,
+    onClassificationChange: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .border(1.dp, secondaryText(isLight).copy(alpha = 0.12f), RoundedCornerShape(14.dp)),
+    ) {
+        channels.forEachIndexed { index, channel ->
+            val classification = classifications[channel.channelId] ?: YoutubeChannelClassification.OTHERS
+            Column(Modifier.padding(horizontal = 14.dp)) {
+                ChannelToggleRow(
+                    name = channel.displayName,
+                    handle = channel.handle,
+                    classification = classification,
+                    isLight = isLight,
+                    onClassificationChange = { onClassificationChange(channel, it) },
+                )
+            }
+            if (index != channels.lastIndex) {
+                HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
+            }
+        }
+    }
+}
+
+// ── Available channel list ────────────────────────────────────────────────────
+
+@Composable
+private fun AvailableChannelList(
+    channels: List<ResolvedYoutubeChannelDto>,
+    classifications: Map<String, YoutubeChannelClassification>,
+    initialFilter: AvailableChannelFilter = AvailableChannelFilter.PRODUCTIVE,
+    isLight: Boolean,
+    onClassificationChange: (ResolvedYoutubeChannelDto, YoutubeChannelClassification) -> Unit,
+    onDeleteChannel: (String) -> Unit = {},
+) {
+    var selectedFilter by rememberSaveable { mutableStateOf(initialFilter) }
+    val visibleChannels = filterAvailableChannels(channels, classifications, selectedFilter)
+
+    // Segmented control — Productive in Deep Green | Distracting in Maroon
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(secondaryText(isLight).copy(alpha = 0.08f))
+            .padding(3.dp),
+    ) {
+        AvailableChannelFilter.entries.forEach { filter ->
+            val selected = selectedFilter == filter
+            val activeColor = when (filter) {
+                AvailableChannelFilter.PRODUCTIVE -> ChannelColors.productive(isLight)
+                AvailableChannelFilter.DISTRACTING -> ChannelColors.distracting(isLight)
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(9.dp))
+                    .then(
+                        if (selected) Modifier
+                            .background(if (isLight) Color.White else MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, activeColor.copy(alpha = 0.35f), RoundedCornerShape(9.dp))
+                        else Modifier,
+                    )
+                    .clickable { selectedFilter = filter }
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    when (filter) {
+                        AvailableChannelFilter.PRODUCTIVE -> "Productive"
+                        AvailableChannelFilter.DISTRACTING -> "Distracting"
+                    },
+                    fontSize = 12.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (selected) activeColor else secondaryText(isLight),
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+
+    Spacer(Modifier.height(8.dp))
+
+    visibleChannels.forEachIndexed { index, channel ->
+        val classification = classifications[channel.channelId] ?: YoutubeChannelClassification.OTHERS
+        ChannelToggleRow(
+            name = channel.displayName,
+            handle = channel.handle,
+            classification = classification,
+            isLight = isLight,
+            onClassificationChange = { onClassificationChange(channel, it) },
+            onDelete = { onDeleteChannel(channel.channelId) },
+        )
+        if (index != visibleChannels.lastIndex) HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.08f))
+    }
+    if (visibleChannels.isEmpty()) {
+        Text(
+            when (selectedFilter) {
+                AvailableChannelFilter.PRODUCTIVE -> "No productive channels found."
+                AvailableChannelFilter.DISTRACTING -> "No distracting channels found."
+            },
+            fontSize = 13.sp,
+            color = secondaryText(isLight),
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
+    }
+}
+
+// ── Expandable section ────────────────────────────────────────────────────────
+
+@Composable
+private fun ExpandableSection(
+    title: String,
+    subtitle: String,
+    expanded: Boolean,
+    isLight: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = primaryText(isLight))
+                Text(subtitle, fontSize = 11.sp, color = secondaryText(isLight))
+            }
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = secondaryText(isLight),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        if (expanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isLight) Color(0xFFF8FAFC) else Color(0xFF0F172A))
+                    .border(1.dp, secondaryText(isLight).copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) { content() }
+        }
+    }
+}
+
+// ── Shared primitives ─────────────────────────────────────────────────────────
+
+/** Feature explanation row — icon + concise label. No text walls. */
+@Composable
+private fun FeatureRow(
+    icon: ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    label: String,
+    isLight: Boolean,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(iconBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+        }
+        Text(
+            label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = primaryText(isLight),
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** Pill showing permission / status. Green = ok, amber = needs action. */
+@Composable
+private fun StatusPill(icon: ImageVector, text: String, isOk: Boolean, isLight: Boolean) {
+    val color = if (isOk) KavachCategoryColors.productive(isLight) else KavachCategoryColors.unclassified(isLight)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.10f))
+            .border(1.dp, color.copy(alpha = 0.30f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
+        Text(text, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = color)
+    }
+}
+
+/** Primary CTA — near-black fill in light, brand purple in dark. */
+@Composable
+private fun CtaButton(
+    text: String,
+    isLight: Boolean,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = YTCMColors.ctaFill(isLight),
+            contentColor = Color.White,
+            disabledContainerColor = secondaryText(isLight).copy(alpha = 0.12f),
+            disabledContentColor = secondaryText(isLight).copy(alpha = 0.50f),
+        ),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+    ) {
+        Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 1)
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String, isLight: Boolean) {
+    Text(
+        text.uppercase(),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = secondaryText(isLight),
+        letterSpacing = 0.8.sp,
+    )
+}
+
+@Composable
+private fun YTCMDivider(isLight: Boolean) =
+    HorizontalDivider(color = secondaryText(isLight).copy(alpha = 0.10f))
+
+// ── Data helpers ──────────────────────────────────────────────────────────────
+
+internal enum class AvailableChannelFilter { PRODUCTIVE, DISTRACTING }
 
 private val STARTER_CHANNEL_HANDLES = listOf("@parmarssc", "@safarparmar")
 
@@ -408,340 +1126,32 @@ internal fun starterChannels(channels: List<ResolvedYoutubeChannelDto>): List<Re
 
 internal fun filterAvailableChannels(
     channels: List<ResolvedYoutubeChannelDto>,
-    allowedChannelIds: Set<String>,
+    classifications: Map<String, YoutubeChannelClassification>,
     filter: AvailableChannelFilter,
-): List<ResolvedYoutubeChannelDto> = channels
-    .filter { channel ->
-        when (filter) {
-            AvailableChannelFilter.ALL -> true
-            AvailableChannelFilter.PRODUCTIVE -> channel.channelId in allowedChannelIds
-            AvailableChannelFilter.DISTRACTING -> channel.channelId !in allowedChannelIds
-        }
-    }
-
-@Composable
-private fun AvailableChannelList(
-    channels: List<ResolvedYoutubeChannelDto>,
-    allowedChannelIds: Set<String>,
-    initialFilter: AvailableChannelFilter = AvailableChannelFilter.ALL,
-    onProductiveChange: (ResolvedYoutubeChannelDto, Boolean) -> Unit,
-) {
-    var selectedFilter by rememberSaveable { mutableStateOf(initialFilter) }
-    val visibleChannels = filterAvailableChannels(channels, allowedChannelIds, selectedFilter)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(3.dp),
-    ) {
-        AvailableChannelFilter.entries.forEach { filter ->
-            val selected = selectedFilter == filter
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(11.dp))
-                    .then(if (selected) Modifier.background(MaterialTheme.colorScheme.surface) else Modifier)
-                    .clickable { selectedFilter = filter }
-                    .padding(horizontal = 4.dp, vertical = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = when (filter) {
-                        AvailableChannelFilter.ALL -> "All"
-                        AvailableChannelFilter.PRODUCTIVE -> "Productive"
-                        AvailableChannelFilter.DISTRACTING -> "Distracting"
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (selected) KavachDesign.TextMain else KavachDesign.TextMuted,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-    visibleChannels.forEachIndexed { index, channel ->
-        val productive = channel.channelId in allowedChannelIds
-        ChannelToggleRow(channel.displayName, channel.handle, productive) {
-            onProductiveChange(channel, it)
-        }
-        if (index != visibleChannels.lastIndex) SectionRule()
-    }
-    if (visibleChannels.isEmpty()) {
-        Text(
-            when (selectedFilter) {
-                AvailableChannelFilter.ALL -> "No channels found."
-                AvailableChannelFilter.PRODUCTIVE -> "No Productive channels here."
-                AvailableChannelFilter.DISTRACTING -> "No Distracting channels here."
-            },
-            color = KavachDesign.TextMuted,
-        )
+): List<ResolvedYoutubeChannelDto> = channels.filter { channel ->
+    when (filter) {
+        AvailableChannelFilter.PRODUCTIVE -> classifications[channel.channelId] == YoutubeChannelClassification.PRODUCTIVE
+        AvailableChannelFilter.DISTRACTING -> classifications[channel.channelId] == YoutubeChannelClassification.DISTRACTING
     }
 }
 
-@Composable
-private fun ProtectionStatus(
-    enabled: Boolean,
-    accessibilityEnabled: Boolean,
-    productiveCount: Int,
-    onSetEnabled: (Boolean) -> Unit,
-    onOpenAccessibility: () -> Unit,
-) {
-    Surface(
-        color = if (enabled && accessibilityEnabled) KavachDesign.SurfaceHighlight else KavachDesign.CardWhite,
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, KavachDesign.Border),
-    ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                HeroIcon(Icons.Default.Shield, compact = true)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(if (enabled && accessibilityEnabled) "Study Mode is on" else "Study Mode is off", style = MaterialTheme.typography.titleLarge)
-                    Text(
-                        "Shorts blocked · $productiveCount ${if (productiveCount == 1) "channel" else "channels"} allowed",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = KavachDesign.TextMuted,
-                    )
-                }
-                Switch(checked = enabled && accessibilityEnabled, enabled = accessibilityEnabled, onCheckedChange = onSetEnabled)
-            }
-            if (!accessibilityEnabled) {
-                Text("Turn on Accessibility to block videos.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-                OutlinedButton(onClick = onOpenAccessibility, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Open settings")
-                }
-            }
-        }
-    }
-}
+// ── Preview ───────────────────────────────────────────────────────────────────
 
+@Preview(name = "Step 1 – Light", widthDp = 360, heightDp = 780, showBackground = true)
 @Composable
-private fun ChannelToggleRow(name: String, handle: String?, productive: Boolean, onProductiveChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Surface(
-            shape = CircleShape,
-            color = if (productive) KavachDesign.SurfaceHighlight else MaterialTheme.colorScheme.surfaceContainer,
-            modifier = Modifier.size(40.dp),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    if (productive) Icons.Default.Check else Icons.Default.Block,
-                    contentDescription = null,
-                    tint = if (productive) KavachDesign.Primary else KavachDesign.TextMuted,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-        Column(Modifier.weight(1f)) {
-            Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(handle ?: if (productive) "Productive" else "Distracting", style = MaterialTheme.typography.bodySmall, color = KavachDesign.TextMuted)
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                if (productive) "Productive" else "Distracting",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (productive) KavachDesign.Primary else KavachDesign.TextMuted,
-            )
-            Switch(checked = productive, onCheckedChange = onProductiveChange)
-        }
-    }
-}
-
-@Composable
-private fun ExpandableSection(
-    title: String,
-    subtitle: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = KavachDesign.TextMuted)
-            }
-            Icon(
-                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = if (expanded) "Collapse $title" else "Expand $title",
-            )
-        }
-        if (expanded) {
-            Column(
-                modifier = Modifier.fillMaxWidth().border(1.dp, KavachDesign.Border, RoundedCornerShape(16.dp)).padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) { content() }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeading(title: String, subtitle: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.titleLarge)
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = KavachDesign.TextMuted)
-    }
-}
-
-@Composable
-private fun PageHeading(title: String, subtitle: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = KavachDesign.TextMain,
-        )
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodyLarge,
-            color = KavachDesign.TextMuted,
-        )
-    }
-}
-
-@Composable
-private fun HeroIcon(icon: ImageVector, compact: Boolean = false) {
-    Surface(
-        shape = RoundedCornerShape(if (compact) 14.dp else 20.dp),
-        color = KavachDesign.SurfaceHighlight,
-        modifier = Modifier.size(if (compact) 48.dp else 68.dp),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = KavachDesign.Primary, modifier = Modifier.size(if (compact) 25.dp else 34.dp))
-        }
-    }
-}
-
-@Composable
-private fun RuleRow(icon: ImageVector, title: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = KavachDesign.Primary, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun StatusStrip(icon: ImageVector, text: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().border(1.dp, KavachDesign.Border, RoundedCornerShape(14.dp)).padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = KavachDesign.Primary, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(10.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-private fun PrimaryActionButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = KavachDesign.Primary, contentColor = Color.White),
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-    ) {
-        Text(text, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1)
-    }
-}
-
-@Composable
-private fun StateMessage(state: YoutubeStudyV2UiState) {
-    state.message?.let {
-        Text(it, style = MaterialTheme.typography.bodySmall, color = if (state.isError) MaterialTheme.colorScheme.error else KavachDesign.Primary)
-    }
-}
-
-@Composable
-private fun SectionRule() = HorizontalDivider(color = KavachDesign.Border)
-
-@Preview(name = "Phone · channel setup", widthDp = 360, heightDp = 800, showBackground = true)
-@Composable
-private fun YoutubeStudySetupPhonePreview() {
+private fun PreviewStep1Light() {
     SafarTheme {
-        StudyModeSetup(
-            state = previewState(setupStep = 2),
-            onAgree = {},
-            onNotNow = {},
-            onReferenceChanged = {},
-            onAddChannel = {},
-            onSetAvailableProductive = { _, _ -> },
-            onContinue = {},
-            onBackToChannels = {},
-            onStart = {},
-        )
-    }
-}
-
-@Preview(name = "Tablet · active dashboard", widthDp = 800, heightDp = 1280, showBackground = true)
-@Composable
-private fun YoutubeStudyDashboardTabletPreview() {
-    SafarTheme {
-        StudyModeDashboard(
-            state = previewState(setupStep = 3).copy(
-                setupCompleted = true,
-                enabled = true,
-                accessibilityEnabled = true,
-                availableExpanded = true,
-            ),
-            onSetEnabled = {},
-            onOpenAccessibility = {},
-            onReferenceChanged = {},
-            onAddChannel = {},
-            onSetProductive = { _, _ -> },
+        YoutubeStudyV2Content(
+            state = YoutubeStudyV2UiState(setupStep = 1, accessibilityEnabled = false),
+            isLight = true,
+            onAgree = {}, onNotNow = {},
+            onSetEnabled = {}, onOpenAccessibility = {},
+            onReferenceChanged = {}, onAddChannel = {},
+            onSetClassification = { _, _ -> },
             onToggleAvailable = {},
-            onSetAvailableProductive = { _, _ -> },
+            onSetAvailableClassification = { _, _ -> },
+            onDeleteChannel = {},
+            onBackToStep1 = {}, onStart = {},
         )
     }
-}
-
-private fun previewState(setupStep: Int): YoutubeStudyV2UiState {
-    val channel = YoutubeV2IdentityEntity(
-        channelId = "UCPxPvWsvqwU18UkpsZD4bODw",
-        handle = "@parmarssc",
-        displayName = "PARMAR SSC",
-        thumbnailUrl = null,
-        resolvedAtMs = 0L,
-    )
-    return YoutubeStudyV2UiState(
-        setupStep = setupStep,
-        allowed = listOf(channel),
-        available = listOf(
-            ResolvedYoutubeChannelDto(
-                channelId = channel.channelId,
-                handle = channel.handle,
-                displayName = channel.displayName,
-            ),
-            ResolvedYoutubeChannelDto(
-                channelId = "UCsbT4wZ_FUUpJGtVa4mooow",
-                handle = "@safarparmar",
-                displayName = "SAFAR_PARMAR",
-            ),
-            ResolvedYoutubeChannelDto(
-                channelId = "UC0000000000000000000001",
-                handle = "@mathsclass",
-                displayName = "Maths Class",
-            ),
-            ResolvedYoutubeChannelDto(
-                channelId = "UC0000000000000000000002",
-                handle = "@englishclass",
-                displayName = "English Class",
-            ),
-        ),
-    )
 }

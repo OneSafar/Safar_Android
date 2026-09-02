@@ -21,52 +21,64 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 object YoutubeStudyV2BlockedNotification {
+    private const val BLOCKED_CHANNEL_NOTIFICATION_ID = 31_000
     private const val ACTION_ALLOW = "com.safarparmar.app.youtubeStudyV2.ALLOW_CHANNEL"
     private const val EXTRA_CHANNEL_ID = "channel_id"
-    private const val EXTRA_DISPLAY_NAME = "display_name"
+    private const val EXTRA_CLASSIFICATION = "classification"
 
     fun show(context: Context, channel: YoutubeV2IdentityEntity) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return
-
-        val notificationId = notificationId(channel.channelId)
-        val allowIntent = Intent(context, YoutubeStudyV2NotificationActionReceiver::class.java).apply {
-            action = ACTION_ALLOW
-            putExtra(EXTRA_CHANNEL_ID, channel.channelId)
-            putExtra(EXTRA_DISPLAY_NAME, channel.displayName)
+        ) {
+            android.util.Log.e("YTCM", "❌ POST_NOTIFICATIONS permission not granted — cannot show notification")
+            return
         }
-        val allowPendingIntent = PendingIntent.getBroadcast(
-            context,
-            notificationId,
-            allowIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+
+        val notificationId = BLOCKED_CHANNEL_NOTIFICATION_ID
         val contentIntent = PendingIntent.getActivity(
             context,
             notificationId,
             NotificationDeepLinkHandler.activityIntent(context, "safar://youtube_study_v2"),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val notification = NotificationCompat.Builder(context, SafarNotificationChannels.YOUTUBE_STUDY_MODE)
+        val builder = NotificationCompat.Builder(context, SafarNotificationChannels.YOUTUBE_STUDY_MODE)
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(context))
             .setContentTitle("Channel blocked")
-            .setContentText("${channel.displayName} is Distracting. Make it Productive if you want to watch it.")
+            .setContentText("${channel.displayName} was blocked. Choose how SAFAR should treat it.")
             .setContentIntent(contentIntent)
-            .addAction(0, "Make productive", allowPendingIntent)
             .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
-            .build()
+        YoutubeChannelClassification.entries.forEachIndexed { index, classification ->
+            val actionIntent = Intent(context, YoutubeStudyV2NotificationActionReceiver::class.java).apply {
+                action = ACTION_ALLOW
+                putExtra(EXTRA_CHANNEL_ID, channel.channelId)
+                putExtra(EXTRA_CLASSIFICATION, classification.wire)
+            }
+            val action = PendingIntent.getBroadcast(
+                context,
+                notificationId * 10 + index,
+                actionIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(
+                0,
+                classification.name.lowercase().replaceFirstChar(Char::uppercase),
+                action,
+            )
+        }
+        val notification = builder.build()
+        android.util.Log.d("YTCM", "🔔 Posting notification with ID $notificationId for channel ${channel.displayName} (${channel.channelId})")
         context.getSystemService(NotificationManager::class.java)?.notify(notificationId, notification)
     }
 
-    internal fun notificationId(channelId: String): Int = 31_000 + (channelId.hashCode() and 0x0fff)
+    internal fun notificationId(): Int = BLOCKED_CHANNEL_NOTIFICATION_ID
 
     internal fun isAllowAction(action: String?): Boolean = action == ACTION_ALLOW
     internal fun channelId(intent: Intent): String? = intent.getStringExtra(EXTRA_CHANNEL_ID)
-    internal fun displayName(intent: Intent): String? = intent.getStringExtra(EXTRA_DISPLAY_NAME)
+    internal fun classification(intent: Intent): YoutubeChannelClassification =
+        YoutubeChannelClassification.fromWire(intent.getStringExtra(EXTRA_CLASSIFICATION))
 }
 
 @AndroidEntryPoint
@@ -78,12 +90,13 @@ class YoutubeStudyV2NotificationActionReceiver : BroadcastReceiver() {
         val channelId = YoutubeStudyV2BlockedNotification.channelId(intent)
             ?.takeIf { it.matches(Regex("^UC[A-Za-z0-9_-]{22}$")) }
             ?: return
+        val classification = YoutubeStudyV2BlockedNotification.classification(intent)
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                repository.setProductive(channelId, true)
+                repository.setClassification(channelId, classification)
                 context.getSystemService(NotificationManager::class.java)
-                    ?.cancel(YoutubeStudyV2BlockedNotification.notificationId(channelId))
+                    ?.cancel(YoutubeStudyV2BlockedNotification.notificationId())
             } finally {
                 pending.finish()
             }

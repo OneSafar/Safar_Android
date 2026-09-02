@@ -92,6 +92,9 @@ class YoutubeStudyV2ParserTest {
     fun `subscriber metadata is removed before exact display alias matching`() {
         assertEquals("PARMAR SSC", YoutubeStudyV2Parser.cleanOwnerText("PARMAR SSC 24.7 lakh subscribers"))
         assertEquals("PARMAR SSC", YoutubeStudyV2Parser.cleanOwnerText("Go to channel PARMAR SSC"))
+        assertEquals("PARMAR SSC", YoutubeStudyV2Parser.cleanOwnerText("PARMAR SSC · 1.4K likes 72K views 1 day ago"))
+        val mergedText = "@parmarssc 1.4K likes 72K views 1 day ago 1 product ...more"
+        assertEquals("@parmarssc", YoutubeStudyV2Parser.verifiedUploaderHandle(mergedText))
     }
 
     @Test
@@ -108,7 +111,7 @@ class YoutubeStudyV2ParserTest {
                 bottom = 1010,
             ),
             node(clazz = "ImageView", parent = 3, left = 20, top = 900, right = 100, bottom = 980),
-            node(text = "@SAFARPARMAR", clazz = "TextView", parent = 0, left = 20, top = 810, right = 300, bottom = 860),
+            node(text = "@SAFARPARMAR 33K views 10d ago", clazz = "TextView", parent = 0, left = 20, top = 810, right = 500, bottom = 860),
             // A handle outside the bounded owner region must not be selected.
             node(text = "@wrongcomment", clazz = "TextView", parent = 0, left = 20, top = 1700, right = 300, bottom = 1760),
         )
@@ -132,6 +135,68 @@ class YoutubeStudyV2ParserTest {
 
         assertNull(result.exactHandle)
         assertFalse(result.hasOwnerEvidence)
+    }
+
+    @Test
+    fun `video title mentions of other channels are never mistaken for real uploader`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
+            node(id = "watch_player", clazz = "SurfaceView", parent = 0, left = 0, top = 100, right = 1080, bottom = 800),
+            node(id = "video_title", text = "Collab with @MrBeast and @CarryMinati", clazz = "TextView", parent = 0, left = 20, top = 810, right = 1000, bottom = 880),
+            node(id = "video_owner", parent = 0, left = 0, top = 900, right = 1080, bottom = 1050),
+            node(clazz = "ImageView", parent = 3, left = 30, top = 920, right = 150, bottom = 1040),
+            node(text = "The RawKnee Show", clazz = "TextView", parent = 3, left = 165, top = 930, right = 500, bottom = 990),
+            node(text = "@therawkneeshow", clazz = "TextView", parent = 3, left = 165, top = 990, right = 500, bottom = 1040),
+        )
+
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+
+        assertEquals("@therawkneeshow", result.exactHandle)
+        assertEquals("The RawKnee Show", result.displayName)
+    }
+
+    @Test
+    fun `title mention cannot replace uploader handle when title resource id is missing`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 1920),
+            node(id = "watch_player", clazz = "SurfaceView", parent = 0, left = 0, top = 100, right = 1080, bottom = 800),
+            // Some YouTube builds expose no useful title resource id.
+            node(text = "Mumbai vs Delhi with @AshishChanchlaniVines", clazz = "TextView", parent = 0, left = 20, top = 810, right = 1000, bottom = 880),
+            node(text = "@tanmaybhat 4.1 lakh likes 78 lakh views 4 yr ago", clazz = "TextView", parent = 0, left = 20, top = 885, right = 1000, bottom = 945),
+        )
+
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+
+        assertEquals("@tanmaybhat", result.exactHandle)
+    }
+
+    @Test
+    fun `standalone title mention without uploader proof is rejected`() {
+        val nodes = baseWatchNodes() + node(
+            text = "@kanizsurka",
+            clazz = "TextView",
+            parent = 0,
+            left = 20,
+            top = 885,
+            right = 400,
+            bottom = 945,
+        )
+
+        assertNull(YoutubeStudyV2Parser.parse(snapshot(nodes)).exactHandle)
+    }
+
+    @Test
+    fun `merged title mentions are ignored and uploader segment wins`() {
+        val merged = "MUMBAI VS DELHI with @AshishChanchlaniVines @tanmaybhat 4.1 lakh likes 78 lakh views 4 yr ago"
+
+        assertEquals("@tanmaybhat", YoutubeStudyV2Parser.verifiedUploaderHandle(merged))
+    }
+
+    @Test
+    fun `title mention with no separate uploader metadata is rejected`() {
+        val title = "Interview with @KanizSurka about comedy"
+
+        assertNull(YoutubeStudyV2Parser.verifiedUploaderHandle(title))
     }
 
     @Test
@@ -190,6 +255,57 @@ class YoutubeStudyV2ParserTest {
         assertTrue(session.acceptStable(first, 1_500))
         assertTrue(session.acceptStable(second, 2_000))
         assertEquals(YoutubeStudyV2Session.State.MONITORING, session.state)
+    }
+
+    @Test
+    fun `unrelated handle mention in title does not override uploader display name`() {
+        assertTrue(YoutubeStudyV2Parser.isHandleCompatibleWithDisplay("@officialrelentx", "RelentX"))
+        assertTrue(YoutubeStudyV2Parser.isHandleCompatibleWithDisplay("@parmarssc", "PARMAR SSC"))
+        assertTrue(YoutubeStudyV2Parser.isHandleCompatibleWithDisplay("@dhruvrathee", "Dhruv Rathee"))
+        assertTrue(YoutubeStudyV2Parser.isHandleCompatibleWithDisplay("@primevideoin", "Prime Video India"))
+        assertFalse(YoutubeStudyV2Parser.isHandleCompatibleWithDisplay("@mythpat", "Tanmay Bhat"))
+        assertFalse(YoutubeStudyV2Parser.isHandleCompatibleWithDisplay("@mrbeast", "Tanmay Bhat"))
+    }
+
+    @Test
+    fun `prime video india with samay raina title mention resolves prime video handle`() {
+        val nodes = listOf(
+            node(parent = null, left = 0, top = 0, right = 1080, bottom = 2400),
+            node(id = "watch_player", clazz = "SurfaceView", parent = 0, left = 0, top = 100, right = 1080, bottom = 700),
+            node(
+                id = "video_title",
+                text = "Indian Ads Vs American Ads By @SamayRaina",
+                clazz = "TextView",
+                parent = 0,
+                left = 32,
+                top = 720,
+                right = 1000,
+                bottom = 780,
+            ),
+            node(
+                text = "@PrimeVideoIN 103K likes 3.5M views 4y ago #StandUpCom...more",
+                clazz = "TextView",
+                parent = 0,
+                left = 32,
+                top = 790,
+                right = 1000,
+                bottom = 850,
+            ),
+            node(
+                description = "Go to channel Prime Video India",
+                clazz = "Button",
+                clickable = true,
+                parent = 0,
+                left = 32,
+                top = 860,
+                right = 150,
+                bottom = 960,
+            ),
+        )
+
+        val result = YoutubeStudyV2Parser.parse(snapshot(nodes))
+        assertEquals("@primevideoin", result.exactHandle)
+        assertEquals("Prime Video India", result.displayName)
     }
 
     private fun baseWatchNodes() = listOf(

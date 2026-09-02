@@ -447,6 +447,8 @@ class FocusShieldRepository @Inject constructor(
         private const val KEY_ACTIVE = "active"
         private const val KEY_PACKAGES = "packages"
         private const val KEY_GRACE_UNTIL_MS = "grace_until_ms"
+        private const val KEY_GRACE_PACKAGE = "grace_package"
+        private const val KEY_GRACE_ORIGIN = "grace_origin"
         private const val KEY_ONE_TIME_UNLOCK_PACKAGE = "one_time_unlock_package"
         private const val KEY_RETURN_GRACE_UNTIL_ELAPSED = "return_grace_until_elapsed"
 
@@ -466,6 +468,8 @@ class FocusShieldRepository @Inject constructor(
                 putBoolean("strict", strict)
                 if (resetUnlocks) {
                     putLong(KEY_GRACE_UNTIL_MS, 0L)
+                    remove(KEY_GRACE_PACKAGE)
+                    remove(KEY_GRACE_ORIGIN)
                     putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
                 }
             }.apply()
@@ -482,6 +486,8 @@ class FocusShieldRepository @Inject constructor(
                 .putBoolean(KEY_ACTIVE, false)
                 .putStringSet(KEY_PACKAGES, emptySet())
                 .putLong(KEY_GRACE_UNTIL_MS, 0L)
+                .remove(KEY_GRACE_PACKAGE)
+                .remove(KEY_GRACE_ORIGIN)
                 .putString(KEY_ONE_TIME_UNLOCK_PACKAGE, null)
                 .apply()
             QuickUnlockNotification.cancel(ctx)
@@ -499,14 +505,33 @@ class FocusShieldRepository @Inject constructor(
         fun getGraceUntilMs(ctx: Context): Long = prefs(ctx).getLong(KEY_GRACE_UNTIL_MS, 0L)
         fun isInGracePeriod(ctx: Context): Boolean = System.currentTimeMillis() < getGraceUntilMs(ctx)
 
+        fun isInGracePeriodForPackage(ctx: Context, packageName: String): Boolean {
+            if (!isInGracePeriod(ctx)) return false
+            val scopedPackage = prefs(ctx).getString(KEY_GRACE_PACKAGE, null)
+            // A blank value preserves an unlock created by an older installed build.
+            return scopedPackage.isNullOrBlank() || scopedPackage == packageName
+        }
+
+        fun quickUnlockOrigin(ctx: Context): String? =
+            prefs(ctx).getString(KEY_GRACE_ORIGIN, null).takeIf { isInGracePeriod(ctx) }
+
         /** Grants a quick-unlock grace window (flat duration, no per-session quota). */
-        fun applyEmergencyUnlock(ctx: Context, graceUntilMs: Long, minutes: Int = 0, userName: String? = null) {
+        fun applyEmergencyUnlock(
+            ctx: Context,
+            graceUntilMs: Long,
+            minutes: Int = 0,
+            userName: String? = null,
+            packageName: String? = null,
+            origin: String = QUICK_UNLOCK_ORIGIN_KAVACH,
+        ) {
             prefs(ctx).edit()
                 .putLong(KEY_GRACE_UNTIL_MS, graceUntilMs)
                 .putInt(KEY_LAST_QUICK_UNLOCK_MINUTES, minutes)
                 .putBoolean(KEY_QUICK_UNLOCK_JUST_EXPIRED, true)
+                .putString(KEY_GRACE_PACKAGE, packageName)
+                .putString(KEY_GRACE_ORIGIN, origin)
                 .apply()
-            QuickUnlockNotification.show(ctx, graceUntilMs, minutes, userName)
+            QuickUnlockNotification.show(ctx, graceUntilMs, minutes, userName, origin)
             if (BuildConfig.DEBUG) {
                 android.util.Log.d(TAG, "ShieldPrefs.applyEmergencyUnlock(graceUntilMs=$graceUntilMs, minutes=$minutes)")
             }
@@ -516,6 +541,8 @@ class FocusShieldRepository @Inject constructor(
             prefs(ctx).edit()
                 .putLong(KEY_GRACE_UNTIL_MS, 0L)
                 .putBoolean(KEY_QUICK_UNLOCK_JUST_EXPIRED, false)
+                .remove(KEY_GRACE_PACKAGE)
+                .remove(KEY_GRACE_ORIGIN)
                 .apply()
             QuickUnlockNotification.cancel(ctx)
             if (BuildConfig.DEBUG) android.util.Log.d(TAG, "ShieldPrefs.clearQuickUnlock()")
@@ -541,6 +568,9 @@ class FocusShieldRepository @Inject constructor(
                 android.util.Log.d(TAG, "ShieldPrefs.applyOneTimeUnlock(packageName=$packageName)")
             }
         }
+
+        const val QUICK_UNLOCK_ORIGIN_KAVACH = "kavach"
+        const val QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY = "youtube_study"
 
         fun isOneTimeUnlockedPackage(ctx: Context, packageName: String): Boolean =
             packageName.isNotBlank() &&

@@ -1,6 +1,7 @@
 package com.safarparmar.app.feature.kavachanalytics.data
 
 import com.safarparmar.app.feature.kavachanalytics.data.local.DailyAppAggregateEntity
+import com.safarparmar.app.feature.kavachanalytics.data.local.YoutubeViewingIntervalEntity
 import com.safarparmar.app.feature.kavachanalytics.domain.AppCategory
 import kotlin.math.roundToInt
 
@@ -73,16 +74,34 @@ object KavachDailyAggregator {
         intervals: List<DatedUsageInterval>,
         window: LongRange,
         categoryOf: (String) -> AppCategory,
+        youtubeViewing: List<YoutubeViewingIntervalEntity> = emptyList(),
     ): Map<AppCategory, Int> {
         val totals = mutableMapOf<AppCategory, Long>()
+        val youtubeWindows = mutableListOf<LongRange>()
         intervals.forEach { interval ->
             val overlap = UsageIntervalReconstructor.overlapMs(interval, listOf(window))
             if (overlap > 0L) {
+                if (interval.packageName == "com.google.android.youtube") {
+                    youtubeWindows += maxOf(interval.startMs, window.first)..minOf(interval.endMs, window.last)
+                    return@forEach
+                }
                 val category = categoryOf(interval.packageName)
                 totals[category] = (totals[category] ?: 0L) + overlap
             }
         }
-        return totals.mapValues { msToSeconds(it.value) }
+        if (youtubeWindows.isEmpty()) return totals.mapValues { msToSeconds(it.value) }
+        val observed = youtubeObservedTotals(youtubeViewing, youtubeWindows)
+        val youtube = youtubeCategoryTotals(
+            msToSeconds(UsageIntervalReconstructor.mergeWindows(youtubeWindows).sumOf { it.last - it.first }),
+            observed.productiveSeconds, observed.distractingSeconds, 0, observed.unclassifiedSeconds,
+            categoryOf("com.google.android.youtube"),
+        )
+        val result = totals.mapValues { msToSeconds(it.value) }.toMutableMap()
+        result[AppCategory.PRODUCTIVE] = (result[AppCategory.PRODUCTIVE] ?: 0) + youtube.productiveSeconds
+        result[AppCategory.DISTRACTING] = (result[AppCategory.DISTRACTING] ?: 0) + youtube.distractingSeconds
+        result[AppCategory.NEUTRAL] = (result[AppCategory.NEUTRAL] ?: 0) + youtube.neutralSeconds
+        result[AppCategory.UNCLASSIFIED] = (result[AppCategory.UNCLASSIFIED] ?: 0) + youtube.unclassifiedSeconds
+        return result
     }
 
     private fun msToSeconds(ms: Long): Int = (ms / 1000.0).roundToInt().coerceAtLeast(0)

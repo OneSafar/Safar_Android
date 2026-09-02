@@ -19,8 +19,8 @@ import com.safarparmar.app.MainActivity
 import com.safarparmar.app.data.local.SafarDataStore
 import com.safarparmar.app.feature.kavachanalytics.data.KavachAnalyticsRecorder
 import com.safarparmar.app.feature.kavachanalytics.data.local.ProtectionSource
+import com.safarparmar.app.feature.youtubeinsights.YoutubeInsightsRepository
 import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Parser
-import com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Preferences
 import com.safarparmar.app.notifications.SafarNotificationChannels
 import com.safarparmar.app.notifications.SafarNotificationManager
 import com.safarparmar.app.ui.navigation.Routes
@@ -53,6 +53,7 @@ class KavachAlwaysOnService : Service() {
         private const val BLOCK_DEBOUNCE_MS = 750L
         /** Tighter poll while the overlay is up so it dismisses almost instantly. */
         private const val OVERLAY_DISMISS_POLL_MS = 250L
+        private const val YOUTUBE_UNLOCK_POLL_MS = 1_000L
 
         private val KNOWN_HOME_PACKAGES = setOf(
             "com.miui.home", "com.mi.android.globallauncher", "com.android.launcher",
@@ -105,11 +106,17 @@ class KavachAlwaysOnService : Service() {
     private var lastUsageEventQueryMs = 0L
     private val foregroundAppTracker = ForegroundAppTracker()
     private var stopReasonAlreadyReported = false
+    private var youtubeKavachUnlockTracking = false
 
     private fun focusShieldRepository(): FocusShieldRepository =
         dagger.hilt.android.EntryPointAccessors
             .fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
             .focusShieldRepository()
+
+    private fun youtubeInsightsRepository() =
+        dagger.hilt.android.EntryPointAccessors
+            .fromApplication(applicationContext, FocusShieldEntryPoint::class.java)
+            .youtubeInsightsRepository()
 
     override fun onCreate() {
         super.onCreate()
@@ -162,6 +169,7 @@ class KavachAlwaysOnService : Service() {
             repository?.reportProtectionStopped()
         }
         monitorJob?.cancel()
+        stopYoutubeKavachUnlockTracking()
         scope.cancel()
         super.onDestroy()
     }
@@ -190,13 +198,9 @@ class KavachAlwaysOnService : Service() {
         val strict = dataStore.focusShieldStrictMode.first()
         val enabled = dataStore.focusShieldEnabled.first()
         val configuredPackages = dataStore.focusShieldBlockedPackages.first()
-        // Content-level YouTube Study Mode owns YouTube whenever it is enabled;
-        // generic KAVACH must not block the whole app or suppress its notifications.
-        val packages = if (YoutubeStudyV2Preferences.isEnabled(this)) {
-            configuredPackages - YoutubeStudyV2Parser.YOUTUBE_PACKAGE
-        } else {
-            configuredPackages
-        }
+        // Kavach is the first gate. Study Mode cannot bypass a YouTube app block;
+        // a Normal-mode Kavach Quick Unlock is the only temporary exception.
+        val packages = configuredPackages
         // Peak Focus scheduling is intentionally outside the first activation/protection release.
         scheduleEnabled = false
         scheduleStartMinute = dataStore.focusShieldScheduleStartMinute.first()
@@ -257,6 +261,12 @@ class KavachAlwaysOnService : Service() {
 
     /** @return how long to wait before the next poll. */
     private fun monitorForegroundApp(): Long {
+        if (!getSystemService(android.os.PowerManager::class.java).isInteractive ||
+            getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked
+        ) {
+            stopYoutubeKavachUnlockTracking()
+            return YOUTUBE_UNLOCK_POLL_MS
+        }
         if (scheduleEnabled) {
             val cal = java.util.Calendar.getInstance()
             val currentMinute = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
@@ -273,18 +283,35 @@ class KavachAlwaysOnService : Service() {
         enforceBackgroundBlockedApps()
 
         val foregroundPackage = currentForegroundPackage()
-            ?: return poller.onSample(null, isBlockedApp = false)
+            ?: run {
+                stopYoutubeKavachUnlockTracking()
+                return poller.onSample(null, isBlockedApp = false)
+            }
 
         if (isStrictMode && FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
             FocusShieldRepository.ShieldPrefs.clearQuickUnlock(this)
         }
 
         // Normal mode honors quick unlock grace periods
-        if (!isStrictMode && FocusShieldRepository.ShieldPrefs.isInGracePeriod(this)) {
+        if (hasAppQuickUnlock(foregroundPackage)) {
+            if (foregroundPackage == YoutubeStudyV2Parser.YOUTUBE_PACKAGE &&
+                FocusShieldRepository.ShieldPrefs.quickUnlockOrigin(this) ==
+                FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH
+            ) {
+                recordYoutubeKavachUnlock()
+            } else {
+                stopYoutubeKavachUnlockTracking()
+            }
             blockOverlay.dismiss()
             lastBlockedPackage = null
-            return poller.onSample(null, isBlockedApp = false)
+            return if (youtubeKavachUnlockTracking) {
+                YOUTUBE_UNLOCK_POLL_MS
+            } else {
+                poller.onSample(null, isBlockedApp = false)
+            }
         }
+
+        stopYoutubeKavachUnlockTracking()
 
         if (foregroundPackage == packageName ||
             foregroundPackage == "com.android.settings"
@@ -315,6 +342,30 @@ class KavachAlwaysOnService : Service() {
         return poller.onSample(foregroundPackage, isBlockedApp = isBlocked)
     }
 
+    /** Every second in YouTube through a Kavach unlock is Distracting. */
+    private fun recordYoutubeKavachUnlock() {
+        youtubeKavachUnlockTracking = true
+        youtubeInsightsRepository().recordViewing(
+            channelKey = null,
+            category = YoutubeInsightsRepository.CATEGORY_DISTRACTING,
+            shorts = false,
+            source = YoutubeInsightsRepository.SOURCE_KAVACH,
+        )
+    }
+
+    private fun stopYoutubeKavachUnlockTracking() {
+        if (!youtubeKavachUnlockTracking) return
+        youtubeKavachUnlockTracking = false
+        youtubeInsightsRepository().finishViewing(YoutubeInsightsRepository.SOURCE_KAVACH)
+    }
+
+    private fun hasAppQuickUnlock(pkg: String): Boolean = allowsKavachQuickUnlock(
+        strict = isStrictMode,
+        packageUnlocked = FocusShieldRepository.ShieldPrefs.isInGracePeriodForPackage(this, pkg),
+        studyModeOrigin = FocusShieldRepository.ShieldPrefs.quickUnlockOrigin(this) ==
+            FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY,
+    )
+
     private fun enforceBackgroundBlockedApps() {
         if (blockedPackages.isEmpty()) return
         val am = getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager ?: return
@@ -322,6 +373,7 @@ class KavachAlwaysOnService : Service() {
         for (proc in runningProcesses) {
             val pkgs = proc.pkgList ?: continue
             for (pkg in pkgs) {
+                if (hasAppQuickUnlock(pkg)) continue
                 if (pkg in blockedPackages && pkg != packageName) {
                     if (proc.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE ||
                         proc.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE

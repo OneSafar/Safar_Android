@@ -151,19 +151,6 @@ fun KavachAnalyticsSection(
         }
     }
 
-    if (state.youtubeDetailOpen) {
-        ModalBottomSheet(
-            onDismissRequest = viewModel::closeYoutubeDetail,
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        ) {
-            YoutubeInsightsDetailSheet(
-                state = state,
-                isLight = isLight,
-                onSetProductive = viewModel::setYoutubeChannelProductive,
-            )
-        }
-    }
-
     activityDetail?.let { detail ->
         state.report?.let { report ->
             ModalBottomSheet(
@@ -1265,7 +1252,7 @@ private fun AppList(
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     Text(row.appLabel, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = primaryText(isLight))
                     Text(
-                        row.category.name.lowercase().replaceFirstChar { it.uppercase() },
+                        row.usageLabel(state.categoryFilter, state.scope == KavachScope.DURING_KAVACH),
                         fontSize = 11.sp,
                         color = KavachCategoryColors.of(row.category, isLight),
                     )
@@ -1452,7 +1439,10 @@ private fun AppDetailSheet(
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Usage category", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight))
+            Text(
+                if (detail.row.packageName == "com.google.android.youtube") "Category when Study Mode is off" else "Usage category",
+                fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primaryText(isLight),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(
                     AppCategory.PRODUCTIVE to "Productive",

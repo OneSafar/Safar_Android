@@ -10,7 +10,9 @@ import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.safarparmar.app.feature.youtubeinsights.YoutubeInsightsRepository
 import com.safarparmar.app.ui.ekagra.focusshield.KavachBlockOverlay
+import com.safarparmar.app.ui.ekagra.focusshield.FocusShieldRepository
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +30,8 @@ import kotlinx.coroutines.launch
 class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     @Inject lateinit var repository: YoutubeStudyV2Repository
     @Inject lateinit var preferences: YoutubeStudyV2Preferences
+    @Inject lateinit var youtubeInsightsRepository: YoutubeInsightsRepository
+    @Inject lateinit var focusShieldRepository: FocusShieldRepository
 
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -38,13 +42,62 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     private var evaluationGeneration = 0L
     private var blockOverlayVisible = false
     private var ownerMissingSinceMs: Long? = null
+    private var pendingYoutubeClickAtMs: Long? = null
+    private var analyticsOpen = false
+    private var analyticsChannelId: String? = null
+    private var analyticsCategory: String? = null
+    private var analyticsShorts = false
+    private var quickUnlockWasActive = false
 
     private val debounce = Runnable { captureFirstRead() }
     private val heartbeat = object : Runnable {
         override fun run() {
             if (preferences.enabled.value) {
                 preferences.recordAccessibilityHeartbeat()
-                handler.postDelayed(this, HEARTBEAT_MS)
+            }
+            handler.postDelayed(this, HEARTBEAT_MS)
+        }
+    }
+    private val analyticsHeartbeat = object : Runnable {
+        override fun run() {
+            handler.postDelayed(this, ANALYTICS_HEARTBEAT_MS)
+            if (!preferences.enabled.value) {
+                stopAnalytics()
+                return
+            }
+            val youtubeVisible = isYoutubeVisible()
+            val unlockActive = isYoutubeQuickUnlockActive()
+            if (quickUnlockWasActive && !unlockActive) {
+                quickUnlockWasActive = false
+                stopAnalytics()
+                lastEvaluatedKey = null
+                firstStableRead = null
+                scheduleRead(0L)
+            } else if (!youtubeVisible) {
+                stopAnalytics()
+            } else if (isKavachYoutubeUnlock()) {
+                recordAnalytics(
+                    channelId = null,
+                    category = YoutubeInsightsRepository.CATEGORY_DISTRACTING,
+                    shorts = false,
+                )
+            } else {
+                val observation = readObservation()
+                if (!observation.watchScreenConfirmed) {
+                    lastEvaluatedKey = null
+                    recordAnalytics(null, YoutubeInsightsRepository.CATEGORY_UNIDENTIFIED, false)
+                } else if (observation.watchScreenConfirmed &&
+                    observation.kind == YoutubeV2ContentKind.SHORTS
+                ) {
+                    blockShorts()
+                } else {
+                    if (lastEvaluatedKey != observation.stableKey || !analyticsOpen) {
+                        if (!analyticsOpen) recordAnalytics(null, YoutubeInsightsRepository.CATEGORY_UNIDENTIFIED, false)
+                        scheduleRead(0L)
+                    } else {
+                        heartbeatAnalytics()
+                    }
+                }
             }
         }
     }
@@ -57,29 +110,34 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         }
         handler.removeCallbacks(heartbeat)
         handler.post(heartbeat)
+        handler.removeCallbacks(analyticsHeartbeat)
+        handler.post(analyticsHeartbeat)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (!preferences.enabled.value) {
+            stopAnalytics()
             YoutubeStudyV2GuardService.stop(this)
             return
         }
-        if (event?.packageName?.toString() != YoutubeStudyV2Parser.YOUTUBE_PACKAGE) return
+        if (event?.packageName?.toString() != YoutubeStudyV2Parser.YOUTUBE_PACKAGE) {
+            stopAnalytics()
+            return
+        }
         preferences.recordAccessibilityHeartbeat()
 
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            val clickAtMs = SystemClock.elapsedRealtime()
             if (isVideoCardClick(event)) {
-                evaluationGeneration++
-                session.onVideoTap(SystemClock.elapsedRealtime())
-                firstStableRead = null
-                lastEvaluatedKey = null
-                ownerMissingSinceMs = null
-                blockOverlayVisible = false
-                overlay.dismiss()
+                beginVideoTap(clickAtMs)
                 scheduleRead(CLICK_TRANSITION_MS)
             } else {
-                // Shorts cards/tabs use different labels from normal "play video"
-                // cards. Probe quickly, but do not create a normal-video session.
+                // YouTube does not consistently label video-card clicks across
+                // devices and experiments. Arm the click, then let a confirmed
+                // watch page create the session; a feed click remains inert.
+                if (session.state == YoutubeStudyV2Session.State.BROWSING) {
+                    pendingYoutubeClickAtMs = clickAtMs
+                }
                 scheduleRead(SHORTS_PROBE_MS)
             }
             return
@@ -105,13 +163,16 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     private fun stopRuntime() {
         handler.removeCallbacks(debounce)
         handler.removeCallbacks(heartbeat)
+        handler.removeCallbacks(analyticsHeartbeat)
         evaluationGeneration++
         firstStableRead = null
         lastEvaluatedKey = null
         ownerMissingSinceMs = null
+        pendingYoutubeClickAtMs = null
         blockOverlayVisible = false
         session.onBrowsing()
         overlay.dismiss()
+        stopAnalytics()
     }
 
     private fun scheduleRead(delayMs: Long) {
@@ -120,18 +181,38 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
     }
 
     private fun captureFirstRead() {
-        if (!preferences.enabled.value) return stopRuntime()
+        if (!preferences.enabled.value || !isYoutubeVisible()) return stopAnalytics()
         val observation = readObservation()
         if (observation.kind == YoutubeV2ContentKind.SHORTS && observation.watchScreenConfirmed) {
             blockShorts()
             return
         }
+        val now = SystemClock.elapsedRealtime()
+        val pendingClick = pendingYoutubeClickAtMs
+        if (
+            observation.kind == YoutubeV2ContentKind.VIDEO &&
+            observation.watchScreenConfirmed &&
+            session.state == YoutubeStudyV2Session.State.BROWSING &&
+            pendingClick != null &&
+            now - pendingClick <= GENERIC_CLICK_TRANSITION_WINDOW_MS
+        ) {
+            beginVideoTap(pendingClick)
+        }
         if (!observation.watchScreenConfirmed) {
-            session.acceptStable(observation, SystemClock.elapsedRealtime())
+            if (isKavachYoutubeUnlock()) {
+                recordAnalytics(null, YoutubeInsightsRepository.CATEGORY_DISTRACTING, false)
+            } else {
+                recordAnalytics(null, YoutubeInsightsRepository.CATEGORY_UNIDENTIFIED, false)
+            }
+            session.acceptStable(observation, now)
             firstStableRead = null
             if (!blockOverlayVisible) overlay.dismiss()
-            if (session.state == YoutubeStudyV2Session.State.VIDEO_TAPPED) scheduleRead(DEBOUNCE_MS)
-            else lastEvaluatedKey = null
+            if (pendingClick != null && now - pendingClick <= GENERIC_CLICK_TRANSITION_WINDOW_MS) {
+                scheduleRead(DEBOUNCE_MS)
+            } else {
+                pendingYoutubeClickAtMs = null
+                lastEvaluatedKey = null
+            }
             return
         }
         if (observation.kind == YoutubeV2ContentKind.VIDEO && observation.exactHandle.isNullOrBlank()) {
@@ -165,67 +246,156 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
             return
         }
         if (!session.acceptStable(second, SystemClock.elapsedRealtime())) return
-        if (session.isAlreadyEvaluated(second.stableKey, lastEvaluatedKey)) return
+        if (session.isAlreadyEvaluated(second.stableKey, lastEvaluatedKey, analyticsOpen)) return
         lastEvaluatedKey = second.stableKey
         decide(second, generation)
     }
 
     private fun decide(observation: YoutubeV2Observation, generation: Long) {
+        android.util.Log.d("YTCM", "🔍 decide() called — handle=${observation.exactHandle} display=${observation.displayName} gen=$generation evalGen=$evaluationGeneration stableKey=${observation.stableKey} lastKey=$lastEvaluatedKey")
         scope.launch {
-            val decision = repository.decide(observation.exactHandle, observation.displayName)
-            if (generation != evaluationGeneration || observation.stableKey != lastEvaluatedKey) return@launch
+            val evaluation = repository.evaluate(observation.exactHandle, observation.displayName)
+            val decision = evaluation.decision
+            val unlockActive = isYoutubeQuickUnlockActive()
+            val measuredCategory = when {
+                isKavachYoutubeUnlock() -> YoutubeInsightsRepository.CATEGORY_DISTRACTING
+                decision == YoutubeV2RuntimeDecision.ALLOW -> YoutubeInsightsRepository.CATEGORY_PRODUCTIVE
+                unlockActive -> YoutubeInsightsRepository.CATEGORY_DISTRACTING
+                else -> null
+            }
+            android.util.Log.d("YTCM", "⚖️ decision=$decision for handle=${observation.exactHandle} | gen match=${generation == evaluationGeneration} key match=${observation.stableKey == lastEvaluatedKey}")
+            if (generation != evaluationGeneration || observation.stableKey != lastEvaluatedKey) {
+                android.util.Log.d("YTCM", "⚠️ Stale evaluation — dropping. gen=$generation evalGen=$evaluationGeneration stableKey=${observation.stableKey} lastKey=$lastEvaluatedKey")
+                return@launch
+            }
             handler.post {
-                if (decision == YoutubeV2RuntimeDecision.ALLOW) {
+                if (!preferences.enabled.value || !isYoutubeVisible() ||
+                    generation != evaluationGeneration || observation.stableKey != lastEvaluatedKey
+                ) return@post
+                if (measuredCategory != null) {
+                    android.util.Log.d("YTCM", "✅ ALLOW — no block for ${observation.exactHandle}")
                     blockOverlayVisible = false
                     overlay.dismiss()
+                    recordAnalytics(evaluation.channelId, measuredCategory, false)
                 } else {
+                    android.util.Log.d("YTCM", "🚫 BLOCK — firing block() for ${observation.exactHandle}")
                     block()
                 }
             }
-            if (decision == YoutubeV2RuntimeDecision.BLOCK) {
-                repository.registerDiscoveredHandle(observation.exactHandle)
-                    .getOrNull()
-                    ?.let { YoutubeStudyV2BlockedNotification.show(this@YoutubeStudyV2AccessibilityService, it) }
+            if (decision == YoutubeV2RuntimeDecision.BLOCK && !unlockActive) {
+                android.util.Log.d("YTCM", "📡 Calling registerDiscoveredHandle for handle=${observation.exactHandle} display=${observation.displayName}")
+                val discovered = repository.registerDiscoveredHandle(observation.exactHandle, observation.displayName).getOrNull()
+                android.util.Log.d("YTCM", "📦 registerDiscoveredHandle returned: $discovered")
+                if (discovered != null) {
+                    android.util.Log.d("YTCM", "🔔 Firing BlockedNotification for channelId=${discovered.channelId} handle=${discovered.handle} display=${discovered.displayName}")
+                    YoutubeStudyV2BlockedNotification.show(this@YoutubeStudyV2AccessibilityService, discovered)
+                } else {
+                    android.util.Log.e("YTCM", "❌ registerDiscoveredHandle returned null — notification NOT shown for handle=${observation.exactHandle} display=${observation.displayName}")
+                }
             }
         }
     }
 
     private fun block() {
+        if (blockOverlayVisible) return
+        stopAnalytics()
+        focusShieldRepository.recordBlockedHit(YoutubeStudyV2Parser.YOUTUBE_PACKAGE)
         pauseMedia()
         performGlobalAction(GLOBAL_ACTION_BACK)
         blockOverlayVisible = true
         overlay.showContent(
             title = "Channel blocked",
-            subtitle = "This channel is not in your Productive list. You can allow it in YouTube Study Mode.",
-            buttonText = "OK",
+            subtitle = "This channel is not in your Productive list. Need a quick break?",
+            buttonText = "I'll Control Myself.",
             onAction = {
                 blockOverlayVisible = false
                 overlay.dismiss()
             },
+            quickUnlockMinutes = availableQuickUnlockMinutes(),
+            blockedPackage = YoutubeStudyV2Parser.YOUTUBE_PACKAGE,
+            quickUnlockOrigin = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY,
         )
     }
 
     private fun blockShorts() {
         if (blockOverlayVisible) return
+        if (isYoutubeQuickUnlockActive()) {
+            android.util.Log.d("YTCM", "⚡ QUICK UNLOCK ACTIVE — allowing Shorts")
+            quickUnlockWasActive = true
+            recordAnalytics(null, YoutubeInsightsRepository.CATEGORY_DISTRACTING, true)
+            return
+        }
+        stopAnalytics()
+        focusShieldRepository.recordBlockedHit(YoutubeStudyV2Parser.YOUTUBE_PACKAGE)
         evaluationGeneration++
         handler.removeCallbacks(debounce)
         firstStableRead = null
         lastEvaluatedKey = null
         ownerMissingSinceMs = null
+        pendingYoutubeClickAtMs = null
         session.onBrowsing()
         pauseMedia()
         navigateToYoutubeHome()
         blockOverlayVisible = true
         overlay.showContent(
             title = "YouTube Shorts blocked",
-            subtitle = "Shorts are blocked in Study Mode.",
-            buttonText = "OK",
+            subtitle = "Shorts are blocked in Study Mode. Need a quick break?",
+            buttonText = "I'll Control Myself.",
             onAction = {
                 blockOverlayVisible = false
                 overlay.dismiss()
             },
+            quickUnlockMinutes = availableQuickUnlockMinutes(),
+            blockedPackage = YoutubeStudyV2Parser.YOUTUBE_PACKAGE,
+            quickUnlockOrigin = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY,
         )
     }
+
+    private fun isYoutubeQuickUnlockActive(): Boolean =
+        FocusShieldRepository.ShieldPrefs.isInGracePeriodForPackage(
+            this,
+            YoutubeStudyV2Parser.YOUTUBE_PACKAGE,
+        )
+
+    private fun isKavachYoutubeUnlock(): Boolean =
+        isYoutubeQuickUnlockActive() &&
+            FocusShieldRepository.ShieldPrefs.quickUnlockOrigin(this) ==
+            FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH
+
+    private fun availableQuickUnlockMinutes(): List<Int> =
+        if (FocusShieldRepository.ShieldPrefs.isActive(this) &&
+            FocusShieldRepository.ShieldPrefs.isStrict(this)
+        ) emptyList() else listOf(5, 10, 15, 20)
+
+    private fun recordAnalytics(channelId: String?, category: String, shorts: Boolean) {
+        analyticsOpen = true
+        analyticsChannelId = channelId
+        analyticsCategory = category
+        analyticsShorts = shorts
+        quickUnlockWasActive = isYoutubeQuickUnlockActive()
+        youtubeInsightsRepository.recordViewing(channelId, category, shorts)
+    }
+
+    private fun heartbeatAnalytics() {
+        if (!analyticsOpen) return
+        val category = analyticsCategory ?: return
+        youtubeInsightsRepository.recordViewing(analyticsChannelId, category, analyticsShorts)
+    }
+
+    private fun stopAnalytics() {
+        lastEvaluatedKey = null
+        if (!analyticsOpen) return
+        analyticsOpen = false
+        analyticsChannelId = null
+        analyticsCategory = null
+        analyticsShorts = false
+        youtubeInsightsRepository.finishViewing()
+    }
+
+    private fun isYoutubeVisible(): Boolean =
+        getSystemService(android.os.PowerManager::class.java).isInteractive &&
+            !getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked &&
+            rootInActiveWindow?.packageName?.toString() == YoutubeStudyV2Parser.YOUTUBE_PACKAGE
 
     /** Prefer YouTube's Home tab; Back is the safe fallback for direct/deep links. */
     private fun navigateToYoutubeHome() {
@@ -319,6 +489,18 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun beginVideoTap(clickAtMs: Long) {
+        recordAnalytics(null, YoutubeInsightsRepository.CATEGORY_UNIDENTIFIED, false)
+        evaluationGeneration++
+        session.onVideoTap(clickAtMs)
+        pendingYoutubeClickAtMs = null
+        firstStableRead = null
+        lastEvaluatedKey = null
+        ownerMissingSinceMs = null
+        blockOverlayVisible = false
+        overlay.dismiss()
+    }
+
     companion object {
         private const val DEBOUNCE_MS = 250L
         private const val STABILITY_GAP_MS = 200L
@@ -326,7 +508,9 @@ class YoutubeStudyV2AccessibilityService : AccessibilityService() {
         private const val SHORTS_PROBE_MS = 80L
         private const val OWNER_EVIDENCE_RETRY_MS = 150L
         private const val OWNER_EVIDENCE_WAIT_MS = 3_000L
+        private const val GENERIC_CLICK_TRANSITION_WINDOW_MS = 2_500L
         private const val HEARTBEAT_MS = 30_000L
+        private const val ANALYTICS_HEARTBEAT_MS = 2_000L
         private const val CLICK_PARENT_DEPTH = 5
         private const val MAX_NODES = 900
     }

@@ -10,6 +10,9 @@ import com.safarparmar.app.feature.kavachanalytics.data.local.YoutubeViewingInte
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -29,6 +32,16 @@ class YoutubeInsightsRepository @Inject constructor(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mutex = Mutex()
+    private val trackingEvents = Channel<suspend () -> Unit>(Channel.UNLIMITED)
+    init {
+        scope.launch {
+            for (event in trackingEvents) {
+                runCatching { event() }.onFailure {
+                    android.util.Log.e("YoutubeAnalytics", "Could not record viewing interval", it)
+                }
+            }
+        }
+    }
     private val zone: ZoneId get() = ZoneId.systemDefault()
 
     val enabled: StateFlow<Boolean> = dataStore.youtubeInsightsEnabled
@@ -40,9 +53,41 @@ class YoutubeInsightsRepository @Inject constructor(
         val channelKey: String?,
         val category: String,
         val shorts: Boolean,
+        val source: String,
     )
     private var open: Open? = null
     private var lastPersistedHeartbeatMs = 0L
+
+    /** One ordered queue for both services; leaving one cannot close the other's interval. */
+    fun recordViewing(channelKey: String?, category: String, shorts: Boolean, source: String = SOURCE_STUDY) {
+        val atMs = System.currentTimeMillis()
+        trackingEvents.trySend { observeViewing(channelKey, category, shorts, atMs, source) }
+    }
+
+    fun finishViewing(source: String = SOURCE_STUDY) {
+        val atMs = System.currentTimeMillis()
+        trackingEvents.trySend { stopViewing(atMs, source) }
+    }
+
+    suspend fun flushTracking() {
+        val done = CompletableDeferred<Unit>()
+        trackingEvents.send {
+            try {
+                mutex.withLock {
+                    val current = open
+                    if (current != null) {
+                        closeLocked(current.heartbeatAtMs)
+                        open = current.copy(startedAtMs = current.heartbeatAtMs)
+                        persistOpenLocked(open!!, force = true)
+                    }
+                }
+                done.complete(Unit)
+            } catch (error: Exception) {
+                done.completeExceptionally(error)
+            }
+        }
+        done.await()
+    }
 
     /** Finalises a process-killed interval only up to its last durable heartbeat. */
     suspend fun recoverStaleInterval() = mutex.withLock {
@@ -59,6 +104,45 @@ class YoutubeInsightsRepository @Inject constructor(
     }
 
     suspend fun channels(): List<YoutubeChannelEntity> = dao.youtubeChannels()
+
+    /**
+     * Starts or heartbeats the single YouTube activity currently visible. A changed
+     * channel/category closes the previous interval first, so time can belong to
+     * exactly one Kavach bucket.
+     */
+    suspend fun observeViewing(
+        channelKey: String?,
+        category: String,
+        shorts: Boolean,
+        nowMs: Long = System.currentTimeMillis(),
+        source: String = SOURCE_STUDY,
+    ) = mutex.withLock {
+        val safeCategory = category.takeIf {
+            it == CATEGORY_PRODUCTIVE || it == CATEGORY_DISTRACTING ||
+                it == CATEGORY_SHORTS || it == CATEGORY_UNIDENTIFIED
+        } ?: CATEGORY_UNIDENTIFIED
+        val current = open
+        if (current?.source == SOURCE_KAVACH && source != SOURCE_KAVACH) return@withLock
+        if (current != null && current.channelKey == channelKey &&
+            current.category == safeCategory && current.shorts == shorts && current.source == source &&
+            nowMs - current.heartbeatAtMs <= HEARTBEAT_GRACE_MS
+        ) {
+            current.heartbeatAtMs = nowMs
+            persistOpenLocked(current)
+            return@withLock
+        }
+        closeLocked(nowMs)
+        Open(nowMs, nowMs, channelKey, safeCategory, shorts, source).also {
+            open = it
+            persistOpenLocked(it, force = true)
+        }
+    }
+
+    /** Closes measured YouTube activity as soon as YouTube is no longer visible. */
+    suspend fun stopViewing(nowMs: Long = System.currentTimeMillis(), source: String = SOURCE_STUDY) = mutex.withLock {
+        if (open?.source != source) return@withLock
+        closeLocked(nowMs)
+    }
 
     suspend fun channel(channelKey: String): YoutubeChannelEntity? = dao.youtubeChannel(channelKey)
 
@@ -168,29 +252,12 @@ class YoutubeInsightsRepository @Inject constructor(
         )
     }
 
-    /** Assigns any YouTube time Accessibility could not classify to Unidentified. */
-    suspend fun reconcileUsageStats(
-        localDate: String,
-        allDayYoutubeSeconds: Int,
-        protectedYoutubeSeconds: Int,
-    ) {
+    /** Rebuild observed content without inventing a category for off-mode time. */
+    suspend fun reconcileUsageStats(localDate: String) = mutex.withLock {
         aggregateDate(localDate)
-        val row = dao.youtubeAggregatesBetween(localDate, localDate).firstOrNull() ?: return
-        val classified = row.productiveSeconds + row.distractingSeconds + row.shortsSeconds
-        val protectedClassified = row.protectedProductiveSeconds +
-            row.protectedDistractingSeconds + row.protectedShortsSeconds
-        dao.upsertYoutubeDailyAggregate(
-            row.copy(
-                unidentifiedSeconds = maxOf(row.unidentifiedSeconds, allDayYoutubeSeconds - classified),
-                protectedUnidentifiedSeconds = maxOf(
-                    row.protectedUnidentifiedSeconds,
-                    protectedYoutubeSeconds - protectedClassified,
-                ),
-                coverage = if (allDayYoutubeSeconds > classified + row.unidentifiedSeconds) "partial" else row.coverage,
-                updatedAtMs = System.currentTimeMillis(),
-                synced = false,
-            ),
-        )
+        // Only observed Study Mode / Quick Unlock intervals override the app's
+        // category. Unobserved time is NOT invented as Others: it may be time
+        // when Study Mode was off. Browsing is explicitly recorded as Others.
     }
 
     suspend fun totals(startDate: String, endDate: String): Pair<YoutubeTotals, List<YoutubeDailyAggregateEntity>> {
@@ -265,6 +332,8 @@ class YoutubeInsightsRepository @Inject constructor(
     }
 
     companion object {
+        const val SOURCE_STUDY = "study"
+        const val SOURCE_KAVACH = "kavach_unlock"
         val STARTER_CHANNELS = listOf(
             "Physics Wallah",
             "Unacademy",

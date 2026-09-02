@@ -18,15 +18,18 @@ class YoutubeStudyV2ScreenLogicTest {
 
     @Test
     fun `available filters separate productive and distracting channels`() {
-        val allowed = setOf("maths")
+        val classifications = mapOf(
+            "maths" to YoutubeChannelClassification.PRODUCTIVE,
+            "news" to YoutubeChannelClassification.DISTRACTING,
+        )
 
         assertEquals(
             listOf("maths"),
-            filterAvailableChannels(channels, allowed, AvailableChannelFilter.PRODUCTIVE).map { it.channelId },
+            filterAvailableChannels(channels, classifications, AvailableChannelFilter.PRODUCTIVE).map { it.channelId },
         )
         assertEquals(
-            listOf("parmar", "safar", "news"),
-            filterAvailableChannels(channels, allowed, AvailableChannelFilter.DISTRACTING).map { it.channelId },
+            listOf("news"),
+            filterAvailableChannels(channels, classifications, AvailableChannelFilter.DISTRACTING).map { it.channelId },
         )
     }
 
@@ -34,7 +37,10 @@ class YoutubeStudyV2ScreenLogicTest {
     fun `productive filter includes productive starter channels`() {
         val filtered = filterAvailableChannels(
             channels,
-            setOf("parmar", "safar"),
+            mapOf(
+                "parmar" to YoutubeChannelClassification.PRODUCTIVE,
+                "safar" to YoutubeChannelClassification.PRODUCTIVE,
+            ),
             AvailableChannelFilter.PRODUCTIVE,
         )
 

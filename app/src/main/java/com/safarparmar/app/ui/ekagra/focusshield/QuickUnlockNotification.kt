@@ -17,7 +17,13 @@ import kotlin.math.ceil
 object QuickUnlockNotification {
     private const val NOTIFICATION_ID = 1005
 
-    fun show(context: Context, graceUntilMs: Long, minutes: Int = 0, userName: String? = null) {
+    fun show(
+        context: Context,
+        graceUntilMs: Long,
+        minutes: Int = 0,
+        userName: String? = null,
+        origin: String = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH,
+    ) {
         val remainingMs = (graceUntilMs - System.currentTimeMillis()).coerceAtLeast(0L)
         if (remainingMs <= 0L) {
             cancel(context)
@@ -38,11 +44,19 @@ object QuickUnlockNotification {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val isYoutubeStudyUnlock =
+            origin == FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_YOUTUBE_STUDY
         val notification = NotificationCompat.Builder(context, SafarNotificationChannels.FOCUS_SHIELD_STATUS)
             .setSmallIcon(SafarNotificationManager.SafarNotificationStyle.smallIconRes(context))
             .setColor(SafarNotificationManager.SafarNotificationStyle.brandColor(context))
-            .setContentTitle("KAVACH Quick Unlock Active")
-            .setContentText("Unlocked for $displayMins min. KAVACH will re-block when timer ends.")
+            .setContentTitle(if (isYoutubeStudyUnlock) "YouTube Quick Unlock Active" else "KAVACH Quick Unlock Active")
+            .setContentText(
+                if (isYoutubeStudyUnlock) {
+                    "YouTube is unlocked for $displayMins min. Study Mode will block it again when time ends."
+                } else {
+                    "Unlocked for $displayMins min. KAVACH will re-block when timer ends."
+                },
+            )
             .setContentIntent(contentIntent)
             .setOngoing(true)
             .setAutoCancel(false)

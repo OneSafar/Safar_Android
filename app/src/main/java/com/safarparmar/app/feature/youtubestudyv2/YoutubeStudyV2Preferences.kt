@@ -14,7 +14,7 @@ class YoutubeStudyV2Preferences @Inject constructor(
     private val preferences = context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
     private val _enabled = MutableStateFlow(preferences.getBoolean(KEY_ENABLED, false))
     val enabled: StateFlow<Boolean> = _enabled
-    private val _setupStep = MutableStateFlow(preferences.getInt(KEY_SETUP_STEP, 1).coerceIn(1, 3))
+    private val _setupStep = MutableStateFlow(preferences.getInt(KEY_SETUP_STEP, 1).coerceIn(1, 2))
     val setupStep: StateFlow<Int> = _setupStep
     private val _setupCompleted = MutableStateFlow(preferences.getBoolean(KEY_SETUP_COMPLETED, false))
     val setupCompleted: StateFlow<Boolean> = _setupCompleted
@@ -37,17 +37,17 @@ class YoutubeStudyV2Preferences @Inject constructor(
     fun isDisclosureAccepted(): Boolean = preferences.getBoolean(KEY_DISCLOSURE_ACCEPTED, false)
 
     fun setSetupStep(step: Int) {
-        val safeStep = step.coerceIn(1, 3)
+        val safeStep = step.coerceIn(1, 2)
         preferences.edit().putInt(KEY_SETUP_STEP, safeStep).apply()
         _setupStep.value = safeStep
     }
 
     fun completeSetup() {
         preferences.edit()
-            .putInt(KEY_SETUP_STEP, 3)
+            .putInt(KEY_SETUP_STEP, 2)
             .putBoolean(KEY_SETUP_COMPLETED, true)
             .apply()
-        _setupStep.value = 3
+        _setupStep.value = 2
         _setupCompleted.value = true
     }
 

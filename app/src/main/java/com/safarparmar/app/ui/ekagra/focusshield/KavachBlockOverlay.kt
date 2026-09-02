@@ -62,6 +62,7 @@ class KavachBlockOverlay(
     private val stateLock = Any()
     private var content = OverlayContent("This app is blocked", "KAVACH is protecting your focus.", "I'll Control Myself.", { goHome() }, emptyList())
     private var currentBlockedPackage: String? = null
+    private var currentQuickUnlockOrigin: String = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH
 
     // ── Public API ─────────────────────────────────────────────────────
 
@@ -85,14 +86,26 @@ class KavachBlockOverlay(
             buttonText = "I'll Control Myself.",
             onAction = ::goHome,
             quickUnlockMinutes = if (allowQuickUnlock) listOf(5, 10, 15, 20) else emptyList(),
+            blockedPackage = blockedPackage,
+            quickUnlockOrigin = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH,
         )
     }
 
-    fun showContent(title: String, subtitle: String, buttonText: String, onAction: () -> Unit, quickUnlockMinutes: List<Int> = emptyList()) {
+    fun showContent(
+        title: String,
+        subtitle: String,
+        buttonText: String,
+        onAction: () -> Unit,
+        quickUnlockMinutes: List<Int> = emptyList(),
+        blockedPackage: String? = null,
+        quickUnlockOrigin: String = FocusShieldRepository.ShieldPrefs.QUICK_UNLOCK_ORIGIN_KAVACH,
+    ) {
         synchronized(stateLock) {
             if (isShowing) return
             if (!accessibilityOverlay && !FocusShieldPermissionHelper.hasOverlayPermission(context)) return
             content = OverlayContent(title, subtitle, buttonText, onAction, quickUnlockMinutes)
+            currentBlockedPackage = blockedPackage
+            currentQuickUnlockOrigin = quickUnlockOrigin
             isShowing = true
         }
         mainHandler.post { showInternal() }
@@ -297,7 +310,13 @@ class KavachBlockOverlay(
                     isFocusable = true
                     setOnClickListener {
                         val graceUntilMs = System.currentTimeMillis() + (minutes * 60 * 1000L)
-                        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(context, graceUntilMs, minutes)
+                        FocusShieldRepository.ShieldPrefs.applyEmergencyUnlock(
+                            context,
+                            graceUntilMs,
+                            minutes,
+                            packageName = currentBlockedPackage,
+                            origin = currentQuickUnlockOrigin,
+                        )
                         runCatching {
                             val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
                                 context.applicationContext, FocusShieldEntryPoint::class.java)

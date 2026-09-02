@@ -39,8 +39,8 @@ class YoutubeStudyV2Session {
         return true
     }
 
-    fun isAlreadyEvaluated(key: String, lastEvaluatedKey: String?): Boolean =
-        state == State.MONITORING && key == lastEvaluatedKey
+    fun isAlreadyEvaluated(key: String, lastEvaluatedKey: String?, trackingActive: Boolean = true): Boolean =
+        trackingActive && state == State.MONITORING && key == lastEvaluatedKey
 
     companion object { const val TAP_MAX_AGE_MS = 10_000L }
 }

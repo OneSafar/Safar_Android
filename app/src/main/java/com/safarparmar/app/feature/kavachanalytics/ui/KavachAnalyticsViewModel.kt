@@ -157,7 +157,10 @@ data class KavachAnalyticsUiState(
         get() {
             val query = searchQuery.trim().lowercase()
             return report?.apps.orEmpty()
-                .filter { categoryFilter.matches(it.category) }
+                .filter {
+                    secondsOf(it) > 0 ||
+                        (categoryFilter == KavachCategoryFilter.ALL && it.blockedAttempts > 0)
+                }
                 .filter { query.isEmpty() || it.appLabel.lowercase().contains(query) }
                 .filter { secondsOf(it) > 0 || it.blockedAttempts > 0 }
                 // Uncategorised first inside Others: those are the rows whose time is
@@ -199,7 +202,7 @@ data class KavachAnalyticsUiState(
         }
 
     fun secondsOf(row: AppUsageRow): Int =
-        if (scope == KavachScope.ALL_DAY) row.allDaySeconds else row.kavachSeconds
+        row.secondsFor(categoryFilter, scope == KavachScope.DURING_KAVACH)
 }
 
 @HiltViewModel
@@ -248,10 +251,6 @@ class KavachAnalyticsViewModel @Inject constructor(
     // ── App detail ───────────────────────────────────────────────────────────
 
     fun openAppDetail(row: AppUsageRow) {
-        if (row.packageName == com.safarparmar.app.feature.youtubestudyv2.YoutubeStudyV2Parser.YOUTUBE_PACKAGE) {
-            // YouTube content analytics now has a dedicated Study Mode destination.
-            return
-        }
         val state = _uiState.value
         val perDay = state.report?.trend.orEmpty().map { it.localDate to 0 }
         viewModelScope.launch {

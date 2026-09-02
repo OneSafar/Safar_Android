@@ -19,7 +19,7 @@ object YoutubeStudyV2Module {
     @Singleton
     fun database(@ApplicationContext context: Context): YoutubeStudyV2Database = Room
         .databaseBuilder(context, YoutubeStudyV2Database::class.java, YoutubeStudyV2Database.NAME)
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
         .fallbackToDestructiveMigration()
         .build()
 
@@ -86,6 +86,26 @@ object YoutubeStudyV2Module {
             )
             db.execSQL("DROP TABLE youtube_v2_identity")
             db.execSQL("ALTER TABLE youtube_v2_identity_new RENAME TO youtube_v2_identity")
+        }
+    }
+
+    private val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS youtube_v2_classification (
+                    channelId TEXT NOT NULL PRIMARY KEY,
+                    classification TEXT NOT NULL,
+                    updatedAtMs INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                INSERT OR REPLACE INTO youtube_v2_classification (channelId, classification, updatedAtMs)
+                SELECT channelId, 'productive', addedAtMs FROM youtube_v2_allowlist
+                """.trimIndent(),
+            )
         }
     }
 

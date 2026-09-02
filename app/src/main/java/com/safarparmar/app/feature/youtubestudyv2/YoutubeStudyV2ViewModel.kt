@@ -18,6 +18,7 @@ data class YoutubeStudyV2UiState(
     val reference: String = "",
     val resolving: Boolean = false,
     val allowed: List<YoutubeV2IdentityEntity> = emptyList(),
+    val classifications: Map<String, YoutubeChannelClassification> = emptyMap(),
     val available: List<ResolvedYoutubeChannelDto> = emptyList(),
     val availableExpanded: Boolean = false,
     val loadingAvailable: Boolean = false,
@@ -46,18 +47,33 @@ class YoutubeStudyV2ViewModel @Inject constructor(
     ) { enabled, step, completed ->
         SetupState(enabled, step, completed)
     }
-    val state = combine(local, setup, repository.allowedChannels) { ui, setupState, allowed ->
+    private val starterChannels = listOf(
+        ResolvedYoutubeChannelDto("starter:parmarssc", "@parmarssc", "SAFAR Parmar"),
+        ResolvedYoutubeChannelDto("starter:safarparmar", "@safarparmar", "Safar"),
+    )
+
+    val state = combine(local, setup, repository.allowedChannels, repository.visitedChannels, repository.classifications) { ui, setupState, allowed, visited, classifications ->
+        val localList = visited.map { entity ->
+            ResolvedYoutubeChannelDto(
+                channelId = entity.channelId,
+                handle = entity.handle,
+                displayName = entity.displayName,
+                thumbnailUrl = entity.thumbnailUrl,
+            )
+        }
+        val mergedAvailable = (localList + starterChannels).distinctBy { it.handle.lowercase() }
         ui.copy(
             enabled = setupState.enabled,
             setupStep = setupState.step,
             setupCompleted = setupState.completed,
             allowed = allowed,
+            available = mergedAvailable,
+            classifications = classifications.associate { it.channelId to YoutubeChannelClassification.fromWire(it.classification) },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), YoutubeStudyV2UiState())
 
     init {
         refreshPermission()
-        loadAvailable()
     }
 
     fun setReference(value: String) { local.value = local.value.copy(reference = value, message = null) }
@@ -73,14 +89,12 @@ class YoutubeStudyV2ViewModel @Inject constructor(
         preferences.acceptDisclosure()
     }
 
-    fun continueToReview() {
-        if (state.value.allowed.isNotEmpty()) {
-            preferences.setSetupStep(3)
-        }
+    fun goToStep2() {
+        preferences.setSetupStep(2)
     }
 
-    fun returnToChannelSelection() {
-        preferences.setSetupStep(2)
+    fun returnToStep1() {
+        preferences.setSetupStep(1)
     }
 
     fun finishSetup() {
@@ -160,6 +174,22 @@ class YoutubeStudyV2ViewModel @Inject constructor(
 
     fun setProductive(channelId: String, productive: Boolean) {
         viewModelScope.launch { repository.setProductive(channelId, productive) }
+    }
+
+    fun setClassification(channelId: String, classification: YoutubeChannelClassification) {
+        viewModelScope.launch { repository.setClassification(channelId, classification) }
+    }
+
+    fun setAvailableClassification(channel: ResolvedYoutubeChannelDto, classification: YoutubeChannelClassification) {
+        viewModelScope.launch {
+            repository.setAvailableClassification(channel, classification)
+        }
+    }
+
+    fun deleteChannel(channelId: String) {
+        viewModelScope.launch {
+            repository.deleteChannel(channelId)
+        }
     }
 
     fun refreshPermission() {
